@@ -198,7 +198,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:4, home:"VIE", maxAltFt:60000, units:"metric", sound:false, pace:1.15, refreshS:10, logos:true, demo:false};
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, pace:1.15, refreshS:10, logos:true, demo:false};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -385,7 +385,7 @@ function tile(f, value){
   let code = "", text = value;
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
-  const L = code ? logo(code) : null, logoOk = !!(L && L.state === "ok");
+  const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
   const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : {};
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}`;
   let cv = tiles.get(key);
@@ -399,17 +399,27 @@ function tile(f, value){
   grad.addColorStop(0, body[0]); grad.addColorStop(.5, body[1]); grad.addColorStop(.5, body[2]); grad.addColorStop(1, body[3]);
   g.fillStyle = grad; rr(g, 0, 0, w, h, r); g.fill();
   let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : COL.ink);
+  // "-" means the flight has no airline code (private, military, unlisted): show a plain aircraft mark.
+  // A known airline without a logo shows its two-letter code instead.
   if (isLogo) {
     if (logoOk) drawLogo(g, L, w * .1, h * .14, w * .8, h * .72);
+    else if (code === "-") drawPlane(g, w / 2, h / 2, h * .72, COL.muted);
     else if (code) { text = code; fg = COL.amber; }
   }
-  if (isAirline && logoOk) {                 // small logo badge printed on the left of the airline flap
+  if (isAirline && S.logos && code) {        // small logo badge printed on the left of the airline flap
     const bh = Math.round(h * .64), bw = Math.round(bh * 2.3), bx = Math.round(h * .22), by = Math.round((h - bh) / 2);
     const bg2 = g.createLinearGradient(0, by, 0, by + bh);
-    bg2.addColorStop(0, IVORY[0]); bg2.addColorStop(1, IVORY[3]);
+    if (logoOk) { bg2.addColorStop(0, IVORY[0]); bg2.addColorStop(1, IVORY[3]); }
+    else { bg2.addColorStop(0, "#34363a"); bg2.addColorStop(1, "#2a2b2f"); }
     g.fillStyle = bg2; rr(g, bx, by, bw, bh, bh * .12); g.fill();
-    drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76);
+    if (logoOk) drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76);
+    else if (code === "-") drawPlane(g, bx + bw / 2, by + bh / 2, bh * .9, COL.muted);
+    else {
+      g.save(); g.font = `700 ${Math.round(bh * .62)}px ${FONT}`; g.fillStyle = COL.amber; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(code, bx + bw / 2, by + bh / 2 + bh * .04); g.restore();
+    }
     ax = bx + bw; aw = w - ax;
+    if (!text && code === "-") text = "NO AIRLINE LISTED";
   }
   if (text && text !== " ") {
     const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
@@ -531,15 +541,18 @@ function label(g, f, main, second){
   if (second) { const w = g.measureText(main.toUpperCase()).width; g.fillStyle = COL.labelEn; g.fillText(second.toUpperCase(), f.x + w + 12, yb); }
   if ("letterSpacing" in g) g.letterSpacing = "0px";
 }
-function pictogram(g, x, y, s){
+function drawPlane(g, cx, cy, size, color){
   g.save();
-  g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
-  g.translate(x + s / 2, y + s / 2); g.rotate(Math.PI / 4); g.scale(s / 118, s / 118); g.translate(-50, -50);
-  g.fillStyle = COL.housing;
+  g.translate(cx, cy); g.rotate(Math.PI / 4); g.scale(size / 100, size / 100); g.translate(-50, -50);
+  g.fillStyle = color;
   rr(g, 45.5, 8, 9, 82, 4.5); g.fill();
   g.beginPath(); g.moveTo(50, 34); g.lineTo(92, 56); g.lineTo(92, 63); g.lineTo(50, 52); g.lineTo(8, 63); g.lineTo(8, 56); g.closePath(); g.fill();
   g.beginPath(); g.moveTo(50, 76); g.lineTo(67, 86); g.lineTo(67, 91); g.lineTo(50, 87); g.lineTo(33, 91); g.lineTo(33, 86); g.closePath(); g.fill();
   g.restore();
+}
+function pictogram(g, x, y, s){
+  g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
+  drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
 }
 function drawStatic(){
   const g = bgx;
@@ -800,7 +813,7 @@ const DEMO = [
 ];
 const DEMO_CYCLE = 60000, DEMO_FLY = 40000, DEMO_KMS = .25;
 function demoAircraft(){
-  const T = Date.now(), d = DEMO[Math.floor(T / DEMO_CYCLE) % DEMO.length], t = T % DEMO_CYCLE;
+  const T = Date.now(), d = DEMO[Math.floor(T / DEMO_CYCLE) % 5], t = T % DEMO_CYCLE;   // the 5 flying samples; the 6th is the distant extra
   const kx = 111.32 * Math.cos(S.lat * Math.PI / 180);
   const out = [];
   if (t <= DEMO_FLY) {
@@ -897,13 +910,13 @@ function logSighting(h){
   const e = {time: hhmm(), ts: now, hex: h.hex}; fillEntry(e, h.info);
   spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
   h.entry = e; h.logged = true; saveLog(); renderList(); updateFooter();
-  dlog("info", `Added ${e.flight || h.hex} to Spotted today (${h.o.dist.toFixed(1)} km away, inside the ${+S.radiusKm || 4} km radius)`);
+  dlog("info", `Added ${e.flight || h.hex} to Spotted today (${h.o.dist.toFixed(1)} km away, inside the ${+S.radiusKm || 15} km radius)`);
 }
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
 let emptyStreak = 0, lastCount = 0;
 function process(list){
-  const now = Date.now(), R = +S.radiusKm || 4, all = [];
+  const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
@@ -969,7 +982,7 @@ function renderFeatured(){
   const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac);
   setChars("flight", info.flightNo);
   const aCode = airlineCodeOf(info), aName = trimTo(shortAirline(info.airline), 18);
-  setWord("airline", aCode || aName ? aCode + "|" + aName : "");
+  setWord("airline", (aCode || "-") + "|" + aName);
   setWord("remarks", MODE_REMARK[feat.mode]);
   setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
   setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
@@ -988,7 +1001,7 @@ function renderList(){
   for (let i = 0; i < LIST_ROWS; i++) {
     const e = spotted[i], d = i * 150;
     setChars(`l${i}time`, e ? e.time : "", d);
-    setWord(`l${i}logo`, e ? airlineCodeOf(e) : "", d + 30);
+    setWord(`l${i}logo`, e ? airlineCodeOf(e) || "-" : "", d + 30);
     setChars(`l${i}flight`, e ? e.flight : "", d + 60);
     setChars(`l${i}from`, e && e.from ? e.from.city || e.from.code : "", d + 120);
     setChars(`l${i}to`, e && e.to ? e.to.city || e.to.code : "", d + 180);
@@ -1001,6 +1014,7 @@ function tickClock(){ setChars("clock", hhmm()); rollDay(); updateFooter(); }
 /* ---------- footer, panel ---------- */
 function updateFooter(){
   const dot = $("dot"), txt = $("statusText");
+  dot.dataset.state = ""; txt.textContent = "Connecting…";
   if (S.demo) { dot.dataset.state = "demo"; txt.textContent = "Demo mode · sample flights, not live data"; }
   else if (isOffline()) { dot.dataset.state = "off"; txt.textContent = relay() ? "No flight data for over a minute · retrying · press D for details" : "No flight data here · open the board through your home relay"; }
   else if (!lastOk && failures) { dot.dataset.state = "warn"; txt.textContent = `Waiting for flight data · ${failures} failed attempt${failures > 1 ? "s" : ""} · press D for details`; }
@@ -1009,6 +1023,7 @@ function updateFooter(){
     dot.dataset.state = failures || stale ? "warn" : "live";
     txt.textContent = `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`;
   }
+  if (S.sound && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
 function renderLog(){
@@ -1038,7 +1053,7 @@ $("btnSave").onclick = () => {
     place: $("fPlace").value.trim() || DEFAULTS.place,
     lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
-    radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 4)),
+    radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 15)),
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
     sound: $("fSound").checked, logos: $("fLogos").checked, pace: +$("fPace").value || 1.15, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
@@ -1061,7 +1076,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 const clockStr = t => new Date(t).toLocaleTimeString("en-GB");
 function agoStr(t){ const s = Math.round((Date.now() - t) / 1000); return s < 3 ? "just now" : s < 120 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; }
 function diagRows(){
-  const R = +S.radiusKm || 4, polls = DIAG.polls.slice(-30), good = polls.filter(p => p.ok);
+  const R = +S.radiusKm || 15, polls = DIAG.polls.slice(-30), good = polls.filter(p => p.ok);
   const avg = good.length ? Math.round(good.reduce((a, p) => a + p.ms, 0) / good.length) : 0;
   const state = S.demo ? ["Demo mode", "meh"] : isOffline() ? ["Offline", "bad"] : failures ? [`Retrying (${failures} failed in a row)`, "meh"] : lastOk ? ["Live", "good"] : ["Starting", "meh"];
   const conn = S.demo ? "Demo data, no network" : relay() ? `Home relay at ${relay().replace(/^https?:\/\//, "")}${relayLegacy ? " (older version, please update)" : ""}` : "Direct, no relay: the position services will block this";
@@ -1182,7 +1197,7 @@ async function start(){
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
   renderList(); updateFooter(); keepAwake();
-  dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 4} km`);
+  dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);
 }

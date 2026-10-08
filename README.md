@@ -16,13 +16,13 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 |-----------|--------------|---------|
 | `lat`, `lon` | Spot to watch over | `lat=48.2085&lon=16.3731` |
 | `place` | Name printed under the title | `place=Vienna` |
-| `radius` | Overhead radius in km (default 4) | `radius=3` |
+| `radius` | Overhead radius in km (default 15) | `radius=8` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
 | `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
 | `pace` | Flap speed, 1 is original, higher is slower (default 1.15) | `pace=1.3` |
-| `sound` | Flap sound on (`1`) or off (`0`) | `sound=1` |
+| `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
@@ -37,13 +37,15 @@ values you changed are kept, so new defaults from the relay still reach that scr
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
-- Sound starts after the first click or key press (browsers block it until then).
+- Flap sound is on by default but starts after the first click or key press (browsers block it until then);
+  the status line reminds you. Turn it off in Settings, with `?sound=0`, or with the relay's `--mute`.
 
 ## Data
 
 - Live aircraft positions: [adsb.lol](https://adsb.lol), with [airplanes.live](https://airplanes.live) as a fallback.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
-- Airline logos: the public airline logo service from Aviasales.
+- Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
+  code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
 
 The position services don't let browsers on other websites read their data, and they turn away
 requests from cloud servers. So the live data has to come through a small relay running on a computer
@@ -61,12 +63,12 @@ or newer and nothing else.
 winget install Python.Python.3.13          # skip if `py --version` already works
 mkdir $HOME\overhead-relay; cd $HOME\overhead-relay
 curl.exe -O https://raw.githubusercontent.com/Belstria/overhead-board/main/relay/serve.py
-py serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound --save
+py serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 ```
 
 `--save` stores your settings in `overhead.json` next to the script (it never goes into this repository),
 so from then on `py serve.py` on its own starts the relay with your location. Anything you pass on the
-command line still wins over the saved file. Other relay options: `--units aviation`, `--radius 5`,
+command line still wins over the saved file. Other relay options: `--units aviation`, `--radius 8`, `--mute`,
 `--home VIE`, `--port 8080`.
 
 When Windows Firewall asks, allow Python on **private** networks so other screens at home can reach it.
@@ -74,7 +76,7 @@ When Windows Firewall asks, allow Python on **private** networks so other screen
 **Linux / homelab**
 
 ```bash
-python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
+python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 ```
 
 Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV, tablet or phone.

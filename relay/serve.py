@@ -5,7 +5,7 @@ Serves the board and fetches live aircraft positions from your home connection.
 The public ADS-B services don't let browsers on other websites read their data and
 turn away cloud servers, so the requests need to come from a machine in your home.
 
-Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
+Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at home)
 
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
@@ -197,8 +197,8 @@ def board_html():
         "lat": ARGS.lat, "lon": ARGS.lon, "place": ARGS.place,
         "home": ARGS.home, "radiusKm": ARGS.radius, "units": ARGS.units,
     }.items() if v is not None}
-    if ARGS.sound:
-        defaults["sound"] = True
+    if ARGS.sound is not None:
+        defaults["sound"] = bool(ARGS.sound)
     config = json.dumps(defaults).replace("<", "\\u003c")
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};</script>")
@@ -273,9 +273,10 @@ def main():
     p.add_argument("--lon", type=float, help="longitude of the spot to watch")
     p.add_argument("--place", help="name printed under the title")
     p.add_argument("--home", help="home airport IATA code (default VIE)")
-    p.add_argument("--radius", type=float, help="overhead radius in km (default 4)")
+    p.add_argument("--radius", type=float, help="overhead radius in km (default 15)")
     p.add_argument("--units", choices=["metric", "aviation"], help="metric (metres, km/h; the default) or aviation (feet, knots)")
-    p.add_argument("--sound", action="store_true", default=None, help="flap sound on by default")
+    p.add_argument("--sound", action="store_true", default=None, help="flap sound on (the default)")
+    p.add_argument("--mute", action="store_true", help="flap sound off by default")
     p.add_argument("--save", action="store_true", help=f"remember these settings in {CONFIG_FILE.name}, so next time `serve.py` alone is enough")
     p.add_argument("--local", help="serve this index.html instead of the published board")
     p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
@@ -290,6 +291,8 @@ def main():
     for key in SAVED_KEYS:          # anything given on the command line wins over the saved file
         if getattr(ARGS, key) is None and key in saved:
             setattr(ARGS, key, saved[key])
+    if ARGS.mute:
+        ARGS.sound = False
     if ARGS.port is None:
         ARGS.port = 8080
     if ARGS.save:
