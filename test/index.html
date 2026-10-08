@@ -263,7 +263,7 @@ function trimTo(s, w){
   if (s.length <= w) return s;
   let cut = -1;
   for (let i = Math.min(w, s.length - 1); i > 0; i--) if (" -/".includes(s[i])) { cut = i; break; }
-  return (cut >= Math.ceil(w * .5) ? s.slice(0, cut) : s.slice(0, w)).trim();
+  return (cut >= Math.ceil(w * .5) ? s.slice(0, cut) : s.slice(0, w)).replace(/[\s,.:\/&'-]+$/, "");   // "PENDIK, ISTANBUL" → "PENDIK", not "PENDIK,"
 }
 const nf = new Intl.NumberFormat("en-US");
 function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
