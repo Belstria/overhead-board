@@ -833,8 +833,24 @@ function demoLog(){
 function todayKey(){ const d = new Date(); return `od.log.${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
 function saveLog(){ if (S.demo) return; try { localStorage.setItem(todayKey(), JSON.stringify(spotted)); } catch {} }
-let spotted = loadLog(), logDay = todayKey();
-function rollDay(){ if (logDay !== todayKey()) { logDay = todayKey(); spotted = loadLog(); renderList(); updateFooter(); } }
+const SAME_PASS_MS = 45 * 60000;   // the same aircraft within 45 minutes counts as one sighting
+function entryTime(e){
+  if (e.ts) return e.ts;
+  const [hh, mm] = String(e.time || "").split(":").map(Number), d = new Date();
+  d.setHours(hh || 0, mm || 0, 0, 0);
+  return d.getTime();
+}
+function dedupe(list){
+  const kept = [];
+  for (const e of list.slice().reverse()) {        // oldest first, so the first sighting of a pass wins
+    if (e.hex && kept.some(k => k.hex === e.hex && Math.abs(entryTime(e) - entryTime(k)) < SAME_PASS_MS)) continue;
+    kept.push(e);
+  }
+  return kept.reverse();
+}
+let spotted = dedupe(loadLog()), logDay = todayKey();
+if (!S.demo && spotted.length !== loadLog().length) saveLog();   // clean up duplicates stored by older versions
+function rollDay(){ if (logDay !== todayKey()) { logDay = todayKey(); spotted = dedupe(loadLog()); renderList(); updateFooter(); } }
 function remarkFor(e){
   const home = (S.home || "").toUpperCase(), f = e.from && e.from.code, t = e.to && e.to.code;
   if (home && t === home) return "ARRIVING";
@@ -871,11 +887,21 @@ function setFeat(o, mode){
 }
 function logSighting(h){
   rollDay();
-  const e = {time: hhmm(), hex: h.hex}; fillEntry(e, h.info);
+  const now = Date.now();
+  const prior = spotted.find(e => e.hex === h.hex && now - entryTime(e) < SAME_PASS_MS);
+  if (prior) {                                  // e.g. the page was reloaded while this plane was overhead
+    h.entry = prior; h.logged = true;
+    dlog("debug", `${planeName(h)} is already in Spotted today (${prior.time}); not adding it again`);
+    return;
+  }
+  const e = {time: hhmm(), ts: now, hex: h.hex}; fillEntry(e, h.info);
   spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
   h.entry = e; h.logged = true; saveLog(); renderList(); updateFooter();
   dlog("info", `Added ${e.flight || h.hex} to Spotted today (${h.o.dist.toFixed(1)} km away, inside the ${+S.radiusKm || 4} km radius)`);
 }
+const recent = new Map();        // hex -> last time and place each aircraft was seen
+const MISSING_GRACE_MS = 30000;
+let emptyStreak = 0, lastCount = 0;
 function process(list){
   const now = Date.now(), R = +S.radiusKm || 4, all = [];
   for (const ac of list) {
@@ -883,7 +909,26 @@ function process(list){
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
     all.push({ac, alt, ...geo(ac)});
   }
+  // A source that suddenly reports an empty sky is almost always a glitch: skip a couple of those.
+  if (!all.length && lastCount > 3 && ++emptyStreak < 3) {
+    dlog("warn", `${feedName || "The source"} reported no aircraft at all; ignoring this update`);
+    return;
+  }
+  if (all.length) emptyStreak = 0;
+  lastCount = all.length;
   nearbyCount = all.length;
+  for (const o of all) recent.set(o.ac.hex, {o, t: now});
+  for (const [hex, r] of recent) if (now - r.t > 120000) recent.delete(hex);
+  // Sources differ slightly in coverage, so the plane on the board can be missing from one update.
+  // Keep showing it from its last position for a short while instead of switching away and back.
+  if (feat && !all.some(o => o.ac.hex === feat.hex)) {
+    const r = recent.get(feat.hex);
+    if (r && now - r.t < MISSING_GRACE_MS) {
+      all.push(r.o);
+      if (!feat.missing) dlog("debug", `${planeName(feat)} missing from this update (${feedName}); keeping it on the board`);
+      feat.missing = true;
+    }
+  } else if (feat) feat.missing = false;
   const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt} : null;
