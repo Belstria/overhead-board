@@ -193,6 +193,8 @@ const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
 const DRUM_DIGIT = " 0123456789:";
 const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
 const DRUM_POS = " 0123456789.:KMNESWIC";
+const TRENDS = ["", "UP", "LEVEL", "DOWN"];
+const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT"];
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -286,6 +288,7 @@ def("toCity",  {kind:"chars", n:11, dur:82, loud:1});
 def("type",    {kind:"chars", n:18, dur:66, label:["Aircraft","Flugzeug"]});
 def("reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
 def("alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
+def("trend",   {kind:"word",  n:2, dur:110, words:"trend"});
 def("speed",   {kind:"chars", n:8, dur:66, drum:DRUM_ALT, align:"right", label:["Speed","Geschw."]});
 def("pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]});
 for (let i = 0; i < LIST_ROWS; i++) {
@@ -317,12 +320,12 @@ function placeRow(ids, gaps, y, step, ratio){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-const BIG = IW / 30, MID = IW / 54.2;
+const BIG = IW / 30, MID = IW / 56.5;
 const Y = {row1:204, row1b:322, row2:440, rule1:160, rule2:516, listHead:556, list0:604, listPitch:46};
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
-  placeRow(["type","reg","alt","speed","pos"], [.8, .8, .8, .8], Y.row2, MID, 1.45);
+  placeRow(["type","reg","alt","trend","speed","pos"], [.8, .8, .3, .8, .8], Y.row2, MID, 1.45);
   const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
   for (let i = 0; i < LIST_ROWS; i++) {
     fields[`l${i}logo`].hidden = !lg;
@@ -431,6 +434,17 @@ function tile(f, value){
     ax = bx + bw; aw = w - ax;
     if (!text && code === "-") text = "NO AIRLINE LISTED";
   }
+  if (f.words === "trend") {                 // climbing, level or descending arrow
+    text = "";
+    if (value) {
+      const ang = {UP: -Math.PI / 5, LEVEL: 0, DOWN: Math.PI / 5}[value] || 0, L = Math.min(w * .62, h * .78);
+      g.save(); g.translate(w / 2, h / 2); g.rotate(ang);
+      g.strokeStyle = g.fillStyle = TREND_COLOR[value] || COL.ink; g.lineWidth = Math.max(2, h * .1); g.lineCap = "round";
+      g.beginPath(); g.moveTo(-L / 2, 0); g.lineTo(L / 2 - h * .14, 0); g.stroke();
+      g.beginPath(); g.moveTo(L / 2 + h * .02, 0); g.lineTo(L / 2 - h * .22, -h * .2); g.lineTo(L / 2 - h * .22, h * .2); g.closePath(); g.fill();
+      g.restore();
+    }
+  }
   if (text && text !== " ") {
     const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
     g.font = `700 ${size}px ${FONT}`;
@@ -516,6 +530,7 @@ function retarget(c, value, delay){
   let q;
   if (c.f.kind === "chars") q = path(c.f.drum, base, value);
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
+  else if (c.f.words === "trend") q = path(TRENDS, base, value);
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -955,7 +970,13 @@ function process(list){
   if (all.length) emptyStreak = 0;
   lastCount = all.length;
   nearbyCount = all.length;
-  for (const o of all) recent.set(o.ac.hex, {o, t: now});
+  for (const o of all) {
+    let rate = typeof o.ac.baro_rate === "number" ? o.ac.baro_rate : typeof o.ac.geom_rate === "number" ? o.ac.geom_rate : null;
+    const prev = recent.get(o.ac.hex);
+    if (rate == null && prev && prev.o.alt != null && o.alt != null && now - prev.t > 4000) rate = (o.alt - prev.o.alt) / ((now - prev.t) / 60000);
+    o.rate = rate;
+    recent.set(o.ac.hex, {o, t: now});
+  }
   for (const [hex, r] of recent) if (now - r.t > 120000) recent.delete(hex);
   // Sources differ slightly in coverage, so the plane on the board can be missing from one update.
   // Keep showing it from its last position for a short while instead of switching away and back.
@@ -1007,7 +1028,7 @@ function renderFeatured(){
   if (!feat) {
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
-    setWord("airline", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
+    setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     return;
   }
   const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac);
@@ -1020,13 +1041,15 @@ function renderFeatured(){
   setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
   const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
+    const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
     feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
-      feat.mode === "soon" ? countdown(o.tcpa) : distStr(o)];
+      feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
   setChars("alt", feat.live[0], 380);
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
+  setWord("trend", feat.live[3] || "", 390);
 }
 function renderList(){
   for (let i = 0; i < LIST_ROWS; i++) {
