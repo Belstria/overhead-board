@@ -26,6 +26,11 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
+| `theme` | Test board: `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
+| `rotate` | Test board: seconds per page, `0` to stay on one page (default 30) | `rotate=0` |
+| `favs` | Test board: favourites, separated by commas | `favs=Austrian,A380` |
+| `chimes` | Test board: chimes on (`1`, the default) or off (`0`) | `chimes=0` |
+| `night` | Test board: night mode on (`1`, the default) or off (`0`) | `night=0` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -48,8 +53,31 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
 
 ## Test board
 
-`/test/` is a copy of the main board for trying out visual changes before they go live. It uses the same
-data, settings and Spotted today history as the main board. Open it through the relay at `http://<computer-name>:8080/test/` (relay version 3 or newer).
+`/test/` is where changes are tried out before they go to the main board. Open it through the relay at
+`http://<computer-name>:8080/test/`. It currently adds:
+
+- **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
+  to stay on one page). The pages are Spotted today, **Next over us** (planes on course to pass close by, with a
+  countdown), **Vienna airport** (runways in use worked out from live traffic, plus the latest weather report),
+  **Today in numbers**, and **This aircraft** (a photo and registration details of the plane on the board, when
+  one exists). Pages without anything to show are skipped. The left and right arrow keys change pages by hand.
+- **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
+  emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
+  status and that remark.
+- **Favourites**: airlines, aircraft types or registrations listed in Settings (for example
+  `Austrian, Emirates, A380, 747, OE-LBN`) are marked FAVOURITE.
+- **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
+  favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
+- **Logbook** (press **L**): every type, airline and individual aircraft ever spotted, with counts and first
+  sightings. The first sighting of a new type or airline is marked NEW TYPE or NEW AIRLINE on the board.
+- **Radar** (press **R**): a plan view of everything around you, with trails, the spotting radius, the airport's
+  runways and the nearest planes. Add `#radar` or `#logbook` to the address to open a tab at start.
+- **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
+  (Settings, or `?theme=frankfurt` / `?theme=blue`).
+- **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches. Can be turned off.
+- **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+
+The logbook, the weather report and a Spotted today list shared by every screen need relay version 5 (see below).
 
 ## Controls
 
@@ -109,6 +137,14 @@ Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A
 the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
 
+**Shared history (relay version 5).** The relay records every plane that comes within its spotting radius
+itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It
+also keeps a lifetime logbook. Both live in a `data` folder next to `serve.py` (`sightings-<date>.json` and
+`logbook.json`). A new logbook spends its first day learning what normally flies over, so NEW TYPE and
+NEW AIRLINE marks start the day after. The relay also fetches the airport's weather report from
+aviationweather.gov every ten minutes. The spotting radius the relay uses is `--radius` (15 km by default).
+
 The relay always serves the latest published board from GitHub Pages (refreshed every five minutes,
 with a local copy kept for when GitHub is unreachable). Use `--local path/to/index.html` to serve a
-local file instead, and `--help` for all options.
+local file instead, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
+`{nm}` placeholders, or a local `aircraft.json`), and `--help` for all options.

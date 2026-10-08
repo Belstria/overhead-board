@@ -645,7 +645,7 @@ function slots(g){
     const inset = g.createLinearGradient(0, y, 0, y + h);
     inset.addColorStop(0, "rgba(0,0,0,.8)"); inset.addColorStop(.15, "rgba(0,0,0,0)"); inset.addColorStop(.9, "rgba(255,255,255,0)"); inset.addColorStop(1, "rgba(255,255,255,.06)");
     g.fillStyle = inset; rr(g, x, y, w, h, pad * .8); g.fill();
-    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX;   // shadow sizes are in device pixels g.fillStyle = "#000";
+    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX; g.fillStyle = "#000";   // shadow sizes are in device pixels
     const cells = f.kind === "chars" ? f.n : 1;                                         // each module casts a shadow
     for (let i = 0; i < cells; i++) g.fillRect(f.x + i * f.step + 1, f.y + 1, (f.kind === "chars" ? f.cw : f.wordW) - 2, f.ch - 2);
     g.restore();

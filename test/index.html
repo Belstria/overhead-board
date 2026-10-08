@@ -6,7 +6,7 @@
 <title>Overhead Flight Board (Test)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a fixed 1920x1080 airport flight-information board, scaled to fit any screen.
    Top: gate-style feature of the plane overhead. Bottom: today's sightings as a departures list. */
@@ -39,7 +39,7 @@ footer{
   transition:opacity .6s;
 }
 body.idle footer{opacity:0;pointer-events:none}
-footer{background:linear-gradient(transparent,rgba(0,0,0,.75) 55%);padding-top:calc(28px*var(--k))}
+footer{background:linear-gradient(transparent,rgba(0,0,0,.75) 55%);padding-top:calc(28px*var(--k));z-index:4}
 .pip{position:absolute;left:calc(20px*var(--k));bottom:calc(18px*var(--k));width:max(6px,calc(9px*var(--k)));height:max(6px,calc(9px*var(--k)));
   border-radius:50%;opacity:0;transition:opacity .6s;pointer-events:none}
 body.idle .pip[data-state=warn]{opacity:.8;background:var(--amber)}
@@ -93,21 +93,74 @@ label.check{flex-direction:row;align-items:center;gap:8px}
 input,select{font:15px var(--f-board);color:var(--ink);background:var(--housing);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
 input[type=range]{padding:0;accent-color:var(--amber)}
 output{color:var(--ink);letter-spacing:0}
-input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
+input[type=checkbox]{width:16px;height:16px;flex:none;accent-color:var(--amber)}
 .hint{grid-column:1/-1;color:var(--muted);font-size:13px;margin:0}
 .row{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 .primary{background:var(--amber);color:#15130e;border-color:var(--amber);font-weight:600}
 .primary:hover,.primary:focus-visible{color:#15130e;opacity:.92}
+textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-height:2.4em;resize:vertical}
+.span2{grid-column:span 2}
+.full{grid-column:1/-1}
+.times{display:flex;gap:8px;align-items:center}
+.times input{width:auto;flex:1}
+#shade{position:absolute;inset:0;z-index:3;background:#000;opacity:0;pointer-events:none;transition:opacity 2s}
+.photo{position:absolute;overflow:hidden;background:#060607;border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
+.photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.9) contrast(1.05)}
+.photo .credit{position:absolute;right:8px;bottom:6px;font:600 calc(13px*var(--k)) var(--f-board);letter-spacing:.06em;color:#d9d6cf;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:3px}
+.view{position:absolute;inset:0;z-index:3;color:var(--ink);font-family:var(--f-board);
+  background:linear-gradient(#1b1c1f,#121315 45%,#16171a);box-shadow:inset 0 0 0 calc(18px*var(--k)) #0d0e10}
+.view .vhead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:calc(40px*var(--k)) calc(64px*var(--k)) calc(14px*var(--k))}
+.view h2{margin:0;font-weight:700;font-size:calc(58px*var(--k));letter-spacing:.01em;line-height:1}
+.view h2 span{color:var(--muted);font-weight:400}
+.view .vclose{font-size:max(13px,calc(20px*var(--k)));border-color:var(--line)}
+#logbookView .vbody{position:absolute;top:calc(130px*var(--k));left:calc(64px*var(--k));right:calc(64px*var(--k));bottom:calc(36px*var(--k));overflow:auto;
+  display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:calc(22px*var(--k)) calc(44px*var(--k));align-content:start;font-size:calc(21px*var(--k))}
+.lb .stack{display:flex;flex-direction:column;gap:calc(30px*var(--k))}
+.tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:calc(18px*var(--k))}
+.tile{background:#0a0a0b;border-radius:6px;padding:calc(14px*var(--k)) calc(18px*var(--k));box-shadow:inset 0 2px 6px rgba(0,0,0,.8)}
+.tile b{display:block;font-size:calc(56px*var(--k));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.tile span,.lb h3{color:var(--accent,var(--amber));font-weight:600;font-size:calc(17px*var(--k));letter-spacing:.12em;text-transform:uppercase}
+.lb h3{margin:0 0 calc(8px*var(--k))}
+.lb table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.lb td{padding:calc(6px*var(--k)) calc(10px*var(--k)) calc(6px*var(--k)) 0;border-bottom:1px solid #26272b;vertical-align:middle;white-space:nowrap}
+.lb td.n{text-align:right;color:var(--ink);font-weight:600}
+.lb td.d{color:var(--muted);text-align:right;width:1%}
+.lb td.c{color:var(--muted);width:1%}
+.lb img{height:calc(26px*var(--k));width:calc(64px*var(--k));object-fit:contain;background:#f4f1ea;border-radius:3px;vertical-align:middle;padding:2px}
+.lb .new,.lb .tag{display:inline-block;font-size:.62em;font-weight:700;letter-spacing:.08em;padding:.1em .45em;border-radius:3px;vertical-align:.18em;margin-left:.4em}
+.lb .new{background:#f4ecd8;color:#8c1c1c}
+.lb .tag{background:#e6b94a;color:#1b1508}
+.lb .since,.lb .more{grid-column:1/-1;color:var(--muted);margin:0;font-size:calc(19px*var(--k))}
+.lb .more{grid-column:auto;margin-top:calc(6px*var(--k))}
+.lb .wide{grid-column:1/-1}
+.lb .msg{grid-column:1/-1;color:var(--muted);font-size:calc(26px*var(--k))}
+#radarView canvas{position:absolute;inset:0;width:100%;height:100%}
+#radarView .vhead{position:relative;z-index:1}
+#radarLegend{position:absolute;left:calc(1250px*var(--k));right:calc(64px*var(--k));bottom:calc(120px*var(--k));display:flex;flex-wrap:wrap;gap:calc(6px*var(--k)) calc(26px*var(--k));font-size:calc(20px*var(--k));color:var(--muted);z-index:1}
+#radarLegend i{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.45em;vertical-align:-.05em}
 </style>
 </head>
 <body>
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
+  <div class="photo" id="photoFrame" hidden><img id="photoImg" alt="" referrerpolicy="no-referrer"><span class="credit">Photo: airport-data.com</span></div>
+  <section class="view" id="logbookView" hidden aria-label="Logbook">
+    <div class="vhead"><h2>Logbook <span>Logbuch</span></h2><button class="vclose" type="button" data-close="logbook">Close</button></div>
+    <div class="vbody lb" id="logbookBody"></div>
+  </section>
+  <section class="view" id="radarView" hidden aria-label="Radar">
+    <canvas id="radarCv"></canvas>
+    <div class="vhead"><h2>Radar <span>Radar</span></h2><button class="vclose" type="button" data-close="radar">Close</button></div>
+    <div id="radarLegend"></div>
+  </section>
+  <div id="shade"></div>
   <span class="pip" id="pip" aria-hidden="true"></span>
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
+      <button id="btnLogbook" type="button">Logbook</button>
+      <button id="btnRadar" type="button">Radar</button>
       <button id="btnDiag" type="button">Diagnostics</button>
       <button id="btnLog" type="button">Spotted today</button>
       <button id="btnSettings" type="button">Settings</button>
@@ -168,10 +221,39 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
           </select></label>
         <label><span>Flap speed <output id="fSpeedOut" for="fSpeed"></output></span>
           <input type="range" id="fSpeed" min="10" max="100" step="5"></label>
+        <label>Board style
+          <select id="fTheme">
+            <option value="classic">Classic: white on black</option>
+            <option value="frankfurt">Frankfurt: yellow on black</option>
+            <option value="blue">Blue: white on blue</option>
+          </select></label>
+        <label>Change pages every
+          <select id="fRotate">
+            <option value="0">Don't change pages</option>
+            <option value="15">15 seconds</option>
+            <option value="20">20 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="45">45 seconds</option>
+            <option value="60">60 seconds</option>
+          </select></label>
+        <label class="full">Favourites: airlines, aircraft types or registrations, separated by commas
+          <textarea class="fav" id="fFavs" rows="1" placeholder="e.g. Austrian, Emirates, A380, 747, OS"></textarea></label>
+        <label class="span2">Night mode: dim the board and mute it
+          <span class="times"><input type="time" id="fNightFrom" aria-label="Night mode starts"> to <input type="time" id="fNightTo" aria-label="Night mode ends"></span></label>
+        <label>Night brightness
+          <select id="fNightDim">
+            <option value="25">25%</option>
+            <option value="40">40%</option>
+            <option value="55">55%</option>
+            <option value="70">70%</option>
+          </select></label>
+        <label class="check"><input type="checkbox" id="fNight">Night mode</label>
+        <label class="check"><input type="checkbox" id="fChimes">Chime for special planes and favourites</label>
+        <label class="check"><input type="checkbox" id="fImperfect">Imperfect flaps (slightly worn hardware)</label>
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. Press D or use Diagnostics for the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. Left and right arrow keys change pages. L opens the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -187,9 +269,29 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
 const $ = id => document.getElementById(id);
 const W = 1920, H = 1080, M = 64, IW = W - 2 * M;
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
+let FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
 const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#7f838b", labelEn:"#6d7179"};
 const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
+const THEMES = {
+  classic:   {font:'"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif', flap:["#2b2c2f","#232427","#1c1d1f","#161719"],
+              ink:"#f3f0e8", accent:"#f0b429", label2:"#6d7179", metal:["#1d1e21","#141517","#18191c"]},
+  frankfurt: {font:'"Oswald","Archivo Narrow","Arial Narrow",sans-serif', flap:["#222222","#1b1b1b","#151515","#101010"],
+              ink:"#ffd21f", accent:"#ffffff", label2:"#8c8c8c", metal:["#1a1a1a","#111111","#161616"]},
+  blue:      {font:'"Barlow Condensed","Archivo Narrow","Arial Narrow",sans-serif', flap:["#29406e","#21365f","#1b2d51","#152443"],
+              ink:"#f5f7fb", accent:"#9ccaff", label2:"#71809c", metal:["#151d2d","#0e1422","#121a29"]}
+};
+let METAL = THEMES.classic.metal;
+// Aircraft worth running to the window for. Type codes are ICAO designators.
+const SPECIAL_TYPES = {A388:"SUPERJUMBO", B741:"JUMBO", B742:"JUMBO", B743:"JUMBO", B744:"JUMBO", B748:"JUMBO", B74S:"JUMBO", B74R:"JUMBO",
+  A3ST:"BELUGA", A337:"BELUGA", A124:"ANTONOV", A225:"ANTONOV", AN22:"ANTONOV", CONC:"CONCORDE",
+  C17:"MILITARY", C5M:"MILITARY", A400:"MILITARY", C130:"MILITARY", C30J:"MILITARY", K35R:"MILITARY", EUFI:"MILITARY", F16:"MILITARY", F35:"MILITARY", P3:"MILITARY",
+  C295:"MILITARY", E390:"MILITARY",
+  EC35:"HELICOPTER", EC45:"HELICOPTER", EC30:"HELICOPTER", EC55:"HELICOPTER", EC75:"HELICOPTER", AS50:"HELICOPTER", AS65:"HELICOPTER",
+  A139:"HELICOPTER", A169:"HELICOPTER", H160:"HELICOPTER", B06:"HELICOPTER", B407:"HELICOPTER", R44:"HELICOPTER", R66:"HELICOPTER",
+  S76:"HELICOPTER", NH90:"HELICOPTER", UH1:"HELICOPTER", H60:"HELICOPTER", AS32:"HELICOPTER"};
+// Home airports the board knows runways for (true track of each runway direction).
+const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rwys:[[116,"11"],[296,"29"],[164,"16"],[344,"34"]],
+  strips:[[48.1228, 16.5334, 48.1090, 16.5756], [48.1198, 16.5782, 48.0886, 16.5913]]}};   // runway ends (OurAirports), for the radar
 
 /* Drums: the order a real flap module turns through. */
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
@@ -198,7 +300,9 @@ const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change 
 const DRUM_POS = " 0123456789.:KMNESWIC";
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
-const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT"];
+const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
+  "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY"];
+const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
   INBOUND:{fill:["#f6be35","#dc9f1d"], fg:"#17140d"},
@@ -208,11 +312,17 @@ const REMARK_LOOK = {
   OUTBOUND:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
   "NO TRAFFIC":{fill:["#2f3135","#26282b"], fg:"#a6a49e"},
   OFFLINE:{fill:["#cb3a2f","#aa2d24"], fg:"#ffffff"},
-  ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}
+  ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}, "CLOSE BY":{fg:"#86b8ff"},
+  "NEW TYPE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c"}, "NEW AIRLINE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c"},
+  FAVOURITE:{fill:["#c93d80","#a72f68"], fg:"#ffffff"},
+  SUPERJUMBO:GOLD, JUMBO:GOLD, BELUGA:GOLD, ANTONOV:GOLD, CONCORDE:GOLD, SPECIAL:GOLD,
+  MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
+  EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"}
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false};
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -246,6 +356,11 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (num("speed") != null) S.speedPct = num("speed");
   if (num("refresh") != null) S.refreshS = Math.min(60, Math.max(3, num("refresh")));
   if (q.has("demo") || /demo/i.test(location.hash)) S.demo = q.get("demo") !== "0";
+  if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
+  if (num("rotate") != null) S.rotateS = num("rotate");
+  if (q.get("favs")) S.favs = q.get("favs");
+  if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
+  if (q.has("night")) S.night = q.get("night") !== "0";
 })();
 
 /* ---------- diagnostics log ---------- */
@@ -305,19 +420,56 @@ for (let i = 0; i < LIST_ROWS; i++) {
   def(`l${i}type`,   {kind:"chars", n:18, dur:60, loud:.5, label:lab("Aircraft","Flugzeug")});
   def(`l${i}remarks`,{kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks","Hinweis")});
 }
+// The lower half rotates between pages. Spotted today and Next over us share the list flaps; the
+// other pages have their own flaps, which are swapped in after the current ones have flipped blank.
+const LIST_IDS = [];
+for (let i = 0; i < LIST_ROWS; i++) LIST_IDS.push(`l${i}time`, `l${i}logo`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`);
+const PAGE_FIELDS = {airport: [], stats: [], aircraft: []};
+function pdef(pg, id, o){ def(id, {...o, pageOff: true}); PAGE_FIELDS[pg].push(id); }
+pdef("airport", "apArr",     {kind:"chars", n:9,  dur:70, style:"amber", label:["Landing on","Landung"]});
+pdef("airport", "apDep",     {kind:"chars", n:9,  dur:70, style:"amber", label:["Taking off from","Start"]});
+pdef("airport", "apWind",    {kind:"chars", n:14, dur:70, label:["Wind","Wind"]});
+pdef("airport", "apVis",     {kind:"chars", n:8,  dur:70, label:["Visibility","Sicht"]});
+pdef("airport", "apTemp",    {kind:"chars", n:7,  dur:70, label:["Temperature","Temperatur"]});
+pdef("airport", "apQnh",     {kind:"chars", n:9,  dur:70, label:["Pressure","Luftdruck"]});
+pdef("airport", "apCloud",   {kind:"chars", n:16, dur:70, label:["Clouds","Wolken"]});
+pdef("airport", "apCond",    {kind:"chars", n:12, dur:70, label:["Weather","Wetter"]});
+pdef("airport", "apRaw1",    {kind:"chars", n:64, dur:55, label:["Weather report (METAR)","Wetterbericht"]});
+pdef("airport", "apRaw2",    {kind:"chars", n:64, dur:55});
+pdef("airport", "apTraffic", {kind:"chars", n:64, dur:55, style:"amber", label:["Last 20 minutes","Letzte 20 Minuten"]});
+pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flugzeuge"]});
+pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
+pdef("stats", "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
+pdef("stats", "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead","Direkt drüber"]});
+pdef("stats", "stHour",     {kind:"chars", n:5, dur:70, drum:DRUM_DIGIT, style:"amber", label:["Busiest hour","Meiste Flüge"]});
+pdef("stats", "stLow",      {kind:"chars", n:24, dur:60, label:["Lowest pass","Tiefster Überflug"]});
+pdef("stats", "stHigh",     {kind:"chars", n:24, dur:60, label:["Highest pass","Höchster Überflug"]});
+pdef("stats", "stFast",     {kind:"chars", n:24, dur:60, label:["Fastest","Schnellster"]});
+pdef("stats", "stTop",      {kind:"chars", n:24, dur:60, label:["Most seen airline","Häufigste Airline"]});
+pdef("stats", "stFirst",    {kind:"chars", n:24, dur:60, label:["First of the day","Erster des Tages"]});
+pdef("stats", "stNew",      {kind:"chars", n:24, dur:60, style:"amber", label:["New in the logbook","Neu im Logbuch"]});
+pdef("aircraft", "acReg",     {kind:"chars", n:8,  dur:70, style:"amber", label:["Registration","Kennzeichen"]});
+pdef("aircraft", "acHex",     {kind:"chars", n:6,  dur:70, label:["Mode S","Mode S"]});
+pdef("aircraft", "acFlight",  {kind:"chars", n:9,  dur:70, label:["Flight","Flug"]});
+pdef("aircraft", "acType",    {kind:"chars", n:26, dur:70, label:["Aircraft","Flugzeug"]});
+pdef("aircraft", "acOwner",   {kind:"chars", n:26, dur:70, label:["Operator","Betreiber"]});
+pdef("aircraft", "acCountry", {kind:"chars", n:14, dur:70, label:["Registered in","Registriert in"]});
+pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route","Route"]});
 for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
   f.cells = [];
   for (let i = 0; i < count; i++) {
+    const hsh = [...f.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) | 0, i * 977 + 13);
     const c = {f, i, cur: f.kind === "chars" ? " " : "", target: null, queue: [], anim: null, next: 0,
-      variant: [...f.id].reduce((a, ch) => a + ch.charCodeAt(0), i * 7) % 3};
+      variant: [...f.id].reduce((a, ch) => a + ch.charCodeAt(0), i * 7) % 3,
+      jx: ((hsh & 255) / 255 - .5) * 2, jy: (((hsh >> 8) & 255) / 255 - .5) * 2};
     c.target = c.cur; f.cells.push(c); allCells.push(c);
   }
 }
 
 /* layout in board units (1920 x 1080) */
-function placeRow(ids, gaps, y, step, ratio){
-  let x = M;
+function placeRow(ids, gaps, y, step, ratio, x0 = M){
+  let x = x0;
   ids.forEach((id, i) => {
     const f = fields[id];
     f.x = x; f.y = y; f.step = step; f.cw = step * .9; f.ch = f.cw * ratio;
@@ -338,7 +490,21 @@ function layout(){
     if (lg) ids.splice(1, 0, `l${i}logo`);
     placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.45);
   }
+  const L0 = Y.list0;
+  placeRow(["apArr","apDep","apWind","apVis"], [1.2, 1.2, 1.2], L0 + 18, IW / 43.6, 1.45);
+  placeRow(["apTemp","apQnh","apCloud","apCond"], [1.2, 1.2, 1.2], L0 + 122, IW / 47.6, 1.45);
+  placeRow(["apRaw1"], [], L0 + 230, IW / 64, 1.45);
+  placeRow(["apRaw2"], [], L0 + 274, IW / 64, 1.45);
+  placeRow(["apTraffic"], [], L0 + 352, IW / 64, 1.45);
+  placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [2.5, 2.5, 2.5, 2.5], L0 + 18, IW / 28, 1.45);
+  [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 150 + i * 92, IW / 50, 1.45));
+  const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 26;
+  placeRow(["acReg","acHex","acFlight"], [1.5, 1.5], L0 + 18, as, 1.45, ax);
+  placeRow(["acType"], [], L0 + 112, as, 1.45, ax);
+  placeRow(["acOwner"], [], L0 + 206, as, 1.45, ax);
+  placeRow(["acCountry","acRoute"], [2], L0 + 300, as, 1.45, ax);
 }
+const PHOTO = {w: 700, h: 384};
 layout();
 (() => { const f = fields.clock, step = 64; f.step = step; f.cw = step * .9; f.ch = 88; f.y = 40; f.x = W - M - (5 * step - (step - f.cw)); })();
 
@@ -347,7 +513,11 @@ function geometry(){
   for (const f of Object.values(fields)) {
     f.pw = Math.round((f.kind === "chars" ? f.cw : f.wordW) * PX);
     f.ph = Math.round(f.ch * PX);
-    f.cells.forEach((c, i) => { c.x = Math.round((f.x + i * f.step) * PX); c.y = Math.round(f.y * PX); });
+    const wear = S.imperfect ? Math.min(f.pw, f.ph) : 0;           // worn modules sit a hair out of line
+    f.cells.forEach((c, i) => {
+      c.x = Math.round((f.x + i * f.step) * PX + c.jx * wear * .02);
+      c.y = Math.round(f.y * PX + c.jy * wear * .028);
+    });
   }
 }
 function resize(){
@@ -359,7 +529,8 @@ function resize(){
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
-  tiles.clear(); geometry(); drawStatic(); redrawAll();
+  tiles.clear(); geometry(); drawStatic(); redrawAll(); placePhoto();
+  if (openView === "radar") resizeRadar();
 }
 
 /* ---------- tiles: each flap face pre-rendered once ---------- */
@@ -494,7 +665,7 @@ function tile(f, value, variant = 0){
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
 function drawCell(c, p){
   const f = c.f, x = c.x, y = c.y, w = f.pw, h = f.ph, g = fxx;
-  if (f.hidden) return;
+  if (f.hidden || f.pageOff) return;
   g.clearRect(x - 1, y - 1, w + 2, h + 2);
   if (p == null || !c.anim) { g.drawImage(tile(f, c.cur, c.variant), x, y); return; }
   const A = tile(f, c.anim.from, c.variant), B = tile(f, c.anim.to, c.variant), hh = Math.round(h / 2), bh = h - hh;
@@ -526,14 +697,19 @@ function frame(now){
   let active = false, starts = 0;
   for (const c of allCells) {
     if (c.anim) {
-      const p = (now - c.anim.t0) / c.anim.dur;
+      const a = c.anim, el = now - a.t0;
+      let p = el / a.dur;
+      if (a.stall) { const s0 = a.stall.at * a.dur; p = el < s0 ? p : el < s0 + a.stall.ms ? a.stall.at : (el - a.stall.ms) / a.dur; }
       if (p < 1) { drawCell(c, p); active = true; continue; }
       c.cur = c.anim.to; c.anim = null; drawCell(c);
     }
     if (c.queue.length) {
       active = true;
       if (now >= c.next) {
+        if (S.imperfect && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
+        c.hes = false;
         c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * pace() * (.9 + Math.random() * .2)};
+        if (S.imperfect && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
         drawCell(c, 0); starts++;
       }
     }
@@ -613,7 +789,7 @@ function metal(g){
   let seed = 1234567;
   const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   const base = g.createLinearGradient(0, 0, 0, H);
-  base.addColorStop(0, "#1d1e21"); base.addColorStop(.45, "#141517"); base.addColorStop(1, "#18191c");
+  base.addColorStop(0, METAL[0]); base.addColorStop(.45, METAL[1]); base.addColorStop(1, METAL[2]);
   g.fillStyle = base; g.fillRect(0, 0, W, H);
   g.lineWidth = .7;                                   // brushed grain
   for (let i = 0; i < 2600; i++) {
@@ -638,14 +814,14 @@ function metal(g){
 }
 function slots(g){
   for (const f of Object.values(fields)) {
-    if (f.hidden || f.cw == null) continue;
+    if (f.hidden || f.pageOff || f.cw == null) continue;
     const pad = Math.max(3, f.step * .11), wide = f.kind === "chars" ? (f.n - 1) * f.step + f.cw : f.wordW;
     const x = f.x - pad, y = f.y - pad, w = wide + pad * 2, h = f.ch + pad * 2;
     g.fillStyle = "#060607"; rr(g, x, y, w, h, pad * .8); g.fill();                    // recessed channel
     const inset = g.createLinearGradient(0, y, 0, y + h);
     inset.addColorStop(0, "rgba(0,0,0,.8)"); inset.addColorStop(.15, "rgba(0,0,0,0)"); inset.addColorStop(.9, "rgba(255,255,255,0)"); inset.addColorStop(1, "rgba(255,255,255,.06)");
     g.fillStyle = inset; rr(g, x, y, w, h, pad * .8); g.fill();
-    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX;   // shadow sizes are in device pixels g.fillStyle = "#000";
+    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX; g.fillStyle = "#000";   // shadow sizes are in device pixels
     const cells = f.kind === "chars" ? f.n : 1;                                         // each module casts a shadow
     for (let i = 0; i < cells; i++) g.fillRect(f.x + i * f.step + 1, f.y + 1, (f.kind === "chars" ? f.cw : f.wordW) - 2, f.ch - 2);
     g.restore();
@@ -669,16 +845,26 @@ function drawStatic(){
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
     g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, y + 2, IW, 1);
   }
-  for (const f of Object.values(fields)) if (f.label) label(g, f, f.label[0], f.label[1]);
-  g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Spotted today", M, Y.listHead);
-  const hw = g.measureText("Spotted today").width;
-  g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Heute gesichtet", M + hw + 14, Y.listHead);
+  for (const f of Object.values(fields)) {
+    if (f.hidden || f.pageOff) continue;
+    const lab = (page === "next" && NEXT_LABELS[f.id]) || f.label;
+    if (lab) label(g, f, lab[0], lab[1]);
+  }
+  const [t1, t2] = pageTitle(page);
+  g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
+  const hw = g.measureText(t1).width;
+  g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + hw + 14, Y.listHead);
+  PAGE_ORDER.forEach((p, i) => {                       // which page is showing
+    const cx = W - M - 8 - (PAGE_ORDER.length - 1 - i) * 26;
+    g.fillStyle = p === page ? COL.amber : "rgba(255,255,255,.14)";
+    g.beginPath(); g.arc(cx, Y.listHead - 9, p === page ? 6 : 4.5, 0, Math.PI * 2); g.fill();
+  });
 }
 
 /* ---------- sound: synthesised flap clatter, only after a click or key press ---------- */
 let actx = null, noise = null, lastClack = 0;
 function audioInit(){
-  if (!S.sound) return;
+  if (!S.sound && !S.chimes) return;
   try {
     if (!actx) {
       actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -691,12 +877,56 @@ function audioInit(){
   } catch { actx = null; }
 }
 function clack(n){
-  if (!S.sound || !actx || actx.state !== "running") return;
+  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
   const t = actx.currentTime; if (t - lastClack < .014) return; lastClack = t;
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
   const fl = actx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1400 + Math.random() * 1800; fl.Q.value = 1;
   const gn = actx.createGain(); gn.gain.value = Math.min(.3, .05 + n * .008);
   src.connect(fl).connect(gn).connect(actx.destination); src.start();
+}
+
+// A soft station chime: two falling notes for special aircraft, three rising ones for favourites.
+function chime(kind){
+  if (!S.chimes || nightOn || !actx || actx.state !== "running") return;
+  const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
+  const t0 = actx.currentTime + .03, out = actx.createGain();
+  out.gain.value = .55; out.connect(actx.destination);
+  for (const [freq, dt] of notes) {
+    for (const [mult, amp] of [[1, .26], [2.01, .07], [3.02, .035], [4.2, .015]]) {
+      const o = actx.createOscillator(), g = actx.createGain(), t = t0 + dt;
+      o.type = "sine"; o.frequency.value = freq * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8 / mult);
+      o.connect(g).connect(out); o.start(t); o.stop(t + 1.9);
+    }
+  }
+}
+
+/* ---------- board styles and night mode ---------- */
+function applyTheme(){
+  const T = THEMES[S.theme] || THEMES.classic;
+  FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
+  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
+  const root = document.documentElement.style;
+  root.setProperty("--f-board", T.font); root.setProperty("--accent", T.accent);
+  const redraw = () => { tiles.clear(); geometry(); drawStatic(); redrawAll(); };
+  try {
+    Promise.race([Promise.all(["700 40px", "600 20px", "400 40px"].map(w => document.fonts.load(`${w} ${T.font}`))), new Promise(r => setTimeout(r, 2500))])
+      .then(redraw, redraw);
+  } catch { redraw(); }
+}
+let nightOn = false, nightKnown = false;
+function nightNow(){
+  if (!S.night) return false;
+  const mins = v => { const [h, m] = String(v || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+  const d = new Date(), n = d.getHours() * 60 + d.getMinutes(), a = mins(S.nightFrom), b = mins(S.nightTo);
+  return a === b ? false : a < b ? n >= a && n < b : n >= a || n < b;
+}
+function applyNight(force){
+  const on = nightNow();
+  if (on === nightOn && nightKnown && !force) return;
+  if (nightKnown && on !== nightOn) dlog("info", on ? `Night mode: dimmed to ${S.nightDim}% and muted until ${S.nightTo}` : "Night mode over");
+  nightOn = on; nightKnown = true;
+  $("shade").style.opacity = on ? String(1 - Math.min(100, Math.max(10, +S.nightDim || 40)) / 100) : "0";
 }
 
 /* ---------- reference tables ---------- */
@@ -733,7 +963,12 @@ const TYPES = {
   C25A:"Citation CJ2",C25B:"Citation CJ3",C25C:"Citation CJ4",C56X:"Citation Excel",C68A:"Citation Latitude",C700:"Citation Longitude",
   CL35:"Challenger 350",CL60:"Challenger 650",GLF5:"Gulfstream G550",GLF6:"Gulfstream G650",GL5T:"Global 5000",GLEX:"Global Express",
   GL7T:"Global 7500",E55P:"Phenom 300",F2TH:"Falcon 2000",F900:"Falcon 900",FA7X:"Falcon 7X",FA8X:"Falcon 8X",LJ45:"Learjet 45",
-  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",B190:"Beech 1900"
+  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",B190:"Beech 1900",
+  B741:"Boeing 747-100",B742:"Boeing 747-200",B743:"Boeing 747-300",B74S:"Boeing 747SP",B74R:"Boeing 747SR",A124:"Antonov An-124",A225:"Antonov An-225",
+  AN22:"Antonov An-22",A3ST:"Airbus Beluga",A337:"Airbus BelugaXL",CONC:"Concorde",C17:"Boeing C-17",C5M:"C-5 Galaxy",K35R:"KC-135",
+  EUFI:"Eurofighter",F16:"F-16",F35:"F-35",P3:"P-3 Orion",C295:"Airbus C295",E390:"Embraer C-390",EC55:"Airbus H155",EC75:"Airbus H175",
+  AS65:"Airbus H155 Dauphin",H160:"Airbus H160",B407:"Bell 407",R66:"Robinson R66",S76:"Sikorsky S-76",NH90:"NH90",UH1:"Bell UH-1",
+  H60:"Black Hawk",AS32:"Super Puma"
 };
 function typeName(code, desc){
   code = (code || "").toUpperCase();
@@ -784,6 +1019,8 @@ async function fetchJSON(url, opts = {}, ms = 9000){
    servers, so requests go through the home relay (relay/serve.py) when the board is opened from it. */
 const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
+// Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
+const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
 const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
@@ -812,6 +1049,8 @@ async function getAircraft(){
     if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
     if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
     feedName = src; lastFreshness = fresh;
+    const rev = res.headers.get("X-Sightings-Rev");
+    if (relayV5() && rev != null && rev !== sightRev) syncSightings();
     DIAG.polls.push({t: Date.now(), ok: true, stale: fresh.startsWith("stale"), ms: performance.now() - t0, n: list.length});
     return list;
   }
@@ -912,6 +1151,7 @@ const DEMO = [
   {hex:"demo05", flight:"RYR8RT", t:"B38M", r:"9H-VUA", alt:11800, rate:2200, track:250, off:-1.4,
    info:{flightNo:"FR 2381", airline:"Ryanair", from:{code:"VIE",city:"Vienna"}, to:{code:"STN",city:"London"}}}
 ];
+const DEMO_METAR = "LOWW 091350Z 30012KT 9999 FEW040 SCT250 14/06 Q1018 NOSIG";
 const DEMO_CYCLE = 60000, DEMO_FLY = 40000, DEMO_KMS = .25;
 function demoAircraft(){
   const T = Date.now(), d = DEMO[Math.floor(T / DEMO_CYCLE) % 5], t = T % DEMO_CYCLE;   // the 5 flying samples; the 6th is the distant extra
@@ -930,16 +1170,17 @@ function demoAircraft(){
 DEMO.push({hex:"demo99", info:{flightNo:"LO 615", airline:"LOT", from:{code:"WAW",city:"Warsaw"}, to:{code:"ZAG",city:"Zagreb"}}});
 function demoLog(){
   const ago = m => hhmm(new Date(Date.now() - m * 60000));
-  const e = (m, flight, airline, f, fc, t, tc, type) => ({time: ago(m), flight, airline, from:{code:f, city:fc}, to:{code:t, city:tc}, type, sample: true});
+  const e = (m, flight, airline, f, fc, t, tc, type, typeCode, x) => ({time: ago(m), ts: Date.now() - m * 60000, flight, airline,
+    airlineCode: flight.slice(0, 2), from:{code:f, city:fc}, to:{code:t, city:tc}, type, typeCode, sample: true, ...x});
   return [
-    e(7, "OS 89", "Austrian", "VIE", "Vienna", "JFK", "New York", "Boeing 777-200"),
-    e(16, "LH 1239", "Lufthansa", "FRA", "Frankfurt", "VIE", "Vienna", "Airbus A321neo"),
-    e(24, "QR 185", "Qatar Airways", "DOH", "Doha", "VIE", "Vienna", "Boeing 787-8"),
-    e(31, "W6 4307", "Wizz Air", "VIE", "Vienna", "TLV", "Tel Aviv", "Airbus A321neo"),
-    e(43, "LO 381", "LOT", "WAW", "Warsaw", "LJU", "Ljubljana", "Embraer E175"),
-    e(52, "OS 112", "Austrian", "DUS", "Duesseldorf", "VIE", "Vienna", "Embraer E195"),
-    e(66, "FR 1029", "Ryanair", "VIE", "Vienna", "BCN", "Barcelona", "Boeing 737 MAX 8"),
-    e(81, "EK 125", "Emirates", "DXB", "Dubai", "VIE", "Vienna", "Boeing 777-300ER")
+    e(7, "OS 89", "Austrian", "VIE", "Vienna", "JFK", "New York", "Boeing 777-200", "B772", {minDist: 1.2, altAtMin: 4100, maxSpeed: 230}),
+    e(16, "LH 1239", "Lufthansa", "FRA", "Frankfurt", "VIE", "Vienna", "Airbus A321neo", "A21N", {minDist: 6.4, altAtMin: 5200, maxSpeed: 250}),
+    e(24, "QR 185", "Qatar Airways", "DOH", "Doha", "VIE", "Vienna", "Boeing 787-8", "B788", {newType: true, minDist: 4.1, altAtMin: 3800, maxSpeed: 210}),
+    e(31, "W6 4307", "Wizz Air", "VIE", "Vienna", "TLV", "Tel Aviv", "Airbus A321neo", "A21N", {minDist: 9.8, altAtMin: 9100, maxSpeed: 330}),
+    e(43, "LO 381", "LOT", "WAW", "Warsaw", "LJU", "Ljubljana", "Embraer E175", "E75L", {minDist: 12.5, altAtMin: 33000, maxSpeed: 455}),
+    e(52, "OS 112", "Austrian", "DUS", "Duesseldorf", "VIE", "Vienna", "Embraer E195", "E195", {minDist: 2.6, altAtMin: 3300, maxSpeed: 190}),
+    e(66, "FR 1029", "Ryanair", "VIE", "Vienna", "BCN", "Barcelona", "Boeing 737 MAX 8", "B38M", {minDist: 7.7, altAtMin: 7400, maxSpeed: 300}),
+    e(81, "EK 125", "Emirates", "DXB", "Dubai", "VIE", "Vienna", "Boeing 777-300ER", "B77W", {minDist: 5.2, altAtMin: 4600, maxSpeed: 220})
   ];
 }
 
@@ -962,10 +1203,113 @@ function dedupe(list){
   }
   return kept.reverse();
 }
-let spotted = dedupe(loadLog()), logDay = todayKey();
-if (!S.demo && spotted.length !== loadLog().length) saveLog();   // clean up duplicates stored by older versions
-function rollDay(){ if (logDay !== todayKey()) { logDay = todayKey(); spotted = dedupe(loadLog()); renderList(); updateFooter(); } }
+let spotted = relayV5() ? [] : dedupe(loadLog()), logDay = todayKey();
+if (!S.demo && !relayV5() && spotted.length !== loadLog().length) saveLog();   // clean up duplicates stored by older versions
+function rollDay(){
+  if (logDay === todayKey()) return;
+  logDay = todayKey();
+  if (relayV5()) { sightRev = null; syncSightings(); return; }
+  spotted = dedupe(loadLog()); renderPage(); updateFooter();
+}
+
+/* With relay version 5 the relay records every sighting; the board just mirrors its list. */
+let sightRev = null, sightBusy = false;
+function fromRelay(r){
+  const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
+  const tn = typeName(r.typeCode, r.desc);
+  const dbType = [String(r.manufacturer || "").split(" ")[0], r.aircraftType].filter(Boolean).join(" ");
+  return {id: r.id, time: r.time, ts: r.ts, hex: r.hex, callsign: cs, reg: r.reg || "",
+    flight: r.flightIata ? fmtFlight(r.flightIata) : al && al[0] ? al[0] + " " + m[2] : (cs || r.reg || String(r.hex || "").toUpperCase()),
+    airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
+    from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
+    minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
+    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg,
+    photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer};
+}
+async function syncSightings(){
+  if (sightBusy || !relayV5()) return;
+  sightBusy = true;
+  try {
+    const j = await fetchJSON(`${relay()}/sightings`, {}, 8000);
+    const first = sightRev === null, known = new Set(spotted.map(e => e.id));
+    spotted = (j.entries || []).map(fromRelay);
+    sightRev = String(j.rev);
+    if (first) dlog("info", `Spotted today comes from the relay, shared by every screen (${spotted.length} so far)`);
+    else for (const e of spotted.filter(e => !known.has(e.id)).reverse()) dlog("info", `Relay added ${e.flight || e.hex} to Spotted today (${(+e.minDist).toFixed(1)} km away)`);
+    if (page === "spotted" || page === "stats") renderPage();
+    if (openView === "logbook" && !first) renderLogbook();
+    updateFooter();
+  } catch (e) { dlog("warn", `Couldn't read Spotted today from the relay: ${netError(e, "relay")}`); }
+  finally { sightBusy = false; }
+}
+
+/* ---------- special aircraft and favourites ---------- */
+const SPECIAL_BIG = new Set(["EMERGENCY", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "SPECIAL"]);
+function emergencyOf(ac){
+  const sq = String(ac.squawk || "");
+  if (["7500", "7600", "7700"].includes(sq)) return sq;
+  return ac.emergency && ac.emergency !== "none" ? String(ac.emergency) : "";
+}
+function specialOf(x){
+  if (x.emergency) return "EMERGENCY";
+  const t = SPECIAL_TYPES[String(x.typeCode || "").toUpperCase()];
+  if (t && t !== "MILITARY" && t !== "HELICOPTER") return t;
+  if (x.interesting) return "SPECIAL";
+  if (t === "MILITARY" || x.military) return "MILITARY";
+  return t || "";
+}
+let favCache = {src: null, list: []};
+function favList(){
+  if (favCache.src !== S.favs) favCache = {src: S.favs, list: String(S.favs || "").split(/[,;\n]+/).map(clean).filter(Boolean)};
+  return favCache.list;
+}
+function isFav(x){
+  const toks = favList();
+  if (!toks.length) return false;
+  const sq = v => clean(v).replace(/[\s-]/g, "");
+  const exact = new Set([x.airlineCode, String(x.callsign || "").slice(0, 3), x.typeCode, x.reg, x.flight, x.callsign].filter(Boolean).map(sq));
+  const names = " " + [clean(x.airline), clean(x.type)].join(" ");
+  return toks.some(t => exact.has(sq(t)) || (t.length >= 3 && names.includes(" " + t)));
+}
+// The most interesting thing about a plane, if anything: shown in the remarks instead of the route type.
+function badgeFor(x){
+  const sp = specialOf(x);
+  if (SPECIAL_BIG.has(sp)) return sp;
+  if (x.newType) return "NEW TYPE";
+  if (x.newAirline) return "NEW AIRLINE";
+  if (isFav(x)) return "FAVOURITE";
+  return sp;
+}
+function liveFacts(ac, info){
+  info = info || enrich(ac).info;
+  const e = spotted.find(x => x.hex === ac.hex);
+  return {typeCode: String(ac.t || (e && e.typeCode) || "").toUpperCase(), military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2),
+    emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline),
+    airline: info.airline, airlineCode: airlineCodeOf(info), callsign: String(ac.flight || "").trim().toUpperCase(),
+    flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
+}
+const chimed = new Map();       // hex -> when its chime played, once per pass
+function checkChimes(ok, R){
+  const now = Date.now();
+  for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
+  let kind = null;
+  for (const o of ok) {
+    if (o.dist > R || chimed.has(o.ac.hex)) continue;
+    const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
+    let k = sp === "EMERGENCY" ? "emergency" : SPECIAL_BIG.has(sp) || sp === "MILITARY" ? "special" : null;
+    const x = k || favList().length ? liveFacts(ac) : null;   // favourites need the airline, so only look it up when there are any
+    if (!k && x && isFav(x)) k = "fav";
+    if (!k) continue;
+    chimed.set(o.ac.hex, now);
+    dlog("info", `${x.flight || o.ac.hex} is ${k === "fav" ? "a favourite" : sp === "EMERGENCY" ? "squawking emergency " + x.emergency : sp.toLowerCase()} (${o.dist.toFixed(1)} km away)`);
+    kind = kind || k;
+  }
+  if (kind) chime(kind);
+}
+
 function remarkFor(e){
+  const badge = badgeFor(e);
+  if (badge) return badge;
   if (e.minDist != null && e.minDist <= overKm()) return "OVERHEAD";
   const home = (S.home || "").toUpperCase(), f = e.from && e.from.code, t = e.to && e.to.code;
   if (home && t === home) return "ARRIVING";
@@ -1011,22 +1355,27 @@ function logPlanes(ok, R){
     if (prior) {
       if (prior.minDist == null || o.dist < prior.minDist - .05) {
         const before = remarkFor(prior);
-        prior.minDist = +o.dist.toFixed(2); dirty = true;
+        prior.minDist = +o.dist.toFixed(2); prior.altAtMin = o.alt; dirty = true;
         if (remarkFor(prior) !== before) redraw = true;
       }
+      if (o.ac.gs && o.ac.gs > (prior.maxSpeed || 0) + 1) { prior.maxSpeed = Math.round(o.ac.gs); dirty = true; }
+      const em = emergencyOf(o.ac);
+      if (em && em !== prior.emergency) { prior.emergency = em; dirty = redraw = true; }
       continue;
     }
     if (o.dist > R) continue;
     const p = enrich(o.ac);
-    const e = {time: hhmm(), ts: now, hex: o.ac.hex, minDist: +o.dist.toFixed(2)};
+    const e = {time: hhmm(), ts: now, hex: o.ac.hex, minDist: +o.dist.toFixed(2), altAtMin: o.alt, maxSpeed: Math.round(o.ac.gs || 0),
+      typeCode: String(o.ac.t || "").toUpperCase(), callsign: String(o.ac.flight || "").trim().toUpperCase(),
+      military: !!(o.ac.dbFlags & 1), interesting: !!(o.ac.dbFlags & 2), emergency: emergencyOf(o.ac)};
     fillEntry(e, p.info);
     spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
     dirty = redraw = true;
     dlog("info", `Added ${e.flight || e.hex} to Spotted today (${o.dist.toFixed(1)} km away, within the ${R} km radius)`);
-    p.then(info => { fillEntry(e, info); saveLog(); renderList(); });
+    p.then(info => { fillEntry(e, info); saveLog(); renderPage(); });
   }
   if (dirty) saveLog();
-  if (redraw) { renderList(); updateFooter(); }
+  if (redraw) { renderPage(); updateFooter(); }
 }
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
@@ -1067,7 +1416,10 @@ function process(list){
   const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
-  logPlanes(ok, R);
+  if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
+  lastOkList = ok;
+  trackRunways(all);
+  radarTrack(all, now);
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
@@ -1094,7 +1446,10 @@ function process(list){
     if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
     else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
   }
+  checkChimes(ok, R);
   renderFeatured();
+  if (feat) lookupDetails(feat.hex);
+  if (page === "next" || page === "aircraft" || page === "airport") renderPage();
 }
 
 /* ---------- what goes on the board ---------- */
@@ -1111,7 +1466,7 @@ function renderFeatured(){
   setChars("flight", info.flightNo);
   const aCode = airlineCodeOf(info), aName = trimTo(shortAirline(info.airline), 18);
   setWord("airline", (aCode || "-") + "|" + aName);
-  setWord("remarks", MODE_REMARK[feat.mode]);
+  setWord("remarks", featRemark());
   setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
   setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
   setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
@@ -1127,7 +1482,12 @@ function renderFeatured(){
   setChars("pos", feat.live[2], 420);
   setWord("trend", feat.live[3] || "", 390);
 }
-function renderList(){
+// Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
+function featRemark(){
+  const mode = MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
+}
+function renderSpotted(){
   for (let i = 0; i < LIST_ROWS; i++) {
     const e = spotted[i], d = i * 150;
     setChars(`l${i}time`, e ? e.time : "", d);
@@ -1139,7 +1499,476 @@ function renderList(){
     setWord(`l${i}remarks`, e ? remarkFor(e) : "", d + 300);
   }
 }
-function tickClock(){ setChars("clock", hhmm()); rollDay(); updateFooter(); }
+/* ---------- rotating pages in the lower half ---------- */
+const PAGE_ORDER = ["spotted", "next", "airport", "stats", "aircraft"];
+const NEXT_LABELS = {l0time: ["In", "In"], l0remarks: ["Passes", "Passiert"]};
+let page = "spotted", pageSince = Date.now(), switching = false;
+function pageTitle(p){
+  const ap = AIRPORTS[S.home];
+  return {spotted: ["Spotted today", "Heute gesichtet"], next: ["Next over us", "Als Nächstes über uns"],
+    airport: ap ? [`${ap.name} airport`, ap.name === "Vienna" ? "Flughafen Wien" : "Flughafen"] : ["Airport", "Flughafen"],
+    stats: ["Today in numbers", "Heute in Zahlen"], aircraft: ["This aircraft", "Dieses Flugzeug"]}[p];
+}
+const fieldsOf = p => p === "spotted" || p === "next" ? LIST_IDS : PAGE_FIELDS[p];
+function pageAvailable(p){
+  if (p === "spotted") return true;
+  if (p === "next") return upcoming().length > 0;
+  if (p === "airport") return !!AIRPORTS[S.home] && (!!metarState.raw || rwyLog.size > 0);
+  if (p === "stats") return spotted.length > 0;
+  if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo); }
+  return false;
+}
+function goPage(p){
+  if (p === page || switching) return;
+  const from = fieldsOf(page), to = fieldsOf(p);
+  dlog("debug", `Page: ${pageTitle(p)[0]}`);
+  if (from === to) { page = p; pageSince = Date.now(); drawStatic(); renderPage(); placePhoto(); return; }
+  switching = true;
+  for (const id of from) {                     // flip everything on the current page to blank first
+    const f = fields[id];
+    if (f.hidden) continue;
+    const d = Math.max(0, f.y - Y.list0) * 3;
+    if (f.kind === "chars") setChars(id, "", d); else setWord(id, "", d);
+  }
+  $("photoFrame").hidden = true;
+  const started = performance.now();
+  const settled = () => from.every(id => fields[id].cells.every(c => !c.anim && !c.queue.length));
+  const swap = () => {
+    if (!settled() && performance.now() - started < 7000) return setTimeout(swap, 120);
+    for (const id of from) {
+      const f = fields[id];
+      if (id.startsWith("l")) continue;          // list flaps stay put; they are only blanked
+      f.pageOff = true;
+      for (const c of f.cells) fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8);
+    }
+    for (const id of to) {
+      const f = fields[id];
+      f.pageOff = false;
+      for (const c of f.cells) { c.cur = c.target = f.kind === "chars" ? " " : ""; c.queue = []; c.anim = null; }
+    }
+    if (from === LIST_IDS) for (const id of LIST_IDS) { fields[id].pageOff = true; for (const c of fields[id].cells) fxx.clearRect(c.x - 4, c.y - 4, fields[id].pw + 8, fields[id].ph + 8); }
+    if (to === LIST_IDS) for (const id of LIST_IDS) fields[id].pageOff = false;
+    page = p; pageSince = Date.now(); switching = false;
+    drawStatic();
+    for (const id of to) for (const c of fields[id].cells) drawCell(c);
+    placePhoto(); renderPage();
+  };
+  setTimeout(swap, 250);
+}
+function nextPage(dir = 1){
+  let i = PAGE_ORDER.indexOf(page);
+  for (let k = 0; k < PAGE_ORDER.length; k++) {
+    i = (i + dir + PAGE_ORDER.length) % PAGE_ORDER.length;
+    if (pageAvailable(PAGE_ORDER[i])) return goPage(PAGE_ORDER[i]);
+  }
+}
+setInterval(() => {
+  if (switching || !$("panel").hidden || openView) return;
+  if (!pageAvailable(page)) return goPage("spotted");
+  if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000) nextPage(1);
+}, 1000);
+function renderPage(){
+  if (switching) return;
+  if (page === "spotted") renderSpotted();
+  else if (page === "next") renderNext();
+  else if (page === "airport") renderAirport();
+  else if (page === "stats") renderStats();
+  else if (page === "aircraft") renderAircraft();
+}
+function blankRow(i, d){
+  for (const k of ["time", "flight", "from", "to", "type"]) setChars(`l${i}${k}`, "", d);
+  setWord(`l${i}logo`, "", d); setWord(`l${i}remarks`, "", d);
+}
+
+/* Next over us: planes whose straight-line course brings them close, soonest first */
+let lastOkList = [];
+const nextHooked = new Set();
+function upcoming(){
+  const OVK = overKm();
+  return lastOkList.filter(o => o.tcpa > 15 && o.tcpa <= 900 && o.cpa <= Math.max(OVK * 2, 5) && !(feat && feat.hex === o.ac.hex && feat.mode === "over"))
+    .sort((a, b) => a.tcpa - b.tcpa).slice(0, LIST_ROWS);
+}
+function mmss(sec){
+  const t = Math.max(0, Math.round(sec / 5) * 5);
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+}
+function renderNext(){
+  const up = upcoming(), OVK = overKm();
+  for (let i = 0; i < LIST_ROWS; i++) {
+    const o = up[i], d = i * 120;
+    if (!o) { blankRow(i, d); continue; }
+    const p = enrich(o.ac), info = p.info, key = o.ac.hex + "|" + (o.ac.flight || "");
+    if (!nextHooked.has(key)) { nextHooked.add(key); p.then(() => { if (page === "next") renderNext(); }); }
+    setChars(`l${i}time`, mmss(o.tcpa), d);
+    setWord(`l${i}logo`, airlineCodeOf(info) || "-", d + 30);
+    setChars(`l${i}flight`, info.flightNo, d + 60);
+    setChars(`l${i}from`, info.from ? info.from.city || info.from.code : "", d + 120);
+    setChars(`l${i}to`, info.to ? info.to.city || info.to.code : "", d + 180);
+    setChars(`l${i}type`, info.type || "", d + 240);
+    setWord(`l${i}remarks`, o.cpa <= OVK ? "OVERHEAD" : "CLOSE BY", d + 300);
+  }
+}
+
+/* Airport: runways in use worked out from live traffic near the airport, plus the weather report */
+const rwyLog = new Map();      // hex -> {rwy, kind: "arr" | "dep", t}
+const metarState = {raw: "", at: 0, busy: false};
+function distKm(lat1, lon1, lat2, lon2){ return Math.hypot((lon2 - lon1) * 111.32 * Math.cos(lat1 * Math.PI / 180), (lat2 - lat1) * 110.57); }
+function bearingDeg(lat1, lon1, lat2, lon2){
+  const x = (lon2 - lon1) * Math.cos(lat1 * Math.PI / 180), y = lat2 - lat1;
+  return (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
+}
+const angDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+function trackRunways(all){
+  const ap = AIRPORTS[S.home];
+  if (!ap) return;
+  const now = Date.now();
+  for (const o of all) {
+    const ac = o.ac;
+    if (o.alt == null || o.alt > 4500 || o.rate == null || ac.track == null) continue;
+    if (distKm(ap.lat, ap.lon, ac.lat, ac.lon) > 20) continue;
+    const rw = ap.rwys.find(([hdg]) => angDiff(hdg, ac.track) <= 20);
+    if (!rw) continue;
+    const toward = angDiff(bearingDeg(ac.lat, ac.lon, ap.lat, ap.lon), ac.track) <= 35;
+    const kind = o.rate < -200 && toward ? "arr" : o.rate > 200 && !toward ? "dep" : null;
+    if (kind) rwyLog.set(ac.hex, {rwy: rw[1], kind, t: now});
+  }
+  for (const [k, v] of rwyLog) if (now - v.t > 20 * 60000) rwyLog.delete(k);
+}
+function runways(kind){
+  const n = {};
+  for (const v of rwyLog.values()) if (v.kind === kind) n[v.rwy] = (n[v.rwy] || 0) + 1;
+  const total = Object.values(n).reduce((a, b) => a + b, 0);
+  const used = Object.entries(n).filter(([, c]) => c >= Math.max(1, total * .25)).sort((a, b) => b[1] - a[1]).map(([r]) => r);
+  return {label: used.length === 1 ? "RWY " + used[0] : used.join(" + "), count: total};
+}
+async function refreshMetar(){
+  const ap = AIRPORTS[S.home];
+  if (!ap || !relayV5() || metarState.busy || Date.now() - metarState.at < 10 * 60000) return;
+  metarState.busy = true;
+  try {
+    const r = await timedFetch(`${relay()}/metar?ids=${ap.icao}`);
+    const t = r.ok ? (await r.text()).trim().split("\n")[0] : "";
+    if (t) { if (t !== metarState.raw) dlog("debug", `Weather report: ${t}`); metarState.raw = t; }
+  } catch (e) { dlog("debug", `Weather report unavailable: ${netError(e, "relay")}`); }
+  finally { metarState.at = Date.now(); metarState.busy = false; }
+}
+function parseMetar(raw){
+  const m = {clouds: []};
+  const w = raw.match(/\b(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)\b/);
+  if (w) { const k = w[4] === "MPS" ? 1.944 : 1; m.dir = w[1]; m.kt = +w[2] * k; m.gust = w[3] ? +w[3] * k : 0; }
+  if (/\bCAVOK\b/.test(raw)) { m.cavok = true; m.vis = 10000; }
+  else { const v = raw.match(/\s(\d{4})(?:NDV)?\s/); if (v) m.vis = +v[1]; }
+  const t = raw.match(/\s(M?\d{2})\/(M?\d{2})?(?=\s)/);
+  if (t) m.temp = (t[1][0] === "M" ? -1 : 1) * +t[1].replace("M", "");
+  const q = raw.match(/\sQ(\d{4})/); if (q) m.qnh = +q[1];
+  for (const c of raw.matchAll(/\b(FEW|SCT|BKN|OVC|VV)(\d{3})/g)) m.clouds.push({cover: c[1], ft: +c[2] * 100});
+  m.nsc = /\b(NSC|NCD|SKC|CLR)\b/.test(raw);
+  const wx = raw.match(/\s(-|\+|VC)?(TS|SH|FZ)?(RA|SN|DZ|FG|BR|HZ|GR|GS|SG|PL|FU|SA|DU)\b/);
+  if (wx) m.wx = ({"-": "LIGHT ", "+": "HEAVY ", VC: "NEARBY "}[wx[1]] || "") + ({TS: "THUNDER ", FZ: "FREEZING "}[wx[2]] || "") +
+    ({RA: wx[2] === "SH" ? "SHOWERS" : "RAIN", SN: "SNOW", DZ: "DRIZZLE", FG: "FOG", BR: "MIST", HZ: "HAZE", GR: "HAIL", GS: "HAIL",
+      SG: "SNOW", PL: "ICE PELLETS", FU: "SMOKE", SA: "SAND", DU: "DUST"}[wx[3]]);
+  return m;
+}
+function splitLine(text, n){
+  const t = clean(text);
+  if (t.length <= n) return [t, ""];
+  const cut = t.lastIndexOf(" ", n);
+  return [t.slice(0, cut > 0 ? cut : n), t.slice(cut > 0 ? cut + 1 : n)];
+}
+function renderAirport(){
+  const ap = AIRPORTS[S.home];
+  if (!ap) return;
+  const arr = runways("arr"), dep = runways("dep");
+  setChars("apArr", arr.label || "-"); setChars("apDep", dep.label || "-", 120);
+  const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+  setChars("apTraffic", `${n(arr.count, "landing", "landings")} and ${n(dep.count, "take-off", "take-offs")} seen near ${ap.name} airport`, 400);
+  if (!metarState.raw) {
+    ["apWind", "apVis", "apTemp", "apQnh", "apCloud", "apCond"].forEach((id, i) => setChars(id, "-", 160 + i * 40));
+    setChars("apRaw1", relayV5() ? "Waiting for the weather report" : "Weather needs the home relay (version 5)", 300); setChars("apRaw2", "", 340);
+    return;
+  }
+  const m = parseMetar(metarState.raw), metric = S.units === "metric";
+  const spd = k => metric ? Math.round(k * 1.852) : Math.round(k);
+  setChars("apWind", m.dir ? `${m.dir === "VRB" ? "VAR" : m.dir} ${spd(m.kt)}${m.gust ? "-" + spd(m.gust) : ""} ${metric ? "KM/H" : "KT"}` : "-", 160);
+  setChars("apVis", m.vis == null ? "-" : m.vis >= 9999 ? "10 KM+" : m.vis >= 5000 ? Math.round(m.vis / 1000) + " KM" : m.vis + " M", 200);
+  setChars("apTemp", m.temp == null ? "-" : `${m.temp} C`, 240);
+  setChars("apQnh", m.qnh ? `${m.qnh} HPA` : "-", 280);
+  const c = m.clouds[0], names = {FEW: "FEW", SCT: "SCATTERED", BKN: "BROKEN", OVC: "OVERCAST", VV: "SKY HIDDEN"};
+  setChars("apCloud", m.cavok ? "CAVOK" : m.nsc ? "NO CLOUDS" : c ? `${names[c.cover]} ${metric ? Math.round(c.ft * .3048 / 10) * 10 + " M" : c.ft + " FT"}` : "-", 320);
+  setChars("apCond", m.wx || (m.cavok ? "CLEAR" : "DRY"), 360);
+  const [l1, l2] = splitLine(metarState.raw, 64);
+  setChars("apRaw1", l1, 300); setChars("apRaw2", l2, 340);
+}
+
+/* Today in numbers */
+function renderStats(){
+  const list = spotted, OVK = overKm();
+  const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
+  setChars("stPlanes", String(list.length));
+  setChars("stAirlines", String(uniq(e => e.airlineCode || clean(e.airline))), 60);
+  setChars("stTypes", String(uniq(e => e.typeCode || clean(e.type))), 120);
+  setChars("stOver", String(list.filter(e => e.minDist != null && e.minDist <= OVK).length), 180);
+  const hours = {};
+  for (const e of list) { const h = new Date(entryTime(e)).getHours(); hours[h] = (hours[h] || 0) + 1; }
+  const best = Object.entries(hours).sort((a, b) => b[1] - a[1])[0];
+  setChars("stHour", best ? `${String(best[0]).padStart(2, "0")}:00` : "", 240);
+  const withAlt = list.filter(e => typeof e.altAtMin === "number");
+  const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
+  const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
+  const fast = list.filter(e => e.maxSpeed).reduce((a, e) => !a || e.maxSpeed > a.maxSpeed ? e : a, null);
+  setChars("stLow", low ? `${low.flight} - ${altitudeStr(low.altAtMin)}` : "-", 300);
+  setChars("stHigh", high ? `${high.flight} - ${altitudeStr(high.altAtMin)}` : "-", 360);
+  setChars("stFast", fast ? `${fast.flight} - ${speedStr(fast.maxSpeed)}` : "-", 420);
+  const airlines = {};
+  for (const e of list) { const a = shortAirline(e.airline); if (a) airlines[a] = (airlines[a] || 0) + 1; }
+  const top = Object.entries(airlines).sort((a, b) => b[1] - a[1])[0];
+  setChars("stTop", top ? `${top[0]} - ${top[1]}` : "-", 480);
+  const first = list[list.length - 1];
+  setChars("stFirst", first ? `${first.time} ${first.flight}` : "-", 540);
+  const nt = list.filter(e => e.newType).length, na = list.filter(e => e.newAirline).length;
+  setChars("stNew", relayV5() || S.demo ? (nt || na ? `${nt} types - ${na} airlines` : "Nothing new yet") : "Needs the home relay", 600);
+}
+
+/* This aircraft: photo and registration details for the plane on the board */
+const acDetails = new Map();   // hex -> details, or null while looking up / not found
+function detailsOf(hex){
+  if (!hex) return null;
+  const d = acDetails.get(hex);
+  if (d) return d;
+  const e = spotted.find(x => x.hex === hex && (x.photo || x.owner));
+  return e ? {photo: e.photo, owner: e.owner, country: e.ownerCountry, type: e.aircraftType ? [String(e.manufacturer || "").split(" ")[0], e.aircraftType].filter(Boolean).join(" ") : "", reg: e.reg} : null;
+}
+function lookupDetails(hex){
+  if (!hex || acDetails.has(hex) || S.demo) return;
+  acDetails.set(hex, null);
+  fetchJSON(`https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(hex)}`).then(j => {
+    const a = j && j.response && j.response.aircraft;
+    if (!a) return;
+    acDetails.set(hex, {photo: a.url_photo || "", owner: a.registered_owner || "", country: a.registered_owner_country_name || "",
+      type: [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" "), reg: a.registration || ""});
+    if (feat && feat.hex === hex && page === "aircraft") renderAircraft();
+  }).catch(() => {});
+}
+function placePhoto(){
+  const fr = $("photoFrame"), d = feat && detailsOf(feat.hex);
+  fr.hidden = !(page === "aircraft" && !switching && d && d.photo);
+  Object.assign(fr.style, {left: M * K + "px", top: (Y.list0 + 6) * K + "px", width: PHOTO.w * K + "px", height: PHOTO.h * K + "px"});
+}
+function renderAircraft(){
+  const ids = ["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"];
+  if (!feat) { ids.forEach(id => setChars(id, "")); placePhoto(); return; }
+  const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
+  setChars("acReg", info.reg || d.reg || "");
+  setChars("acHex", feat.hex.toUpperCase(), 60);
+  setChars("acFlight", info.flightNo, 120);
+  setChars("acType", d.type || info.type || "", 180);
+  setChars("acOwner", d.owner || info.airline || "", 240);
+  setChars("acCountry", d.country || "", 300);
+  setChars("acRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
+  const img = $("photoImg");
+  if (d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
+  placePhoto();
+}
+
+/* ---------- logbook and radar: separate tabs over the board ---------- */
+let openView = null, viewTimer = null, lbCache = null;
+function showView(name){
+  closePanel(); closeDiag();
+  for (const v of ["logbook", "radar"]) $(v + "View").hidden = v !== name;
+  openView = name;
+  try { history.replaceState(null, "", location.pathname + location.search + "#" + name); } catch {}
+  clearInterval(viewTimer); stopRadar();
+  if (name === "logbook") { renderLogbook(); viewTimer = setInterval(renderLogbook, 30000); }
+  else startRadar();
+}
+function closeView(){
+  if (!openView) return;
+  $(openView + "View").hidden = true; openView = null;
+  clearInterval(viewTimer); stopRadar();
+  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+}
+const toggleView = name => openView === name ? closeView() : showView(name);
+const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
+function demoLogbook(){
+  const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
+  return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
+    types: {A320: t(412, 41), B738: t(301, 41), A21N: t(233, 41), E195: t(188, 40), A20N: t(176, 41), B38M: t(142, 41), A319: t(131, 41),
+      DH8D: t(97, 39), E75L: t(64, 38), B789: t(45, 38), B77W: t(38, 37), A359: t(22, 30), EC35: t(19, 36), A388: t(6, 12), B748: t(2, 3), A124: t(1, .1)},
+    airlines: {AUA: t(690, 41), RYR: t(301, 41), WZZ: t(254, 41), DLH: t(141, 41), EWG: t(120, 41), THY: t(98, 40), LDM: t(77, 41), SWR: t(61, 40),
+      UAE: t(44, 39), QTR: t(40, 39), LOT: t(37, 38), BAW: t(31, 37), AFR: t(25, 35), KLM: t(24, 34), ETD: t(9, 20), ADB: t(1, .1, "Antonov Airlines")},
+    regsTop: [["OE-LBN", "A320", 23], ["OE-LWA", "E195", 21], ["OE-LBO", "A320", 19], ["9H-QAA", "A320", 17], ["OE-LPA", "B772", 15], ["D-AIUA", "A320", 14]]
+      .map(([reg, name, count], i) => ({reg, name, count, first: d(41 - i)})),
+    regsRecent: [["UR-82008", "A124", .1], ["A6-EVB", "A388", .4], ["OE-LBW", "A20N", .7], ["9H-VUE", "B38M", 1.2], ["HA-LVF", "A21N", 1.6], ["D-AINZ", "A20N", 2]]
+      .map(([reg, name, first]) => ({reg, name, count: 1, first: d(first)}))};
+}
+async function renderLogbook(){
+  const body = $("logbookBody");
+  let b = null;
+  if (S.demo) b = demoLogbook();
+  else if (!relayV5()) {
+    body.innerHTML = '<p class="msg">The logbook is kept by the home relay, so every screen shares it and nothing is lost on a restart. Open the board through the relay (version 5 or newer) to start one.</p>';
+    return;
+  } else {
+    try { b = lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); }
+    catch (e) {
+      b = lbCache;
+      if (!b) { body.innerHTML = `<p class="msg">Couldn't read the logbook from the relay: ${escH(netError(e, "relay"))}</p>`; return; }
+    }
+  }
+  if (openView !== "logbook") return;
+  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
+  const types = byCount(b.types), airlines = byCount(b.airlines), now = Date.now();
+  const learning = b.learningUntil && now < b.learningUntil;
+  const isNew = ts => ts && now - ts < 86400e3 && !(b.learningUntil && ts < b.learningUntil);
+  const NEW = ts => isNew(ts) ? '<span class="new">NEW</span>' : "";
+  const tile = (n, en) => `<div class="tile"><b>${nf.format(n || 0)}</b><span>${en}</span></div>`;
+  const more = (n, shown) => n > shown ? `<p class="more">and ${n - shown} more</p>` : "";
+  const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
+  const ROWS = 13;
+  const typeRows = types.slice(0, ROWS).map(([code, it]) => `<tr><td>${escH(typeLabel(code, it.name))}${SPECIAL_TYPES[code] ? `<span class="tag">${SPECIAL_TYPES[code]}</span>` : ""}${NEW(it.first)}</td>` +
+    `<td class="c">${escH(code)}</td><td class="n">${nf.format(it.count || 0)}</td><td class="d">${fmtDay(it.first)}</td></tr>`).join("");
+  const logoImg = iata => iata && S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(iata)}.png" alt="" onerror="this.style.visibility='hidden'">` : "";
+  const airRows = airlines.slice(0, ROWS).map(([icao, it]) => {
+    const al = AIRLINES[icao] || [], iata = it.iata || al[0] || "";
+    return `<tr><td class="c">${logoImg(iata)}</td><td>${escH(al[1] || it.name || icao)}${NEW(it.first)}</td><td class="c">${escH(icao)}</td><td class="n">${nf.format(it.count || 0)}</td></tr>`;
+  }).join("");
+  const regRows = list => (list || []).slice(0, 6).map(r => `<tr><td>${escH(r.reg)}${NEW(r.first)}</td><td class="c">${escH(typeLabel(r.name, ""))}</td><td class="n">${nf.format(r.count || 0)}</td><td class="d">${fmtDay(r.first)}</td></tr>`).join("");
+  const table = rows => rows ? `<table><tbody>${rows}</tbody></table>` : '<p class="more">None yet</p>';
+  const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}) : "";
+  body.innerHTML = `<div class="tiles">${tile(b.sightings, "Sightings")}${tile(types.length, "Aircraft types")}${tile(airlines.length, "Airlines")}${tile(b.regsCount, "Individual aircraft")}</div>` +
+    `<p class="since">${b.sample ? "Sample logbook (demo mode). " : ""}Counting since ${escH(since)}${learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : ""}</p>` +
+    `<div><h3>Aircraft types</h3>${table(typeRows)}${more(types.length, ROWS)}</div>` +
+    `<div><h3>Airlines</h3>${table(airRows)}${more(airlines.length, ROWS)}</div>` +
+    `<div class="stack"><div><h3>Most seen aircraft</h3>${table(regRows(b.regsTop))}</div>` +
+    `<div><h3>Newest aircraft</h3>${table(regRows(b.regsRecent))}</div></div>`;
+}
+
+/* Radar: a plan view of everything around, north up */
+const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
+const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
+function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function radarTrack(all, now){
+  radar.planes = all; radar.at = now;
+  for (const o of all) {
+    let tr = radar.trails.get(o.ac.hex);
+    if (!tr) radar.trails.set(o.ac.hex, tr = []);
+    const last = tr[tr.length - 1];
+    if (!last || last.lat !== o.ac.lat || last.lon !== o.ac.lon) tr.push({lat: o.ac.lat, lon: o.ac.lon, t: now});
+    while (tr.length && (tr.length > 36 || now - tr[0].t > 4 * 60000)) tr.shift();
+  }
+  for (const [k, tr] of radar.trails) if (!tr.length || now - tr[tr.length - 1].t > 90000) radar.trails.delete(k);
+}
+const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
+function resizeRadar(){ const cv = $("radarCv"); radar.px = Math.min(PX, 1.5); cv.width = Math.round(W * radar.px); cv.height = Math.round(H * radar.px); }
+function startRadar(){
+  resizeRadar();
+  const dot = (c, t) => `<span><i style="background:${c}"></i>${t}</span>`;
+  $("radarLegend").innerHTML = [dot(RADAR_COL.over, "Overhead"), dot(RADAR_COL.soon, "Inbound"), dot(RADAR_COL.by, "Flying by"), dot(RADAR_COL.away, "Outbound"),
+    dot(RADAR_COL.special, "Special"), dot(RADAR_COL.fav, "Favourite"), dot(RADAR_COL.high, "Above the altitude limit")].join("");
+  const loop = t => {
+    if (openView !== "radar") return;
+    if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
+    radar.raf = requestAnimationFrame(loop);
+  };
+  cancelAnimationFrame(radar.raf); radar.raf = requestAnimationFrame(loop);
+}
+function stopRadar(){ cancelAnimationFrame(radar.raf); }
+function altShort(ft){
+  if (ft == null) return "";
+  return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 50) * 50) + " m" : ft >= 18000 ? "FL" + Math.round(ft / 100) : nf.format(Math.round(ft / 100) * 100) + " ft";
+}
+function radarColor(o){
+  const x = liveFacts(o.ac, (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac));
+  const sp = specialOf(x);
+  if (sp === "EMERGENCY") return RADAR_COL.emergency;
+  if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return RADAR_COL.special;
+  if (isFav(x)) return RADAR_COL.fav;
+  return RADAR_COL[o.kind] || RADAR_COL.high;
+}
+function drawRadar(t){
+  const cv = $("radarCv"), g = cv.getContext("2d"), now = Date.now();
+  g.setTransform(radar.px, 0, 0, radar.px, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const cx = 700, cy = 572, R = 408, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), ky = 110.57;
+  const toXY = (lat, lon) => [cx + (lon - S.lon) * kx * k, cy - (lat - S.lat) * ky * k];
+  const scope = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+  scope.addColorStop(0, "#15191b"); scope.addColorStop(1, "#090b0c");
+  g.fillStyle = scope; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+  const a0 = (t / 7000) * TAU;                                  // slow sweep
+  for (let i = 0; i < 28; i++) {
+    g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
+    g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
+  }
+  g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill();
+  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
+  g.font = `600 17px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  for (let r = 5; r <= range; r += 5) {
+    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.2; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
+    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + 8, cy - r * k + 20);
+  }
+  g.setLineDash([12, 9]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 2;
+  g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
+  const ap = AIRPORTS[S.home];
+  if (ap && ap.strips) {
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 6;
+    for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+    const [ax, ay] = toXY(ap.lat, ap.lon);
+    g.font = `700 20px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 22, ay + 30); g.lineCap = "butt";
+  }
+  const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
+  for (const o of radar.planes) {
+    const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
+    const lat = ac.lat + v * Math.cos(th) / ky, lon = ac.lon + v * Math.sin(th) / kx;
+    const [x, y] = toXY(lat, lon);
+    if (Math.hypot(x - cx, y - cy) > R + 10) continue;
+    const col = radarColor(o), tr = radar.trails.get(ac.hex);
+    if (tr && tr.length > 1) {
+      g.strokeStyle = rgba(col, .35); g.lineWidth = 2.5; g.beginPath();
+      tr.forEach((p, i) => { const [px, py] = toXY(p.lat, p.lon); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+      g.lineTo(x, y); g.stroke();
+    }
+    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
+    drawPlane(g, 0, 0, o.kind ? 34 : 26, col);   // drawPlane points north-east; this turns it to the track
+    g.restore();
+    shown.push({o, x, y, col});
+  }
+  g.font = `700 17px ${FONT}`;
+  for (const {o, x, y, col} of shown) {
+    if (!o.kind) continue;
+    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
+    const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
+    g.fillStyle = COL.ink; g.fillText(name, x + 22, y - 4);
+    g.font = `500 15px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 22, y + 14); g.font = `700 17px ${FONT}`;
+  }
+  g.restore();
+  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+  g.font = `700 22px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R + 24), cy - Math.cos(a) * (R + 24)); });
+  pictogram(g, cx - 12, cy - 12, 24);
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  // nearest list on the right
+  const lx = 1250, list = radar.planes.filter(o => o.kind && o.dist <= range).sort((a, b) => a.dist - b.dist).slice(0, 12);
+  g.font = `600 17px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  g.fillStyle = COL.amber; g.fillText("NEAREST", lx, 196); g.fillStyle = COL.labelEn; g.fillText("AM NÄCHSTEN", lx + g.measureText("NEAREST").width + 12, 196);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  list.forEach((o, i) => {
+    const y = 240 + i * 52, info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
+    g.fillStyle = radarColor(o); g.beginPath(); g.arc(lx + 8, y - 8, 7, 0, TAU); g.fill();
+    g.font = `700 26px ${FONT}`; g.fillStyle = COL.ink; g.fillText(info.flightNo || "", lx + 30, y);
+    g.font = `500 22px ${FONT}`; g.fillStyle = COL.muted; g.fillText(String(o.ac.t || ""), lx + 190, y);
+    g.textAlign = "right"; g.fillStyle = COL.ink; g.fillText(altShort(o.alt), lx + 470, y);
+    g.fillText((o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " km " + o.dir, lx + 606, y); g.textAlign = "left";
+  });
+  if (!list.length) { g.font = `500 24px ${FONT}`; g.fillStyle = COL.muted; g.fillText(radar.at ? "No aircraft in range" : "Waiting for position data", lx, 240); }
+}
+
+function tickClock(){
+  setChars("clock", hhmm()); rollDay(); applyNight(); updateFooter();
+  if (feat && !isOffline()) setWord("remarks", featRemark());
+}
 
 /* ---------- footer, panel ---------- */
 function updateFooter(){
@@ -1153,7 +1982,8 @@ function updateFooter(){
     dot.dataset.state = failures || stale ? "warn" : "live";
     txt.textContent = `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`;
   }
-  if (S.sound && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
+  if (nightOn) txt.textContent += " · night mode";
+  else if ((S.sound || S.chimes) && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
   $("pip").dataset.state = dot.dataset.state || "";
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
@@ -1163,17 +1993,24 @@ function renderLog(){
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   body.innerHTML = '<table class="log"><tbody>' + real.map(e => {
     const route = e.from && e.to ? `${esc(e.from.code)} ${esc(e.from.city)} → ${esc(e.to.code)} ${esc(e.to.city)}` : "Route not listed";
-    return `<tr><td>${esc(e.time)}</td><td>${esc(e.flight)}${e.airline ? " · " + esc(e.airline) : ""}<br><span class="sub">${route} · ${esc(e.type)}${e.reg ? " · " + esc(e.reg) : ""}${e.minDist != null ? " · closest " + (+e.minDist).toFixed(1) + " km" + (e.minDist <= overKm() ? " (overhead)" : "") : ""}</span></td></tr>`;
+    return `<tr><td>${esc(e.time)}</td><td>${esc(e.flight)}${e.airline ? " · " + esc(e.airline) : ""}<br><span class="sub">${route} · ${esc(e.type)}${e.reg ? " · " + esc(e.reg) : ""}${e.minDist != null ? " · closest " + (+e.minDist).toFixed(1) + " km" + (e.minDist <= overKm() ? " (overhead)" : "") : ""}${badgeFor(e) ? " · " + badgeFor(e).toLowerCase() : ""}</span></td></tr>`;
   }).join("") + "</tbody></table>";
 }
 function openPanel(section){
   $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
   $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
+  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || "";
+  $("fNight").checked = !!S.night; $("fNightFrom").value = S.nightFrom; $("fNightTo").value = S.nightTo; $("fNightDim").value = String(S.nightDim);
+  $("fChimes").checked = !!S.chimes; $("fImperfect").checked = !!S.imperfect;
   renderLog(); $("panel").hidden = false;
   $(section).scrollIntoView({block: "start"});
 }
 function closePanel(){ $("panel").hidden = true; }
 $("btnLog").onclick = e => { e.stopPropagation(); openPanel("secLog"); };
+$("btnLogbook").onclick = e => { e.stopPropagation(); toggleView("logbook"); };
+$("btnRadar").onclick = e => { e.stopPropagation(); toggleView("radar"); };
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = e => { e.stopPropagation(); closeView(); });
+addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h === "logbook" || h === "radar") showView(h); else if (!h) closeView(); });
 $("btnSettings").onclick = e => { e.stopPropagation(); openPanel("secSettings"); };
 $("btnClose").onclick = closePanel;
 $("fSpeed").addEventListener("input", () => { $("fSpeedOut").textContent = $("fSpeed").value + "%"; });
@@ -1188,16 +2025,27 @@ $("btnSave").onclick = () => {
     radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 15)),
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
-    sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
+    sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked,
+    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked,
+    nightFrom: $("fNightFrom").value || DEFAULTS.nightFrom, nightTo: $("fNightTo").value || DEFAULTS.nightTo, nightDim: +$("fNightDim").value || 40,
+    chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
   saveSettings(); audioInit(); closePanel();
-  if (wasDemo !== S.demo) { feat = null; infoCache.clear(); spotted = loadLog(); }
+  if (wasDemo !== S.demo) {
+    feat = null; infoCache.clear(); sightRev = null; metarState.raw = S.demo ? DEMO_METAR : ""; metarState.at = 0;
+    spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
+  }
+  applyTheme(); applyNight(true);
   if (hadLogos !== S.logos) layout();
-  resize(); renderList(); if (feat) renderFeatured(); updateFooter(); poll(true);
+  resize(); renderPage(); if (feat) renderFeatured(); updateFooter(); poll(true);
 };
 document.addEventListener("keydown", e => {
   audioInit();
-  if (e.key === "Escape") { closePanel(); closeDiag(); }
+  if (e.key === "Escape") { closePanel(); closeDiag(); closeView(); }
   if (!$("panel").hidden) return;
+  if (e.key === "l" || e.key === "L") toggleView("logbook");
+  if (e.key === "r" || e.key === "R") toggleView("radar");
+  if (e.key === "ArrowRight" && !openView) nextPage(1);
+  if (e.key === "ArrowLeft" && !openView) nextPage(-1);
   if (e.key === "d") DIAG.open ? closeDiag() : openDiag();
   if (e.key === "f") toggleFullscreen();
   if (e.key === "s") openPanel("secSettings");
@@ -1305,6 +2153,7 @@ async function poll(force){
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
     failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
+    refreshMetar();
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
@@ -1323,15 +2172,20 @@ async function poll(force){
 async function start(){
   try {
     await Promise.race([
-      Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} "Archivo Narrow"`))),
+      Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
       new Promise(r => setTimeout(r, 2500))
     ]);
   } catch {}
+  applyTheme(); applyNight(true);
   resize(); wake();
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
   audioInit();   // starts at once where the browser allows it (kiosk setups); otherwise on the first click or key press
-  renderList(); updateFooter(); keepAwake();
+  if (S.demo) metarState.raw = DEMO_METAR;
+  renderPage(); updateFooter(); keepAwake();
+  if (relayV5()) syncSightings();
+  const h = location.hash.slice(1);
+  if (h === "logbook" || h === "radar") showView(h);
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);
