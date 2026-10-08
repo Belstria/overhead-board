@@ -162,6 +162,7 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 #pager .arr:hover{color:var(--ink)}
 body.idle #pager .arr{opacity:0}
 #radarView canvas{position:absolute;inset:0;width:100%;height:100%}
+#stage canvas#flipCv{z-index:2;pointer-events:none}
 #radarView .vhead{position:relative;z-index:1}
 #radarLegend{position:absolute;left:calc(1250px*var(--k));right:calc(64px*var(--k));bottom:calc(120px*var(--k));display:flex;flex-wrap:wrap;gap:calc(6px*var(--k)) calc(26px*var(--k));font-size:calc(20px*var(--k));color:var(--muted);z-index:1}
 #radarLegend i{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.45em;vertical-align:-.05em}
@@ -179,6 +180,7 @@ body.idle #pager .arr{opacity:0}
   <nav id="pager" aria-label="Pages">
     <button class="arr" type="button" data-dir="-1" aria-label="Previous page">&#8249;</button><span id="pagerDots" style="display:flex"></span><button class="arr" type="button" data-dir="1" aria-label="Next page">&#8250;</button>
   </nav>
+  <canvas id="flipCv" hidden aria-hidden="true"></canvas>
   <section class="view" id="spottedView" hidden aria-label="Spotted today">
     <div class="vhead"><h2>Spotted today <span>Heute gesichtet</span></h2>
       <div class="vtools"><div class="chips" id="spotChips"></div><button class="vclose" type="button" data-close="spotted">Close</button></div></div>
@@ -562,6 +564,7 @@ function resize(){
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
   tiles.clear(); geometry(); drawStatic(); redrawAll(); placePhoto();
   if (openView === "radar") resizeRadar();
+  if (bigFlap.on) endBigFlap();
 }
 
 /* ---------- tiles: each flap face pre-rendered once ---------- */
@@ -758,6 +761,7 @@ function path(drum, from, to){
   while (i !== j) { i = (i + 1) % drum.length; out.push(drum[i]); }
   return out;
 }
+let snapping = false;     // set while a new page is drawn straight onto the board, without flipping each flap
 // Flap speed as a percentage of full speed (100% = fastest, 10% = ten times slower).
 const pace = () => 100 / Math.min(100, Math.max(10, +S.speedPct || 85));
 function retarget(c, value, delay){
@@ -778,7 +782,7 @@ function retarget(c, value, delay){
     for (let n = 3 + Math.floor(Math.random() * 4); n > 0; n--) q.push("|" + pool[Math.floor(Math.random() * pool.length)]);
     q.push(value);
   }
-  if (REDUCED) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
+  if (REDUCED || snapping) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
   if (!c.queue.length && !c.anim) c.next = performance.now() + delay * pace();
   c.queue = q;
   kick();
@@ -1475,7 +1479,7 @@ function process(list){
   }
   checkChimes(ok, R);
   renderFeatured();
-  if (feat) lookupDetails(feat.hex);
+  if (feat) { lookupDetails(feat.hex); preloadPhoto(); }
   if (page === "next" || page === "aircraft" || page === "airport") renderPage();
 }
 
@@ -1545,42 +1549,169 @@ function pageAvailable(p){
   if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo); }
   return false;
 }
+/* Changing pages: the whole lower half is one giant split flap. The next page is set up underneath in
+   one go, then the panel carrying the current page tips forward, falls and lands with a thud. */
 function goPage(p){
-  if (p === page || switching) return;
+  if (p === page || switching || bigFlap.on) return;
   const from = fieldsOf(page), to = fieldsOf(p);
   dlog("debug", `Page: ${pageTitle(p)[0]}`);
-  if (from === to) { page = p; pageSince = Date.now(); updatePager(); drawStatic(); renderPage(); placePhoto(); return; }
+  const before = REDUCED ? null : capturePanel();
   switching = true;
-  for (const id of from) {                     // flip everything on the current page to blank first
-    const f = fields[id];
-    if (f.hidden) continue;
-    const d = Math.max(0, f.y - Y.list0) * 3;
-    if (f.kind === "chars") setChars(id, "", d); else setWord(id, "", d);
-  }
-  $("photoFrame").hidden = true;
-  const started = performance.now();
-  const settled = () => from.every(id => fields[id].cells.every(c => !c.anim && !c.queue.length));
-  const swap = () => {
-    if (!settled() && performance.now() - started < 7000) return setTimeout(swap, 120);
+  if (from !== to) {
     for (const id of from) {
       const f = fields[id];
-      if (id.startsWith("l")) continue;          // list flaps stay put; they are only blanked
       f.pageOff = true;
-      for (const c of f.cells) fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8);
+      for (const c of f.cells) { fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8); c.queue = []; c.anim = null; }
     }
     for (const id of to) {
       const f = fields[id];
       f.pageOff = false;
       for (const c of f.cells) { c.cur = c.target = f.kind === "chars" ? " " : ""; c.queue = []; c.anim = null; }
     }
-    if (from === LIST_IDS) for (const id of LIST_IDS) { fields[id].pageOff = true; for (const c of fields[id].cells) fxx.clearRect(c.x - 4, c.y - 4, fields[id].pw + 8, fields[id].ph + 8); }
-    if (to === LIST_IDS) for (const id of LIST_IDS) fields[id].pageOff = false;
-    page = p; pageSince = Date.now(); switching = false; updatePager();
-    drawStatic();
-    for (const id of to) for (const c of fields[id].cells) drawCell(c);
-    placePhoto(); renderPage();
+  }
+  page = p; pageSince = Date.now(); switching = false;
+  drawStatic();
+  snapping = true;
+  try { renderPage(); } finally { snapping = false; }
+  for (const id of to) for (const c of fields[id].cells) drawCell(c);
+  updatePager();
+  if (before) startBigFlap(before, capturePanel());
+  placePhoto();
+}
+
+const PANEL = {x: 46, y: 524, w: 1828, h: 524};           // the lower half, inside the frame and its screws
+const bigFlap = {on: false, raf: 0};
+function capturePanel(){
+  const sx = Math.round(PANEL.x * PX), sy = Math.round(PANEL.y * PX), w = Math.round(PANEL.w * PX), h = Math.round(PANEL.h * PX);
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d");
+  g.drawImage(bg, sx, sy, w, h, 0, 0, w, h);
+  g.drawImage(fx, sx, sy, w, h, 0, 0, w, h);
+  const d = feat && detailsOf(feat.hex);
+  if (page === "aircraft" && d && d.photo) {                 // the photo is a separate element, so paint it in
+    const img = $("photoImg"), x = (M - PANEL.x) * PX, y = (Y.list0 + 6 - PANEL.y) * PX, pw = PHOTO.w * PX, ph = PHOTO.h * PX;
+    g.save(); rr(g, x, y, pw, ph, 6 * PX); g.clip();
+    g.fillStyle = "#060607"; g.fillRect(x, y, pw, ph);
+    if (img.complete && img.naturalWidth && img.getAttribute("src") === d.photo) {
+      const sc = Math.max(pw / img.naturalWidth, ph / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+      try { g.drawImage(img, x + (pw - iw) / 2, y + (ph - ih) / 2, iw, ih); } catch {}
+    }
+    g.restore();
+  }
+  return cv;
+}
+// The fall: a top-heavy panel tipping over, slow to leave and fast at the bottom (angle'' = sin(angle)).
+const FALL = (() => {
+  let a = .025, w = .32, t = 0;
+  const dt = .0005, pts = [a];
+  while (a < Math.PI && t < 30) { w += Math.sin(a) * dt; a += w * dt; t += dt; pts.push(Math.min(a, Math.PI)); }
+  return u => pts[Math.min(pts.length - 1, Math.max(0, Math.round(u * (pts.length - 1))))];
+})();
+function startBigFlap(A, B){
+  const cv = $("flipCv"), g = cv.getContext("2d");
+  cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); cv.hidden = false;
+  bigFlap.on = true;
+  const hh = PANEL.h / 2, hy = PANEL.y + hh, D = 2600, vx = W / 2, vy = H / 2;
+  const fallS = 1.05 * Math.sqrt(pace()), BOUNCE = .1, settleS = .55;
+  const hits = [[0, 1], [BOUNCE, .32], [2 * BOUNCE, .1]];
+  let hit = 0;
+  const t0 = performance.now();
+  heavySound("release"); heavySound("whoosh", fallS);
+  const draw = () => {
+    const t = (performance.now() - t0) / 1000;      // not the frame's timestamp: that can be from before t0
+    let a;
+    if (t < fallS) a = FALL(t / fallS);
+    else { const u = t - fallS; a = Math.PI - .11 * Math.exp(-u / .09) * Math.abs(Math.sin(Math.PI * u / BOUNCE)); }
+    while (hit < hits.length && t >= fallS + hits[hit][0]) { heavySound("thud", hits[hit][1]); shakeStage(hits[hit][1]); hit++; }
+    g.setTransform(PX, 0, 0, PX, 0, 0);
+    g.clearRect(0, 0, W, H);
+    // behind the panel: the new page's top half, and the old bottom half until the panel lands on it
+    g.drawImage(B, 0, 0, B.width, hh * PX, PANEL.x, PANEL.y, PANEL.w, hh);
+    g.drawImage(A, 0, hh * PX, A.width, A.height - hh * PX, PANEL.x, hy, PANEL.w, PANEL.h - hh);
+    const open = Math.min(1, a / (Math.PI / 2));
+    g.fillStyle = `rgba(0,0,0,${.55 * Math.pow(1 - open, 1.3)})`; g.fillRect(PANEL.x, PANEL.y, PANEL.w, hh);
+    const cover = Math.sin(a) * (a > Math.PI / 2 ? .6 : .28);
+    const sg = g.createLinearGradient(0, hy, 0, PANEL.y + PANEL.h);
+    sg.addColorStop(0, `rgba(0,0,0,${cover})`); sg.addColorStop(1, `rgba(0,0,0,${cover * .3})`);
+    g.fillStyle = sg; g.fillRect(PANEL.x, hy, PANEL.w, PANEL.h - hh);
+    g.fillStyle = "rgba(0,0,0,.9)"; g.fillRect(PANEL.x, hy - 2, PANEL.w, 4);            // the gap the panel hinges in
+    // the panel itself, in perspective: front shows the old top half, back shows the new bottom half
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const P = r => { const sc = D / (D - r * sa); return [sc, vy + (hy - r * ca - vy) * sc]; };
+    const [sFree, yFree] = P(hh), front = yFree < hy;
+    const N = 64;
+    for (let i = 0; i < N; i++) {
+      const r0 = hh * i / N, r1 = hh * (i + 1) / N, [s0, y0] = P(r0), [s1, y1] = P(r1), sc = (s0 + s1) / 2;
+      const top = Math.min(y0, y1), ht = Math.abs(y1 - y0) + .7;
+      if (ht < .25) continue;
+      const dx = vx + (PANEL.x - vx) * sc, dw = PANEL.w * sc;
+      if (front) g.drawImage(A, 0, (hh - r1) * PX, A.width, (r1 - r0) * PX, dx, top, dw, ht);
+      else g.drawImage(B, 0, (hh + r0) * PX, B.width, (r1 - r0) * PX, dx, top, dw, ht);
+    }
+    const lit = front ? -.5 * sa + ca : .5 * sa - ca;             // light from above and in front
+    const dark = Math.min(.88, Math.max(0, 1 - (.3 + .7 * Math.max(0, lit) / 1.118 / .894)));
+    const xl = vx + (PANEL.x - vx) * sFree, xr = vx + (PANEL.x + PANEL.w - vx) * sFree;
+    g.beginPath(); g.moveTo(PANEL.x, hy); g.lineTo(PANEL.x + PANEL.w, hy); g.lineTo(xr, yFree); g.lineTo(xl, yFree); g.closePath();
+    if (dark > .01) { g.fillStyle = `rgba(0,0,0,${dark})`; g.fill(); }
+    g.strokeStyle = "rgba(0,0,0,.92)"; g.lineWidth = 3.5 * sFree;                  // the panel's edge
+    g.beginPath(); g.moveTo(xl, yFree); g.lineTo(xr, yFree); g.stroke();
+    if (Math.abs(ca) < .35) {                                         // edge-on: show its thickness
+      g.fillStyle = "rgba(20,21,23,.95)"; g.fillRect(xl, yFree - (front ? 0 : 7 * sFree), xr - xl, 7 * sFree * (1 - Math.abs(ca) / .35));
+    }
+    if (t < fallS + settleS) bigFlap.raf = requestAnimationFrame(draw);
+    else endBigFlap();
   };
-  setTimeout(swap, 250);
+  bigFlap.raf = requestAnimationFrame(draw);
+}
+function endBigFlap(){
+  cancelAnimationFrame(bigFlap.raf);
+  bigFlap.on = false;
+  const cv = $("flipCv");
+  cv.hidden = true; cv.width = cv.height = 1;
+  placePhoto();
+}
+function shakeStage(k){
+  if (REDUCED || k < .05) return;
+  const t0 = performance.now(), amp = 6 * k;
+  const step = () => {
+    const e = (performance.now() - t0) / 1000;
+    if (e > .45 || !bigFlap.on && e > .3) { stage.style.transform = ""; return; }
+    stage.style.transform = `translateY(${(amp * Math.exp(-e * 10) * Math.sin(e * Math.PI * 2 * 13) * K).toFixed(2)}px)`;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+// Sounds for the big panel: a latch letting go, air moving as it falls, and a heavy landing.
+function heavySound(kind, x = 1){
+  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+  try {
+    const t = actx.currentTime + .005, sr = actx.sampleRate;
+    const burst = (secs, power) => {
+      const len = Math.max(1, Math.floor(sr * secs)), b = actx.createBuffer(1, len, sr), d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, power);
+      const src = actx.createBufferSource(); src.buffer = b; return src;
+    };
+    const out = actx.createGain(); out.connect(actx.destination);
+    if (kind === "release") {
+      const n = burst(.05, 3), f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 2;
+      out.gain.value = .35; n.connect(f).connect(out); n.start(t);
+    } else if (kind === "whoosh") {
+      const n = burst(x + .1, 0), f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = .8;
+      f.frequency.setValueAtTime(180, t); f.frequency.exponentialRampToValueAtTime(700, t + x);
+      out.gain.setValueAtTime(.0001, t); out.gain.exponentialRampToValueAtTime(.09, t + x * .92); out.gain.exponentialRampToValueAtTime(.0001, t + x + .08);
+      n.connect(f).connect(out); n.start(t); n.stop(t + x + .1);
+    } else {
+      out.gain.value = Math.min(1, .95 * x);
+      const o = actx.createOscillator(), og = actx.createGain();              // the body of the thud
+      o.type = "sine"; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(38, t + .3);
+      og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.9, t + .006); og.gain.exponentialRampToValueAtTime(.0001, t + .5);
+      o.connect(og).connect(out); o.start(t); o.stop(t + .55);
+      const n = burst(.3, 4), lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520;   // the slab hitting its stop
+      const ng = actx.createGain(); ng.gain.value = .9; n.connect(lp).connect(ng).connect(out); n.start(t);
+      const c = burst(.03, 2), bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2100; bp.Q.value = 1.5;  // metal on metal
+      const cg = actx.createGain(); cg.gain.value = .3; c.connect(bp).connect(cg).connect(out); c.start(t);
+    }
+  } catch {}
 }
 function nextPage(dir = 1){
   let i = PAGE_ORDER.indexOf(page);
@@ -1592,7 +1723,7 @@ function nextPage(dir = 1){
 // Picking a page by hand: it stays for at least a minute before the rotation carries on.
 let pageHold = 0;
 function pickPage(p){
-  if (switching || !pageAvailable(p)) return;
+  if (switching || bigFlap.on || !pageAvailable(p)) return;
   pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000;
   if (p === page) { pageSince = Date.now(); return; }
   goPage(p);
@@ -1625,7 +1756,7 @@ function updatePager(){
 }
 setInterval(() => {
   updatePager();
-  if (switching || !$("panel").hidden || openView) return;
+  if (switching || bigFlap.on || !$("panel").hidden || openView) return;
   if (!pageAvailable(page)) return goPage("spotted");
   if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage(1);
 }, 1000);
@@ -1808,12 +1939,17 @@ function lookupDetails(hex){
     if (!a) return;
     acDetails.set(hex, {photo: a.url_photo || "", owner: a.registered_owner || "", country: a.registered_owner_country_name || "",
       type: [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" "), reg: a.registration || ""});
-    if (feat && feat.hex === hex && page === "aircraft") renderAircraft();
+    if (feat && feat.hex === hex) { preloadPhoto(); if (page === "aircraft") renderAircraft(); }
   }).catch(() => {});
+}
+// Load the photo of the plane on the board ahead of time, so it is ready when its page falls into place.
+function preloadPhoto(){
+  const d = feat && detailsOf(feat.hex), img = $("photoImg");
+  if (d && d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
 }
 function placePhoto(){
   const fr = $("photoFrame"), d = feat && detailsOf(feat.hex);
-  fr.hidden = !(page === "aircraft" && !switching && d && d.photo);
+  fr.hidden = !(page === "aircraft" && !switching && !bigFlap.on && d && d.photo);
   Object.assign(fr.style, {left: M * K + "px", top: (Y.list0 + 6) * K + "px", width: PHOTO.w * K + "px", height: PHOTO.h * K + "px"});
 }
 function renderAircraft(){
