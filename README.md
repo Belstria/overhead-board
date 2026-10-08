@@ -16,7 +16,8 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 |-----------|--------------|---------|
 | `lat`, `lon` | Spot to watch over | `lat=48.2085&lon=16.3731` |
 | `place` | Name printed under the title | `place=Vienna` |
-| `radius` | Overhead radius in km (default 15) | `radius=8` |
+| `radius` | Spotting radius in km: planes within it are added to Spotted today (default 15) | `radius=8` |
+| `over` | Counts as directly overhead within this many km (default 3) | `over=2` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
 | `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
@@ -29,6 +30,20 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 
 Anything changed in the on-screen Settings is saved in that device's browser only, and only the
 values you changed are kept, so new defaults from the relay still reach that screen.
+
+## What the board shows
+
+The top half shows one plane and how it relates to you, worked out from its position, heading and speed:
+
+- **Overhead**: directly above, within the overhead distance (3 km by default).
+- **Inbound**: on course to pass over within three minutes; Position counts down to the pass.
+- **Flying by**: getting closer, but its closest approach will be further than the overhead distance.
+- **Outbound**: moving away. **Passed** is shown for a little while after an overhead pass.
+
+Planes that are overhead or inbound always take the top spot; otherwise the board shows the plane in the
+spotting radius that is coming closer. Every plane that enters the spotting radius is added to
+**Spotted today** once per pass. The list marks the ones that flew directly overhead and otherwise shows
+Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
 ## Controls
 

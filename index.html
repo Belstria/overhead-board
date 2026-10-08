@@ -130,7 +130,14 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
         <label>Place name<input id="fPlace" maxlength="24"></label>
         <label>Latitude<input id="fLat" inputmode="decimal"></label>
         <label>Longitude<input id="fLon" inputmode="decimal"></label>
-        <label>Overhead radius (km)<input id="fRadius" type="number" min="1" max="20" step="0.5"></label>
+        <label>Spotting radius (km)<input id="fRadius" type="number" min="1" max="20" step="0.5"></label>
+        <label>Directly overhead within
+          <select id="fOver">
+            <option value="1">1 km</option>
+            <option value="2">2 km</option>
+            <option value="3">3 km</option>
+            <option value="5">5 km</option>
+          </select></label>
         <label>Home airport (IATA)<input id="fHome" maxlength="3"></label>
         <label>Ignore planes above
           <select id="fMaxAlt">
@@ -161,7 +168,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. Press D or use Diagnostics for the connection log. Status shows Overhead (within the radius), Inbound (will pass over within two minutes), Passed, or Nearby (closest plane in the area). In the list, Arriving and Departing refer to your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. Press D or use Diagnostics for the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -185,20 +192,22 @@ const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
 const DRUM_DIGIT = " 0123456789:";
 const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
-const DRUM_POS = " 0123456789.KMNESWIC";
-const REMARKS = ["", "OVERHEAD", "INBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT"];
+const DRUM_POS = " 0123456789.:KMNESWIC";
+const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT"];
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
   INBOUND:{fill:["#f6be35","#dc9f1d"], fg:"#17140d"},
   PASSED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
   NEARBY:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
+  "FLYING BY":{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
+  OUTBOUND:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
   "NO TRAFFIC":{fill:["#2f3135","#26282b"], fg:"#a6a49e"},
   OFFLINE:{fill:["#cb3a2f","#aa2d24"], fg:"#ffffff"},
   ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, pace:1.15, refreshS:10, logos:true, demo:false};
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, pace:1.15, refreshS:10, logos:true, overKm:3, demo:false};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -220,6 +229,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (num("lat") != null) S.lat = num("lat");
   if (num("lon") != null) S.lon = num("lon");
   if (num("radius") != null) S.radiusKm = num("radius");
+  if (num("over") != null) S.overKm = num("over");
   if (num("maxalt") != null) S.maxAltFt = num("maxalt");
   if (q.get("home")) S.home = q.get("home").toUpperCase();
   if (q.get("place")) S.place = q.get("place");
@@ -865,6 +875,7 @@ let spotted = dedupe(loadLog()), logDay = todayKey();
 if (!S.demo && spotted.length !== loadLog().length) saveLog();   // clean up duplicates stored by older versions
 function rollDay(){ if (logDay !== todayKey()) { logDay = todayKey(); spotted = dedupe(loadLog()); renderList(); updateFooter(); } }
 function remarkFor(e){
+  if (e.minDist != null && e.minDist <= overKm()) return "OVERHEAD";
   const home = (S.home || "").toUpperCase(), f = e.from && e.from.code, t = e.to && e.to.code;
   if (home && t === home) return "ARRIVING";
   if (home && f === home) return "DEPARTING";
@@ -880,6 +891,11 @@ const planeName = (h, ac) => (h && h.info && h.info.flightNo) || (ac && (ac.flig
 const HOLD = () => S.demo ? 8000 : 25000;
 function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
 function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
+function countdown(sec){
+  const t = Math.max(5, Math.round(sec / 5) * 5);
+  return t < 60 ? `IN ${t} SEC` : `IN ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+}
+const overKm = () => Math.min(+S.overKm || 3, +S.radiusKm || 15);
 function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " KM " + o.dir; }
 
 function setFeat(o, mode){
@@ -887,30 +903,39 @@ function setFeat(o, mode){
   if (!feat || feat.hex !== o.ac.hex) {
     const p = enrich(o.ac);
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
-    p.then(info => {
-      h.info = info;
-      if (h.entry) { fillEntry(h.entry, info); saveLog(); renderList(); }
-      if (feat === h) renderFeatured();
-    });
+    p.then(info => { h.info = info; if (feat === h) renderFeatured(); });
   }
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km${o.alt != null ? " · " + nf.format(Math.round(o.alt)) + " ft" : ""}`);
   feat.o = o; feat.mode = mode;
-  if (mode !== "near") feat.lastSeen = now;
-  if (mode === "over" && !feat.logged) logSighting(feat);
+  if (mode === "over" || mode === "soon") feat.lastSeen = now;
 }
-function logSighting(h){
+/* Every plane that comes within the spotting radius gets one entry per pass; its closest
+   distance is kept up to date so the list can mark the ones that flew directly overhead. */
+function logPlanes(ok, R){
   rollDay();
   const now = Date.now();
-  const prior = spotted.find(e => e.hex === h.hex && now - entryTime(e) < SAME_PASS_MS);
-  if (prior) {                                  // e.g. the page was reloaded while this plane was overhead
-    h.entry = prior; h.logged = true;
-    dlog("debug", `${planeName(h)} is already in Spotted today (${prior.time}); not adding it again`);
-    return;
+  let dirty = false, redraw = false;
+  for (const o of ok) {
+    const prior = spotted.find(e => e.hex === o.ac.hex && now - entryTime(e) < SAME_PASS_MS);
+    if (prior) {
+      if (prior.minDist == null || o.dist < prior.minDist - .05) {
+        const before = remarkFor(prior);
+        prior.minDist = +o.dist.toFixed(2); dirty = true;
+        if (remarkFor(prior) !== before) redraw = true;
+      }
+      continue;
+    }
+    if (o.dist > R) continue;
+    const p = enrich(o.ac);
+    const e = {time: hhmm(), ts: now, hex: o.ac.hex, minDist: +o.dist.toFixed(2)};
+    fillEntry(e, p.info);
+    spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
+    dirty = redraw = true;
+    dlog("info", `Added ${e.flight || e.hex} to Spotted today (${o.dist.toFixed(1)} km away, within the ${R} km radius)`);
+    p.then(info => { fillEntry(e, info); saveLog(); renderList(); });
   }
-  const e = {time: hhmm(), ts: now, hex: h.hex}; fillEntry(e, h.info);
-  spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
-  h.entry = e; h.logged = true; saveLog(); renderList(); updateFooter();
-  dlog("info", `Added ${e.flight || h.hex} to Spotted today (${h.o.dist.toFixed(1)} km away, inside the ${+S.radiusKm || 15} km radius)`);
+  if (dirty) saveLog();
+  if (redraw) { renderList(); updateFooter(); }
 }
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
@@ -944,9 +969,13 @@ function process(list){
   } else if (feat) feat.missing = false;
   const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
-  DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt} : null;
-  const over = ok.filter(o => o.dist <= R).sort((a, b) => a.dist - b.dist);
-  const soon = ok.filter(o => o.dist > R && o.tcpa > 0 && o.tcpa <= 120 && o.cpa <= R).sort((a, b) => a.tcpa - b.tcpa);
+  DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
+  logPlanes(ok, R);
+  // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
+  const OVK = overKm();
+  for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
+  const over = ok.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
+  const soon = ok.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
   let pick = null, mode = null;
   if (mine(over)) { pick = mine(over); mode = "over"; }
@@ -955,22 +984,24 @@ function process(list){
   else if (soon.length) { pick = soon[0]; mode = "soon"; }
 
   if (pick) setFeat(pick, mode);
-  else if (feat && feat.mode !== "near" && now - feat.lastSeen < HOLD()) {
+  else if (feat && ["over", "soon", "passed"].includes(feat.mode) && now - feat.lastSeen < HOLD()) {
     const still = all.find(o => o.ac.hex === feat.hex);
     if (still) feat.o = still;
     if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
     feat.mode = "passed";
   } else {
-    const keep = feat && feat.mode === "near" && now - feat.since < 90000 && ok.find(o => o.ac.hex === feat.hex);
-    const nearest = keep || ok.slice().sort((a, b) => a.dist - b.dist)[0];
-    if (nearest) setFeat(nearest, "near");
+    // Nothing overhead or on its way: show the most relevant plane in the radius, preferring ones coming closer.
+    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && ok.find(o => o.ac.hex === feat.hex);
+    const coming = (a, b) => (a.tcpa > 0 ? 0 : 1) - (b.tcpa > 0 ? 0 : 1) || a.dist - b.dist;
+    const next = keep || ok.filter(o => o.dist <= R).sort(coming)[0] || ok.slice().sort((a, b) => a.dist - b.dist)[0];
+    if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
     else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
   }
   renderFeatured();
 }
 
 /* ---------- what goes on the board ---------- */
-const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", near: "NEARBY"};
+const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -990,7 +1021,7 @@ function renderFeatured(){
   const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
-      feat.mode === "soon" ? "IN " + Math.max(5, Math.round(o.tcpa / 5) * 5) + " SEC" : distStr(o)];
+      feat.mode === "soon" ? countdown(o.tcpa) : distStr(o)];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
   setChars("alt", feat.live[0], 380);
@@ -1028,15 +1059,15 @@ function updateFooter(){
 }
 function renderLog(){
   const body = $("logBody"), real = spotted.filter(e => !e.sample);
-  if (!real.length) { body.innerHTML = '<p class="empty">Nothing overhead yet today. Every plane that crosses the overhead radius is listed here.</p>'; return; }
+  if (!real.length) { body.innerHTML = '<p class="empty">Nothing spotted yet today. Every plane that comes within the spotting radius is listed here.</p>'; return; }
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   body.innerHTML = '<table class="log"><tbody>' + real.map(e => {
     const route = e.from && e.to ? `${esc(e.from.code)} ${esc(e.from.city)} → ${esc(e.to.code)} ${esc(e.to.city)}` : "Route not listed";
-    return `<tr><td>${esc(e.time)}</td><td>${esc(e.flight)}${e.airline ? " · " + esc(e.airline) : ""}<br><span class="sub">${route} · ${esc(e.type)}${e.reg ? " · " + esc(e.reg) : ""}</span></td></tr>`;
+    return `<tr><td>${esc(e.time)}</td><td>${esc(e.flight)}${e.airline ? " · " + esc(e.airline) : ""}<br><span class="sub">${route} · ${esc(e.type)}${e.reg ? " · " + esc(e.reg) : ""}${e.minDist != null ? " · closest " + (+e.minDist).toFixed(1) + " km" + (e.minDist <= overKm() ? " (overhead)" : "") : ""}</span></td></tr>`;
   }).join("") + "</tbody></table>";
 }
 function openPanel(section){
-  $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fHome").value = S.home;
+  $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
   $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fPace").value = String(S.pace); $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
   renderLog(); $("panel").hidden = false;
   $(section).scrollIntoView({block: "start"});
@@ -1056,7 +1087,7 @@ $("btnSave").onclick = () => {
     radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 15)),
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
-    sound: $("fSound").checked, logos: $("fLogos").checked, pace: +$("fPace").value || 1.15, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
+    sound: $("fSound").checked, logos: $("fLogos").checked, pace: +$("fPace").value || 1.15, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
   saveSettings(); audioInit(); closePanel();
   if (wasDemo !== S.demo) { feat = null; infoCache.clear(); spotted = loadLog(); }
   if (hadLogos !== S.logos) layout();
@@ -1081,7 +1112,8 @@ function diagRows(){
   const state = S.demo ? ["Demo mode", "meh"] : isOffline() ? ["Offline", "bad"] : failures ? [`Retrying (${failures} failed in a row)`, "meh"] : lastOk ? ["Live", "good"] : ["Starting", "meh"];
   const conn = S.demo ? "Demo data, no network" : relay() ? `Home relay at ${relay().replace(/^https?:\/\//, "")}${relayLegacy ? " (older version, please update)" : ""}` : "Direct, no relay: the position services will block this";
   const c = DIAG.closest;
-  const closest = c ? `${c.name} · ${c.dist.toFixed(1)} km · ${c.alt != null ? nf.format(Math.round(c.alt)) + " ft" : "altitude unknown"} · ${c.dist <= R ? "inside" : "outside"} the ${R} km overhead radius` : "none in range";
+  const pass = !c ? "" : c.dist <= overKm() ? "overhead now" : c.tcpa > 0 ? `closest approach ${c.cpa.toFixed(1)} km in ${countdown(c.tcpa).replace("IN ", "").toLowerCase()}` : "moving away";
+  const closest = c ? `${c.name} · ${c.dist.toFixed(1)} km · ${c.alt != null ? nf.format(Math.round(c.alt)) + " ft" : "altitude unknown"} · ${pass} · ${c.dist <= R ? "inside" : "outside"} the ${R} km spotting radius` : "none in range";
   return [
     ["Connection", conn],
     ["Status", `${state[0]}${lastOk ? " · last data " + agoStr(lastOk) : ""}`, state[1]],
@@ -1154,6 +1186,7 @@ function toggleFullscreen(){
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch {}
 }
 fx.addEventListener("click", () => { audioInit(); keepAwake(); toggleFullscreen(); });
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
 function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 4000); }
 ["mousemove","keydown","touchstart"].forEach(ev => addEventListener(ev, wake, {passive: true}));
@@ -1196,6 +1229,7 @@ async function start(){
   resize(); wake();
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
+  audioInit();   // starts at once where the browser allows it (kiosk setups); otherwise on the first click or key press
   renderList(); updateFooter(); keepAwake();
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
