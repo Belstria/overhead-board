@@ -61,7 +61,7 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
   countdown), **Vienna airport** (runways in use worked out from live traffic, plus the latest weather report),
   **Today in numbers**, and **This aircraft** (a photo and registration details of the plane on the board, when
   one exists). Pages without anything to show are skipped. Pages change like one giant split flap: the whole lower half
-  tips forward, falls and lands with a thud, revealing the next page. To pick a page yourself, click its dot or the arrows next to
+  tips forward, falls and settles with a small bounce, revealing the next page. To pick a page yourself, click its dot or the arrows next to
   the page title, or use the left and right arrow keys or the keys 1 to 5; a page you pick stays for at least a minute.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's

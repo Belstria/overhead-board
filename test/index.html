@@ -1550,7 +1550,7 @@ function pageAvailable(p){
   return false;
 }
 /* Changing pages: the whole lower half is one giant split flap. The next page is set up underneath in
-   one go, then the panel carrying the current page tips forward, falls and lands with a thud. */
+   one go, then the panel carrying the current page tips forward, falls and bounces to rest, silently. */
 function goPage(p){
   if (p === page || switching || bigFlap.on) return;
   const from = fieldsOf(page), to = fieldsOf(p);
@@ -1613,16 +1613,12 @@ function startBigFlap(A, B){
   bigFlap.on = true;
   const hh = PANEL.h / 2, hy = PANEL.y + hh, D = 2600, vx = W / 2, vy = H / 2;
   const fallS = 1.05 * Math.sqrt(pace()), BOUNCE = .1, settleS = .55;
-  const hits = [[0, 1], [BOUNCE, .32], [2 * BOUNCE, .1]];
-  let hit = 0;
   const t0 = performance.now();
-  heavySound("release"); heavySound("whoosh", fallS);
   const draw = () => {
     const t = (performance.now() - t0) / 1000;      // not the frame's timestamp: that can be from before t0
     let a;
     if (t < fallS) a = FALL(t / fallS);
     else { const u = t - fallS; a = Math.PI - .11 * Math.exp(-u / .09) * Math.abs(Math.sin(Math.PI * u / BOUNCE)); }
-    while (hit < hits.length && t >= fallS + hits[hit][0]) { heavySound("thud", hits[hit][1]); shakeStage(hits[hit][1]); hit++; }
     g.setTransform(PX, 0, 0, PX, 0, 0);
     g.clearRect(0, 0, W, H);
     // behind the panel: the new page's top half, and the old bottom half until the panel lands on it
@@ -1669,49 +1665,6 @@ function endBigFlap(){
   const cv = $("flipCv");
   cv.hidden = true; cv.width = cv.height = 1;
   placePhoto();
-}
-function shakeStage(k){
-  if (REDUCED || k < .05) return;
-  const t0 = performance.now(), amp = 6 * k;
-  const step = () => {
-    const e = (performance.now() - t0) / 1000;
-    if (e > .45 || !bigFlap.on && e > .3) { stage.style.transform = ""; return; }
-    stage.style.transform = `translateY(${(amp * Math.exp(-e * 10) * Math.sin(e * Math.PI * 2 * 13) * K).toFixed(2)}px)`;
-    requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-// Sounds for the big panel: a latch letting go, air moving as it falls, and a heavy landing.
-function heavySound(kind, x = 1){
-  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
-  try {
-    const t = actx.currentTime + .005, sr = actx.sampleRate;
-    const burst = (secs, power) => {
-      const len = Math.max(1, Math.floor(sr * secs)), b = actx.createBuffer(1, len, sr), d = b.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, power);
-      const src = actx.createBufferSource(); src.buffer = b; return src;
-    };
-    const out = actx.createGain(); out.connect(actx.destination);
-    if (kind === "release") {
-      const n = burst(.05, 3), f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 2;
-      out.gain.value = .35; n.connect(f).connect(out); n.start(t);
-    } else if (kind === "whoosh") {
-      const n = burst(x + .1, 0), f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = .8;
-      f.frequency.setValueAtTime(180, t); f.frequency.exponentialRampToValueAtTime(700, t + x);
-      out.gain.setValueAtTime(.0001, t); out.gain.exponentialRampToValueAtTime(.09, t + x * .92); out.gain.exponentialRampToValueAtTime(.0001, t + x + .08);
-      n.connect(f).connect(out); n.start(t); n.stop(t + x + .1);
-    } else {
-      out.gain.value = Math.min(1, .95 * x);
-      const o = actx.createOscillator(), og = actx.createGain();              // the body of the thud
-      o.type = "sine"; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(38, t + .3);
-      og.gain.setValueAtTime(.0001, t); og.gain.exponentialRampToValueAtTime(.9, t + .006); og.gain.exponentialRampToValueAtTime(.0001, t + .5);
-      o.connect(og).connect(out); o.start(t); o.stop(t + .55);
-      const n = burst(.3, 4), lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520;   // the slab hitting its stop
-      const ng = actx.createGain(); ng.gain.value = .9; n.connect(lp).connect(ng).connect(out); n.start(t);
-      const c = burst(.03, 2), bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2100; bp.Q.value = 1.5;  // metal on metal
-      const cg = actx.createGain(); cg.gain.value = .3; c.connect(bp).connect(cg).connect(out); c.start(t);
-    }
-  } catch {}
 }
 function nextPage(dir = 1){
   let i = PAGE_ORDER.indexOf(page);
