@@ -22,7 +22,8 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
-| `pace` | Flap speed, 1 is original, higher is slower (default 1.15) | `pace=1.3` |
+| `speed` | Flap speed in percent: 100 is fastest, 10 is ten times slower (default 85) | `speed=50` |
+| `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `demo` | Sample flights instead of live data | `demo` |
