@@ -38,7 +38,12 @@ footer{
   font-size:max(11px,calc(17px*var(--k)));letter-spacing:.03em;color:var(--muted);
   transition:opacity .6s;
 }
-body.idle footer{opacity:.45}
+body.idle footer{opacity:0;pointer-events:none}
+footer{background:linear-gradient(transparent,rgba(0,0,0,.75) 55%);padding-top:calc(28px*var(--k))}
+.pip{position:absolute;left:calc(20px*var(--k));bottom:calc(18px*var(--k));width:max(6px,calc(9px*var(--k)));height:max(6px,calc(9px*var(--k)));
+  border-radius:50%;opacity:0;transition:opacity .6s;pointer-events:none}
+body.idle .pip[data-state=warn]{opacity:.8;background:var(--amber)}
+body.idle .pip[data-state=off]{opacity:.9;background:#e0483d}
 #status{display:flex;align-items:center;gap:.6em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dot{width:.5em;height:.5em;border-radius:50%;background:var(--muted);flex:none}
 .dot[data-state=live]{background:#22a058}
@@ -97,6 +102,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
+  <span class="pip" id="pip" aria-hidden="true"></span>
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
@@ -238,6 +244,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("units")) S.units = q.get("units") === "metric" ? "metric" : "aviation";
   if (q.has("sound")) { const v = q.get("sound"); S.sound = !(v === "0" || v === "off"); }
   if (q.get("proxy")) S.proxy = q.get("proxy");
+  if (q.has("hd")) S.hd = q.get("hd") !== "0";
   if (q.has("logos")) S.logos = !(q.get("logos") === "0" || q.get("logos") === "off");
   if (num("pace") != null) S.pace = Math.min(2, Math.max(.6, num("pace")));
   if (num("refresh") != null) S.refreshS = Math.min(60, Math.max(3, num("refresh")));
@@ -305,7 +312,8 @@ for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
   f.cells = [];
   for (let i = 0; i < count; i++) {
-    const c = {f, i, cur: f.kind === "chars" ? " " : "", target: null, queue: [], anim: null, next: 0};
+    const c = {f, i, cur: f.kind === "chars" ? " " : "", target: null, queue: [], anim: null, next: 0,
+      variant: [...f.id].reduce((a, ch) => a + ch.charCodeAt(0), i * 7) % 3};
     c.target = c.cur; f.cells.push(c); allCells.push(c);
   }
 }
@@ -348,8 +356,8 @@ function geometry(){
 function resize(){
   const vw = innerWidth, vh = innerHeight;
   K = Math.min(vw / W, vh / H);
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  PX = K * dpr;
+  const dpr = window.devicePixelRatio || 1;
+  PX = S.hd ? 2 : Math.min(2, K * dpr);
   const cssW = W * K, cssH = H * K;
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
@@ -393,24 +401,41 @@ function rr(g, x, y, w, h, r){
   g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
   g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
 }
-function tile(f, value){
+function shade(hex, k){
+  const n = parseInt(hex.slice(1), 16), m = v => Math.max(0, Math.min(255, Math.round(v * (1 + k))));
+  return `rgb(${m(n >> 16)},${m((n >> 8) & 255)},${m(n & 255)})`;
+}
+function tile(f, value, variant = 0){
   const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
   let code = "", text = value;
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
   const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : {};
-  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}`;
+  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}`;
   let cv = tiles.get(key);
   if (cv) return cv;
   const w = f.pw, h = f.ph;
   cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const g = cv.getContext("2d");
-  const r = Math.max(1.5, Math.min(w, h) * .07);
+  const r = Math.max(1.5, Math.min(w, h) * .045);
+  const base = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : FLAP);
+  const tint = look.fill || (isLogo && logoOk) ? 0 : [0, .06, -.05][variant];
+  const body = base.map(c => tint ? shade(c, tint) : c);
   const grad = g.createLinearGradient(0, 0, 0, h);
-  const body = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : FLAP);
   grad.addColorStop(0, body[0]); grad.addColorStop(.5, body[1]); grad.addColorStop(.5, body[2]); grad.addColorStop(1, body[3]);
   g.fillStyle = grad; rr(g, 0, 0, w, h, r); g.fill();
+  g.save(); rr(g, 0, 0, w, h, r); g.clip();
+  const sheen = g.createLinearGradient(0, 0, 0, h * .5);            // light catching the top of the upper flap
+  sheen.addColorStop(0, "rgba(255,255,255,.09)"); sheen.addColorStop(.3, "rgba(255,255,255,.025)"); sheen.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = sheen; g.fillRect(0, 0, w, h * .5);
+  const curl = g.createLinearGradient(0, h * .4, 0, h * .5);         // the upper flap's lower edge lifts away slightly
+  curl.addColorStop(0, "rgba(0,0,0,0)"); curl.addColorStop(1, "rgba(0,0,0,.28)");
+  g.fillStyle = curl; g.fillRect(0, h * .4, w, h * .1);
+  const foot = g.createLinearGradient(0, h * .72, 0, h);              // lower flap falls into shadow
+  foot.addColorStop(0, "rgba(0,0,0,0)"); foot.addColorStop(1, "rgba(0,0,0,.22)");
+  g.fillStyle = foot; g.fillRect(0, h * .72, w, h * .28);
+  g.restore();
   let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : COL.ink);
   // "-" means the flight has no airline code (private, military, unlisted): show a plain aircraft mark.
   // A known airline without a logo shows its two-letter code instead.
@@ -456,13 +481,16 @@ function tile(f, value){
     g.save(); g.translate(ax + aw / 2, Math.round(h / 2 + asc / 2)); g.scale(sx, 1);
     g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "alphabetic"; g.fillText(text, 0, 0); g.restore();
   }
-  const hinge = Math.max(1, Math.round(h * .022)), mid = Math.round(h / 2);
-  g.fillStyle = "rgba(0,0,0,.9)"; g.fillRect(0, mid - Math.floor(hinge / 2), w, hinge);
-  g.fillStyle = "rgba(255,255,255,.035)"; g.fillRect(0, mid + Math.ceil(hinge / 2), w, 1);
-  const nh = Math.max(2, Math.round(h * .09)), nw = Math.max(1, Math.round(Math.min(w, h * .7) * .06));
-  g.fillStyle = COL.housing; g.fillRect(0, mid - nh / 2, nw, nh); g.fillRect(w - nw, mid - nh / 2, nw, nh);
+  const hinge = Math.max(1, Math.round(h * .028)), mid = Math.round(h / 2);
+  g.fillStyle = "rgba(0,0,0,.92)"; g.fillRect(0, mid - Math.floor(hinge / 2), w, hinge);       // gap between the two flaps
+  g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(0, mid + Math.ceil(hinge / 2), w, Math.max(1, h * .008));
+  const nh = Math.max(3, Math.round(h * .13)), nw = Math.max(2, Math.round(Math.min(w, h * .7) * .07));   // axle pins
+  const pin = g.createLinearGradient(0, mid - nh / 2, 0, mid + nh / 2);
+  pin.addColorStop(0, "#8a8d92"); pin.addColorStop(.5, "#55585d"); pin.addColorStop(1, "#2c2e31");
+  g.fillStyle = pin; rr(g, 0, mid - nh / 2, nw, nh, nw * .4); g.fill(); rr(g, w - nw, mid - nh / 2, nw, nh, nw * .4); g.fill();
+  g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = Math.max(1, h * .012); rr(g, .5, .5, w - 1, h - 1, r); g.stroke();
   tiles.set(key, cv);
-  if (tiles.size > 1500) tiles.delete(tiles.keys().next().value);
+  if (tiles.size > 4000) tiles.delete(tiles.keys().next().value);
   return cv;
 }
 
@@ -471,18 +499,21 @@ function drawCell(c, p){
   const f = c.f, x = c.x, y = c.y, w = f.pw, h = f.ph, g = fxx;
   if (f.hidden) return;
   g.clearRect(x - 1, y - 1, w + 2, h + 2);
-  if (p == null || !c.anim) { g.drawImage(tile(f, c.cur), x, y); return; }
-  const A = tile(f, c.anim.from), B = tile(f, c.anim.to), hh = Math.round(h / 2), bh = h - hh;
+  if (p == null || !c.anim) { g.drawImage(tile(f, c.cur, c.variant), x, y); return; }
+  const A = tile(f, c.anim.from, c.variant), B = tile(f, c.anim.to, c.variant), hh = Math.round(h / 2), bh = h - hh;
   g.drawImage(B, 0, 0, w, hh, x, y, w, hh);          // new face, top half (revealed)
   g.drawImage(A, 0, hh, w, bh, x, y + hh, w, bh);    // old face, bottom half (about to be covered)
   if (p < .5) {
-    const s = Math.cos(p * Math.PI), dh = hh * s;    // old top flap falling towards the viewer
+    const q = p * 2, s = Math.cos(q * q * Math.PI / 2), dh = hh * s;   // old top flap falling towards the viewer
+    g.fillStyle = `rgba(0,0,0,${.3 * (1 - s)})`; g.fillRect(x, y + hh, w, bh * (1 - s) * .7);  // its shadow on the lower flap
     if (dh > .5) {
       g.drawImage(A, 0, 0, w, hh, x, y + hh - dh, w, dh);
       g.fillStyle = `rgba(0,0,0,${.6 * (1 - s)})`; g.fillRect(x, y + hh - dh, w, dh);
     }
   } else {
-    const s = Math.cos((1 - p) * Math.PI), dh = bh * s; // new bottom flap settling down
+    const q = (p - .5) * 2;                               // new bottom flap dropping into place, then a small bounce
+    const ang = q < .82 ? (Math.PI / 2) * (1 - (q / .82) ** 2) : .16 * Math.sin(Math.PI * (q - .82) / .18);
+    const s = Math.cos(ang), dh = bh * s;
     g.fillStyle = `rgba(0,0,0,${.35 * (1 - s)})`; g.fillRect(x, y + hh, w, bh);
     if (dh > .5) {
       g.drawImage(B, 0, hh, w, bh, x, y + hh, w, dh);
@@ -579,11 +610,54 @@ function pictogram(g, x, y, s){
   g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
   drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
 }
+function metal(g){
+  let seed = 1234567;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const base = g.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, "#1d1e21"); base.addColorStop(.45, "#141517"); base.addColorStop(1, "#18191c");
+  g.fillStyle = base; g.fillRect(0, 0, W, H);
+  g.lineWidth = .7;                                   // brushed grain
+  for (let i = 0; i < 2600; i++) {
+    const y = rnd() * H, x = rnd() * W - 200, len = 120 + rnd() * 900, light = rnd() < .5;
+    g.strokeStyle = light ? `rgba(255,255,255,${.012 + rnd() * .03})` : `rgba(0,0,0,${.03 + rnd() * .06})`;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (rnd() - .5) * .6); g.stroke();
+  }
+  const vig = g.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, W * .72);
+  vig.addColorStop(0, "rgba(0,0,0,0)"); vig.addColorStop(1, "rgba(0,0,0,.5)");
+  g.fillStyle = vig; g.fillRect(0, 0, W, H);
+  // bevelled frame
+  g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.08)"; g.beginPath(); g.moveTo(6, H - 6); g.lineTo(6, 6); g.lineTo(W - 6, 6); g.stroke();
+  g.strokeStyle = "rgba(0,0,0,.65)"; g.beginPath(); g.moveTo(W - 6, 6); g.lineTo(W - 6, H - 6); g.lineTo(6, H - 6); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = "rgba(0,0,0,.55)"; g.strokeRect(18, 18, W - 36, H - 36);
+  g.strokeStyle = "rgba(255,255,255,.04)"; g.strokeRect(20, 20, W - 40, H - 40);
+  for (const [sx, sy] of [[34, 34], [W - 34, 34], [34, H - 34], [W - 34, H - 34]]) {
+    const sg = g.createRadialGradient(sx - 3, sy - 3, 1, sx, sy, 9);
+    sg.addColorStop(0, "#9a9da2"); sg.addColorStop(.6, "#4d5055"); sg.addColorStop(1, "#1e1f22");
+    g.fillStyle = sg; g.beginPath(); g.arc(sx, sy, 8, 0, Math.PI * 2); g.fill();
+    g.save(); g.translate(sx, sy); g.rotate(rnd() * Math.PI); g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(-6, -1.2, 12, 2.4); g.restore();
+  }
+}
+function slots(g){
+  for (const f of Object.values(fields)) {
+    if (f.hidden || f.cw == null) continue;
+    const pad = Math.max(3, f.step * .11), wide = f.kind === "chars" ? (f.n - 1) * f.step + f.cw : f.wordW;
+    const x = f.x - pad, y = f.y - pad, w = wide + pad * 2, h = f.ch + pad * 2;
+    g.fillStyle = "#060607"; rr(g, x, y, w, h, pad * .8); g.fill();                    // recessed channel
+    const inset = g.createLinearGradient(0, y, 0, y + h);
+    inset.addColorStop(0, "rgba(0,0,0,.8)"); inset.addColorStop(.15, "rgba(0,0,0,0)"); inset.addColorStop(.9, "rgba(255,255,255,0)"); inset.addColorStop(1, "rgba(255,255,255,.06)");
+    g.fillStyle = inset; rr(g, x, y, w, h, pad * .8); g.fill();
+    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX;   // shadow sizes are in device pixels g.fillStyle = "#000";
+    const cells = f.kind === "chars" ? f.n : 1;                                         // each module casts a shadow
+    for (let i = 0; i < cells; i++) g.fillRect(f.x + i * f.step + 1, f.y + 1, (f.kind === "chars" ? f.cw : f.wordW) - 2, f.ch - 2);
+    g.restore();
+  }
+}
 function drawStatic(){
   const g = bgx;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = COL.housing; g.fillRect(0, 0, bg.width, bg.height);
   g.setTransform(PX, 0, 0, PX, 0, 0);
+  metal(g); slots(g);
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 66px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Overhead", M + 116, 98);
@@ -592,7 +666,10 @@ function drawStatic(){
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   RADIUS ${S.radiusKm} KM`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
-  g.fillStyle = COL.rule; g.fillRect(M, Y.rule1, IW, 2); g.fillRect(M, Y.rule2, IW, 2);
+  for (const y of [Y.rule1, Y.rule2]) {               // engraved grooves
+    g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
+    g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, y + 2, IW, 1);
+  }
   for (const f of Object.values(fields)) if (f.label) label(g, f, f.label[0], f.label[1]);
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Spotted today", M, Y.listHead);
   const hw = g.measureText("Spotted today").width;
@@ -1078,6 +1155,7 @@ function updateFooter(){
     txt.textContent = `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`;
   }
   if (S.sound && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
+  $("pip").dataset.state = dot.dataset.state || "";
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
 function renderLog(){
