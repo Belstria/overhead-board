@@ -35,8 +35,9 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 5
+RELAY_VERSION = 6
 BOARD_URL = "https://belstria.github.io/overhead-board/"
+PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
     {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
     {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{nm}"},
@@ -452,15 +453,23 @@ def status_json():
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events}
 
 
+_board_seen = {}
+
+
 def board_html(sub=""):
     copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
     if ARGS.local and not sub:
         html = Path(ARGS.local).read_text(encoding="utf-8")
     else:
         url = BOARD_URL + (sub + "/" if sub else "")
-        status, _, body, _ = cached("page:" + sub, 300, lambda: fetch(url, timeout=15))
+        # GitHub's servers keep a page for up to ten minutes; asking for a fresh address each time skips that wait.
+        status, _, body, _ = cached("page:" + sub, PAGE_TTL, lambda: fetch(f"{url}?v={int(time.time())}", timeout=15))
         if status == 200:
             html = body.decode("utf-8")
+            seen = _board_seen.get(sub)
+            if seen and seen != html:
+                event("info", f"Downloaded a newer {'test ' if sub else ''}board from GitHub; screens pick it up when they reload")
+            _board_seen[sub] = html
             try:
                 copy.write_text(html, encoding="utf-8")
             except OSError:

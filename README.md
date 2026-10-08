@@ -148,7 +148,8 @@ also keeps a lifetime logbook. Both live in a `data` folder next to `serve.py` (
 NEW AIRLINE marks start the day after. The relay also fetches the airport's weather report from
 aviationweather.gov every ten minutes. The spotting radius the relay uses is `--radius` (15 km by default).
 
-The relay always serves the latest published board from GitHub Pages (refreshed every five minutes,
-with a local copy kept for when GitHub is unreachable). Use `--local path/to/index.html` to serve a
+The relay always serves the latest published board from GitHub Pages (it checks for a newer one at most once
+a minute, so a change shows up a minute or two after it is published; a local copy is kept for when GitHub is
+unreachable). Use `--local path/to/index.html` to serve a
 local file instead, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
 `{nm}` placeholders, or a local `aircraft.json`), and `--help` for all options.
