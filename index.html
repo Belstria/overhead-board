@@ -179,6 +179,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("place")) S.place = q.get("place");
   if (q.get("units")) S.units = q.get("units") === "metric" ? "metric" : "aviation";
   if (q.has("sound")) { const v = q.get("sound"); S.sound = !(v === "0" || v === "off"); }
+  if (q.get("proxy")) S.proxy = q.get("proxy");
   if (q.has("logos")) S.logos = !(q.get("logos") === "0" || q.get("logos") === "off");
   if (num("pace") != null) S.pace = Math.min(2, Math.max(.6, num("pace")));
   if (num("refresh") != null) S.refreshS = Math.min(60, Math.max(3, num("refresh")));
@@ -600,9 +601,13 @@ async function fetchJSON(url, opts = {}, ms = 9000){
     return await res.json();
   } finally { clearTimeout(t); }
 }
+/* The position services don't allow direct browser access from other sites, so requests go
+   through a small relay (proxy/worker.js in the repository) when one is configured. */
+const PROXY = "";
+const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 const FEEDS = [
-  {name:"adsb.lol", url:(la, lo, nm) => `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
-  {name:"airplanes.live", url:(la, lo, nm) => `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
+  {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
+  {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
 ];
 let feedIdx = 0, feedName = "";
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
@@ -642,7 +647,7 @@ async function routeLookup(cs, ac){
     }
   } catch {}
   try {
-    const j = await fetchJSON("https://api.adsb.lol/api/0/routeset", {
+    const j = await fetchJSON(relay() ? `${relay()}/routeset` : "https://api.adsb.lol/api/0/routeset", {
       method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({planes: [{callsign: cs, lat: ac.lat, lng: ac.lon}]})
     });
