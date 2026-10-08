@@ -26,7 +26,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 3
+RELAY_VERSION = 4
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 SOURCES = [
     {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
@@ -35,7 +35,7 @@ SOURCES = [
 ]
 ROUTESET = "https://api.adsb.lol/api/0/routeset"
 USER_AGENT = "overhead-board home relay (github.com/Belstria/overhead-board)"
-FRESH_S = 5      # answer repeat requests from memory for this long
+FRESH_S = 9      # screens poll every 10 s; within this window they all share one upstream request
 STALE_S = 120    # if every source fails, keep serving the last good answer this long
 NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
@@ -135,7 +135,8 @@ def aircraft(lat, lon, nm):
                 except ValueError:
                     problem = "answer wasn't JSON"
             else:
-                problem = f"HTTP {status} {body[:80].decode('utf-8', 'replace').strip()}"
+                text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", body[:400].decode("utf-8", "replace"))).strip()
+                problem = f"HTTP {status}" + (f" {text[:60]}" if text and not text.startswith(str(status)) else "")
             if count is not None:
                 was_failing = st["strikes"] > 0
                 st.update(ok=st["ok"] + 1, strikes=0, last_status=status, last_ok=time.time(), last_error="")
