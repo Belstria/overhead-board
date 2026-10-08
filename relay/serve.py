@@ -26,7 +26,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 2
+RELAY_VERSION = 3
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 SOURCES = [
     {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
@@ -40,7 +40,7 @@ STALE_S = 120    # if every source fails, keep serving the last good answer this
 NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
-BOARD_COPY = Path(__file__).with_name("board-cache.html")
+PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port")
 
@@ -178,19 +178,21 @@ def status_json():
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events}
 
 
-def board_html():
-    if ARGS.local:
+def board_html(sub=""):
+    copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
+    if ARGS.local and not sub:
         html = Path(ARGS.local).read_text(encoding="utf-8")
     else:
-        status, _, body, _ = cached("board", 300, lambda: fetch(BOARD_URL, timeout=15))
+        url = BOARD_URL + (sub + "/" if sub else "")
+        status, _, body, _ = cached("page:" + sub, 300, lambda: fetch(url, timeout=15))
         if status == 200:
             html = body.decode("utf-8")
             try:
-                BOARD_COPY.write_text(html, encoding="utf-8")
+                copy.write_text(html, encoding="utf-8")
             except OSError:
                 pass
-        elif BOARD_COPY.exists():  # GitHub unreachable: use the last copy we saw
-            html = BOARD_COPY.read_text(encoding="utf-8")
+        elif copy.exists():  # GitHub unreachable: use the last copy we saw
+            html = copy.read_text(encoding="utf-8")
         else:
             return None
     defaults = {k: v for k, v in {
@@ -225,8 +227,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if path in ("/", "/index.html"):
-            html = board_html()
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status"):
+            self.send_response(301)  # /test → /test/
+            self.send_header("Location", path + "/")
+            self.end_headers()
+            return
+        page = PAGE.match(path)
+        if page:
+            html = board_html(page.group(1) or "")
             if html is None:
                 return self.reply(502, "text/plain; charset=utf-8", b"Couldn't download the board from GitHub yet. Check the internet connection and reload.")
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))

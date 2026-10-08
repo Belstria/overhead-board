@@ -45,6 +45,13 @@ spotting radius that is coming closer. Every plane that enters the spotting radi
 **Spotted today** once per pass. The list marks the ones that flew directly overhead and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
+## Test board
+
+`/test/` is a playground for visual experiments: a bolder layout where the title, the "now" line and the
+history header are flaps too, the hero row reads flight · airline · from → to · altitude, and the list
+shows logos and airline names. It uses the same data engine, settings and Spotted today history as the
+main board. Open it through the relay at `http://<computer-name>:8080/test/` (relay version 3 or newer).
+
 ## Controls
 
 - Click the board, or press **F**, for fullscreen.
