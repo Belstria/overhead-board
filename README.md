@@ -25,7 +25,6 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `sound` | Flap sound on (`1`) or off (`0`) | `sound=1` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `demo` | Sample flights instead of live data | `demo` |
-| `proxy` | Address of your relay, if not built into the page | `proxy=https://overhead-proxy.example.workers.dev` |
 
 Anything changed in the on-screen Settings is saved in that device's browser only.
 
@@ -41,17 +40,37 @@ Anything changed in the on-screen Settings is saved in that device's browser onl
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
 - Airline logos: the public airline logo service from Aviasales.
 
-The position services don't allow browsers on other websites to read their data, so those requests go
-through a small relay: a free Cloudflare Worker whose code is in [`proxy/worker.js`](proxy/worker.js).
-It only forwards the board's own two kinds of request and adds the header that lets the browser read
-the answer. Route lookups (adsbdb) and logos load directly. No API keys are needed anywhere.
+The position services don't let browsers on other websites read their data, and they turn away
+requests from cloud servers. So the live data has to come through a small relay running on a computer
+in your home: [`relay/serve.py`](relay/serve.py). Opened directly from GitHub Pages, the board can't get
+positions and says so in its status line.
 
-### Setting up the relay
+## Running the home relay
 
-1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com) (a free account is enough).
-2. Go to **Workers & Pages → Create → Create Worker**, name it `overhead-proxy`, and click **Deploy**.
-3. Click **Edit code**, replace everything with the contents of `proxy/worker.js`, and click **Deploy** again.
-4. The relay's address is shown on the worker page, for example `https://overhead-proxy.<your-subdomain>.workers.dev`.
-   Set it as `PROXY` near the top of the data section in `index.html`, or pass it with `?proxy=`.
+The relay serves the board and fetches the flight data from your home connection. It needs Python 3.8
+or newer and nothing else.
 
-If you host the board somewhere other than `belstria.github.io`, add that address to `ALLOWED_ORIGINS` in the worker.
+**Windows**
+
+```powershell
+winget install Python.Python.3.13          # skip if `py --version` already works
+mkdir $HOME\overhead-relay; cd $HOME\overhead-relay
+curl.exe -O https://raw.githubusercontent.com/Belstria/overhead-board/main/relay/serve.py
+py serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
+```
+
+When Windows Firewall asks, allow Python on **private** networks so other screens at home can reach it.
+
+**Linux / homelab**
+
+```bash
+python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
+```
+
+Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV, tablet or phone.
+The relay prints the addresses when it starts. Your location stays on the relay machine: it is handed
+to the board when the page loads, so nothing personal lives in this repository.
+
+The relay always serves the latest published board from GitHub Pages (refreshed every five minutes,
+with a local copy kept for when GitHub is unreachable). Use `--local path/to/index.html` to serve a
+local file instead, and `--help` for all options.

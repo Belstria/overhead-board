@@ -166,6 +166,7 @@ const REMARK_LOOK = {
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:4, home:"VIE", maxAltFt:60000, units:"aviation", sound:false, pace:1.15, refreshS:10, logos:true, demo:false};
 function loadSettings(){ try { return {...DEFAULTS, ...JSON.parse(localStorage.getItem("od.settings") || "{}")}; } catch { return {...DEFAULTS}; } }
 function saveSettings(){ try { localStorage.setItem("od.settings", JSON.stringify(S)); } catch {} }
+Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off");
 (() => { // URL overrides for this session, handy for kiosk setups: ?lat=..&lon=..&radius=..&home=..&place=..&demo
@@ -601,9 +602,9 @@ async function fetchJSON(url, opts = {}, ms = 9000){
     return await res.json();
   } finally { clearTimeout(t); }
 }
-/* The position services don't allow direct browser access from other sites, so requests go
-   through a small relay (proxy/worker.js in the repository) when one is configured. */
-const PROXY = "";
+/* The position services don't allow direct browser access from other sites and turn away cloud
+   servers, so requests go through the home relay (relay/serve.py) when the board is opened from it. */
+const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
@@ -851,7 +852,7 @@ function tickClock(){ setChars("clock", hhmm()); rollDay(); }
 function updateFooter(){
   const dot = $("dot"), txt = $("statusText");
   if (S.demo) { dot.dataset.state = "demo"; txt.textContent = "Demo mode · sample flights, not live data"; }
-  else if (failures >= 3) { dot.dataset.state = "off"; txt.textContent = "Can't reach flight data · retrying every 8 seconds"; }
+  else if (failures >= 3) { dot.dataset.state = "off"; txt.textContent = relay() ? "Can't reach flight data · retrying every 8 seconds" : "No flight data here · open the board through your home relay"; }
   else if (lastOk) { dot.dataset.state = "live"; txt.textContent = `Live via ${feedName} · ${new Date(lastOk).toLocaleTimeString("en-GB")} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`; }
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
