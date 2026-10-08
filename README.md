@@ -19,7 +19,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `radius` | Overhead radius in km (default 4) | `radius=3` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
 | `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
-| `units` | `metric` for metres and km/h (default feet and knots) | `units=metric` |
+| `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
 | `pace` | Flap speed, 1 is original, higher is slower (default 1.15) | `pace=1.3` |
 | `sound` | Flap sound on (`1`) or off (`0`) | `sound=1` |
@@ -27,7 +27,8 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
-Anything changed in the on-screen Settings is saved in that device's browser only.
+Anything changed in the on-screen Settings is saved in that device's browser only, and only the
+values you changed are kept, so new defaults from the relay still reach that screen.
 
 ## Controls
 
@@ -60,8 +61,13 @@ or newer and nothing else.
 winget install Python.Python.3.13          # skip if `py --version` already works
 mkdir $HOME\overhead-relay; cd $HOME\overhead-relay
 curl.exe -O https://raw.githubusercontent.com/Belstria/overhead-board/main/relay/serve.py
-py serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
+py serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound --save
 ```
+
+`--save` stores your settings in `overhead.json` next to the script (it never goes into this repository),
+so from then on `py serve.py` on its own starts the relay with your location. Anything you pass on the
+command line still wins over the saved file. Other relay options: `--units aviation`, `--radius 5`,
+`--home VIE`, `--port 8080`.
 
 When Windows Firewall asks, allow Python on **private** networks so other screens at home can reach it.
 

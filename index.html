@@ -198,9 +198,19 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:4, home:"VIE", maxAltFt:60000, units:"aviation", sound:false, pace:1.15, refreshS:10, logos:true, demo:false};
-function loadSettings(){ try { return {...DEFAULTS, ...JSON.parse(localStorage.getItem("od.settings") || "{}")}; } catch { return {...DEFAULTS}; } }
-function saveSettings(){ try { localStorage.setItem("od.settings", JSON.stringify(S)); } catch {} }
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:4, home:"VIE", maxAltFt:60000, units:"metric", sound:false, pace:1.15, refreshS:10, logos:true, demo:false};
+function loadSettings(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
+  if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
+  delete saved.v;
+  return {...DEFAULTS, ...saved};
+}
+function saveSettings(){
+  const changed = {v: 2};
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  try { localStorage.setItem("od.settings", JSON.stringify(changed)); } catch {}
+}
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off");

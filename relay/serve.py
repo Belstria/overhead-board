@@ -41,6 +41,8 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 BOARD_COPY = Path(__file__).with_name("board-cache.html")
+CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
+SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port")
 
 ARGS = None
 STARTED = time.time()
@@ -193,7 +195,7 @@ def board_html():
             return None
     defaults = {k: v for k, v in {
         "lat": ARGS.lat, "lon": ARGS.lon, "place": ARGS.place,
-        "home": ARGS.home, "radiusKm": ARGS.radius,
+        "home": ARGS.home, "radiusKm": ARGS.radius, "units": ARGS.units,
     }.items() if v is not None}
     if ARGS.sound:
         defaults["sound"] = True
@@ -265,17 +267,37 @@ def lan_address():
 def main():
     global ARGS
     p = argparse.ArgumentParser(description="Serve the Overhead board with live flight data from this computer.")
-    p.add_argument("--port", type=int, default=8080, help="port to listen on (default 8080)")
+    p.add_argument("--port", type=int, help="port to listen on (default 8080)")
     p.add_argument("--bind", default="0.0.0.0", help="address to listen on (default: all, so other screens at home can reach it)")
     p.add_argument("--lat", type=float, help="latitude of the spot to watch")
     p.add_argument("--lon", type=float, help="longitude of the spot to watch")
     p.add_argument("--place", help="name printed under the title")
     p.add_argument("--home", help="home airport IATA code (default VIE)")
     p.add_argument("--radius", type=float, help="overhead radius in km (default 4)")
-    p.add_argument("--sound", action="store_true", help="flap sound on by default")
+    p.add_argument("--units", choices=["metric", "aviation"], help="metric (metres, km/h; the default) or aviation (feet, knots)")
+    p.add_argument("--sound", action="store_true", default=None, help="flap sound on by default")
+    p.add_argument("--save", action="store_true", help=f"remember these settings in {CONFIG_FILE.name}, so next time `serve.py` alone is enough")
     p.add_argument("--local", help="serve this index.html instead of the published board")
     p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
     ARGS = p.parse_args()
+
+    saved = {}
+    if CONFIG_FILE.exists():
+        try:
+            saved = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"Couldn't read {CONFIG_FILE.name} ({e}); ignoring it.")
+    for key in SAVED_KEYS:          # anything given on the command line wins over the saved file
+        if getattr(ARGS, key) is None and key in saved:
+            setattr(ARGS, key, saved[key])
+    if ARGS.port is None:
+        ARGS.port = 8080
+    if ARGS.save:
+        keep = {k: getattr(ARGS, k) for k in SAVED_KEYS if getattr(ARGS, k) is not None}
+        CONFIG_FILE.write_text(json.dumps(keep, indent=2), encoding="utf-8")
+        print(f"Saved your settings to {CONFIG_FILE}. Next time, `serve.py` on its own is enough.")
+    if ARGS.lat is None or ARGS.lon is None:
+        print("No location set, so the board will watch central Vienna. Add --lat and --lon (and --save to keep them).")
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")
