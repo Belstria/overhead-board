@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Overhead Board Test</title>
+<title>Overhead Flight Board (Test)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&display=swap">
 <style>
-/* TEST LAYOUT. A bolder take on the same board: the title, the "now" line and the history header are
-   flaps too, the hero row reads FLIGHT · AIRLINE · FROM → TO · ALTITUDE, and the list carries logos and airline
-   names. Same data engine as the main board. Layout: fixed 1920x1080, scaled to fit any screen. */
+/* Layout: a fixed 1920x1080 airport flight-information board, scaled to fit any screen.
+   Top: gate-style feature of the plane overhead. Bottom: today's sightings as a departures list. */
 :root{
   color-scheme: dark;
   --housing:#0b0b0c;
@@ -31,18 +30,6 @@ body.idle{cursor:none}
 #stage{position:absolute;background:var(--housing);overflow:hidden}
 #stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #fx{cursor:pointer}
-.ov{position:absolute;pointer-events:none;font-family:var(--f-board);text-transform:uppercase;white-space:nowrap}
-.city{font-weight:600;font-size:calc(30px*var(--k));letter-spacing:.06em;color:#c9c6bf}
-.detail{font-weight:600;font-size:calc(24px*var(--k));letter-spacing:.08em;color:var(--muted);text-align:right}
-.radar{display:flex;align-items:center;gap:calc(14px*var(--k));font-weight:700;font-size:calc(26px*var(--k));letter-spacing:.06em;--rc:#2fbf6a;color:var(--rc)}
-.radar[data-state=warn]{--rc:var(--amber)}.radar[data-state=off]{--rc:#e0483d}.radar[data-state=demo]{--rc:#86b8ff}
-.scope{position:relative;width:calc(64px*var(--k));height:calc(64px*var(--k));border-radius:50%;border:2px solid var(--rc);overflow:hidden;
-  background:repeating-radial-gradient(circle,transparent 0 calc(9px*var(--k)),color-mix(in srgb,var(--rc) 35%,transparent) calc(9px*var(--k)) calc(10px*var(--k)))}
-.scope::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:color-mix(in srgb,var(--rc) 45%,transparent)}
-.scope::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,color-mix(in srgb,var(--rc) 70%,transparent),transparent 28%);animation:sweep 2.6s linear infinite}
-.radar[data-state=off] .scope::after{animation:none;opacity:.25}
-@keyframes sweep{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.scope::after{animation:none}}
 
 footer{
   position:absolute;left:0;right:0;bottom:0;
@@ -110,10 +97,6 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
-  <div class="ov radar" id="radar" data-state="warn"><span class="scope"></span><span id="radarText">Connecting</span></div>
-  <div class="ov city" id="cityFrom"></div>
-  <div class="ov city" id="cityTo"></div>
-  <div class="ov detail" id="detail"></div>
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
@@ -202,7 +185,7 @@ const $ = id => document.getElementById(id);
 const W = 1920, H = 1080, M = 64, IW = W - 2 * M;
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
-const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f6c533", orange:"#ff9638", muted:"#7f838b", labelEn:"#6d7179"};
+const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#7f838b", labelEn:"#6d7179"};
 const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
 
 /* Drums: the order a real flap module turns through. */
@@ -292,31 +275,31 @@ let PX = 1, K = 1;
 
 /* ---------- fields ---------- */
 const fields = {}, allCells = [];
-const LIST_ROWS = 8;
+const LIST_ROWS = 9;
 function def(id, o){ fields[id] = {id, drum: DRUM_ALPHA, style: "ink", align: "left", loud: .7, ...o}; }
-def("title",    {kind:"chars", n:30, dur:80, style:"amber", loud:.6});
-def("clock",    {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
-def("nowA",     {kind:"chars", n:3, dur:80, loud:.8});
-def("nowB",     {kind:"chars", n:22, dur:80, style:"amber", loud:1});
-def("flight",   {kind:"chars", n:7, dur:85, style:"amber", label:["Flight","Flug"], loud:1});
-def("logo",     {kind:"logo",  n:2, dur:110, loud:1});
-def("airline",  {kind:"chars", n:10, dur:85, style:"orange", label:["Airline","Fluglinie"], loud:1});
-def("fromCode", {kind:"chars", n:3, dur:85, style:"amber", label:["From","Von"], loud:1});
-def("toCode",   {kind:"chars", n:3, dur:85, style:"orange", label:["To","Nach"], loud:1});
-def("alt",      {kind:"chars", n:8, dur:70, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"], loud:1});
-def("type",     {kind:"chars", n:20, dur:70, loud:.8});
-def("trend",    {kind:"word",  n:8, dur:110, words:"trend", trendWords:true, loud:.8});
-def("histA",    {kind:"chars", n:13, dur:80, loud:.6});
-def("histB",    {kind:"chars", n:6, dur:80, style:"amber", loud:.6});
+def("clock",   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
+def("flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
+def("airline", {kind:"word",  n:12, dur:120, words:"airline", label:["Airline","Fluglinie"], loud:1});
+def("remarks", {kind:"word",  n:9, dur:120, words:"remarks", label:["Status",""], loud:1});
+def("fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","Von"], loud:1});
+def("fromCity",{kind:"chars", n:11, dur:82, loud:1});
+def("toCode",  {kind:"chars", n:3, dur:82, style:"amber", label:["To","Nach"], loud:1});
+def("toCity",  {kind:"chars", n:11, dur:82, loud:1});
+def("type",    {kind:"chars", n:18, dur:66, label:["Aircraft","Flugzeug"]});
+def("reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
+def("alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
+def("trend",   {kind:"word",  n:2, dur:110, words:"trend"});
+def("speed",   {kind:"chars", n:8, dur:66, drum:DRUM_ALT, align:"right", label:["Speed","Geschw."]});
+def("pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]});
 for (let i = 0; i < LIST_ROWS; i++) {
-  def(`l${i}time`,    {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5});
-  def(`l${i}flight`,  {kind:"chars", n:7, dur:60, loud:.5});
-  def(`l${i}logo`,    {kind:"logo",  n:2, dur:95, loud:.5});
-  def(`l${i}airline`, {kind:"chars", n:12, dur:60, loud:.5});
-  def(`l${i}from`,    {kind:"chars", n:3, dur:60, loud:.5});
-  def(`l${i}to`,      {kind:"chars", n:3, dur:60, style:"amber", loud:.5});
-  def(`l${i}type`,    {kind:"chars", n:16, dur:60, loud:.5});
-  def(`l${i}mark`,    {kind:"word",  n:2, dur:95, words:"mark", loud:.5});
+  const lab = (en, de) => i === 0 ? [en, de] : null;
+  def(`l${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time","Zeit")});
+  def(`l${i}logo`,   {kind:"logo",  n:3, dur:95, loud:.5});
+  def(`l${i}flight`, {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight","Flug")});
+  def(`l${i}from`,   {kind:"chars", n:11, dur:60, loud:.5, label:lab("From","Von")});
+  def(`l${i}to`,     {kind:"chars", n:11, dur:60, loud:.5, label:lab("To","Nach")});
+  def(`l${i}type`,   {kind:"chars", n:18, dur:60, loud:.5, label:lab("Aircraft","Flugzeug")});
+  def(`l${i}remarks`,{kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks","Hinweis")});
 }
 for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
@@ -337,36 +320,22 @@ function placeRow(ids, gaps, y, step, ratio){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-function place(id, x, y, step, ratio){
-  const f = fields[id];
-  f.x = x; f.y = y; f.step = step; f.cw = step * .9; f.ch = f.cw * ratio;
-  f.wordW = f.n * step - (step - f.cw);
-  return x + f.n * step;
-}
-const HERO = IW / 37.3, LIST = IW / 55.6;
-const Y = {title:32, now:116, hero:226, row2:312, rule:400, hist:426, list0:500, listPitch:64};
+const BIG = IW / 30, MID = IW / 56.5;
+const Y = {row1:204, row1b:322, row2:440, rule1:160, rule2:516, listHead:556, list0:604, listPitch:46};
 function layout(){
-  place("title", M, Y.title, 40, 1.5);
-  place("clock", W - M - 256 - 5 * 40 + 4, Y.title, 40, 1.5);
-  const nx = place("nowA", M, Y.now, 44, 1.5);
-  place("nowB", nx + 44 * .8, Y.now, 44, 1.5);
-  placeRow(["flight","logo","airline","fromCode","toCode","alt"], [.8, .3, .9, 1.4, .9], Y.hero, HERO, 1.6);
-  place("type", M, Y.row2, HERO, 1.6);
-  place("trend", fields.alt.x, Y.row2, HERO, 1.6);
-  const hx = place("histA", M, Y.hist, 38, 1.45);
-  place("histB", hx + 38 * .6, Y.hist, 38, 1.45);
-  for (let i = 0; i < LIST_ROWS; i++)
-    placeRow([`l${i}time`,`l${i}flight`,`l${i}logo`,`l${i}airline`,`l${i}from`,`l${i}to`,`l${i}type`,`l${i}mark`],
-      [.7, .7, .3, .7, 1.4, .7, .7], Y.list0 + i * Y.listPitch, LIST, 1.6);
+  placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
+  placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
+  placeRow(["type","reg","alt","trend","speed","pos"], [.8, .8, .3, .8, .8], Y.row2, MID, 1.45);
+  const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
+  for (let i = 0; i < LIST_ROWS; i++) {
+    fields[`l${i}logo`].hidden = !lg;
+    const ids = [`l${i}time`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`];
+    if (lg) ids.splice(1, 0, `l${i}logo`);
+    placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.45);
+  }
 }
 layout();
-function placeOverlays(){
-  const at = (id, x, y) => { const el = $(id); el.style.left = x * K + "px"; el.style.top = y * K + "px"; };
-  at("cityFrom", fields.fromCode.x, Y.row2 + 14);
-  at("cityTo", fields.toCode.x, Y.row2 + 14);
-  const r = $("radar"); r.style.right = M * K + "px"; r.style.top = (Y.title - 2) * K + "px";
-  const d = $("detail"); d.style.right = M * K + "px"; d.style.top = (Y.now + 16) * K + "px";
-}
+(() => { const f = fields.clock, step = 64; f.step = step; f.cw = step * .9; f.ch = 88; f.y = 40; f.x = W - M - (5 * step - (step - f.cw)); })();
 
 /* device-pixel geometry for every cell */
 function geometry(){
@@ -385,7 +354,7 @@ function resize(){
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
-  tiles.clear(); geometry(); drawStatic(); redrawAll(); placeOverlays();
+  tiles.clear(); geometry(); drawStatic(); redrawAll();
 }
 
 /* ---------- tiles: each flap face pre-rendered once ---------- */
@@ -430,7 +399,7 @@ function tile(f, value){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "mark" && value ? {fill:["#27a85e","#1d8a4b"]} : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : {};
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}`;
   let cv = tiles.get(key);
   if (cv) return cv;
@@ -442,8 +411,7 @@ function tile(f, value){
   const body = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : FLAP);
   grad.addColorStop(0, body[0]); grad.addColorStop(.5, body[1]); grad.addColorStop(.5, body[2]); grad.addColorStop(1, body[3]);
   g.fillStyle = grad; rr(g, 0, 0, w, h, r); g.fill();
-  let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : f.style === "orange" ? COL.orange : COL.ink);
-  if (f.words === "mark") { text = ""; if (value) drawPlane(g, w / 2, h / 2, h * .66, "#ffffff"); }
+  let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : COL.ink);
   // "-" means the flight has no airline code (private, military, unlisted): show a plain aircraft mark.
   // A known airline without a logo shows its two-letter code instead.
   if (isLogo) {
@@ -466,21 +434,19 @@ function tile(f, value){
     ax = bx + bw; aw = w - ax;
     if (!text && code === "-") text = "NO AIRLINE LISTED";
   }
-  if (f.words === "trend") {                 // climbing, level or descending arrow (with the word, on this board)
+  if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
     if (value) {
-      const box = f.trendWords ? h * 1.25 : w;
-      const ang = {UP: -Math.PI / 5, LEVEL: 0, DOWN: Math.PI / 5}[value] || 0, L = Math.min(box * .62, h * .78);
-      g.save(); g.translate(box / 2 + (f.trendWords ? h * .1 : 0), h / 2); g.rotate(ang);
+      const ang = {UP: -Math.PI / 5, LEVEL: 0, DOWN: Math.PI / 5}[value] || 0, L = Math.min(w * .62, h * .78);
+      g.save(); g.translate(w / 2, h / 2); g.rotate(ang);
       g.strokeStyle = g.fillStyle = TREND_COLOR[value] || COL.ink; g.lineWidth = Math.max(2, h * .1); g.lineCap = "round";
       g.beginPath(); g.moveTo(-L / 2, 0); g.lineTo(L / 2 - h * .14, 0); g.stroke();
       g.beginPath(); g.moveTo(L / 2 + h * .02, 0); g.lineTo(L / 2 - h * .22, -h * .2); g.lineTo(L / 2 - h * .22, h * .2); g.closePath(); g.fill();
       g.restore();
-      if (f.trendWords) { text = {UP: "CLIMBING", LEVEL: "LEVEL", DOWN: "DESCENDING"}[value]; ax = box; aw = w - box; }
     }
   }
   if (text && text !== " ") {
-    const size = f.kind === "chars" ? h * .8 : h * (f.trendWords ? .52 : f.small ? .56 : .5);
+    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
     g.font = `700 ${size}px ${FONT}`;
     if (f.kind !== "chars" && "letterSpacing" in g) g.letterSpacing = Math.round(size * .06) + "px";
     let asc = size * .7;
@@ -565,7 +531,6 @@ function retarget(c, value, delay){
   if (c.f.kind === "chars") q = path(c.f.drum, base, value);
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
-  else if (c.f.words === "mark") q = [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -614,27 +579,24 @@ function pictogram(g, x, y, s){
   g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
   drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
 }
-function printedArrow(g, x1, x2, yMid, h){
-  const L = x2 - x1, cx = (x1 + x2) / 2, len = Math.min(L * .7, h * .55);
-  g.save(); g.strokeStyle = g.fillStyle = COL.ink; g.lineWidth = Math.max(2, h * .07); g.lineCap = "round";
-  g.beginPath(); g.moveTo(cx - len / 2, yMid); g.lineTo(cx + len / 2 - h * .12, yMid); g.stroke();
-  g.beginPath(); g.moveTo(cx + len / 2, yMid); g.lineTo(cx + len / 2 - h * .2, yMid - h * .16); g.lineTo(cx + len / 2 - h * .2, yMid + h * .16); g.closePath(); g.fill();
-  g.restore();
-}
 function drawStatic(){
   const g = bgx;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = COL.housing; g.fillRect(0, 0, bg.width, bg.height);
   g.setTransform(PX, 0, 0, PX, 0, 0);
+  pictogram(g, M, 40, 88);
+  g.textBaseline = "alphabetic"; g.textAlign = "left";
+  g.font = `700 66px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Overhead", M + 116, 98);
+  const tw = g.measureText("Overhead").width;
+  g.font = `400 66px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Überflüge", M + 116 + tw + 22, 98);
+  g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
+  g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   RADIUS ${S.radiusKm} KM`, M + 118, 128);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.fillStyle = COL.rule; g.fillRect(M, Y.rule1, IW, 2); g.fillRect(M, Y.rule2, IW, 2);
   for (const f of Object.values(fields)) if (f.label) label(g, f, f.label[0], f.label[1]);
-  const fc = fields.fromCode, tc = fields.toCode;
-  printedArrow(g, fc.x + 3 * fc.step, tc.x, fc.y + fc.ch / 2, fc.ch);
-  for (let i = 0; i < LIST_ROWS; i++) {
-    const a = fields[`l${i}from`], b = fields[`l${i}to`];
-    printedArrow(g, a.x + 3 * a.step, b.x, a.y + a.ch / 2, a.ch);
-  }
-  g.fillStyle = COL.rule; g.fillRect(M, Y.rule, IW, 2);
-  g.fillRect(M, Y.now - 18, IW, 2);
+  g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Spotted today", M, Y.listHead);
+  const hw = g.measureText("Spotted today").width;
+  g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Heute gesichtet", M + hw + 14, Y.listHead);
 }
 
 /* ---------- sound: synthesised flap clatter, only after a click or key press ---------- */
@@ -1061,54 +1023,44 @@ function process(list){
 
 /* ---------- what goes on the board ---------- */
 const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
-const NOW_LINE = {over: "FLYING OVERHEAD", soon: "", by: "FLYING BY", away: "FLYING AWAY", passed: "JUST PASSED OVERHEAD", near: "NEARBY"};
 function renderFeatured(){
-  setChars("nowA", "NOW");
+  const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
     const offline = isOffline();
-    ["flight","airline","fromCode","toCode","alt","type"].forEach(id => setChars(id, ""));
-    setWord("logo", ""); setWord("trend", "");
-    setChars("nowB", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC NEARBY" : "CONNECTING");
-    $("cityFrom").textContent = $("cityTo").textContent = $("detail").textContent = "";
+    ids.forEach(id => setChars(id, ""));
+    setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     return;
   }
-  const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac), now = Date.now();
+  const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac);
+  setChars("flight", info.flightNo);
+  const aCode = airlineCodeOf(info), aName = trimTo(shortAirline(info.airline), 18);
+  setWord("airline", (aCode || "-") + "|" + aName);
+  setWord("remarks", MODE_REMARK[feat.mode]);
+  setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
+  setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
+  setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
+  const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
     feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
       feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
-  const aCode = airlineCodeOf(info), aName = fitName(info.airline, 10);
-  setChars("nowB", feat.mode === "soon" ? "OVERHEAD " + feat.live[2] : NOW_LINE[feat.mode] || "");
-  setChars("flight", info.flightNo);
-  setWord("logo", aCode || "-", 60);
-  setChars("airline", aName || (aCode ? aCode : "PRIVATE"), 100);
-  setChars("fromCode", code3(info.from), 160); setChars("toCode", code3(info.to), 220);
-  setChars("alt", feat.live[0], 280); setWord("trend", feat.live[3] || "", 320);
-  setChars("type", info.type || "", 200);
-  $("cityFrom").textContent = info.from ? clean(info.from.city) : "";
-  $("cityTo").textContent = info.to ? clean(info.to.city) : "";
-  $("detail").textContent = [feat.mode === "soon" ? distStr(o) : feat.live[2], feat.live[1], info.reg].filter(Boolean).join("  ·  ");
-}
-function fitName(name, w){        // "QATAR AIRWAYS" → "QATAR" only when it doesn't fit
-  let x = clean(name);
-  if (x.length > w) x = x.replace(/\b(AIRLINES|AIRWAYS|AIR LINES|AIRLINE|INTERNATIONAL|LIMITED|GMBH|AG)\b/g, "").replace(/\s+/g, " ").trim();
-  return x;
+  setChars("alt", feat.live[0], 380);
+  setChars("speed", feat.live[1], 400);
+  setChars("pos", feat.live[2], 420);
+  setWord("trend", feat.live[3] || "", 390);
 }
 function renderList(){
-  const n = spotted.filter(e => !e.sample).length;
-  setChars("histB", S.demo ? "(DEMO)" : `(${n})`);
   for (let i = 0; i < LIST_ROWS; i++) {
     const e = spotted[i], d = i * 150;
     setChars(`l${i}time`, e ? e.time : "", d);
-    setChars(`l${i}flight`, e ? e.flight : "", d + 40);
-    setWord(`l${i}logo`, e ? airlineCodeOf(e) || "-" : "", d + 80);
-    setChars(`l${i}airline`, e ? fitName(e.airline, 12) || (airlineCodeOf(e) ? "" : "PRIVATE") : "", d + 120);
-    setChars(`l${i}from`, e && e.from ? code3(e.from) : "", d + 180);
-    setChars(`l${i}to`, e && e.to ? code3(e.to) : "", d + 220);
-    setChars(`l${i}type`, e ? e.type : "", d + 260);
-    setWord(`l${i}mark`, e && e.minDist != null && e.minDist <= overKm() ? "OVER" : "", d + 300);
+    setWord(`l${i}logo`, e ? airlineCodeOf(e) || "-" : "", d + 30);
+    setChars(`l${i}flight`, e ? e.flight : "", d + 60);
+    setChars(`l${i}from`, e && e.from ? e.from.city || e.from.code : "", d + 120);
+    setChars(`l${i}to`, e && e.to ? e.to.city || e.to.code : "", d + 180);
+    setChars(`l${i}type`, e ? e.type : "", d + 240);
+    setWord(`l${i}remarks`, e ? remarkFor(e) : "", d + 300);
   }
 }
 function tickClock(){ setChars("clock", hhmm()); rollDay(); updateFooter(); }
@@ -1127,9 +1079,6 @@ function updateFooter(){
   }
   if (S.sound && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
-  const radar = $("radar"), state = S.demo ? "demo" : isOffline() ? "off" : !lastOk || failures ? "warn" : "live";
-  radar.dataset.state = state;
-  $("radarText").textContent = {demo: "Demo", off: "Offline", warn: lastOk ? "Reconnecting" : "Connecting", live: "Live tracking"}[state];
 }
 function renderLog(){
   const body = $("logBody"), real = spotted.filter(e => !e.sample);
@@ -1302,8 +1251,6 @@ async function start(){
   } catch {}
   resize(); wake();
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
-  setChars("title", `OVERHEAD FLIGHTS - ${clean(S.place)}`);
-  setChars("histA", "SPOTTED TODAY", 400);
   tickClock(); setInterval(tickClock, 1000);
   audioInit();   // starts at once where the browser allows it (kiosk setups); otherwise on the first click or key press
   renderList(); updateFooter(); keepAwake();
