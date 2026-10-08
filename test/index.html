@@ -91,6 +91,8 @@ form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1
 label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
 label.check{flex-direction:row;align-items:center;gap:8px}
 input,select{font:15px var(--f-board);color:var(--ink);background:var(--housing);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+input[type=range]{padding:0;accent-color:var(--amber)}
+output{color:var(--ink);letter-spacing:0}
 input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
 .hint{grid-column:1/-1;color:var(--muted);font-size:13px;margin:0}
 .row{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
@@ -164,13 +166,8 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
             <option value="15">15 seconds</option>
             <option value="30">30 seconds</option>
           </select></label>
-        <label>Flap speed
-          <select id="fPace">
-            <option value="1">Original</option>
-            <option value="1.15">A touch slower</option>
-            <option value="1.3">Slower</option>
-            <option value="1.5">Unhurried</option>
-          </select></label>
+        <label><span>Flap speed <output id="fSpeedOut" for="fSpeed"></output></span>
+          <input type="range" id="fSpeed" min="10" max="100" step="5"></label>
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
@@ -215,7 +212,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, pace:1.15, refreshS:10, logos:true, overKm:3, demo:false};
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -246,7 +243,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("proxy")) S.proxy = q.get("proxy");
   if (q.has("hd")) S.hd = q.get("hd") !== "0";
   if (q.has("logos")) S.logos = !(q.get("logos") === "0" || q.get("logos") === "off");
-  if (num("pace") != null) S.pace = Math.min(2, Math.max(.6, num("pace")));
+  if (num("speed") != null) S.speedPct = num("speed");
   if (num("refresh") != null) S.refreshS = Math.min(60, Math.max(3, num("refresh")));
   if (q.has("demo") || /demo/i.test(location.hash)) S.demo = q.get("demo") !== "0";
 })();
@@ -536,7 +533,7 @@ function frame(now){
     if (c.queue.length) {
       active = true;
       if (now >= c.next) {
-        c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * (S.pace || 1) * (.9 + Math.random() * .2)};
+        c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * pace() * (.9 + Math.random() * .2)};
         drawCell(c, 0); starts++;
       }
     }
@@ -554,6 +551,8 @@ function path(drum, from, to){
   while (i !== j) { i = (i + 1) % drum.length; out.push(drum[i]); }
   return out;
 }
+// Flap speed as a percentage of full speed (100% = fastest, 10% = ten times slower).
+const pace = () => 100 / Math.min(100, Math.max(10, +S.speedPct || 85));
 function retarget(c, value, delay){
   if (value === c.target) return;
   c.target = value;
@@ -573,7 +572,7 @@ function retarget(c, value, delay){
     q.push(value);
   }
   if (REDUCED) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
-  if (!c.queue.length && !c.anim) c.next = performance.now() + delay * (S.pace || 1);
+  if (!c.queue.length && !c.anim) c.next = performance.now() + delay * pace();
   c.queue = q;
   kick();
 }
@@ -1169,7 +1168,7 @@ function renderLog(){
 }
 function openPanel(section){
   $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
-  $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fPace").value = String(S.pace); $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
+  $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
   renderLog(); $("panel").hidden = false;
   $(section).scrollIntoView({block: "start"});
 }
@@ -1177,6 +1176,7 @@ function closePanel(){ $("panel").hidden = true; }
 $("btnLog").onclick = e => { e.stopPropagation(); openPanel("secLog"); };
 $("btnSettings").onclick = e => { e.stopPropagation(); openPanel("secSettings"); };
 $("btnClose").onclick = closePanel;
+$("fSpeed").addEventListener("input", () => { $("fSpeedOut").textContent = $("fSpeed").value + "%"; });
 $("panel").addEventListener("click", e => { if (e.target.id === "panel") closePanel(); });
 $("btnSave").onclick = () => {
   const num = v => parseFloat(String(v).replace(",", "."));
@@ -1188,7 +1188,7 @@ $("btnSave").onclick = () => {
     radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 15)),
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
-    sound: $("fSound").checked, logos: $("fLogos").checked, pace: +$("fPace").value || 1.15, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
+    sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked};
   saveSettings(); audioInit(); closePanel();
   if (wasDemo !== S.demo) { feat = null; infoCache.clear(); spotted = loadLog(); }
   if (hadLogos !== S.logos) layout();
