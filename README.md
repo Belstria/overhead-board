@@ -60,7 +60,8 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
   to stay on one page). The pages are Spotted today, **Next over us** (planes on course to pass close by, with a
   countdown), **Vienna airport** (runways in use worked out from live traffic, plus the latest weather report),
   **Today in numbers**, and **This aircraft** (a photo and registration details of the plane on the board, when
-  one exists). Pages without anything to show are skipped. The left and right arrow keys change pages by hand.
+  one exists). Pages without anything to show are skipped. To pick a page yourself, click its dot or the arrows next to
+  the page title, or use the left and right arrow keys or the keys 1 to 5; a page you pick stays for at least a minute.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -68,10 +69,12 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
   `Austrian, Emirates, A380, 747, OE-LBN`) are marked FAVOURITE.
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
+- **Spotted today** (press **T**, or the Spotted today button): today's full list as its own tab, with airline,
+  route, aircraft, registration, closest distance, altitude and remarks, filterable to overhead or special planes.
 - **Logbook** (press **L**): every type, airline and individual aircraft ever spotted, with counts and first
   sightings. The first sighting of a new type or airline is marked NEW TYPE or NEW AIRLINE on the board.
 - **Radar** (press **R**): a plan view of everything around you, with trails, the spotting radius, the airport's
-  runways and the nearest planes. Add `#radar` or `#logbook` to the address to open a tab at start.
+  runways and the nearest planes. Add `#spotted`, `#logbook` or `#radar` to the address to open a tab at start.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches. Can be turned off.

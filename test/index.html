@@ -82,10 +82,6 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .sheet h2{font-weight:700;font-size:24px;line-height:1.1;letter-spacing:.04em;text-transform:uppercase;margin:0 0 14px;display:flex;gap:.5em;align-items:baseline}
 .sheet h2 span{color:var(--muted);font-weight:400}
 .sheet section+section{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
-.log{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.log td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.log td:first-child{color:var(--amber);width:4em}
-.log .sub{color:var(--muted)}
 .empty{color:var(--muted);margin:0}
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px 16px}
 label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
@@ -134,6 +130,37 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 .lb .more{grid-column:auto;margin-top:calc(6px*var(--k))}
 .lb .wide{grid-column:1/-1}
 .lb .msg{grid-column:1/-1;color:var(--muted);font-size:calc(26px*var(--k))}
+/* Spotted today tab */
+.view .vtools{display:flex;align-items:center;gap:calc(14px*var(--k))}
+.chips{display:flex;gap:calc(6px*var(--k))}
+.chips button{font-size:max(12px,calc(18px*var(--k)));border:1px solid var(--line);border-radius:999px;padding:.2em .9em;color:var(--muted)}
+.chips button[aria-pressed=true]{background:var(--accent,var(--amber));border-color:var(--accent,var(--amber));color:#15130e;font-weight:600}
+#spottedView .vbody{position:absolute;top:calc(130px*var(--k));left:calc(64px*var(--k));right:calc(64px*var(--k));bottom:calc(36px*var(--k));overflow:auto;font-size:calc(21px*var(--k))}
+.st .sum{color:var(--muted);margin:0 0 calc(10px*var(--k));font-size:calc(19px*var(--k))}
+.st .msg{color:var(--muted);font-size:calc(26px*var(--k));margin:calc(20px*var(--k)) 0 0}
+.st table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.st th{position:sticky;top:0;z-index:1;background:#17181b;text-align:left;color:var(--accent,var(--amber));font-weight:600;font-size:calc(15px*var(--k));letter-spacing:.12em;
+  text-transform:uppercase;padding:calc(6px*var(--k)) calc(14px*var(--k)) calc(8px*var(--k)) 0;white-space:nowrap}
+.st td{padding:calc(7px*var(--k)) calc(14px*var(--k)) calc(7px*var(--k)) 0;border-bottom:1px solid #26272b;vertical-align:middle;white-space:nowrap;line-height:1.2}
+.st td small{display:block;color:var(--muted);font-size:.78em}
+.st td.t{color:var(--accent,var(--amber));font-weight:600}
+.st td.n,.st th.n{text-align:right}
+.st td b{font-weight:700}
+.st .cut{display:block;max-width:calc(330px*var(--k));overflow:hidden;text-overflow:ellipsis}
+.st img{height:calc(30px*var(--k));width:calc(74px*var(--k));object-fit:contain;background:#f4f1ea;border-radius:3px;vertical-align:middle;padding:2px}
+.st .code{display:inline-block;width:calc(74px*var(--k));text-align:center;color:var(--accent,var(--amber));font-weight:700;background:#2a2b2f;border-radius:3px;padding:2px 0}
+.st .rm{display:inline-block;min-width:8.6em;text-align:center;font-weight:700;font-size:.74em;letter-spacing:.08em;padding:.3em .6em;border-radius:3px;background:#2a2b2f}
+/* page switcher in the lower half */
+#pager{position:absolute;right:calc(52px*var(--k));top:calc(533px*var(--k));display:flex;align-items:center;z-index:2}
+#pager button{border:0;border-radius:50%;padding:0;width:calc(28px*var(--k));height:calc(28px*var(--k));min-width:18px;min-height:18px;display:grid;place-items:center;color:var(--muted)}
+#pager button i{display:block;width:calc(9px*var(--k));height:calc(9px*var(--k));min-width:6px;min-height:6px;border-radius:50%;background:rgba(255,255,255,.16);transition:transform .2s,background .2s}
+#pager button:hover i{background:rgba(255,255,255,.45)}
+#pager button[aria-current=page] i{background:var(--accent,var(--amber));transform:scale(1.35)}
+#pager button:disabled{cursor:default}
+#pager button:disabled i{background:none;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14)}
+#pager .arr{font-size:max(18px,calc(34px*var(--k)));line-height:1;padding-bottom:.12em;transition:opacity .6s}
+#pager .arr:hover{color:var(--ink)}
+body.idle #pager .arr{opacity:0}
 #radarView canvas{position:absolute;inset:0;width:100%;height:100%}
 #radarView .vhead{position:relative;z-index:1}
 #radarLegend{position:absolute;left:calc(1250px*var(--k));right:calc(64px*var(--k));bottom:calc(120px*var(--k));display:flex;flex-wrap:wrap;gap:calc(6px*var(--k)) calc(26px*var(--k));font-size:calc(20px*var(--k));color:var(--muted);z-index:1}
@@ -149,6 +176,14 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
     <div class="vhead"><h2>Logbook <span>Logbuch</span></h2><button class="vclose" type="button" data-close="logbook">Close</button></div>
     <div class="vbody lb" id="logbookBody"></div>
   </section>
+  <nav id="pager" aria-label="Pages">
+    <button class="arr" type="button" data-dir="-1" aria-label="Previous page">&#8249;</button><span id="pagerDots" style="display:flex"></span><button class="arr" type="button" data-dir="1" aria-label="Next page">&#8250;</button>
+  </nav>
+  <section class="view" id="spottedView" hidden aria-label="Spotted today">
+    <div class="vhead"><h2>Spotted today <span>Heute gesichtet</span></h2>
+      <div class="vtools"><div class="chips" id="spotChips"></div><button class="vclose" type="button" data-close="spotted">Close</button></div></div>
+    <div class="vbody st" id="spottedBody"></div>
+  </section>
   <section class="view" id="radarView" hidden aria-label="Radar">
     <canvas id="radarCv"></canvas>
     <div class="vhead"><h2>Radar <span>Radar</span></h2><button class="vclose" type="button" data-close="radar">Close</button></div>
@@ -159,10 +194,10 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
+      <button id="btnLog" type="button">Spotted today</button>
       <button id="btnLogbook" type="button">Logbook</button>
       <button id="btnRadar" type="button">Radar</button>
       <button id="btnDiag" type="button">Diagnostics</button>
-      <button id="btnLog" type="button">Spotted today</button>
       <button id="btnSettings" type="button">Settings</button>
     </div>
   </footer>
@@ -180,11 +215,7 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 </aside>
 
 <div id="panel" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-label="Spotted today and settings">
-    <section id="secLog">
-      <h2>Spotted today <span>Heute gesichtet</span></h2>
-      <div id="logBody"></div>
-    </section>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Settings">
     <section id="secSettings">
       <h2>Settings <span>Einstellungen</span></h2>
       <form id="form" onsubmit="return false">
@@ -253,7 +284,7 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. Left and right arrow keys change pages. L opens the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 5 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -854,11 +885,6 @@ function drawStatic(){
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
   const hw = g.measureText(t1).width;
   g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + hw + 14, Y.listHead);
-  PAGE_ORDER.forEach((p, i) => {                       // which page is showing
-    const cx = W - M - 8 - (PAGE_ORDER.length - 1 - i) * 26;
-    g.fillStyle = p === page ? COL.amber : "rgba(255,255,255,.14)";
-    g.beginPath(); g.arc(cx, Y.listHead - 9, p === page ? 6 : 4.5, 0, Math.PI * 2); g.fill();
-  });
 }
 
 /* ---------- sound: synthesised flap clatter, only after a click or key press ---------- */
@@ -1238,6 +1264,7 @@ async function syncSightings(){
     else for (const e of spotted.filter(e => !known.has(e.id)).reverse()) dlog("info", `Relay added ${e.flight || e.hex} to Spotted today (${(+e.minDist).toFixed(1)} km away)`);
     if (page === "spotted" || page === "stats") renderPage();
     if (openView === "logbook" && !first) renderLogbook();
+    if (openView === "spotted") renderSpottedView();
     updateFooter();
   } catch (e) { dlog("warn", `Couldn't read Spotted today from the relay: ${netError(e, "relay")}`); }
   finally { sightBusy = false; }
@@ -1372,10 +1399,10 @@ function logPlanes(ok, R){
     spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
     dirty = redraw = true;
     dlog("info", `Added ${e.flight || e.hex} to Spotted today (${o.dist.toFixed(1)} km away, within the ${R} km radius)`);
-    p.then(info => { fillEntry(e, info); saveLog(); renderPage(); });
+    p.then(info => { fillEntry(e, info); saveLog(); renderPage(); renderSpottedView(); });
   }
   if (dirty) saveLog();
-  if (redraw) { renderPage(); updateFooter(); }
+  if (redraw) { renderPage(); updateFooter(); renderSpottedView(); }
 }
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
@@ -1522,7 +1549,7 @@ function goPage(p){
   if (p === page || switching) return;
   const from = fieldsOf(page), to = fieldsOf(p);
   dlog("debug", `Page: ${pageTitle(p)[0]}`);
-  if (from === to) { page = p; pageSince = Date.now(); drawStatic(); renderPage(); placePhoto(); return; }
+  if (from === to) { page = p; pageSince = Date.now(); updatePager(); drawStatic(); renderPage(); placePhoto(); return; }
   switching = true;
   for (const id of from) {                     // flip everything on the current page to blank first
     const f = fields[id];
@@ -1548,7 +1575,7 @@ function goPage(p){
     }
     if (from === LIST_IDS) for (const id of LIST_IDS) { fields[id].pageOff = true; for (const c of fields[id].cells) fxx.clearRect(c.x - 4, c.y - 4, fields[id].pw + 8, fields[id].ph + 8); }
     if (to === LIST_IDS) for (const id of LIST_IDS) fields[id].pageOff = false;
-    page = p; pageSince = Date.now(); switching = false;
+    page = p; pageSince = Date.now(); switching = false; updatePager();
     drawStatic();
     for (const id of to) for (const c of fields[id].cells) drawCell(c);
     placePhoto(); renderPage();
@@ -1562,10 +1589,45 @@ function nextPage(dir = 1){
     if (pageAvailable(PAGE_ORDER[i])) return goPage(PAGE_ORDER[i]);
   }
 }
+// Picking a page by hand: it stays for at least a minute before the rotation carries on.
+let pageHold = 0;
+function pickPage(p){
+  if (switching || !pageAvailable(p)) return;
+  pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000;
+  if (p === page) { pageSince = Date.now(); return; }
+  goPage(p);
+}
+function stepPage(dir){
+  let i = PAGE_ORDER.indexOf(page);
+  for (let k = 0; k < PAGE_ORDER.length; k++) {
+    i = (i + dir + PAGE_ORDER.length) % PAGE_ORDER.length;
+    if (pageAvailable(PAGE_ORDER[i])) return pickPage(PAGE_ORDER[i]);
+  }
+}
+function updatePager(){
+  const box = $("pagerDots");
+  if (!box.children.length) {
+    for (const p of PAGE_ORDER) {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.page = p; b.innerHTML = "<i></i>";
+      b.onclick = e => { e.stopPropagation(); pickPage(p); };
+      box.appendChild(b);
+    }
+    for (const a of document.querySelectorAll("#pager .arr")) a.onclick = e => { e.stopPropagation(); stepPage(+a.dataset.dir); };
+  }
+  for (const b of box.children) {
+    const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0];
+    b.disabled = !ok && p !== page;
+    b.title = ok ? name : `${name}: nothing to show right now`;
+    b.setAttribute("aria-label", b.title);
+    if (p === page) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  }
+}
 setInterval(() => {
+  updatePager();
   if (switching || !$("panel").hidden || openView) return;
   if (!pageAvailable(page)) return goPage("spotted");
-  if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000) nextPage(1);
+  if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage(1);
 }, 1000);
 function renderPage(){
   if (switching) return;
@@ -1772,13 +1834,15 @@ function renderAircraft(){
 
 /* ---------- logbook and radar: separate tabs over the board ---------- */
 let openView = null, viewTimer = null, lbCache = null;
+const VIEWS = ["spotted", "logbook", "radar"];
 function showView(name){
   closePanel(); closeDiag();
-  for (const v of ["logbook", "radar"]) $(v + "View").hidden = v !== name;
+  for (const v of VIEWS) $(v + "View").hidden = v !== name;
   openView = name;
   try { history.replaceState(null, "", location.pathname + location.search + "#" + name); } catch {}
   clearInterval(viewTimer); stopRadar();
   if (name === "logbook") { renderLogbook(); viewTimer = setInterval(renderLogbook, 30000); }
+  else if (name === "spotted") { renderSpottedView(); viewTimer = setInterval(renderSpottedView, 20000); }
   else startRadar();
 }
 function closeView(){
@@ -1788,6 +1852,46 @@ function closeView(){
   try { history.replaceState(null, "", location.pathname + location.search); } catch {}
 }
 const toggleView = name => openView === name ? closeView() : showView(name);
+let spotFilter = "all";
+const SPOT_FILTERS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
+function remarkStyle(r){
+  const L = REMARK_LOOK[r] || {};
+  return `${L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : ""}color:${L.fg || COL.ink}`;
+}
+function renderSpottedView(){
+  if (openView !== "spotted") return;
+  const body = $("spottedBody"), real = spotted.filter(e => !e.sample || S.demo), OVK = overKm();
+  const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
+  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
+  $("spotChips").innerHTML = SPOT_FILTERS.map(([k, t]) => `<button type="button" data-f="${k}" aria-pressed="${spotFilter === k}">${t} ${counts[k]}</button>`).join("");
+  for (const b of $("spotChips").children) b.onclick = e => { e.stopPropagation(); spotFilter = b.dataset.f; renderSpottedView(); };
+  if (!real.length) {
+    body.innerHTML = `<p class="msg">Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.</p>`;
+    return;
+  }
+  const rows = real.filter(spotFilter === "over" ? isOver : spotFilter === "special" ? isSpecial : () => true);
+  const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
+  const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
+  const logoCell = e => {
+    const code = airlineCodeOf(e);
+    if (!code) return '<span class="code">–</span>';
+    return S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(code)}.png" alt="${escH(code)}" onerror="this.outerHTML='<span class=&quot;code&quot;>${escH(code)}</span>'">` : `<span class="code">${escH(code)}</span>`;
+  };
+  const place = a => a ? `${escH(a.code || "")} <small style="display:inline">${escH(a.city || "")}</small>` : "";
+  body.innerHTML = `<p class="sum">${real.length} plane${real.length === 1 ? "" : "s"} · ${airlines} airline${airlines === 1 ? "" : "s"} · ${types} aircraft type${types === 1 ? "" : "s"} · ${counts.over} directly overhead` +
+    `${relayV5() ? " · shared by every screen through the home relay" : ""}${S.demo ? " · sample flights (demo mode)" : ""}</p>` +
+    (rows.length ? `<table><thead><tr><th>Time</th><th></th><th>Flight</th><th>From</th><th>To</th><th>Aircraft</th><th class="n">Closest</th><th class="n">Altitude</th><th>Remarks</th></tr></thead><tbody>` +
+    rows.map(e => {
+      const r = remarkFor(e);
+      return `<tr><td class="t">${escH(e.time)}</td><td>${logoCell(e)}</td>` +
+        `<td><b>${escH(e.flight || e.hex)}</b><small class="cut">${escH(e.airline || "")}</small></td>` +
+        `<td><span class="cut">${place(e.from) || '<small style="display:inline">not listed</small>'}</span></td><td><span class="cut">${place(e.to)}</span></td>` +
+        `<td><span class="cut">${escH(e.type || "")}</span><small>${escH(e.reg || "")}</small></td>` +
+        `<td class="n">${e.minDist != null ? (+e.minDist).toFixed(1) + " km" : ""}</td>` +
+        `<td class="n">${typeof e.altAtMin === "number" ? altShort(e.altAtMin) : ""}</td>` +
+        `<td>${r ? `<span class="rm" style="${remarkStyle(r)}">${r}</span>` : ""}</td></tr>`;
+    }).join("") + "</tbody></table>" : '<p class="msg">None of today\'s planes match this filter yet.</p>');
+}
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
@@ -1987,31 +2091,21 @@ function updateFooter(){
   $("pip").dataset.state = dot.dataset.state || "";
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
-function renderLog(){
-  const body = $("logBody"), real = spotted.filter(e => !e.sample);
-  if (!real.length) { body.innerHTML = '<p class="empty">Nothing spotted yet today. Every plane that comes within the spotting radius is listed here.</p>'; return; }
-  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-  body.innerHTML = '<table class="log"><tbody>' + real.map(e => {
-    const route = e.from && e.to ? `${esc(e.from.code)} ${esc(e.from.city)} → ${esc(e.to.code)} ${esc(e.to.city)}` : "Route not listed";
-    return `<tr><td>${esc(e.time)}</td><td>${esc(e.flight)}${e.airline ? " · " + esc(e.airline) : ""}<br><span class="sub">${route} · ${esc(e.type)}${e.reg ? " · " + esc(e.reg) : ""}${e.minDist != null ? " · closest " + (+e.minDist).toFixed(1) + " km" + (e.minDist <= overKm() ? " (overhead)" : "") : ""}${badgeFor(e) ? " · " + badgeFor(e).toLowerCase() : ""}</span></td></tr>`;
-  }).join("") + "</tbody></table>";
-}
-function openPanel(section){
+function openPanel(){
   $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
   $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
   $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || "";
   $("fNight").checked = !!S.night; $("fNightFrom").value = S.nightFrom; $("fNightTo").value = S.nightTo; $("fNightDim").value = String(S.nightDim);
   $("fChimes").checked = !!S.chimes; $("fImperfect").checked = !!S.imperfect;
-  renderLog(); $("panel").hidden = false;
-  $(section).scrollIntoView({block: "start"});
+  $("panel").hidden = false;
 }
 function closePanel(){ $("panel").hidden = true; }
-$("btnLog").onclick = e => { e.stopPropagation(); openPanel("secLog"); };
+$("btnLog").onclick = e => { e.stopPropagation(); toggleView("spotted"); };
 $("btnLogbook").onclick = e => { e.stopPropagation(); toggleView("logbook"); };
 $("btnRadar").onclick = e => { e.stopPropagation(); toggleView("radar"); };
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = e => { e.stopPropagation(); closeView(); });
-addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h === "logbook" || h === "radar") showView(h); else if (!h) closeView(); });
-$("btnSettings").onclick = e => { e.stopPropagation(); openPanel("secSettings"); };
+addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.includes(h)) showView(h); else if (!h) closeView(); });
+$("btnSettings").onclick = e => { e.stopPropagation(); openPanel(); };
 $("btnClose").onclick = closePanel;
 $("fSpeed").addEventListener("input", () => { $("fSpeedOut").textContent = $("fSpeed").value + "%"; });
 $("panel").addEventListener("click", e => { if (e.target.id === "panel") closePanel(); });
@@ -2042,13 +2136,15 @@ document.addEventListener("keydown", e => {
   audioInit();
   if (e.key === "Escape") { closePanel(); closeDiag(); closeView(); }
   if (!$("panel").hidden) return;
+  if (e.key === "t" || e.key === "T") toggleView("spotted");
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
-  if (e.key === "ArrowRight" && !openView) nextPage(1);
-  if (e.key === "ArrowLeft" && !openView) nextPage(-1);
+  if (e.key === "ArrowRight" && !openView) stepPage(1);
+  if (e.key === "ArrowLeft" && !openView) stepPage(-1);
+  if (/^[1-9]$/.test(e.key) && !openView && PAGE_ORDER[+e.key - 1]) pickPage(PAGE_ORDER[+e.key - 1]);
   if (e.key === "d") DIAG.open ? closeDiag() : openDiag();
   if (e.key === "f") toggleFullscreen();
-  if (e.key === "s") openPanel("secSettings");
+  if (e.key === "s") openPanel();
 });
 
 /* ---------- diagnostics panel ---------- */
@@ -2185,7 +2281,8 @@ async function start(){
   renderPage(); updateFooter(); keepAwake();
   if (relayV5()) syncSightings();
   const h = location.hash.slice(1);
-  if (h === "logbook" || h === "radar") showView(h);
+  if (VIEWS.includes(h)) showView(h);
+  updatePager();
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);
