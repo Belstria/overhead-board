@@ -8,9 +8,14 @@ turn away cloud servers, so the requests need to come from a machine in your hom
 Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
 Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at home)
 
+Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
+answers "too many requests" or "forbidden" is rested for a while and the next one is used.
+If every source fails, the board keeps getting the last good answer for up to two minutes.
+
 Standard library only: works with Python 3.8+ on Windows, macOS, Linux or in a container.
 """
 import argparse
+import collections
 import json
 import re
 import socket
@@ -21,19 +26,42 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+RELAY_VERSION = 2
 BOARD_URL = "https://belstria.github.io/overhead-board/"
-SOURCES = {
-    "adsblol": "https://api.adsb.lol/v2/point/",
-    "airplaneslive": "https://api.airplanes.live/v2/point/",
-}
+SOURCES = [
+    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
+    {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{nm}"},
+    {"key": "airplaneslive", "name": "airplanes.live", "url": "https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}"},
+]
 ROUTESET = "https://api.adsb.lol/api/0/routeset"
 USER_AGENT = "overhead-board home relay (github.com/Belstria/overhead-board)"
-POINT = re.compile(r"^/(adsblol|airplaneslive)/(-?\d{1,2}(?:\.\d{1,6})?)/(-?\d{1,3}(?:\.\d{1,6})?)/(\d{1,3})$")
+FRESH_S = 5      # answer repeat requests from memory for this long
+STALE_S = 120    # if every source fails, keep serving the last good answer this long
+NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
+AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
+LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 BOARD_COPY = Path(__file__).with_name("board-cache.html")
 
 ARGS = None
+STARTED = time.time()
+STATE = {s["key"]: {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None,
+                    "last_error": "", "last_ok": 0.0} for s in SOURCES}
+EVENTS = collections.deque(maxlen=200)
+_event_id = 0
+_positions = {}            # key -> (time, body, source name)
 _cache = {}
 _lock = threading.Lock()
+_fetch_lock = threading.Lock()
+
+
+def event(level, msg, echo=True):
+    """Record something worth knowing; the board's diagnostics panel shows these too."""
+    global _event_id
+    with _lock:
+        _event_id += 1
+        EVENTS.append({"id": _event_id, "t": time.time(), "level": level, "msg": msg})
+    if echo or ARGS.verbose:
+        print(f"{time.strftime('%H:%M:%S')}  {level.upper():5}  {msg}", flush=True)
 
 
 def fetch(url, data=None, content_type=None, timeout=10):
@@ -43,15 +71,14 @@ def fetch(url, data=None, content_type=None, timeout=10):
     req = urllib.request.Request(url, data=data, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.status, r.headers.get("Content-Type", "application/json"), r.read()
+            return r.status, r.headers.get("Content-Type", "application/json"), r.read(), r.headers
     except urllib.error.HTTPError as e:
-        return e.code, e.headers.get("Content-Type", "text/plain"), e.read()
+        return e.code, e.headers.get("Content-Type", "text/plain"), e.read(), e.headers
     except Exception as e:  # network down, DNS, timeout
-        return 502, "text/plain", f"Upstream unreachable: {e}".encode()
+        return 502, "text/plain", f"unreachable: {getattr(e, 'reason', e)}".encode(), {}
 
 
 def cached(key, ttl, load):
-    """Answer repeat requests from memory for a few seconds, so extra screens add no upstream load."""
     now = time.time()
     with _lock:
         hit = _cache.get(key)
@@ -64,11 +91,96 @@ def cached(key, ttl, load):
     return result
 
 
+def rest_for(status, strikes, retry_after):
+    if retry_after:
+        try:
+            return max(5, min(900, int(retry_after)))
+        except ValueError:
+            pass
+    if status == 429:
+        return min(600, 30 * 2 ** (strikes - 1))
+    if status in (401, 403):
+        return 1800
+    return min(300, 10 * 2 ** (strikes - 1))
+
+
+def aircraft(lat, lon, nm):
+    """Positions around a point, from the first source that answers properly."""
+    key = f"{lat}/{lon}/{nm}"
+    with _fetch_lock:  # one upstream call at a time; other screens wait and get the fresh copy
+        now = time.time()
+        hit = _positions.get(key)
+        if hit and now - hit[0] < FRESH_S:
+            return 200, hit[1], hit[2], "fresh"
+        tried = []
+        for src in SOURCES:
+            st = STATE[src["key"]]
+            if now < st["cooldown_until"]:
+                tried.append(f"{src['name']} resting {int(st['cooldown_until'] - now)} s")
+                continue
+            t0 = time.time()
+            status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=nm))
+            ms = int((time.time() - t0) * 1000)
+            count, problem = None, ""
+            if 200 <= status < 300:
+                try:
+                    data = json.loads(body)
+                    planes = data.get("ac", data.get("aircraft"))
+                    if isinstance(planes, list):
+                        count = len(planes)
+                    else:
+                        problem = "answer had no aircraft list"
+                except ValueError:
+                    problem = "answer wasn't JSON"
+            else:
+                problem = f"HTTP {status} {body[:80].decode('utf-8', 'replace').strip()}"
+            if count is not None:
+                was_failing = st["strikes"] > 0
+                st.update(ok=st["ok"] + 1, strikes=0, last_status=status, last_ok=time.time(), last_error="")
+                _positions[key] = (time.time(), body, src["name"])
+                if was_failing:
+                    event("info", f"{src['name']} answering again")
+                event("debug", f"{src['name']}: {count} aircraft in {ms} ms", echo=False)
+                return 200, body, src["name"], "live"
+            st["fail"] += 1
+            st["strikes"] += 1
+            st["last_status"] = status
+            st["last_error"] = problem
+            rest = rest_for(status, st["strikes"], headers.get("Retry-After") if headers else None)
+            st["cooldown_until"] = time.time() + rest
+            event("warn", f"{src['name']} failed ({problem}); resting it for {rest} s")
+            tried.append(f"{src['name']} {problem}")
+        if hit and time.time() - hit[0] < STALE_S:
+            age = int(time.time() - hit[0])
+            event("warn", f"All sources failed; serving last good data ({age} s old)")
+            return 200, hit[1], hit[2], f"stale {age}"
+        event("error", "All sources failed and no recent data to fall back on")
+        body = json.dumps({"error": "no position source available", "tried": tried}).encode()
+        return 503, body, "", "none"
+
+
+def status_json():
+    now = time.time()
+    sources = []
+    for src in SOURCES:
+        st = STATE[src["key"]]
+        resting = max(0, int(st["cooldown_until"] - now))
+        sources.append({
+            "name": src["name"],
+            "state": "resting" if resting else ("ok" if st["ok"] and not st["strikes"] else ("failing" if st["strikes"] else "untried")),
+            "resting_s": resting, "ok": st["ok"], "fail": st["fail"], "last_status": st["last_status"],
+            "last_error": st["last_error"], "last_ok_age_s": int(now - st["last_ok"]) if st["last_ok"] else None,
+        })
+    with _lock:
+        events = list(EVENTS)[-80:]
+    return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events}
+
+
 def board_html():
     if ARGS.local:
         html = Path(ARGS.local).read_text(encoding="utf-8")
     else:
-        status, _, body = cached("board", 300, lambda: fetch(BOARD_URL, timeout=15))
+        status, _, body, _ = cached("board", 300, lambda: fetch(BOARD_URL, timeout=15))
         if status == 200:
             html = body.decode("utf-8")
             try:
@@ -86,22 +198,25 @@ def board_html():
     if ARGS.sound:
         defaults["sound"] = True
     config = json.dumps(defaults).replace("<", "\\u003c")
-    inject = f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_DEFAULTS={config};</script>"
+    inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
+              f"window.OVERHEAD_DEFAULTS={config};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "OverheadRelay/1.0"
+    server_version = f"OverheadRelay/{RELAY_VERSION}"
 
     def log_message(self, fmt, *args):
         if ARGS.verbose:
             super().log_message(fmt, *args)
 
-    def reply(self, status, content_type, body):
+    def reply(self, status, content_type, body, extra=None):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
@@ -115,13 +230,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))
         if path == "/health":
             return self.reply(200, "text/plain", b"ok")
-        m = POINT.match(path)
+        if path == "/status":
+            return self.reply(200, "application/json", json.dumps(status_json()).encode())
+        m = AIRCRAFT.match(path) or LEGACY.match(path)
         if m:
-            source, lat, lon, nm = m.groups()
+            lat, lon, nm = m.groups()[-3:]
             if abs(float(lat)) > 90 or abs(float(lon)) > 180 or not 1 <= int(nm) <= 50:
                 return self.reply(400, "text/plain", b"Out of range")
-            url = f"{SOURCES[source]}{lat}/{lon}/{nm}"
-            return self.reply(*cached(url, 5, lambda: fetch(url)))
+            status, body, source, freshness = aircraft(lat, lon, nm)
+            return self.reply(status, "application/json", body, {"X-Relay-Source": source, "X-Relay-Data": freshness})
         self.reply(404, "text/plain", b"Not found")
 
     do_HEAD = do_GET
@@ -132,8 +249,8 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if length > 2048:
             return self.reply(413, "text/plain", b"Too large")
-        body = self.rfile.read(length)
-        self.reply(*fetch(ROUTESET, data=body, content_type="application/json"))
+        status, ctype, body, _ = fetch(ROUTESET, data=self.rfile.read(length), content_type="application/json")
+        self.reply(status, ctype, body)
 
 
 def lan_address():
@@ -157,17 +274,17 @@ def main():
     p.add_argument("--radius", type=float, help="overhead radius in km (default 4)")
     p.add_argument("--sound", action="store_true", help="flap sound on by default")
     p.add_argument("--local", help="serve this index.html instead of the published board")
-    p.add_argument("--verbose", action="store_true", help="log every request")
+    p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
     ARGS = p.parse_args()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
-    print("Overhead relay running. Open the board at:")
+    print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")
     print(f"  http://localhost:{ARGS.port}")
     print(f"  http://{socket.gethostname()}:{ARGS.port}")
     ip = lan_address()
     if ip:
         print(f"  http://{ip}:{ARGS.port}")
-    print("Press Ctrl+C to stop.")
+    print("Problems with the flight data sources are printed below. Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

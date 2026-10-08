@@ -25,6 +25,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `sound` | Flap sound on (`1`) or off (`0`) | `sound=1` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `demo` | Sample flights instead of live data | `demo` |
+| `debug` | Open the diagnostics panel at start | `debug` |
 
 Anything changed in the on-screen Settings is saved in that device's browser only.
 
@@ -32,6 +33,9 @@ Anything changed in the on-screen Settings is saved in that device's browser onl
 
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
+- Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
+  comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
+  **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
 - Sound starts after the first click or key press (browsers block it until then).
 
 ## Data
@@ -70,6 +74,11 @@ python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --sound
 Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV, tablet or phone.
 The relay prints the addresses when it starts. Your location stays on the relay machine: it is handed
 to the board when the page loads, so nothing personal lives in this repository.
+
+Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that answers
+"too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
+the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
+window and appear in the board's diagnostics panel.
 
 The relay always serves the latest published board from GitHub Pages (refreshed every five minutes,
 with a local copy kept for when GitHub is unreachable). Use `--local path/to/index.html` to serve a

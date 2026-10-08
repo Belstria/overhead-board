@@ -44,6 +44,29 @@ body.idle footer{opacity:.45}
 .dot[data-state=live]{background:#22a058}
 .dot[data-state=demo]{background:var(--amber)}
 .dot[data-state=off]{background:#c7372d}
+.dot[data-state=warn]{background:var(--amber)}
+#diag{position:fixed;top:16px;right:16px;bottom:16px;width:min(640px,calc(100% - 32px));display:flex;flex-direction:column;gap:14px;
+  background:#0e0f11;border:1px solid var(--line);border-radius:12px;padding:16px 18px;z-index:4;
+  font:13px/1.45 ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--ink);-webkit-user-select:text;user-select:text;cursor:auto}
+#diag header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#diag h2{font:700 22px/1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;margin:0}
+#diag h2 span{color:var(--muted);font-weight:400}
+#diag h3{font:600 12px/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin:0 0 6px}
+.dstats{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0}
+.dstats dt{color:var(--muted)}
+.dstats dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.spark{display:inline-flex;gap:2px;vertical-align:-1px;margin-right:8px}
+.spark i{width:6px;height:12px;border-radius:1px;background:#27a85e}
+.spark i.f{background:#cb3a2f}.spark i.s{background:var(--amber)}
+.dsrc{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.dsrc td{padding:3px 10px 3px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.dsrc td:last-child{color:var(--muted);overflow-wrap:anywhere}
+#diagLogWrap{display:flex;flex-direction:column;flex:1;min-height:0}
+#diagLog{list-style:none;margin:0;padding:0;overflow:auto;flex:1;min-height:0}
+#diagLog li{display:grid;grid-template-columns:auto 3.6em 1fr;gap:10px;padding:2px 0}
+#diagLog time,#diagLog .tag{color:var(--muted)}
+.lv-warn{color:var(--amber)}.lv-error{color:#ff6b5e}.lv-debug{color:#a3a7ae}.good{color:#45d483}.bad{color:#ff6b5e}.meh{color:var(--amber)}
+#diagText{position:fixed;left:-9999px;top:0;width:10px;height:10px}
 .actions{display:flex;gap:.4em;flex:none}
 button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:6px;padding:.25em .7em;cursor:pointer}
 button:hover,button:focus-visible{color:var(--ink);border-color:var(--line)}
@@ -77,11 +100,23 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
+      <button id="btnDiag" type="button">Diagnostics</button>
       <button id="btnLog" type="button">Spotted today</button>
       <button id="btnSettings" type="button">Settings</button>
     </div>
   </footer>
 </div>
+
+<aside id="diag" hidden aria-label="Diagnostics">
+  <header>
+    <h2>Diagnostics <span>Diagnose</span></h2>
+    <div class="actions"><button id="diagCopy" type="button">Copy log</button><button id="diagClose" type="button">Close</button></div>
+  </header>
+  <dl class="dstats" id="diagStats"></dl>
+  <div id="diagSources"></div>
+  <div id="diagLogWrap"><h3>Connection log</h3><ol id="diagLog"></ol></div>
+  <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
+</aside>
 
 <div id="panel" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-label="Spotted today and settings">
@@ -126,7 +161,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--amber)}
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. Status shows Overhead (within the radius), Inbound (will pass over within two minutes), Passed, or Nearby (closest plane in the area). In the list, Arriving and Departing refer to your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. Press D or use Diagnostics for the connection log. Status shows Overhead (within the radius), Inbound (will pass over within two minutes), Passed, or Nearby (closest plane in the area). In the list, Arriving and Departing refer to your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -186,6 +221,16 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (num("refresh") != null) S.refreshS = Math.min(60, Math.max(3, num("refresh")));
   if (q.has("demo") || /demo/i.test(location.hash)) S.demo = q.get("demo") !== "0";
 })();
+
+/* ---------- diagnostics log ---------- */
+const DIAG = {log: [], polls: [], relayEvents: [], relayStatus: null, closest: null, open: false};
+let diagQueued = false;
+function dlog(level, msg){
+  DIAG.log.unshift({t: Date.now(), level, msg: String(msg), src: "board"});
+  if (DIAG.log.length > 400) DIAG.log.length = 400;
+  scheduleDiag();
+}
+function scheduleDiag(){ if (DIAG.open && !diagQueued) { diagQueued = true; requestAnimationFrame(() => renderDiag()); } }
 
 /* ---------- text helpers ---------- */
 function clean(s){
@@ -301,7 +346,7 @@ function logo(code){
     logos.set(code, L);
     const srcs = [`https://img.wway.io/pics/root/${code}@png?exar=1&rs=fit:360:144`, `https://pics.avs.io/360/144/${code}.png`];
     let k = 0;
-    const done = state => { L.state = state; tiles.clear(); redrawAll(); };
+    const done = state => { L.state = state; tiles.clear(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
     L.img.onload = () => L.img.naturalWidth > 4 ? done("ok") : L.img.onerror();
     L.img.onerror = () => { if (++k < srcs.length) L.img.src = srcs[k]; else done("fail"); };
     L.img.src = srcs[0];
@@ -594,6 +639,15 @@ function geo(ac){
 }
 
 /* ---------- network ---------- */
+function timedFetch(url, opts = {}, ms = 9000){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  return fetch(url, {...opts, signal: ctl.signal, cache: "no-store"}).finally(() => clearTimeout(t));
+}
+function netError(e, what){
+  if (e && e.name === "AbortError") return `${what} didn't answer within 9 seconds`;
+  if (e instanceof TypeError) return relay() && what === "relay" ? "couldn't reach the relay (is serve.py still running?)" : `${what} couldn't be reached or blocked the request`;
+  return (e && e.message) || String(e);
+}
 async function fetchJSON(url, opts = {}, ms = 9000){
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
   try {
@@ -610,17 +664,44 @@ const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
 ];
-let feedIdx = 0, feedName = "";
+let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
+const POLL_MS = 10000;
 async function getAircraft(){
+  const la = S.lat.toFixed(4), lo = S.lon.toFixed(4), t0 = performance.now();
+  if (relay() && !relayLegacy) {          // the relay picks a working source itself
+    let res;
+    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}`); }
+    catch (e) { throw new Error(netError(e, "relay")); }
+    if (res.status === 404) {
+      relayLegacy = true;
+      dlog("warn", "The relay is an older version without automatic source switching. Download serve.py again to update it.");
+      return getAircraft();
+    }
+    if (!res.ok) {
+      let detail = "";
+      try { const j = await res.json(); detail = res.status === 503 ? "no position source available right now (see the relay lines)" : (j.error || ""); } catch {}
+      throw new Error(`relay answered ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    const j = await res.json(), list = j.ac || j.aircraft || [];
+    const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
+    if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
+    if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
+    feedName = src; lastFreshness = fresh;
+    DIAG.polls.push({t: Date.now(), ok: true, stale: fresh.startsWith("stale"), ms: performance.now() - t0, n: list.length});
+    return list;
+  }
   let err;
   for (let i = 0; i < FEEDS.length; i++) {
     const f = FEEDS[(feedIdx + i) % FEEDS.length];
     try {
-      const j = await fetchJSON(f.url(S.lat.toFixed(4), S.lon.toFixed(4), QUERY_NM));
-      feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name;
-      return j.ac || j.aircraft || [];
-    } catch (e) { err = e; }
+      const j = await fetchJSON(f.url(la, lo, QUERY_NM));
+      if (f.name !== feedName && feedName) dlog("info", `Now getting positions from ${f.name}`);
+      feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name; lastFreshness = "live";
+      const list = j.ac || j.aircraft || [];
+      DIAG.polls.push({t: Date.now(), ok: true, ms: performance.now() - t0, n: list.length});
+      return list;
+    } catch (e) { err = new Error(`${f.name}: ${netError(e, f.name)}`); dlog("debug", err.message); }
   }
   throw err;
 }
@@ -644,9 +725,12 @@ async function routeLookup(cs, ac){
       if (fr.callsign_iata) out.flightNo = fmtFlight(fr.callsign_iata);
       if (fr.airline && fr.airline.name) out.airline = fr.airline.name;
       if (fr.airline && fr.airline.iata) out.airlineCode = fr.airline.iata;
+      dlog("debug", `Route for ${cs}: ${out.from.code} → ${out.to.code} (adsbdb)`);
       return out;
     }
-  } catch {}
+  } catch (e) {
+    if (!/HTTP 404/.test(e.message)) dlog("warn", `adsbdb route lookup for ${cs} failed: ${netError(e, "adsbdb")}`);
+  }
   try {
     const j = await fetchJSON(relay() ? `${relay()}/routeset` : "https://api.adsb.lol/api/0/routeset", {
       method: "POST", headers: {"Content-Type": "application/json"},
@@ -655,9 +739,11 @@ async function routeLookup(cs, ac){
     const r = Array.isArray(j) ? j[0] : null, ap = r && r._airports;
     if (ap && ap.length >= 2 && r.plausible !== false && r.plausible !== 0) {
       const a = ap[0], b = ap[ap.length - 1];
+      dlog("debug", `Route for ${cs}: ${a.iata || a.icao} → ${b.iata || b.icao} (adsb.lol)`);
       return {from: {code: a.iata || a.icao, city: a.location || a.name}, to: {code: b.iata || b.icao, city: b.location || b.name}};
     }
-  } catch {}
+  } catch (e) { dlog("debug", `adsb.lol route lookup for ${cs} failed: ${netError(e, "adsb.lol")}`); }
+  dlog("debug", `No route listed for ${cs}`);
   return null;
 }
 async function aircraftLookup(hex){
@@ -748,7 +834,10 @@ function remarkFor(e){
 function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg}); }
 
 /* ---------- tracking ---------- */
-let feat = null, nearbyCount = null, failures = 0, lastOk = 0;
+let feat = null, nearbyCount = null, failures = 0, lastOk = 0, wasOffline = false;
+const OFFLINE_AFTER = 60000;
+const isOffline = () => !S.demo && (lastOk ? Date.now() - lastOk > OFFLINE_AFTER : failures >= 3);
+const planeName = (h, ac) => (h && h.info && h.info.flightNo) || (ac && (ac.flight || "").trim()) || (h && h.hex) || "?";
 const HOLD = () => S.demo ? 8000 : 25000;
 function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
 function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
@@ -765,6 +854,7 @@ function setFeat(o, mode){
       if (feat === h) renderFeatured();
     });
   }
+  if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km${o.alt != null ? " · " + nf.format(Math.round(o.alt)) + " ft" : ""}`);
   feat.o = o; feat.mode = mode;
   if (mode !== "near") feat.lastSeen = now;
   if (mode === "over" && !feat.logged) logSighting(feat);
@@ -774,6 +864,7 @@ function logSighting(h){
   const e = {time: hhmm(), hex: h.hex}; fillEntry(e, h.info);
   spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
   h.entry = e; h.logged = true; saveLog(); renderList(); updateFooter();
+  dlog("info", `Added ${e.flight || h.hex} to Spotted today (${h.o.dist.toFixed(1)} km away, inside the ${+S.radiusKm || 4} km radius)`);
 }
 function process(list){
   const now = Date.now(), R = +S.radiusKm || 4, all = [];
@@ -784,6 +875,8 @@ function process(list){
   }
   nearbyCount = all.length;
   const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
+  const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
+  DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt} : null;
   const over = ok.filter(o => o.dist <= R).sort((a, b) => a.dist - b.dist);
   const soon = ok.filter(o => o.dist > R && o.tcpa > 0 && o.tcpa <= 120 && o.cpa <= R).sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
@@ -797,11 +890,13 @@ function process(list){
   else if (feat && feat.mode !== "near" && now - feat.lastSeen < HOLD()) {
     const still = all.find(o => o.ac.hex === feat.hex);
     if (still) feat.o = still;
+    if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
     feat.mode = "passed";
   } else {
     const keep = feat && feat.mode === "near" && now - feat.since < 90000 && ok.find(o => o.ac.hex === feat.hex);
     const nearest = keep || ok.slice().sort((a, b) => a.dist - b.dist)[0];
-    if (nearest) setFeat(nearest, "near"); else feat = null;
+    if (nearest) setFeat(nearest, "near");
+    else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
   }
   renderFeatured();
 }
@@ -811,7 +906,7 @@ const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", near: 
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
-    const offline = failures >= 3 && !S.demo;
+    const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
     setWord("airline", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     return;
@@ -846,14 +941,19 @@ function renderList(){
     setWord(`l${i}remarks`, e ? remarkFor(e) : "", d + 300);
   }
 }
-function tickClock(){ setChars("clock", hhmm()); rollDay(); }
+function tickClock(){ setChars("clock", hhmm()); rollDay(); updateFooter(); }
 
 /* ---------- footer, panel ---------- */
 function updateFooter(){
   const dot = $("dot"), txt = $("statusText");
   if (S.demo) { dot.dataset.state = "demo"; txt.textContent = "Demo mode · sample flights, not live data"; }
-  else if (failures >= 3) { dot.dataset.state = "off"; txt.textContent = relay() ? "Can't reach flight data · retrying every 8 seconds" : "No flight data here · open the board through your home relay"; }
-  else if (lastOk) { dot.dataset.state = "live"; txt.textContent = `Live via ${feedName} · ${new Date(lastOk).toLocaleTimeString("en-GB")} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`; }
+  else if (isOffline()) { dot.dataset.state = "off"; txt.textContent = relay() ? "No flight data for over a minute · retrying · press D for details" : "No flight data here · open the board through your home relay"; }
+  else if (!lastOk && failures) { dot.dataset.state = "warn"; txt.textContent = `Waiting for flight data · ${failures} failed attempt${failures > 1 ? "s" : ""} · press D for details`; }
+  else if (lastOk) {
+    const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
+    dot.dataset.state = failures || stale ? "warn" : "live";
+    txt.textContent = `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ${nearbyCount ?? 0} aircraft within ${QUERY_KM} km`;
+  }
   $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
 }
 function renderLog(){
@@ -894,11 +994,87 @@ $("btnSave").onclick = () => {
 };
 document.addEventListener("keydown", e => {
   audioInit();
-  if (e.key === "Escape") closePanel();
+  if (e.key === "Escape") { closePanel(); closeDiag(); }
   if (!$("panel").hidden) return;
+  if (e.key === "d") DIAG.open ? closeDiag() : openDiag();
   if (e.key === "f") toggleFullscreen();
   if (e.key === "s") openPanel("secSettings");
 });
+
+/* ---------- diagnostics panel ---------- */
+const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clockStr = t => new Date(t).toLocaleTimeString("en-GB");
+function agoStr(t){ const s = Math.round((Date.now() - t) / 1000); return s < 3 ? "just now" : s < 120 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; }
+function diagRows(){
+  const R = +S.radiusKm || 4, polls = DIAG.polls.slice(-30), good = polls.filter(p => p.ok);
+  const avg = good.length ? Math.round(good.reduce((a, p) => a + p.ms, 0) / good.length) : 0;
+  const state = S.demo ? ["Demo mode", "meh"] : isOffline() ? ["Offline", "bad"] : failures ? [`Retrying (${failures} failed in a row)`, "meh"] : lastOk ? ["Live", "good"] : ["Starting", "meh"];
+  const conn = S.demo ? "Demo data, no network" : relay() ? `Home relay at ${relay().replace(/^https?:\/\//, "")}${relayLegacy ? " (older version, please update)" : ""}` : "Direct, no relay: the position services will block this";
+  const c = DIAG.closest;
+  const closest = c ? `${c.name} · ${c.dist.toFixed(1)} km · ${c.alt != null ? nf.format(Math.round(c.alt)) + " ft" : "altitude unknown"} · ${c.dist <= R ? "inside" : "outside"} the ${R} km overhead radius` : "none in range";
+  return [
+    ["Connection", conn],
+    ["Status", `${state[0]}${lastOk ? " · last data " + agoStr(lastOk) : ""}`, state[1]],
+    ["Source", feedName ? feedName + (lastFreshness.startsWith("stale") ? ` · last good copy, ${lastFreshness.split(" ")[1]} s old` : "") : "none yet"],
+    ["Last 30 updates", polls.length ? `${good.length} of ${polls.length} succeeded${good.length ? ` · ${avg} ms on average` : ""}` : "none yet", null, polls],
+    ["In range", `${nearbyCount ?? "–"} aircraft within ${QUERY_KM} km`],
+    ["Closest", closest],
+    ["On the board", feat ? `${planeName(feat)} · ${MODE_REMARK[feat.mode] || feat.mode}` : "nothing"],
+    ["Spotted today", `${spotted.filter(e => !e.sample).length} (a plane is added when it comes within ${R} km)`],
+    ["Watching", `${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} · updates every ${POLL_MS / 1000} s`]
+  ];
+}
+function mergedLog(){
+  const relayLines = (DIAG.relayEvents || []).map(e => ({t: e.t * 1000, level: e.level, msg: e.msg, src: "relay"}));
+  return DIAG.log.concat(relayLines).sort((a, b) => b.t - a.t).slice(0, 250);
+}
+function renderDiag(){
+  diagQueued = false;
+  if (!DIAG.open) return;
+  $("diagStats").innerHTML = diagRows().map(([k, v, cls, polls]) => {
+    const spark = polls ? `<span class="spark">${polls.map(p => `<i class="${p.ok ? (p.stale ? "s" : "") : "f"}"></i>`).join("")}</span>` : "";
+    return `<dt>${k}</dt><dd${cls ? ` class="${cls}"` : ""}>${spark}${escH(v)}</dd>`;
+  }).join("");
+  const st = DIAG.relayStatus;
+  $("diagSources").innerHTML = !st ? "" : st.error ? `<h3>Relay sources</h3><p class="bad">Couldn't read the relay's status: ${escH(st.error)}</p>` :
+    `<h3>Relay sources · relay up ${Math.round(st.uptime_s / 60)} min</h3><table class="dsrc"><tbody>` + st.sources.map(x => {
+      const cls = x.state === "ok" ? "good" : x.state === "untried" ? "" : x.state === "resting" ? "meh" : "bad";
+      const label = x.state === "resting" ? `resting ${x.resting_s} s` : x.state;
+      return `<tr><td>${escH(x.name)}</td><td class="${cls}">${escH(label)}</td><td>${x.ok} ok · ${x.fail} failed</td><td>${escH(x.last_error || (x.last_ok_age_s != null ? "last answer " + x.last_ok_age_s + " s ago" : ""))}</td></tr>`;
+    }).join("") + "</tbody></table>";
+  const lines = mergedLog();
+  $("diagLog").innerHTML = lines.length ? lines.map(e => `<li class="lv-${e.level}"><time>${clockStr(e.t)}</time><span class="tag">${e.src}</span><span>${escH(e.msg)}</span></li>`).join("")
+    : `<li class="lv-debug"><time></time><span class="tag"></span><span>Nothing logged yet.</span></li>`;
+}
+async function refreshRelayStatus(){
+  if (!DIAG.open || !relay() || relayLegacy || S.demo) return;
+  try { const j = await fetchJSON(`${relay()}/status`, {}, 4000); DIAG.relayStatus = j; DIAG.relayEvents = j.events || []; }
+  catch (e) { DIAG.relayStatus = {error: netError(e, "relay")}; }
+  scheduleDiag();
+}
+let diagTimer = null;
+function openDiag(){
+  DIAG.open = true; $("diag").hidden = false;
+  refreshRelayStatus(); renderDiag();
+  clearInterval(diagTimer); diagTimer = setInterval(() => { refreshRelayStatus(); renderDiag(); }, 3000);
+}
+function closeDiag(){ DIAG.open = false; $("diag").hidden = true; clearInterval(diagTimer); }
+function diagText(){
+  const head = diagRows().map(([k, v]) => `${k}: ${v}`).join("\n");
+  const src = DIAG.relayStatus && DIAG.relayStatus.sources ? "\n\nRelay sources\n" + DIAG.relayStatus.sources.map(x => `${x.name}: ${x.state}${x.resting_s ? " " + x.resting_s + " s" : ""} · ${x.ok} ok · ${x.fail} failed · ${x.last_error || ""}`).join("\n") : "";
+  const log = mergedLog().map(e => `${new Date(e.t).toISOString().slice(11, 19)}  ${e.src.padEnd(5)}  ${e.level.padEnd(5)}  ${e.msg}`).join("\n");
+  return `Overhead board diagnostics · ${new Date().toString()}\n${navigator.userAgent}\n\n${head}${src}\n\nLog (newest first)\n${log}\n`;
+}
+$("btnDiag").onclick = e => { e.stopPropagation(); DIAG.open ? closeDiag() : openDiag(); };
+$("diagClose").onclick = closeDiag;
+$("diagCopy").onclick = async () => {
+  const text = diagText(), btn = $("diagCopy");
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
+  if (!ok) { const ta = $("diagText"); ta.value = text; ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch {} }
+  btn.textContent = ok ? "Copied" : "Copy failed";
+  setTimeout(() => { btn.textContent = "Copy log"; }, 2000);
+};
 
 /* ---------- fullscreen, wake lock, idle cursor ---------- */
 let wakeLock = null;
@@ -920,13 +1096,23 @@ async function poll(force){
   clearTimeout(timer); busy = true;
   try {
     const list = S.demo ? demoAircraft() : await getAircraft();
-    failures = 0; lastOk = Date.now(); process(list);
-  } catch {
+    if (S.demo) DIAG.polls.push({t: Date.now(), ok: true, ms: 0, n: list.length});
+    if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
+    if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
+    if (wasOffline) dlog("info", "Back online");
+    failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
+  } catch (e) {
     failures++;
-    if (failures >= 3) { feat = null; renderFeatured(); }
+    DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
+    dlog(failures >= 3 ? "error" : "warn", `Position update failed: ${e.message || e}`);
+    if (isOffline()) {
+      if (!wasOffline) dlog("error", "Showing OFFLINE: no position data for over a minute");
+      wasOffline = true; feat = null; renderFeatured();
+    }
   } finally {
-    busy = false; updateFooter();
-    timer = setTimeout(poll, S.demo ? 2000 : 8000);
+    if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
+    busy = false; updateFooter(); scheduleDiag();
+    timer = setTimeout(poll, S.demo ? 2000 : failures >= 3 ? POLL_MS * 2 : POLL_MS);
   }
 }
 
@@ -941,6 +1127,8 @@ async function start(){
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
   renderList(); updateFooter(); keepAwake();
+  dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 4} km`);
+  if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);
 }
 start();
