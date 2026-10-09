@@ -427,23 +427,7 @@ const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","to
 // Views take over the board below the header: their own flaps, hidden until the view opens.
 const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
-const DRUM_PAGE = " 0123456789/";
-const SV_ROWS = 14, LB_ROWS = 9, RV_ROWS = 12;
-for (let i = 0; i < SV_ROWS; i++) {
-  const lab = (en, de) => i === 0 ? [en, de] : null;
-  vdef("spotted", `sv${i}lamp`,   {kind:"word",  n:1, dur:90, words:"lamp", loud:.3});
-  vdef("spotted", `sv${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:55, style:"amber", loud:.4, label:lab("Time","Zeit")});
-  vdef("spotted", `sv${i}flight`, {kind:"chars", n:7, dur:55, loud:.4, label:lab("Flight","Flug")});
-  vdef("spotted", `sv${i}fromC`,  {kind:"chars", n:3, dur:55, style:"amber", loud:.4, label:lab("From","Von")});
-  vdef("spotted", `sv${i}from`,   {kind:"chars", n:9, dur:55, loud:.4});
-  vdef("spotted", `sv${i}toC`,    {kind:"chars", n:3, dur:55, style:"amber", loud:.4, label:lab("To","Nach")});
-  vdef("spotted", `sv${i}to`,     {kind:"chars", n:9, dur:55, loud:.4});
-  vdef("spotted", `sv${i}type`,   {kind:"chars", n:11, dur:55, loud:.4, label:lab("Aircraft","Flugzeug")});
-  vdef("spotted", `sv${i}dist`,   {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Closest","km")});
-  vdef("spotted", `sv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
-  vdef("spotted", `sv${i}rem`,    {kind:"word",  n:9, dur:90, words:"remarks", small:true, loud:.4, label:lab("Remarks","Hinweis")});
-}
-vdef("spotted", "svPage", {kind:"chars", n:7, drum:DRUM_PAGE, dur:70, align:"right", label:["Page","Seite"]});
+const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
   ["private", "Private, light", "Privat", "#9aa4ae"], ["helicopter", "Helicopters", "Heli", "#22b0ae"], ["military", "Military", "Militär", "#8fa05a"],
   ["other", "Other", "Andere", "#6b6e75"]];
@@ -522,9 +506,6 @@ function layout(){
   placeRow(["acOwner"], [], L0 + 166, as, 1.45, ax);
   placeRow(["acCountry","acRoute"], [2], L0 + 246, as, 1.45, ax);
   // views
-  for (let i = 0; i < SV_ROWS; i++)
-    placeRow(["lamp","time","flight","fromC","from","toC","to","type","dist","alt","rem"].map(k => `sv${i}${k}`), [.4, .8, .8, .3, .8, .3, .8, .8, 1.4, .8], 300 + i * 46, IW / 75, 1.4);
-  placeRow(["svPage"], [], 192, IW / 75, 1.4, 1080);
   placeRow(["lvSight","lvTypes","lvAirlines","lvRegs","lvModel"], [2.5, 2.5, 2.5, 2.5], 300, IW / 48, 1.45);
   placeRow(LB_CATS.flatMap(([k]) => [`lvl_${k}`, `lvn_${k}`]), LB_CATS.flatMap((c, i) => i < LB_CATS.length - 1 ? [.3, 1.8] : [.3]), 412, IW / 62, 1.45);
   const ls = IW / 67;
@@ -535,7 +516,7 @@ function layout(){
   const rs = (W - M - 940) / 37.5;
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
-  fields.sv0alt.label = ["Altitude", unit]; fields.rv0alt.label = ["Altitude", unit];
+  fields.rv0alt.label = ["Altitude", unit];
 }
 const PHOTO = {w: 600, h: 300};
 layout();
@@ -1933,6 +1914,23 @@ function demoTimes(hex){                  // demo mode: believable made-up times
   const n = parseInt(String(hex).slice(-4), 16) || 0, now = Date.now();
   return {dep: now - (25 + n % 90) * 60000, arr: now + (8 + n % 50) * 60000, delay: [0, 3, 12, 27, -6, 0, 45, 8][n % 8]};
 }
+// No arrival time from the airport: estimate one from how far the destination is, how fast the plane is going (at
+// least cruising speed while it's far out) and a few minutes to come down and land. Small changes are ignored so the
+// flaps don't flicker between two minutes.
+function gcKm(la1, lo1, la2, lo2){
+  const r = Math.PI / 180, a = Math.sin((la2 - la1) * r / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin((lo2 - lo1) * r / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+function estArrival(info, o){
+  const to = info && info.to;
+  if (!to || to.lat == null || to.lon == null || !o || o.ac.lat == null) return null;
+  const km = gcKm(o.ac.lat, o.ac.lon, +to.lat, +to.lon), gs = (o.ac.gs || 0) * 1.852;
+  const v = km > 300 ? Math.max(gs, 780) : Math.max(gs, 420);
+  let eta = Date.now() + km / v * 3600e3 + (km > 60 ? 10 : 4) * 60000;
+  if (feat.eta && feat.etaTo === to.code && Math.abs(feat.eta - eta) < 150000) eta = feat.eta;
+  feat.eta = eta; feat.etaTo = to.code;
+  return eta;
+}
 function renderTimes(){
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
   const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
@@ -1945,6 +1943,7 @@ function renderTimes(){
       else arr = t.actual || t.sched;
     }
   }
+  if (!arr) arr = estArrival(info, feat.o);
   setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
   setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
   const mins = dep ? Math.floor((now - dep) / 60000) : -1;
@@ -2357,15 +2356,13 @@ function switchView(next, opts = {}){
   if (switching) return;
   closeDiag();
   const fromIds = view ? VIEW_FIELDS[view] : boardIds();
-  const before = REDUCED || opts.instant ? null : capturePanel(false, VIEWR);
   switching = true;
-  leaveFields(fromIds, !!before);
+  leaveFields(fromIds, false);
   hideViewParts();
   view = next; viewTouched = Date.now();
   if (toPage) { page = toPage; pageSince = Date.now(); pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000; }
   const toIds = view ? VIEW_FIELDS[view] : boardIds();
   enterFields(toIds);
-  if (view === "spotted" && svLegend) leaveFields(SV_ROW_IDS, false);
   switching = false;
   if (view === "settings") cockpitOpen();
   drawStatic();
@@ -2377,8 +2374,7 @@ function switchView(next, opts = {}){
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
   else if (view === "logbook") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
-  if (before) startBigFlap(before, capturePanel(true, VIEWR), VIEWR, fromIds);
-  else viewLanded();
+  viewLanded();
   placePhoto();
   dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
 }
@@ -2412,16 +2408,13 @@ function viewStatic(g){
   g.font = `400 40px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + tw + 16, 214);
   staticSub = viewSubtitle();
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
-  if (view === "spotted" && svLegend) drawLegend(g);
+  if (view === "spotted") svLegend ? drawLegend(g) : drawSpottedTable(g);
   if (view === "radar") radarStatic(g);
 }
 
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
 let svFilter = "all", svPageNo = 0, svLegend = false;
-const SV_KEYS = ["lamp", "time", "flight", "fromC", "from", "toC", "to", "type", "dist", "alt", "rem"];
-const SV_ROW_IDS = [];
-for (let i = 0; i < SV_ROWS; i++) for (const k of SV_KEYS) SV_ROW_IDS.push(`sv${i}${k}`);
-function svData(){
+let svSig = "";function svData(){
   const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
   const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
@@ -2442,41 +2435,84 @@ function altNum(ft){
   if (typeof ft !== "number") return "";
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) : nf.format(Math.round(ft / 100) * 100);
 }
+// Spotted today is engraved text, like the legend: redrawn only when what it shows has changed.
+function svPart(){
+  const d = svData();
+  svPageNo = Math.max(0, Math.min(svPageNo, d.pages - 1));
+  return {...d, part: d.rows.slice(svPageNo * SV_ROWS, (svPageNo + 1) * SV_ROWS)};
+}
+const svSignature = ({part, pages}) => [svPageNo, pages, svFilter, svLegend, S.units, spottedSummary(),
+  ...part.map(e => [e.id || e.hex, e.time, e.flight, e.type, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|"))].join("~");
 function renderSpottedBoard(){
   if (view !== "spotted") return;
   loadFullDay();
-  const {rows, pages} = svData();
-  svPageNo = Math.max(0, Math.min(svPageNo, pages - 1));
-  if (!snapping && viewSubtitle() !== staticSub) drawStatic();
-  if (!svLegend) {
-    const part = rows.slice(svPageNo * SV_ROWS, (svPageNo + 1) * SV_ROWS);
-    for (let i = 0; i < SV_ROWS; i++) {
-      const e = part[i], d = i * 70, r = e ? remarkFor(e) : "";
-      setWord(`sv${i}lamp`, e && badgeFor(e) ? lampOf(r) : "", d);
-      setChars(`sv${i}time`, e ? e.time : "", d);
-      setChars(`sv${i}flight`, e ? e.flight || String(e.hex || "").toUpperCase() : "", d + 40);
-      setChars(`sv${i}fromC`, e ? code3(e.from) : "", d + 80);
-      setChars(`sv${i}from`, e && e.from ? e.from.city || "" : "", d + 100);
-      setChars(`sv${i}toC`, e ? code3(e.to) : "", d + 140);
-      setChars(`sv${i}to`, e && e.to ? e.to.city || "" : "", d + 160);
-      setChars(`sv${i}type`, e ? e.type || "" : "", d + 200);
-      setChars(`sv${i}dist`, e && e.minDist != null ? (+e.minDist < 10 ? (+e.minDist).toFixed(1) : String(Math.round(e.minDist))) : "", d + 240);
-      setChars(`sv${i}alt`, e ? altNum(e.altAtMin) : "", d + 260);
-      setWord(`sv${i}rem`, r, d + 280);
-    }
-  }
-  setChars("svPage", rows.length ? `${svPageNo + 1}/${pages}` : "", 0);
+  if (!snapping && svSignature(svPart()) !== svSig) drawStatic();
   updateViewTools();
+}
+function fitText(g, text, x, y, max){
+  text = String(text || "");
+  if (g.measureText(text).width > max) {
+    while (text.length > 1 && g.measureText(text + "…").width > max) text = text.slice(0, -1);
+    text = text.trimEnd() + "…";
+  }
+  g.fillText(text, x, y);
+}
+const SV_X = {time: M + 26, flight: M + 124, airline: M + 252, from: M + 452, to: M + 722, type: M + 992, dist: M + 1400, alt: M + 1546, rem: M + 1590};
+function drawSpottedTable(g){
+  const d = svPart(), {part, pages, rows} = d;
+  svSig = svSignature(d);
+  g.textBaseline = "alphabetic";
+  const head = (x, en, de, right) => {
+    g.font = `600 15px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+    const a = en.toUpperCase(), b = de.toUpperCase(), wa = g.measureText(a).width, wb = b ? g.measureText(b).width + 10 : 0;
+    const x0 = right ? x - wa - wb : x;
+    g.textAlign = "left"; g.fillStyle = COL.amber; g.fillText(a, x0, 292);
+    if (b) { g.fillStyle = COL.labelEn; g.fillText(b, x0 + wa + 10, 292); }
+    if ("letterSpacing" in g) g.letterSpacing = "0px";
+  };
+  head(SV_X.time, "Time", "Zeit"); head(SV_X.flight, "Flight", "Flug"); head(SV_X.airline, "Airline", "");
+  head(SV_X.from, "From", "Von"); head(SV_X.to, "To", "Nach"); head(SV_X.type, "Aircraft", "Flugzeug");
+  head(SV_X.dist, "Closest", "km", true); head(SV_X.alt, "Altitude", S.units === "metric" ? "m" : "ft", true); head(SV_X.rem, "Remarks", "Hinweis");
+  g.font = `600 17px ${FONT}`; g.textAlign = "right"; g.fillStyle = COL.muted; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  if (rows.length) g.fillText(`PAGE ${svPageNo + 1} OF ${pages}  ·  SEITE ${svPageNo + 1} / ${pages}`, W - M - 548, 202);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.textAlign = "left";
+  if (!rows.length) {
+    g.font = `500 22px ${FONT}`; g.fillStyle = COL.muted;
+    g.fillText(svFilter === "all" ? "Nothing spotted yet today." : "None of today's planes match this filter yet.", M, 340);
+    return;
+  }
+  part.forEach((e, i) => {
+    const y = 330 + i * 36, r = remarkFor(e), special = !!badgeFor(e), col = special ? lampOf(r) : "";
+    if (col) {
+      g.fillStyle = rgba(col, .11); g.fillRect(M - 10, y - 25, IW + 20, 34);
+      g.fillStyle = col; rr(g, M, y - 20, 12, 22, 3); g.fill();
+    }
+    g.fillStyle = "rgba(255,255,255,.05)"; g.fillRect(M - 10, y + 10, IW + 20, 1);
+    g.font = `600 21px ${FONT}`; g.fillStyle = COL.amber; g.fillText(e.time || "", SV_X.time, y);
+    g.font = `700 21px ${FONT}`; g.fillStyle = COL.ink; fitText(g, e.flight || String(e.hex || "").toUpperCase(), SV_X.flight, y, 124);
+    g.font = `500 18px ${FONT}`; g.fillStyle = COL.muted; fitText(g, e.airline || "", SV_X.airline, y, 200);
+    const place = (a, x) => {
+      if (!a) { g.font = `500 18px ${FONT}`; g.fillStyle = "rgba(255,255,255,.25)"; g.fillText("–", x, y); return; }
+      g.font = `700 20px ${FONT}`; g.fillStyle = COL.amber; const c = code3(a) || a.code || ""; g.fillText(c, x, y);
+      const w = c ? g.measureText(c).width + 10 : 0;
+      g.font = `500 19px ${FONT}`; g.fillStyle = COL.ink; fitText(g, a.city || "", x + w, y, 258 - w);
+    };
+    place(e.from, SV_X.from); place(e.to, SV_X.to);
+    g.font = `500 19px ${FONT}`; g.fillStyle = COL.ink; fitText(g, e.type || "", SV_X.type, y, 250);
+    if (e.reg) { g.font = `500 16px ${FONT}`; g.fillStyle = COL.muted; fitText(g, e.reg, SV_X.type + 262, y, 90); }
+    g.font = `600 20px ${FONT}`; g.fillStyle = COL.ink; g.textAlign = "right";
+    if (e.minDist != null) g.fillText(+e.minDist < 10 ? (+e.minDist).toFixed(1) : String(Math.round(e.minDist)), SV_X.dist, y);
+    g.fillText(altNum(e.altAtMin), SV_X.alt, y);
+    g.textAlign = "left";
+    if (r) legendChip(g, r, SV_X.rem, y - 21, 150, 28);
+  });
 }
 function svStep(dir){ const {pages} = svData(); svPageNo = (svPageNo + dir + pages) % pages; renderSpottedBoard(); }
 function setLegend(on){
   if (svLegend === on) return;
   svLegend = on;
-  if (on) leaveFields(SV_ROW_IDS, false); else enterFields(SV_ROW_IDS);
   drawStatic();
-  snapping = true;
-  try { renderSpottedBoard(); } finally { snapping = false; }
-  if (!on) for (const id of SV_ROW_IDS) for (const c of fields[id].cells) drawCell(c);
 }
 function legendGroups(){
   const home = (S.home || "").toUpperCase() || "your home airport", OVK = overKm();
