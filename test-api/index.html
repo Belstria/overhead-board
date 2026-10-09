@@ -100,9 +100,15 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 .times{display:flex;gap:8px;align-items:center}
 .times input{width:auto;flex:1}
 #shade{position:absolute;inset:0;z-index:3;background:#000;opacity:0;pointer-events:none;transition:opacity 2s}
-.photo{position:absolute;overflow:hidden;background:#060607;border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
-.photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.9) contrast(1.05)}
-.photo .credit{position:absolute;right:8px;bottom:6px;font:600 calc(13px*var(--k)) var(--f-board);letter-spacing:.06em;color:#d9d6cf;background:rgba(0,0,0,.55);padding:2px 6px;border-radius:3px}
+.photo{position:absolute;overflow:hidden;pointer-events:none}
+.photo canvas{display:block;width:100%;height:100%}
+.photo.plain{border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
+.photo.screen{border-radius:calc(5px*var(--k));box-shadow:0 0 calc(20px*var(--k)) rgba(165,190,225,.13)}
+.photo.screen.on{animation:screenOn .95s ease-out both}
+body.lite .photo.screen.on{animation:screenOnLite .8s ease-out both}
+@keyframes screenOnLite{0%{opacity:0}16%{opacity:.8}24%{opacity:.45}100%{opacity:1}}
+@keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
+#photoImg{display:none}
 .view{position:absolute;inset:0;z-index:3;color:var(--ink);font-family:var(--f-board);
   background:linear-gradient(#1b1c1f,#121315 45%,#16171a);box-shadow:inset 0 0 0 calc(18px*var(--k)) #0d0e10}
 .view .vhead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:calc(40px*var(--k)) calc(64px*var(--k)) calc(14px*var(--k))}
@@ -173,16 +179,38 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 #spotLegend p{grid-column:1/-1;color:var(--muted);margin:calc(16px*var(--k)) 0 0;font-size:.9em;line-height:1.3}
 .st .rm,#spotLegend .rm{display:inline-block;min-width:8.6em;text-align:center;font-weight:700;font-size:.74em;letter-spacing:.08em;padding:.3em .6em;border-radius:3px;background:#2a2b2f}
 /* page switcher in the lower half */
-#pager{position:absolute;right:calc(52px*var(--k));top:calc(533px*var(--k));display:flex;align-items:center;z-index:2}
-#pager button{border:0;border-radius:50%;padding:0;width:calc(28px*var(--k));height:calc(28px*var(--k));min-width:18px;min-height:18px;display:grid;place-items:center;color:var(--muted)}
-#pager button i{display:block;width:calc(9px*var(--k));height:calc(9px*var(--k));min-width:6px;min-height:6px;border-radius:50%;background:rgba(255,255,255,.16);transition:transform .2s,background .2s}
-#pager button:hover i{background:rgba(255,255,255,.45)}
-#pager button[aria-current=page] i{background:var(--accent,var(--amber));transform:scale(1.35)}
-#pager button:disabled{cursor:default}
-#pager button:disabled i{background:none;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14)}
-#pager .arr{font-size:max(18px,calc(34px*var(--k)));line-height:1;padding-bottom:.12em;transition:opacity .6s}
-#pager .arr:hover{color:var(--ink)}
-body.idle #pager .arr{opacity:0}
+/* page buttons: old backlit push buttons on a worn panel next to the clock, like a well-used mixing desk */
+#pager{position:absolute;display:flex;z-index:2}
+#pager button{--lit1:#ffe9b0;--lit2:#f2b64c;--lit3:#a8681a;--off1:#86734f;--off2:#574830;--glow:255,186,84;--ink:rgba(50,30,6,.88);
+  position:relative;width:calc(96px*var(--k));height:calc(62px*var(--k));margin:0 calc(14px*var(--k)) 0 0;padding:0;border:0;border-radius:calc(5px*var(--k));
+  display:grid;place-items:center;text-align:center;font:700 calc(14.5px*var(--k))/1.08 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
+  background:radial-gradient(120% 110% at 50% 45%,rgba(0,0,0,0) 48%,rgba(24,16,4,.6) 100%),linear-gradient(var(--off1),var(--off2));
+  box-shadow:0 0 0 calc(3px*var(--k)) #080706,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,236,200,.16),
+    inset 0 calc(-3px*var(--k)) calc(6px*var(--k)) rgba(0,0,0,.38);
+  transition:box-shadow .45s ease-out,transform .14s ease-out,filter .3s}
+#pager button:last-child{margin-right:0}
+#pager button:nth-child(2){--lit1:#eaffd6;--lit2:#86d46e;--lit3:#367d2c;--off1:#5b6d4c;--off2:#374430;--glow:120,228,108;--ink:rgba(12,34,8,.88)}
+#pager button:nth-child(3){--lit1:#fffbf1;--lit2:#efe0bb;--lit3:#ab9264;--off1:#8b8576;--off2:#5c574d;--glow:255,234,196;--ink:rgba(40,32,18,.88)}
+#pager button::before,#pager button::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;border-radius:inherit;pointer-events:none;background-size:100% 100%}
+#pager button::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='62'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.09' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 .07  0 0 0 0 .02  0 0 0 1.6 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23g%29'/%3E%3C/svg%3E");opacity:.62}
+#pager button::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='62'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.22 1.3' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 .96  0 0 0 0 .88  0 0 0 2.6 -1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29'/%3E%3C/svg%3E");opacity:.35}
+#pager button:nth-child(2)::before{transform:scaleX(-1)}
+#pager button:nth-child(3)::before{transform:scaleY(-1)}
+#pager button:nth-child(2){transform:rotate(-.6deg)}
+#pager button span{position:relative;z-index:1;-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='44'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3.4 2.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='44'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3.4 2.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");-webkit-mask-size:120px 44px;mask-size:120px 44px}
+#pager button:nth-child(2) span{-webkit-mask-position:-37px -9px;mask-position:-37px -9px}
+#pager button:nth-child(3) span{-webkit-mask-position:-71px -18px;mask-position:-71px -18px}
+#pager button[aria-current=page]{background:radial-gradient(72% 68% at 46% 41%,var(--lit1),var(--lit2) 50%,var(--lit3) 100%);transform:translateY(calc(2.5px*var(--k)));
+  box-shadow:0 0 0 calc(3px*var(--k)) #080706,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(var(--glow),.34),
+    inset 0 0 calc(10px*var(--k)) rgba(70,36,0,.32);
+  animation:lampOn .55s linear}
+#pager button:nth-child(2)[aria-current=page]{transform:rotate(-.6deg) translateY(calc(2.5px*var(--k)))}
+#pager button[aria-current=page]::before{opacity:.4}
+@keyframes lampOn{0%{filter:brightness(.45)}12%{filter:brightness(1.12)}19%{filter:brightness(.72)}32%{filter:brightness(1.04)}100%{filter:none}}
+body.lite #pager button[aria-current=page]{animation:none}
+#pager button:hover:not([aria-current]):not(:disabled){filter:brightness(1.15)}
+#pager button:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
+#pager button:disabled{cursor:default;filter:brightness(.62) saturate(.7)}
 #radarView canvas{position:absolute;inset:0;width:100%;height:100%}
 #stage canvas#flipCv{z-index:2;pointer-events:none}
 #radarView .vhead{position:relative;z-index:1}
@@ -194,13 +222,14 @@ body.idle #pager .arr{opacity:0}
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
-  <div class="photo" id="photoFrame" hidden><img id="photoImg" alt="" referrerpolicy="no-referrer"><span class="credit">Photo: airport-data.com</span></div>
+  <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas></div>
+  <img id="photoImg" alt="" referrerpolicy="no-referrer">
   <section class="view" id="logbookView" hidden aria-label="Logbook">
     <div class="vhead"><h2>Logbook <span>Logbuch</span></h2><button class="vclose" type="button" data-close="logbook">Close</button></div>
     <div class="vbody lb" id="logbookBody"></div>
   </section>
   <nav id="pager" aria-label="Pages">
-    <button class="arr" type="button" data-dir="-1" aria-label="Previous page">&#8249;</button><span id="pagerDots" style="display:flex"></span><button class="arr" type="button" data-dir="1" aria-label="Next page">&#8250;</button>
+    <span id="pagerDots" style="display:contents"></span>
   </nav>
   <canvas id="flipCv" hidden aria-hidden="true"></canvas>
   <section class="view" id="spottedView" hidden aria-label="Spotted today">
@@ -300,6 +329,19 @@ body.idle #pager .arr{opacity:0}
             <option value="10">to 10 minutes an hour</option>
             <option value="0">No limit</option>
           </select></label>
+        <label>Aircraft photo
+          <select id="fPhoto">
+            <option value="screen">On a screen in the board</option>
+            <option value="engraved">Engraved in the metal</option>
+            <option value="plain">Plain photo</option>
+          </select></label>
+        <label>Drawing quality
+          <select id="fQuality">
+            <option value="auto">Automatic</option>
+            <option value="high">Sharpest (4K screens)</option>
+            <option value="1440">1440p</option>
+            <option value="1080">1080p, lighter for TVs</option>
+          </select></label>
         <label class="full">Favourites: airlines, aircraft types or registrations, separated by commas
           <textarea class="fav" id="fFavs" rows="1" placeholder="e.g. Austrian, Emirates, A380, 747, OS"></textarea></label>
         <label class="span2">Night mode: dim the board and mute it
@@ -313,11 +355,11 @@ body.idle #pager .arr{opacity:0}
           </select></label>
         <label class="check"><input type="checkbox" id="fNight">Night mode</label>
         <label class="check"><input type="checkbox" id="fChimes">Chime for special planes and favourites</label>
-        <label class="check"><input type="checkbox" id="fImperfect">Imperfect flaps (slightly worn hardware)</label>
+        <label class="check"><input type="checkbox" id="fImperfect">Worn hardware: imperfect flaps, a used panel</label>
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport; Legend in that tab explains every remark. Helicopters and other planes that circle around (a police helicopter over an incident, say) get at most a few minutes an hour on the top half while other planes are around; airliners passing over are never cut short. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. The lit buttons next to the clock, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport; Legend in that tab explains every remark. Helicopters and other planes that circle around (a police helicopter over an incident, say) get at most a few minutes an hour on the top half while other planes are around; airliners passing over are never cut short. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -389,7 +431,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, photoStyle:"screen", quality:"auto"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -429,6 +471,8 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
+  if (q.get("photo")) S.photoStyle = q.get("photo");
+  if (q.get("quality")) S.quality = q.get("quality");
 })();
 
 /* ---------- diagnostics log ---------- */
@@ -456,6 +500,13 @@ const nf = new Intl.NumberFormat("en-US");
 function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
 
 /* ---------- canvas, scaling ---------- */
+/* Drawing quality. Fire TV and LG TVs have little graphics power: they draw at 1080p, at 30 frames a second,
+   with shorter flap runs and a smaller cache ("1080p, lighter for TVs"). Everything else draws as sharp as the
+   screen allows, up to 4K. Settings → Drawing quality, or ?quality=1080 / 1440 / high. */
+const WEAK_TV = /AFT[A-Z]|Silk\/|AmazonWebAppPlatform|Web0S|webOS|NetCast|Android TV|GoogleTV|BRAVIA|AndroidTV/i.test(navigator.userAgent || "");
+const quality = () => { const q = S.quality || "auto"; return q === "auto" ? (WEAK_TV ? "1080" : "high") : q; };
+const LITE = () => quality() === "1080";
+const pxCap = () => ({"1080": 1, "1440": 4 / 3}[quality()] || 2);
 const stage = $("stage"), bg = $("bg"), fx = $("fx");
 const bgx = bg.getContext("2d"), fxx = fx.getContext("2d");
 let PX = 1, K = 1;
@@ -478,6 +529,10 @@ def("alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:[
 def("trend",   {kind:"word",  n:2, dur:110, words:"trend"});
 def("speed",   {kind:"chars", n:8, dur:66, drum:DRUM_ALT, align:"right", label:["Speed","Geschw."]});
 def("pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]});
+def("depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
+def("arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
+def("airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
+def("delay",   {kind:"word",  n:12, dur:110, words:"delay", label:["Delay","Verspätung"]});
 for (let i = 0; i < LIST_ROWS; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null;
   def(`l${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time","Zeit")});
@@ -534,11 +589,13 @@ function placeRow(ids, gaps, y, step, ratio, x0 = M){
   });
 }
 const BIG = IW / 30, MID = IW / 56.5;
-const Y = {row1:204, row1b:322, row2:440, rule1:160, rule2:516, listHead:556, list0:604, listPitch:42};
+const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:39};
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
   placeRow(["type","reg","alt","trend","speed","pos"], [.8, .8, .3, .8, .8], Y.row2, MID, 1.45);
+  placeRow(["depTime","arrTime","airTime","delay"], [2.6, 2.6, 2.6], Y.row3, MID, 1.45);
+  Object.assign(fields.delay, {x: fields.remarks.x, wordW: fields.remarks.wordW});     // the delay sits under the status
   const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
   for (let i = 0; i < LIST_ROWS; i++) {
     fields[`l${i}logo`].hidden = !lg;
@@ -555,7 +612,7 @@ function layout(){
   placeRow(["acOwner"], [], L0 + 206, as, 1.45, ax);
   placeRow(["acCountry","acRoute"], [2], L0 + 300, as, 1.45, ax);
 }
-const PHOTO = {w: 700, h: 384};
+const PHOTO = {w: 700, h: 362};
 layout();
 (() => { const f = fields.clock, step = 64; f.step = step; f.cw = step * .9; f.ch = 88; f.y = 40; f.x = W - M - (5 * step - (step - f.cw)); })();
 
@@ -575,18 +632,21 @@ function resize(){
   const vw = innerWidth, vh = innerHeight;
   K = Math.min(vw / W, vh / H);
   const dpr = window.devicePixelRatio || 1;
-  PX = S.hd ? 2 : Math.min(2, K * dpr);
+  PX = S.hd ? 2 : Math.min(pxCap(), K * dpr);
+  document.body.classList.toggle("lite", LITE());
   const cssW = W * K, cssH = H * K;
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
-  tiles.clear(); geometry(); drawStatic(); redrawAll(); placePhoto();
+  clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placePager();
   if (openView === "radar") resizeRadar();
   if (bigFlap.on) endBigFlap();
 }
 
 /* ---------- tiles: each flap face pre-rendered once ---------- */
 const tiles = new Map();
+let tileBytes = 0;
+const clearTiles = () => { tiles.clear(); tileBytes = 0; };
 const IVORY = ["#f4f1ea", "#ece8de", "#e3dfd4", "#dad6ca"];
 const logos = new Map();
 function logo(code){
@@ -597,7 +657,7 @@ function logo(code){
     logos.set(code, L);
     const srcs = [`https://img.wway.io/pics/root/${code}@png?exar=1&rs=fit:360:144`, `https://pics.avs.io/360/144/${code}.png`];
     let k = 0;
-    const done = state => { L.state = state; tiles.clear(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
+    const done = state => { L.state = state; clearTiles(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
     L.img.onload = () => L.img.naturalWidth > 4 ? done("ok") : L.img.onerror();
     L.img.onerror = () => { if (++k < srcs.length) L.img.src = srcs[k]; else done("fail"); };
     L.img.src = srcs[0];
@@ -631,7 +691,7 @@ function tile(f, value, variant = 0){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "delay" ? delayLook(value) : {};
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}`;
   let cv = tiles.get(key);
   if (cv) return cv;
@@ -691,7 +751,7 @@ function tile(f, value, variant = 0){
     }
   }
   if (text && text !== " ") {
-    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
+    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : f.words === "delay" ? .62 : .5);
     g.font = `700 ${size}px ${FONT}`;
     if (f.kind !== "chars" && "letterSpacing" in g) g.letterSpacing = Math.round(size * .06) + "px";
     let asc = size * .7;
@@ -709,8 +769,12 @@ function tile(f, value, variant = 0){
   pin.addColorStop(0, "#8a8d92"); pin.addColorStop(.5, "#55585d"); pin.addColorStop(1, "#2c2e31");
   g.fillStyle = pin; rr(g, 0, mid - nh / 2, nw, nh, nw * .4); g.fill(); rr(g, w - nw, mid - nh / 2, nw, nh, nw * .4); g.fill();
   g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = Math.max(1, h * .012); rr(g, .5, .5, w - 1, h - 1, r); g.stroke();
-  tiles.set(key, cv);
-  if (tiles.size > 4000) tiles.delete(tiles.keys().next().value);
+  tiles.set(key, cv); tileBytes += w * h * 4;
+  const budget = (LITE() ? 40 : 160) * 1048576;            // weak TVs have little memory to spare
+  while (tileBytes > budget && tiles.size > 1) {
+    const [k0, c0] = tiles.entries().next().value;
+    tiles.delete(k0); tileBytes -= c0.width * c0.height * 4;
+  }
   return cv;
 }
 
@@ -743,9 +807,11 @@ function drawCell(c, p){
 }
 function redrawAll(){ fxx.clearRect(0, 0, fx.width, fx.height); for (const c of allCells) drawCell(c, c.anim ? .0001 : null); }
 
-let running = false;
+let running = false, lastFrame = 0;
 function kick(){ if (!running) { running = true; requestAnimationFrame(frame); } }
 function frame(now){
+  if (LITE() && now - lastFrame < 30) { requestAnimationFrame(frame); return; }   // 30 frames a second is plenty for a TV
+  lastFrame = now;
   let active = false, starts = 0;
   for (const c of allCells) {
     if (c.anim) {
@@ -787,9 +853,10 @@ function retarget(c, value, delay){
   c.target = value;
   const base = c.anim ? c.anim.to : c.cur;
   let q;
-  if (c.f.kind === "chars") q = path(c.f.drum, base, value);
+  if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
+  else if (c.f.words === "delay") q = base && value ? ["", value] : [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -838,7 +905,20 @@ function pictogram(g, x, y, s){
   g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
   drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
 }
+const metalCache = {key: "", cv: null};
 function metal(g){
+  const key = `${METAL.join()}|${PX}|${S.imperfect ? 1 : 0}`;
+  if (metalCache.key !== key) {
+    const cv = metalCache.cv || document.createElement("canvas");
+    cv.width = Math.round(W * PX); cv.height = Math.round(H * PX);
+    const mg = cv.getContext("2d");
+    mg.setTransform(PX, 0, 0, PX, 0, 0);
+    paintMetal(mg);
+    metalCache.key = key; metalCache.cv = cv;
+  }
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(metalCache.cv, 0, 0); g.restore();
+}
+function paintMetal(g){
   let seed = 1234567;
   const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   const base = g.createLinearGradient(0, 0, 0, H);
@@ -850,6 +930,7 @@ function metal(g){
     g.strokeStyle = light ? `rgba(255,255,255,${.012 + rnd() * .03})` : `rgba(0,0,0,${.03 + rnd() * .06})`;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (rnd() - .5) * .6); g.stroke();
   }
+  if (S.imperfect) wear(g);
   const vig = g.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, W * .72);
   vig.addColorStop(0, "rgba(0,0,0,0)"); vig.addColorStop(1, "rgba(0,0,0,.5)");
   g.fillStyle = vig; g.fillRect(0, 0, W, H);
@@ -863,6 +944,69 @@ function metal(g){
     sg.addColorStop(0, "#9a9da2"); sg.addColorStop(.6, "#4d5055"); sg.addColorStop(1, "#1e1f22");
     g.fillStyle = sg; g.beginPath(); g.arc(sx, sy, 8, 0, Math.PI * 2); g.fill();
     g.save(); g.translate(sx, sy); g.rotate(rnd() * Math.PI); g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(-6, -1.2, 12, 2.4); g.restore();
+  }
+  if (S.imperfect) edgeWear(g);
+}
+/* Years of use: polish marks, grime in the corners, fine scratches, a few dings. Always the same, and quiet. */
+function wearRnd(seed){ return () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; }
+function wear(g){
+  const rnd = wearRnd(424242);
+  for (let i = 0; i < 16; i++) {                         // dull polish marks from years of cleaning
+    const x = rnd() * W, y = rnd() * H, r = 50 + rnd() * 170;
+    const pg = g.createRadialGradient(x, y, 0, x, y, r);
+    pg.addColorStop(0, `rgba(255,255,255,${.012 + rnd() * .014})`); pg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = pg; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  for (const [cx, cy] of [[0, 0], [W, 0], [0, H], [W, H]]) {   // grime collects in the corners
+    const r = 260 + rnd() * 80, cg = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+    cg.addColorStop(0, "rgba(10,8,5,.32)"); cg.addColorStop(1, "rgba(10,8,5,0)");
+    g.fillStyle = cg; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  const bottom = g.createLinearGradient(0, H - 90, 0, H);
+  bottom.addColorStop(0, "rgba(10,8,5,0)"); bottom.addColorStop(1, "rgba(10,8,5,.16)");
+  g.fillStyle = bottom; g.fillRect(0, H - 90, W, 90);
+  const scratch = (x, y, ang, len, a) => {               // a fine scratch: a bright line with a dark lip
+    const bend = (rnd() - .5) * len * .12, ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+    const mx = (x + ex) / 2 - Math.sin(ang) * bend, my = (y + ey) / 2 + Math.cos(ang) * bend;
+    g.lineCap = "round";
+    g.lineWidth = .9; g.strokeStyle = `rgba(0,0,0,${a * .9})`;
+    g.beginPath(); g.moveTo(x, y + .8); g.quadraticCurveTo(mx, my + .8, ex, ey + .8); g.stroke();
+    g.lineWidth = .6; g.strokeStyle = `rgba(235,238,245,${a})`;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+  };
+  for (let i = 0; i < 70; i++) scratch(rnd() * W, rnd() * H, rnd() * Math.PI * 2, 12 + rnd() * 120, .04 + rnd() * .07);
+  // a few clusters where hands and tools went: the lower edge, next to the clock, the left side
+  for (const [cx, cy, n] of [[W * .52, H - 52, 11], [W - 300, 150, 7], [70, H * .62, 8], [W * .3, 150, 5]]) {
+    const base = rnd() * Math.PI;
+    for (let i = 0; i < n; i++) scratch(cx + (rnd() - .5) * 220, cy + (rnd() - .5) * 40, base + (rnd() - .5) * .5, 20 + rnd() * 90, .06 + rnd() * .07);
+  }
+  for (let i = 0; i < 7; i++) {                          // small dings: a dent catches light on one side
+    const x = 40 + rnd() * (W - 80), y = 40 + rnd() * (H - 80), r = 1.6 + rnd() * 2.4;
+    g.fillStyle = "rgba(0,0,0,.35)"; g.beginPath(); g.ellipse(x - .6, y - .6, r, r * .8, .6, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "rgba(255,255,255,.09)"; g.beginPath(); g.ellipse(x + .7, y + .8, r * .8, r * .55, .6, 0, Math.PI * 2); g.fill();
+  }
+}
+// After the frame is drawn: paint rubbed through on its edges and corners, and a screwdriver that slipped once.
+function edgeWear(g){
+  const rnd = wearRnd(777001);
+  const chip = (x, y) => {
+    const r = .5 + rnd() * 1.8;
+    g.fillStyle = `rgba(200,203,210,${.07 + rnd() * .12})`;
+    g.beginPath(); g.ellipse(x, y, r * (1 + rnd()), r, rnd() * Math.PI, 0, Math.PI * 2); g.fill();
+  };
+  for (let i = 0; i < 90; i++) {
+    const side = Math.floor(rnd() * 4), t = Math.pow(rnd(), 2.2), along = rnd() < .5 ? t : 1 - t;   // most near the corners
+    const inset = 5 + rnd() * 3.5;
+    if (side === 0) chip(along * W, inset); else if (side === 1) chip(along * W, H - inset);
+    else if (side === 2) chip(inset, along * H); else chip(W - inset, along * H);
+  }
+  g.lineCap = "round";
+  for (const [sx, sy, a0] of [[W - 34, H - 34, 2.1], [34, 34, 5.2]]) {
+    g.strokeStyle = "rgba(225,228,235,.1)"; g.lineWidth = .8;
+    g.beginPath(); g.arc(sx, sy, 12.5, a0, a0 + .9); g.stroke();
+    const tg = g.createRadialGradient(sx, sy, 7, sx, sy, 15);            // a little tarnish round the screw
+    tg.addColorStop(0, "rgba(95,70,40,.16)"); tg.addColorStop(1, "rgba(95,70,40,0)");
+    g.fillStyle = tg; g.beginPath(); g.arc(sx, sy, 15, 0, Math.PI * 2); g.fill();
   }
 }
 function slots(g){
@@ -886,6 +1030,9 @@ function drawStatic(){
   g.fillStyle = COL.housing; g.fillRect(0, 0, bg.width, bg.height);
   g.setTransform(PX, 0, 0, PX, 0, 0);
   metal(g); slots(g);
+  pagerPanel(g);
+  engravedSrc = "";
+  if (page === "aircraft") { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 66px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Overhead", M + 116, 98);
@@ -906,6 +1053,207 @@ function drawStatic(){
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
   const hw = g.measureText(t1).width;
   g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + hw + 14, Y.listHead);
+}
+
+/* ---------- the page buttons' panel, next to the clock ---------- */
+const PAGER = {cap: 96, capH: 62, gap: 14, padX: 30, padTop: 32, padBottom: 15};
+function pagerBox(){
+  const n = 3, c = fields.clock, w = PAGER.padX * 2 + n * PAGER.cap + (n - 1) * PAGER.gap, h = PAGER.padTop + PAGER.capH + PAGER.padBottom;
+  return {x: c.x - 46 - w, y: c.y + c.ch / 2 - h / 2, w, h};
+}
+function placePager(){
+  const b = pagerBox(), el = $("pager");
+  el.style.left = `calc(${b.x + PAGER.padX}px * var(--k))`; el.style.top = `calc(${b.y + PAGER.padTop}px * var(--k))`;
+}
+// The panel the buttons sit in: painted steel, worn through at the edges, with an engraved title.
+function pagerPanel(g){
+  const b = pagerBox(), rnd = wearRnd(5150);
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 10 * PX; g.shadowOffsetY = 3 * PX;
+  const pg = g.createLinearGradient(0, b.y, 0, b.y + b.h);
+  pg.addColorStop(0, "#29292a"); pg.addColorStop(1, "#18181a");
+  g.fillStyle = pg; rr(g, b.x, b.y, b.w, b.h, 6); g.fill();
+  g.restore();
+  g.save(); rr(g, b.x, b.y, b.w, b.h, 6); g.clip();
+  for (let i = 0; i < 26; i++) {                                  // paint scraped through to the metal
+    const edge = rnd() < .75, x = edge ? (rnd() < .5 ? b.x + rnd() * 10 : b.x + b.w - rnd() * 10) : b.x + rnd() * b.w;
+    const y = edge && rnd() < .5 ? b.y + rnd() * b.h : (rnd() < .5 ? b.y + rnd() * 6 : b.y + b.h - rnd() * 6), r = .5 + rnd() * 1.5;
+    g.fillStyle = `rgba(150,152,156,${.1 + rnd() * .16})`;
+    g.beginPath(); g.ellipse(x, y, r * (1 + rnd() * 1.5), r, rnd() * Math.PI, 0, Math.PI * 2); g.fill();
+  }
+  g.lineCap = "round";
+  for (let i = 0; i < 14; i++) {                                  // fine scratches
+    const x = b.x + rnd() * b.w, y = b.y + rnd() * b.h, a = rnd() * Math.PI, l = 8 + rnd() * 40;
+    g.strokeStyle = `rgba(220,222,226,${.05 + rnd() * .08})`; g.lineWidth = .6;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+  }
+  const grime = g.createRadialGradient(b.x + b.w / 2, b.y + b.h / 2, b.h * .4, b.x + b.w / 2, b.y + b.h / 2, b.w * .62);
+  grime.addColorStop(0, "rgba(20,14,6,0)"); grime.addColorStop(1, "rgba(20,14,6,.35)");
+  g.fillStyle = grime; g.fillRect(b.x, b.y, b.w, b.h);
+  g.restore();
+  g.lineWidth = 1.2; g.strokeStyle = "rgba(255,255,255,.06)"; rr(g, b.x + .6, b.y + .6, b.w - 1.2, b.h - 1.2, 5.5); g.stroke();
+  const wy = b.y + PAGER.padTop;
+  g.fillStyle = "rgba(0,0,0,.6)"; rr(g, b.x + PAGER.padX - 7, wy - 7, b.w - 2 * PAGER.padX + 14, PAGER.capH + 14, 4); g.fill();   // the well the buttons sit in
+  const well = g.createLinearGradient(0, wy - 7, 0, wy + PAGER.capH + 7);
+  well.addColorStop(0, "rgba(40,28,10,.35)"); well.addColorStop(.5, "rgba(40,28,10,0)"); well.addColorStop(1, "rgba(40,28,10,.3)");
+  g.fillStyle = well; rr(g, b.x + PAGER.padX - 7, wy - 7, b.w - 2 * PAGER.padX + 14, PAGER.capH + 14, 4); g.fill();
+  for (const sx of [b.x + PAGER.padX / 2, b.x + b.w - PAGER.padX / 2]) screw(g, sx, wy + PAGER.capH / 2, 5);
+  // the engraved title: ——[ PAGE · SEITE ]——
+  const t = "[ PAGE  ·  SEITE ]", ty = b.y + 22, cx = b.x + b.w / 2;
+  g.font = `600 13px ${FONT}`; g.textAlign = "center"; g.textBaseline = "alphabetic";
+  if ("letterSpacing" in g) g.letterSpacing = "2px";
+  const tw = g.measureText(t).width;
+  g.fillStyle = "rgba(0,0,0,.7)"; g.fillText(t, cx, ty - .8);
+  g.fillStyle = "rgba(214,208,194,.72)"; g.fillText(t, cx, ty);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.textAlign = "left";
+  g.fillStyle = "rgba(214,208,194,.32)";
+  g.fillRect(b.x + PAGER.padX - 4, ty - 5, (b.w - tw) / 2 - PAGER.padX - 6, 1.2);
+  g.fillRect(cx + tw / 2 + 10, ty - 5, (b.w - tw) / 2 - PAGER.padX - 6, 1.2);
+}
+function screw(g, x, y, r){
+  const sg = g.createRadialGradient(x - r * .35, y - r * .35, r * .1, x, y, r);
+  sg.addColorStop(0, "#8d9095"); sg.addColorStop(.6, "#45474c"); sg.addColorStop(1, "#1b1c1f");
+  g.fillStyle = sg; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  g.save(); g.translate(x, y); g.rotate((x * 7 + y * 3) % Math.PI); g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(-r * .75, -r * .14, r * 1.5, r * .28); g.restore();
+}
+
+/* ---------- the aircraft photo: on a small screen set into the board, or engraved into the metal ---------- */
+const PHOTO_STYLES = ["screen", "engraved", "plain"], BEZEL = 16;
+const photoStyle = () => PHOTO_STYLES.includes(S.photoStyle) ? S.photoStyle : "screen";
+let engravedSrc = "", photoShown = null, photoPaintKey = "";
+function photoBox(){              // where the picture itself goes, in board units
+  const x = M, y = Y.list0 + 6, w = PHOTO.w, h = PHOTO.h, st = photoStyle();
+  if (st === "screen") return {x: x + BEZEL, y: y + BEZEL, w: w - 2 * BEZEL, h: h - 2 * BEZEL};
+  if (st === "engraved") return {x: x + 18, y: y + 18, w: w - 36, h: h - 36};
+  return {x, y, w, h};
+}
+function photoReady(){
+  const d = feat && detailsOf(feat.hex), img = $("photoImg");
+  return d && d.photo && img.getAttribute("src") === d.photo && img.complete && img.naturalWidth ? img : null;
+}
+function drawCover(g, img, x, y, w, h){
+  const sc = Math.max(w / img.naturalWidth, h / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+  g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+}
+// The housing: a raised frame with four screws, and the glass of a switched-off screen in it.
+function drawBezel(g){
+  const x = M, y = Y.list0 + 6, w = PHOTO.w, h = PHOTO.h, b = photoBox();
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.75)"; g.shadowBlur = 16 * PX; g.shadowOffsetY = 6 * PX;
+  const hg = g.createLinearGradient(0, y, 0, y + h);
+  hg.addColorStop(0, "#2a2b2f"); hg.addColorStop(.5, "#1c1d20"); hg.addColorStop(1, "#141518");
+  g.fillStyle = hg; rr(g, x, y, w, h, 10); g.fill();
+  g.restore();
+  const edge = g.createLinearGradient(0, y, 0, y + h);
+  edge.addColorStop(0, "rgba(255,255,255,.13)"); edge.addColorStop(.5, "rgba(255,255,255,.03)"); edge.addColorStop(1, "rgba(0,0,0,.5)");
+  g.lineWidth = 1.4; g.strokeStyle = edge; rr(g, x + .7, y + .7, w - 1.4, h - 1.4, 9.5); g.stroke();
+  g.fillStyle = "#010202"; rr(g, b.x - 4, b.y - 4, b.w + 8, b.h + 8, 6); g.fill();               // the recess
+  const lip = g.createLinearGradient(0, b.y + b.h, 0, b.y + b.h + 5);
+  lip.addColorStop(0, "rgba(255,255,255,.07)"); lip.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = lip; g.fillRect(b.x - 2, b.y + b.h + 1, b.w + 4, 4);
+  g.save(); rr(g, b.x, b.y, b.w, b.h, 5); g.clip();
+  g.fillStyle = "#08090b"; g.fillRect(b.x, b.y, b.w, b.h);                                  // the screen, switched off
+  g.translate(b.x, b.y); glass(g, b.w, b.h, 1.4);
+  g.restore();
+  for (const [sx, sy] of [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]) screw(g, sx, sy, 3.3);
+  const lx = x + w - 34, ly = y + h - 8, led = g.createRadialGradient(lx, ly, 0, lx, ly, 9);
+  led.addColorStop(0, "rgba(90,230,140,.35)"); led.addColorStop(1, "rgba(90,230,140,0)");
+  g.fillStyle = led; g.fillRect(lx - 9, ly - 9, 18, 18);
+  g.fillStyle = "#0c2a17"; g.beginPath(); g.arc(lx, ly, 2.6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = "#62e896"; g.beginPath(); g.arc(lx, ly, 1.8, 0, Math.PI * 2); g.fill();
+}
+// Glass: a soft sheen from the top left with a faint sharp edge, like a window reflected in it.
+function glass(g, w, h, k = 1){
+  const s = g.createLinearGradient(0, 0, w * .55, h);
+  s.addColorStop(0, `rgba(255,255,255,${.07 * k})`); s.addColorStop(.44, `rgba(255,255,255,${.022 * k})`);
+  s.addColorStop(.445, "rgba(255,255,255,0)"); s.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = s; g.fillRect(0, 0, w, h);
+  const top = g.createLinearGradient(0, 0, 0, 12);                       // the bezel's shadow on the glass
+  top.addColorStop(0, "rgba(0,0,0,.6)"); top.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = top; g.fillRect(0, 0, w, 12);
+  const left = g.createLinearGradient(0, 0, 9, 0);
+  left.addColorStop(0, "rgba(0,0,0,.4)"); left.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = left; g.fillRect(0, 0, 9, h);
+}
+// What the screen shows: the photo, a little softer than a print, faint scan lines, darker towards the edges.
+function paintScreen(g, w, h, img){
+  g.fillStyle = "#08090b"; g.fillRect(0, 0, w, h);
+  g.save();
+  try { g.filter = "saturate(.86) contrast(1.05) brightness(.95)"; } catch {}
+  drawCover(g, img, 0, 0, w, h);
+  g.restore();
+  g.fillStyle = "rgba(0,0,0,.11)";
+  for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);
+  const v = g.createRadialGradient(w / 2, h / 2, h * .32, w / 2, h / 2, w * .62);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.42)");
+  g.fillStyle = v; g.fillRect(0, 0, w, h);
+  g.font = `600 13px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
+  if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 3 * PX;
+  g.fillStyle = "rgba(235,240,245,.62)"; g.fillText("PHOTO  AIRPORT-DATA.COM", w - 12, h - 11);
+  g.shadowColor = "transparent"; g.shadowBlur = 0;
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.textAlign = "left";
+  glass(g, w, h);
+}
+function paintPlain(g, w, h, img){
+  g.fillStyle = "#060607"; g.fillRect(0, 0, w, h);
+  g.save(); try { g.filter = "saturate(.9) contrast(1.05)"; } catch {} drawCover(g, img, 0, 0, w, h); g.restore();
+  g.font = `600 13px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
+  const t = "Photo: airport-data.com", tw = g.measureText(t).width;
+  g.fillStyle = "rgba(0,0,0,.55)"; rr(g, w - tw - 20, h - 28, tw + 12, 20, 3); g.fill();
+  g.fillStyle = "#d9d6cf"; g.fillText(t, w - 14, h - 13); g.textAlign = "left";
+}
+// Engraved: the photo cut into the panel as fine lines, wider where the picture is darker.
+function drawPlaque(g){
+  const x = M, y = Y.list0 + 6, w = PHOTO.w, h = PHOTO.h;
+  for (const [i, a] of [[3, .55], [9, .4]]) {                          // a double groove round the plate
+    g.lineWidth = 1.3; g.strokeStyle = `rgba(0,0,0,${a})`; rr(g, x + i, y + i, w - 2 * i, h - 2 * i, 6); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,.07)"; rr(g, x + i + .9, y + i + .9, w - 2 * i, h - 2 * i, 6); g.stroke();
+  }
+  g.font = `600 12px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
+  if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w, y + h + 21);
+  g.fillStyle = "rgba(255,255,255,.2)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w, y + h + 22);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.textAlign = "left";
+  const img = photoReady();
+  if (!img) return;
+  engravedSrc = img.getAttribute("src");
+  try { engrave(g, img, photoBox()); }
+  catch (e) { dlog("debug", `Couldn't engrave the photo: ${e.message}`); }
+}
+function engrave(g, img, b){
+  const cw = Math.max(1, Math.round(b.w * PX)), ch = Math.max(1, Math.round(b.h * PX));
+  const mk = () => { const c = document.createElement("canvas"); c.width = cw; c.height = ch; return c; };
+  const a = mk(), ga = a.getContext("2d");
+  ga.fillStyle = "#fff"; ga.fillRect(0, 0, cw, ch);
+  ga.filter = `grayscale(1) invert(1) contrast(.5) brightness(1.36) blur(${(.6 * PX).toFixed(2)}px)`;
+  drawCover(ga, img, 0, 0, cw, ch);
+  ga.filter = "none";
+  const e = 30 * PX;                                                   // fade out towards the edges of the plate
+  for (const [x0, y0, x1, y1, rx, ry, rw, rh] of [[0, 0, 0, e, 0, 0, cw, e], [0, ch, 0, ch - e, 0, ch - e, cw, e], [0, 0, e, 0, 0, 0, e, ch], [cw, 0, cw - e, 0, cw - e, 0, e, ch]]) {
+    const lg = ga.createLinearGradient(x0, y0, x1, y1);
+    lg.addColorStop(0, "rgba(255,255,255,1)"); lg.addColorStop(1, "rgba(255,255,255,0)");
+    ga.fillStyle = lg; ga.fillRect(rx, ry, rw, rh);
+  }
+  const per = Math.max(3, Math.round(4 * PX)), pc = document.createElement("canvas");   // one line of the engraving
+  pc.width = 4; pc.height = per;
+  const gp = pc.getContext("2d");
+  for (let r = 0; r < per; r++) {
+    const v = Math.round(255 * (.53 + .47 * Math.abs(2 * (r + .5) / per - 1)));
+    gp.fillStyle = `rgb(${v},${v},${v})`; gp.fillRect(0, r, 4, 1);
+  }
+  ga.globalCompositeOperation = "multiply"; ga.fillStyle = ga.createPattern(pc, "repeat"); ga.fillRect(0, 0, cw, ch);
+  const cut = mk(), gc = cut.getContext("2d");
+  gc.filter = "contrast(24)"; gc.drawImage(a, 0, 0);                                    // the cuts: black on white
+  const lit = mk(), gl = lit.getContext("2d");
+  gl.filter = "invert(1)"; gl.drawImage(cut, 0, 0);                                     // and white on black
+  g.save();
+  g.globalCompositeOperation = "multiply"; g.globalAlpha = .75; g.drawImage(cut, b.x, b.y - .9, b.w, b.h);    // the cut's shaded upper wall
+  g.globalCompositeOperation = "screen"; g.globalAlpha = .3; g.drawImage(lit, b.x, b.y + .4, b.w, b.h);       // its bright floor
+  g.restore();
 }
 
 /* ---------- sound: synthesised flap clatter, only after a click or key press ---------- */
@@ -955,7 +1303,7 @@ function applyTheme(){
   COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
   const root = document.documentElement.style;
   root.setProperty("--f-board", T.font); root.setProperty("--accent", T.accent);
-  const redraw = () => { tiles.clear(); geometry(); drawStatic(); redrawAll(); };
+  const redraw = () => { clearTiles(); geometry(); drawStatic(); redrawAll(); };
   try {
     Promise.race([Promise.all(["700 40px", "600 20px", "400 40px"].map(w => document.fonts.load(`${w} ${T.font}`))), new Promise(r => setTimeout(r, 2500))])
       .then(redraw, redraw);
@@ -1208,7 +1556,7 @@ function apiLookup(cs, hex, info, tries = 0){
     const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     if (d.flight) Object.assign(info, {flightNo: fmtFlight(d.flight)}, marketedBy(d.flight));
     if (d.from && d.to) { info.from = d.from; info.to = d.to; }
-    Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator});
+    Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator, takeoff: d.takeoff || ""});
     const after = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     dlog("debug", `Flightradar24: ${cs} is ${info.flightNo}, ${d.from ? d.from.code : "?"} → ${d.to ? d.to.code : "?"}${before !== after ? ` (free sources said ${before})` : ""}`);
     infoChanged(info);
@@ -1636,6 +1984,72 @@ function process(list){
   if (page === "aircraft") renderPage();
 }
 
+/* ---------- flight times and delays ----------
+   Vienna Airport publishes its arrivals and departures with planned and expected times; the home relay (version
+   11 or newer) reads them, so flights to and from Vienna show their delay. Flightradar24 adds the take-off time
+   of any flight on this board. Other flights show what is known, often nothing. */
+function delayLook(v){
+  if (!v) return {};
+  if (v === "ON TIME") return {fill:["#27a85e","#1d8a4b"], fg:"#ffffff"};
+  if (/EARLY/.test(v)) return {fill:["#2c6ec4","#215aa2"], fg:"#ffffff"};
+  const m = /(\d+) H (\d+)/.exec(v), mins = m ? +m[1] * 60 + +m[2] : parseInt(v, 10) || 0;
+  return mins < 15 ? {fill:["#f6be35","#dc9f1d"], fg:"#17140d"} : {fill:["#e0372c","#bb2a20"], fg:"#ffffff"};
+}
+function delayWord(m){
+  if (m == null || !isFinite(m)) return "";
+  if (m <= -4) return `${-m} MIN EARLY`;
+  if (m <= 4) return "ON TIME";
+  return m >= 100 ? `${Math.floor(m / 60)} H ${String(m % 60).padStart(2, "0")} LATE` : `${m} MIN LATE`;
+}
+const timesCache = new Map();          // flight number -> {t, d}: the relay's answer, asked again after two minutes
+function timesFor(info){
+  const fn = info && info.flightNo;
+  if (!fn || !/^[A-Z0-9]{2} \d/.test(fn) || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 11) return null;
+  const now = Date.now();
+  let h = timesCache.get(fn);
+  if (!h) { h = {t: 0, d: null, busy: false}; timesCache.set(fn, h); if (timesCache.size > 200) timesCache.delete(timesCache.keys().next().value); }
+  if (!h.busy && now - h.t > 120000) {
+    h.busy = true; h.t = now;
+    fetchJSON(`${relay()}/times?fn=${encodeURIComponent(fn)}&from=${code3(info.from)}&to=${code3(info.to)}`, {}, 8000)
+      .then(d => {
+        h.d = d;
+        if (d.status === "pending") h.t = now - 100000;          // the relay is still reading the lists: ask again soon
+        else if (d.status === "ok") dlog("debug", `Times for ${fn}: ${d.kind === "arr" ? "arrives" : "departed"} ${hhmm(new Date(d.actual || d.sched))}, planned ${d.sched ? hhmm(new Date(d.sched)) : "?"} (Vienna Airport: ${d.text || d.code})`);
+        if (feat && feat.info && feat.info.flightNo === fn) renderTimes();
+      })
+      .catch(() => {}).finally(() => { h.busy = false; });
+  }
+  return h.d && h.d.status === "ok" ? h.d : null;
+}
+function utcMs(v){
+  if (!v) return null;
+  const t = Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(v) ? v : v + "Z");       // Flightradar24's times are UTC
+  return isFinite(t) ? t : null;
+}
+function demoTimes(hex){                  // demo mode: believable made-up times
+  const n = parseInt(String(hex).slice(-4), 16) || 0, now = Date.now();
+  return {dep: now - (25 + n % 90) * 60000, arr: now + (8 + n % 50) * 60000, delay: [0, 3, 12, 27, -6, 0, 45, 8][n % 8]};
+}
+function renderTimes(){
+  if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); setWord("delay", ""); return; }
+  const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
+  let dep = utcMs(info.takeoff), arr = null, delay = null;
+  if (S.demo) ({dep, arr, delay} = demoTimes(feat.hex));
+  else {
+    const t = timesFor(info);
+    if (t) {
+      if (t.kind === "dep") dep = dep || t.actual || t.sched;
+      else arr = t.actual || t.sched;
+      delay = t.delay;
+    }
+  }
+  setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
+  setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
+  const mins = dep ? Math.floor((now - dep) / 60000) : -1;
+  setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
+  setWord("delay", delayWord(delay), 530);
+}
+
 /* ---------- what goes on the board ---------- */
 const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
 function renderFeatured(){
@@ -1644,6 +2058,7 @@ function renderFeatured(){
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
     setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
+    renderTimes();
     return;
   }
   const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac);
@@ -1665,6 +2080,7 @@ function renderFeatured(){
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
   setWord("trend", feat.live[3] || "", 390);
+  renderTimes();
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
@@ -1754,27 +2170,28 @@ function goPage(p){
   try { renderPage(); } finally { snapping = false; }
   for (const id of to) for (const c of fields[id].cells) drawCell(c);
   updatePager();
-  if (before) startBigFlap(before, capturePanel());
+  if (before) startBigFlap(before, capturePanel(true));
   placePhoto();
 }
 
-const PANEL = {x: 46, y: 524, w: 1828, h: 524};           // the lower half, inside the frame and its screws
+const PANEL = {x: 46, y: Y.rule2 + 8, w: 1828, h: H - 52 - Y.rule2};   // the lower half, inside the frame and its screws
 const bigFlap = {on: false, raf: 0};
-function capturePanel(){
-  const sx = Math.round(PANEL.x * PX), sy = Math.round(PANEL.y * PX), w = Math.round(PANEL.w * PX), h = Math.round(PANEL.h * PX);
+const FLIP_PX = () => Math.min(PX, 1);                      // the falling page moves too fast to need 4K
+function capturePanel(arriving = false){
+  const sx = Math.round(PANEL.x * PX), sy = Math.round(PANEL.y * PX), sw = Math.round(PANEL.w * PX), sh = Math.round(PANEL.h * PX);
+  const FP = FLIP_PX(), w = Math.round(PANEL.w * FP), h = Math.round(PANEL.h * FP);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const g = cv.getContext("2d");
-  g.drawImage(bg, sx, sy, w, h, 0, 0, w, h);
-  g.drawImage(fx, sx, sy, w, h, 0, 0, w, h);
-  const d = feat && detailsOf(feat.hex);
-  if (page === "aircraft" && d && d.photo) {                 // the photo is a separate element, so paint it in
-    const img = $("photoImg"), x = (M - PANEL.x) * PX, y = (Y.list0 + 6 - PANEL.y) * PX, pw = PHOTO.w * PX, ph = PHOTO.h * PX;
-    g.save(); rr(g, x, y, pw, ph, 6 * PX); g.clip();
-    g.fillStyle = "#060607"; g.fillRect(x, y, pw, ph);
-    if (img.complete && img.naturalWidth && img.getAttribute("src") === d.photo) {
-      const sc = Math.max(pw / img.naturalWidth, ph / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
-      try { g.drawImage(img, x + (pw - iw) / 2, y + (ph - ih) / 2, iw, ih); } catch {}
-    }
+  g.drawImage(bg, sx, sy, sw, sh, 0, 0, w, h);
+  g.drawImage(fx, sx, sy, sw, sh, 0, 0, w, h);
+  const img = photoReady(), st = photoStyle();
+  // The photo is a separate element, so paint it in. An engraved one is already part of the panel, and a
+  // screen arriving with a new page is still switched off: it comes on once the page has landed.
+  if (page === "aircraft" && img && st !== "engraved" && !(arriving && st === "screen")) {
+    const b = photoBox();
+    g.setTransform(FP, 0, 0, FP, (b.x - PANEL.x) * FP, (b.y - PANEL.y) * FP);
+    g.save(); rr(g, 0, 0, b.w, b.h, st === "screen" ? 5 : 6); g.clip();
+    try { (st === "screen" ? paintScreen : paintPlain)(g, b.w, b.h, img); } catch {}
     g.restore();
   }
   return cv;
@@ -1787,22 +2204,26 @@ const FALL = (() => {
   return u => pts[Math.min(pts.length - 1, Math.max(0, Math.round(u * (pts.length - 1))))];
 })();
 function startBigFlap(A, B){
-  const cv = $("flipCv"), g = cv.getContext("2d");
-  cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); cv.hidden = false;
+  const cv = $("flipCv"), g = cv.getContext("2d"), FP = FLIP_PX();
+  cv.width = Math.round(W * FP); cv.height = Math.round(H * FP); cv.hidden = false;
   bigFlap.on = true;
   const hh = PANEL.h / 2, hy = PANEL.y + hh, D = 2600, vx = W / 2, vy = H / 2;
   const fallS = 1.05 * Math.sqrt(pace()), BOUNCE = .1, settleS = .55;
   const t0 = performance.now();
+  let lastDraw = 0;
   const draw = () => {
-    const t = (performance.now() - t0) / 1000;      // not the frame's timestamp: that can be from before t0
+    const tn = performance.now();
+    if (LITE() && tn - lastDraw < 30) { bigFlap.raf = requestAnimationFrame(draw); return; }
+    lastDraw = tn;
+    const t = (tn - t0) / 1000;      // not the frame's timestamp: that can be from before t0
     let a;
     if (t < fallS) a = FALL(t / fallS);
     else { const u = t - fallS; a = Math.PI - .11 * Math.exp(-u / .09) * Math.abs(Math.sin(Math.PI * u / BOUNCE)); }
-    g.setTransform(PX, 0, 0, PX, 0, 0);
+    g.setTransform(FP, 0, 0, FP, 0, 0);
     g.clearRect(0, 0, W, H);
     // behind the panel: the new page's top half, and the old bottom half until the panel lands on it
-    g.drawImage(B, 0, 0, B.width, hh * PX, PANEL.x, PANEL.y, PANEL.w, hh);
-    g.drawImage(A, 0, hh * PX, A.width, A.height - hh * PX, PANEL.x, hy, PANEL.w, PANEL.h - hh);
+    g.drawImage(B, 0, 0, B.width, hh * FP, PANEL.x, PANEL.y, PANEL.w, hh);
+    g.drawImage(A, 0, hh * FP, A.width, A.height - hh * FP, PANEL.x, hy, PANEL.w, PANEL.h - hh);
     const open = Math.min(1, a / (Math.PI / 2));
     g.fillStyle = `rgba(0,0,0,${.55 * Math.pow(1 - open, 1.3)})`; g.fillRect(PANEL.x, PANEL.y, PANEL.w, hh);
     const cover = Math.sin(a) * (a > Math.PI / 2 ? .6 : .28);
@@ -1814,14 +2235,14 @@ function startBigFlap(A, B){
     const ca = Math.cos(a), sa = Math.sin(a);
     const P = r => { const sc = D / (D - r * sa); return [sc, vy + (hy - r * ca - vy) * sc]; };
     const [sFree, yFree] = P(hh), front = yFree < hy;
-    const N = 64;
+    const N = LITE() ? 28 : 48;
     for (let i = 0; i < N; i++) {
       const r0 = hh * i / N, r1 = hh * (i + 1) / N, [s0, y0] = P(r0), [s1, y1] = P(r1), sc = (s0 + s1) / 2;
       const top = Math.min(y0, y1), ht = Math.abs(y1 - y0) + .7;
       if (ht < .25) continue;
       const dx = vx + (PANEL.x - vx) * sc, dw = PANEL.w * sc;
-      if (front) g.drawImage(A, 0, (hh - r1) * PX, A.width, (r1 - r0) * PX, dx, top, dw, ht);
-      else g.drawImage(B, 0, (hh + r0) * PX, B.width, (r1 - r0) * PX, dx, top, dw, ht);
+      if (front) g.drawImage(A, 0, (hh - r1) * FP, A.width, (r1 - r0) * FP, dx, top, dw, ht);
+      else g.drawImage(B, 0, (hh + r0) * FP, B.width, (r1 - r0) * FP, dx, top, dw, ht);
     }
     const lit = front ? -.5 * sa + ca : .5 * sa - ca;             // light from above and in front
     const dark = Math.min(.88, Math.max(0, 1 - (.3 + .7 * Math.max(0, lit) / 1.118 / .894)));
@@ -1867,16 +2288,16 @@ function stepPage(dir){
     if (pageAvailable(PAGE_ORDER[i])) return pickPage(PAGE_ORDER[i]);
   }
 }
+const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft"};
 function updatePager(){
   const box = $("pagerDots");
   if (!box.children.length) {
     for (const p of PAGE_ORDER) {
       const b = document.createElement("button");
-      b.type = "button"; b.dataset.page = p; b.innerHTML = "<i></i>";
+      b.type = "button"; b.dataset.page = p; b.innerHTML = `<span>${PAGE_KEYS[p] || p}</span>`;
       b.onclick = e => { e.stopPropagation(); pickPage(p); };
       box.appendChild(b);
     }
-    for (const a of document.querySelectorAll("#pager .arr")) a.onclick = e => { e.stopPropagation(); stepPage(+a.dataset.dir); };
   }
   for (const b of box.children) {
     const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0];
@@ -1975,10 +2396,29 @@ function preloadPhoto(){
   if (d && d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
 }
 function placePhoto(){
-  const fr = $("photoFrame"), d = feat && detailsOf(feat.hex);
-  fr.hidden = !(page === "aircraft" && !switching && !bigFlap.on && d && d.photo);
-  Object.assign(fr.style, {left: M * K + "px", top: (Y.list0 + 6) * K + "px", width: PHOTO.w * K + "px", height: PHOTO.h * K + "px"});
+  const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = page === "aircraft" && !switching;
+  if (st === "engraved" && here && engravedSrc !== (img ? img.getAttribute("src") : "")) drawStatic();   // cut the new photo into the panel
+  const show = here && !bigFlap.on && !!img && st !== "engraved";
+  fr.hidden = !show;
+  if (!show) { photoShown = null; return; }
+  fr.classList.toggle("screen", st === "screen"); fr.classList.toggle("plain", st === "plain");
+  const b = photoBox(), cv = $("photoCv"), src = img.getAttribute("src");
+  Object.assign(fr.style, {left: b.x * K + "px", top: b.y * K + "px", width: b.w * K + "px", height: b.h * K + "px"});
+  const key = `${src}|${st}|${PX}|${FONT}`;
+  if (key !== photoPaintKey) {
+    photoPaintKey = key;
+    cv.width = Math.round(b.w * PX); cv.height = Math.round(b.h * PX);
+    const g = cv.getContext("2d");
+    g.setTransform(PX, 0, 0, PX, 0, 0);
+    (st === "screen" ? paintScreen : paintPlain)(g, b.w, b.h, img);
+  }
+  if (photoShown !== src) {                                // a new picture: the screen warms up
+    photoShown = src;
+    fr.classList.remove("on");
+    if (st === "screen" && !REDUCED) { void fr.offsetWidth; fr.classList.add("on"); }
+  }
 }
+$("photoImg").onload = () => placePhoto();
 function renderAircraft(){
   const ids = ["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"];
   if (!feat) { ids.forEach(id => setChars(id, "")); placePhoto(); return; }
@@ -2056,7 +2496,11 @@ function renderLegend(){
       ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]];
   const group = ([h, items]) => `<h3>${h}</h3><dl>` +
     items.filter(([r]) => REMARKS.includes(r)).map(([r, t]) => `<dt><span class="rm" style="${remarkStyle(r)}">${r}</span></dt><dd>${escH(t)}</dd>`).join("") + "</dl>";
-  $("spotLegend").innerHTML = `<div>${group(groups[0])}${group(groups[1])}</div><div>${group(groups[2])}</div>` +
+  const dStyle = r => { const L = delayLook(r); return `background:linear-gradient(${L.fill[0]},${L.fill[1]});color:${L.fg}`; };
+  const delays = `<h3>Delay (flights to and from Vienna)</h3><dl>` + [["ON TIME", "Within four minutes of the timetable"], ["9 MIN LATE", "Up to a quarter of an hour late"],
+    ["25 MIN LATE", "A quarter of an hour late or more"], ["6 MIN EARLY", "Ahead of the timetable"]]
+    .map(([r, t]) => `<dt><span class="rm" style="${dStyle(r)}">${r}</span></dt><dd>${escH(t)}</dd>`).join("") + "</dl>";
+  $("spotLegend").innerHTML = `<div>${group(groups[0])}${group(groups[1])}${delays}</div><div>${group(groups[2])}</div>` +
     "<p>A plane can be more than one of these; the board shows the most special one, in the order above. Arriving, Departing and Overflight only show in the lists.</p>";
 }
 let legendOpen = false;
@@ -2325,7 +2769,7 @@ function updateFooter(){
 function openPanel(){
   $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
   $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
-  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || ""; $("fAirtime").value = String(S.airtimeMin);
+  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || ""; $("fAirtime").value = String(S.airtimeMin); $("fPhoto").value = photoStyle(); $("fQuality").value = S.quality || "auto";
   $("fNight").checked = !!S.night; $("fNightFrom").value = S.nightFrom; $("fNightTo").value = S.nightTo; $("fNightDim").value = String(S.nightDim);
   $("fChimes").checked = !!S.chimes; $("fImperfect").checked = !!S.imperfect;
   $("panel").hidden = false;
@@ -2351,7 +2795,7 @@ $("btnSave").onclick = () => {
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
     sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked,
-    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked, airtimeMin: +$("fAirtime").value,
+    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked, airtimeMin: +$("fAirtime").value, photoStyle: $("fPhoto").value, quality: $("fQuality").value,
     nightFrom: $("fNightFrom").value || DEFAULTS.nightFrom, nightTo: $("fNightTo").value || DEFAULTS.nightTo, nightDim: +$("fNightDim").value || 40,
     chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
   saveSettings(); audioInit(); closePanel();
@@ -2513,7 +2957,7 @@ async function start(){
   } catch {}
   applyTheme(); applyNight(true);
   resize(); wake();
-  if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
+  if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { clearTiles(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
   audioInit();   // starts at once where the browser allows it (kiosk setups); otherwise on the first click or key press
   renderPage(); updateFooter(); keepAwake();

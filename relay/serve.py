@@ -23,6 +23,7 @@ Standard library only: works with Python 3.8+ on Windows, macOS, Linux or in a c
 import argparse
 import collections
 import csv
+import datetime
 import heapq
 import io
 import itertools
@@ -40,7 +41,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 10
+RELAY_VERSION = 11
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -895,6 +896,108 @@ def metar(ids):
     return status, body
 
 
+# ---------- Vienna Airport's arrivals and departures: planned and expected times, so the board can show delays.
+# The airport publishes them for its own website. Read at most every three minutes, and only while a board asks.
+VIE_FLIGHTS = "https://viennaairport.com/jart/prj3/va/data/flights/{}.json"      # inc = arrivals, out = departures
+_vie = {"t": 0.0, "ok": 0.0, "index": {}, "busy": False, "error": "", "counts": (0, 0)}
+_vie_lock = threading.Lock()
+
+
+def vie_on():
+    return (ARGS.home or "VIE").upper() == "VIE"
+
+
+def fn_key(fn):
+    """OS 007, OS7 and OS 0007 are the same flight."""
+    m = re.match(r"^\s*([A-Z0-9]{2,3})\s*0*(\d{1,5})([A-Z]?)\s*$", str(fn or "").upper())
+    return f"{m.group(1)}{m.group(2)}{m.group(3)}" if m else ""
+
+
+def _iso_ms(v):
+    if not v:
+        return None
+    try:
+        d = datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        return int(d.timestamp() * 1000)
+    except ValueError:
+        return None
+
+
+def _vie_load():
+    index, counts = {}, []
+    try:
+        for kind, name in (("arr", "inc"), ("dep", "out")):
+            status, _, body, _ = fetch(VIE_FLIGHTS.format(name), timeout=15,
+                                       headers={"Accept": "application/json", "Referer": "https://viennaairport.com/"})
+            if status != 200:
+                raise ValueError(f"HTTP {status}")
+            mon = json.loads(body.decode("utf-8")).get("monitor") or {}
+            rows = mon.get("departure") or mon.get("arrival") or []
+            counts.append(len(rows))
+            for r in rows:
+                st = r.get("status") or {}
+                e = {"kind": kind, "fn": r.get("fn") or "", "sched": _iso_ms(r.get("scheduledatetime")),
+                     "actual": _iso_ms(r.get("actualdatetime")), "code": st.get("code") or "", "text": st.get("description") or ""}
+                for fn in [r.get("fn")] + [c.get("fn") for c in (r.get("codeshares") or []) if isinstance(c, dict)]:
+                    k = fn_key(fn)
+                    if k:
+                        index.setdefault(k, []).append(e)
+        first = not _vie["ok"] or _vie["error"]
+        with _vie_lock:
+            _vie.update(index=index, ok=time.time(), error="", counts=tuple(counts))
+        if first:
+            event("info", f"Vienna Airport's flight lists read: {counts[0]} arrivals, {counts[1]} departures")
+    except Exception as ex:  # the site changed, or is down: try again in a minute
+        with _vie_lock:
+            was = _vie["error"]
+            _vie.update(error=str(ex), t=time.time() - 120)
+        if not was:
+            event("warn", f"Couldn't read Vienna Airport's flight lists ({ex}); the times row stays empty")
+    finally:
+        with _vie_lock:
+            _vie["busy"] = False
+
+
+def vie_refresh():
+    with _vie_lock:
+        if _vie["busy"] or time.time() - _vie["t"] < 180:
+            return
+        _vie["busy"], _vie["t"] = True, time.time()
+    threading.Thread(target=_vie_load, daemon=True).start()
+
+
+def vie_times(fn, frm, to):
+    """The airport's entry for this flight, from the list it belongs to, closest to now."""
+    if not vie_on():
+        return {"status": "none", "why": "home airport isn't Vienna"}
+    vie_refresh()
+    with _vie_lock:
+        cands = list(_vie["index"].get(fn_key(fn), []))
+        loaded = bool(_vie["ok"])
+    if not loaded:
+        return {"status": "pending"}
+    if to == "VIE":
+        cands = [e for e in cands if e["kind"] == "arr"]
+    elif frm == "VIE":
+        cands = [e for e in cands if e["kind"] == "dep"]
+    now = time.time() * 1000
+    cands = [e for e in cands if (e["actual"] or e["sched"]) and abs((e["actual"] or e["sched"]) - now) < 4 * 3600e3]
+    if not cands:
+        return {"status": "none"}
+    e = min(cands, key=lambda e: abs((e["actual"] or e["sched"]) - now))
+    final = e["code"] in ("BLI", "AIR")             # landed / airborne: the time is what happened, not an estimate
+    delay = round((e["actual"] - e["sched"]) / 60000) if e["actual"] and e["sched"] else None
+    return {"status": "ok", "airport": "VIE", **e, "final": final, "delay": delay}
+
+
+def vie_status():
+    with _vie_lock:
+        return {"on": vie_on(), "ageS": int(time.time() - _vie["ok"]) if _vie["ok"] else None,
+                "arrivals": _vie["counts"][0], "departures": _vie["counts"][1], "error": _vie["error"]}
+
+
 def status_json():
     now = time.time()
     sources = []
@@ -909,7 +1012,8 @@ def status_json():
         })
     with _lock:
         events = list(EVENTS)[-80:]
-    return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status()}
+    return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status(),
+            "vie": vie_status()}
 
 
 _board_seen = {}
@@ -969,7 +1073,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -1006,6 +1110,11 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     fr24_want(cs, hx, 0)
                     body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
+            return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/times":
+            q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            arg = lambda k: (q.get(k) or [""])[0].strip().upper()[:12]
+            body = vie_times(arg("fn"), arg("from"), arg("to")) if arg("fn") else {"status": "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/logbook":
             return self.reply(200, "application/json", json.dumps(logbook_json()).encode())

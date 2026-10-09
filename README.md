@@ -33,6 +33,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `night` | Test board: night mode on (`1`, the default) or off (`0`) | `night=0` |
 | `airtime` | Test board: minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
 | `photo` | Test board: the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
+| `quality` | Test board: `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -92,12 +93,20 @@ py serve.py --fr24-key YOUR_KEY --save
 `/test/` is where changes are tried out before they go to the main board. Open it through the relay at
 `http://<computer-name>:8080/test/`. It currently adds:
 
+- **Flight times** in a fourth row of the top half: departure, arrival, flight time so far, and the delay under the
+  status (ON TIME in green, late in amber, a quarter of an hour or more in red, early in blue). Vienna Airport
+  publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
+  them, so flights to and from Vienna get an arrival or departure time and a delay. On the test API board
+  Flightradar24 adds the take-off time, and with it the flight time, for any flight. Overflights without either show
+  what is known, often nothing. The list rows below sit a little closer to make room.
 - **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
   to stay on one page): **Recent flights** (the last ten planes that were on the top half, kept per screen),
   **Today in numbers** (counted over the whole day by the relay), and **This aircraft** (a photo and registration details
   of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
   split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. The
-  pages have backlit cockpit push buttons on a small panel next to the clock; the one for the page on show is lit. To
+  pages have old backlit push buttons on a worn panel next to the clock, like a well-used mixing desk: yellowed amber,
+  green and cream caps with rubbed legends, and the one for the page on show lit, with a small flicker as the lamp
+  comes on. To
   pick a page yourself, press its button, or use the left and right arrow keys or the keys 1 to 3; a page you pick
   stays for at least a minute.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
@@ -133,6 +142,10 @@ py serve.py --fr24-key YOUR_KEY --save
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+- **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
+  Fire TV and LG TVs, which get `1080`: drawn at 1080p, 30 frames a second, shorter flap runs and a smaller image cache,
+  because their graphics chips struggle with the full board. `1440` sits in between, `high` forces the sharpest. The
+  falling page is always drawn at 1080p at most; it moves too fast to need more.
 
 The logbook and a Spotted today list shared by every screen need relay version 5 or newer (see below).
 
@@ -152,6 +165,8 @@ The logbook and a Spotted today list shared by every screen need relay version 5
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
+- Planned and expected times (test boards): [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
+  own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
   code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
 
