@@ -31,6 +31,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `favs` | Test board: favourites, separated by commas | `favs=Austrian,A380` |
 | `chimes` | Test board: chimes on (`1`, the default) or off (`0`) | `chimes=0` |
 | `night` | Test board: night mode on (`1`, the default) or off (`0`) | `night=0` |
+| `airtime` | Test board: minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -105,10 +106,20 @@ py serve.py --fr24-key YOUR_KEY --save
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
 - **The day runs from 03:00 to 03:00**, so late-evening flights count to the evening they belong to.
+- **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
+  most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
+  It counts helicopters and anything slower than 140 knots; other planes only after six minutes, so an airliner
+  passing over is never cut short. With nothing else around it stays on the board. Settings → Limit helicopters and
+  circling planes to, or `?airtime=5`; Diagnostics notes each time it happens.
 - **Spotted today** (press **T**, or the Spotted today button): every plane that came within the spotting radius today, as its own tab, with airline,
   route, aircraft, registration, closest distance, altitude and remarks, filterable to overhead or special planes.
+  Special planes get the whole row tinted in their remark's colour, and **Legend** explains every remark. The tab
+  shows the whole day (relay 10 or newer; older relays send the newest 400).
 - **Logbook** (press **L**): every type, airline and individual aircraft ever spotted, with counts and first
-  sightings. The first sighting of a new type or airline is marked NEW TYPE or NEW AIRLINE on the board.
+  sightings, the most seen model, and how many were passenger, cargo, business jet, private and light, helicopter,
+  military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
+  relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
+  marked NEW TYPE or NEW AIRLINE on the board.
 - **Radar** (press **R**): a plan view of everything around you, with trails, the spotting radius, the airport's
   runways and the nearest planes. Add `#spotted`, `#logbook` or `#radar` to the address to open a tab at start.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface

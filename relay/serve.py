@@ -40,7 +40,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 9
+RELAY_VERSION = 10
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -336,7 +336,8 @@ def record(planes, lat, lon):
                      "desc": ac.get("desc") or "", "minDist": round(d, 2), "altAtMin": alt,
                      "maxSpeed": round(ac.get("gs") or 0), "lastSeen": now,
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
-                     "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac)}
+                     "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
+                     "adsbCat": str(ac.get("category") or "")}
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
                 _entries.insert(0, e)
@@ -344,6 +345,9 @@ def record(planes, lat, lon):
                 _by_hex[hx] = e
                 book = _book()
                 book["sightings"] = book.get("sightings", 0) + 1
+                cats = book.setdefault("categories", {})
+                cat = category_of(e)
+                cats[cat] = cats.get(cat, 0) + 1
                 learning = now - book.get("startedTs", 0) < LEARN_S
                 if e["typeCode"]:
                     _note_first(book["types"], e["typeCode"], e["desc"], e, "newType", learning)
@@ -358,6 +362,67 @@ def record(planes, lat, lon):
                 event("debug", f"Spotted {cs or hx} at {d:.1f} km", echo=False)
         if changed:
             _changed("day")
+
+
+# ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
+# a paid source). Order matters: a military helicopter counts as military.
+CARGO_AIRLINES = {"FDX", "UPS", "BCS", "DHK", "DHX", "DAE", "CLX", "ICV", "GEC", "BOX", "ABW", "CKS", "GTI", "PAC", "NCA",
+                  "CAO", "CKK", "MPH", "SQC", "TAY", "SWN", "ABR", "NPT", "CLU", "AHK", "MSX", "QAC", "CSB", "TPA", "LCO"}
+HELICOPTERS = {"EC35", "EC45", "EC30", "EC55", "EC75", "AS50", "AS55", "AS65", "AS32", "A109", "A119", "A139", "A169", "A189",
+               "H160", "H175", "B06", "B407", "B412", "B429", "B505", "R22", "R44", "R66", "S76", "S92", "NH90", "UH1",
+               "H60", "BK17", "EH10", "MI8", "AW09"}
+MILITARY_TYPES = {"C17", "C5M", "A400", "C130", "C30J", "K35R", "EUFI", "F16", "F35", "P3", "C295", "E390", "C160", "KC2",
+                  "A332M", "MRTT", "E3TF", "P8", "PC7", "PC9", "SB39", "L159", "C27J"}
+BIZJETS = {"C25A", "C25B", "C25C", "C25M", "C501", "C510", "C525", "C550", "C551", "C55B", "C560", "C56X", "C650", "C680",
+           "C68A", "C700", "C750", "CL30", "CL35", "CL60", "GL5T", "GL6T", "GL7T", "GLEX", "GLF2", "GLF3", "GLF4", "GLF5",
+           "GLF6", "G150", "G200", "G280", "GALX", "FA10", "FA20", "FA50", "FA6X", "FA7X", "FA8X", "F2TH", "F900", "LJ31",
+           "LJ35", "LJ40", "LJ45", "LJ60", "LJ70", "LJ75", "H25B", "H25C", "E50P", "E55P", "E545", "E550", "PC24", "PRM1",
+           "HDJT", "BE40", "SF50", "EA50", "ASTR", "E135L", "E35L", "CRJ2B"}
+LIGHT = {"C150", "C152", "C162", "C170", "C172", "C177", "C182", "C206", "C210", "P28A", "P28B", "P28R", "PA28", "PA32",
+         "PA34", "PA44", "PA46", "P46T", "DA20", "DA40", "DA42", "DA50", "DA62", "SR20", "SR22", "S22T", "BE33", "BE35",
+         "BE36", "BE58", "BE20", "B350", "M20P", "M20T", "TB10", "TB20", "TBM7", "TBM8", "TBM9", "PC12", "PC6", "EV97",
+         "C42", "DR40", "AT3", "SIRA", "WT9", "P208", "G115", "RV7", "RV8", "C208", "AA5", "P32R", "P32T", "PA24",
+         "PA18", "PA38", "A210", "DV20", "C441", "C421", "C414", "C340", "C310", "C337", "C185", "C180", "C140", "BE9L",
+         "BE10", "BE55", "BE76", "BE23", "BE24", "DA62", "P68", "P180", "PC21", "M20J", "M20R", "M20K", "SR2T", "TOBA",
+         "S205", "Z42", "Z43", "ZLIN", "TB9", "TB21", "AC11", "MAGI", "SAVG", "VIRS", "PIVI", "FDCT", "ECHO", "SHRK",
+         "TECN", "DIMO", "HUSK", "CRUZ", "PNR2", "BR23", "GLID", "ULAC"}
+
+
+def category_of(e):
+    t, cs = str(e.get("typeCode") or "").upper(), str(e.get("callsign") or "").upper()
+    adsb = str(e.get("adsbCat") or "").upper()
+    m = re.match(r"^([A-Z]{3})\d", cs)
+    if e.get("military") or t in MILITARY_TYPES:
+        return "military"
+    if t in HELICOPTERS or adsb == "A7":
+        return "helicopter"
+    if m and m.group(1) in CARGO_AIRLINES:
+        return "cargo"
+    if t in BIZJETS:
+        return "bizjet"
+    if t in LIGHT or (adsb == "A1" and not m):
+        return "private"
+    if m:
+        return "passenger"
+    if re.match(r"^[A-Z0-9]{3,7}$", cs):     # a registration as callsign (OEKON, DELFH, N60063): general aviation
+        return "private"
+    return "other"
+
+
+def _backfill_categories():
+    """Older logbooks have no categories: count them once from the saved days."""
+    b = _book()
+    if "categories" in b:
+        return
+    cats = {}
+    for f in sorted(DATA_DIR.glob("sightings-*.json")):
+        for e in _load(f, []):
+            c = category_of(e)
+            cats[c] = cats.get(c, 0) + 1
+    b["categories"] = cats
+    _changed("book")
+    if cats:
+        event("info", f"Logbook categories counted from {sum(cats.values())} saved sightings")
 
 
 def _route_for(cs):
@@ -801,14 +866,14 @@ def day_stats(entries, over_km):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
-def sightings_json(api=False, over_km=3.0):
+def sightings_json(api=False, over_km=3.0, everything_wanted=False):
     with _data_lock:
         _ensure_day()
         everything = list(_entries)
         day, rev = _day, _rev
     if api:
         everything = fr24_overlay(everything)
-    return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything[:400],
+    return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
             "stats": day_stats(everything, over_km)}
 
 
@@ -818,7 +883,7 @@ def logbook_json():
         regs = b.get("regs", {})
         top = sorted(regs.items(), key=lambda kv: -kv[1].get("count", 0))[:15]
         return {"version": RELAY_VERSION, "since": b.get("since"), "sightings": b.get("sightings", 0),
-                "learningUntil": int((b.get("startedTs", 0) + LEARN_S) * 1000),
+                "learningUntil": int((b.get("startedTs", 0) + LEARN_S) * 1000), "categories": b.get("categories", {}),
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]]}
@@ -924,7 +989,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 over = 3.0
             api = (q.get("api") or [""])[0] == "1"
-            data = sightings_json(api, over)
+            data = sightings_json(api, over, (q.get("all") or [""])[0] == "1")
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())
@@ -1035,6 +1100,7 @@ def main():
         _ensure_day()
         _book()
         _fr24_data()
+        _backfill_categories()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")

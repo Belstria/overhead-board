@@ -112,7 +112,16 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 #logbookView .vbody{position:absolute;top:calc(130px*var(--k));left:calc(64px*var(--k));right:calc(64px*var(--k));bottom:calc(36px*var(--k));overflow:auto;
   display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:calc(22px*var(--k)) calc(44px*var(--k));align-content:start;font-size:calc(21px*var(--k))}
 .lb .stack{display:flex;flex-direction:column;gap:calc(30px*var(--k))}
-.tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:calc(18px*var(--k))}
+.tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:calc(18px*var(--k))}
+.tile.tm b{font-size:calc(36px*var(--k));line-height:calc(56px*var(--k));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cats{grid-column:1/-1}
+.catrow{display:grid;grid-template-columns:repeat(7,1fr);gap:calc(12px*var(--k))}
+.cat{background:#0a0a0b;border-radius:6px;padding:calc(10px*var(--k)) calc(14px*var(--k)) calc(12px*var(--k));box-shadow:inset 0 2px 6px rgba(0,0,0,.8);position:relative;overflow:hidden}
+.cat b{display:block;font-size:calc(34px*var(--k));line-height:1.05;font-variant-numeric:tabular-nums}
+.cat span{color:var(--muted);font-size:calc(16px*var(--k));letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.cat span::before{content:"";display:inline-block;width:.62em;height:.62em;border-radius:50%;background:var(--c);margin-right:.45em;vertical-align:.02em}
+.cat i{position:absolute;left:0;bottom:0;height:calc(4px*var(--k));min-height:2px;background:var(--c);opacity:.85}
+.cat.zero b{color:#4a4c52}
 .tile{background:#0a0a0b;border-radius:6px;padding:calc(14px*var(--k)) calc(18px*var(--k));box-shadow:inset 0 2px 6px rgba(0,0,0,.8)}
 .tile b{display:block;font-size:calc(56px*var(--k));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
 .tile span,.lb h3{color:var(--accent,var(--amber));font-weight:600;font-size:calc(17px*var(--k));letter-spacing:.12em;text-transform:uppercase}
@@ -149,7 +158,20 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 .st .cut{display:block;max-width:calc(330px*var(--k));overflow:hidden;text-overflow:ellipsis}
 .st img{height:calc(30px*var(--k));width:calc(74px*var(--k));object-fit:contain;background:#f4f1ea;border-radius:3px;vertical-align:middle;padding:2px}
 .st .code{display:inline-block;width:calc(74px*var(--k));text-align:center;color:var(--accent,var(--amber));font-weight:700;background:#2a2b2f;border-radius:3px;padding:2px 0}
-.st .rm{display:inline-block;min-width:8.6em;text-align:center;font-weight:700;font-size:.74em;letter-spacing:.08em;padding:.3em .6em;border-radius:3px;background:#2a2b2f}
+.st td:first-child,.st th:first-child{padding-left:calc(14px*var(--k))}
+.st tr.sp td{background:var(--rt)}
+.st tr.sp td:first-child{box-shadow:inset calc(5px*var(--k)) 0 0 var(--rc)}
+.vtools .vbtn{font-size:max(12px,calc(18px*var(--k)));border:1px solid var(--line);border-radius:999px;padding:.2em .9em;color:var(--muted)}
+.vtools .vbtn[aria-pressed=true]{color:var(--ink);border-color:var(--ink)}
+#spotLegend{position:absolute;top:calc(118px*var(--k));right:calc(64px*var(--k));width:calc(1240px*var(--k));max-height:calc(900px*var(--k));overflow:auto;z-index:2;background:#0d0e10;
+  display:grid;grid-template-columns:1fr 1fr;gap:0 calc(40px*var(--k));align-content:start;
+  border:1px solid var(--line);border-radius:8px;padding:calc(20px*var(--k)) calc(24px*var(--k));font-size:calc(19px*var(--k));box-shadow:0 14px 44px rgba(0,0,0,.7)}
+#spotLegend h3{margin:calc(16px*var(--k)) 0 calc(8px*var(--k));color:var(--accent,var(--amber));font-weight:600;font-size:calc(15px*var(--k));letter-spacing:.12em;text-transform:uppercase}
+#spotLegend h3:first-child{margin-top:0}
+#spotLegend dl{display:grid;grid-template-columns:auto 1fr;gap:calc(7px*var(--k)) calc(16px*var(--k));margin:0;align-items:center}
+#spotLegend dd{margin:0;line-height:1.25}
+#spotLegend p{grid-column:1/-1;color:var(--muted);margin:calc(16px*var(--k)) 0 0;font-size:.9em;line-height:1.3}
+.st .rm,#spotLegend .rm{display:inline-block;min-width:8.6em;text-align:center;font-weight:700;font-size:.74em;letter-spacing:.08em;padding:.3em .6em;border-radius:3px;background:#2a2b2f}
 /* page switcher in the lower half */
 #pager{position:absolute;right:calc(52px*var(--k));top:calc(533px*var(--k));display:flex;align-items:center;z-index:2}
 #pager button{border:0;border-radius:50%;padding:0;width:calc(28px*var(--k));height:calc(28px*var(--k));min-width:18px;min-height:18px;display:grid;place-items:center;color:var(--muted)}
@@ -183,8 +205,9 @@ body.idle #pager .arr{opacity:0}
   <canvas id="flipCv" hidden aria-hidden="true"></canvas>
   <section class="view" id="spottedView" hidden aria-label="Spotted today">
     <div class="vhead"><h2>Spotted today <span>Heute gesichtet</span></h2>
-      <div class="vtools"><div class="chips" id="spotChips"></div><button class="vclose" type="button" data-close="spotted">Close</button></div></div>
+      <div class="vtools"><div class="chips" id="spotChips"></div><button class="vbtn" type="button" id="btnLegend" aria-pressed="false">Legend</button><button class="vclose" type="button" data-close="spotted">Close</button></div></div>
     <div class="vbody st" id="spottedBody"></div>
+    <div id="spotLegend" hidden></div>
   </section>
   <section class="view" id="radarView" hidden aria-label="Radar">
     <canvas id="radarCv"></canvas>
@@ -269,6 +292,14 @@ body.idle #pager .arr{opacity:0}
             <option value="45">45 seconds</option>
             <option value="60">60 seconds</option>
           </select></label>
+        <label>Limit helicopters and circling planes to
+          <select id="fAirtime">
+            <option value="2">2 minutes an hour</option>
+            <option value="3">3 minutes an hour</option>
+            <option value="5">5 minutes an hour</option>
+            <option value="10">10 minutes an hour</option>
+            <option value="0">No limit</option>
+          </select></label>
         <label class="full">Favourites: airlines, aircraft types or registrations, separated by commas
           <textarea class="fav" id="fFavs" rows="1" placeholder="e.g. Austrian, Emirates, A380, 747, OS"></textarea></label>
         <label class="span2">Night mode: dim the board and mute it
@@ -286,7 +317,7 @@ body.idle #pager .arr{opacity:0}
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport; Legend in that tab explains every remark. Helicopters and other planes that circle around (a police helicopter over an incident, say) get at most a few minutes an hour on the top half while other planes are around; airliners passing over are never cut short. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -346,7 +377,7 @@ const REMARK_LOOK = {
   "NO TRAFFIC":{fill:["#2f3135","#26282b"], fg:"#a6a49e"},
   OFFLINE:{fill:["#cb3a2f","#aa2d24"], fg:"#ffffff"},
   ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}, "CLOSE BY":{fg:"#86b8ff"},
-  "NEW TYPE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c"}, "NEW AIRLINE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c"},
+  "NEW TYPE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c", tint:"#efe2c0"}, "NEW AIRLINE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c", tint:"#efe2c0"},
   FAVOURITE:{fill:["#c93d80","#a72f68"], fg:"#ffffff"},
   SUPERJUMBO:GOLD, JUMBO:GOLD, BELUGA:GOLD, ANTONOV:GOLD, CONCORDE:GOLD, SPECIAL:GOLD,
   MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
@@ -355,7 +386,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -394,6 +425,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("favs")) S.favs = q.get("favs");
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
+  if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
 })();
 
 /* ---------- diagnostics log ---------- */
@@ -1255,7 +1287,7 @@ function rollDay(){
 }
 
 /* With relay version 5 the relay records every sighting; the board just mirrors its list. */
-let sightRev = null, sightBusy = false, relayStats = null;   // relayStats: Today in numbers over the whole day
+let sightRev = null, sightBusy = false, relayStats = null, sightDay = null;   // relayStats: Today in numbers over the whole day
 function fromRelay(r){
   const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
   const tn = typeName(r.typeCode, r.desc);
@@ -1276,7 +1308,7 @@ async function syncSightings(){
     const first = sightRev === null, known = new Set(spotted.map(e => e.id));
     spotted = (j.entries || []).map(fromRelay);
     relayStats = j.stats || null;
-    sightRev = String(j.rev);
+    sightRev = String(j.rev); sightDay = j.date || null;
     if (first) dlog("info", `Spotted today comes from the relay, shared by every screen (${spotted.length} so far)`);
     else for (const e of spotted.filter(e => !known.has(e.id)).reverse()) dlog("info", `Relay added ${e.flight || e.hex} to Spotted today (${(+e.minDist).toFixed(1)} km away)`);
     if (page === "spotted" || page === "stats") renderPage();
@@ -1285,6 +1317,28 @@ async function syncSightings(){
     updateFooter();
   } catch (e) { dlog("warn", `Couldn't read Spotted today from the relay: ${netError(e, "relay")}`); }
   finally { sightBusy = false; }
+}
+
+/* The board keeps the newest 400 sightings; the Spotted today tab asks the relay (version 10 or newer) for the whole
+   day when it's open. An older relay just sends the newest 400 again. */
+let fullDay = {at: 0, rev: null, date: null, list: null};
+async function loadFullDay(){
+  const now = Date.now();
+  if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
+  fullDay.busy = true; fullDay.at = now;
+  try {
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}`, {}, 20000);
+    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
+    if (j.stats) relayStats = j.stats;
+    renderSpottedView(); updateFooter();
+  } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
+  finally { fullDay.busy = false; }
+}
+// The newest sightings from the regular sync, then the rest of the day from the last full copy.
+function dayList(){
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return spotted;
+  const ids = new Set(spotted.map(e => e.id));
+  return spotted.concat(fullDay.list.filter(e => !ids.has(e.id)));
 }
 
 /* ---------- special aircraft and favourites ---------- */
@@ -1421,6 +1475,45 @@ function logPlanes(ok, R){
   if (dirty) saveLog();
   if (redraw) { renderPage(); updateFooter(); renderSpottedView(); }
 }
+/* Airtime. Planes that hang around (a police helicopter over an incident, a circling light aircraft) get at most
+   a few minutes an hour on the top half while other planes are around. Airliners passing over are never cut short:
+   a whole pass, from Inbound to Passed, takes less than six minutes. */
+const airtime = new Map();        // hex -> [[when, ms on the top half], ...] over the last hour
+const restLogged = new Map();     // hex -> when "giving other planes a turn" was last logged
+let airTick = 0;
+const SLOW_KT = 140, NORMAL_PASS_MS = 6 * 60000;
+function airUsed(hex, now){
+  const a = airtime.get(hex);
+  if (!a) return 0;
+  while (a.length && now - a[0][0] > 3600e3) a.shift();
+  if (!a.length) { airtime.delete(hex); return 0; }
+  return a.reduce((n, x) => n + x[1], 0);
+}
+function noteAirtime(now){
+  const dt = Math.min(now - airTick, 30000);
+  airTick = now;
+  if (!feat || !(dt > 0)) return;
+  let a = airtime.get(feat.hex);
+  if (!a) airtime.set(feat.hex, a = []);
+  a.push([now, dt]);
+}
+const hangsAround = ac => SPECIAL_TYPES[String(ac.t || "").toUpperCase()] === "HELICOPTER" || ac.category === "A7" || (typeof ac.gs === "number" && ac.gs < SLOW_KT);
+function restingPlanes(ok, R, now){
+  const cap = (+S.airtimeMin || 0) * 60000, out = new Set();
+  if (!cap) return out;
+  for (const o of ok) {
+    const used = airUsed(o.ac.hex, now);
+    if (used >= cap && (hangsAround(o.ac) || used >= Math.max(cap, NORMAL_PASS_MS))) out.add(o.ac.hex);
+  }
+  if (!out.size || !ok.some(o => o.dist <= R && !out.has(o.ac.hex))) return new Set();   // nobody else to show: keep it
+  for (const h of out) {
+    if (now - (restLogged.get(h) || 0) < 10 * 60000) continue;
+    restLogged.set(h, now);
+    const o = ok.find(x => x.ac.hex === h);
+    dlog("info", `${planeName(feat && feat.hex === h ? feat : null, o.ac)} has been on the board for ${Math.round(airUsed(h, now) / 60000)} min in the last hour; giving other planes a turn`);
+  }
+  return out;
+}
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
 let emptyStreak = 0, lastCount = 0;
@@ -1458,6 +1551,7 @@ function process(list){
     }
   } else if (feat) feat.missing = false;
   const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
+  noteAirtime(now);
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
   if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
@@ -1465,8 +1559,9 @@ function process(list){
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
-  const over = ok.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
-  const soon = ok.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
+  const rest = restingPlanes(ok, R, now), cand = rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok;
+  const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
+  const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
   let pick = null, mode = null;
   if (mine(over)) { pick = mine(over); mode = "over"; }
@@ -1475,16 +1570,16 @@ function process(list){
   else if (soon.length) { pick = soon[0]; mode = "soon"; }
 
   if (pick) setFeat(pick, mode);
-  else if (feat && ["over", "soon", "passed"].includes(feat.mode) && now - feat.lastSeen < HOLD()) {
+  else if (feat && !rest.has(feat.hex) && ["over", "soon", "passed"].includes(feat.mode) && now - feat.lastSeen < HOLD()) {
     const still = all.find(o => o.ac.hex === feat.hex);
     if (still) feat.o = still;
     if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
     feat.mode = "passed";
   } else {
     // Nothing overhead or on its way: show the most relevant plane in the radius, preferring ones coming closer.
-    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && ok.find(o => o.ac.hex === feat.hex);
+    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && cand.find(o => o.ac.hex === feat.hex);
     const coming = (a, b) => (a.tcpa > 0 ? 0 : 1) - (b.tcpa > 0 ? 0 : 1) || a.dist - b.dist;
-    const next = keep || ok.filter(o => o.dist <= R).sort(coming)[0] || ok.slice().sort((a, b) => a.dist - b.dist)[0];
+    const next = keep || cand.filter(o => o.dist <= R).sort(coming)[0] || cand.slice().sort((a, b) => a.dist - b.dist)[0];
     if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
     else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
   }
@@ -1880,9 +1975,58 @@ function remarkStyle(r){
   const L = REMARK_LOOK[r] || {};
   return `${L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : ""}color:${L.fg || COL.ink}`;
 }
+/* What every remark means, for the Legend in the Spotted today tab. */
+function renderLegend(){
+  const home = (S.home || "").toUpperCase() || "your home airport", OVK = overKm();
+  const groups = [
+    ["Status on the board", [
+      ["OVERHEAD", `Directly above you, within ${OVK} km (in the lists: it came that close)`],
+      ["INBOUND", "On course to pass overhead within three minutes"],
+      ["FLYING BY", "Getting closer, but won't pass overhead"],
+      ["OUTBOUND", "Moving away"],
+      ["PASSED", "Just passed overhead"],
+      ["NO TRAFFIC", "No planes around right now"],
+      ["OFFLINE", "No flight data for over a minute"]]],
+    ["Route", [
+      ["ARRIVING", `Flying to ${home}`],
+      ["DEPARTING", `Took off from ${home}`],
+      ["OVERFLIGHT", `Passing through, not to or from ${home}`]]],
+    ["Special (tinted rows)", [
+      ["EMERGENCY", "Squawking an emergency code: 7500, 7600 or 7700"],
+      ["DIVERTED", "Landing somewhere other than planned (Flightradar24)"],
+      ["SUPERJUMBO", "Airbus A380"],
+      ["JUMBO", "Boeing 747"],
+      ["BELUGA", "Airbus Beluga"],
+      ["ANTONOV", "Antonov An-124, An-225 or An-22"],
+      ["CONCORDE", "Concorde"],
+      ["SPECIAL", "Rare, unusual or government aircraft (aircraft database)"],
+      ["NEW TYPE", "First time this aircraft type is in the logbook"],
+      ["NEW AIRLINE", "First time this airline is in the logbook"],
+      ["FAVOURITE", "Matches one of your favourites in Settings"],
+      ["MILITARY", "Military aircraft"],
+      ["HELICOPTER", "Helicopter"],
+      ["CARGO", "Cargo flight (Flightradar24)"],
+      ["BIZJET", "Business jet (Flightradar24)"],
+      ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]];
+  const group = ([h, items]) => `<h3>${h}</h3><dl>` +
+    items.filter(([r]) => REMARKS.includes(r)).map(([r, t]) => `<dt><span class="rm" style="${remarkStyle(r)}">${r}</span></dt><dd>${escH(t)}</dd>`).join("") + "</dl>";
+  $("spotLegend").innerHTML = `<div>${group(groups[0])}${group(groups[1])}</div><div>${group(groups[2])}</div>` +
+    "<p>A plane can be more than one of these; the board shows the most special one, in the order above. Arriving, Departing and Overflight only show in the lists.</p>";
+}
+let legendOpen = false;
+function toggleLegend(on = !legendOpen){
+  legendOpen = on;
+  $("btnLegend").setAttribute("aria-pressed", String(on));
+  if (on) renderLegend();
+  $("spotLegend").hidden = !on;
+}
+$("btnLegend").onclick = e => { e.stopPropagation(); toggleLegend(); };
+$("spotLegend").onclick = e => e.stopPropagation();
+
 function renderSpottedView(){
   if (openView !== "spotted") return;
-  const body = $("spottedBody"), real = spotted.filter(e => !e.sample || S.demo), OVK = overKm();
+  loadFullDay();
+  const body = $("spottedBody"), real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
   const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
   $("spotChips").innerHTML = SPOT_FILTERS.map(([k, t]) => `<button type="button" data-f="${k}" aria-pressed="${spotFilter === k}">${t} ${counts[k]}</button>`).join("");
@@ -1897,7 +2041,7 @@ function renderSpottedView(){
   const logoCell = e => {
     const code = airlineCodeOf(e);
     if (!code) return '<span class="code">–</span>';
-    return S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(code)}.png" alt="${escH(code)}" onerror="this.outerHTML='<span class=&quot;code&quot;>${escH(code)}</span>'">` : `<span class="code">${escH(code)}</span>`;
+    return S.logos ? `<img loading="lazy" src="https://pics.avs.io/240/96/${encodeURIComponent(code)}.png" alt="${escH(code)}" onerror="this.outerHTML='<span class=&quot;code&quot;>${escH(code)}</span>'">` : `<span class="code">${escH(code)}</span>`;
   };
   const place = a => a ? `${escH(a.code || "")} <small style="display:inline">${escH(a.city || "")}</small>` : "";
   const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
@@ -1906,8 +2050,8 @@ function renderSpottedView(){
     `${relayV5() ? " · shared by every screen through the home relay" : ""}${S.demo ? " · sample flights (demo mode)" : ""}</p>` +
     (rows.length ? `<table><thead><tr><th>Time</th><th></th><th>Flight</th><th>From</th><th>To</th><th>Aircraft</th><th class="n">Closest</th><th class="n">Altitude</th><th>Remarks</th></tr></thead><tbody>` +
     rows.map(e => {
-      const r = remarkFor(e);
-      return `<tr><td class="t">${escH(e.time)}</td><td>${logoCell(e)}</td>` +
+      const r = remarkFor(e), L = isSpecial(e) && REMARK_LOOK[r], c = L && (L.tint || (L.fill ? L.fill[0] : L.fg));
+      return `<tr${c ? ` class="sp" style="--rc:${c};--rt:${rgba(c, .17)}"` : ""}><td class="t">${escH(e.time)}</td><td>${logoCell(e)}</td>` +
         `<td><b>${escH(e.flight || e.hex)}</b><small class="cut">${escH(e.airline || "")}</small></td>` +
         `<td><span class="cut">${place(e.from) || '<small style="display:inline">not listed</small>'}</span></td><td><span class="cut">${place(e.to)}</span></td>` +
         `<td><span class="cut">${escH(e.type || "")}</span><small>${escH(e.reg || "")}</small></td>` +
@@ -1917,6 +2061,18 @@ function renderSpottedView(){
     }).join("") + "</tbody></table>" : '<p class="msg">None of today\'s planes match this filter yet.</p>');
 }
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
+// What kind of flights the logbook has seen. The relay sorts them from the free data, so every board counts the same.
+const CATEGORIES = {passenger: ["Passenger", "#4f8fe0"], cargo: ["Cargo", "#c8874a"], bizjet: ["Business jets", "#e6c66e"], private: ["Private & light", "#9aa4ae"],
+  helicopter: ["Helicopters", "#22b0ae"], military: ["Military", "#8fa05a"], other: ["Other", "#6b6e75"]};
+function categoryRow(b){
+  if (!b.categories) return `<div class="cats"><h3>Categories</h3><p class="more">Counted by the home relay from version 10 on; restart it with the new serve.py.</p></div>`;
+  const c = b.categories, total = Object.values(c).reduce((a, n) => a + (n || 0), 0) || 1;
+  const keys = Object.keys(CATEGORIES).sort((x, y) => (x === "other") - (y === "other") || (c[y] || 0) - (c[x] || 0));
+  return `<div class="cats"><h3>Categories</h3><div class="catrow">` + keys.map(k => {
+    const n = c[k] || 0, [name, col] = CATEGORIES[k], pct = n / total * 100;
+    return `<div class="cat${n ? "" : " zero"}" style="--c:${col}" title="${pct.toFixed(1)}%"><b>${nf.format(n)}</b><span>${name}</span><i style="width:${n ? Math.max(2, pct).toFixed(1) : 0}%"></i></div>`;
+  }).join("") + "</div></div>";
+}
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
   return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
@@ -1927,7 +2083,8 @@ function demoLogbook(){
     regsTop: [["OE-LBN", "A320", 23], ["OE-LWA", "E195", 21], ["OE-LBO", "A320", 19], ["9H-QAA", "A320", 17], ["OE-LPA", "B772", 15], ["D-AIUA", "A320", 14]]
       .map(([reg, name, count], i) => ({reg, name, count, first: d(41 - i)})),
     regsRecent: [["UR-82008", "A124", .1], ["A6-EVB", "A388", .4], ["OE-LBW", "A20N", .7], ["9H-VUE", "B38M", 1.2], ["HA-LVF", "A21N", 1.6], ["D-AINZ", "A20N", 2]]
-      .map(([reg, name, first]) => ({reg, name, count: 1, first: d(first)}))};
+      .map(([reg, name, first]) => ({reg, name, count: 1, first: d(first)})),
+    categories: {passenger: 2104, bizjet: 71, private: 58, cargo: 36, helicopter: 27, military: 9, other: 9}};
 }
 async function renderLogbook(){
   const body = $("logbookBody");
@@ -1952,7 +2109,7 @@ async function renderLogbook(){
   const tile = (n, en) => `<div class="tile"><b>${nf.format(n || 0)}</b><span>${en}</span></div>`;
   const more = (n, shown) => n > shown ? `<p class="more">and ${n - shown} more</p>` : "";
   const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
-  const ROWS = 13;
+  const ROWS = 11;
   const typeRows = types.slice(0, ROWS).map(([code, it]) => `<tr><td>${escH(typeLabel(code, it.name))}${SPECIAL_TYPES[code] ? `<span class="tag">${SPECIAL_TYPES[code]}</span>` : ""}${NEW(it.first)}</td>` +
     `<td class="c">${escH(code)}</td><td class="n">${nf.format(it.count || 0)}</td><td class="d">${fmtDay(it.first)}</td></tr>`).join("");
   const logoImg = iata => iata && S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(iata)}.png" alt="" onerror="this.style.visibility='hidden'">` : "";
@@ -1960,11 +2117,14 @@ async function renderLogbook(){
     const al = AIRLINES[icao] || [], iata = it.iata || al[0] || "";
     return `<tr><td class="c">${logoImg(iata)}</td><td>${escH(al[1] || it.name || icao)}${NEW(it.first)}</td><td class="c">${escH(icao)}</td><td class="n">${nf.format(it.count || 0)}</td></tr>`;
   }).join("");
-  const regRows = list => (list || []).slice(0, 6).map(r => `<tr><td>${escH(r.reg)}${NEW(r.first)}</td><td class="c">${escH(typeLabel(r.name, ""))}</td><td class="n">${nf.format(r.count || 0)}</td><td class="d">${fmtDay(r.first)}</td></tr>`).join("");
+  const regRows = list => (list || []).slice(0, 5).map(r => `<tr><td>${escH(r.reg)}${NEW(r.first)}</td><td class="c">${escH(typeLabel(r.name, ""))}</td><td class="n">${nf.format(r.count || 0)}</td><td class="d">${fmtDay(r.first)}</td></tr>`).join("");
   const table = rows => rows ? `<table><tbody>${rows}</tbody></table>` : '<p class="more">None yet</p>';
   const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}) : "";
-  body.innerHTML = `<div class="tiles">${tile(b.sightings, "Sightings")}${tile(types.length, "Aircraft types")}${tile(airlines.length, "Airlines")}${tile(b.regsCount, "Individual aircraft")}</div>` +
+  const top = types[0], topTile = top ? `<div class="tile tm"><b>${escH(typeLabel(top[0], top[1].name))}</b><span>Most seen model · ${nf.format(top[1].count || 0)}</span></div>`
+    : `<div class="tile tm"><b>-</b><span>Most seen model</span></div>`;
+  body.innerHTML = `<div class="tiles">${tile(b.sightings, "Sightings")}${tile(types.length, "Aircraft types")}${tile(airlines.length, "Airlines")}${tile(b.regsCount, "Individual aircraft")}${topTile}</div>` +
     `<p class="since">${b.sample ? "Sample logbook (demo mode). " : ""}Counting since ${escH(since)}${learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : ""}</p>` +
+    categoryRow(b) +
     `<div><h3>Aircraft types</h3>${table(typeRows)}${more(types.length, ROWS)}</div>` +
     `<div><h3>Airlines</h3>${table(airRows)}${more(airlines.length, ROWS)}</div>` +
     `<div class="stack"><div><h3>Most seen aircraft</h3>${table(regRows(b.regsTop))}</div>` +
@@ -2113,12 +2273,13 @@ function updateFooter(){
   if (nightOn) txt.textContent += " · night mode";
   else if ((S.sound || S.chimes) && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
   $("pip").dataset.state = dot.dataset.state || "";
-  $("btnLog").textContent = `Spotted today (${spotted.filter(e => !e.sample).length})`;
+  const nSpot = relayV5() && relayStats ? Math.max(relayStats.planes, spotted.length) : spotted.filter(e => !e.sample).length;
+  $("btnLog").textContent = `Spotted today (${nSpot})`;
 }
 function openPanel(){
   $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
   $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
-  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || "";
+  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || ""; $("fAirtime").value = String(S.airtimeMin);
   $("fNight").checked = !!S.night; $("fNightFrom").value = S.nightFrom; $("fNightTo").value = S.nightTo; $("fNightDim").value = String(S.nightDim);
   $("fChimes").checked = !!S.chimes; $("fImperfect").checked = !!S.imperfect;
   $("panel").hidden = false;
@@ -2144,12 +2305,12 @@ $("btnSave").onclick = () => {
     home: clean($("fHome").value).slice(0, 3),
     maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
     sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked,
-    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked,
+    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked, airtimeMin: +$("fAirtime").value,
     nightFrom: $("fNightFrom").value || DEFAULTS.nightFrom, nightTo: $("fNightTo").value || DEFAULTS.nightTo, nightDim: +$("fNightDim").value || 40,
     chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
   saveSettings(); audioInit(); closePanel();
   if (wasDemo !== S.demo) {
-    feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent();
+    feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent(); fullDay = {at: 0, rev: null, date: null, list: null}; airtime.clear();
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
   }
   applyTheme(); applyNight(true);
