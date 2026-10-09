@@ -34,6 +34,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `airtime` | Test board: minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
 | `photo` | Test board: the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
 | `quality` | Test board: `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
+| `screen` | Test board: this screen's name, shown in the relay's list of screens | `screen=Living%20room` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -104,13 +105,15 @@ py serve.py --fr24-key YOUR_KEY --save
   while it is within the spotting radius. Without a photo, the screen there says so.
 - **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
   to stay on one page): **Recent flights** (the last eight planes that were on the top half, kept per screen),
-  **Today in numbers** (counted over the whole day by the relay), and **This aircraft** (a photo and registration details
-  of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
+  **This aircraft** (a photo and registration details of the plane on the board, when one exists) and **Today in
+  numbers** (counted over the whole day by the relay). They go Recent flights, This aircraft, Recent flights, This
+  aircraft, Today in numbers, and round again, so Today in numbers comes up every second round. When This aircraft
+  has nothing to show, Recent flights stays up for that turn. Pages change like one giant
   split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page; flaps
   still turning on the old page keep turning as it falls. A rail of backlit push buttons runs along the bottom of the
   board: the pages on the left, the views on the right. The button for what is on show is lit, with a small flicker as
   the lamp comes on. To pick a page yourself, press its button, or use the left and right arrow keys or the keys 1 to 3;
-  a page you pick stays for at least a minute.
+  a page you pick stays for at least a minute, and the rotation carries on from there.
 - **Views on the board**: Spotted today, Logbook, Radar and Settings take over the whole board below the header at
   once, without the falling page, and show on the board itself: lists and numbers on split flaps or engraved into the
   panel. Press the button again, Esc, or a page button to turn back; left alone for five minutes, a view turns back by itself. Add
@@ -150,6 +153,8 @@ py serve.py --fr24-key YOUR_KEY --save
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+- **Screen name** (Settings → System, or `?screen=Living%20room`): what the relay calls this screen in its list of
+  screens (relay 12 or newer, see below). The test boards also tell the relay how big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
   Fire TV and LG TVs, which get `1080`: drawn at 1080p, 30 frames a second, shorter flap runs and a smaller image cache,
   because their graphics chips struggle with the full board. `1440` sits in between, `high` forces the sharpest. The
@@ -218,6 +223,14 @@ Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
 the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
+
+**Screens (relay version 12).** The relay keeps track of which screens are using it and prints them in its window
+as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung
+TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is
+drawn and how long it has been on. Press **Enter** in the relay's window for the current list, or open
+`http://<computer-name>:8080/screens`; the board's diagnostics panel lists them too. The test boards send their name,
+size and drawing quality; the live board is known by its address and browser until it gets the same update. A screen
+that hasn't asked for anything for a minute counts as gone.
 
 **Shared history (relay version 5).** The relay records every plane that comes within its spotting radius
 itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It

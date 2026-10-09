@@ -285,7 +285,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, photoStyle:"screen", quality:"auto"};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, photoStyle:"screen", quality:"auto", screenName:""};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -327,6 +327,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
   if (q.get("photo")) S.photoStyle = q.get("photo");
   if (q.get("quality")) S.quality = q.get("quality");
+  if (q.get("screen")) S.screenName = q.get("screen").slice(0, 24);
 })();
 
 /* ---------- diagnostics log ---------- */
@@ -1271,8 +1272,15 @@ function geo(ac){
 }
 
 /* ---------- network ---------- */
+// Every request to the relay carries this page's session id, so the relay can tell the screens apart (see sayHello).
+const SID = (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(-12);
+function tagged(url){
+  const r = relay();
+  return r && String(url).startsWith(r + "/") ? url + (String(url).includes("?") ? "&" : "?") + "sid=" + SID : url;
+}
 function timedFetch(url, opts = {}, ms = 9000){
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  url = tagged(url);
   return fetch(url, {...opts, signal: ctl.signal, cache: "no-store"}).finally(() => clearTimeout(t));
 }
 function netError(e, what){
@@ -1282,6 +1290,7 @@ function netError(e, what){
 }
 async function fetchJSON(url, opts = {}, ms = 9000){
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  url = tagged(url);
   try {
     const res = await fetch(url, {...opts, signal: ctl.signal, cache: "no-store"});
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1679,7 +1688,7 @@ function setFeat(o, mode, alert = false){
   if (alert && !feat.alert) {
     feat.alert = true;
     dlog("info", `${planeName(feat, o.ac)} rang the bell: on the board, with This aircraft below`);
-    if (!view && !switching && !bigFlap.on) { pageHold = Date.now() + 90000; if (page !== "aircraft") goPage("aircraft"); }
+    if (!view && !switching && !bigFlap.on) { pageHold = Date.now() + 90000; syncRotation("aircraft"); if (page !== "aircraft") goPage("aircraft"); }
   } else if (!alert) feat.alert = false;
 }
 /* Every plane that comes within the spotting radius gets one entry per pass; its closest
@@ -1984,7 +1993,11 @@ function renderSpotted(){
   }
 }
 /* ---------- rotating pages in the lower half ---------- */
-const PAGE_ORDER = ["spotted", "stats", "aircraft"];
+const PAGE_ORDER = ["spotted", "aircraft", "stats"];
+// The rotation: Recent flights → This aircraft → Recent flights → This aircraft → Today in numbers, and round again.
+// A turn whose page has nothing to show stays on (or goes back to) Recent flights.
+const ROTATION = ["spotted", "aircraft", "spotted", "aircraft", "stats"];
+let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
 function pageTitle(p){
   return {spotted: ["Recent flights", "Letzte Flüge"], stats: ["Today in numbers", "Heute in Zahlen"],
@@ -2126,11 +2139,16 @@ function endBigFlap(){
   viewLanded();
   placePhoto();
 }
-function nextPage(dir = 1){
-  let i = PAGE_ORDER.indexOf(page);
-  for (let k = 0; k < PAGE_ORDER.length; k++) {
-    i = (i + dir + PAGE_ORDER.length) % PAGE_ORDER.length;
-    if (pageAvailable(PAGE_ORDER[i])) return goPage(PAGE_ORDER[i]);
+function nextPage(){
+  rotStep = (rotStep + 1) % ROTATION.length;
+  const p = pageAvailable(ROTATION[rotStep]) ? ROTATION[rotStep] : "spotted";
+  if (p === page) pageSince = Date.now(); else goPage(p);
+}
+// A page put up by hand or by a special plane: the rotation carries on from the turn after it.
+function syncRotation(p){
+  for (let k = 0; k < ROTATION.length; k++) {
+    const i = (rotStep + k) % ROTATION.length;
+    if (ROTATION[i] === p) { rotStep = i; return; }
   }
 }
 // Picking a page by hand: it stays for at least a minute before the rotation carries on.
@@ -2138,6 +2156,7 @@ let pageHold = 0;
 function pickPage(p){
   if (switching || bigFlap.on || !pageAvailable(p)) return;
   pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000;
+  syncRotation(p);
   if (p === page) { pageSince = Date.now(); return; }
   goPage(p);
 }
@@ -2153,7 +2172,7 @@ setInterval(() => {
   if (switching || bigFlap.on || view) return;
   if (feat && feat.alert && page === "aircraft") pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
   if (!pageAvailable(page)) return goPage("spotted");
-  if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage(1);
+  if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage();
 }, 1000);
 function renderPage(){
   if (switching) return;
@@ -2313,7 +2332,7 @@ function switchView(next, opts = {}){
   leaveFields(fromIds, false);
   hideViewParts();
   view = next; viewTouched = Date.now();
-  if (toPage) { page = toPage; pageSince = Date.now(); pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000; }
+  if (toPage) { page = toPage; syncRotation(toPage); pageSince = Date.now(); pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000; }
   const toIds = view ? VIEW_FIELDS[view] : boardIds();
   enterFields(toIds);
   switching = false;
@@ -2870,6 +2889,7 @@ const COCKPIT = [
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5}]},
   {title: ["System", "System"], items: [
+    {k: "screenName", type: "lcd", label: "Screen name", w: 300, max: 24},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "logos", type: "switch", label: "Airline logos"},
@@ -2993,7 +3013,7 @@ function applySettings(n){
     lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
-    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
+    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(), screenName: String(n.screenName || "").trim().slice(0, 24),
     maxAltFt: +n.maxAltFt, refreshS: +n.refreshS, rotateS: +n.rotateS, airtimeMin: +n.airtimeMin, nightDim: +n.nightDim || 40,
     speedPct: +n.speedPct || 85, overKm: +n.overKm || 3,
     nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
@@ -3004,7 +3024,7 @@ function applySettings(n){
   }
   applyTheme(); applyNight(true);
   if (hadLogos !== S.logos) layout();
-  resize(); renderPage(); if (feat) renderFeatured(); updateFooter(); poll(true);
+  resize(); renderPage(); if (feat) renderFeatured(); updateFooter(); poll(true); sayHello();
 }
 
 /* ---------- keys and the address ---------- */
@@ -3067,7 +3087,9 @@ function renderDiag(){
       const cls = x.state === "ok" ? "good" : x.state === "untried" ? "" : x.state === "resting" ? "meh" : "bad";
       const label = x.state === "resting" ? `resting ${x.resting_s} s` : x.state;
       return `<tr><td>${escH(x.name)}</td><td class="${cls}">${escH(label)}</td><td>${x.ok} ok · ${x.fail} failed</td><td>${escH(x.last_error || (x.last_ok_age_s != null ? "last answer " + x.last_ok_age_s + " s ago" : ""))}</td></tr>`;
-    }).join("") + "</tbody></table>";
+    }).join("") + "</tbody></table>" + (st.screens && st.screens.length ? `<h3>Screens using the relay · ${st.screens.length}</h3><table class="dsrc"><tbody>` +
+      st.screens.map(x => `<tr><td>${escH(x.name || x.device)}${x.sid === SID ? " <b>(this screen)</b>" : ""}</td><td>${escH(x.ip + (x.host ? " · " + x.host : ""))}</td>` +
+        `<td>${escH([x.board, x.size].filter(Boolean).join(" · "))}</td><td>on for ${escH(forText(x.on_s))}</td></tr>`).join("") + "</tbody></table>" : "");
   const lines = mergedLog();
   $("diagLog").innerHTML = lines.length ? lines.map(e => `<li class="lv-${e.level}"><time>${clockStr(e.t)}</time><span class="tag">${e.src}</span><span>${escH(e.msg)}</span></li>`).join("")
     : `<li class="lv-debug"><time></time><span class="tag"></span><span>Nothing logged yet.</span></li>`;
@@ -3087,7 +3109,8 @@ function openDiag(){
 function closeDiag(){ DIAG.open = false; $("diag").hidden = true; clearInterval(diagTimer); }
 function diagText(){
   const head = diagRows().map(([k, v]) => `${k}: ${v}`).join("\n");
-  const src = DIAG.relayStatus && DIAG.relayStatus.sources ? "\n\nRelay sources\n" + DIAG.relayStatus.sources.map(x => `${x.name}: ${x.state}${x.resting_s ? " " + x.resting_s + " s" : ""} · ${x.ok} ok · ${x.fail} failed · ${x.last_error || ""}`).join("\n") : "";
+  const src = (DIAG.relayStatus && DIAG.relayStatus.sources ? "\n\nRelay sources\n" + DIAG.relayStatus.sources.map(x => `${x.name}: ${x.state}${x.resting_s ? " " + x.resting_s + " s" : ""} · ${x.ok} ok · ${x.fail} failed · ${x.last_error || ""}`).join("\n") : "") +
+    (DIAG.relayStatus && DIAG.relayStatus.screens ? "\n\nScreens using the relay\n" + DIAG.relayStatus.screens.map(x => `${x.name || x.device}${x.sid === SID ? " (this screen)" : ""} · ${x.device} · ${x.ip}${x.host ? " (" + x.host + ")" : ""} · ${x.board} · ${x.size} · on for ${forText(x.on_s)}`).join("\n") : "");
   const log = mergedLog().map(e => `${new Date(e.t).toISOString().slice(11, 19)}  ${e.src.padEnd(5)}  ${e.level.padEnd(5)}  ${e.msg}`).join("\n");
   return `Overhead board diagnostics · ${new Date().toString()}\n${navigator.userAgent}\n\n${head}${src}\n\nLog (newest first)\n${log}\n`;
 }
@@ -3101,6 +3124,27 @@ $("diagCopy").onclick = async () => {
   btn.textContent = ok ? "Copied" : "Copy failed";
   setTimeout(() => { btn.textContent = "Copy log"; }, 2000);
 };
+
+function forText(sec){
+  const m = Math.floor(sec / 60);
+  return m < 1 ? "< 1 min" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+}
+
+/* ---------- saying hello to the relay ---------- */
+// The relay (version 12 or newer) keeps a list of the screens using it. Every minute, and when the page is hidden or
+// shown, the board tells it this screen's name, how big it is drawn and at what quality; closing the page says goodbye.
+const relayV12 = () => !!relay() && !relayLegacy && (window.OVERHEAD_RELAY_VERSION || 0) >= 12;
+function sayHello(){
+  if (!relayV12()) return;
+  const q = quality() === "high" ? "4K" : quality();
+  const params = new URLSearchParams({name: S.screenName || "", w: Math.round(W * PX), h: Math.round(H * PX),
+    q: (S.quality || "auto") === "auto" ? `auto (${q})` : q, vis: document.visibilityState || ""});
+  timedFetch(`${relay()}/hello?${params}`, {}, 6000).catch(() => {});
+}
+setTimeout(sayHello, 2000);
+setInterval(sayHello, 60000);
+document.addEventListener("visibilitychange", sayHello);
+addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeacon) navigator.sendBeacon(tagged(`${relay()}/bye`)); } catch {} });
 
 /* ---------- fullscreen, wake lock, idle cursor ---------- */
 let wakeLock = null;

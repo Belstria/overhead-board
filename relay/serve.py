@@ -15,7 +15,8 @@ If every source fails, the board keeps getting the last good answer for up to tw
 The relay also keeps the shared history: every plane that comes within the spotting radius is
 recorded once per pass (in data/sightings-<date>.json), looked up for its route and aircraft details,
 and added to a lifetime logbook of aircraft types, airlines and registrations (data/logbook.json).
-All screens show the same list, and it survives restarts. Airport weather (METAR) comes through
+All screens show the same list, and it survives restarts. The relay also keeps track of which screens are
+using it and prints them coming and going; press Enter in its window for the current list, or open /screens. Airport weather (METAR) comes through
 here too, because the weather service doesn't allow direct browser access either.
 
 Standard library only: works with Python 3.8+ on Windows, macOS, Linux or in a container.
@@ -25,6 +26,7 @@ import collections
 import csv
 import datetime
 import heapq
+import html
 import io
 import itertools
 import json
@@ -33,6 +35,7 @@ import os
 import queue
 import re
 import socket
+import sys
 import threading
 import time
 import urllib.error
@@ -41,7 +44,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 11
+RELAY_VERSION = 12
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -998,6 +1001,249 @@ def vie_status():
                 "arrivals": _vie["counts"][0], "departures": _vie["counts"][1], "error": _vie["error"]}
 
 
+# ---------- screens: which boards are using the relay ----------
+# Every board polls the relay every ten seconds or so, which is enough to tell which screens are open: by address and
+# browser, and on the test boards (which send a session id and say hello every minute) by name, size and drawing quality.
+# Screens coming and going are printed here and listed in the board's diagnostics; press Enter for the current list,
+# or open /screens in a browser.
+SCREEN_GONE_S = 60          # a screen that hasn't asked for anything for a minute has been closed or switched off
+SCREEN_NEW_S = 6            # wait this long for a new screen's hello before announcing it with what we know
+BOARD_PATHS = ("/aircraft/", "/adsblol/", "/airplaneslive/", "/sightings", "/logbook", "/metar", "/flightinfo", "/times",
+               "/status", "/hello", "/routeset", "/bye")
+_screens = {}
+_screens_gone = collections.deque(maxlen=12)
+_screens_lock = threading.Lock()
+_hosts = {}                 # address -> network name (or None while looking it up / when there is none)
+
+
+def device_of(ua):
+    """A short, human description of the device and browser from its user agent."""
+    u = ua or ""
+    if not u:
+        return "unknown device"
+    m = re.search(r"\bAFT[A-Z0-9]+", u)
+    if m:
+        return f"Fire TV ({m.group(0)})"
+    m = re.search(r"Tizen[ /]?([\d.]+)?", u)
+    if m and ("TV" in u or "SMART" in u):
+        return f"Samsung TV (Tizen {m.group(1)})" if m.group(1) else "Samsung TV"
+    if re.search(r"Web0S|webOS|NetCast", u):
+        return "LG TV (webOS)"
+    if "CrKey" in u:
+        return "Chromecast"
+    if re.search(r"Android TV|AndroidTV|GoogleTV|BRAVIA", u):
+        return "Android TV"
+    browser = ("headless Chrome" if "HeadlessChrome" in u else "Edge" if "Edg/" in u else "Opera" if "OPR/" in u
+               else "Samsung Internet" if "SamsungBrowser" in u else "Firefox" if "Firefox/" in u
+               else "Silk" if "Silk/" in u else "Chrome" if "Chrome/" in u or "CriOS" in u else "Safari" if "Safari/" in u else "")
+    system = ("iPhone" if "iPhone" in u else "iPad" if "iPad" in u else "Android tablet" if "Android" in u and "Mobile" not in u
+              else "Android phone" if "Android" in u else "Chromebook" if "CrOS" in u else "Windows PC" if "Windows" in u
+              else "Mac" if "Macintosh" in u else "Linux PC" if "Linux" in u else "")
+    return " · ".join(x for x in (system, browser) if x) or ua[:40]
+
+
+def board_of(referer):
+    """Which board a request came from: / is PROD, /test/ TEST, /test-api/ TEST-API."""
+    if not referer:
+        return None
+    m = PAGE.match(urllib.parse.urlsplit(referer).path or "/")
+    return (m.group(1) or "prod").upper() if m else None
+
+
+def _lookup_host(ip):
+    try:
+        name = socket.gethostbyaddr(ip)[0]
+    except (OSError, UnicodeError):
+        name = None
+    if name:
+        name = name.split(".")[0] if not re.fullmatch(r"[\d.:]+", name) else None
+    _hosts[ip] = name
+
+
+def host_of(ip):
+    if ip in ("127.0.0.1", "::1", "::ffff:127.0.0.1"):
+        return "this computer"
+    if ip not in _hosts:
+        _hosts[ip] = None
+        threading.Thread(target=_lookup_host, args=(ip,), daemon=True).start()
+    return _hosts.get(ip)
+
+
+def fmt_for(seconds):
+    m = int(seconds // 60)
+    if m < 1:
+        return "< 1 min"
+    if m < 60:
+        return f"{m} min"
+    h, m = divmod(m, 60)
+    if h < 24:
+        return f"{h} h {m:02d} min"
+    d, h = divmod(h, 24)
+    return f"{d} d {h} h"
+
+
+def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
+    """Note a request from a board. Requests from the same browser and board without a session id count as one screen."""
+    now = time.time()
+    board = board_of(referer)
+    sid = re.sub(r"[^a-z0-9]", "", (sid or "").lower())[:16]
+    if not sid and not board:       # not from a board page (a check from a script, say)
+        return
+    key = sid or f"{ip}|{ua}|{board or ''}"
+    with _screens_lock:
+        s = _screens.get(key)
+        if s is None:
+            if bye:
+                return
+            s = {"key": key, "sid": sid, "ip": ip, "ua": ua, "device": device_of(ua), "board": board, "name": "",
+                 "since": now, "first": now, "last": now, "requests": 0, "hello": None, "announced": False,
+                 "reloads": 0, "pending": "new", "bye": 0.0}
+            # The same browser opening the same board while its previous page has just said goodbye or gone quiet
+            # is a reload: it keeps its time on.
+            for k, o in list(_screens.items()):
+                if o["ip"] == ip and o["ua"] == ua and o["board"] == board and o["sid"] and (o["bye"] or now - o["last"] > 15):
+                    s.update(since=o["since"], reloads=o["reloads"] + 1, name=o["name"],
+                             pending="reload" if o["announced"] else "new", announced=o["announced"])
+                    del _screens[k]
+                    break
+            _screens[key] = s
+        s["last"] = now
+        s["requests"] += 1
+        if board:
+            s["board"] = board
+        if bye:
+            s["bye"] = now
+        if hello is not None:
+            s["hello"] = hello
+            name = hello.get("name", "")
+            if s["announced"] and name and s["name"] and name != s["name"]:
+                event("info", f"Screen renamed: {s['name']} is now {name}")
+            s["name"] = name
+    host_of(ip)
+
+
+def screen_info(s, now=None):
+    now = now or time.time()
+    h = s["hello"] or {}
+    size = f"{h['w']}×{h['h']}" if h.get("w") and h.get("h") else ""
+    quality = h.get("q", "")
+    return {"sid": s["sid"], "name": s["name"], "device": s["device"], "ip": s["ip"], "host": _hosts.get(s["ip"]) or ("this computer" if s["ip"] in ("127.0.0.1", "::1") else ""),
+            "board": s["board"] or "", "since": int(s["since"]), "on_s": int(now - s["since"]), "quiet_s": int(now - s["last"]),
+            "reloads": s["reloads"], "requests": s["requests"], "size": size, "quality": quality,
+            "hidden": h.get("vis") == "hidden", "ua": s["ua"][:200]}
+
+
+def describe(i):
+    """One line about a screen: its name, device, address, board and size."""
+    who = i["name"] or i["device"]
+    parts = [i["device"]] if i["name"] else []
+    parts.append(i["ip"] + (f" ({i['host']})" if i["host"] else ""))
+    if i["board"]:
+        parts.append(f"{i['board']} board")
+    if i["size"]:
+        parts.append(i["size"] + (f", quality {i['quality']}" if i["quality"] else ""))
+    return f"{who} — " + ", ".join(parts)
+
+
+def screens_list():
+    now = time.time()
+    with _screens_lock:
+        live = [screen_info(s, now) for s in _screens.values() if s["announced"] or now - s["first"] > SCREEN_NEW_S]
+        gone = list(_screens_gone)
+    live.sort(key=lambda i: i["since"])
+    return live, gone
+
+
+def _screen_watch():
+    while True:
+        time.sleep(3)
+        now = time.time()
+        say = []
+        with _screens_lock:
+            for k, s in list(_screens.items()):
+                i = screen_info(s, now)
+                if s["pending"] and (s["hello"] or now - s["first"] > SCREEN_NEW_S) and not s["bye"]:
+                    if s["pending"] == "reload":
+                        say.append(f"Screen reloaded the board: {describe(i)} (on for {fmt_for(i['on_s'])})")
+                    else:
+                        say.append(f"Screen connected: {describe(i)}")
+                    s["pending"] = None
+                    s["announced"] = True
+                elif (s["bye"] and now - s["bye"] > 10) or now - s["last"] > SCREEN_GONE_S:
+                    del _screens[k]
+                    if s["announced"]:
+                        on = s["last"] - s["since"]
+                        say.append(f"Screen gone: {describe(i)}, after {fmt_for(on)}" + (" (closed)" if s["bye"] else ""))
+                        _screens_gone.appendleft({**i, "on_s": int(on), "left": int(s["last"])})
+        for msg in say:
+            event("info", msg)
+
+
+def print_screens():
+    live, gone = screens_list()
+    lines = [f"{time.strftime('%H:%M:%S')}  Screens using the relay: {len(live) or 'none'}"]
+    for i in live:
+        extra = []
+        if i["reloads"]:
+            extra.append(f"reloaded {i['reloads']}×")
+        if i["hidden"]:
+            extra.append("in the background")
+        if i["quiet_s"] > 20:
+            extra.append(f"quiet for {i['quiet_s']} s")
+        lines.append(f"  · {describe(i)}; on for {fmt_for(i['on_s'])}" + (f" ({', '.join(extra)})" if extra else ""))
+    if gone:
+        lines.append("  Recently gone:")
+        for i in gone[:5]:
+            lines.append(f"  · {describe(i)}; left {time.strftime('%H:%M', time.localtime(i['left']))} after {fmt_for(i['on_s'])}")
+    print("\n".join(lines), flush=True)
+
+
+def _console():
+    """Pressing Enter in the relay's window lists the screens. Without a console window this simply stops."""
+    try:
+        while sys.stdin.readline():
+            print_screens()
+    except (OSError, ValueError, EOFError, RuntimeError):
+        pass
+
+
+def screens_html():
+    live, gone = screens_list()
+    esc = html.escape
+
+    def row(i, left=None):
+        when = f"left {time.strftime('%H:%M', time.localtime(left))} after {fmt_for(i['on_s'])}" if left else f"on for {fmt_for(i['on_s'])}"
+        notes = []
+        if not left and i["reloads"]:
+            notes.append(f"reloaded {i['reloads']}×")
+        if not left and i["hidden"]:
+            notes.append("in the background")
+        if not left and i["quiet_s"] > 20:
+            notes.append(f"quiet for {i['quiet_s']} s")
+        return (f"<tr><td><b>{esc(i['name'] or '—')}</b></td><td>{esc(i['device'])}</td><td>{esc(i['ip'])}"
+                f"{'<br><small>' + esc(i['host']) + '</small>' if i['host'] else ''}</td><td>{esc(i['board'] or '?')}</td>"
+                f"<td>{esc(i['size'] or '')}{'<br><small>quality ' + esc(i['quality']) + '</small>' if i['quality'] else ''}</td>"
+                f"<td>{esc(when)}{'<br><small>' + esc(', '.join(notes)) + '</small>' if notes else ''}</td>"
+                f"<td><small title=\"{esc(i['ua'])}\">{esc(i['ua'][:70])}{'…' if len(i['ua']) > 70 else ''}</small></td></tr>")
+
+    head = "<tr><th>Name</th><th>Device</th><th>Address</th><th>Board</th><th>Drawn at</th><th>Time</th><th>Browser</th></tr>"
+    body = (f"<h1>Screens using the relay <span>{len(live)}</span></h1>"
+            + (f"<table>{head}{''.join(row(i) for i in live)}</table>" if live else "<p>No screens right now.</p>")
+            + (f"<h2>Recently gone</h2><table>{head}{''.join(row(i, i['left']) for i in gone)}</table>" if gone else "")
+            + f"<p class=foot>Relay {RELAY_VERSION} · updated {time.strftime('%H:%M:%S')} · refreshes every 10 seconds. "
+              "Test boards send their name (Settings → Screen name, or <code>?screen=Living%20room</code>), size and drawing quality; "
+              "the live board is known by its address and browser.</p>")
+    return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+            "<meta http-equiv=refresh content=10><title>Screens · Overhead relay</title><style>"
+            ":root{color-scheme:dark}body{margin:0;padding:24px 16px;background:#141414;color:#e8e4da;font:15px/1.45 system-ui,sans-serif}"
+            "h1{font-size:22px;font-weight:600;margin:0 0 16px}h1 span{color:#f0b03c}h2{font-size:16px;margin:28px 0 10px;color:#aaa}"
+            "table{border-collapse:collapse;width:100%;max-width:1200px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #2b2b2b;vertical-align:top}"
+            "td:nth-child(n+3):nth-child(-n+6){white-space:nowrap}th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#f0b03c;font-weight:600}small{color:#8d887d}"
+            ".foot{color:#8d887d;font-size:13px;margin-top:24px;max-width:1200px}code{color:#e8e4da}"
+            "@media(max-width:760px){table,tbody,tr,td{display:block}th{display:none}tr{padding:8px 0;border-bottom:1px solid #2b2b2b}td{border:0;padding:2px 0}}"
+            "</style>" + body)
+
+
 def status_json():
     now = time.time()
     sources = []
@@ -1012,8 +1258,9 @@ def status_json():
         })
     with _lock:
         events = list(EVENTS)[-80:]
+    live, _ = screens_list()
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status(),
-            "vie": vie_status()}
+            "vie": vie_status(), "screens": live}
 
 
 _board_seen = {}
@@ -1071,9 +1318,20 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def query(self):
+        return urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+
+    def note_screen(self, path, hello=None, bye=False):
+        if path.startswith(BOARD_PATHS):
+            try:
+                screen_seen(self.client_address[0], self.headers.get("User-Agent") or "", self.headers.get("Referer") or "",
+                            (self.query().get("sid") or [""])[0], hello, bye)
+            except Exception as e:      # keeping count must never break the board
+                event("warn", f"Couldn't note a screen: {e}", echo=False)
+
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -1086,6 +1344,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))
         if path == "/health":
             return self.reply(200, "text/plain", b"ok")
+        if path == "/hello":
+            q = self.query()
+            arg = lambda k, n: re.sub(r"[\x00-\x1f<>]", "", (q.get(k) or [""])[0]).strip()[:n]
+            num = lambda k: int(arg(k, 6)) if arg(k, 6).isdigit() else None
+            self.note_screen(path, {"name": arg("name", 40), "w": num("w"), "h": num("h"), "q": arg("q", 16), "vis": arg("vis", 10)})
+            return self.reply(200, "application/json", b'{"ok":true}')
+        if path == "/screens":
+            return self.reply(200, "text/html; charset=utf-8", screens_html().encode("utf-8"))
+        self.note_screen(path)
         if path == "/sightings":
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
             try:
@@ -1139,8 +1406,13 @@ class Handler(BaseHTTPRequestHandler):
     do_HEAD = do_GET
 
     def do_POST(self):
-        if self.path.split("?", 1)[0] != "/routeset":
+        path = self.path.split("?", 1)[0]
+        if path == "/bye":              # a board page closing or reloading
+            self.note_screen(path, bye=True)
+            return self.reply(204, "text/plain", b"")
+        if path != "/routeset":
             return self.reply(404, "text/plain", b"Not found")
+        self.note_screen(path)
         length = int(self.headers.get("Content-Length") or 0)
         if length > 2048:
             return self.reply(413, "text/plain", b"Too large")
@@ -1205,6 +1477,7 @@ def main():
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
+    threading.Thread(target=_screen_watch, daemon=True).start()
     with _data_lock:
         _ensure_day()
         _book()
@@ -1220,7 +1493,9 @@ def main():
         print(f"  http://{ip}:{ARGS.port}")
     if fr24_key():
         print(f"Flightradar24 lookups are on for boards that use them (at most {_fr24_budget():,} credits a month).")
-    print("Problems with the flight data sources are printed below. Press Ctrl+C to stop.", flush=True)
+    print("Problems with the flight data sources and screens coming and going are printed below.")
+    print(f"Press Enter for the screens using the relay (also at http://localhost:{ARGS.port}/screens). Press Ctrl+C to stop.", flush=True)
+    threading.Thread(target=_console, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
