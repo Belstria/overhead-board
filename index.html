@@ -837,20 +837,46 @@ function baseInfo(ac){
   return {callsign: cs, flightNo: al && al[0] ? al[0] + " " + m[2] : (cs || ac.r || (ac.hex || "").toUpperCase()),
     airline: al ? al[1] : "", airlineCode: al ? al[0] : "", from: null, to: null, type: tn.name, typeSure: tn.sure, reg: ac.r || ""};
 }
+// Route databases go by callsign, and airlines reuse callsigns: Ryanair's RYR3EG can be listed as Newcastle to
+// Dublin while that callsign is flying something else entirely. So a listed route is only used when the plane
+// is actually somewhere along it, heading the right way.
+function routeFits(from, to, ac){
+  if (!from || !to || from.lat == null || to.lat == null || ac.lat == null || ac.lon == null) return true;
+  const rad = Math.PI / 180, R = 6371, p = {lat: ac.lat, lon: ac.lon};
+  const ang = (a, b) => Math.acos(Math.min(1, Math.max(-1, Math.sin(a.lat * rad) * Math.sin(b.lat * rad) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lon - a.lon) * rad))));
+  const brg = (a, b) => Math.atan2(Math.sin((b.lon - a.lon) * rad) * Math.cos(b.lat * rad),
+    Math.cos(a.lat * rad) * Math.sin(b.lat * rad) - Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lon - a.lon) * rad));
+  const len = ang(from, to) * R, d13 = ang(from, p), toDest = ang(p, to) * R;
+  if (Math.min(d13 * R, toDest) < 80) return true;                       // climbing out or coming in
+  const off = brg(from, p) - brg(from, to);
+  const xt = Math.asin(Math.sin(d13) * Math.sin(off)) * R;                // distance from the straight route
+  const at = Math.acos(Math.min(1, Math.max(-1, Math.cos(d13) / Math.cos(xt / R)))) * R * (Math.cos(off) < 0 ? -1 : 1);
+  if (Math.abs(xt) > Math.max(120, len * .3) || at < -100 || at > len + 100) return false;
+  if (ac.track != null) {                                                 // and flying towards the destination
+    const want = (brg(p, to) / rad + 360) % 360, diff = Math.abs(((ac.track - want + 540) % 360) - 180);
+    if (diff > 100) return false;
+  }
+  return true;
+}
 async function routeLookup(cs, ac){
   try {
     const j = await fetchJSON(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(cs)}`);
     const fr = j && j.response && j.response.flightroute;
     if (fr && fr.origin && fr.destination) {
       const out = {
-        from: {code: fr.origin.iata_code || fr.origin.icao_code, city: fr.origin.municipality || fr.origin.name},
-        to: {code: fr.destination.iata_code || fr.destination.icao_code, city: fr.destination.municipality || fr.destination.name}
+        from: {code: fr.origin.iata_code || fr.origin.icao_code, city: fr.origin.municipality || fr.origin.name, lat: fr.origin.latitude, lon: fr.origin.longitude},
+        to: {code: fr.destination.iata_code || fr.destination.icao_code, city: fr.destination.municipality || fr.destination.name, lat: fr.destination.latitude, lon: fr.destination.longitude}
       };
-      if (fr.callsign_iata) out.flightNo = fmtFlight(fr.callsign_iata);
-      if (fr.airline && fr.airline.name) out.airline = fr.airline.name;
-      if (fr.airline && fr.airline.iata) out.airlineCode = fr.airline.iata;
-      dlog("debug", `Route for ${cs}: ${out.from.code} → ${out.to.code} (adsbdb)`);
-      return out;
+      if (!routeFits(out.from, out.to, ac)) {
+        dlog("info", `Ignoring the listed route ${out.from.code} → ${out.to.code} for ${cs}: the plane is nowhere near it (the callsign is used for other flights too)`);
+      } else {
+        if (fr.callsign_iata) out.flightNo = fmtFlight(fr.callsign_iata);
+        if (fr.airline && fr.airline.name) out.airline = fr.airline.name;
+        if (fr.airline && fr.airline.iata) out.airlineCode = fr.airline.iata;
+        dlog("debug", `Route for ${cs}: ${out.from.code} → ${out.to.code} (adsbdb)`);
+        return out;
+      }
     }
   } catch (e) {
     if (!/HTTP 404/.test(e.message)) dlog("warn", `adsbdb route lookup for ${cs} failed: ${netError(e, "adsbdb")}`);
@@ -861,7 +887,8 @@ async function routeLookup(cs, ac){
       body: JSON.stringify({planes: [{callsign: cs, lat: ac.lat, lng: ac.lon}]})
     });
     const r = Array.isArray(j) ? j[0] : null, ap = r && r._airports;
-    if (ap && ap.length >= 2 && r.plausible !== false && r.plausible !== 0) {
+    const fits = ap && ap.length >= 2 && routeFits(ap[0], ap[ap.length - 1], ac);
+    if (ap && ap.length >= 2 && r.plausible !== false && r.plausible !== 0 && fits) {
       const a = ap[0], b = ap[ap.length - 1];
       dlog("debug", `Route for ${cs}: ${a.iata || a.icao} → ${b.iata || b.icao} (adsb.lol)`);
       return {from: {code: a.iata || a.icao, city: a.location || a.name}, to: {code: b.iata || b.icao, city: b.location || b.name}};

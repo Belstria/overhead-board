@@ -97,6 +97,8 @@ The logbook, the weather report and a Spotted today list shared by every screen 
 
 - Live aircraft positions: [adsb.lol](https://adsb.lol), with [airplanes.live](https://airplanes.live) as a fallback.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
+  These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
+  shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
   code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
 

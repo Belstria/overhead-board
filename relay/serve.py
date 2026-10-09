@@ -35,7 +35,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 6
+RELAY_VERSION = 7
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -314,6 +314,7 @@ def record(planes, lat, lon):
                      "callsign": cs, "reg": ac.get("r") or "", "typeCode": str(ac.get("t") or "").upper(),
                      "desc": ac.get("desc") or "", "minDist": round(d, 2), "altAtMin": alt,
                      "maxSpeed": round(ac.get("gs") or 0), "lastSeen": now,
+                     "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac)}
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
@@ -348,8 +349,10 @@ def _route_for(cs):
             fr = json.loads(body).get("response", {}).get("flightroute") or {}
             o, d, al = fr.get("origin") or {}, fr.get("destination") or {}, fr.get("airline") or {}
             if o and d:
-                out = {"from": {"code": o.get("iata_code") or o.get("icao_code"), "city": o.get("municipality") or o.get("name")},
-                       "to": {"code": d.get("iata_code") or d.get("icao_code"), "city": d.get("municipality") or d.get("name")},
+                out = {"from": {"code": o.get("iata_code") or o.get("icao_code"), "city": o.get("municipality") or o.get("name"),
+                                "lat": o.get("latitude"), "lon": o.get("longitude")},
+                       "to": {"code": d.get("iata_code") or d.get("icao_code"), "city": d.get("municipality") or d.get("name"),
+                              "lat": d.get("latitude"), "lon": d.get("longitude")},
                        "flightIata": fr.get("callsign_iata") or "", "airlineName": al.get("name") or "",
                        "airlineIata": al.get("iata") or "", "airlineIcao": al.get("icao") or ""}
         except (ValueError, AttributeError):
@@ -357,6 +360,61 @@ def _route_for(cs):
     if status in (200, 404):
         _route_cache[cs] = out
     return out
+
+
+def _route_fits(route, pos):
+    """Callsigns get reused (Ryanair's RYR3EG is listed as Newcastle to Dublin, whatever it is flying today),
+    so a listed route only counts when the plane is actually along it and heading the right way."""
+    f, t = (route or {}).get("from") or {}, (route or {}).get("to") or {}
+    if not pos or None in (f.get("lat"), f.get("lon"), t.get("lat"), t.get("lon")):
+        return True
+    la, lo, track = pos
+    r = math.radians
+
+    def ang(a1, o1, a2, o2):
+        c = math.sin(r(a1)) * math.sin(r(a2)) + math.cos(r(a1)) * math.cos(r(a2)) * math.cos(r(o2 - o1))
+        return math.acos(max(-1.0, min(1.0, c)))
+
+    def brg(a1, o1, a2, o2):
+        return math.atan2(math.sin(r(o2 - o1)) * math.cos(r(a2)),
+                          math.cos(r(a1)) * math.sin(r(a2)) - math.sin(r(a1)) * math.cos(r(a2)) * math.cos(r(o2 - o1)))
+
+    R = 6371.0
+    length = ang(f["lat"], f["lon"], t["lat"], t["lon"]) * R
+    d13 = ang(f["lat"], f["lon"], la, lo)
+    if min(d13 * R, ang(la, lo, t["lat"], t["lon"]) * R) < 80:
+        return True
+    off = brg(f["lat"], f["lon"], la, lo) - brg(f["lat"], f["lon"], t["lat"], t["lon"])
+    xt = math.asin(math.sin(d13) * math.sin(off)) * R
+    at = math.acos(max(-1.0, min(1.0, math.cos(d13) / math.cos(xt / R)))) * R * (-1 if math.cos(off) < 0 else 1)
+    if abs(xt) > max(120.0, length * 0.3) or at < -100 or at > length + 100:
+        return False
+    if isinstance(track, (int, float)):
+        want = (math.degrees(brg(la, lo, t["lat"], t["lon"])) + 360) % 360
+        if abs(((track - want + 540) % 360) - 180) > 100:
+            return False
+    return True
+
+
+def _routeset_for(cs, pos):
+    """adsb.lol's route service, which also knows where the plane is."""
+    if not pos:
+        return None
+    status, _, body, _ = fetch(ROUTESET, data=json.dumps({"planes": [{"callsign": cs, "lat": pos[0], "lng": pos[1]}]}).encode(),
+                               content_type="application/json")
+    if status != 200:
+        return None
+    try:
+        r = (json.loads(body) or [None])[0] or {}
+        ap = r.get("_airports") or []
+        if len(ap) < 2 or r.get("plausible") in (False, 0):
+            return None
+        a, b = ap[0], ap[-1]
+        out = {"from": {"code": a.get("iata") or a.get("icao"), "city": a.get("location") or a.get("name"), "lat": a.get("lat"), "lon": a.get("lon")},
+               "to": {"code": b.get("iata") or b.get("icao"), "city": b.get("location") or b.get("name"), "lat": b.get("lat"), "lon": b.get("lon")}}
+        return out if _route_fits(out, pos) else None
+    except (ValueError, AttributeError, IndexError, TypeError):
+        return None
 
 
 def _aircraft_for(hx):
@@ -389,8 +447,17 @@ def _enricher():
         if not e:
             continue
         route = _route_for(cs) if cs else None
+        airline = {k: route[k] for k in ("airlineName", "airlineIata", "airlineIcao") if route and route.get(k)}
+        if route and not _route_fits(route, e.get("pos")):
+            event("info", f"Ignoring the listed route {route['from']['code']} → {route['to']['code']} for {cs}: "
+                          "the plane is nowhere near it (the callsign is used for other flights too)")
+            route = _routeset_for(cs, e.get("pos"))
+            if route:
+                route.update(airline)
         info = _aircraft_for(hx) if hx else None
         with _data_lock:
+            if airline:
+                e.update(airline)
             if route:
                 e.update(route)
             if info:
