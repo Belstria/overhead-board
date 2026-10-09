@@ -88,12 +88,11 @@ py serve.py --fr24-key YOUR_KEY --save
 `http://<computer-name>:8080/test/`. It currently adds:
 
 - **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
-  to stay on one page). The pages are Spotted today, **Next over us** (planes on course to pass close by, with a
-  countdown), **Vienna airport** (runways in use worked out from live traffic, plus the latest weather report),
-  **Today in numbers**, and **This aircraft** (a photo and registration details of the plane on the board, when
-  one exists). Pages without anything to show are skipped. Pages change like one giant split flap: the whole lower half
-  tips forward, falls and settles with a small bounce, revealing the next page. To pick a page yourself, click its dot or the arrows next to
-  the page title, or use the left and right arrow keys or the keys 1 to 5; a page you pick stays for at least a minute.
+  to stay on one page): Spotted today, **Today in numbers**, and **This aircraft** (a photo and registration details
+  of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
+  split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. To pick
+  a page yourself, click its dot or the arrows next to the page title, or use the left and right arrow keys or the keys
+  1 to 3; a page you pick stays for at least a minute.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -112,7 +111,7 @@ py serve.py --fr24-key YOUR_KEY --save
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches. Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
 
-The logbook, the weather report and a Spotted today list shared by every screen need relay version 5 (see below).
+The logbook and a Spotted today list shared by every screen need relay version 5 or newer (see below).
 
 ## Controls
 
@@ -178,8 +177,7 @@ window and appear in the board's diagnostics panel.
 itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It
 also keeps a lifetime logbook. Both live in a `data` folder next to `serve.py` (`sightings-<date>.json` and
 `logbook.json`). A new logbook spends its first day learning what normally flies over, so NEW TYPE and
-NEW AIRLINE marks start the day after. The relay also fetches the airport's weather report from
-aviationweather.gov every ten minutes. The spotting radius the relay uses is `--radius` (15 km by default).
+NEW AIRLINE marks start the day after. The spotting radius the relay uses is `--radius` (15 km by default).
 
 The relay always serves the latest published board from GitHub Pages (it checks for a newer one at most once
 a minute, so a change shows up a minute or two after it is published; a local copy is kept for when GitHub is

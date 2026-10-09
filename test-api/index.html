@@ -286,7 +286,7 @@ body.idle #pager .arr{opacity:0}
         <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
         <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
         <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 5 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
+        <p class="hint">Click the board for fullscreen. The arrows and dots next to the page title, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
       </form>
       <div class="row">
         <button type="button" id="btnClose">Close</button>
@@ -453,23 +453,11 @@ for (let i = 0; i < LIST_ROWS; i++) {
   def(`l${i}type`,   {kind:"chars", n:18, dur:60, loud:.5, label:lab("Aircraft","Flugzeug")});
   def(`l${i}remarks`,{kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks","Hinweis")});
 }
-// The lower half rotates between pages. Spotted today and Next over us share the list flaps; the
-// other pages have their own flaps, which are swapped in after the current ones have flipped blank.
+// The lower half rotates between pages. Spotted today uses the list flaps; the other pages have their own.
 const LIST_IDS = [];
 for (let i = 0; i < LIST_ROWS; i++) LIST_IDS.push(`l${i}time`, `l${i}logo`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`);
-const PAGE_FIELDS = {airport: [], stats: [], aircraft: []};
+const PAGE_FIELDS = {stats: [], aircraft: []};
 function pdef(pg, id, o){ def(id, {...o, pageOff: true}); PAGE_FIELDS[pg].push(id); }
-pdef("airport", "apArr",     {kind:"chars", n:9,  dur:70, style:"amber", label:["Landing on","Landung"]});
-pdef("airport", "apDep",     {kind:"chars", n:9,  dur:70, style:"amber", label:["Taking off from","Start"]});
-pdef("airport", "apWind",    {kind:"chars", n:14, dur:70, label:["Wind","Wind"]});
-pdef("airport", "apVis",     {kind:"chars", n:8,  dur:70, label:["Visibility","Sicht"]});
-pdef("airport", "apTemp",    {kind:"chars", n:7,  dur:70, label:["Temperature","Temperatur"]});
-pdef("airport", "apQnh",     {kind:"chars", n:9,  dur:70, label:["Pressure","Luftdruck"]});
-pdef("airport", "apCloud",   {kind:"chars", n:16, dur:70, label:["Clouds","Wolken"]});
-pdef("airport", "apCond",    {kind:"chars", n:12, dur:70, label:["Weather","Wetter"]});
-pdef("airport", "apRaw1",    {kind:"chars", n:64, dur:55, label:["Weather report (METAR)","Wetterbericht"]});
-pdef("airport", "apRaw2",    {kind:"chars", n:64, dur:55});
-pdef("airport", "apTraffic", {kind:"chars", n:64, dur:55, style:"amber", label:["Last 20 minutes","Letzte 20 Minuten"]});
 pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flugzeuge"]});
 pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
 pdef("stats", "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
@@ -524,11 +512,6 @@ function layout(){
     placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.45);
   }
   const L0 = Y.list0;
-  placeRow(["apArr","apDep","apWind","apVis"], [1.2, 1.2, 1.2], L0 + 18, IW / 43.6, 1.45);
-  placeRow(["apTemp","apQnh","apCloud","apCond"], [1.2, 1.2, 1.2], L0 + 122, IW / 47.6, 1.45);
-  placeRow(["apRaw1"], [], L0 + 230, IW / 64, 1.45);
-  placeRow(["apRaw2"], [], L0 + 274, IW / 64, 1.45);
-  placeRow(["apTraffic"], [], L0 + 352, IW / 64, 1.45);
   placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [2.5, 2.5, 2.5, 2.5], L0 + 18, IW / 28, 1.45);
   [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 150 + i * 92, IW / 50, 1.45));
   const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 26;
@@ -882,8 +865,7 @@ function drawStatic(){
   }
   for (const f of Object.values(fields)) {
     if (f.hidden || f.pageOff) continue;
-    const lab = (page === "next" && NEXT_LABELS[f.id]) || f.label;
-    if (lab) label(g, f, lab[0], lab[1]);
+    if (f.label) label(g, f, f.label[0], f.label[1]);
   }
   const [t1, t2] = pageTitle(page);
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
@@ -1199,7 +1181,6 @@ function apiLookup(cs, hex, info, tries = 0){
 }
 function infoChanged(info){
   if (feat && feat.info === info) { renderFeatured(); if (page === "aircraft") renderAircraft(); }
-  if (page === "next") renderNext();
 }
 const infoCache = new Map();
 function enrich(ac){
@@ -1234,7 +1215,6 @@ const DEMO = [
   {hex:"demo05", flight:"RYR8RT", t:"B38M", r:"9H-VUA", alt:11800, rate:2200, track:250, off:-1.4,
    info:{flightNo:"FR 2381", airline:"Ryanair", from:{code:"VIE",city:"Vienna"}, to:{code:"STN",city:"London"}}}
 ];
-const DEMO_METAR = "LOWW 091350Z 30012KT 9999 FEW040 SCT250 14/06 Q1018 NOSIG";
 const DEMO_CYCLE = 60000, DEMO_FLY = 40000, DEMO_KMS = .25;
 function demoAircraft(){
   const T = Date.now(), d = DEMO[Math.floor(T / DEMO_CYCLE) % 5], t = T % DEMO_CYCLE;   // the 5 flying samples; the 6th is the distant extra
@@ -1510,8 +1490,6 @@ function process(list){
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
   if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
-  lastOkList = ok;
-  trackRunways(all);
   radarTrack(all, now);
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
@@ -1542,7 +1520,7 @@ function process(list){
   checkChimes(ok, R);
   renderFeatured();
   if (feat) { lookupDetails(feat.hex); preloadPhoto(); }
-  if (page === "next" || page === "aircraft" || page === "airport") renderPage();
+  if (page === "aircraft") renderPage();
 }
 
 /* ---------- what goes on the board ---------- */
@@ -1593,20 +1571,15 @@ function renderSpotted(){
   }
 }
 /* ---------- rotating pages in the lower half ---------- */
-const PAGE_ORDER = ["spotted", "next", "airport", "stats", "aircraft"];
-const NEXT_LABELS = {l0time: ["In", "In"], l0remarks: ["Passes", "Passiert"]};
+const PAGE_ORDER = ["spotted", "stats", "aircraft"];
 let page = "spotted", pageSince = Date.now(), switching = false;
 function pageTitle(p){
-  const ap = AIRPORTS[S.home];
-  return {spotted: ["Spotted today", "Heute gesichtet"], next: ["Next over us", "Als Nächstes über uns"],
-    airport: ap ? [`${ap.name} airport`, ap.name === "Vienna" ? "Flughafen Wien" : "Flughafen"] : ["Airport", "Flughafen"],
-    stats: ["Today in numbers", "Heute in Zahlen"], aircraft: ["This aircraft", "Dieses Flugzeug"]}[p];
+  return {spotted: ["Spotted today", "Heute gesichtet"], stats: ["Today in numbers", "Heute in Zahlen"],
+    aircraft: ["This aircraft", "Dieses Flugzeug"]}[p];
 }
-const fieldsOf = p => p === "spotted" || p === "next" ? LIST_IDS : PAGE_FIELDS[p];
+const fieldsOf = p => p === "spotted" ? LIST_IDS : PAGE_FIELDS[p];
 function pageAvailable(p){
   if (p === "spotted") return true;
-  if (p === "next") return upcoming().length > 0;
-  if (p === "airport") return !!AIRPORTS[S.home] && (!!metarState.raw || rwyLog.size > 0);
   if (p === "stats") return spotted.length > 0;
   if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo); }
   return false;
@@ -1778,134 +1751,12 @@ setInterval(() => {
 function renderPage(){
   if (switching) return;
   if (page === "spotted") renderSpotted();
-  else if (page === "next") renderNext();
-  else if (page === "airport") renderAirport();
   else if (page === "stats") renderStats();
   else if (page === "aircraft") renderAircraft();
 }
 function blankRow(i, d){
   for (const k of ["time", "flight", "from", "to", "type"]) setChars(`l${i}${k}`, "", d);
   setWord(`l${i}logo`, "", d); setWord(`l${i}remarks`, "", d);
-}
-
-/* Next over us: planes whose straight-line course brings them close, soonest first */
-let lastOkList = [];
-const nextHooked = new Set();
-function upcoming(){
-  const OVK = overKm();
-  return lastOkList.filter(o => o.tcpa > 15 && o.tcpa <= 900 && o.cpa <= Math.max(OVK * 2, 5) && !(feat && feat.hex === o.ac.hex && feat.mode === "over"))
-    .sort((a, b) => a.tcpa - b.tcpa).slice(0, LIST_ROWS);
-}
-function mmss(sec){
-  const t = Math.max(0, Math.round(sec / 5) * 5);
-  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-}
-function renderNext(){
-  const up = upcoming(), OVK = overKm();
-  for (let i = 0; i < LIST_ROWS; i++) {
-    const o = up[i], d = i * 120;
-    if (!o) { blankRow(i, d); continue; }
-    const p = enrich(o.ac), info = p.info, key = o.ac.hex + "|" + (o.ac.flight || "");
-    if (!nextHooked.has(key)) { nextHooked.add(key); p.then(() => { if (page === "next") renderNext(); }); }
-    setChars(`l${i}time`, mmss(o.tcpa), d);
-    setWord(`l${i}logo`, airlineCodeOf(info) || "-", d + 30);
-    setChars(`l${i}flight`, info.flightNo, d + 60);
-    setChars(`l${i}from`, info.from ? info.from.city || info.from.code : "", d + 120);
-    setChars(`l${i}to`, info.to ? info.to.city || info.to.code : "", d + 180);
-    setChars(`l${i}type`, info.type || "", d + 240);
-    setWord(`l${i}remarks`, o.cpa <= OVK ? "OVERHEAD" : "CLOSE BY", d + 300);
-  }
-}
-
-/* Airport: runways in use worked out from live traffic near the airport, plus the weather report */
-const rwyLog = new Map();      // hex -> {rwy, kind: "arr" | "dep", t}
-const metarState = {raw: "", at: 0, busy: false};
-function distKm(lat1, lon1, lat2, lon2){ return Math.hypot((lon2 - lon1) * 111.32 * Math.cos(lat1 * Math.PI / 180), (lat2 - lat1) * 110.57); }
-function bearingDeg(lat1, lon1, lat2, lon2){
-  const x = (lon2 - lon1) * Math.cos(lat1 * Math.PI / 180), y = lat2 - lat1;
-  return (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
-}
-const angDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
-function trackRunways(all){
-  const ap = AIRPORTS[S.home];
-  if (!ap) return;
-  const now = Date.now();
-  for (const o of all) {
-    const ac = o.ac;
-    if (o.alt == null || o.alt > 4500 || o.rate == null || ac.track == null) continue;
-    if (distKm(ap.lat, ap.lon, ac.lat, ac.lon) > 20) continue;
-    const rw = ap.rwys.find(([hdg]) => angDiff(hdg, ac.track) <= 20);
-    if (!rw) continue;
-    const toward = angDiff(bearingDeg(ac.lat, ac.lon, ap.lat, ap.lon), ac.track) <= 35;
-    const kind = o.rate < -200 && toward ? "arr" : o.rate > 200 && !toward ? "dep" : null;
-    if (kind) rwyLog.set(ac.hex, {rwy: rw[1], kind, t: now});
-  }
-  for (const [k, v] of rwyLog) if (now - v.t > 20 * 60000) rwyLog.delete(k);
-}
-function runways(kind){
-  const n = {};
-  for (const v of rwyLog.values()) if (v.kind === kind) n[v.rwy] = (n[v.rwy] || 0) + 1;
-  const total = Object.values(n).reduce((a, b) => a + b, 0);
-  const used = Object.entries(n).filter(([, c]) => c >= Math.max(1, total * .25)).sort((a, b) => b[1] - a[1]).map(([r]) => r);
-  return {label: used.length === 1 ? "RWY " + used[0] : used.join(" + "), count: total};
-}
-async function refreshMetar(){
-  const ap = AIRPORTS[S.home];
-  if (!ap || !relayV5() || metarState.busy || Date.now() - metarState.at < 10 * 60000) return;
-  metarState.busy = true;
-  try {
-    const r = await timedFetch(`${relay()}/metar?ids=${ap.icao}`);
-    const t = r.ok ? (await r.text()).trim().split("\n")[0] : "";
-    if (t) { if (t !== metarState.raw) dlog("debug", `Weather report: ${t}`); metarState.raw = t; }
-  } catch (e) { dlog("debug", `Weather report unavailable: ${netError(e, "relay")}`); }
-  finally { metarState.at = Date.now(); metarState.busy = false; }
-}
-function parseMetar(raw){
-  const m = {clouds: []};
-  const w = raw.match(/\b(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)\b/);
-  if (w) { const k = w[4] === "MPS" ? 1.944 : 1; m.dir = w[1]; m.kt = +w[2] * k; m.gust = w[3] ? +w[3] * k : 0; }
-  if (/\bCAVOK\b/.test(raw)) { m.cavok = true; m.vis = 10000; }
-  else { const v = raw.match(/\s(\d{4})(?:NDV)?\s/); if (v) m.vis = +v[1]; }
-  const t = raw.match(/\s(M?\d{2})\/(M?\d{2})?(?=\s)/);
-  if (t) m.temp = (t[1][0] === "M" ? -1 : 1) * +t[1].replace("M", "");
-  const q = raw.match(/\sQ(\d{4})/); if (q) m.qnh = +q[1];
-  for (const c of raw.matchAll(/\b(FEW|SCT|BKN|OVC|VV)(\d{3})/g)) m.clouds.push({cover: c[1], ft: +c[2] * 100});
-  m.nsc = /\b(NSC|NCD|SKC|CLR)\b/.test(raw);
-  const wx = raw.match(/\s(-|\+|VC)?(TS|SH|FZ)?(RA|SN|DZ|FG|BR|HZ|GR|GS|SG|PL|FU|SA|DU)\b/);
-  if (wx) m.wx = ({"-": "LIGHT ", "+": "HEAVY ", VC: "NEARBY "}[wx[1]] || "") + ({TS: "THUNDER ", FZ: "FREEZING "}[wx[2]] || "") +
-    ({RA: wx[2] === "SH" ? "SHOWERS" : "RAIN", SN: "SNOW", DZ: "DRIZZLE", FG: "FOG", BR: "MIST", HZ: "HAZE", GR: "HAIL", GS: "HAIL",
-      SG: "SNOW", PL: "ICE PELLETS", FU: "SMOKE", SA: "SAND", DU: "DUST"}[wx[3]]);
-  return m;
-}
-function splitLine(text, n){
-  const t = clean(text);
-  if (t.length <= n) return [t, ""];
-  const cut = t.lastIndexOf(" ", n);
-  return [t.slice(0, cut > 0 ? cut : n), t.slice(cut > 0 ? cut + 1 : n)];
-}
-function renderAirport(){
-  const ap = AIRPORTS[S.home];
-  if (!ap) return;
-  const arr = runways("arr"), dep = runways("dep");
-  setChars("apArr", arr.label || "-"); setChars("apDep", dep.label || "-", 120);
-  const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
-  setChars("apTraffic", `${n(arr.count, "landing", "landings")} and ${n(dep.count, "take-off", "take-offs")} seen near ${ap.name} airport`, 400);
-  if (!metarState.raw) {
-    ["apWind", "apVis", "apTemp", "apQnh", "apCloud", "apCond"].forEach((id, i) => setChars(id, "-", 160 + i * 40));
-    setChars("apRaw1", relayV5() ? "Waiting for the weather report" : "Weather needs the home relay (version 5)", 300); setChars("apRaw2", "", 340);
-    return;
-  }
-  const m = parseMetar(metarState.raw), metric = S.units === "metric";
-  const spd = k => metric ? Math.round(k * 1.852) : Math.round(k);
-  setChars("apWind", m.dir ? `${m.dir === "VRB" ? "VAR" : m.dir} ${spd(m.kt)}${m.gust ? "-" + spd(m.gust) : ""} ${metric ? "KM/H" : "KT"}` : "-", 160);
-  setChars("apVis", m.vis == null ? "-" : m.vis >= 9999 ? "10 KM+" : m.vis >= 5000 ? Math.round(m.vis / 1000) + " KM" : m.vis + " M", 200);
-  setChars("apTemp", m.temp == null ? "-" : `${m.temp} C`, 240);
-  setChars("apQnh", m.qnh ? `${m.qnh} HPA` : "-", 280);
-  const c = m.clouds[0], names = {FEW: "FEW", SCT: "SCATTERED", BKN: "BROKEN", OVC: "OVERCAST", VV: "SKY HIDDEN"};
-  setChars("apCloud", m.cavok ? "CAVOK" : m.nsc ? "NO CLOUDS" : c ? `${names[c.cover]} ${metric ? Math.round(c.ft * .3048 / 10) * 10 + " M" : c.ft + " FT"}` : "-", 320);
-  setChars("apCond", m.wx || (m.cavok ? "CLEAR" : "DRY"), 360);
-  const [l1, l2] = splitLine(metarState.raw, 64);
-  setChars("apRaw1", l1, 300); setChars("apRaw2", l2, 340);
 }
 
 /* Today in numbers */
@@ -2276,7 +2127,7 @@ $("btnSave").onclick = () => {
     chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
   saveSettings(); audioInit(); closePanel();
   if (wasDemo !== S.demo) {
-    feat = null; infoCache.clear(); sightRev = null; metarState.raw = S.demo ? DEMO_METAR : ""; metarState.at = 0;
+    feat = null; infoCache.clear(); sightRev = null;
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
   }
   applyTheme(); applyNight(true);
@@ -2409,7 +2260,6 @@ async function poll(force){
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
     failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
-    refreshMetar();
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
@@ -2437,7 +2287,6 @@ async function start(){
   if (document.fonts) document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { tiles.clear(); drawStatic(); redrawAll(); });
   tickClock(); setInterval(tickClock, 1000);
   audioInit();   // starts at once where the browser allows it (kiosk setups); otherwise on the first click or key press
-  if (S.demo) metarState.raw = DEMO_METAR;
   renderPage(); updateFooter(); keepAwake();
   if (relayV5()) syncSightings();
   const h = location.hash.slice(1);
