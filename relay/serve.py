@@ -22,6 +22,10 @@ Standard library only: works with Python 3.8+ on Windows, macOS, Linux or in a c
 """
 import argparse
 import collections
+import csv
+import heapq
+import io
+import itertools
 import json
 import math
 import os
@@ -31,11 +35,12 @@ import socket
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 7
+RELAY_VERSION = 8
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -52,11 +57,20 @@ AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
-SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source")
+SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget")
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
 LEARN_S = 24 * 3600         # a new logbook spends its first day learning what is normal here
+FR24_API = "https://fr24api.flightradar24.com/api"
+FR24_FILE = DATA_DIR / "fr24.json"
+FR24_KEEP_S = 2 * 86400     # only today's flights are needed (Flightradar24 allows keeping its data 30 days at most)
+FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
+FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
+AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
+AIRPORTS_FILE = DATA_DIR / "airports.json"
+CITY_FIX = {"SAW": "Istanbul", "NCL": "Newcastle", "STN": "London", "LGW": "London", "LTN": "London", "BVA": "Paris",
+            "CRL": "Brussels", "NYO": "Stockholm", "BGY": "Milan", "MXP": "Milan", "LIN": "Milan", "CIA": "Rome", "FCO": "Rome"}
 ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "LOWS", "INN": "LOWI", "KLU": "LOWK",
             "MUC": "EDDM", "FRA": "EDDF", "ZRH": "LSZH", "BUD": "LHBP", "PRG": "LKPR", "LHR": "EGLL", "AMS": "EHAM"}
 
@@ -82,8 +96,8 @@ def event(level, msg, echo=True):
         print(f"{time.strftime('%H:%M:%S')}  {level.upper():5}  {msg}", flush=True)
 
 
-def fetch(url, data=None, content_type=None, timeout=10):
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/html"}
+def fetch(url, data=None, content_type=None, timeout=10, headers=None):
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/html", **(headers or {})}
     if content_type:
         headers["Content-Type"] = content_type
     req = urllib.request.Request(url, data=data, headers=headers)
@@ -237,6 +251,8 @@ def _saver():
             files = []
             if "day" in todo and _day:
                 files.append((DATA_DIR / f"sightings-{_day}.json", json.dumps(_entries, separators=(",", ":"))))
+            if "fr24" in todo and _fr24 is not None:
+                files.append((FR24_FILE, json.dumps(_fr24, separators=(",", ":"))))
             if "book" in todo and _logbook is not None:
                 files.append((LOGBOOK_FILE, json.dumps(_logbook, separators=(",", ":"))))
         for path, text in files:
@@ -479,10 +495,272 @@ def _enricher():
         time.sleep(.4)
 
 
+# ---------- Flightradar24 (optional, paid): real flight numbers and routes ----------
+# Only boards that ask for it (the test-api board) trigger lookups, so the other boards stay on free data and
+# nothing is spent while no such board is open. The key lives in overhead.json on this computer only.
+_fr24 = None                 # {"flights": {hex|callsign: info}, "usage": {...}}
+_fr24_q = []                 # (priority, order, key, callsign, hex): 0 = a board is showing it, 1 = Spotted today
+_fr24_queued = set()
+_fr24_cv = threading.Condition()
+_fr24_order = itertools.count()
+_fr24_state = {"state": "off", "error": ""}
+_airports = None             # {"iata": {code: [city, lat, lon, icao]}, "icao": {icao: iata}}
+
+
+def fr24_key():
+    k = (ARGS.fr24_key or "").strip()
+    return "" if k.lower() in ("", "off", "none", "0") else k
+
+
+def fr24_on():
+    """Lookups happen while there is a key, it hasn't been refused in the last six hours, and the budget isn't spent."""
+    if not fr24_key():
+        return False
+    if _fr24_state["state"] == "refused" and time.time() - _fr24_state.get("refusedAt", 0) < 6 * 3600:
+        return False
+    with _data_lock:
+        return _fr24_usage().get("credits", 0) < _fr24_budget()
+
+
+def _fr24_data():
+    global _fr24
+    if _fr24 is None:
+        _fr24 = _load(FR24_FILE, None) or {"flights": {}, "usage": {}}
+        _fr24_prune()
+    return _fr24
+
+
+def _fr24_prune():
+    cutoff = time.time() - FR24_KEEP_S
+    fl = _fr24["flights"]
+    for k in [k for k, v in fl.items() if v.get("t", 0) < cutoff]:
+        del fl[k]
+
+
+def _fr24_usage():
+    u = _fr24_data()["usage"]
+    month, day = time.strftime("%Y-%m"), time.strftime("%Y-%m-%d")
+    if u.get("month") != month:
+        u.clear()
+        u.update({"month": month, "credits": 0, "lookups": 0})
+    if u.get("day") != day:
+        u.update({"day": day, "creditsToday": 0, "lookupsToday": 0})
+        _fr24_prune()
+    return u
+
+
+def _fr24_budget():
+    try:
+        return int(ARGS.fr24_budget) if ARGS.fr24_budget is not None else FR24_BUDGET
+    except (TypeError, ValueError):
+        return FR24_BUDGET
+
+
+def fr24_info(cs, hx):
+    """What Flightradar24 said about this flight, if it was looked up and is still fresh."""
+    with _data_lock:
+        info = _fr24_data()["flights"].get(f"{hx}|{cs}")
+    if not info:
+        return None
+    age = time.time() - info.get("t", 0)
+    if info.get("none") and age > 3 * 3600:     # nothing found: worth another try later
+        return None
+    return info if age < 14 * 3600 else None
+
+
+def fr24_want(cs, hx, priority):
+    """Queue a lookup. Only airline flights (callsigns like RYR3EG) are looked up; private flights have no route."""
+    if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z]{3}\d", cs) or fr24_info(cs, hx):
+        return
+    key = f"{hx}|{cs}"
+    with _fr24_cv:
+        if key in _fr24_queued or len(_fr24_q) > 300:
+            return
+        _fr24_queued.add(key)
+        heapq.heappush(_fr24_q, (priority, next(_fr24_order), key, cs, hx))
+        _fr24_cv.notify()
+
+
+def _airport(iata, icao):
+    iata, icao = (iata or "").upper(), (icao or "").upper()
+    db = _airports or {}
+    if not iata and icao:
+        iata = (db.get("icao") or {}).get(icao, "")
+    row = (db.get("iata") or {}).get(iata)
+    out = {"code": iata or icao}
+    if row:
+        out.update({"city": row[0], "lat": row[1], "lon": row[2]})
+    return out if out["code"] else None
+
+
+def _load_airports():
+    """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
+    global _airports
+    db = _load(AIRPORTS_FILE, None)
+    if db and time.time() - db.get("fetched", 0) < 60 * 86400:
+        _airports = db
+        return
+    status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
+    if status != 200:
+        _airports = db or {}
+        event("warn", "Couldn't download the airport list; routes from Flightradar24 show airport codes only")
+        return
+    iata, icao = {}, {}
+    for r in csv.DictReader(io.StringIO(body.decode("utf-8", "replace"))):
+        code = (r.get("iata_code") or "").strip().upper()
+        if len(code) != 3 or r.get("type") == "closed":
+            continue
+        try:
+            lat, lon = round(float(r["latitude_deg"]), 4), round(float(r["longitude_deg"]), 4)
+        except (KeyError, ValueError):
+            continue
+        city = CITY_FIX.get(code) or (r.get("municipality") or r.get("name") or "").split(",")[0].strip()
+        ic = (r.get("icao_code") or r.get("gps_code") or r.get("ident") or "").strip().upper()
+        if code not in iata or r.get("type") == "large_airport":
+            iata[code] = [city, lat, lon, ic]
+        if ic:
+            icao[ic] = code
+    _airports = {"fetched": time.time(), "iata": iata, "icao": icao}
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
+    except OSError:
+        pass
+    event("info", f"Airport list ready: {len(iata)} airports")
+
+
+def _fr24_lookup(cs, hx):
+    """One flight-summary request: the most recent flight with this callsign. Returns (info or None, http status)."""
+    now = time.time()
+    q = urllib.parse.urlencode({
+        "flight_datetime_from": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now - 20 * 3600)),
+        "flight_datetime_to": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now + 120)),
+        "callsigns": cs, "sort": "desc", "limit": 1})
+    status, _, body, _ = fetch(f"{FR24_API}/flight-summary/full?{q}", timeout=15, headers={
+        "Authorization": f"Bearer {fr24_key()}", "Accept": "application/json", "Accept-Version": "v1"})
+    if status != 200:
+        return None, status, 0
+    try:
+        rows = (json.loads(body) or {}).get("data") or []
+    except ValueError:
+        return None, 502, 0
+    if not rows:
+        return {"none": True, "t": now}, 200, 1
+    r = rows[0]
+    ended = str(r.get("flight_ended")).lower() == "true"
+    credits = 3 if ended else 2
+    if str(r.get("hex") or "").lower() not in ("", hx.lower()):
+        return {"none": True, "t": now, "note": "different aircraft"}, 200, credits
+    dest = r.get("dest_iata") or r.get("destination_iata")
+    dest_icao = r.get("dest_icao") or r.get("destination_icao")
+    actual = r.get("dest_iata_actual") or ""
+    actual_icao = r.get("dest_icao_actual") or r.get("destination_icao_actual") or ""
+    info = {"t": now, "flight": (r.get("flight") or "").upper(), "callsign": cs,
+            "from": _airport(r.get("orig_iata"), r.get("orig_icao") or r.get("origin_icao")),
+            "to": _airport(dest, dest_icao),
+            "operator": r.get("operated_as") or "", "livery": r.get("painted_as") or "",
+            "category": r.get("category") or "", "type": r.get("type") or "", "reg": r.get("reg") or "",
+            "takeoff": r.get("datetime_takeoff") or "", "runwayTakeoff": r.get("runway_takeoff") or "",
+            "runwayLanded": r.get("runway_landed") or "", "ended": ended}
+    if actual_icao and dest_icao and actual_icao != dest_icao:
+        info["divertedTo"] = _airport(actual, actual_icao)
+    return info, 200, credits
+
+
+def _fr24_worker():
+    if fr24_key():
+        _load_airports()
+    while True:
+        with _fr24_cv:
+            while not _fr24_q:
+                _fr24_cv.wait()
+            _, _, key, cs, hx = heapq.heappop(_fr24_q)
+        try:
+            if not fr24_on() or fr24_info(cs, hx):
+                continue
+            with _data_lock:
+                usage = _fr24_usage()
+                if usage.get("credits", 0) >= _fr24_budget():
+                    if _fr24_state["state"] != "budget":
+                        event("warn", f"Flightradar24: this month's budget of {_fr24_budget():,} credits is used up; "
+                                      "boards use the free sources until next month")
+                    _fr24_state.update(state="budget")
+                    continue
+            info, status, credits = _fr24_lookup(cs, hx)
+            with _data_lock:
+                usage = _fr24_usage()
+                usage["credits"] = usage.get("credits", 0) + credits
+                usage["creditsToday"] = usage.get("creditsToday", 0) + credits
+                if credits:
+                    usage["lookups"] = usage.get("lookups", 0) + 1
+                    usage["lookupsToday"] = usage.get("lookupsToday", 0) + 1
+                if info:
+                    _fr24_data()["flights"][key] = info
+                _changed("fr24")
+            if status in (401, 403):
+                _fr24_state.update(state="refused", error=f"key refused (HTTP {status})", refusedAt=time.time())
+                event("warn", f"Flightradar24 refused the API key (HTTP {status}): boards use the free sources. "
+                              "Check the key, or the subscription has ended.")
+                with _fr24_cv:
+                    _fr24_q.clear()
+                    _fr24_queued.clear()
+            elif status == 429:
+                _fr24_state.update(state="ok", error="too many requests; slowing down")
+                time.sleep(60)
+            elif status != 200:
+                _fr24_state.update(state="error", error=f"HTTP {status}")
+                event("warn", f"Flightradar24 lookup for {cs} failed (HTTP {status})", echo=False)
+            else:
+                if _fr24_state["state"] != "ok":
+                    event("info", "Flightradar24 lookups working")
+                _fr24_state.update(state="ok", error="")
+                if info and not info.get("none"):
+                    f, t = info.get("from") or {}, info.get("to") or {}
+                    event("debug", f"Flightradar24: {cs} is {info['flight'] or '?'} {f.get('code', '?')} → {t.get('code', '?')}", echo=False)
+        except Exception as e:  # never let the paid extra break the relay
+            _fr24_state.update(state="error", error=str(e))
+        finally:
+            with _fr24_cv:
+                _fr24_queued.discard(key)
+        time.sleep(FR24_GAP_S)
+
+
+def fr24_status():
+    if not fr24_key():
+        return {"state": "off"}
+    with _data_lock:
+        u = dict(_fr24_usage())
+    return {"state": _fr24_state["state"] if _fr24_state["state"] != "off" else "ready", "error": _fr24_state["error"],
+            "credits": u.get("credits", 0), "budget": _fr24_budget(), "lookups": u.get("lookups", 0),
+            "creditsToday": u.get("creditsToday", 0), "lookupsToday": u.get("lookupsToday", 0),
+            "queue": len(_fr24_q), "airports": len((_airports or {}).get("iata") or {})}
+
+
+def fr24_overlay(entries):
+    """Spotted today for boards that use Flightradar24: its flight numbers and routes over the free ones."""
+    out, now = [], time.time()
+    for e in entries:
+        cs, hx = e.get("callsign") or "", e.get("hex") or ""
+        info = fr24_info(cs, hx) if cs else None
+        if info and not info.get("none"):
+            e = dict(e)
+            if info.get("flight"):
+                e["flightIata"] = info["flight"]
+            if info.get("from") and info.get("to"):
+                e["from"], e["to"] = info["from"], info["to"]
+            e.update({"fr24": True, "category": info.get("category"), "operator": info.get("operator"),
+                      "livery": info.get("livery"), "divertedTo": info.get("divertedTo")})
+        elif not info and now - e.get("ts", 0) / 1000 < 3 * 3600:
+            fr24_want(cs, hx, 1)
+        out.append(e)
+    return out
+
+
 def sightings_json():
     with _data_lock:
         _ensure_day()
-        return {"version": RELAY_VERSION, "date": _day, "rev": _rev, "entries": _entries[:400]}
+        entries = list(_entries[:400])
+        return {"version": RELAY_VERSION, "date": _day, "rev": _rev, "entries": entries}
 
 
 def logbook_json():
@@ -517,7 +795,7 @@ def status_json():
         })
     with _lock:
         events = list(EVENTS)[-80:]
-    return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events}
+    return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status()}
 
 
 _board_seen = {}
@@ -553,7 +831,7 @@ def board_html(sub=""):
         defaults["sound"] = bool(ARGS.sound)
     config = json.dumps(defaults).replace("<", "\\u003c")
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
-              f"window.OVERHEAD_DEFAULTS={config};</script>")
+              f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24_on() else 'false'};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
 
 
@@ -577,7 +855,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -591,7 +869,25 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health":
             return self.reply(200, "text/plain", b"ok")
         if path == "/sightings":
-            return self.reply(200, "application/json", json.dumps(sightings_json()).encode())
+            data = sightings_json()
+            if "api=1" in (self.path.split("?", 1)[1] if "?" in self.path else ""):
+                data["entries"] = fr24_overlay(data["entries"])
+                data["fr24"] = fr24_on()
+            return self.reply(200, "application/json", json.dumps(data).encode())
+        if path == "/flightinfo":
+            q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            cs = (q.get("cs") or [""])[0].strip().upper()[:8]
+            hx = (q.get("hex") or [""])[0].strip().lower()[:6]
+            if not fr24_on():
+                body = {"status": "off"}
+            else:
+                info = fr24_info(cs, hx)
+                if info:
+                    body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
+                else:
+                    fr24_want(cs, hx, 0)
+                    body = {"status": "queued" if re.match(r"^[A-Z]{3}\d", cs) else "none"}
+            return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/logbook":
             return self.reply(200, "application/json", json.dumps(logbook_json()).encode())
         if path == "/metar":
@@ -648,6 +944,8 @@ def main():
     p.add_argument("--mute", action="store_true", help="flap sound off by default")
     p.add_argument("--save", action="store_true", help=f"remember these settings in {CONFIG_FILE.name}, so next time `serve.py` alone is enough")
     p.add_argument("--local", help="serve this index.html instead of the published board")
+    p.add_argument("--fr24-key", help="Flightradar24 API key, for boards that use it (the test-api board); 'off' turns it off")
+    p.add_argument("--fr24-budget", type=int, help=f"most Flightradar24 credits to spend a month (default {FR24_BUDGET:,})")
     p.add_argument("--source", help="use this position source instead of the public ones: a URL with {lat} {lon} {nm} placeholders, or a local receiver's aircraft.json")
     p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
     ARGS = p.parse_args()
@@ -678,9 +976,11 @@ def main():
         STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0}
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
+    threading.Thread(target=_fr24_worker, daemon=True).start()
     with _data_lock:
         _ensure_day()
         _book()
+        _fr24_data()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")
@@ -689,6 +989,8 @@ def main():
     ip = lan_address()
     if ip:
         print(f"  http://{ip}:{ARGS.port}")
+    if fr24_key():
+        print(f"Flightradar24 lookups are on for boards that use them (at most {_fr24_budget():,} credits a month).")
     print("Problems with the flight data sources are printed below. Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()

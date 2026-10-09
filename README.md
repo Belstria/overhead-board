@@ -51,6 +51,37 @@ spotting radius that is coming closer. Every plane that enters the spotting radi
 **Spotted today** once per pass. The list marks the ones that flew directly overhead and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
+## The three boards
+
+| Address | What it is |
+|---------|------------|
+| `/` | **Main board**: the version for everyday use. Free data sources only. |
+| `/test/` | **Test board**: where changes are tried before they go to the main board. Free data sources only. |
+| `/test-api/` | **Test API board**: the test board plus features that need the paid Flightradar24 API. |
+
+Changes are tried on a test board first and copied to the main board when they're ready. Features that need the
+API are only ever built on `/test-api/`, so `/test/` always holds a complete version that works without it. If the
+subscription ends, the main board keeps working: either it never had API features, or it falls back to the free
+sources by itself (and `/test/` can be copied over it to remove them completely).
+
+### Flightradar24 on the test API board
+
+With a [Flightradar24 API](https://fr24api.flightradar24.com) key on the relay (version 8 or newer), `/test-api/`
+shows the real flight number and route for airline flights: RYR3EG becomes FR 1234 Vienna to London instead of a
+guess from a callsign database. Add the key once on the relay computer (it is saved in `overhead.json` there and
+never leaves that computer):
+
+```powershell
+py serve.py --fr24-key YOUR_KEY --save
+```
+
+- Lookups happen only while a test API board is open, once per flight, shared by every screen, at most 10 a minute.
+- Each lookup costs 1 to 3 credits. The relay stops at 27,000 credits a month (the Explorer plan includes 30,000);
+  change that with `--fr24-budget 50000 --save`. Diagnostics on the test API board shows what has been used.
+- If the key is refused (the subscription ended) or the budget is used up, the boards quietly use the free sources.
+- To turn it off: `py serve.py --fr24-key off --save`.
+- Flightradar24 data is kept for two days at most (their terms allow 30); the lifetime logbook doesn't use it.
+
 ## Test board
 
 `/test/` is where changes are tried out before they go to the main board. Open it through the relay at
