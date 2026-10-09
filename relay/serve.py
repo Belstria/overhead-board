@@ -40,7 +40,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 8
+RELAY_VERSION = 9
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -61,6 +61,7 @@ SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port",
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
+DAY_STARTS_H = 3            # "today" runs from 03:00 to 03:00, so late flights count to the evening they belong to
 LEARN_S = 24 * 3600         # a new logbook spends its first day learning what is normal here
 FR24_API = "https://fr24api.flightradar24.com/api"
 FR24_FILE = DATA_DIR / "fr24.json"
@@ -216,9 +217,13 @@ def _load(path, default):
         return default
 
 
+def board_day(t=None):
+    return time.strftime("%Y-%m-%d", time.localtime((t or time.time()) - DAY_STARTS_H * 3600))
+
+
 def _ensure_day():
     global _day, _entries, _by_hex
-    d = time.strftime("%Y-%m-%d")
+    d = board_day()
     if d != _day:
         _day = d
         _entries = _load(DATA_DIR / f"sightings-{d}.json", [])
@@ -335,7 +340,7 @@ def record(planes, lat, lon):
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
                 _entries.insert(0, e)
-                del _entries[800:]
+                del _entries[5000:]
                 _by_hex[hx] = e
                 book = _book()
                 book["sightings"] = book.get("sightings", 0) + 1
@@ -569,8 +574,8 @@ def fr24_info(cs, hx):
 
 
 def fr24_want(cs, hx, priority):
-    """Queue a lookup. Only airline flights (callsigns like RYR3EG) are looked up; private flights have no route."""
-    if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z]{3}\d", cs) or fr24_info(cs, hx):
+    """Queue a lookup for a flight with a callsign (airline, cargo, business or private)."""
+    if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z0-9]{3,8}$", cs) or fr24_info(cs, hx):
         return
     key = f"{hx}|{cs}"
     with _fr24_cv:
@@ -756,11 +761,55 @@ def fr24_overlay(entries):
     return out
 
 
-def sightings_json():
+def day_stats(entries, over_km):
+    """Today in numbers, over every sighting of the day (the list itself only sends the newest ones)."""
+    airlines, types, hours, counts, names = set(), set(), collections.Counter(), collections.Counter(), {}
+    overhead, low, high, fast = 0, None, None, None
+    for e in entries:
+        m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+        al = m.group(1) if m else ""
+        if al:
+            airlines.add(al)
+            counts[al] += 1
+            names[al] = names.get(al) or e.get("airlineName") or ""
+        if e.get("typeCode"):
+            types.add(e["typeCode"])
+        md, alt, sp = e.get("minDist"), e.get("altAtMin"), e.get("maxSpeed")
+        if isinstance(md, (int, float)) and md <= over_km:
+            overhead += 1
+        hours[int(time.strftime("%H", time.localtime(e.get("ts", 0) / 1000)))] += 1
+        if isinstance(alt, (int, float)) and alt > 0:
+            if low is None or alt < low["altAtMin"]:
+                low = e
+            if high is None or alt > high["altAtMin"]:
+                high = e
+        if isinstance(sp, (int, float)) and sp > 0 and (fast is None or sp > fast["maxSpeed"]):
+            fast = e
+    first = min(entries, key=lambda e: e.get("ts", 0)) if entries else None
+    top = counts.most_common(1)
+
+    def slim(e):
+        return {k: e.get(k) for k in ("callsign", "flightIata", "hex", "reg", "airlineIata", "airlineName", "time", "ts",
+                                      "altAtMin", "maxSpeed", "typeCode")} if e else None
+
+    return {"planes": len(entries), "airlines": len(airlines), "types": len(types), "overhead": overhead,
+            "busiestHour": hours.most_common(1)[0][0] if hours else None,
+            "lowest": slim(low), "highest": slim(high), "fastest": slim(fast), "first": slim(first),
+            "topAirline": {"code": top[0][0], "name": names.get(top[0][0], ""), "count": top[0][1]} if top else None,
+            "newTypes": sum(1 for e in entries if e.get("newType")),
+            "newAirlines": sum(1 for e in entries if e.get("newAirline")),
+            "dayStarts": f"{DAY_STARTS_H:02d}:00"}
+
+
+def sightings_json(api=False, over_km=3.0):
     with _data_lock:
         _ensure_day()
-        entries = list(_entries[:400])
-        return {"version": RELAY_VERSION, "date": _day, "rev": _rev, "entries": entries}
+        everything = list(_entries)
+        day, rev = _day, _rev
+    if api:
+        everything = fr24_overlay(everything)
+    return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything[:400],
+            "stats": day_stats(everything, over_km)}
 
 
 def logbook_json():
@@ -869,9 +918,14 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health":
             return self.reply(200, "text/plain", b"ok")
         if path == "/sightings":
-            data = sightings_json()
-            if "api=1" in (self.path.split("?", 1)[1] if "?" in self.path else ""):
-                data["entries"] = fr24_overlay(data["entries"])
+            q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            try:
+                over = min(20.0, max(0.1, float((q.get("over") or ["3"])[0])))
+            except ValueError:
+                over = 3.0
+            api = (q.get("api") or [""])[0] == "1"
+            data = sightings_json(api, over)
+            if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())
         if path == "/flightinfo":
@@ -886,7 +940,7 @@ class Handler(BaseHTTPRequestHandler):
                     body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
                 else:
                     fr24_want(cs, hx, 0)
-                    body = {"status": "queued" if re.match(r"^[A-Z]{3}\d", cs) else "none"}
+                    body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/logbook":
             return self.reply(200, "application/json", json.dumps(logbook_json()).encode())

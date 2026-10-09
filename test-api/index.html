@@ -334,7 +334,8 @@ const DRUM_POS = " 0123456789.:KMNESWIC";
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
-  "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY"];
+  "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE"];
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -350,7 +351,9 @@ const REMARK_LOOK = {
   FAVOURITE:{fill:["#c93d80","#a72f68"], fg:"#ffffff"},
   SUPERJUMBO:GOLD, JUMBO:GOLD, BELUGA:GOLD, ANTONOV:GOLD, CONCORDE:GOLD, SPECIAL:GOLD,
   MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
-  EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"}
+  EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
+  DIVERTED:{fill:["#ef8a2b","#d0701a"], fg:"#1a1206"}, CARGO:{fill:["#8a5a2b","#714820"], fg:"#fbe9d2"},
+  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"}
 };
 
 /* ---------- settings ---------- */
@@ -427,7 +430,7 @@ let PX = 1, K = 1;
 
 /* ---------- fields ---------- */
 const fields = {}, allCells = [];
-const LIST_ROWS = 9;
+const LIST_ROWS = 10;
 function def(id, o){ fields[id] = {id, drum: DRUM_ALPHA, style: "ink", align: "left", loud: .7, ...o}; }
 def("clock",   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 def("flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -499,7 +502,7 @@ function placeRow(ids, gaps, y, step, ratio, x0 = M){
   });
 }
 const BIG = IW / 30, MID = IW / 56.5;
-const Y = {row1:204, row1b:322, row2:440, rule1:160, rule2:516, listHead:556, list0:604, listPitch:46};
+const Y = {row1:204, row1b:322, row2:440, rule1:160, rule2:516, listHead:556, list0:604, listPitch:42};
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
@@ -1165,7 +1168,7 @@ async function aircraftLookup(hex){
 }
 /* Flightradar24 through the relay: the relay queues the lookup (10 a minute at most) and answers from its cache. */
 function apiLookup(cs, hex, info, tries = 0){
-  if (!cs || !hex || !/^[A-Z]{3}\d/.test(cs) || !apiOn()) return;
+  if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return;
   fetchJSON(`${relay()}/flightinfo?cs=${encodeURIComponent(cs)}&hex=${encodeURIComponent(hex)}`, {}, 6000).then(d => {
     if (d.status === "off") { if (apiLive) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); apiLive = false; updateFooter(); return; }
     if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); return; }
@@ -1248,7 +1251,9 @@ function demoLog(){
 }
 
 /* ---------- spotted log ---------- */
-function todayKey(){ const d = new Date(); return `od.log.${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+const DAY_START_H = 3;      // "today" runs from 03:00 to 03:00, so late flights count to the evening they belong to
+function boardDay(){ const d = new Date(Date.now() - DAY_START_H * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function todayKey(){ return `od.log.${boardDay()}`; }
 function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
 function saveLog(){ if (S.demo) return; try { localStorage.setItem(todayKey(), JSON.stringify(spotted)); } catch {} }
 const SAME_PASS_MS = 45 * 60000;   // the same aircraft within 45 minutes counts as one sighting
@@ -1267,16 +1272,18 @@ function dedupe(list){
   return kept.reverse();
 }
 let spotted = relayV5() ? [] : dedupe(loadLog()), logDay = todayKey();
+queueMicrotask(() => { recentFlights = loadRecent(); });
 if (!S.demo && !relayV5() && spotted.length !== loadLog().length) saveLog();   // clean up duplicates stored by older versions
 function rollDay(){
   if (logDay === todayKey()) return;
   logDay = todayKey();
+  recentFlights = loadRecent(); renderPage();
   if (relayV5()) { sightRev = null; syncSightings(); return; }
   spotted = dedupe(loadLog()); renderPage(); updateFooter();
 }
 
 /* With relay version 5 the relay records every sighting; the board just mirrors its list. */
-let sightRev = null, sightBusy = false;
+let sightRev = null, sightBusy = false, relayStats = null;   // relayStats: Today in numbers over the whole day
 function fromRelay(r){
   const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
   const tn = typeName(r.typeCode, r.desc);
@@ -1301,10 +1308,11 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings${apiOn() ? "?api=1" : ""}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 8000);
     if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
     const first = sightRev === null, known = new Set(spotted.map(e => e.id));
     spotted = (j.entries || []).map(fromRelay);
+    relayStats = j.stats || null;
     sightRev = String(j.rev);
     if (first) dlog("info", `Spotted today comes from the relay, shared by every screen (${spotted.length} so far)`);
     else for (const e of spotted.filter(e => !known.has(e.id)).reverse()) dlog("info", `Relay added ${e.flight || e.hex} to Spotted today (${(+e.minDist).toFixed(1)} km away)`);
@@ -1347,17 +1355,26 @@ function isFav(x){
 // The most interesting thing about a plane, if anything: shown in the remarks instead of the route type.
 function badgeFor(x){
   const sp = specialOf(x);
+  if (sp === "EMERGENCY") return sp;
+  if (x.divertedTo) return "DIVERTED";                    // from Flightradar24
   if (SPECIAL_BIG.has(sp)) return sp;
   if (x.newType) return "NEW TYPE";
   if (x.newAirline) return "NEW AIRLINE";
   if (isFav(x)) return "FAVOURITE";
-  return sp;
+  return sp || categoryBadge(x);
+}
+// Flightradar24's flight categories: Passenger, Cargo, Business_jets, General_aviation, Military_and_government, Helicopters...
+function categoryBadge(x){
+  const c = String(x.category || "");
+  return /cargo/i.test(c) ? "CARGO" : /business/i.test(c) ? "BIZJET" : /general.aviation|private/i.test(c) ? "PRIVATE"
+    : /military|government/i.test(c) ? "MILITARY" : /helicopter/i.test(c) ? "HELICOPTER" : "";
 }
 function liveFacts(ac, info){
   info = info || enrich(ac).info;
   const e = spotted.find(x => x.hex === ac.hex);
   return {typeCode: String(ac.t || (e && e.typeCode) || "").toUpperCase(), military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2),
     emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline),
+    category: info.category || (e && e.category) || "", divertedTo: info.divertedTo || (e && e.divertedTo) || null,
     airline: info.airline, airlineCode: airlineCodeOf(info), callsign: String(ac.flight || "").trim().toUpperCase(),
     flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
 }
@@ -1520,6 +1537,7 @@ function process(list){
   checkChimes(ok, R);
   renderFeatured();
   if (feat) { lookupDetails(feat.hex); preloadPhoto(); }
+  noteFeatured();
   if (page === "aircraft") renderPage();
 }
 
@@ -1558,9 +1576,40 @@ function featRemark(){
   const mode = MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
 }
+/* Recent flights: the planes that were on the top half, newest first, kept per screen until the day ends. */
+let recentFlights = [];
+const RECENT_KEY = "od.recentFlights:" + location.pathname;     // each board keeps its own
+function loadRecent(){
+  if (S.demo) return demoLog();
+  try { const j = JSON.parse(localStorage.getItem(RECENT_KEY) || "{}"); return j.day === boardDay() ? j.list || [] : []; } catch { return []; }
+}
+function saveRecent(){ if (S.demo) return; try { localStorage.setItem(RECENT_KEY, JSON.stringify({day: boardDay(), list: recentFlights.slice(0, 40)})); } catch {} }
+function noteFeatured(){
+  if (!feat || !feat.o || S.demo) return;
+  const now = Date.now(), ac = feat.o.ac;
+  if (now - feat.since < 5000) return;                   // it has to stay on the board for a moment to count
+  let e = recentFlights.find(x => x.hex === feat.hex && now - x.ts < SAME_PASS_MS), added = false;
+  if (!e) {
+    e = {ts: feat.since, time: hhmm(new Date(feat.since)), hex: feat.hex};
+    recentFlights.unshift(e); if (recentFlights.length > 40) recentFlights.length = 40; added = true;
+  }
+  const before = JSON.stringify(e);
+  fillEntry(e, feat.info || baseInfo(ac));
+  Object.assign(e, {callsign: String(ac.flight || "").trim().toUpperCase(), typeCode: String(ac.t || e.typeCode || "").toUpperCase(),
+    military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac) || e.emergency || "",
+    minDist: +Math.min(e.minDist ?? 999, feat.o.dist).toFixed(2), category: (feat.info || {}).category, divertedTo: (feat.info || {}).divertedTo});
+  if (JSON.stringify(e) !== before) { saveRecent(); if (page === "spotted" && !switching) renderSpotted(); }
+  if (added) dlog("debug", `${e.flight || e.hex} added to Recent flights`);
+}
+// The shared list knows things one screen doesn't (NEW TYPE, NEW AIRLINE); borrow them for the remark.
+function withShared(r){
+  const s = spotted.find(x => x.hex === r.hex && Math.abs(entryTime(x) - r.ts) < SAME_PASS_MS);
+  return s ? {...r, newType: s.newType, newAirline: s.newAirline, emergency: r.emergency || s.emergency,
+    minDist: Math.min(r.minDist ?? 999, s.minDist ?? 999)} : r;
+}
 function renderSpotted(){
   for (let i = 0; i < LIST_ROWS; i++) {
-    const e = spotted[i], d = i * 150;
+    const e = recentFlights[i] ? withShared(recentFlights[i]) : null, d = i * 150;
     setChars(`l${i}time`, e ? e.time : "", d);
     setWord(`l${i}logo`, e ? airlineCodeOf(e) || "-" : "", d + 30);
     setChars(`l${i}flight`, e ? e.flight : "", d + 60);
@@ -1574,7 +1623,7 @@ function renderSpotted(){
 const PAGE_ORDER = ["spotted", "stats", "aircraft"];
 let page = "spotted", pageSince = Date.now(), switching = false;
 function pageTitle(p){
-  return {spotted: ["Spotted today", "Heute gesichtet"], stats: ["Today in numbers", "Heute in Zahlen"],
+  return {spotted: ["Recent flights", "Letzte Flüge"], stats: ["Today in numbers", "Heute in Zahlen"],
     aircraft: ["This aircraft", "Dieses Flugzeug"]}[p];
 }
 const fieldsOf = p => p === "spotted" ? LIST_IDS : PAGE_FIELDS[p];
@@ -1761,6 +1810,23 @@ function blankRow(i, d){
 
 /* Today in numbers */
 function renderStats(){
+  const st = relayV5() && relayStats;
+  if (st) {                                           // the relay counts the whole day; its list only has the newest
+    const name = x => x ? fromRelay(x).flight : "";
+    setChars("stPlanes", String(st.planes));
+    setChars("stAirlines", String(st.airlines), 60);
+    setChars("stTypes", String(st.types), 120);
+    setChars("stOver", String(st.overhead), 180);
+    setChars("stHour", st.busiestHour != null ? `${String(st.busiestHour).padStart(2, "0")}:00` : "", 240);
+    setChars("stLow", st.lowest ? `${name(st.lowest)} - ${altitudeStr(st.lowest.altAtMin)}` : "-", 300);
+    setChars("stHigh", st.highest ? `${name(st.highest)} - ${altitudeStr(st.highest.altAtMin)}` : "-", 360);
+    setChars("stFast", st.fastest ? `${name(st.fastest)} - ${speedStr(st.fastest.maxSpeed)}` : "-", 420);
+    const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
+    setChars("stTop", t ? `${tn} - ${t.count}` : "-", 480);
+    setChars("stFirst", st.first ? `${st.first.time} ${name(st.first)}` : "-", 540);
+    setChars("stNew", st.newTypes || st.newAirlines ? `${st.newTypes} types - ${st.newAirlines} airlines` : "Nothing new yet", 600);
+    return;
+  }
   const list = spotted, OVK = overKm();
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
   setChars("stPlanes", String(list.length));
@@ -1880,14 +1946,16 @@ function renderSpottedView(){
     return S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(code)}.png" alt="${escH(code)}" onerror="this.outerHTML='<span class=&quot;code&quot;>${escH(code)}</span>'">` : `<span class="code">${escH(code)}</span>`;
   };
   const place = a => a ? `${escH(a.code || "")} <small style="display:inline">${escH(a.city || "")}</small>` : "";
-  body.innerHTML = `<p class="sum">${real.length} plane${real.length === 1 ? "" : "s"} · ${airlines} airline${airlines === 1 ? "" : "s"} · ${types} aircraft type${types === 1 ? "" : "s"} · ${counts.over} directly overhead` +
+  const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
+  body.innerHTML = `<p class="sum">${n} plane${n === 1 ? "" : "s"} · ${na} airline${na === 1 ? "" : "s"} · ${nt} aircraft type${nt === 1 ? "" : "s"} · ${st ? st.overhead : counts.over} directly overhead` +
+    `${st && n > real.length ? ` · newest ${real.length} listed` : ""}` +
     `${relayV5() ? " · shared by every screen through the home relay" : ""}${apiOn() ? " · flight numbers and routes from Flightradar24" : ""}${S.demo ? " · sample flights (demo mode)" : ""}</p>` +
     (rows.length ? `<table><thead><tr><th>Time</th><th></th><th>Flight</th><th>From</th><th>To</th><th>Aircraft</th><th class="n">Closest</th><th class="n">Altitude</th><th>Remarks</th></tr></thead><tbody>` +
     rows.map(e => {
       const r = remarkFor(e);
       return `<tr><td class="t">${escH(e.time)}</td><td>${logoCell(e)}</td>` +
         `<td><b>${escH(e.flight || e.hex)}</b><small class="cut">${escH(e.airline || "")}</small></td>` +
-        `<td><span class="cut">${place(e.from) || '<small style="display:inline">not listed</small>'}</span></td><td><span class="cut">${place(e.to)}</span></td>` +
+        `<td><span class="cut">${place(e.from) || '<small style="display:inline">not listed</small>'}</span></td><td><span class="cut">${place(e.to)}</span>${e.divertedTo ? `<small>diverted to ${escH(e.divertedTo.code)} ${escH(e.divertedTo.city || "")}</small>` : ""}</td>` +
         `<td><span class="cut">${escH(e.type || "")}</span><small>${escH(e.reg || "")}</small></td>` +
         `<td class="n">${e.minDist != null ? (+e.minDist).toFixed(1) + " km" : ""}</td>` +
         `<td class="n">${typeof e.altAtMin === "number" ? altShort(e.altAtMin) : ""}</td>` +
@@ -2127,7 +2195,7 @@ $("btnSave").onclick = () => {
     chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
   saveSettings(); audioInit(); closePanel();
   if (wasDemo !== S.demo) {
-    feat = null; infoCache.clear(); sightRev = null;
+    feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent();
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
   }
   applyTheme(); applyNight(true);

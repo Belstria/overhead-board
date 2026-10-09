@@ -75,6 +75,9 @@ never leaves that computer):
 py serve.py --fr24-key YOUR_KEY --save
 ```
 
+- Remarks from Flightradar24: **DIVERTED** (the Spotted today tab shows where to), **CARGO**, **BIZJET**, **PRIVATE**,
+  and military and helicopter flights by Flightradar24's own category. Flightradar24's API has no schedules, so delays
+  aren't available from it.
 - Lookups happen only while a test API board is open, once per flight, shared by every screen, at most 10 a minute.
 - Each lookup costs 1 to 3 credits. The relay stops at 27,000 credits a month (the Explorer plan includes 30,000);
   change that with `--fr24-budget 50000 --save`. Diagnostics on the test API board shows what has been used.
@@ -88,7 +91,8 @@ py serve.py --fr24-key YOUR_KEY --save
 `http://<computer-name>:8080/test/`. It currently adds:
 
 - **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
-  to stay on one page): Spotted today, **Today in numbers**, and **This aircraft** (a photo and registration details
+  to stay on one page): **Recent flights** (the last ten planes that were on the top half, kept per screen),
+  **Today in numbers** (counted over the whole day by the relay), and **This aircraft** (a photo and registration details
   of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
   split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. To pick
   a page yourself, click its dot or the arrows next to the page title, or use the left and right arrow keys or the keys
@@ -100,7 +104,8 @@ py serve.py --fr24-key YOUR_KEY --save
   `Austrian, Emirates, A380, 747, OE-LBN`) are marked FAVOURITE.
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
-- **Spotted today** (press **T**, or the Spotted today button): today's full list as its own tab, with airline,
+- **The day runs from 03:00 to 03:00**, so late-evening flights count to the evening they belong to.
+- **Spotted today** (press **T**, or the Spotted today button): every plane that came within the spotting radius today, as its own tab, with airline,
   route, aircraft, registration, closest distance, altitude and remarks, filterable to overhead or special planes.
 - **Logbook** (press **L**): every type, airline and individual aircraft ever spotted, with counts and first
   sightings. The first sighting of a new type or airline is marked NEW TYPE or NEW AIRLINE on the board.
