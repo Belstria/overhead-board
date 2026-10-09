@@ -39,7 +39,8 @@ footer{
   transition:opacity .6s;
 }
 body.idle footer{opacity:0;pointer-events:none}
-footer{background:linear-gradient(transparent,rgba(0,0,0,.75) 55%);padding-top:calc(28px*var(--k));z-index:4}
+footer{background:linear-gradient(transparent,rgba(0,0,0,.6));padding-top:calc(6px*var(--k));padding-bottom:calc(10px*var(--k));z-index:4;pointer-events:none}
+footer #status,footer .actions{pointer-events:auto}
 .pip{position:absolute;left:calc(20px*var(--k));bottom:calc(18px*var(--k));width:max(6px,calc(9px*var(--k)));height:max(6px,calc(9px*var(--k)));
   border-radius:50%;opacity:0;transition:opacity .6s;pointer-events:none}
 body.idle .pip[data-state=warn]{opacity:.8;background:var(--amber)}
@@ -77,11 +78,6 @@ button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:
 button:hover,button:focus-visible{color:var(--ink);border-color:var(--line)}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
-#panel{position:fixed;inset:0;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:16px;z-index:5}
-.sheet{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px 26px;-webkit-user-select:text;user-select:text;font-size:15px}
-.sheet h2{font-weight:700;font-size:24px;line-height:1.1;letter-spacing:.04em;text-transform:uppercase;margin:0 0 14px;display:flex;gap:.5em;align-items:baseline}
-.sheet h2 span{color:var(--muted);font-weight:400}
-.sheet section+section{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
 .empty{color:var(--muted);margin:0}
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px 16px}
 label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
@@ -90,7 +86,6 @@ input,select{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 input[type=range]{padding:0;accent-color:var(--amber)}
 output{color:var(--ink);letter-spacing:0}
 input[type=checkbox]{width:16px;height:16px;flex:none;accent-color:var(--amber)}
-.hint{grid-column:1/-1;color:var(--muted);font-size:13px;margin:0}
 .row{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 .primary{background:var(--amber);color:#15130e;border-color:var(--amber);font-weight:600}
 .primary:hover,.primary:focus-visible{color:#15130e;opacity:.92}
@@ -109,113 +104,93 @@ body.lite .photo.screen.on{animation:screenOnLite .8s ease-out both}
 @keyframes screenOnLite{0%{opacity:0}16%{opacity:.8}24%{opacity:.45}100%{opacity:1}}
 @keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
 #photoImg{display:none}
-.view{position:absolute;inset:0;z-index:3;color:var(--ink);font-family:var(--f-board);
-  background:linear-gradient(#1b1c1f,#121315 45%,#16171a);box-shadow:inset 0 0 0 calc(18px*var(--k)) #0d0e10}
-.view .vhead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:calc(40px*var(--k)) calc(64px*var(--k)) calc(14px*var(--k))}
-.view h2{margin:0;font-weight:700;font-size:calc(58px*var(--k));letter-spacing:.01em;line-height:1}
-.view h2 span{color:var(--muted);font-weight:400}
-.view .vclose{font-size:max(13px,calc(20px*var(--k)));border-color:var(--line)}
-#logbookView .vbody{position:absolute;top:calc(130px*var(--k));left:calc(64px*var(--k));right:calc(64px*var(--k));bottom:calc(36px*var(--k));overflow:auto;
-  display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:calc(22px*var(--k)) calc(44px*var(--k));align-content:start;font-size:calc(21px*var(--k))}
-.lb .stack{display:flex;flex-direction:column;gap:calc(30px*var(--k))}
-.tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:calc(18px*var(--k))}
-.tile.tm b{font-size:calc(36px*var(--k));line-height:calc(56px*var(--k));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cats{grid-column:1/-1}
-.catrow{display:grid;grid-template-columns:repeat(7,1fr);gap:calc(12px*var(--k))}
-.cat{background:#0a0a0b;border-radius:6px;padding:calc(10px*var(--k)) calc(14px*var(--k)) calc(12px*var(--k));box-shadow:inset 0 2px 6px rgba(0,0,0,.8);position:relative;overflow:hidden}
-.cat b{display:block;font-size:calc(34px*var(--k));line-height:1.05;font-variant-numeric:tabular-nums}
-.cat span{color:var(--muted);font-size:calc(16px*var(--k));letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.cat span::before{content:"";display:inline-block;width:.62em;height:.62em;border-radius:50%;background:var(--c);margin-right:.45em;vertical-align:.02em}
-.cat i{position:absolute;left:0;bottom:0;height:calc(4px*var(--k));min-height:2px;background:var(--c);opacity:.85}
-.cat.zero b{color:#4a4c52}
-.tile{background:#0a0a0b;border-radius:6px;padding:calc(14px*var(--k)) calc(18px*var(--k));box-shadow:inset 0 2px 6px rgba(0,0,0,.8)}
-.tile b{display:block;font-size:calc(56px*var(--k));line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
-.tile span,.lb h3{color:var(--accent,var(--amber));font-weight:600;font-size:calc(17px*var(--k));letter-spacing:.12em;text-transform:uppercase}
-.lb h3{margin:0 0 calc(8px*var(--k))}
-.lb table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.lb td{padding:calc(6px*var(--k)) calc(10px*var(--k)) calc(6px*var(--k)) 0;border-bottom:1px solid #26272b;vertical-align:middle;white-space:nowrap}
-.lb td.n{text-align:right;color:var(--ink);font-weight:600}
-.lb td.d{color:var(--muted);text-align:right;width:1%}
-.lb td.c{color:var(--muted);width:1%}
-.lb img{height:calc(26px*var(--k));width:calc(64px*var(--k));object-fit:contain;background:#f4f1ea;border-radius:3px;vertical-align:middle;padding:2px}
-.lb .new,.lb .tag{display:inline-block;font-size:.62em;font-weight:700;letter-spacing:.08em;padding:.1em .45em;border-radius:3px;vertical-align:.18em;margin-left:.4em}
-.lb .new{background:#f4ecd8;color:#8c1c1c}
-.lb .tag{background:#e6b94a;color:#1b1508}
-.lb .since,.lb .more{grid-column:1/-1;color:var(--muted);margin:0;font-size:calc(19px*var(--k))}
-.lb .more{grid-column:auto;margin-top:calc(6px*var(--k))}
-.lb .wide{grid-column:1/-1}
-.lb .msg{grid-column:1/-1;color:var(--muted);font-size:calc(26px*var(--k))}
-/* Spotted today tab */
-.view .vtools{display:flex;align-items:center;gap:calc(14px*var(--k))}
-.chips{display:flex;gap:calc(6px*var(--k))}
-.chips button{font-size:max(12px,calc(18px*var(--k)));border:1px solid var(--line);border-radius:999px;padding:.2em .9em;color:var(--muted)}
-.chips button[aria-pressed=true]{background:var(--accent,var(--amber));border-color:var(--accent,var(--amber));color:#15130e;font-weight:600}
-#spottedView .vbody{position:absolute;top:calc(130px*var(--k));left:calc(64px*var(--k));right:calc(64px*var(--k));bottom:calc(36px*var(--k));overflow:auto;font-size:calc(21px*var(--k))}
-.st .sum{color:var(--muted);margin:0 0 calc(10px*var(--k));font-size:calc(19px*var(--k))}
-.st .msg{color:var(--muted);font-size:calc(26px*var(--k));margin:calc(20px*var(--k)) 0 0}
-.st table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.st th{position:sticky;top:0;z-index:1;background:#17181b;text-align:left;color:var(--accent,var(--amber));font-weight:600;font-size:calc(15px*var(--k));letter-spacing:.12em;
-  text-transform:uppercase;padding:calc(6px*var(--k)) calc(14px*var(--k)) calc(8px*var(--k)) 0;white-space:nowrap}
-.st td{padding:calc(7px*var(--k)) calc(14px*var(--k)) calc(7px*var(--k)) 0;border-bottom:1px solid #26272b;vertical-align:middle;white-space:nowrap;line-height:1.2}
-.st td small{display:block;color:var(--muted);font-size:.78em}
-.st td.t{color:var(--accent,var(--amber));font-weight:600}
-.st td.n,.st th.n{text-align:right}
-.st td b{font-weight:700}
-.st .cut{display:block;max-width:calc(330px*var(--k));overflow:hidden;text-overflow:ellipsis}
-.st img{height:calc(30px*var(--k));width:calc(74px*var(--k));object-fit:contain;background:#f4f1ea;border-radius:3px;vertical-align:middle;padding:2px}
-.st .code{display:inline-block;width:calc(74px*var(--k));text-align:center;color:var(--accent,var(--amber));font-weight:700;background:#2a2b2f;border-radius:3px;padding:2px 0}
-.st td:first-child,.st th:first-child{padding-left:calc(14px*var(--k))}
-.st tr.sp td{background:var(--rt)}
-.st tr.sp td:first-child{box-shadow:inset calc(5px*var(--k)) 0 0 var(--rc)}
-.vtools .vbtn{font-size:max(12px,calc(18px*var(--k)));border:1px solid var(--line);border-radius:999px;padding:.2em .9em;color:var(--muted)}
-.vtools .vbtn[aria-pressed=true]{color:var(--ink);border-color:var(--ink)}
-#spotLegend{position:absolute;top:calc(118px*var(--k));right:calc(64px*var(--k));width:calc(1240px*var(--k));max-height:calc(900px*var(--k));overflow:auto;z-index:2;background:#0d0e10;
-  display:grid;grid-template-columns:1fr 1fr;gap:0 calc(40px*var(--k));align-content:start;
-  border:1px solid var(--line);border-radius:8px;padding:calc(20px*var(--k)) calc(24px*var(--k));font-size:calc(19px*var(--k));box-shadow:0 14px 44px rgba(0,0,0,.7)}
-#spotLegend h3{margin:calc(16px*var(--k)) 0 calc(8px*var(--k));color:var(--accent,var(--amber));font-weight:600;font-size:calc(15px*var(--k));letter-spacing:.12em;text-transform:uppercase}
-#spotLegend h3:first-child{margin-top:0}
-#spotLegend dl{display:grid;grid-template-columns:auto 1fr;gap:calc(7px*var(--k)) calc(16px*var(--k));margin:0;align-items:center}
-#spotLegend dd{margin:0;line-height:1.25}
-#spotLegend p{grid-column:1/-1;color:var(--muted);margin:calc(16px*var(--k)) 0 0;font-size:.9em;line-height:1.3}
-.st .rm,#spotLegend .rm{display:inline-block;min-width:8.6em;text-align:center;font-weight:700;font-size:.74em;letter-spacing:.08em;padding:.3em .6em;border-radius:3px;background:#2a2b2f}
-/* page switcher in the lower half */
-/* page buttons: old backlit push buttons on a worn panel next to the clock, like a well-used mixing desk */
-#pager{position:absolute;display:flex;z-index:2}
-#pager button{--lit1:#ffe9b0;--lit2:#f2b64c;--lit3:#a8681a;--off1:#86734f;--off2:#574830;--glow:255,186,84;--ink:rgba(50,30,6,.88);
-  position:relative;width:calc(96px*var(--k));height:calc(62px*var(--k));margin:0 calc(14px*var(--k)) 0 0;padding:0;border:0;border-radius:calc(5px*var(--k));
-  display:grid;place-items:center;text-align:center;font:700 calc(14.5px*var(--k))/1.08 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);
-  background:radial-gradient(120% 110% at 50% 45%,rgba(0,0,0,0) 48%,rgba(24,16,4,.6) 100%),linear-gradient(var(--off1),var(--off2));
-  box-shadow:0 0 0 calc(3px*var(--k)) #080706,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,236,200,.16),
-    inset 0 calc(-3px*var(--k)) calc(6px*var(--k)) rgba(0,0,0,.38);
-  transition:box-shadow .45s ease-out,transform .14s ease-out,filter .3s}
-#pager button:last-child{margin-right:0}
-#pager button:nth-child(2){--lit1:#eaffd6;--lit2:#86d46e;--lit3:#367d2c;--off1:#5b6d4c;--off2:#374430;--glow:120,228,108;--ink:rgba(12,34,8,.88)}
-#pager button:nth-child(3){--lit1:#fffbf1;--lit2:#efe0bb;--lit3:#ab9264;--off1:#8b8576;--off2:#5c574d;--glow:255,234,196;--ink:rgba(40,32,18,.88)}
-#pager button::before,#pager button::after{content:"";position:absolute;top:0;left:0;right:0;bottom:0;border-radius:inherit;pointer-events:none;background-size:100% 100%}
-#pager button::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='62'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.09' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 .07  0 0 0 0 .02  0 0 0 1.6 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23g%29'/%3E%3C/svg%3E");opacity:.62}
-#pager button::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='62'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.22 1.3' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 .96  0 0 0 0 .88  0 0 0 2.6 -1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29'/%3E%3C/svg%3E");opacity:.35}
-#pager button:nth-child(2)::before{transform:scaleX(-1)}
-#pager button:nth-child(3)::before{transform:scaleY(-1)}
-#pager button:nth-child(2){transform:rotate(-.6deg)}
-#pager button span{position:relative;z-index:1;-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='44'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3.4 2.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='44'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3.4 2.75'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");-webkit-mask-size:120px 44px;mask-size:120px 44px}
-#pager button:nth-child(2) span{-webkit-mask-position:-37px -9px;mask-position:-37px -9px}
-#pager button:nth-child(3) span{-webkit-mask-position:-71px -18px;mask-position:-71px -18px}
-#pager button[aria-current=page]{background:radial-gradient(72% 68% at 46% 41%,var(--lit1),var(--lit2) 50%,var(--lit3) 100%);transform:translateY(calc(2.5px*var(--k)));
-  box-shadow:0 0 0 calc(3px*var(--k)) #080706,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(var(--glow),.34),
-    inset 0 0 calc(10px*var(--k)) rgba(70,36,0,.32);
-  animation:lampOn .55s linear}
-#pager button:nth-child(2)[aria-current=page]{transform:rotate(-.6deg) translateY(calc(2.5px*var(--k)))}
-#pager button[aria-current=page]::before{opacity:.4}
-@keyframes lampOn{0%{filter:brightness(.45)}12%{filter:brightness(1.12)}19%{filter:brightness(.72)}32%{filter:brightness(1.04)}100%{filter:none}}
-body.lite #pager button[aria-current=page]{animation:none}
-#pager button:hover:not([aria-current]):not(:disabled){filter:brightness(1.15)}
-#pager button:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
-#pager button:disabled{cursor:default;filter:brightness(.62) saturate(.7)}
-#radarView canvas{position:absolute;inset:0;width:100%;height:100%}
 #stage canvas#flipCv{z-index:2;pointer-events:none}
-#radarView .vhead{position:relative;z-index:1}
-#radarLegend{position:absolute;left:calc(1250px*var(--k));right:calc(64px*var(--k));bottom:calc(120px*var(--k));display:flex;flex-wrap:wrap;gap:calc(6px*var(--k)) calc(26px*var(--k));font-size:calc(20px*var(--k));color:var(--muted);z-index:1}
-#radarLegend i{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.45em;vertical-align:-.05em}
+/* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
+.rail{position:absolute;display:flex;z-index:2}
+.cap{position:relative;flex:none;width:calc(104px*var(--k));height:calc(44px*var(--k));margin:0 0 0 calc(14px*var(--k));padding:0;border:0;border-radius:calc(4px*var(--k));
+  display:grid;place-items:center;text-align:center;font:700 calc(12.5px*var(--k))/1.1 var(--f-board);letter-spacing:.07em;text-transform:uppercase;
+  color:rgba(24,22,18,.74);background:linear-gradient(#97928a,#7b776e 70%,#6e6a63);
+  box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,255,255,.28),inset 0 calc(-3px*var(--k)) calc(5px*var(--k)) rgba(0,0,0,.3);
+  transition:box-shadow .4s ease-out,transform .14s ease-out,filter .3s}
+.cap:first-child{margin-left:0}
+.cap[aria-current=page],.cap[aria-pressed=true]{color:#17140e;background:radial-gradient(75% 70% at 50% 44%,#fffdf6,#f6ecd4 60%,#e2d0a4);transform:translateY(calc(2.5px*var(--k)));
+  box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,0 0 calc(24px*var(--k)) calc(3px*var(--k)) rgba(255,224,150,.3),
+    inset 0 0 calc(12px*var(--k)) rgba(255,206,120,.5);
+  animation:lampOn .55s linear}
+.cap.go[aria-pressed=true]{background:radial-gradient(75% 70% at 50% 44%,#eaffd8,#9be07f 58%,#55a443);box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,
+  0 0 calc(24px*var(--k)) calc(3px*var(--k)) rgba(140,235,110,.3),inset 0 0 calc(12px*var(--k)) rgba(40,120,20,.4)}
+@keyframes lampOn{0%{filter:brightness(.45)}12%{filter:brightness(1.12)}19%{filter:brightness(.72)}32%{filter:brightness(1.04)}100%{filter:none}}
+body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:none}
+.cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
+.cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
+.cap:disabled{cursor:default;filter:brightness(.6)}
+.cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
+.cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
+#viewTools{z-index:2}
+#radarCv{position:absolute;z-index:1;pointer-events:none}
+#stage #radarCv{inset:auto}
+
+/* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
+#cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
+  font-family:var(--f-board);color:#d8d3c6}
+.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(14px*var(--k)) calc(26px*var(--k)) calc(12px*var(--k));
+  box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
+  display:flex;flex-wrap:wrap;align-content:flex-start;align-items:flex-end;gap:calc(10px*var(--k)) calc(22px*var(--k))}
+.plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
+  background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
+.plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
+.plate>i:nth-of-type(3){left:calc(8px*var(--k));bottom:calc(8px*var(--k))}.plate>i:nth-of-type(4){right:calc(8px*var(--k));bottom:calc(8px*var(--k))}
+.plate h3{flex:0 0 100%;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
+  letter-spacing:.22em;text-transform:uppercase;color:rgba(214,208,194,.72);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.plate h3::before,.plate h3::after{content:"";flex:1;height:1px;background:rgba(214,208,194,.25)}
+.inst{display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k))}
+.inst>span{font:600 calc(11.5px*var(--k))/1.15 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:rgba(214,208,194,.66);text-align:center;max-width:calc(170px*var(--k))}
+.inst.wide{flex:1 1 100%;align-items:stretch}
+.inst.wide>span{text-align:left;max-width:none}
+.lcd{font:600 calc(21px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
+  border:0;border-radius:calc(4px*var(--k));padding:calc(9px*var(--k)) calc(12px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #050505,0 1px 0 calc(3px*var(--k)) rgba(255,255,255,.05);-webkit-user-select:text;user-select:text}
+.lcd:focus{outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #f6c54a}
+/* rotary selector: a fluted knob, its pointer on the chosen position, the positions engraved round it */
+.rotary{position:relative;width:calc(140px*var(--k));height:calc(116px*var(--k));outline:none;cursor:pointer}
+.rotary .knob{position:absolute;left:50%;top:calc(66px*var(--k));width:calc(54px*var(--k));height:calc(54px*var(--k));margin:calc(-27px*var(--k)) 0 0 calc(-27px*var(--k));border-radius:50%;
+  background:repeating-conic-gradient(#1a1b1e 0 6deg,#3b3d42 6deg 12deg);box-shadow:0 calc(4px*var(--k)) calc(8px*var(--k)) rgba(0,0,0,.7),0 0 0 calc(2px*var(--k)) #0b0b0c;
+  transform:rotate(var(--rot,0deg));transition:transform .3s cubic-bezier(.3,1.45,.55,1)}
+.rotary .knob::before{content:"";position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle at 38% 32%,#62656b,#2a2b2f 60%,#18191b)}
+.rotary .knob::after{content:"";position:absolute;left:50%;top:7%;width:calc(3px*var(--k));height:38%;margin-left:calc(-1.5px*var(--k));border-radius:2px;background:#f3f0e8;box-shadow:0 0 calc(4px*var(--k)) rgba(255,255,255,.4)}
+.rotary:focus-visible .knob{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
+.rotary b{position:absolute;left:50%;top:calc(66px*var(--k));font:600 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.06em;color:rgba(214,208,194,.55);white-space:nowrap;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-50px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
+.rotary b.on{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55)}
+/* flip switch: a chrome bat handle on a nut, flipped up for on */
+.toggle{position:relative;width:calc(66px*var(--k));height:calc(112px*var(--k));padding:0;border:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  font:700 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.1em;color:rgba(214,208,194,.45)}
+.toggle .nut{position:relative;width:calc(34px*var(--k));height:calc(34px*var(--k));border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#b9bcc1,#6d7075 45%,#2c2d31 75%);box-shadow:0 0 0 calc(4px*var(--k)) #111214,0 calc(3px*var(--k)) calc(6px*var(--k)) rgba(0,0,0,.7)}
+.toggle .lever{position:absolute;left:50%;bottom:50%;width:calc(11px*var(--k));height:calc(34px*var(--k));margin-left:calc(-5.5px*var(--k));border-radius:calc(6px*var(--k)) calc(6px*var(--k)) calc(3px*var(--k)) calc(3px*var(--k));
+  background:linear-gradient(90deg,#7c7f84,#eceef1 45%,#9a9da2 70%,#5d6065);transform-origin:50% 100%;transform:scaleY(-1);transition:transform .16s cubic-bezier(.5,0,.4,1.4);
+  box-shadow:0 calc(2px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.6)}
+.toggle[aria-pressed=true] .lever{transform:scaleY(1)}
+.toggle .up,.toggle .down{transition:color .2s,text-shadow .2s}
+.toggle[aria-pressed=true] .up,.toggle[aria-pressed=false] .down{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.5)}
+.toggle.guard .lever{background:linear-gradient(90deg,#7a1d16,#e0473b 45%,#9e2a20 70%,#5c140f)}
+/* thumbwheel: a ridged drum with a number in a window */
+.wheels{display:flex;align-items:center;gap:calc(4px*var(--k))}
+.wheels>em{font:700 calc(26px*var(--k))/1 var(--f-board);font-style:normal;color:#d8d3c6}
+.wheel{display:flex;flex-direction:column;align-items:center;outline:none}
+.wheel button{width:calc(52px*var(--k));height:calc(18px*var(--k));padding:0;border:0;border-radius:calc(3px*var(--k));font-size:calc(9px*var(--k));color:rgba(214,208,194,.6);
+  background:repeating-linear-gradient(#3c3e43 0 calc(2px*var(--k)),#1a1b1e calc(2px*var(--k)) calc(4px*var(--k)));box-shadow:0 0 0 calc(2px*var(--k)) #0b0b0c}
+.wheel button:hover{color:#f6c54a}
+.wheel .win{position:relative;overflow:hidden;width:calc(52px*var(--k));height:calc(44px*var(--k));margin:calc(4px*var(--k)) 0;border-radius:calc(4px*var(--k));display:grid;place-items:center;
+  font:700 calc(28px*var(--k))/1 var(--f-board);color:#f3f0e8;background:linear-gradient(#2a2b2f,#17181b 50%,#0e0f11 50%,#1f2023);
+  box-shadow:inset 0 0 0 calc(2px*var(--k)) #000,0 calc(2px*var(--k)) calc(4px*var(--k)) rgba(0,0,0,.6)}
+.wheel .win::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.9)}
+.wheel:focus-visible .win{box-shadow:inset 0 0 0 calc(2px*var(--k)) #f6c54a}
+.wheel .win b.up{animation:rollUp .22s ease-out}.wheel .win b.down{animation:rollDown .22s ease-out}
+@keyframes rollUp{0%{transform:translateY(60%);opacity:.2}100%{transform:none;opacity:1}}
+@keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
+.plate p{flex:0 0 100%;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
+.plate .acts{flex:0 0 100%;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 </style>
 </head>
 <body>
@@ -224,35 +199,18 @@ body.lite #pager button[aria-current=page]{animation:none}
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
   <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas></div>
   <img id="photoImg" alt="" referrerpolicy="no-referrer">
-  <section class="view" id="logbookView" hidden aria-label="Logbook">
-    <div class="vhead"><h2>Logbook <span>Logbuch</span></h2><button class="vclose" type="button" data-close="logbook">Close</button></div>
-    <div class="vbody lb" id="logbookBody"></div>
-  </section>
-  <nav id="pager" aria-label="Pages">
-    <span id="pagerDots" style="display:contents"></span>
-  </nav>
+  <canvas id="radarCv" hidden aria-hidden="true"></canvas>
   <canvas id="flipCv" hidden aria-hidden="true"></canvas>
-  <section class="view" id="spottedView" hidden aria-label="Spotted today">
-    <div class="vhead"><h2>Spotted today <span>Heute gesichtet</span></h2>
-      <div class="vtools"><div class="chips" id="spotChips"></div><button class="vbtn" type="button" id="btnLegend" aria-pressed="false">Legend</button><button class="vclose" type="button" data-close="spotted">Close</button></div></div>
-    <div class="vbody st" id="spottedBody"></div>
-    <div id="spotLegend" hidden></div>
-  </section>
-  <section class="view" id="radarView" hidden aria-label="Radar">
-    <canvas id="radarCv"></canvas>
-    <div class="vhead"><h2>Radar <span>Radar</span></h2><button class="vclose" type="button" data-close="radar">Close</button></div>
-    <div id="radarLegend"></div>
-  </section>
+  <div class="rail" id="railPages" aria-label="Pages"></div>
+  <div class="rail" id="railViews" aria-label="Views"></div>
+  <div class="rail" id="viewTools" hidden></div>
+  <section id="cockpit" hidden aria-label="Settings"></section>
   <div id="shade"></div>
   <span class="pip" id="pip" aria-hidden="true"></span>
   <footer>
     <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
-      <button id="btnLog" type="button">Spotted today</button>
-      <button id="btnLogbook" type="button">Logbook</button>
-      <button id="btnRadar" type="button">Radar</button>
       <button id="btnDiag" type="button">Diagnostics</button>
-      <button id="btnSettings" type="button">Settings</button>
     </div>
   </footer>
 </div>
@@ -267,107 +225,6 @@ body.lite #pager button[aria-current=page]{animation:none}
   <div id="diagLogWrap"><h3>Connection log</h3><ol id="diagLog"></ol></div>
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
-
-<div id="panel" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-label="Settings">
-    <section id="secSettings">
-      <h2>Settings <span>Einstellungen</span></h2>
-      <form id="form" onsubmit="return false">
-        <label>Place name<input id="fPlace" maxlength="24"></label>
-        <label>Latitude<input id="fLat" inputmode="decimal"></label>
-        <label>Longitude<input id="fLon" inputmode="decimal"></label>
-        <label>Spotting radius (km)<input id="fRadius" type="number" min="1" max="20" step="0.5"></label>
-        <label>Directly overhead within
-          <select id="fOver">
-            <option value="1">1 km</option>
-            <option value="2">2 km</option>
-            <option value="3">3 km</option>
-            <option value="5">5 km</option>
-          </select></label>
-        <label>Home airport (IATA)<input id="fHome" maxlength="3"></label>
-        <label>Ignore planes above
-          <select id="fMaxAlt">
-            <option value="8000">8,000 ft</option>
-            <option value="15000">15,000 ft</option>
-            <option value="25000">25,000 ft</option>
-            <option value="60000">No limit</option>
-          </select></label>
-        <label>Units
-          <select id="fUnits">
-            <option value="aviation">Feet and knots</option>
-            <option value="metric">Metres and km/h</option>
-          </select></label>
-        <label>Update position every
-          <select id="fRefresh">
-            <option value="5">5 seconds</option>
-            <option value="10">10 seconds</option>
-            <option value="15">15 seconds</option>
-            <option value="30">30 seconds</option>
-          </select></label>
-        <label><span>Flap speed <output id="fSpeedOut" for="fSpeed"></output></span>
-          <input type="range" id="fSpeed" min="10" max="100" step="5"></label>
-        <label>Board style
-          <select id="fTheme">
-            <option value="classic">Classic: white on black</option>
-            <option value="frankfurt">Frankfurt: yellow on black</option>
-            <option value="blue">Blue: white on blue</option>
-          </select></label>
-        <label>Change pages every
-          <select id="fRotate">
-            <option value="0">Don't change pages</option>
-            <option value="15">15 seconds</option>
-            <option value="20">20 seconds</option>
-            <option value="30">30 seconds</option>
-            <option value="45">45 seconds</option>
-            <option value="60">60 seconds</option>
-          </select></label>
-        <label>Limit hovering planes
-          <select id="fAirtime">
-            <option value="2">to 2 minutes an hour</option>
-            <option value="3">to 3 minutes an hour</option>
-            <option value="5">to 5 minutes an hour</option>
-            <option value="10">to 10 minutes an hour</option>
-            <option value="0">No limit</option>
-          </select></label>
-        <label>Aircraft photo
-          <select id="fPhoto">
-            <option value="screen">On a screen in the board</option>
-            <option value="engraved">Engraved in the metal</option>
-            <option value="plain">Plain photo</option>
-          </select></label>
-        <label>Drawing quality
-          <select id="fQuality">
-            <option value="auto">Automatic</option>
-            <option value="high">Sharpest (4K screens)</option>
-            <option value="1440">1440p</option>
-            <option value="1080">1080p, lighter for TVs</option>
-          </select></label>
-        <label class="full">Favourites: airlines, aircraft types or registrations, separated by commas
-          <textarea class="fav" id="fFavs" rows="1" placeholder="e.g. Austrian, Emirates, A380, 747, OS"></textarea></label>
-        <label class="span2">Night mode: dim the board and mute it
-          <span class="times"><input type="time" id="fNightFrom" aria-label="Night mode starts"> to <input type="time" id="fNightTo" aria-label="Night mode ends"></span></label>
-        <label>Night brightness
-          <select id="fNightDim">
-            <option value="25">25%</option>
-            <option value="40">40%</option>
-            <option value="55">55%</option>
-            <option value="70">70%</option>
-          </select></label>
-        <label class="check"><input type="checkbox" id="fNight">Night mode</label>
-        <label class="check"><input type="checkbox" id="fChimes">Chime for special planes and favourites</label>
-        <label class="check"><input type="checkbox" id="fImperfect">Worn hardware: imperfect flaps, a used panel</label>
-        <label class="check"><input type="checkbox" id="fSound">Flap sound</label>
-        <label class="check"><input type="checkbox" id="fLogos">Airline logos</label>
-        <label class="check"><input type="checkbox" id="fDemo">Demo mode</label>
-        <p class="hint">Click the board for fullscreen. The lit buttons next to the clock, the left and right arrow keys, or the keys 1 to 3 change pages; a page you pick stays for at least a minute. T opens Spotted today, L the logbook, R the radar, D the connection log. Status shows Overhead (directly above, within the overhead distance), Inbound (on course to pass over within three minutes), Flying by (getting closer but won't pass over), Outbound (moving away) or Passed. Every plane that comes within the spotting radius is added to Spotted today; the list marks the ones that flew directly overhead, and otherwise shows Arriving or Departing for your home airport; Legend in that tab explains every remark. Helicopters and other planes that circle around (a police helicopter over an incident, say) get at most a few minutes an hour on the top half while other planes are around; airliners passing over are never cut short. Browsers only allow sound after a first click or key press on the page. Live data: adsb.lol and airplanes.live. Routes: adsbdb. Logos: the free airline logo service from Aviasales; when one is missing the airline code is shown instead.</p>
-      </form>
-      <div class="row">
-        <button type="button" id="btnClose">Close</button>
-        <button type="button" class="primary" id="btnSave">Save</button>
-      </div>
-    </section>
-  </div>
-</div>
 
 <script>
 (() => {
@@ -513,7 +370,7 @@ let PX = 1, K = 1;
 
 /* ---------- fields ---------- */
 const fields = {}, allCells = [];
-const LIST_ROWS = 10;
+const LIST_ROWS = 8;
 function def(id, o){ fields[id] = {id, drum: DRUM_ALPHA, style: "ink", align: "left", loud: .7, ...o}; }
 def("clock",   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 def("flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -532,7 +389,6 @@ def("pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]}
 def("depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def("arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def("airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-def("delay",   {kind:"word",  n:12, dur:110, words:"delay", label:["Delay","Verspätung"]});
 for (let i = 0; i < LIST_ROWS; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null;
   def(`l${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time","Zeit")});
@@ -566,6 +422,61 @@ pdef("aircraft", "acType",    {kind:"chars", n:26, dur:70, label:["Aircraft","Fl
 pdef("aircraft", "acOwner",   {kind:"chars", n:26, dur:70, label:["Operator","Betreiber"]});
 pdef("aircraft", "acCountry", {kind:"chars", n:14, dur:70, label:["Registered in","Registriert in"]});
 pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route","Route"]});
+// The top half's fields, shown whenever no view is open.
+const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
+// Views take over the board below the header: their own flaps, hidden until the view opens.
+const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: []};
+function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
+const DRUM_PAGE = " 0123456789/";
+const SV_ROWS = 14, LB_ROWS = 9, RV_ROWS = 12;
+for (let i = 0; i < SV_ROWS; i++) {
+  const lab = (en, de) => i === 0 ? [en, de] : null;
+  vdef("spotted", `sv${i}lamp`,   {kind:"word",  n:1, dur:90, words:"lamp", loud:.3});
+  vdef("spotted", `sv${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:55, style:"amber", loud:.4, label:lab("Time","Zeit")});
+  vdef("spotted", `sv${i}flight`, {kind:"chars", n:7, dur:55, loud:.4, label:lab("Flight","Flug")});
+  vdef("spotted", `sv${i}fromC`,  {kind:"chars", n:3, dur:55, style:"amber", loud:.4, label:lab("From","Von")});
+  vdef("spotted", `sv${i}from`,   {kind:"chars", n:9, dur:55, loud:.4});
+  vdef("spotted", `sv${i}toC`,    {kind:"chars", n:3, dur:55, style:"amber", loud:.4, label:lab("To","Nach")});
+  vdef("spotted", `sv${i}to`,     {kind:"chars", n:9, dur:55, loud:.4});
+  vdef("spotted", `sv${i}type`,   {kind:"chars", n:11, dur:55, loud:.4, label:lab("Aircraft","Flugzeug")});
+  vdef("spotted", `sv${i}dist`,   {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Closest","km")});
+  vdef("spotted", `sv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
+  vdef("spotted", `sv${i}rem`,    {kind:"word",  n:9, dur:90, words:"remarks", small:true, loud:.4, label:lab("Remarks","Hinweis")});
+}
+vdef("spotted", "svPage", {kind:"chars", n:7, drum:DRUM_PAGE, dur:70, align:"right", label:["Page","Seite"]});
+const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
+  ["private", "Private, light", "Privat", "#9aa4ae"], ["helicopter", "Helicopters", "Heli", "#22b0ae"], ["military", "Military", "Militär", "#8fa05a"],
+  ["other", "Other", "Andere", "#6b6e75"]];
+vdef("logbook", "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Sightings","Sichtungen"]});
+vdef("logbook", "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Aircraft types","Typen"]});
+vdef("logbook", "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines","Airlines"]});
+vdef("logbook", "lvRegs",     {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Individual aircraft","Flugzeuge"]});
+vdef("logbook", "lvModel",    {kind:"chars", n:16, dur:60, style:"amber", label:["Most seen model","Häufigstes Modell"]});
+for (const [k, en, de] of LB_CATS) {
+  vdef("logbook", `lvl_${k}`, {kind:"word",  n:1, dur:90, words:"lamp", loud:.3, label:[en, de]});
+  vdef("logbook", `lvn_${k}`, {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70, loud:.5});
+}
+for (let i = 0; i < LB_ROWS; i++) {
+  const lab = (en, de) => i === 0 ? [en, de] : null;
+  vdef("logbook", `lt${i}name`, {kind:"chars", n:15, dur:55, loud:.4, label:lab("Aircraft types","Flugzeugtypen")});
+  vdef("logbook", `lt${i}n`,    {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
+  vdef("logbook", `la${i}name`, {kind:"chars", n:15, dur:55, loud:.4, label:lab("Airlines","Fluglinien")});
+  vdef("logbook", `la${i}n`,    {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
+  vdef("logbook", `lr${i}reg`,  {kind:"chars", n:7, dur:55, style:"amber", loud:.4,
+    label: i === 0 ? ["Most seen aircraft","Meistgesehen"] : i === 5 ? ["Newest aircraft","Neueste"] : null});
+  vdef("logbook", `lr${i}type`, {kind:"chars", n:9, dur:55, loud:.4});
+  vdef("logbook", `lr${i}n`,    {kind:"chars", n:6, align:"right", dur:55, loud:.4});
+}
+for (let i = 0; i < RV_ROWS; i++) {
+  const lab = (en, de) => i === 0 ? [en, de] : null;
+  vdef("radar", `rv${i}lamp`,   {kind:"word",  n:1, dur:90, words:"lamp", loud:.3});
+  vdef("radar", `rv${i}flight`, {kind:"chars", n:7, dur:55, loud:.4, label:lab("Flight","Flug")});
+  vdef("radar", `rv${i}type`,   {kind:"chars", n:4, dur:55, loud:.4, label:lab("Type","Typ")});
+  vdef("radar", `rv${i}dist`,   {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("km","")});
+  vdef("radar", `rv${i}dir`,    {kind:"chars", n:2, dur:55, loud:.4});
+  vdef("radar", `rv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
+  vdef("radar", `rv${i}st`,     {kind:"word",  n:9, dur:90, words:"remarks", small:true, loud:.4, label:lab("Status","")});
+}
 for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
   f.cells = [];
@@ -589,13 +500,12 @@ function placeRow(ids, gaps, y, step, ratio, x0 = M){
   });
 }
 const BIG = IW / 30, MID = IW / 56.5;
-const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:39};
+const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:39, rail:972};
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
   placeRow(["type","reg","alt","trend","speed","pos"], [.8, .8, .3, .8, .8], Y.row2, MID, 1.45);
-  placeRow(["depTime","arrTime","airTime","delay"], [2.6, 2.6, 2.6], Y.row3, MID, 1.45);
-  Object.assign(fields.delay, {x: fields.remarks.x, wordW: fields.remarks.wordW});     // the delay sits under the status
+  placeRow(["depTime","arrTime","airTime"], [2.6, 2.6], Y.row3, MID, 1.45);
   const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
   for (let i = 0; i < LIST_ROWS; i++) {
     fields[`l${i}logo`].hidden = !lg;
@@ -604,15 +514,30 @@ function layout(){
     placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.45);
   }
   const L0 = Y.list0;
-  placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [2.5, 2.5, 2.5, 2.5], L0 + 18, IW / 28, 1.45);
-  [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 150 + i * 92, IW / 50, 1.45));
-  const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 26;
-  placeRow(["acReg","acHex","acFlight"], [1.5, 1.5], L0 + 18, as, 1.45, ax);
-  placeRow(["acType"], [], L0 + 112, as, 1.45, ax);
-  placeRow(["acOwner"], [], L0 + 206, as, 1.45, ax);
-  placeRow(["acCountry","acRoute"], [2], L0 + 300, as, 1.45, ax);
+  placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [4, 4, 4, 4], L0, IW / 34, 1.45);
+  [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 101 + i * 74, IW / 50, 1.45));
+  const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 29;
+  placeRow(["acReg","acHex","acFlight"], [1.5, 1.5], L0 + 6, as, 1.45, ax);
+  placeRow(["acType"], [], L0 + 86, as, 1.45, ax);
+  placeRow(["acOwner"], [], L0 + 166, as, 1.45, ax);
+  placeRow(["acCountry","acRoute"], [2], L0 + 246, as, 1.45, ax);
+  // views
+  for (let i = 0; i < SV_ROWS; i++)
+    placeRow(["lamp","time","flight","fromC","from","toC","to","type","dist","alt","rem"].map(k => `sv${i}${k}`), [.4, .8, .8, .3, .8, .3, .8, .8, 1.4, .8], 300 + i * 46, IW / 75, 1.4);
+  placeRow(["svPage"], [], 192, IW / 75, 1.4, 1080);
+  placeRow(["lvSight","lvTypes","lvAirlines","lvRegs","lvModel"], [2.5, 2.5, 2.5, 2.5], 300, IW / 48, 1.45);
+  placeRow(LB_CATS.flatMap(([k]) => [`lvl_${k}`, `lvn_${k}`]), LB_CATS.flatMap((c, i) => i < LB_CATS.length - 1 ? [.3, 1.8] : [.3]), 412, IW / 62, 1.45);
+  const ls = IW / 67;
+  for (let i = 0; i < LB_ROWS; i++) {
+    placeRow([`lt${i}name`, `lt${i}n`, `la${i}name`, `la${i}n`], [.4, 2, .4], 500 + i * 44, ls, 1.45);
+    placeRow([`lr${i}reg`, `lr${i}type`, `lr${i}n`], [.4, .4], 500 + i * 44 + (i >= 5 ? 24 : 0), ls, 1.45, M + 44.8 * ls);
+  }
+  const rs = (W - M - 940) / 37.5;
+  for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
+  const unit = S.units === "metric" ? "m" : "ft";
+  fields.sv0alt.label = ["Altitude", unit]; fields.rv0alt.label = ["Altitude", unit];
 }
-const PHOTO = {w: 700, h: 362};
+const PHOTO = {w: 600, h: 300};
 layout();
 (() => { const f = fields.clock, step = 64; f.step = step; f.cw = step * .9; f.ch = 88; f.y = 40; f.x = W - M - (5 * step - (step - f.cw)); })();
 
@@ -638,8 +563,8 @@ function resize(){
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
-  clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placePager();
-  if (openView === "radar") resizeRadar();
+  clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placeRail();
+  if (view === "radar") resizeRadar();
   if (bigFlap.on) endBigFlap();
 }
 
@@ -691,7 +616,8 @@ function tile(f, value, variant = 0){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "delay" ? delayLook(value) : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
+  if (f.words === "lamp") text = "";
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}`;
   let cv = tiles.get(key);
   if (cv) return cv;
@@ -751,7 +677,7 @@ function tile(f, value, variant = 0){
     }
   }
   if (text && text !== " ") {
-    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : f.words === "delay" ? .62 : .5);
+    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
     g.font = `700 ${size}px ${FONT}`;
     if (f.kind !== "chars" && "letterSpacing" in g) g.letterSpacing = Math.round(size * .06) + "px";
     let asc = size * .7;
@@ -780,9 +706,16 @@ function tile(f, value, variant = 0){
 
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
 function drawCell(c, p){
-  const f = c.f, x = c.x, y = c.y, w = f.pw, h = f.ph, g = fxx;
-  if (f.hidden || f.pageOff) return;
-  g.clearRect(x - 1, y - 1, w + 2, h + 2);
+  const f = c.f;
+  if (f.hidden) return;
+  if (f.pageOff) { if (f.leaving && bigFlap.liveG) paintCell(bigFlap.liveG, c, p, true); return; }
+  paintCell(fxx, c, p, false);
+}
+// Paints a flap onto the board, or onto the page that is falling away (opaque: it has no board behind it).
+function paintCell(g, c, p, opaque){
+  const f = c.f, x = c.x, y = c.y, w = f.pw, h = f.ph;
+  if (opaque) { g.fillStyle = "#08080a"; g.fillRect(x - 1, y - 1, w + 2, h + 2); }
+  else g.clearRect(x - 1, y - 1, w + 2, h + 2);
   if (p == null || !c.anim) { g.drawImage(tile(f, c.cur, c.variant), x, y); return; }
   const A = tile(f, c.anim.from, c.variant), B = tile(f, c.anim.to, c.variant), hh = Math.round(h / 2), bh = h - hh;
   g.drawImage(B, 0, 0, w, hh, x, y, w, hh);          // new face, top half (revealed)
@@ -828,7 +761,7 @@ function frame(now){
         c.hes = false;
         c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * pace() * (.9 + Math.random() * .2)};
         if (S.imperfect && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
-        drawCell(c, 0); starts++;
+        drawCell(c, 0); if (!c.f.pageOff || c.f.leaving) starts++;
       }
     }
   }
@@ -856,7 +789,7 @@ function retarget(c, value, delay){
   if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
-  else if (c.f.words === "delay") q = base && value ? ["", value] : [value];
+  else if (c.f.words === "lamp") q = [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -1009,6 +942,20 @@ function edgeWear(g){
     g.fillStyle = tg; g.beginPath(); g.arc(sx, sy, 15, 0, Math.PI * 2); g.fill();
   }
 }
+const shadowSprites = new Map();
+function slotShadow(w, h, blur, off){
+  const key = `${w}x${h}|${blur}|${off}`;
+  let sp = shadowSprites.get(key);
+  if (!sp) {
+    const pad = Math.ceil(blur * 2 + Math.abs(off)) + 1, cv = document.createElement("canvas");
+    cv.width = w + pad * 2; cv.height = h + pad * 2;
+    const c = cv.getContext("2d");
+    c.shadowColor = "rgba(0,0,0,.85)"; c.shadowBlur = blur; c.shadowOffsetY = off; c.fillStyle = "#000"; c.fillRect(pad, pad, w, h);
+    sp = {cv, pad}; shadowSprites.set(key, sp);
+    if (shadowSprites.size > 120) shadowSprites.delete(shadowSprites.keys().next().value);
+  }
+  return sp;
+}
 function slots(g){
   for (const f of Object.values(fields)) {
     if (f.hidden || f.pageOff || f.cw == null) continue;
@@ -1018,9 +965,11 @@ function slots(g){
     const inset = g.createLinearGradient(0, y, 0, y + h);
     inset.addColorStop(0, "rgba(0,0,0,.8)"); inset.addColorStop(.15, "rgba(0,0,0,0)"); inset.addColorStop(.9, "rgba(255,255,255,0)"); inset.addColorStop(1, "rgba(255,255,255,.06)");
     g.fillStyle = inset; rr(g, x, y, w, h, pad * .8); g.fill();
-    g.save(); g.shadowColor = "rgba(0,0,0,.85)"; g.shadowBlur = f.ch * .12 * PX; g.shadowOffsetY = f.ch * .05 * PX; g.fillStyle = "#000";   // shadow sizes are in device pixels
     const cells = f.kind === "chars" ? f.n : 1;                                         // each module casts a shadow
-    for (let i = 0; i < cells; i++) g.fillRect(f.x + i * f.step + 1, f.y + 1, (f.kind === "chars" ? f.cw : f.wordW) - 2, f.ch - 2);
+    const sw = Math.round(((f.kind === "chars" ? f.cw : f.wordW) - 2) * PX), sh = Math.round((f.ch - 2) * PX);
+    const sp = slotShadow(sw, sh, Math.round(f.ch * .12 * PX), Math.round(f.ch * .05 * PX));
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+    for (let i = 0; i < cells; i++) g.drawImage(sp.cv, Math.round((f.x + i * f.step + 1) * PX) - sp.pad, Math.round((f.y + 1) * PX) - sp.pad);
     g.restore();
   }
 }
@@ -1030,9 +979,10 @@ function drawStatic(){
   g.fillStyle = COL.housing; g.fillRect(0, 0, bg.width, bg.height);
   g.setTransform(PX, 0, 0, PX, 0, 0);
   metal(g); slots(g);
-  pagerPanel(g);
+  railPlate(g);
   engravedSrc = "";
-  if (page === "aircraft") { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
+  if (view) viewStatic(g);
+  else if (page === "aircraft") { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 66px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Overhead", M + 116, 98);
@@ -1041,7 +991,7 @@ function drawStatic(){
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   RADIUS ${S.radiusKm} KM`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
-  for (const y of [Y.rule1, Y.rule2]) {               // engraved grooves
+  for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
     g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, y + 2, IW, 1);
   }
@@ -1049,68 +999,13 @@ function drawStatic(){
     if (f.hidden || f.pageOff) continue;
     if (f.label) label(g, f, f.label[0], f.label[1]);
   }
+  if (view) return;
   const [t1, t2] = pageTitle(page);
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
   const hw = g.measureText(t1).width;
   g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + hw + 14, Y.listHead);
 }
 
-/* ---------- the page buttons' panel, next to the clock ---------- */
-const PAGER = {cap: 96, capH: 62, gap: 14, padX: 30, padTop: 32, padBottom: 15};
-function pagerBox(){
-  const n = 3, c = fields.clock, w = PAGER.padX * 2 + n * PAGER.cap + (n - 1) * PAGER.gap, h = PAGER.padTop + PAGER.capH + PAGER.padBottom;
-  return {x: c.x - 46 - w, y: c.y + c.ch / 2 - h / 2, w, h};
-}
-function placePager(){
-  const b = pagerBox(), el = $("pager");
-  el.style.left = `calc(${b.x + PAGER.padX}px * var(--k))`; el.style.top = `calc(${b.y + PAGER.padTop}px * var(--k))`;
-}
-// The panel the buttons sit in: painted steel, worn through at the edges, with an engraved title.
-function pagerPanel(g){
-  const b = pagerBox(), rnd = wearRnd(5150);
-  g.save();
-  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 10 * PX; g.shadowOffsetY = 3 * PX;
-  const pg = g.createLinearGradient(0, b.y, 0, b.y + b.h);
-  pg.addColorStop(0, "#29292a"); pg.addColorStop(1, "#18181a");
-  g.fillStyle = pg; rr(g, b.x, b.y, b.w, b.h, 6); g.fill();
-  g.restore();
-  g.save(); rr(g, b.x, b.y, b.w, b.h, 6); g.clip();
-  for (let i = 0; i < 26; i++) {                                  // paint scraped through to the metal
-    const edge = rnd() < .75, x = edge ? (rnd() < .5 ? b.x + rnd() * 10 : b.x + b.w - rnd() * 10) : b.x + rnd() * b.w;
-    const y = edge && rnd() < .5 ? b.y + rnd() * b.h : (rnd() < .5 ? b.y + rnd() * 6 : b.y + b.h - rnd() * 6), r = .5 + rnd() * 1.5;
-    g.fillStyle = `rgba(150,152,156,${.1 + rnd() * .16})`;
-    g.beginPath(); g.ellipse(x, y, r * (1 + rnd() * 1.5), r, rnd() * Math.PI, 0, Math.PI * 2); g.fill();
-  }
-  g.lineCap = "round";
-  for (let i = 0; i < 14; i++) {                                  // fine scratches
-    const x = b.x + rnd() * b.w, y = b.y + rnd() * b.h, a = rnd() * Math.PI, l = 8 + rnd() * 40;
-    g.strokeStyle = `rgba(220,222,226,${.05 + rnd() * .08})`; g.lineWidth = .6;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
-  }
-  const grime = g.createRadialGradient(b.x + b.w / 2, b.y + b.h / 2, b.h * .4, b.x + b.w / 2, b.y + b.h / 2, b.w * .62);
-  grime.addColorStop(0, "rgba(20,14,6,0)"); grime.addColorStop(1, "rgba(20,14,6,.35)");
-  g.fillStyle = grime; g.fillRect(b.x, b.y, b.w, b.h);
-  g.restore();
-  g.lineWidth = 1.2; g.strokeStyle = "rgba(255,255,255,.06)"; rr(g, b.x + .6, b.y + .6, b.w - 1.2, b.h - 1.2, 5.5); g.stroke();
-  const wy = b.y + PAGER.padTop;
-  g.fillStyle = "rgba(0,0,0,.6)"; rr(g, b.x + PAGER.padX - 7, wy - 7, b.w - 2 * PAGER.padX + 14, PAGER.capH + 14, 4); g.fill();   // the well the buttons sit in
-  const well = g.createLinearGradient(0, wy - 7, 0, wy + PAGER.capH + 7);
-  well.addColorStop(0, "rgba(40,28,10,.35)"); well.addColorStop(.5, "rgba(40,28,10,0)"); well.addColorStop(1, "rgba(40,28,10,.3)");
-  g.fillStyle = well; rr(g, b.x + PAGER.padX - 7, wy - 7, b.w - 2 * PAGER.padX + 14, PAGER.capH + 14, 4); g.fill();
-  for (const sx of [b.x + PAGER.padX / 2, b.x + b.w - PAGER.padX / 2]) screw(g, sx, wy + PAGER.capH / 2, 5);
-  // the engraved title: ——[ PAGE · SEITE ]——
-  const t = "[ PAGE  ·  SEITE ]", ty = b.y + 22, cx = b.x + b.w / 2;
-  g.font = `600 13px ${FONT}`; g.textAlign = "center"; g.textBaseline = "alphabetic";
-  if ("letterSpacing" in g) g.letterSpacing = "2px";
-  const tw = g.measureText(t).width;
-  g.fillStyle = "rgba(0,0,0,.7)"; g.fillText(t, cx, ty - .8);
-  g.fillStyle = "rgba(214,208,194,.72)"; g.fillText(t, cx, ty);
-  if ("letterSpacing" in g) g.letterSpacing = "0px";
-  g.textAlign = "left";
-  g.fillStyle = "rgba(214,208,194,.32)";
-  g.fillRect(b.x + PAGER.padX - 4, ty - 5, (b.w - tw) / 2 - PAGER.padX - 6, 1.2);
-  g.fillRect(cx + tw / 2 + 10, ty - 5, (b.w - tw) / 2 - PAGER.padX - 6, 1.2);
-}
 function screw(g, x, y, r){
   const sg = g.createRadialGradient(x - r * .35, y - r * .35, r * .1, x, y, r);
   sg.addColorStop(0, "#8d9095"); sg.addColorStop(.6, "#45474c"); sg.addColorStop(1, "#1b1c1f");
@@ -1155,6 +1050,11 @@ function drawBezel(g){
   g.save(); rr(g, b.x, b.y, b.w, b.h, 5); g.clip();
   g.fillStyle = "#08090b"; g.fillRect(b.x, b.y, b.w, b.h);                                  // the screen, switched off
   g.translate(b.x, b.y); glass(g, b.w, b.h, 1.4);
+  if (!(feat && (detailsOf(feat.hex) || {}).photo)) {
+    g.font = `600 15px ${FONT}`; g.textAlign = "center"; if ("letterSpacing" in g) g.letterSpacing = "3px";
+    g.fillStyle = "rgba(170,190,215,.32)"; g.fillText("NO PICTURE  ·  KEIN BILD", b.w / 2, b.h / 2 + 5);
+    if ("letterSpacing" in g) g.letterSpacing = "0px"; g.textAlign = "left";
+  }
   g.restore();
   for (const [sx, sy] of [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]]) screw(g, sx, sy, 3.3);
   const lx = x + w - 34, ly = y + h - 8, led = g.createRadialGradient(lx, ly, 0, lx, ly, 9);
@@ -1214,8 +1114,8 @@ function drawPlaque(g){
   }
   g.font = `600 12px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
   if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  g.fillStyle = "rgba(0,0,0,.6)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w, y + h + 21);
-  g.fillStyle = "rgba(255,255,255,.2)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w, y + h + 22);
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w - 16, y + h - 13);
+  g.fillStyle = "rgba(255,255,255,.2)"; g.fillText("PHOTO  AIRPORT-DATA.COM", x + w - 16, y + h - 12);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   g.textAlign = "left";
   const img = photoReady();
@@ -1697,8 +1597,8 @@ async function syncSightings(){
     if (first) dlog("info", `Spotted today comes from the relay, shared by every screen (${spotted.length} so far)`);
     else for (const e of spotted.filter(e => !known.has(e.id)).reverse()) dlog("info", `Relay added ${e.flight || e.hex} to Spotted today (${(+e.minDist).toFixed(1)} km away)`);
     if (page === "spotted" || page === "stats") renderPage();
-    if (openView === "logbook" && !first) renderLogbook();
-    if (openView === "spotted") renderSpottedView();
+    if (view === "logbook" && !first) fetchLogbook();
+    if (view === "spotted") renderSpottedBoard();
     updateFooter();
   } catch (e) { dlog("warn", `Couldn't read Spotted today from the relay: ${netError(e, "relay")}`); }
   finally { sightBusy = false; }
@@ -1715,7 +1615,7 @@ async function loadFullDay(){
     const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
     if (j.stats) relayStats = j.stats;
-    renderSpottedView(); updateFooter();
+    renderSpottedBoard(); updateFooter();
   } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
   finally { fullDay.busy = false; }
 }
@@ -1781,6 +1681,12 @@ function liveFacts(ac, info){
     flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
 }
 const chimed = new Map();       // hex -> when its chime played, once per pass
+function alertKind(o){
+  const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
+  if (sp === "EMERGENCY") return "emergency";
+  if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return "special";
+  return favList().length && isFav(liveFacts(ac)) ? "fav" : null;
+}
 function checkChimes(ok, R){
   const now = Date.now();
   for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
@@ -1825,7 +1731,7 @@ function countdown(sec){
 const overKm = () => Math.min(+S.overKm || 3, +S.radiusKm || 15);
 function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " KM " + o.dir; }
 
-function setFeat(o, mode){
+function setFeat(o, mode, alert = false){
   const now = Date.now();
   if (!feat || feat.hex !== o.ac.hex) {
     const p = enrich(o.ac);
@@ -1835,6 +1741,11 @@ function setFeat(o, mode){
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km${o.alt != null ? " · " + nf.format(Math.round(o.alt)) + " ft" : ""}`);
   feat.o = o; feat.mode = mode;
   if (mode === "over" || mode === "soon") feat.lastSeen = now;
+  if (alert && !feat.alert) {
+    feat.alert = true;
+    dlog("info", `${planeName(feat, o.ac)} rang the bell: on the board, with This aircraft below`);
+    if (!view && !switching && !bigFlap.on) { pageHold = Date.now() + 90000; if (page !== "aircraft") goPage("aircraft"); }
+  } else if (!alert) feat.alert = false;
 }
 /* Every plane that comes within the spotting radius gets one entry per pass; its closest
    distance is kept up to date so the list can mark the ones that flew directly overhead. */
@@ -1864,10 +1775,10 @@ function logPlanes(ok, R){
     spotted.unshift(e); if (spotted.length > 300) spotted.length = 300;
     dirty = redraw = true;
     dlog("info", `Added ${e.flight || e.hex} to Spotted today (${o.dist.toFixed(1)} km away, within the ${R} km radius)`);
-    p.then(info => { fillEntry(e, info); saveLog(); renderPage(); renderSpottedView(); });
+    p.then(info => { fillEntry(e, info); saveLog(); renderPage(); renderSpottedBoard(); });
   }
   if (dirty) saveLog();
-  if (redraw) { renderPage(); updateFooter(); renderSpottedView(); }
+  if (redraw) { renderPage(); updateFooter(); renderSpottedBoard(); }
 }
 /* Airtime. Planes that hang around (a police helicopter over an incident, a circling light aircraft) get at most
    a few minutes an hour on the top half while other planes are around. Airliners passing over are never cut short:
@@ -1950,6 +1861,7 @@ function process(list){
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
   if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
   radarTrack(all, now);
+  if (view === "radar") renderRadarList();
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
@@ -1957,13 +1869,17 @@ function process(list){
   const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
   const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
-  let pick = null, mode = null;
-  if (mine(over)) { pick = mine(over); mode = "over"; }
+  // A plane that rings the bell (emergency, special, military, favourite) takes the board while it is in the radius.
+  const alerts = cand.filter(o => o.dist <= R && alertKind(o)).sort((a, b) => a.dist - b.dist);
+  const modeOf = o => o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.tcpa > 0 ? "by" : "away";
+  let pick = null, mode = null, alert = false;
+  if (alerts.length) { pick = mine(alerts) || alerts[0]; mode = modeOf(pick); alert = true; }
+  else if (mine(over)) { pick = mine(over); mode = "over"; }
   else if (over.length) { pick = over[0]; mode = "over"; }
   else if (mine(soon)) { pick = mine(soon); mode = "soon"; }
   else if (soon.length) { pick = soon[0]; mode = "soon"; }
 
-  if (pick) setFeat(pick, mode);
+  if (pick) setFeat(pick, mode, alert);
   else if (feat && !rest.has(feat.hex) && ["over", "soon", "passed"].includes(feat.mode) && now - feat.lastSeen < HOLD()) {
     const still = all.find(o => o.ac.hex === feat.hex);
     if (still) feat.o = still;
@@ -1986,21 +1902,8 @@ function process(list){
 
 /* ---------- flight times and delays ----------
    Vienna Airport publishes its arrivals and departures with planned and expected times; the home relay (version
-   11 or newer) reads them, so flights to and from Vienna show their delay. Flightradar24 adds the take-off time
+   11 or newer) reads them, so flights to and from Vienna show their times. Flightradar24 adds the take-off time
    of any flight on this board. Other flights show what is known, often nothing. */
-function delayLook(v){
-  if (!v) return {};
-  if (v === "ON TIME") return {fill:["#27a85e","#1d8a4b"], fg:"#ffffff"};
-  if (/EARLY/.test(v)) return {fill:["#2c6ec4","#215aa2"], fg:"#ffffff"};
-  const m = /(\d+) H (\d+)/.exec(v), mins = m ? +m[1] * 60 + +m[2] : parseInt(v, 10) || 0;
-  return mins < 15 ? {fill:["#f6be35","#dc9f1d"], fg:"#17140d"} : {fill:["#e0372c","#bb2a20"], fg:"#ffffff"};
-}
-function delayWord(m){
-  if (m == null || !isFinite(m)) return "";
-  if (m <= -4) return `${-m} MIN EARLY`;
-  if (m <= 4) return "ON TIME";
-  return m >= 100 ? `${Math.floor(m / 60)} H ${String(m % 60).padStart(2, "0")} LATE` : `${m} MIN LATE`;
-}
 const timesCache = new Map();          // flight number -> {t, d}: the relay's answer, asked again after two minutes
 function timesFor(info){
   const fn = info && info.flightNo;
@@ -2031,23 +1934,21 @@ function demoTimes(hex){                  // demo mode: believable made-up times
   return {dep: now - (25 + n % 90) * 60000, arr: now + (8 + n % 50) * 60000, delay: [0, 3, 12, 27, -6, 0, 45, 8][n % 8]};
 }
 function renderTimes(){
-  if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); setWord("delay", ""); return; }
+  if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
   const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
-  let dep = utcMs(info.takeoff), arr = null, delay = null;
-  if (S.demo) ({dep, arr, delay} = demoTimes(feat.hex));
+  let dep = utcMs(info.takeoff), arr = null;
+  if (S.demo) ({dep, arr} = demoTimes(feat.hex));
   else {
     const t = timesFor(info);
     if (t) {
       if (t.kind === "dep") dep = dep || t.actual || t.sched;
       else arr = t.actual || t.sched;
-      delay = t.delay;
     }
   }
   setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
   setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
   const mins = dep ? Math.floor((now - dep) / 60000) : -1;
   setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
-  setWord("delay", delayWord(delay), 530);
 }
 
 /* ---------- what goes on the board ---------- */
@@ -2141,22 +2042,22 @@ const fieldsOf = p => p === "spotted" ? LIST_IDS : PAGE_FIELDS[p];
 function pageAvailable(p){
   if (p === "spotted") return true;
   if (p === "stats") return spotted.length > 0;
-  if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo); }
+  if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo) || !!(feat && feat.alert); }
   return false;
 }
 /* Changing pages: the whole lower half is one giant split flap. The next page is set up underneath in
    one go, then the panel carrying the current page tips forward, falls and bounces to rest, silently. */
 function goPage(p){
-  if (p === page || switching || bigFlap.on) return;
+  if (p === page || switching || bigFlap.on || view) return;
   const from = fieldsOf(page), to = fieldsOf(p);
   dlog("debug", `Page: ${pageTitle(p)[0]}`);
   const before = REDUCED ? null : capturePanel();
   switching = true;
   if (from !== to) {
-    for (const id of from) {
+    for (const id of from) {                     // the old page keeps flipping on the falling panel
       const f = fields[id];
-      f.pageOff = true;
-      for (const c of f.cells) { fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8); c.queue = []; c.anim = null; }
+      f.pageOff = true; f.leaving = !!before;
+      for (const c of f.cells) { fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8); if (!before) { c.queue = []; c.anim = null; } }
     }
     for (const id of to) {
       const f = fields[id];
@@ -2170,16 +2071,17 @@ function goPage(p){
   try { renderPage(); } finally { snapping = false; }
   for (const id of to) for (const c of fields[id].cells) drawCell(c);
   updatePager();
-  if (before) startBigFlap(before, capturePanel(true));
+  if (before) startBigFlap(before, capturePanel(true), PANEL, from);
   placePhoto();
 }
 
-const PANEL = {x: 46, y: Y.rule2 + 8, w: 1828, h: H - 52 - Y.rule2};   // the lower half, inside the frame and its screws
-const bigFlap = {on: false, raf: 0};
+const PANEL = {x: 46, y: Y.rule2 + 8, w: 1828, h: Y.rail - 14 - Y.rule2};      // the lower half, above the rail
+const VIEWR = {x: 46, y: Y.rule1 + 6, w: 1828, h: Y.rail - 12 - Y.rule1};         // everything a view takes over
+const bigFlap = {on: false, raf: 0, liveG: null, leaving: []};
 const FLIP_PX = () => Math.min(PX, 1);                      // the falling page moves too fast to need 4K
-function capturePanel(arriving = false){
-  const sx = Math.round(PANEL.x * PX), sy = Math.round(PANEL.y * PX), sw = Math.round(PANEL.w * PX), sh = Math.round(PANEL.h * PX);
-  const FP = FLIP_PX(), w = Math.round(PANEL.w * FP), h = Math.round(PANEL.h * FP);
+function capturePanel(arriving = false, R = PANEL){
+  const sx = Math.round(R.x * PX), sy = Math.round(R.y * PX), sw = Math.round(R.w * PX), sh = Math.round(R.h * PX);
+  const FP = FLIP_PX(), w = Math.round(R.w * FP), h = Math.round(R.h * FP);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const g = cv.getContext("2d");
   g.drawImage(bg, sx, sy, sw, sh, 0, 0, w, h);
@@ -2187,9 +2089,9 @@ function capturePanel(arriving = false){
   const img = photoReady(), st = photoStyle();
   // The photo is a separate element, so paint it in. An engraved one is already part of the panel, and a
   // screen arriving with a new page is still switched off: it comes on once the page has landed.
-  if (page === "aircraft" && img && st !== "engraved" && !(arriving && st === "screen")) {
+  if (!view && page === "aircraft" && img && st !== "engraved" && !(arriving && st === "screen")) {
     const b = photoBox();
-    g.setTransform(FP, 0, 0, FP, (b.x - PANEL.x) * FP, (b.y - PANEL.y) * FP);
+    g.setTransform(FP, 0, 0, FP, (b.x - R.x) * FP, (b.y - R.y) * FP);
     g.save(); rr(g, 0, 0, b.w, b.h, st === "screen" ? 5 : 6); g.clip();
     try { (st === "screen" ? paintScreen : paintPlain)(g, b.w, b.h, img); } catch {}
     g.restore();
@@ -2203,12 +2105,15 @@ const FALL = (() => {
   while (a < Math.PI && t < 30) { w += Math.sin(a) * dt; a += w * dt; t += dt; pts.push(Math.min(a, Math.PI)); }
   return u => pts[Math.min(pts.length - 1, Math.max(0, Math.round(u * (pts.length - 1))))];
 })();
-function startBigFlap(A, B){
+function startBigFlap(A, B, RG = PANEL, leaving = []){
   const cv = $("flipCv"), g = cv.getContext("2d"), FP = FLIP_PX();
   cv.width = Math.round(W * FP); cv.height = Math.round(H * FP); cv.hidden = false;
-  bigFlap.on = true;
-  const hh = PANEL.h / 2, hy = PANEL.y + hh, D = 2600, vx = W / 2, vy = H / 2;
-  const fallS = 1.05 * Math.sqrt(pace()), BOUNCE = .1, settleS = .55;
+  bigFlap.on = true; bigFlap.leaving = leaving;
+  const FPX = FLIP_PX();
+  bigFlap.liveG = A.getContext("2d");                          // flaps still turning on the old page are painted onto it
+  bigFlap.liveG.setTransform(FPX / PX, 0, 0, FPX / PX, -RG.x * FPX, -RG.y * FPX);
+  const hh = RG.h / 2, hy = RG.y + hh, D = 2600, vx = W / 2, vy = H / 2;
+  const fallS = 1.05 * Math.sqrt(pace()) * Math.sqrt(Math.max(1, RG.h / 400)), BOUNCE = .1, settleS = .55;   // a bigger panel falls slower
   const t0 = performance.now();
   let lastDraw = 0;
   const draw = () => {
@@ -2222,15 +2127,15 @@ function startBigFlap(A, B){
     g.setTransform(FP, 0, 0, FP, 0, 0);
     g.clearRect(0, 0, W, H);
     // behind the panel: the new page's top half, and the old bottom half until the panel lands on it
-    g.drawImage(B, 0, 0, B.width, hh * FP, PANEL.x, PANEL.y, PANEL.w, hh);
-    g.drawImage(A, 0, hh * FP, A.width, A.height - hh * FP, PANEL.x, hy, PANEL.w, PANEL.h - hh);
+    g.drawImage(B, 0, 0, B.width, hh * FP, RG.x, RG.y, RG.w, hh);
+    g.drawImage(A, 0, hh * FP, A.width, A.height - hh * FP, RG.x, hy, RG.w, RG.h - hh);
     const open = Math.min(1, a / (Math.PI / 2));
-    g.fillStyle = `rgba(0,0,0,${.55 * Math.pow(1 - open, 1.3)})`; g.fillRect(PANEL.x, PANEL.y, PANEL.w, hh);
+    g.fillStyle = `rgba(0,0,0,${.55 * Math.pow(1 - open, 1.3)})`; g.fillRect(RG.x, RG.y, RG.w, hh);
     const cover = Math.sin(a) * (a > Math.PI / 2 ? .6 : .28);
-    const sg = g.createLinearGradient(0, hy, 0, PANEL.y + PANEL.h);
+    const sg = g.createLinearGradient(0, hy, 0, RG.y + RG.h);
     sg.addColorStop(0, `rgba(0,0,0,${cover})`); sg.addColorStop(1, `rgba(0,0,0,${cover * .3})`);
-    g.fillStyle = sg; g.fillRect(PANEL.x, hy, PANEL.w, PANEL.h - hh);
-    g.fillStyle = "rgba(0,0,0,.9)"; g.fillRect(PANEL.x, hy - 2, PANEL.w, 4);            // the gap the panel hinges in
+    g.fillStyle = sg; g.fillRect(RG.x, hy, RG.w, RG.h - hh);
+    g.fillStyle = "rgba(0,0,0,.9)"; g.fillRect(RG.x, hy - 2, RG.w, 4);            // the gap the panel hinges in
     // the panel itself, in perspective: front shows the old top half, back shows the new bottom half
     const ca = Math.cos(a), sa = Math.sin(a);
     const P = r => { const sc = D / (D - r * sa); return [sc, vy + (hy - r * ca - vy) * sc]; };
@@ -2240,14 +2145,14 @@ function startBigFlap(A, B){
       const r0 = hh * i / N, r1 = hh * (i + 1) / N, [s0, y0] = P(r0), [s1, y1] = P(r1), sc = (s0 + s1) / 2;
       const top = Math.min(y0, y1), ht = Math.abs(y1 - y0) + .7;
       if (ht < .25) continue;
-      const dx = vx + (PANEL.x - vx) * sc, dw = PANEL.w * sc;
+      const dx = vx + (RG.x - vx) * sc, dw = RG.w * sc;
       if (front) g.drawImage(A, 0, (hh - r1) * FP, A.width, (r1 - r0) * FP, dx, top, dw, ht);
       else g.drawImage(B, 0, (hh + r0) * FP, B.width, (r1 - r0) * FP, dx, top, dw, ht);
     }
     const lit = front ? -.5 * sa + ca : .5 * sa - ca;             // light from above and in front
     const dark = Math.min(.88, Math.max(0, 1 - (.3 + .7 * Math.max(0, lit) / 1.118 / .894)));
-    const xl = vx + (PANEL.x - vx) * sFree, xr = vx + (PANEL.x + PANEL.w - vx) * sFree;
-    g.beginPath(); g.moveTo(PANEL.x, hy); g.lineTo(PANEL.x + PANEL.w, hy); g.lineTo(xr, yFree); g.lineTo(xl, yFree); g.closePath();
+    const xl = vx + (RG.x - vx) * sFree, xr = vx + (RG.x + RG.w - vx) * sFree;
+    g.beginPath(); g.moveTo(RG.x, hy); g.lineTo(RG.x + RG.w, hy); g.lineTo(xr, yFree); g.lineTo(xl, yFree); g.closePath();
     if (dark > .01) { g.fillStyle = `rgba(0,0,0,${dark})`; g.fill(); }
     g.strokeStyle = "rgba(0,0,0,.92)"; g.lineWidth = 3.5 * sFree;                  // the panel's edge
     g.beginPath(); g.moveTo(xl, yFree); g.lineTo(xr, yFree); g.stroke();
@@ -2264,6 +2169,9 @@ function endBigFlap(){
   bigFlap.on = false;
   const cv = $("flipCv");
   cv.hidden = true; cv.width = cv.height = 1;
+  for (const id of bigFlap.leaving) { const f = fields[id]; if (f.pageOff) for (const c of f.cells) { c.queue = []; c.anim = null; } f.leaving = false; }
+  bigFlap.leaving = []; bigFlap.liveG = null;
+  viewLanded();
   placePhoto();
 }
 function nextPage(dir = 1){
@@ -2288,28 +2196,10 @@ function stepPage(dir){
     if (pageAvailable(PAGE_ORDER[i])) return pickPage(PAGE_ORDER[i]);
   }
 }
-const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft"};
-function updatePager(){
-  const box = $("pagerDots");
-  if (!box.children.length) {
-    for (const p of PAGE_ORDER) {
-      const b = document.createElement("button");
-      b.type = "button"; b.dataset.page = p; b.innerHTML = `<span>${PAGE_KEYS[p] || p}</span>`;
-      b.onclick = e => { e.stopPropagation(); pickPage(p); };
-      box.appendChild(b);
-    }
-  }
-  for (const b of box.children) {
-    const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0];
-    b.disabled = !ok && p !== page;
-    b.title = ok ? name : `${name}: nothing to show right now`;
-    b.setAttribute("aria-label", b.title);
-    if (p === page) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
-  }
-}
 setInterval(() => {
   updatePager();
-  if (switching || bigFlap.on || !$("panel").hidden || openView) return;
+  if (switching || bigFlap.on || view) return;
+  if (feat && feat.alert && page === "aircraft") pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
   if (!pageAvailable(page)) return goPage("spotted");
   if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage(1);
 }, 1000);
@@ -2396,7 +2286,7 @@ function preloadPhoto(){
   if (d && d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
 }
 function placePhoto(){
-  const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = page === "aircraft" && !switching;
+  const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = page === "aircraft" && !switching && !view;
   if (st === "engraved" && here && engravedSrc !== (img ? img.getAttribute("src") : "")) drawStatic();   // cut the new photo into the panel
   const show = here && !bigFlap.on && !!img && st !== "engraved";
   fr.hidden = !show;
@@ -2435,36 +2325,162 @@ function renderAircraft(){
   placePhoto();
 }
 
-/* ---------- logbook and radar: separate tabs over the board ---------- */
-let openView = null, viewTimer = null, lbCache = null;
-const VIEWS = ["spotted", "logbook", "radar"];
-function showView(name){
-  closePanel(); closeDiag();
-  for (const v of VIEWS) $(v + "View").hidden = v !== name;
-  openView = name;
-  try { history.replaceState(null, "", location.pathname + location.search + "#" + name); } catch {}
-  clearInterval(viewTimer); stopRadar();
-  if (name === "logbook") { renderLogbook(); viewTimer = setInterval(renderLogbook, 30000); }
-  else if (name === "spotted") { renderSpottedView(); viewTimer = setInterval(renderSpottedView, 20000); }
-  else startRadar();
+const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
+/* ---------- views: Spotted today, Logbook, Radar and Settings ----------
+   A button on the rail turns the whole board below the header over, like the lower half between pages, and shows
+   the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
+   button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
+let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"]};
+const VIEWS = Object.keys(VIEW_NAMES);
+const VIEW_IDLE_MS = 5 * 60000;
+const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
+function leaveFields(ids, live){
+  for (const id of ids) {
+    const f = fields[id];
+    f.pageOff = true; f.leaving = live;
+    for (const c of f.cells) { if (c.x != null) fxx.clearRect(c.x - 4, c.y - 4, f.pw + 8, f.ph + 8); if (!live) { c.queue = []; c.anim = null; } }
+  }
 }
-function closeView(){
-  if (!openView) return;
-  $(openView + "View").hidden = true; openView = null;
-  clearInterval(viewTimer); stopRadar();
-  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+function enterFields(ids){
+  for (const id of ids) {
+    const f = fields[id];
+    f.pageOff = false; f.leaving = false;
+    for (const c of f.cells) { c.cur = c.target = f.kind === "chars" ? " " : ""; c.queue = []; c.anim = null; }
+  }
 }
-const toggleView = name => openView === name ? closeView() : showView(name);
-let spotFilter = "all";
-const SPOT_FILTERS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
-function remarkStyle(r){
-  const L = REMARK_LOOK[r] || {};
-  return `${L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : ""}color:${L.fg || COL.ink}`;
+function switchView(next, opts = {}){
+  if (!VIEWS.includes(next)) next = null;
+  const toPage = opts.page && opts.page !== page ? opts.page : null;
+  if (next === view && !toPage) return;
+  if (bigFlap.on) endBigFlap();
+  if (switching) return;
+  closeDiag();
+  const fromIds = view ? VIEW_FIELDS[view] : boardIds();
+  const before = REDUCED || opts.instant ? null : capturePanel(false, VIEWR);
+  switching = true;
+  leaveFields(fromIds, !!before);
+  hideViewParts();
+  view = next; viewTouched = Date.now();
+  if (toPage) { page = toPage; pageSince = Date.now(); pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000; }
+  const toIds = view ? VIEW_FIELDS[view] : boardIds();
+  enterFields(toIds);
+  if (view === "spotted" && svLegend) leaveFields(SV_ROW_IDS, false);
+  switching = false;
+  if (view === "settings") cockpitOpen();
+  drawStatic();
+  snapping = true;
+  try { if (view) renderView(); else { renderFeatured(); renderPage(); } } finally { snapping = false; }
+  for (const id of toIds) for (const c of fields[id].cells) drawCell(c);
+  updateRail();
+  try { history.replaceState(null, "", location.pathname + location.search + (view ? "#" + view : "")); } catch {}
+  clearInterval(viewTimer);
+  if (view === "spotted") viewTimer = setInterval(renderView, 20000);
+  else if (view === "logbook") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
+  if (before) startBigFlap(before, capturePanel(true, VIEWR), VIEWR, fromIds);
+  else viewLanded();
+  placePhoto();
+  dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
 }
-/* What every remark means, for the Legend in the Spotted today tab. */
-function renderLegend(){
+const toggleView = v => switchView(view === v ? null : v);
+function viewLanded(){
+  if (view === "radar") startRadar();
+  $("cockpit").hidden = view !== "settings";
+  $("viewTools").hidden = !buildViewTools();
+}
+function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; }
+function renderView(){
+  if (view === "spotted") renderSpottedBoard();
+  else if (view === "logbook") renderLogbookBoard();
+  else if (view === "radar") renderRadarList();
+}
+setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
+["pointerdown", "keydown", "wheel", "input"].forEach(ev => addEventListener(ev, () => { viewTouched = Date.now(); }, {passive: true, capture: true}));
+function viewSubtitle(){
+  if (view === "spotted") return spottedSummary();
+  if (view === "logbook") return logbookSummary();
+  if (view === "radar") return `Range rings every 5 km · the dashed ring is the ${+S.radiusKm || 15} km spotting radius · the green disc is directly overhead`;
+  if (view === "settings") return "Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.";
+  return "";
+}
+// Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
+function viewStatic(g){
+  const [t1, t2] = VIEW_NAMES[view];
+  g.textBaseline = "alphabetic"; g.textAlign = "left";
+  g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, 214);
+  const tw = g.measureText(t1).width;
+  g.font = `400 40px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + tw + 16, 214);
+  staticSub = viewSubtitle();
+  g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
+  if (view === "spotted" && svLegend) drawLegend(g);
+  if (view === "radar") radarStatic(g);
+}
+
+/* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
+let svFilter = "all", svPageNo = 0, svLegend = false;
+const SV_KEYS = ["lamp", "time", "flight", "fromC", "from", "toC", "to", "type", "dist", "alt", "rem"];
+const SV_ROW_IDS = [];
+for (let i = 0; i < SV_ROWS; i++) for (const k of SV_KEYS) SV_ROW_IDS.push(`sv${i}${k}`);
+function svData(){
+  const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
+  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
+  const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
+  return {real, rows, counts, pages: Math.max(1, Math.ceil(rows.length / SV_ROWS))};
+}
+function spottedSummary(){
+  const {real, counts} = svData();
+  if (!real.length) return `Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.`;
+  const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
+  const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
+  const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
+  return `${n} plane${n === 1 ? "" : "s"} · ${na} airline${na === 1 ? "" : "s"} · ${nt} aircraft type${nt === 1 ? "" : "s"} · ${st ? st.overhead : counts.over} directly overhead` +
+    `${relayV5() ? " · shared by every screen through the home relay" : ""}${API_NOTE()}${S.demo ? " · sample flights (demo mode)" : ""}`;
+}
+const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
+function altNum(ft){
+  if (typeof ft !== "number") return "";
+  return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) : nf.format(Math.round(ft / 100) * 100);
+}
+function renderSpottedBoard(){
+  if (view !== "spotted") return;
+  loadFullDay();
+  const {rows, pages} = svData();
+  svPageNo = Math.max(0, Math.min(svPageNo, pages - 1));
+  if (!snapping && viewSubtitle() !== staticSub) drawStatic();
+  if (!svLegend) {
+    const part = rows.slice(svPageNo * SV_ROWS, (svPageNo + 1) * SV_ROWS);
+    for (let i = 0; i < SV_ROWS; i++) {
+      const e = part[i], d = i * 70, r = e ? remarkFor(e) : "";
+      setWord(`sv${i}lamp`, e && badgeFor(e) ? lampOf(r) : "", d);
+      setChars(`sv${i}time`, e ? e.time : "", d);
+      setChars(`sv${i}flight`, e ? e.flight || String(e.hex || "").toUpperCase() : "", d + 40);
+      setChars(`sv${i}fromC`, e ? code3(e.from) : "", d + 80);
+      setChars(`sv${i}from`, e && e.from ? e.from.city || "" : "", d + 100);
+      setChars(`sv${i}toC`, e ? code3(e.to) : "", d + 140);
+      setChars(`sv${i}to`, e && e.to ? e.to.city || "" : "", d + 160);
+      setChars(`sv${i}type`, e ? e.type || "" : "", d + 200);
+      setChars(`sv${i}dist`, e && e.minDist != null ? (+e.minDist < 10 ? (+e.minDist).toFixed(1) : String(Math.round(e.minDist))) : "", d + 240);
+      setChars(`sv${i}alt`, e ? altNum(e.altAtMin) : "", d + 260);
+      setWord(`sv${i}rem`, r, d + 280);
+    }
+  }
+  setChars("svPage", rows.length ? `${svPageNo + 1}/${pages}` : "", 0);
+  updateViewTools();
+}
+function svStep(dir){ const {pages} = svData(); svPageNo = (svPageNo + dir + pages) % pages; renderSpottedBoard(); }
+function setLegend(on){
+  if (svLegend === on) return;
+  svLegend = on;
+  if (on) leaveFields(SV_ROW_IDS, false); else enterFields(SV_ROW_IDS);
+  drawStatic();
+  snapping = true;
+  try { renderSpottedBoard(); } finally { snapping = false; }
+  if (!on) for (const id of SV_ROW_IDS) for (const c of fields[id].cells) drawCell(c);
+}
+function legendGroups(){
   const home = (S.home || "").toUpperCase() || "your home airport", OVK = overKm();
-  const groups = [
+  return [
     ["Status on the board", [
       ["OVERHEAD", `Directly above you, within ${OVK} km (in the lists: it came that close)`],
       ["INBOUND", "On course to pass overhead within three minutes"],
@@ -2477,7 +2493,7 @@ function renderLegend(){
       ["ARRIVING", `Flying to ${home}`],
       ["DEPARTING", `Took off from ${home}`],
       ["OVERFLIGHT", `Passing through, not to or from ${home}`]]],
-    ["Special (tinted rows)", [
+    ["Special (lamp lit)", [
       ["EMERGENCY", "Squawking an emergency code: 7500, 7600 or 7700"],
       ["DIVERTED", "Landing somewhere other than planned (Flightradar24)"],
       ["SUPERJUMBO", "Airbus A380"],
@@ -2485,7 +2501,7 @@ function renderLegend(){
       ["BELUGA", "Airbus Beluga"],
       ["ANTONOV", "Antonov An-124, An-225 or An-22"],
       ["CONCORDE", "Concorde"],
-      ["SPECIAL", "Rare, unusual or government aircraft (aircraft database)"],
+      ["SPECIAL", "Rare, unusual or government aircraft"],
       ["NEW TYPE", "First time this aircraft type is in the logbook"],
       ["NEW AIRLINE", "First time this airline is in the logbook"],
       ["FAVOURITE", "Matches one of your favourites in Settings"],
@@ -2493,76 +2509,79 @@ function renderLegend(){
       ["HELICOPTER", "Helicopter"],
       ["CARGO", "Cargo flight (Flightradar24)"],
       ["BIZJET", "Business jet (Flightradar24)"],
-      ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]];
-  const group = ([h, items]) => `<h3>${h}</h3><dl>` +
-    items.filter(([r]) => REMARKS.includes(r)).map(([r, t]) => `<dt><span class="rm" style="${remarkStyle(r)}">${r}</span></dt><dd>${escH(t)}</dd>`).join("") + "</dl>";
-  const dStyle = r => { const L = delayLook(r); return `background:linear-gradient(${L.fill[0]},${L.fill[1]});color:${L.fg}`; };
-  const delays = `<h3>Delay (flights to and from Vienna)</h3><dl>` + [["ON TIME", "Within four minutes of the timetable"], ["9 MIN LATE", "Up to a quarter of an hour late"],
-    ["25 MIN LATE", "A quarter of an hour late or more"], ["6 MIN EARLY", "Ahead of the timetable"]]
-    .map(([r, t]) => `<dt><span class="rm" style="${dStyle(r)}">${r}</span></dt><dd>${escH(t)}</dd>`).join("") + "</dl>";
-  $("spotLegend").innerHTML = `<div>${group(groups[0])}${group(groups[1])}${delays}</div><div>${group(groups[2])}</div>` +
-    "<p>A plane can be more than one of these; the board shows the most special one, in the order above. Arriving, Departing and Overflight only show in the lists.</p>";
+      ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]]
+    .map(([h, items]) => [h, items.filter(([r]) => REMARKS.includes(r))]);
 }
-let legendOpen = false;
-function toggleLegend(on = !legendOpen){
-  legendOpen = on;
-  $("btnLegend").setAttribute("aria-pressed", String(on));
-  if (on) renderLegend();
-  $("spotLegend").hidden = !on;
+function legendChip(g, r, x, y, w, h){
+  const L = REMARK_LOOK[r] || {}, gr = g.createLinearGradient(0, y, 0, y + h);
+  gr.addColorStop(0, L.fill ? L.fill[0] : "#2e2f33"); gr.addColorStop(1, L.fill ? L.fill[1] : "#232427");
+  g.fillStyle = gr; rr(g, x, y, w, h, 3); g.fill();
+  g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(x, y + h / 2 - .5, w, 1);
+  g.font = `700 14px ${FONT}`; g.textAlign = "center"; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  g.fillStyle = L.fg || COL.ink; g.fillText(r, x + w / 2, y + h / 2 + 5);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.textAlign = "left";
 }
-$("btnLegend").onclick = e => { e.stopPropagation(); toggleLegend(); };
-$("spotLegend").onclick = e => e.stopPropagation();
+function drawLegend(g){
+  const [st, route, sp] = legendGroups(), half = Math.ceil(sp[1].length / 2);
+  const cols = [[st, route], [[sp[0], sp[1].slice(0, half)]], [["", sp[1].slice(half)]]];
+  cols.forEach((col, ci) => {
+    const x = M + ci * 600;
+    let y = 312;
+    for (const [h, items] of col) {
+      g.font = `600 15px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
+      if (h) { g.fillStyle = COL.amber; g.fillText(h.toUpperCase(), x, y); }
+      if ("letterSpacing" in g) g.letterSpacing = "0px";
+      y += 28;
+      for (const [r, t] of items) {
+        legendChip(g, r, x, y - 21, 134, 28);
+        g.font = `500 18px ${FONT}`; g.fillStyle = COL.ink;
+        const tw = g.measureText(t).width, max = 440;
+        g.save(); g.translate(x + 148, y); if (tw > max) g.scale(max / tw, 1); g.fillText(t, 0, 0); g.restore();
+        y += 40;
+      }
+      y += 22;
+    }
+  });
+  g.font = `500 17px ${FONT}`; g.fillStyle = COL.muted;
+  g.fillText("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.", M, 938);
+}
 
-function renderSpottedView(){
-  if (openView !== "spotted") return;
-  loadFullDay();
-  const body = $("spottedBody"), real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
-  const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
-  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
-  $("spotChips").innerHTML = SPOT_FILTERS.map(([k, t]) => `<button type="button" data-f="${k}" aria-pressed="${spotFilter === k}">${t} ${counts[k]}</button>`).join("");
-  for (const b of $("spotChips").children) b.onclick = e => { e.stopPropagation(); spotFilter = b.dataset.f; renderSpottedView(); };
-  if (!real.length) {
-    body.innerHTML = `<p class="msg">Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.</p>`;
-    return;
+/* Buttons for the Spotted today view, on the right of its title: filters, the legend, and turning the pages. */
+const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["legend", "Legend"], ["prev", "◀"], ["next", "▶"]];
+function buildViewTools(){
+  const box = $("viewTools");
+  if (view !== "spotted") { box.innerHTML = ""; return false; }
+  if (!box.children.length) {
+    box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${t}</button>`).join("");
+    for (const b of box.children) b.onclick = e => {
+      e.stopPropagation();
+      const k = b.dataset.t;
+      if (k === "prev" || k === "next") return svStep(k === "next" ? 1 : -1);
+      if (k === "legend") return setLegend(!svLegend), updateViewTools();
+      if (svLegend) setLegend(false);
+      svFilter = k; svPageNo = 0; renderSpottedBoard();
+    };
   }
-  const rows = real.filter(spotFilter === "over" ? isOver : spotFilter === "special" ? isSpecial : () => true);
-  const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
-  const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
-  const logoCell = e => {
-    const code = airlineCodeOf(e);
-    if (!code) return '<span class="code">–</span>';
-    return S.logos ? `<img loading="lazy" src="https://pics.avs.io/240/96/${encodeURIComponent(code)}.png" alt="${escH(code)}" onerror="this.outerHTML='<span class=&quot;code&quot;>${escH(code)}</span>'">` : `<span class="code">${escH(code)}</span>`;
-  };
-  const place = a => a ? `${escH(a.code || "")} <small style="display:inline">${escH(a.city || "")}</small>` : "";
-  const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
-  body.innerHTML = `<p class="sum">${n} plane${n === 1 ? "" : "s"} · ${na} airline${na === 1 ? "" : "s"} · ${nt} aircraft type${nt === 1 ? "" : "s"} · ${st ? st.overhead : counts.over} directly overhead` +
-    `${st && n > real.length ? ` · newest ${real.length} listed` : ""}` +
-    `${relayV5() ? " · shared by every screen through the home relay" : ""}${apiOn() ? " · flight numbers and routes from Flightradar24" : ""}${S.demo ? " · sample flights (demo mode)" : ""}</p>` +
-    (rows.length ? `<table><thead><tr><th>Time</th><th></th><th>Flight</th><th>From</th><th>To</th><th>Aircraft</th><th class="n">Closest</th><th class="n">Altitude</th><th>Remarks</th></tr></thead><tbody>` +
-    rows.map(e => {
-      const r = remarkFor(e), L = isSpecial(e) && REMARK_LOOK[r], c = L && (L.tint || (L.fill ? L.fill[0] : L.fg));
-      return `<tr${c ? ` class="sp" style="--rc:${c};--rt:${rgba(c, .17)}"` : ""}><td class="t">${escH(e.time)}</td><td>${logoCell(e)}</td>` +
-        `<td><b>${escH(e.flight || e.hex)}</b><small class="cut">${escH(e.airline || "")}</small></td>` +
-        `<td><span class="cut">${place(e.from) || '<small style="display:inline">not listed</small>'}</span></td><td><span class="cut">${place(e.to)}</span>${e.divertedTo ? `<small>diverted to ${escH(e.divertedTo.code)} ${escH(e.divertedTo.city || "")}</small>` : ""}</td>` +
-        `<td><span class="cut">${escH(e.type || "")}</span><small>${escH(e.reg || "")}</small></td>` +
-        `<td class="n">${e.minDist != null ? (+e.minDist).toFixed(1) + " km" : ""}</td>` +
-        `<td class="n">${typeof e.altAtMin === "number" ? altShort(e.altAtMin) : ""}</td>` +
-        `<td>${r ? `<span class="rm" style="${remarkStyle(r)}">${r}</span>` : ""}</td></tr>`;
-    }).join("") + "</tbody></table>" : '<p class="msg">None of today\'s planes match this filter yet.</p>');
+  box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
+  updateViewTools();
+  return true;
 }
+function updateViewTools(){
+  const box = $("viewTools");
+  if (view !== "spotted" || !box.children.length) return;
+  const {counts} = svData();
+  for (const b of box.children) {
+    const k = b.dataset.t, n = counts[k];
+    if (n != null) b.textContent = `${SV_TOOLS.find(t => t[0] === k)[1]} ${nf.format(n)}`;
+    const on = k === "legend" ? svLegend : k === svFilter && !svLegend;
+    if (k !== "prev" && k !== "next" && b.getAttribute("aria-pressed") !== String(on)) b.setAttribute("aria-pressed", String(on));
+  }
+}
+
+/* The logbook on the board: totals, categories, and the top of each list on flaps. */
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
-// What kind of flights the logbook has seen. The relay sorts them from the free data, so every board counts the same.
-const CATEGORIES = {passenger: ["Passenger", "#4f8fe0"], cargo: ["Cargo", "#c8874a"], bizjet: ["Business jets", "#e6c66e"], private: ["Private & light", "#9aa4ae"],
-  helicopter: ["Helicopters", "#22b0ae"], military: ["Military", "#8fa05a"], other: ["Other", "#6b6e75"]};
-function categoryRow(b){
-  if (!b.categories) return `<div class="cats"><h3>Categories</h3><p class="more">Counted by the home relay from version 10 on; restart it with the new serve.py.</p></div>`;
-  const c = b.categories, total = Object.values(c).reduce((a, n) => a + (n || 0), 0) || 1;
-  const keys = Object.keys(CATEGORIES).sort((x, y) => (x === "other") - (y === "other") || (c[y] || 0) - (c[x] || 0));
-  return `<div class="cats"><h3>Categories</h3><div class="catrow">` + keys.map(k => {
-    const n = c[k] || 0, [name, col] = CATEGORIES[k], pct = n / total * 100;
-    return `<div class="cat${n ? "" : " zero"}" style="--c:${col}" title="${pct.toFixed(1)}%"><b>${nf.format(n)}</b><span>${name}</span><i style="width:${n ? Math.max(2, pct).toFixed(1) : 0}%"></i></div>`;
-  }).join("") + "</div></div>";
-}
+const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
   return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
@@ -2576,54 +2595,57 @@ function demoLogbook(){
       .map(([reg, name, first]) => ({reg, name, count: 1, first: d(first)})),
     categories: {passenger: 2104, bizjet: 71, private: 58, cargo: 36, helicopter: 27, military: 9, other: 9}};
 }
-async function renderLogbook(){
-  const body = $("logbookBody");
-  let b = null;
-  if (S.demo) b = demoLogbook();
-  else if (!relayV5()) {
-    body.innerHTML = '<p class="msg">The logbook is kept by the home relay, so every screen shares it and nothing is lost on a restart. Open the board through the relay (version 5 or newer) to start one.</p>';
-    return;
-  } else {
-    try { b = lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); }
-    catch (e) {
-      b = lbCache;
-      if (!b) { body.innerHTML = `<p class="msg">Couldn't read the logbook from the relay: ${escH(netError(e, "relay"))}</p>`; return; }
-    }
+const lbData = () => S.demo ? demoLogbook() : lbCache;
+async function fetchLogbook(){
+  if (!S.demo && relayV5()) {
+    try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
+    catch (e) { lbError = netError(e, "relay"); }
   }
-  if (openView !== "logbook") return;
-  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
-  const types = byCount(b.types), airlines = byCount(b.airlines), now = Date.now();
-  const learning = b.learningUntil && now < b.learningUntil;
-  const isNew = ts => ts && now - ts < 86400e3 && !(b.learningUntil && ts < b.learningUntil);
-  const NEW = ts => isNew(ts) ? '<span class="new">NEW</span>' : "";
-  const tile = (n, en) => `<div class="tile"><b>${nf.format(n || 0)}</b><span>${en}</span></div>`;
-  const more = (n, shown) => n > shown ? `<p class="more">and ${n - shown} more</p>` : "";
-  const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
-  const ROWS = 11;
-  const typeRows = types.slice(0, ROWS).map(([code, it]) => `<tr><td>${escH(typeLabel(code, it.name))}${SPECIAL_TYPES[code] ? `<span class="tag">${SPECIAL_TYPES[code]}</span>` : ""}${NEW(it.first)}</td>` +
-    `<td class="c">${escH(code)}</td><td class="n">${nf.format(it.count || 0)}</td><td class="d">${fmtDay(it.first)}</td></tr>`).join("");
-  const logoImg = iata => iata && S.logos ? `<img src="https://pics.avs.io/240/96/${encodeURIComponent(iata)}.png" alt="" onerror="this.style.visibility='hidden'">` : "";
-  const airRows = airlines.slice(0, ROWS).map(([icao, it]) => {
-    const al = AIRLINES[icao] || [], iata = it.iata || al[0] || "";
-    return `<tr><td class="c">${logoImg(iata)}</td><td>${escH(al[1] || it.name || icao)}${NEW(it.first)}</td><td class="c">${escH(icao)}</td><td class="n">${nf.format(it.count || 0)}</td></tr>`;
-  }).join("");
-  const regRows = list => (list || []).slice(0, 5).map(r => `<tr><td>${escH(r.reg)}${NEW(r.first)}</td><td class="c">${escH(typeLabel(r.name, ""))}</td><td class="n">${nf.format(r.count || 0)}</td><td class="d">${fmtDay(r.first)}</td></tr>`).join("");
-  const table = rows => rows ? `<table><tbody>${rows}</tbody></table>` : '<p class="more">None yet</p>';
+  renderLogbookBoard();
+}
+function logbookSummary(){
+  if (!S.demo && !relayV5()) return "The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.";
+  const b = lbData();
+  if (!b) return lbError ? `Couldn't read the logbook from the relay: ${lbError}` : "Reading the logbook from the relay…";
   const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}) : "";
-  const top = types[0], topTile = top ? `<div class="tile tm"><b>${escH(typeLabel(top[0], top[1].name))}</b><span>Most seen model · ${nf.format(top[1].count || 0)}</span></div>`
-    : `<div class="tile tm"><b>-</b><span>Most seen model</span></div>`;
-  body.innerHTML = `<div class="tiles">${tile(b.sightings, "Sightings")}${tile(types.length, "Aircraft types")}${tile(airlines.length, "Airlines")}${tile(b.regsCount, "Individual aircraft")}${topTile}</div>` +
-    `<p class="since">${b.sample ? "Sample logbook (demo mode). " : ""}Counting since ${escH(since)}${learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : ""}</p>` +
-    categoryRow(b) +
-    `<div><h3>Aircraft types</h3>${table(typeRows)}${more(types.length, ROWS)}</div>` +
-    `<div><h3>Airlines</h3>${table(airRows)}${more(airlines.length, ROWS)}</div>` +
-    `<div class="stack"><div><h3>Most seen aircraft</h3>${table(regRows(b.regsTop))}</div>` +
-    `<div><h3>Newest aircraft</h3>${table(regRows(b.regsRecent))}</div></div>`;
+  const learning = b.learningUntil && Date.now() < b.learningUntil;
+  return `${b.sample ? "Sample logbook (demo mode) · " : ""}Counting since ${since}` +
+    (learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : "") +
+    (b.categories ? "" : " · categories are counted from relay version 10 on");
+}
+function renderLogbookBoard(){
+  if (view !== "logbook") return;
+  if (!snapping && viewSubtitle() !== staticSub) drawStatic();
+  const b = lbData() || {};
+  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
+  const types = byCount(b.types), airlines = byCount(b.airlines), has = !!lbData();
+  setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
+  setChars("lvTypes", has ? nf.format(types.length) : "", 60);
+  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 120);
+  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 180);
+  setChars("lvModel", types[0] ? typeLabel(types[0][0], types[0][1].name) : "", 240);
+  LB_CATS.forEach(([k, , , col], i) => {
+    setWord(`lvl_${k}`, b.categories ? col : "", 300 + i * 40);
+    setChars(`lvn_${k}`, b.categories ? nf.format(b.categories[k] || 0) : "", 300 + i * 40);
+  });
+  for (let i = 0; i < LB_ROWS; i++) {
+    const t = types[i], a = airlines[i], d = 500 + i * 60;
+    setChars(`lt${i}name`, t ? typeLabel(t[0], t[1].name) : "", d);
+    setChars(`lt${i}n`, t ? nf.format(t[1].count || 0) : "", d + 20);
+    setChars(`la${i}name`, a ? (AIRLINES[a[0]] || [])[1] || a[1].name || a[0] : "", d + 40);
+    setChars(`la${i}n`, a ? nf.format(a[1].count || 0) : "", d + 60);
+    const r = i < 5 ? (b.regsTop || [])[i] : (b.regsRecent || [])[i - 5];
+    setChars(`lr${i}reg`, r ? r.reg : "", d + 80);
+    setChars(`lr${i}type`, r ? r.name || "" : "", d + 100);
+    setChars(`lr${i}n`, r ? (i < 5 ? nf.format(r.count || 0) : fmtDay(r.first)) : "", d + 120);
+  }
 }
 
-/* Radar: a plan view of everything around, north up */
+/* Radar: a plan view of everything around, north up, in an instrument set into the board. The nearest planes are
+   listed on flaps next to it. */
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
+const RADAR_GEO = {cx: M + 26 + 330, cy: 606, R: 330};
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
   radar.planes = all; radar.at = now;
@@ -2637,20 +2659,47 @@ function radarTrack(all, now){
   for (const [k, tr] of radar.trails) if (!tr.length || now - tr[tr.length - 1].t > 90000) radar.trails.delete(k);
 }
 const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
-function resizeRadar(){ const cv = $("radarCv"); radar.px = Math.min(PX, 1.5); cv.width = Math.round(W * radar.px); cv.height = Math.round(H * radar.px); }
+function radarBox(){ const {cx, cy, R} = RADAR_GEO, m = 36; return {x: cx - R - m, y: cy - R - m, w: 2 * (R + m), h: 2 * (R + m)}; }
+function resizeRadar(){
+  const cv = $("radarCv"), b = radarBox();
+  radar.px = Math.min(PX, LITE() ? 1 : 1.5);
+  cv.width = Math.round(b.w * radar.px); cv.height = Math.round(b.h * radar.px);
+  Object.assign(cv.style, {left: b.x * K + "px", top: b.y * K + "px", width: b.w * K + "px", height: b.h * K + "px"});
+}
 function startRadar(){
-  resizeRadar();
-  const dot = (c, t) => `<span><i style="background:${c}"></i>${t}</span>`;
-  $("radarLegend").innerHTML = [dot(RADAR_COL.over, "Overhead"), dot(RADAR_COL.soon, "Inbound"), dot(RADAR_COL.by, "Flying by"), dot(RADAR_COL.away, "Outbound"),
-    dot(RADAR_COL.special, "Special"), dot(RADAR_COL.fav, "Favourite"), dot(RADAR_COL.high, "Above the altitude limit")].join("");
+  resizeRadar(); $("radarCv").hidden = false;
+  const every = LITE() ? 100 : 66;
   const loop = t => {
-    if (openView !== "radar") return;
-    if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
+    if (view !== "radar") return;
+    if (t - radar.last > every) { radar.last = t; drawRadar(t); }
     radar.raf = requestAnimationFrame(loop);
   };
   cancelAnimationFrame(radar.raf); radar.raf = requestAnimationFrame(loop);
 }
 function stopRadar(){ cancelAnimationFrame(radar.raf); }
+// The instrument's housing and the legend, engraved into the panel.
+function radarStatic(g){
+  const {cx, cy, R} = RADAR_GEO, TAU = Math.PI * 2;
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 18 * PX; g.shadowOffsetY = 6 * PX;
+  const ring = g.createLinearGradient(0, cy - R - 26, 0, cy + R + 26);
+  ring.addColorStop(0, "#303135"); ring.addColorStop(.5, "#1d1e21"); ring.addColorStop(1, "#141517");
+  g.fillStyle = ring; g.beginPath(); g.arc(cx, cy, R + 26, 0, TAU); g.fill();
+  g.restore();
+  g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R + 25, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+  g.fillStyle = "#050607"; g.beginPath(); g.arc(cx, cy, R + 4, 0, TAU); g.fill();
+  const scope = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+  scope.addColorStop(0, "#15191b"); scope.addColorStop(1, "#090b0c");
+  g.fillStyle = scope; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + Math.PI / 8; screw(g, cx + Math.cos(a) * (R + 15), cy + Math.sin(a) * (R + 15), 4); }
+  const dot = (c, t, x, y) => {
+    g.fillStyle = c; g.beginPath(); g.arc(x + 7, y - 6, 7, 0, TAU); g.fill();
+    g.fillStyle = COL.muted; g.font = `500 18px ${FONT}`; g.fillText(t, x + 22, y); return x + 36 + g.measureText(t).width;
+  };
+  let x = 940;
+  [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
+   [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].forEach(([c, t]) => { x = dot(c, t, x, 924); });
+}
 function altShort(ft){
   if (ft == null) return "";
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 50) * 50) + " m" : ft >= 18000 ? "FL" + Math.round(ft / 100) : nf.format(Math.round(ft / 100) * 100) + " ft";
@@ -2664,15 +2713,12 @@ function radarColor(o){
   return RADAR_COL[o.kind] || RADAR_COL.high;
 }
 function drawRadar(t){
-  const cv = $("radarCv"), g = cv.getContext("2d"), now = Date.now();
-  g.setTransform(radar.px, 0, 0, radar.px, 0, 0);
-  g.clearRect(0, 0, W, H);
-  const cx = 700, cy = 572, R = 408, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+  const cv = $("radarCv"), g = cv.getContext("2d"), now = Date.now(), b = radarBox();
+  g.setTransform(radar.px, 0, 0, radar.px, -b.x * radar.px, -b.y * radar.px);
+  g.clearRect(b.x, b.y, b.w, b.h);
+  const {cx, cy, R} = RADAR_GEO, range = radarRange(), k = R / range, TAU = Math.PI * 2;
   const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), ky = 110.57;
   const toXY = (lat, lon) => [cx + (lon - S.lon) * kx * k, cy - (lat - S.lat) * ky * k];
-  const scope = g.createRadialGradient(cx, cy, 0, cx, cy, R);
-  scope.addColorStop(0, "#15191b"); scope.addColorStop(1, "#090b0c");
-  g.fillStyle = scope; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
   const a0 = (t / 7000) * TAU;                                  // slow sweep
   for (let i = 0; i < 28; i++) {
@@ -2682,19 +2728,19 @@ function drawRadar(t){
   g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill();
   g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-  g.font = `600 17px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.font = `600 16px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
   for (let r = 5; r <= range; r += 5) {
     g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.2; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + 8, cy - r * k + 20);
+    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + Math.sin(.42) * r * k + 6, cy - Math.cos(.42) * r * k + 16);
   }
   g.setLineDash([12, 9]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 2;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
   const ap = AIRPORTS[S.home];
   if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 6;
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 5;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 20px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 22, ay + 30); g.lineCap = "butt";
+    g.font = `700 18px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 20, ay + 28); g.lineCap = "butt";
   }
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
@@ -2709,38 +2755,85 @@ function drawRadar(t){
       g.lineTo(x, y); g.stroke();
     }
     g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, o.kind ? 34 : 26, col);   // drawPlane points north-east; this turns it to the track
+    drawPlane(g, 0, 0, o.kind ? 30 : 22, col);   // drawPlane points north-east; this turns it to the track
     g.restore();
     shown.push({o, x, y, col});
   }
-  g.font = `700 17px ${FONT}`;
+  g.font = `700 16px ${FONT}`;
   for (const {o, x, y, col} of shown) {
     if (!o.kind) continue;
     const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
     const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    g.fillStyle = COL.ink; g.fillText(name, x + 22, y - 4);
-    g.font = `500 15px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 22, y + 14); g.font = `700 17px ${FONT}`;
+    g.fillStyle = COL.ink; g.fillText(name, x + 20, y - 4);
+    g.font = `500 14px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 20, y + 13); g.font = `700 16px ${FONT}`;
   }
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
-  g.font = `700 22px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
-  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R + 24), cy - Math.cos(a) * (R + 24)); });
+  const glass = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
+  glass.addColorStop(0, "rgba(255,255,255,.06)"); glass.addColorStop(.5, "rgba(255,255,255,.015)"); glass.addColorStop(.501, "rgba(255,255,255,0)");
+  g.fillStyle = glass; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  g.font = `700 20px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 18), cy - Math.cos(a) * (R - 18)); });
   pictogram(g, cx - 12, cy - 12, 24);
   g.textAlign = "left"; g.textBaseline = "alphabetic";
-  // nearest list on the right
-  const lx = 1250, list = radar.planes.filter(o => o.kind && o.dist <= range).sort((a, b) => a.dist - b.dist).slice(0, 12);
-  g.font = `600 17px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  g.fillStyle = COL.amber; g.fillText("NEAREST", lx, 196); g.fillStyle = COL.labelEn; g.fillText("AM NÄCHSTEN", lx + g.measureText("NEAREST").width + 12, 196);
+}
+function renderRadarList(){
+  if (view !== "radar") return;
+  const range = radarRange(), list = radar.planes.filter(o => o.kind && o.dist <= range).sort((a, b) => a.dist - b.dist).slice(0, RV_ROWS);
+  for (let i = 0; i < RV_ROWS; i++) {
+    const o = list[i], d = i * 60, info = o ? (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac) : null;
+    setWord(`rv${i}lamp`, o ? radarColor(o) : "", d);
+    setChars(`rv${i}flight`, o ? info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || "" : "", d + 20);
+    setChars(`rv${i}type`, o ? String(o.ac.t || "") : "", d + 60);
+    setChars(`rv${i}dist`, o ? (o.dist < 10 ? o.dist.toFixed(1) : String(Math.round(o.dist))) : "", d + 90);
+    setChars(`rv${i}dir`, o ? o.dir : "", d + 110);
+    setChars(`rv${i}alt`, o ? altNum(o.alt) : "", d + 130);
+    setWord(`rv${i}st`, o ? MODE_REMARK[o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.kind === "by" ? "by" : "away"] : "", d + 150);
+  }
+}
+
+/* ---------- the rail: push buttons along the bottom of the board ---------- */
+const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft"};
+const RAIL_VIEWS = [["spotted", "Spotted<br>today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
+function buildRail(){
+  const pb = $("railPages"), vb = $("railViews");
+  pb.innerHTML = PAGE_ORDER.map(p => `<button class="cap" type="button" data-page="${p}"><span>${PAGE_KEYS[p] || p}</span></button>`).join("");
+  vb.innerHTML = RAIL_VIEWS.map(([v, t]) => `<button class="cap" type="button" data-view="${v}" aria-pressed="false"><span>${t}</span></button>`).join("");
+  for (const b of pb.children) b.onclick = e => { e.stopPropagation(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
+  for (const b of vb.children) b.onclick = e => { e.stopPropagation(); toggleView(b.dataset.view); };
+}
+function placeRail(){
+  const top = `calc(${Y.rail + 9}px * var(--k))`;
+  Object.assign($("railPages").style, {left: `calc(${M + 96}px * var(--k))`, top});
+  Object.assign($("railViews").style, {right: `calc(${M}px * var(--k))`, top});
+}
+function updateRail(){
+  const pb = $("railPages");
+  if (!pb.children.length) buildRail();
+  for (const b of pb.children) {
+    const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0], on = !view && p === page;
+    b.disabled = !ok && !on && !view;
+    b.title = ok ? name : `${name}: nothing to show right now`;
+    if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
+    else b.removeAttribute("aria-current");
+  }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+}
+const updatePager = updateRail;
+// The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
+function railPlate(g){
+  const y = Y.rail;
+  g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y - 4, IW, 2);
+  g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, y - 2, IW, 1);
+  const band = g.createLinearGradient(0, y, 0, y + 70);
+  band.addColorStop(0, "rgba(0,0,0,.22)"); band.addColorStop(1, "rgba(0,0,0,.05)");
+  g.fillStyle = band; g.fillRect(M - 18, y, IW + 36, 70);
+  g.font = `600 15px ${FONT}`; g.textBaseline = "alphabetic"; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  const cy = y + 9 + 22, vx = W - M - (RAIL_VIEWS.length * 104 + (RAIL_VIEWS.length - 1) * 14) - 18;
+  g.textAlign = "left"; g.fillStyle = COL.amber; g.fillText("PAGE", M, cy - 2); g.fillStyle = COL.labelEn; g.fillText("SEITE", M, cy + 17);
+  g.textAlign = "right"; g.fillStyle = COL.amber; g.fillText("VIEW", vx, cy - 2); g.fillStyle = COL.labelEn; g.fillText("ANSICHT", vx, cy + 17);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
-  list.forEach((o, i) => {
-    const y = 240 + i * 52, info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
-    g.fillStyle = radarColor(o); g.beginPath(); g.arc(lx + 8, y - 8, 7, 0, TAU); g.fill();
-    g.font = `700 26px ${FONT}`; g.fillStyle = COL.ink; g.fillText(info.flightNo || "", lx + 30, y);
-    g.font = `500 22px ${FONT}`; g.fillStyle = COL.muted; g.fillText(String(o.ac.t || ""), lx + 190, y);
-    g.textAlign = "right"; g.fillStyle = COL.ink; g.fillText(altShort(o.alt), lx + 470, y);
-    g.fillText((o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " km " + o.dir, lx + 606, y); g.textAlign = "left";
-  });
-  if (!list.length) { g.font = `500 24px ${FONT}`; g.fillStyle = COL.muted; g.fillText(radar.at ? "No aircraft in range" : "Waiting for position data", lx, 240); }
+  g.textAlign = "left";
 }
 
 function tickClock(){
@@ -2748,7 +2841,7 @@ function tickClock(){
   if (feat && !isOffline()) setWord("remarks", featRemark());
 }
 
-/* ---------- footer, panel ---------- */
+/* ---------- footer ---------- */
 function updateFooter(){
   const dot = $("dot"), txt = $("statusText");
   dot.dataset.state = ""; txt.textContent = "Connecting…";
@@ -2763,42 +2856,159 @@ function updateFooter(){
   if (nightOn) txt.textContent += " · night mode";
   else if ((S.sound || S.chimes) && !(actx && actx.state === "running")) txt.textContent += " · click or press any key for sound";
   $("pip").dataset.state = dot.dataset.state || "";
-  const nSpot = relayV5() && relayStats ? Math.max(relayStats.planes, spotted.length) : spotted.filter(e => !e.sample).length;
-  $("btnLog").textContent = `Spotted today (${nSpot})`;
 }
-function openPanel(){
-  $("fPlace").value = S.place; $("fLat").value = S.lat; $("fLon").value = S.lon; $("fRadius").value = S.radiusKm; $("fOver").value = String(S.overKm); $("fHome").value = S.home;
-  $("fMaxAlt").value = String(S.maxAltFt); $("fUnits").value = S.units; $("fSound").checked = S.sound; $("fLogos").checked = S.logos; $("fSpeed").value = String(S.speedPct); $("fSpeedOut").textContent = S.speedPct + "%"; $("fRefresh").value = String(S.refreshS); $("fDemo").checked = S.demo;
-  $("fTheme").value = S.theme; $("fRotate").value = String(S.rotateS); $("fFavs").value = S.favs || ""; $("fAirtime").value = String(S.airtimeMin); $("fPhoto").value = photoStyle(); $("fQuality").value = S.quality || "auto";
-  $("fNight").checked = !!S.night; $("fNightFrom").value = S.nightFrom; $("fNightTo").value = S.nightTo; $("fNightDim").value = String(S.nightDim);
-  $("fChimes").checked = !!S.chimes; $("fImperfect").checked = !!S.imperfect;
-  $("panel").hidden = false;
+
+/* ---------- settings: a cockpit panel ----------
+   Rotary selectors, flip switches, thumbwheels and amber read-outs on painted plates. Nothing changes until Save. */
+const COCKPIT = [
+  {title: ["Location", "Standort"], items: [
+    {k: "place", type: "lcd", label: "Place name", w: 300, max: 24},
+    {k: "home", type: "lcd", label: "Home airport", w: 86, max: 3},
+    {k: "lat", type: "lcd", label: "Latitude", w: 170, max: 12},
+    {k: "lon", type: "lcd", label: "Longitude", w: 170, max: 12},
+    {k: "radiusKm", type: "wheel", label: "Spotting radius km", min: 1, max: 20, step: 1},
+    {k: "overKm", type: "rotary", label: "Directly overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]}]},
+  {title: ["Traffic", "Verkehr"], items: [
+    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
+    {k: "refreshS", type: "rotary", label: "Update position every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]]},
+    {k: "airtimeMin", type: "rotary", label: "Hovering planes, min an hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
+    {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
+  {title: ["Display", "Anzeige"], items: [
+    {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
+    {k: "rotateS", type: "rotary", label: "Change pages every", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
+    {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["engraved", "ENGRAVED"], ["plain", "PLAIN"]]},
+    {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
+    {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
+    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5}]},
+  {title: ["System", "System"], items: [
+    {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "sound", type: "switch", label: "Flap sound"},
+    {k: "logos", type: "switch", label: "Airline logos"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"},
+    {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
+  {title: ["Control", "Steuerung"], actions: true},
+  {title: ["Night", "Nacht"], items: [
+    {k: "night", type: "switch", label: "Night mode"},
+    {k: "nightFrom", type: "time", label: "Dim from"},
+    {k: "nightTo", type: "time", label: "Until"},
+    {k: "nightDim", type: "rotary", label: "Night brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
+let draft = null;
+const ITEMS = COCKPIT.flatMap(p => p.items || []);
+function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
+function rotaryIndex(it){
+  const v = draft[it.k], i = it.opts.findIndex(o => String(o[0]) === String(v));
+  if (i >= 0) return i;
+  let best = 0;
+  it.opts.forEach((o, j) => { if (Math.abs(+o[0] - +v) < Math.abs(+it.opts[best][0] - +v)) best = j; });
+  return best;
 }
-function closePanel(){ $("panel").hidden = true; }
-$("btnLog").onclick = e => { e.stopPropagation(); toggleView("spotted"); };
-$("btnLogbook").onclick = e => { e.stopPropagation(); toggleView("logbook"); };
-$("btnRadar").onclick = e => { e.stopPropagation(); toggleView("radar"); };
-document.querySelectorAll("[data-close]").forEach(b => b.onclick = e => { e.stopPropagation(); closeView(); });
-addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.includes(h)) showView(h); else if (!h) closeView(); });
-$("btnSettings").onclick = e => { e.stopPropagation(); openPanel(); };
-$("btnClose").onclick = closePanel;
-$("fSpeed").addEventListener("input", () => { $("fSpeedOut").textContent = $("fSpeed").value + "%"; });
-$("panel").addEventListener("click", e => { if (e.target.id === "panel") closePanel(); });
-$("btnSave").onclick = () => {
+function itemHtml(it){
+  const cap = `<span>${escH(it.label)}</span>`;
+  if (it.type === "lcd") return `<div class="inst${it.wide ? " wide" : ""}"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off"` +
+    `${it.wide ? "" : ` style="width:calc(${it.w}px * var(--k))"`} value="${escH(String(draft[it.k] ?? ""))}">${cap}</div>`;
+  if (it.type === "rotary") {
+    const ang = rotaryAngles(it.opts.length);
+    return `<div class="inst"><div class="rotary" tabindex="0" role="slider" aria-label="${escH(it.label)}" data-k="${it.k}">` +
+      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(o[1])}</b>`).join("") + `<span class="knob"></span></div>${cap}</div>`;
+  }
+  if (it.type === "switch") return `<div class="inst"><button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(it.label)}">` +
+    `<span class="up">${it.upText || "ON"}</span><span class="nut"><i class="lever"></i></span><span class="down">${it.downText || "OFF"}</span></button>${cap}</div>`;
+  const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
+    `<span class="win"><b></b></span><button type="button" class="dec" tabindex="-1" aria-label="Down">▼</button></div>`;
+  if (it.type === "wheel") return `<div class="inst">${wheel("")}${cap}</div>`;
+  return `<div class="inst"><div class="wheels">${wheel("h")}<em>:</em>${wheel("m")}</div>${cap}</div>`;
+}
+function plateHtml(p){
+  const body = p.actions
+    ? `<p>Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own.</p>` +
+      `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button></div>` +
+      `<p>Keys: 1 to 3 pages · T spotted today · L logbook · R radar · S settings · D connection log · F fullscreen · Esc back to the board. ` +
+      `Click the board for fullscreen. Browsers only allow sound after a first click or key press.</p>`
+    : p.items.map(itemHtml).join("");
+  return `<div class="plate"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
+}
+function cockpitOpen(){
+  draft = {...S, quality: S.quality || "auto", photoStyle: photoStyle()};
+  const box = $("cockpit");
+  Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
+  box.innerHTML = COCKPIT.map(plateHtml).join("");
+  box.onclick = e => e.stopPropagation();
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k);
+    if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
+    else if (el.classList.contains("rotary")) {
+      const turn = i => { draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); detent(); };
+      el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
+      el.onwheel = e => { e.preventDefault(); const i = rotaryIndex(it), j = i + (e.deltaY > 0 ? 1 : -1); if (j >= 0 && j < it.opts.length) turn(j); };
+      el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
+    } else if (el.classList.contains("toggle")) el.onclick = () => {
+      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); detent();
+    };
+    else if (el.classList.contains("wheel")) {
+      const roll = d => { wheelStep(it, el.dataset.part, d); cockpitShow(el, d); detent(); };
+      el.querySelector(".inc").onclick = () => roll(1);
+      el.querySelector(".dec").onclick = () => roll(-1);
+      el.onwheel = e => { e.preventDefault(); roll(e.deltaY < 0 ? 1 : -1); };
+      el.onkeydown = e => { const d = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0; if (d) { e.preventDefault(); roll(d); } };
+    }
+  }
+  for (const b of box.querySelectorAll("[data-act]")) b.onclick = () => {
+    if (b.dataset.act === "save") { applySettings(draft); switchView(null); }
+    else switchView(null);
+  };
+  cockpitShow();
+}
+function wheelStep(it, part, d){
+  if (it.type === "time") {
+    const [h, m] = String(draft[it.k] || "00:00").split(":").map(Number);
+    const nh = part === "h" ? (h + d + 24) % 24 : h, nm = part === "m" ? (Math.round(m / 5) * 5 + d * 5 + 60) % 60 : m;
+    draft[it.k] = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+  } else draft[it.k] = Math.min(it.max, Math.max(it.min, Math.round((+draft[it.k] || it.min) / it.step) * it.step + d * it.step));
+}
+// Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
+function cockpitShow(rolled, dir){
+  const box = $("cockpit");
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k), v = draft[it.k];
+    if (el.classList.contains("rotary")) {
+      const i = rotaryIndex(it);
+      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(it.opts.length)[i] + "deg");
+      el.querySelectorAll("b").forEach((b, j) => b.classList.toggle("on", j === i));
+      el.setAttribute("aria-valuetext", it.opts[i][1]);
+    } else if (el.classList.contains("toggle")) el.setAttribute("aria-pressed", String(it.on ? v === it.on : !!v));
+    else if (el.classList.contains("wheel")) {
+      const b = el.querySelector(".win b"), [h, m] = String(v || "00:00").split(":");
+      b.textContent = it.type === "time" ? (el.dataset.part === "h" ? h : m) : String(v);
+      if (el === rolled) { b.className = ""; void b.offsetWidth; b.className = dir > 0 ? "up" : "down"; }
+    }
+  }
+  cockpitDirty();
+}
+function cockpitDirty(){
+  const dirty = ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "quality" ? S.quality || "auto" : it.k === "photoStyle" ? photoStyle() : S[it.k]) ?? ""));
+  const b = $("cockpit").querySelector('[data-act="save"]');
+  if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
+}
+function detent(){                            // a small mechanical click for knobs, switches and wheels
+  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+  const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = 1.6;
+  const fl = actx.createBiquadFilter(); fl.type = "highpass"; fl.frequency.value = 2400;
+  const gn = actx.createGain(); gn.gain.value = .18;
+  src.connect(fl).connect(gn).connect(actx.destination); src.start();
+}
+function applySettings(n){
   const num = v => parseFloat(String(v).replace(",", "."));
-  const lat = num($("fLat").value), lon = num($("fLon").value), wasDemo = S.demo, hadLogos = S.logos;
-  S = {...S,
-    place: $("fPlace").value.trim() || DEFAULTS.place,
+  const lat = num(n.lat), lon = num(n.lon), wasDemo = S.demo, hadLogos = S.logos;
+  S = {...S, ...n,
+    place: String(n.place || "").trim() || DEFAULTS.place,
     lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
-    radiusKm: Math.min(20, Math.max(1, num($("fRadius").value) || 15)),
-    home: clean($("fHome").value).slice(0, 3),
-    maxAltFt: +$("fMaxAlt").value, units: $("fUnits").value,
-    sound: $("fSound").checked, logos: $("fLogos").checked, speedPct: +$("fSpeed").value || 85, overKm: +$("fOver").value || 3, refreshS: +$("fRefresh").value, demo: $("fDemo").checked,
-    theme: $("fTheme").value, rotateS: +$("fRotate").value, favs: $("fFavs").value.trim(), night: $("fNight").checked, airtimeMin: +$("fAirtime").value, photoStyle: $("fPhoto").value, quality: $("fQuality").value,
-    nightFrom: $("fNightFrom").value || DEFAULTS.nightFrom, nightTo: $("fNightTo").value || DEFAULTS.nightTo, nightDim: +$("fNightDim").value || 40,
-    chimes: $("fChimes").checked, imperfect: $("fImperfect").checked};
-  saveSettings(); audioInit(); closePanel();
+    radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
+    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
+    maxAltFt: +n.maxAltFt, refreshS: +n.refreshS, rotateS: +n.rotateS, airtimeMin: +n.airtimeMin, nightDim: +n.nightDim || 40,
+    speedPct: +n.speedPct || 85, overKm: +n.overKm || 3,
+    nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
+  saveSettings(); audioInit();
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent(); fullDay = {at: 0, rev: null, date: null, list: null}; airtime.clear();
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
@@ -2806,20 +3016,25 @@ $("btnSave").onclick = () => {
   applyTheme(); applyNight(true);
   if (hadLogos !== S.logos) layout();
   resize(); renderPage(); if (feat) renderFeatured(); updateFooter(); poll(true);
-};
+}
+
+/* ---------- keys and the address ---------- */
+addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.includes(h)) switchView(h); else if (!h && view) switchView(null); });
 document.addEventListener("keydown", e => {
   audioInit();
-  if (e.key === "Escape") { closePanel(); closeDiag(); closeView(); }
-  if (!$("panel").hidden) return;
+  const t = e.target;
+  if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) { if (e.key === "Escape" || e.key === "Enter") t.blur(); return; }
+  if (e.key === "Escape") { closeDiag(); if (view) switchView(null); return; }
+  if (t && t.closest && t.closest("#cockpit") && /^Arrow/.test(e.key)) return;     // the knobs and wheels use the arrow keys
   if (e.key === "t" || e.key === "T") toggleView("spotted");
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
-  if (e.key === "ArrowRight" && !openView) stepPage(1);
-  if (e.key === "ArrowLeft" && !openView) stepPage(-1);
-  if (/^[1-9]$/.test(e.key) && !openView && PAGE_ORDER[+e.key - 1]) pickPage(PAGE_ORDER[+e.key - 1]);
+  if (e.key === "s" || e.key === "S") toggleView("settings");
+  if (e.key === "ArrowRight") { if (view === "spotted") svStep(1); else if (!view) stepPage(1); }
+  if (e.key === "ArrowLeft") { if (view === "spotted") svStep(-1); else if (!view) stepPage(-1); }
+  if (/^[1-9]$/.test(e.key) && PAGE_ORDER[+e.key - 1]) { const p = PAGE_ORDER[+e.key - 1]; view ? switchView(null, {page: p}) : pickPage(p); }
   if (e.key === "d") DIAG.open ? closeDiag() : openDiag();
   if (e.key === "f") toggleFullscreen();
-  if (e.key === "s") openPanel();
 });
 
 /* ---------- diagnostics panel ---------- */
@@ -2963,8 +3178,8 @@ async function start(){
   renderPage(); updateFooter(); keepAwake();
   if (relayV5()) syncSightings();
   const h = location.hash.slice(1);
-  if (VIEWS.includes(h)) showView(h);
-  updatePager();
+  updateRail();
+  if (VIEWS.includes(h)) switchView(h, {instant: true});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);

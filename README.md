@@ -93,22 +93,27 @@ py serve.py --fr24-key YOUR_KEY --save
 `/test/` is where changes are tried out before they go to the main board. Open it through the relay at
 `http://<computer-name>:8080/test/`. It currently adds:
 
-- **Flight times** in a fourth row of the top half: departure, arrival, flight time so far, and the delay under the
-  status (ON TIME in green, late in amber, a quarter of an hour or more in red, early in blue). Vienna Airport
+- **Flight times** in a fourth row of the top half: departure, arrival and flight time so far. Vienna Airport
   publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
-  them, so flights to and from Vienna get an arrival or departure time and a delay. On the test API board
-  Flightradar24 adds the take-off time, and with it the flight time, for any flight. Overflights without either show
-  what is known, often nothing. The list rows below sit a little closer to make room.
+  them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
+  take-off time, and with it the flight time, for any flight. Overflights without either show what is known, often
+  nothing.
+- **Special planes take the board**: when a plane rings the bell (an emergency, a special or military aircraft, a
+  favourite), it goes straight onto the top half and the lower half turns to **This aircraft**, and both stay with it
+  while it is within the spotting radius. Without a photo, the screen there says so.
 - **Rotating pages** in the lower half, every 30 seconds by default (Settings → Change pages every, or `?rotate=0`
-  to stay on one page): **Recent flights** (the last ten planes that were on the top half, kept per screen),
+  to stay on one page): **Recent flights** (the last eight planes that were on the top half, kept per screen),
   **Today in numbers** (counted over the whole day by the relay), and **This aircraft** (a photo and registration details
   of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
-  split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. The
-  pages have old backlit push buttons on a worn panel next to the clock, like a well-used mixing desk: yellowed amber,
-  green and cream caps with rubbed legends, and the one for the page on show lit, with a small flicker as the lamp
-  comes on. To
-  pick a page yourself, press its button, or use the left and right arrow keys or the keys 1 to 3; a page you pick
-  stays for at least a minute.
+  split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page; flaps
+  still turning on the old page keep turning as it falls. A rail of backlit push buttons runs along the bottom of the
+  board: the pages on the left, the views on the right. The button for what is on show is lit, with a small flicker as
+  the lamp comes on. To pick a page yourself, press its button, or use the left and right arrow keys or the keys 1 to 3;
+  a page you pick stays for at least a minute.
+- **Views on the board**: Spotted today, Logbook, Radar and Settings turn the whole board below the header over, like a
+  page, and show on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Press the
+  button again, Esc, or a page button to turn back; left alone for five minutes, a view turns back by itself. Add
+  `#spotted`, `#logbook`, `#radar` or `#settings` to the address to open one at start.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
   screen is off while the page falls into place and warms up after it lands. Settings → Aircraft photo (or
   `?photo=engraved` / `?photo=plain`) can instead engrave it into the metal as fine lines, or show the plain photo.
@@ -125,17 +130,19 @@ py serve.py --fr24-key YOUR_KEY --save
   It counts helicopters and anything slower than 140 knots; other planes only after six minutes, so an airliner
   passing over is never cut short. With nothing else around it stays on the board. Settings → Limit hovering planes,
   or `?airtime=5`; Diagnostics notes each time it happens.
-- **Spotted today** (press **T**, or the Spotted today button): every plane that came within the spotting radius today, as its own tab, with airline,
-  route, aircraft, registration, closest distance, altitude and remarks, filterable to overhead or special planes.
-  Special planes get the whole row tinted in their remark's colour, and **Legend** explains every remark. The tab
-  shows the whole day (relay 10 or newer; older relays send the newest 400).
-- **Logbook** (press **L**): every type, airline and individual aircraft ever spotted, with counts and first
-  sightings, the most seen model, and how many were passenger, cargo, business jet, private and light, helicopter,
+- **Spotted today** (press **T**): every plane that came within the spotting radius today, fourteen rows to a page on
+  flaps: time, flight, route, aircraft, closest distance, altitude and remarks, with a lamp lit in the remark's colour
+  for special planes. Buttons above it filter to overhead or special planes, turn the pages (or the arrow keys), and
+  show the **Legend** of every remark. It covers the whole day (relay 10 or newer; older relays send the newest 400).
+- **Logbook** (press **L**): totals, the most seen model, the categories, and the top aircraft types, airlines and
+  individual aircraft, with the newest ones, all on flaps. How many were passenger, cargo, business jet, private and light, helicopter,
   military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
   relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
   marked NEW TYPE or NEW AIRLINE on the board.
-- **Radar** (press **R**): a plan view of everything around you, with trails, the spotting radius, the airport's
-  runways and the nearest planes. Add `#spotted`, `#logbook` or `#radar` to the address to open a tab at start.
+- **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
+  the spotting radius and the airport's runways, and the twelve nearest planes on flaps beside it.
+- **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
+  painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
