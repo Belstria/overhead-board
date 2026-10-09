@@ -32,6 +32,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `chimes` | Test board: chimes on (`1`, the default) or off (`0`) | `chimes=0` |
 | `night` | Test board: night mode on (`1`, the default) or off (`0`) | `night=0` |
 | `airtime` | Test board: minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
+| `photo` | Test board: the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -95,9 +96,13 @@ py serve.py --fr24-key YOUR_KEY --save
   to stay on one page): **Recent flights** (the last ten planes that were on the top half, kept per screen),
   **Today in numbers** (counted over the whole day by the relay), and **This aircraft** (a photo and registration details
   of the plane on the board, when one exists). Pages without anything to show are skipped. Pages change like one giant
-  split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. To pick
-  a page yourself, click its dot or the arrows next to the page title, or use the left and right arrow keys or the keys
-  1 to 3; a page you pick stays for at least a minute.
+  split flap: the whole lower half tips forward, falls and settles with a small bounce, revealing the next page. The
+  pages have backlit cockpit push buttons on a small panel next to the clock; the one for the page on show is lit. To
+  pick a page yourself, press its button, or use the left and right arrow keys or the keys 1 to 3; a page you pick
+  stays for at least a minute.
+- **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
+  screen is off while the page falls into place and warms up after it lands. Settings → Aircraft photo (or
+  `?photo=engraved` / `?photo=plain`) can instead engrave it into the metal as fine lines, or show the plain photo.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -109,8 +114,8 @@ py serve.py --fr24-key YOUR_KEY --save
 - **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
   most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
   It counts helicopters and anything slower than 140 knots; other planes only after six minutes, so an airliner
-  passing over is never cut short. With nothing else around it stays on the board. Settings → Limit helicopters and
-  circling planes to, or `?airtime=5`; Diagnostics notes each time it happens.
+  passing over is never cut short. With nothing else around it stays on the board. Settings → Limit hovering planes,
+  or `?airtime=5`; Diagnostics notes each time it happens.
 - **Spotted today** (press **T**, or the Spotted today button): every plane that came within the spotting radius today, as its own tab, with airline,
   route, aircraft, registration, closest distance, altitude and remarks, filterable to overhead or special planes.
   Special planes get the whole row tinted in their remark's colour, and **Legend** explains every remark. The tab
@@ -124,7 +129,9 @@ py serve.py --fr24-key YOUR_KEY --save
   runways and the nearest planes. Add `#spotted`, `#logbook` or `#radar` to the address to open a tab at start.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
-- **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches. Can be turned off.
+- **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
+  some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
+  Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
 
 The logbook and a Spotted today list shared by every screen need relay version 5 or newer (see below).
