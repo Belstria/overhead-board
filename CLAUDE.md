@@ -19,6 +19,11 @@ someone would notice.
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
   short, for Dave, in plain words. Settings → About shows them; the relay (17+) adds the publish time
   (`window.OVERHEAD_PAGE_DATE`).
+- **Every visible text goes through `T()`** (test boards and app): `T("English text", {vars})`, with `{name}`
+  placeholders. Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row
+  shows English. Flap status words stay English inside (the key for colours and drum order) and are translated when
+  drawn. No more German second lines under labels (removed in 1.12); a second label word is only kept for units.
+  Patch notes and the connection log stay English.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in
   `overhead.json` next to the relay on Dave's PC (`py serve.py --fr24-key ... --save`). Never print, read out or

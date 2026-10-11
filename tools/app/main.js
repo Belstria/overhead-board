@@ -6,7 +6,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 
 /* ---------- settings: kept on this phone only ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
@@ -35,6 +35,7 @@ let S = loadSettings();
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
@@ -47,6 +48,7 @@ function dlog(level, msg){
 const scheduleDiag = () => {};
 let nightOn = false;          // the board's night mode; a phone doesn't need it
 //@E2
+//@E33
 
 /* ---------- split-flap panels ----------
    The flaps are drawn exactly as on the board, on canvases set into the page: the plane overhead, the clock, and the
@@ -206,7 +208,7 @@ function drawPanelStatic(P){
   }
 }
 function label(g, f, main, second, size, max = Infinity){
-  const yb = f.y - Math.max(4, size * .5), a = main.toUpperCase(), b = (second || "").toUpperCase();
+  const yb = f.y - Math.max(4, size * .5), a = T(main).toUpperCase(), b = second && UNIT.test(second) ? second.toUpperCase() : "";   // units only
   g.font = `600 ${size}px ${FONT}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
   if ("letterSpacing" in g) g.letterSpacing = (size * .08).toFixed(1) + "px";
   const wa = g.measureText(a).width, gap = size * .7, total = wa + (b ? gap + g.measureText(b).width : 0);
@@ -360,10 +362,10 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
 //@E26
 
 /* ---------- what the lists look like ---------- */
-function chip(r){
+function chip(r){                        // the status word in this language; its colours by the English name
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(r)}</span>`;
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(T(r))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -392,7 +394,7 @@ function renderRecent(){
   if (sig === recentSig) return;
   recentSig = sig;
   $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
-    : `<li class="empty">Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.</li>`;
+    : `<li class="empty">${escH(T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
 }
 let shownPhoto = null, factsSig = "";
 function renderAircraftInfo(){
@@ -421,7 +423,7 @@ function renderAircraftInfo(){
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${en}${de ? `<span>${de}</span>` : ""}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
 }
 
 /* Spotted today */
@@ -437,7 +439,7 @@ function svData(){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${t}</button>`).join("");
+  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
   for (const b of box.children) b.onclick = () => {
     const k = b.dataset.t;
     svFilter = k;
@@ -447,7 +449,7 @@ function buildSvTools(){
 function legendHtml(){
   return legendGroups().map(([h, items]) => `<h3>${escH(h)}</h3><ul class="legend">` +
     items.map(([r, t]) => `<li>${chip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
-    `<p class="sum">A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.</p>`;
+    `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
 function todayNumbers(){
   const st = relayV5() && relayStats, list = dayList(), OVK = overKm();
@@ -461,7 +463,7 @@ function todayNumbers(){
       ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
       ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
       ["Most seen airline", "", t ? `${tn} · ${t.count}` : ""],
-      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? `${st.newTypes} types · ${st.newAirlines} airlines` : "Nothing new yet"]]};
+      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? T("{a} types · {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet")]]};
   }
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
   const withAlt = list.filter(e => typeof e.altAtMin === "number");
@@ -479,7 +481,7 @@ function renderTodayNumbers(){
   const n = todayNumbers();
   setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
   setChars("stTypes", String(n.types), 120); setChars("stOver", String(n.over), 180);
-  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${en}<span>${de}</span></dt><dd>${escH(v)}</dd></div>`).join("");
+  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
   if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
 }
 function renderToday(){
@@ -489,7 +491,7 @@ function renderToday(){
   const d = svData();
   for (const b of $("svTools").children) {
     const k = b.dataset.t, n = d.counts[k];
-    const text = `${SV_TOOLS.find(t => t[0] === k)[1]}${n != null ? " " + nf.format(n) : ""}`;
+    const text = `${T(SV_TOOLS.find(t => t[0] === k)[1])}${n != null ? " " + nf.format(n) : ""}`;
     if (b.textContent !== text) b.textContent = text;
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
@@ -498,7 +500,7 @@ function renderToday(){
   if (sig === svSig) return;
   svSig = sig;
   $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
-    : `<li class="empty">${svFilter === "all" ? "Nothing spotted yet today." : "None of today's planes match this filter yet."}</li>`;
+    : `<li class="empty">${svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
 function renderLists(){
   renderRecent();
@@ -528,22 +530,22 @@ function renderLogbook(){
   const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent]);
   if (sig === lbSig) return;
   lbSig = sig;
-  $("lbModel").innerHTML = types[0] ? `<small>Most seen model · Häufigstes Modell</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${nf.format(types[0][1].count || 0)} times</span>` : "";
+  $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
   if (b.categories) {
     const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-    html += `<h3>Categories<span>Kategorien</span></h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+    html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
       const n = b.categories[k] || 0;
-      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(en)}<span class="s">${escH(de)}</span></span><span class="n">${nf.format(n)}</span>` +
+      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
         `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
     }).join("") + "</ul>";
   }
-  if (types.length) html += `<h3>Aircraft types<span>Flugzeugtypen</span></h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
-  if (airlines.length) html += `<h3>Airlines<span>Fluglinien</span></h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
-  if ((b.regsTop || []).length) html += `<h3>Most seen aircraft<span>Meistgesehen</span></h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
-  if ((b.regsRecent || []).length) html += `<h3>Newest aircraft<span>Neueste</span></h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+  if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
+  if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
+  if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+  if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
   $("lbLists").innerHTML = html;
 }
 
@@ -647,7 +649,7 @@ function drawRadar(t){
 }
 function buildRadarLegend(){
   $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
-    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${t}</li>`).join("");
+    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
 function renderRadarList(){
@@ -660,7 +662,7 @@ function renderRadarList(){
     return `<li class="rv" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
       `<span class="num">${distText(o.dist)} ${o.dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
   });
-  const html = rows.length ? rows.join("") : `<li class="empty">No planes within ${range} km right now.</li>`;
+  const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
 }
 
@@ -680,6 +682,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
+    {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
@@ -704,21 +707,29 @@ function apRowHtml(e){
   const meta = [info.type || e.ac.t, e.ac.r].filter(Boolean).map(escH).join(" · ");
   return `<li class="fl"><time>${e.t ? hhmm(new Date(e.t)) : ""}</time>` +
     `<div class="who"><strong>${escH(apFlight(e))}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}</div>${chip(e.st)}` +
-    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? "on the ground" : ""}</span></div></li>`;
+    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? T("on the ground") : ""}</span></div></li>`;
 }
 let apSig = "";
 function renderAirport(){
   if (tab !== "now" || !airportMode()) return;
-  const sub = !AP.code ? "Set the home airport in Settings." : AP.lat == null ? `Looking up ${AP.code} …` :
-    `Planes taking off from and landing at ${apName()}. Times: when they took off, and when they're expected on the ground.`;
-  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">No take-offs right now.</li>`;
-  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">No landings coming up right now.</li>`;
+  const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
+    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()});
+  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">${escH(T("No take-offs right now."))}</li>`;
+  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">${escH(T("No landings coming up right now."))}</li>`;
   const sig = sub + deps + arrs + S.units;
   if (sig === apSig) return;
   apSig = sig;
   $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
 }
 function airportChanged(){ apSig = ""; renderAirport(); }
+// The page's fixed texts are marked data-t with their English; this puts them in the language chosen.
+function applyLang(){
+  pickLang();
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  buildTabs(); buildSvTools(); buildRadarLegend();
+  if (tab) showTab(tab);
+  clearTiles(); refreshPanels(true);
+}
 // Overhead and Airport in the title: tap one to switch.
 function setMode(md){
   if (S.mode === md) return;
@@ -739,14 +750,14 @@ function applyMode(){
 }
 //@E31
 function plateHtml(p){
-  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = {...S};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>What's new in each version, the relay and who made it.</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">About</button></div></div>`;
+    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
   $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
@@ -779,8 +790,8 @@ function buildSaveBar(){
     ctlSound.press();
     applySettings(draft); cockpitOpen();
     const b = $("saveBtn");
-    b.textContent = "Saved"; clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => { b.textContent = "Save"; }, 1600);
+    b.textContent = T("Saved"); clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
@@ -788,15 +799,15 @@ function buildSaveBar(){
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
-    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}.</p><div class="acts"><button class="cap big" type="button" id="relayBtn">Change relay</button></div>`
-      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
-        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
-    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board: <a href="../">${escH(location.host)}/</a></p>` +
-    ABOUT_HTML + `</div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>Legend · Legende</h3><div class="lgbox">${legendHtml()}</div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><div class="log">${changelogHtml()}</div></div>` +
-    `<div class="acts"><button class="cap big" type="button" id="aboutBack">Settings</button></div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
+    (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+      : `<p>${escH(T("On Android, install the Overhead app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
+    `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>` +
+    aboutHtml() + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
+    `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
@@ -817,7 +828,9 @@ function applySettings(n){
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
+  const langWas = LANG;
   saveSettings(); audioInit();
+  pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; airtime.clear(); lbCache = null;
@@ -835,7 +848,7 @@ function applySettings(n){
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
 function buildTabs(){
-  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap" type="button" data-tab="${t}">${name}</button>`).join("");
+  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
@@ -864,14 +877,14 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){
-  if (S.demo) return "Demo mode · sample flights, not live data";
-  if (!relay()) return "No flight data here: open the app through your home relay, at http://<your computer>:8080/app/";
-  if (isOffline()) return "No flight data for over a minute · retrying";
-  if (!lastOk && failures) return `Waiting for flight data · ${failures} failed attempt${failures > 1 ? "s" : ""}`;
-  if (!lastOk) return "Connecting…";
+  if (S.demo) return T("Demo mode · sample flights, not live data");
+  if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (isOffline()) return T("No flight data for over a minute · retrying");
+  if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});
+  if (!lastOk) return T("Connecting…");
   const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
-  return `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ` +
-    `${nearbyCount ?? 0} aircraft within ${QUERY_KM} km${apiOn() ? " · flight numbers by Flightradar24" : ""}`;
+  return T("Live via {src}", {src: feedName}) + (stale ? " " + T("(last good copy)") : "") + " · " + (age < 3 ? T("updated just now") : T("updated {n} s ago", {n: age})) +
+    (failures ? " · " + T("retrying") : "") + " · " + T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}) + (apiOn() ? " · " + T("flight numbers by Flightradar24") : "");
 }
 function updateFooter(){
   const dot = $("dot");
@@ -880,7 +893,7 @@ function updateFooter(){
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  Radius ${+S.radiusKm || 15} km`; }
+function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());
@@ -918,6 +931,8 @@ async function start(){
       new Promise(r => setTimeout(r, 2500))
     ]);
   } catch {}
+  pickLang();
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
   for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
   showModes();
