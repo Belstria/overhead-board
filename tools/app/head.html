@@ -50,11 +50,13 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 #mark{width:40px;height:40px;flex:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-.title h1 span{font-weight:400;color:var(--muted);margin-left:.18em}
+.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted);margin-right:.3em}
+.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink)}
+.title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
 @media (max-width:400px){.title h1{font-size:22px}}
-@media (max-width:374px){.title h1 span{display:none}}
+@media (max-width:374px){.title h1{font-size:20px}}
 #clockP{width:112px}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
 .dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
@@ -174,6 +176,8 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .inst.wide .lcd{width:100%}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
 #aboutBox .plate{padding:14px 16px 16px;gap:10px}
+#aboutBox .lgbox{grid-column:1/-1}
+#aboutBox .lgbox h3{margin:10px 0 6px;font-size:14px}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -187,7 +191,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1>Overhead<span>Überflüge</span></h1><p id="where"></p></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead">Overhead</button><button type="button" data-mode="airport">Airport</button></h1><p id="where"></p></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
 </header>
@@ -226,7 +230,6 @@ h3 span{color:var(--label2);margin-left:.6em}
     <div class="tools" id="svTools"></div>
     <p class="sum" id="svSum"></p>
     <ol class="flights" id="svList"></ol>
-    <div id="legendBox" hidden></div>
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-logbook" hidden>

@@ -127,6 +127,8 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
 #viewTools{z-index:2}
+#modeSw button{position:absolute;z-index:3;padding:0;border:0;background:transparent;color:transparent;cursor:pointer;border-radius:calc(6px*var(--k));outline:none}
+#modeSw button:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
 #radarCv{position:absolute;z-index:1;pointer-events:none}
 #stage #radarCv{inset:auto}
 
@@ -218,12 +220,21 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
 .plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
 .plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
-.plate .log>li{padding:calc(11px*var(--k)) 0;border-top:1px solid rgba(214,208,194,.12)}
-.plate .log>li:first-child{border-top:0;padding-top:calc(4px*var(--k))}
-.plate .log h4{margin:0 0 calc(6px*var(--k));display:flex;align-items:baseline;gap:calc(14px*var(--k));font:700 calc(22px*var(--k))/1 var(--f-board);color:#d8d3c6}
-.plate .log li.now h4 b{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.4)}
-.plate .log time{font:600 calc(13px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:rgba(214,208,194,.55)}
-.plate .log ul{margin:0;padding-left:calc(22px*var(--k));font:500 calc(16px*var(--k))/1.4 var(--f-board);color:rgba(232,227,214,.84)}
+.plate .vers>li{padding:calc(11px*var(--k)) 0;border-top:1px solid rgba(214,208,194,.12)}
+.plate .vers>li:first-child{border-top:0;padding-top:calc(4px*var(--k))}
+.plate .vers h4{margin:0 0 calc(6px*var(--k));display:flex;align-items:baseline;gap:calc(14px*var(--k));font:700 calc(22px*var(--k))/1 var(--f-board);color:#d8d3c6}
+.plate .vers li.now h4 b{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.4)}
+.plate .vers time{font:600 calc(13px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:rgba(214,208,194,.55)}
+.plate .vers ul{margin:0;padding-left:calc(22px*var(--k));font:500 calc(16px*var(--k))/1.4 var(--f-board);color:rgba(232,227,214,.84)}
+.plate .vers{list-style:none;margin:0;padding:0}
+.plate .tabs{display:flex;gap:calc(10px*var(--k));margin:0 0 calc(10px*var(--k))}
+.plate .tabs .cap{margin:0}
+.plate h4.lg{margin:calc(12px*var(--k)) 0 calc(8px*var(--k));font:700 calc(14px*var(--k))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f6c54a}
+.plate h4.lg:first-child{margin-top:0}
+.plate ul.legend{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:calc(7px*var(--k)) calc(22px*var(--k))}
+.plate ul.legend li{display:grid;grid-template-columns:calc(124px*var(--k)) minmax(0,1fr);gap:calc(12px*var(--k));align-items:center;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
+.plate .chip{display:grid;place-items:center;height:calc(25px*var(--k));padding:0 calc(6px*var(--k));border-radius:calc(3px*var(--k));
+  font:700 calc(12.5px*var(--k))/1 var(--f-board);letter-spacing:.06em;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)}
 .plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
 .plate dl.keys dt{justify-self:end;min-width:calc(30px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));text-align:center;
   font:700 calc(13px*var(--k))/1.25 var(--f-board);color:#17140e;background:linear-gradient(#efe9da,#bdb5a2);box-shadow:0 calc(2px*var(--k)) 0 #050505}
@@ -236,6 +247,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
+  <div id="modeSw"><button type="button" data-mode="overhead" aria-label="Overhead">​</button><button type="button" data-mode="airport" aria-label="Airport">​</button></div>
   <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas></div>
   <img id="photoImg" alt="" referrerpolicy="no-referrer">
   <canvas id="radarCv" hidden aria-hidden="true"></canvas>
@@ -1032,9 +1044,12 @@ function drawStatic(){
   else if (page === "aircraft") { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  g.font = `700 66px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Overhead", M + 116, 98);
-  const tw = g.measureText("Overhead").width;
-  g.font = `400 66px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Überflüge", M + 116 + tw + 22, 98);
+  // The two styles side by side in the title: the one showing bright, the other dimmed. Tapping one switches (modeSw).
+  const ap = airportMode(), x1 = M + 116;
+  g.font = `${ap ? 400 : 700} 66px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText("Overhead", x1, 98);
+  const w1 = g.measureText("Overhead").width, x2 = x1 + w1 + 28;
+  g.font = `${ap ? 700 : 400} 66px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText("Airport", x2, 98);
+  placeModeSwitch(x1, w1, x2, g.measureText("Airport").width);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   RADIUS ${S.radiusKm} KM`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -2652,6 +2667,12 @@ function legendGroups(){
       ["ARRIVING", `Flying to ${home}`],
       ["DEPARTING", `Took off from ${home}`],
       ["OVERFLIGHT", `Passing through, not to or from ${home}`]]],
+    ["At the airport (Airport style)", [
+      ["TAKE-OFF", "Rolling down the runway, or just off the ground"],
+      ["CLIMBING", `Climbing away after taking off from ${home}`],
+      ["APPROACH", `Coming down towards ${home}`],
+      ["FINAL", "On final approach, the last 12 km or so"],
+      ["LANDED", "Just landed, rolling out"]]],
     ["Special (lamp lit)", [
       ["EMERGENCY", "Squawking an emergency code: 7500, 7600 or 7700"],
       ["DIVERTED", "Landing somewhere other than planned (Flightradar24)"],
@@ -2706,8 +2727,8 @@ function drawLegend(g){
   g.fillText("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.", M, 938);
 }
 
-/* Buttons for the Spotted today view, on the right of its title: filters, the legend, and turning the pages. */
-const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["legend", "Legend"], ["prev", "◀"], ["next", "▶"]];
+/* Buttons for the Spotted today view, on the right of its title: filters and turning the pages. */
+const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
   if (view !== "spotted") { box.innerHTML = ""; return false; }
@@ -2961,6 +2982,20 @@ function buildRail(){
   for (const b of pb.children) b.onclick = e => { e.stopPropagation(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
   for (const b of vb.children) b.onclick = e => { e.stopPropagation(); toggleView(b.dataset.view); };
 }
+function placeModeSwitch(x1, w1, x2, w2){
+  const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 6}px * var(--k))`,
+    top: `calc(38px * var(--k))`, width: `calc(${w + 12}px * var(--k))`, height: `calc(76px * var(--k))`});
+  box(a, x1, w1); box(b, x2, w2);
+  a.setAttribute("aria-pressed", String(!airportMode())); b.setAttribute("aria-pressed", String(airportMode()));
+}
+function setMode(m){
+  if (S.mode === m) return;
+  ctlSound.press();
+  S.mode = m; saveSettings();
+  dlog("info", `Board style: ${m}`);
+  switchView(null);           // to the new style's home: the board, or the airport lists
+  drawStatic(); redrawAll();
+}
 function placeRail(){
   const top = `calc(${Y.rail + 9}px * var(--k))`;
   Object.assign($("railPages").style, {left: `calc(${M + 96}px * var(--k))`, top});
@@ -3113,6 +3148,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.10.1", date: "2026-10-12", notes: [
+    "Overhead and Airport sit side by side in the title: tap one to switch (it left Settings).",
+    "The legend moved from Spotted today to About.",
+    "Knobs and flip switches have their realistic sounds again."]},
   {v: "1.10", date: "2026-10-12", notes: [
     "Airport mode (Settings → Board): for watching from the airport, the planes taking off from the home airport on top and the ones coming in to land below, with their flight, destination or origin, aircraft, height and time (relay 18 for airports other than Vienna)."]},
   {v: "1.9", date: "2026-10-12", notes: [
@@ -3175,8 +3214,8 @@ function versionLine(){
   return `Version ${VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
 }
 function changelogHtml(){
-  return CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
-    `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("");
+  return `<ol class="vers">` + CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
+    `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("") + `</ol>`;
 }
 // Who made it and where the data comes from: the About plate on the board and the About page in the app.
 const ABOUT_HTML =
@@ -3205,7 +3244,6 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 4, items: [
-    {k: "mode", type: "rotary", label: "Board", opts: [["overhead", "OVERHEAD"], ["airport", "AIRPORT"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
@@ -3305,13 +3343,34 @@ function aboutOpen(){
   const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML =
-    `<div class="plate notes">${screws}<h3>Patch notes · Versionen</h3><ol class="log" tabindex="0">${changelogHtml()}</ol></div>` +
+    `<div class="plate notes">${screws}<h3 id="abTitle">Patch notes · Versionen</h3>` +
+      `<div class="tabs"><button class="cap small" type="button" data-ab="notes" aria-pressed="true">Patch notes</button>` +
+      `<button class="cap small" type="button" data-ab="legend" aria-pressed="false">Legend</button></div>` +
+      `<div class="log" id="abLog" tabindex="0">${changelogHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>Keys · Tasten</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(k)}</dt><dd>${escH(t)}</dd>`).join("")}</dl>` +
       `<p>Browsers only allow sound after a first click or key press.</p></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3>${ABOUT_HTML}<p class="ver">${escH(versionLine())}</p>` +
       `<div class="acts"><button class="cap big" type="button" data-act="back">Settings</button></div></div>`;
   box.onclick = e => e.stopPropagation();
   box.querySelector('[data-act="back"]').onclick = () => { ctlSound.press(); switchView("settings"); };
+  for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => {
+    ctlSound.press();
+    const legend = b.dataset.ab === "legend";
+    for (const o of box.querySelectorAll("[data-ab]")) o.setAttribute("aria-pressed", String(o === b));
+    $("abTitle").textContent = legend ? "Legend · Legende" : "Patch notes · Versionen";
+    $("abLog").innerHTML = legend ? legendHtml() : changelogHtml();
+    $("abLog").scrollTop = 0;
+  };
+}
+// The remarks and what they mean, with each one in its colours as on the flaps.
+function remarkChip(r){
+  const L = REMARK_LOOK[r] || {}, bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "background:#26282b;";
+  return `<b class="chip" style="${bg}color:${L.fg || "#e8e3d6"}">${escH(r)}</b>`;
+}
+function legendHtml(){
+  return legendGroups().map(([h, items]) => `<h4 class="lg">${escH(h)}</h4><ul class="legend">` +
+    items.map(([r, t]) => `<li>${remarkChip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
+    `<p>A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.</p>`;
 }
 function wheelStep(it, part, d){
   if (it.type === "time") {
@@ -3345,8 +3404,8 @@ function cockpitDirty(){
   if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
 }
 /* ---------- Settings: the sounds of the controls ----------
-   Rotary selectors and flip switches give the board's original small click; a thumbwheel ticks, a push button thocks.
-   They play when the flap sound or the chimes are on. */
+   Synthesised like the flaps: a rotary selector clicks once for every detent it passes, a toggle switch snaps and its
+   body thunks, a thumbwheel ticks, a push button thocks. They play when the flap sound or the chimes are on. */
 let ctlNoise = null;
 function ctlReady(){
   if (nightOn || !(S.sound || S.chimes) || !actx || actx.state !== "running") return false;
@@ -3372,16 +3431,26 @@ function ctlRing(t, freq, dur, gain, type = "sine"){   // a short resonance: the
   g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
   o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + .02);
 }
-function ctlDetent(){
-  if (!ctlReady()) return;
-  const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = 1.6;
-  const fl = actx.createBiquadFilter(); fl.type = "highpass"; fl.frequency.value = 2400;
-  const gn = actx.createGain(); gn.gain.value = .18;
-  src.connect(fl).connect(gn).connect(actx.destination); src.start();
-}
 const ctlSound = {
-  rotary(){ ctlDetent(); },     // rotary selectors and flip switches: the board's original small click
-  toggle(){ ctlDetent(); },
+  rotary(steps = 1){          // the spring-loaded ball dropping into each detent
+    if (!ctlReady()) return;
+    const t0 = actx.currentTime + .005;
+    for (let i = 0; i < Math.min(Math.max(1, steps), 6); i++) {
+      const t = t0 + i * .06, v = 1 - i * .06;
+      ctlBurst(t, {f: 3400 + Math.random() * 500, q: 2.2, dur: .014, gain: .55 * v});
+      ctlBurst(t + .003, {f: 1150, q: 1.3, dur: .035, gain: .22 * v});
+      ctlRing(t, 185 + Math.random() * 15, .05, .16 * v);
+      ctlRing(t + .002, 2300 + Math.random() * 150, .07, .025 * v);
+    }
+  },
+  toggle(on){                 // the over-centre spring lets go: a snap, then the handle hits its stop
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    ctlBurst(t, {type: "highpass", f: 2600, dur: .006, gain: .75});
+    ctlRing(t + .001, on ? 1700 : 1550, .03, .05, "triangle");
+    ctlBurst(t + .008, {f: on ? 880 : 760, q: 1.5, dur: .045, gain: .38});
+    ctlRing(t + .008, on ? 150 : 128, .07, .32);
+  },
   wheel(){                    // a thumbwheel's ratchet
     if (!ctlReady()) return;
     const t = actx.currentTime + .005;
@@ -3672,6 +3741,7 @@ async function start(){
   if (relayV5()) syncSightings();
   const h = location.hash.slice(1);
   updateRail();
+  for (const b of $("modeSw").children) b.onclick = e => { e.stopPropagation(); setMode(b.dataset.mode); };
   if (VIEWS.includes(h)) switchView(h, {instant: true});
   else if (airportMode()) switchView("airport", {instant: true});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
