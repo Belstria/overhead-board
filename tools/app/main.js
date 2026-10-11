@@ -425,7 +425,7 @@ function renderAircraftInfo(){
 }
 
 /* Spotted today */
-let svFilter = "all", svLegend = false, svSig = "";
+let svFilter = "all", svSig = "";
 function svData(){
   const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
@@ -434,14 +434,13 @@ function svData(){
   return {real, rows, counts};
 }
 //@E27
-const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["legend", "Legend"]];
+const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
 function buildSvTools(){
   const box = $("svTools");
   box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${t}</button>`).join("");
   for (const b of box.children) b.onclick = () => {
     const k = b.dataset.t;
-    if (k === "legend") svLegend = !svLegend;
-    else { svLegend = false; svFilter = k; }
+    svFilter = k;
     svSig = ""; renderToday();
   };
 }
@@ -492,11 +491,9 @@ function renderToday(){
     const k = b.dataset.t, n = d.counts[k];
     const text = `${SV_TOOLS.find(t => t[0] === k)[1]}${n != null ? " " + nf.format(n) : ""}`;
     if (b.textContent !== text) b.textContent = text;
-    b.setAttribute("aria-pressed", String(k === "legend" ? svLegend : k === svFilter && !svLegend));
+    b.setAttribute("aria-pressed", String(k === svFilter));
   }
   $("svSum").textContent = spottedSummary();
-  $("legendBox").hidden = !svLegend; $("svList").hidden = svLegend;
-  if (svLegend) { if (!$("legendBox").innerHTML) $("legendBox").innerHTML = legendHtml(); return; }
   const sig = svFilter + S.units + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
@@ -683,7 +680,6 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
-    {k: "mode", type: "rotary", label: "Board", opts: [["overhead", "OVERHEAD"], ["airport", "AIRPORT"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
@@ -722,8 +718,18 @@ function renderAirport(){
   $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
 }
 function airportChanged(){ apSig = ""; renderAirport(); }
+// Overhead and Airport in the title: tap one to switch.
+function setMode(md){
+  if (S.mode === md) return;
+  ctlSound.press(); audioInit();
+  S.mode = md; saveSettings();
+  if (tab !== "now") showTab("now"); else applyMode();
+  showModes();
+}
+function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
 // Which of the two the Now tab shows.
 function applyMode(){
+  showModes();
   const ap = airportMode();
   $("apSec").hidden = !ap; $("ovSec").hidden = ap;
   HERO.off = tab !== "now" || ap;
@@ -786,7 +792,8 @@ function aboutOpen(){
         `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
     `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board: <a href="../">${escH(location.host)}/</a></p>` +
     ABOUT_HTML + `</div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><ol class="log">${changelogHtml()}</ol></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Legend · Legende</h3><div class="lgbox">${legendHtml()}</div></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">Settings</button></div>`;
   if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
@@ -910,6 +917,8 @@ async function start(){
     ]);
   } catch {}
   buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
+  for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
+  showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
