@@ -30,6 +30,7 @@ someone would notice.
 | `test/index.html` | Test board, free data sources only. |
 | `test-api/index.html` | Test board plus Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
 | `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |
+| `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
 | `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
@@ -64,6 +65,17 @@ from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.h
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
 
+On Android it is installed as the Overhead app (`android/`), because Chrome installs web apps only from https and the
+relay is plain http (Tailscale was tried and dropped on 11 Oct 2026; don't suggest it again). The app is a full-screen
+WebView of `<relay>/app/`, so web app changes need no new APK. It finds the relay by asking `/health` on every
+address of the phone's /24 (port 8080, `Server: OverheadRelay`), or takes a typed address; Settings → About →
+Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js`). Its user agent ends in
+`OverheadAndroid/<version>`. GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
+8.10.2 from the workflow) and, on `main`, publishes a release `android-1.<run>` with `overhead.apk`
+(`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
+`ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print
+it, and never replace it, or phones refuse the update. Bump nothing by hand: the version is the workflow run number.
+
 ## The relay
 
 - Dave runs it from `%USERPROFILE%\overhead-relay` (the folder the README sets up), not from this repository: that
@@ -75,10 +87,7 @@ The app keeps its settings under its own key (`od.app.settings`) and needs the r
 - Useful: `http://localhost:8080/status` (JSON), `/screens` (screens using it), Enter in its window lists screens.
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
-- HTTPS (Chrome installs the phone app only from https): `tailscale serve --bg 8080` on Dave's PC proxies
-  `https://<pc>.<tailnet>.ts.net` to the relay. Boards use `location.origin`, so nothing else changes; the relay
-  (14+) takes the screen's address from `X-Forwarded-For` on loopback requests and prints the https address at start.
-  Never `tailscale funnel`: that would publish the board and the home location.
+- Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
 - It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
 

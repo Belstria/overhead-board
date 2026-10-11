@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B0B0C</color>
+    <color name="metal">#141517</color>
+    <color name="icon_bg">#EFB52B</color>
+
+    <style name="Theme.Overhead" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/metal</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+    </style>
+</resources>
