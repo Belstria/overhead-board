@@ -160,6 +160,13 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   who made it. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
+- **Airport mode** (Settings → Display → Board, or `?mode=airport`; test boards and the app): for watching from the
+  airport. Instead of the plane overhead, the board shows the planes taking off from the home airport on top (rolling
+  for take-off, climbing away) and the ones coming in to land below (approach, final, landed), with the time they took
+  off or are expected on the ground, the flight, where to or from, the aircraft and its height. Positions are taken
+  around the airport. Set the home airport first (Use current location offers the nearest one). Vienna works with any
+  relay; other airports need relay 18 or newer. The views (Spotted today, Logbook, Radar, Settings) still open from
+  the rail and go back to the airport lists; the page buttons are off. In the app, the Now tab shows the two lists.
 - **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work

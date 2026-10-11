@@ -516,7 +516,7 @@ for (let i = 0; i < RV_ROWS; i++) {
 // Airport mode: take-offs above, landings below (see "airport mode" further down).
 for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null, dep = k === "d";
-  vdef("airport", `ap${k}${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Expected", dep ? "Zeit" : "Erwartet")});
+  vdef("airport", `ap${k}${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due", dep ? "Zeit" : "Erw.")});
   vdef("airport", `ap${k}${i}flight`, {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight", "Flug")});
   vdef("airport", `ap${k}${i}city`,   {kind:"chars", n:12, dur:60, loud:.5, label:lab(dep ? "To" : "From", dep ? "Nach" : "Von")});
   vdef("airport", `ap${k}${i}type`,   {kind:"chars", n:14, dur:60, loud:.5, label:lab("Aircraft", "Flugzeug")});
@@ -580,7 +580,7 @@ function layout(){
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
   const aps = IW / 58;
-  for (let i = 0; i < 5; i++) for (const [k, y0] of [["d", 292], ["a", 690]])
+  for (let i = 0; i < 5; i++) for (const [k, y0] of [["d", 292], ["a", 708]])
     placeRow(["time", "flight", "city", "type", "alt", "st"].map(c => `ap${k}${i}${c}`), [.8, .8, .8, .8, .8], y0 + i * 46, aps, 1.45);
   fields.apd0alt.label = fields.apa0alt.label = ["Altitude", unit];
 }
@@ -2486,7 +2486,7 @@ function viewSubtitle(){
   if (view === "radar") return `Range rings every 5 km · the dashed ring is the ${+S.radiusKm || 15} km spotting radius · the green disc is directly overhead`;
   if (view === "settings") return "Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.";
   if (view === "about") return `Version ${VERSION} · what changed in each version, the keys, and who made it`;
-  if (view === "airport") return !AP.code ? "Set the home airport in Settings" : AP.lat == null ? `Looking up ${AP.code} …` :
+  if (view === "airport") return !airportPos() && !AP.code ? "Set the home airport in Settings" : AP.lat == null ? `Looking up ${AP.code} …` :
     `Planes rolling for take-off and climbing away from ${apName()}`;
   return "";
 }
@@ -2506,16 +2506,18 @@ function viewStatic(g){
 
 /* Airport mode on the board: two lists on flaps, take-offs above and landings below, each with its title engraved. */
 function airportStatic(g){
-  g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, 586, IW, 2);
-  g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, 588, IW, 1);
-  g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Landings", M, 632);
+  airportPos();
+  g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, 570, IW, 2);
+  g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, 572, IW, 1);
+  g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Landings", M, 620);
   const tw = g.measureText("Landings").width;
-  g.font = `400 40px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Landungen", M + tw + 16, 632);
+  g.font = `400 40px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Landungen", M + tw + 16, 620);
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted;
-  if (AP.lat != null) g.fillText(`Planes coming in to land at ${apName()}, with the time they are expected on the ground`, M, 664);
+  if (AP.lat != null) g.fillText(`Planes coming in to land at ${apName()}, with the time they are expected on the ground`, M, 652);
 }
 function renderAirportBoard(){
   if (view !== "airport") return;
+  if (viewSubtitle() !== staticSub) drawStatic();             // the airport was looked up since the titles were engraved
   const row = (k, i, e, empty) => {
     const id = c => `ap${k}${i}${c}`, d = i * 70;
     setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
