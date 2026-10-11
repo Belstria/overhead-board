@@ -270,3 +270,10 @@ unreachable). Use `--local path/to/index.html` to serve a
 local file instead, `--local-root path/to/overhead-board` to serve every board, the phone app and its icons from a
 copy of this repository, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
 `{nm}` placeholders, or a local `aircraft.json`), and `--help` for all options.
+
+## Working on the board
+
+`CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
+`py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/`;
+`tools/test/shoot.py` takes screenshots of it. The phone app is built from the main board's code with
+`py tools/app/build.py`.

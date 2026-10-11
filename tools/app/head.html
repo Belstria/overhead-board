@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overhead</title>
+<meta name="theme-color" content="#141517">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Overhead">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
+   upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
+   board's backlit push buttons. */
+:root{
+  color-scheme: dark;
+  --housing:#0b0b0c;
+  --metal:#141517;
+  --ink:#f3f0e8;
+  --amber:#f0b429;
+  --muted:#7f838b;
+  --label2:#6d7179;
+  --line:#26272b;
+  --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
+  --k:1;
+  --gut:14px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--housing)}
+button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:6px;padding:.25em .7em;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+body{margin:0;min-height:100vh;min-height:100dvh;color:var(--ink);font:15px/1.4 var(--f-board);
+  background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 90% 70% at 50% 42%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42))}
+.wrap{position:relative;max-width:560px;margin:0 auto;padding:0 var(--gut)}
+/* the header plate: logo, title and the clock on flaps; it stays at the top while the page scrolls */
+#top{position:sticky;top:0;z-index:5;padding-top:env(safe-area-inset-top);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  box-shadow:0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.7),0 8px 18px rgba(0,0,0,.38)}
+#top .wrap{display:flex;align-items:center;gap:11px;padding-top:10px;padding-bottom:11px}
+#mark{width:40px;height:40px;flex:none}
+.title{min-width:0;flex:1}
+.title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.title h1 span{font-weight:400;color:var(--muted);margin-left:.18em}
+.title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clockbox{position:relative;flex:none}
+@media (max-width:400px){.title h1{font-size:22px}}
+@media (max-width:374px){.title h1 span{display:none}}
+#clockP{width:112px}
+.dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+.dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
+main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
+/* split-flap panels: canvases drawn by the same flap engine as the board */
+.panel{position:relative;width:100%;aspect-ratio:var(--w)/var(--h)}
+.panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* engraved headings and grooves */
+h2{margin:24px 0 10px;font:700 21px/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+h2 span{font-weight:400;color:var(--muted);margin-left:.3em}
+h2:first-child{margin-top:4px}
+h3{margin:22px 0 8px;font:600 12px/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+h3 span{color:var(--label2);margin-left:.6em}
+.groove{height:3px;margin:18px 0 0;background:linear-gradient(rgba(0,0,0,.7) 0 2px,rgba(255,255,255,.06) 2px 3px)}
+.sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
+.status{margin-top:20px;font-size:12.5px}
+/* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
+.bezel{position:relative;padding:12px;border-radius:10px;background:linear-gradient(#2a2b2f,#1c1d20 50%,#141518);
+  box-shadow:0 6px 16px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5)}
+.bezel>i{position:absolute;width:7px;height:7px;border-radius:50%;
+  background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
+.bezel>i:nth-of-type(1){left:4px;top:4px}.bezel>i:nth-of-type(2){right:4px;top:4px}.bezel>i:nth-of-type(3){left:4px;bottom:4px}.bezel>i:nth-of-type(4){right:4px;bottom:4px}
+.led{position:absolute;right:24px;bottom:4px;width:5px;height:5px;border-radius:50%;background:#62e896;box-shadow:0 0 6px 2px rgba(90,230,140,.35),0 0 0 1px #0c2a17}
+.screen{position:relative;aspect-ratio:568/268;border-radius:5px;overflow:hidden;background:#08090b;
+  box-shadow:0 0 0 4px #010202,0 5px 0 4px rgba(255,255,255,.05),0 0 20px rgba(165,190,225,.1)}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.86) contrast(1.05) brightness(.95);opacity:0}
+.screen.has img{opacity:1}
+.screen::before{content:"";position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(rgba(0,0,0,.11) 0 1px,transparent 1px 3px)}
+.screen::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 52%,rgba(0,0,0,.42))}
+.screen .glass{position:absolute;inset:0;z-index:2;background:linear-gradient(115deg,rgba(255,255,255,.07),rgba(255,255,255,.022) 44%,rgba(255,255,255,0) 44.5%),
+  linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0) 12px)}
+.screen .none,.screen .credit{position:absolute;z-index:3;font:600 11px/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
+.screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
+.screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
+.screen.has .none,.screen:not(.has) .credit{display:none}
+.screen.on{animation:screenOn .95s ease-out both}
+@keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
+.bezel.plain{padding:0;background:none;box-shadow:none}
+.bezel.plain>i,.bezel.plain .led,.bezel.plain .screen::before,.bezel.plain .screen::after,.bezel.plain .glass{display:none}
+.bezel.plain .screen{border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
+.bezel.plain .screen img{filter:saturate(.9) contrast(1.05)}
+/* engraved facts: a label in amber, the value below */
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:16px 0 0}
+.facts div{min-width:0}
+.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.facts dt span{color:var(--label2);margin-left:.5em}
+.facts dd{margin:5px 0 0;font:600 16px/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
+.facts .wide{grid-column:1/-1}
+/* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
+.flights{list-style:none;margin:6px -10px 0;padding:0}
+.flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
+.flights li.empty{color:var(--muted);padding-left:10px;font-size:14px;border:0;box-shadow:none}
+.fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center}
+.fl time{font:600 14px/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.fl .who strong{font:700 16.5px/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
+.fl .who span{font:500 13.5px/1 var(--f-board);color:var(--muted);margin-left:.45em}
+.fl .rt,.fl .meta{grid-column:2/4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl .rt{font:500 14.5px/1.25 var(--f-board);color:var(--ink)}
+.fl .rt b{font-weight:700;color:var(--amber);margin-right:.25em}
+.fl .rt i{font-style:normal;color:var(--muted);margin:0 .4em}
+.fl .rt .no{color:rgba(255,255,255,.25)}
+.fl .meta{display:flex;justify-content:space-between;gap:10px;font:500 13px/1.2 var(--f-board);color:var(--muted)}
+.fl .meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
+.flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
+.chip{position:relative;display:inline-grid;place-items:center;min-width:86px;height:23px;padding:0 8px;border-radius:3px;
+  font:700 11px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
+.chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5)}
+/* radar list */
+.rv{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
+.rv strong{font:700 15.5px/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv strong span{font-weight:500;color:var(--muted);font-size:13px;margin-left:.4em}
+.rv .num{font:600 13.5px/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
+.rv .chip{min-width:78px}
+/* buttons above lists, and the tab bar: the board's push buttons */
+.tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
+.tools .cap{margin:0}
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
+#tabs .wrap{display:flex;gap:9px;--k:.88}
+#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:44px;margin:0;font-size:11.5px;letter-spacing:.06em}
+.cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
+@keyframes ping{50%{opacity:.35}}
+/* logbook */
+.ranks{list-style:none;margin:0;padding:0;counter-reset:r}
+.ranks li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03);font:600 15px/1.2 var(--f-board)}
+.ranks li::before{counter-increment:r;content:counter(r);color:var(--label2);font-weight:600;font-size:13px}
+.ranks.plain li{grid-template-columns:minmax(0,1fr) auto}
+.ranks.plain li::before{display:none}
+.ranks .n{color:var(--amber);font-variant-numeric:tabular-nums}
+.ranks .s{color:var(--muted);font-weight:500;font-size:13px;margin-left:.4em}
+.ranks .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cats li{grid-template-columns:12px minmax(0,1fr) auto}
+.cats li::before{display:none}
+.cats .lamp{width:10px;height:10px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp);align-self:center}
+.cats .bar{grid-column:2/4;height:3px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden}
+.cats .bar i{display:block;height:100%;background:var(--lamp);opacity:.75}
+.model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
+.model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
+/* radar */
+.scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
+.scope canvas{position:absolute;inset:0;width:100%;height:100%}
+.rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
+.rlegend li{display:flex;align-items:center;gap:6px}
+.rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+/* legend */
+.legend{list-style:none;margin:0;padding:0}
+.legend li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0;font:500 14px/1.3 var(--f-board)}
+.legend .chip{min-width:96px}
+/* settings */
+#cockpit{position:static;display:flex;flex-direction:column;gap:14px;--k:1}
+#cockpit .plate{padding:14px 16px 16px;gap:12px 14px;justify-content:space-around}
+#cockpit .plate h3{margin:0 0 4px}
+#cockpit .inst.wide .lcd{width:100%}
+.about p{text-align:left}
+.about a{color:var(--amber)}
+.savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
+  border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
+.savebar .cap{margin:0}
+/*CAPS_AND_COCKPIT*/
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="wrap">
+    <canvas id="mark" aria-hidden="true"></canvas>
+    <div class="title"><h1>Overhead<span>Überflüge</span></h1><p id="where"></p></div>
+    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
+  </div>
+</header>
+<main>
+  <section class="wrap tab" id="t-now">
+    <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+    <div id="acSec" hidden>
+      <div class="groove"></div>
+      <h2>This aircraft<span>Dieses Flugzeug</span></h2>
+      <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
+        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none">No picture · Kein Bild</span><span class="credit">Photo airport-data.com</span><span class="glass"></span></div>
+        <b class="led"></b>
+      </div>
+      <dl class="facts" id="acFacts"></dl>
+    </div>
+    <div class="groove"></div>
+    <h2>Recent flights<span>Letzte Flüge</span></h2>
+    <ol class="flights" id="recent"></ol>
+    <p class="status statusText"></p>
+  </section>
+  <section class="wrap tab" id="t-today" hidden>
+    <h2>Spotted today<span>Heute gesichtet</span></h2>
+    <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
+    <dl class="facts" id="todayFacts"></dl>
+    <div class="groove"></div>
+    <div class="tools" id="svTools"></div>
+    <p class="sum" id="svSum"></p>
+    <ol class="flights" id="svList"></ol>
+    <div id="legendBox" hidden></div>
+    <p class="status statusText"></p>
+  </section>
+  <section class="wrap tab" id="t-logbook" hidden>
+    <h2>Logbook<span>Logbuch</span></h2>
+    <p class="sum" id="lbSum"></p>
+    <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
+    <p class="model" id="lbModel"></p>
+    <div id="lbLists"></div>
+  </section>
+  <section class="wrap tab" id="t-radar" hidden>
+    <h2>Radar<span>Radar</span></h2>
+    <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+    <ul class="rlegend" id="rLegend"></ul>
+    <h3>Nearest<span>Am nächsten</span></h3>
+    <ol class="flights" id="rvList"></ol>
+  </section>
+  <section class="wrap tab" id="t-settings" hidden>
+    <h2>Settings<span>Einstellungen</span></h2>
+    <p class="sum">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
+    <div id="cockpit" style="margin-top:14px"></div>
+    <div class="savebar"><button class="cap big" type="button" id="cancelBtn">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false">Save</button></div>
+  </section>
+</main>
+<nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
+<script>
