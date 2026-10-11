@@ -694,6 +694,9 @@ const COCKPIT = [
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]}];
 let draft = null;
+// Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
+const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
+const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
 const ITEMS = COCKPIT.flatMap(p => p.items || []);
 //@E29
 function plateHtml(p){
@@ -704,11 +707,12 @@ function cockpitOpen(){
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
     `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p id="aboutStatus"></p>` +
-    `<p>On the home screen: in Chrome on Android, ⋮ → Install app; in Safari, Share → Add to Home Screen. It opens full screen with its own icon. ` +
-    (location.protocol === "https:" ? "" : `Chrome only installs it from an https address: set up Tailscale on your computer and this phone (see the README), ` +
-    `then open the app at https://&lt;your computer&gt;.&lt;tailnet&gt;.ts.net/app/. Here it would only be a bookmark. `) +
-    `The flight data comes through the relay on your computer: on your home Wi-Fi, or anywhere through Tailscale.</p>` +
+    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}. <button class="cap small" type="button" id="relayBtn">Change relay</button></p>`
+      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
+        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
+    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer.</p>` +
     `<p>The big board: <a href="../">${escH(location.host)}/</a></p></div>`;
+  if (ANDROID) $("relayBtn").onclick = () => window.OverheadAndroid.changeRelay();
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
