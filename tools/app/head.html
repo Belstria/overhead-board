@@ -197,14 +197,6 @@ h3 span{color:var(--label2);margin-left:.6em}
 </header>
 <main>
   <section class="wrap tab" id="t-now">
-    <div id="apSec" hidden>
-      <h2>Take-offs<span>Abflüge</span></h2>
-      <p class="sum" id="apSub"></p>
-      <ol class="flights" id="apDeps"></ol>
-      <div class="groove"></div>
-      <h2>Landings<span>Landungen</span></h2>
-      <ol class="flights" id="apArrs"></ol>
-    </div>
     <div id="ovSec">
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
@@ -217,8 +209,19 @@ h3 span{color:var(--label2);margin-left:.6em}
       <dl class="facts" id="acFacts"></dl>
     </div>
     <div class="groove"></div>
+    <div id="recentSec">
     <h2>Recent flights<span>Letzte Flüge</span></h2>
     <ol class="flights" id="recent"></ol>
+    </div>
+    </div>
+    <div id="apSec" hidden>
+      <div class="groove"></div>
+      <h2>Take-offs<span>Abflüge</span></h2>
+      <p class="sum" id="apSub"></p>
+      <ol class="flights" id="apDeps"></ol>
+      <div class="groove"></div>
+      <h2>Landings<span>Landungen</span></h2>
+      <ol class="flights" id="apArrs"></ol>
     </div>
     <p class="status statusText"></p>
   </section>

@@ -326,14 +326,6 @@ h3 span{color:var(--label2);margin-left:.6em}
 </header>
 <main>
   <section class="wrap tab" id="t-now">
-    <div id="apSec" hidden>
-      <h2>Take-offs<span>Abflüge</span></h2>
-      <p class="sum" id="apSub"></p>
-      <ol class="flights" id="apDeps"></ol>
-      <div class="groove"></div>
-      <h2>Landings<span>Landungen</span></h2>
-      <ol class="flights" id="apArrs"></ol>
-    </div>
     <div id="ovSec">
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
@@ -346,8 +338,19 @@ h3 span{color:var(--label2);margin-left:.6em}
       <dl class="facts" id="acFacts"></dl>
     </div>
     <div class="groove"></div>
+    <div id="recentSec">
     <h2>Recent flights<span>Letzte Flüge</span></h2>
     <ol class="flights" id="recent"></ol>
+    </div>
+    </div>
+    <div id="apSec" hidden>
+      <div class="groove"></div>
+      <h2>Take-offs<span>Abflüge</span></h2>
+      <p class="sum" id="apSub"></p>
+      <ol class="flights" id="apDeps"></ol>
+      <div class="groove"></div>
+      <h2>Landings<span>Landungen</span></h2>
+      <ol class="flights" id="apArrs"></ol>
     </div>
     <p class="status statusText"></p>
   </section>
@@ -1602,7 +1605,7 @@ function process(list){
   if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
-    if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
+    if (ac.lat == null || ac.lon == null || (ac.alt_baro === "ground" && !airportMode())) continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
     all.push({ac, alt, ...geo(ac)});
   }
@@ -1638,6 +1641,7 @@ function process(list){
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
   radarTrack(all, now);
   if (tab === "radar") renderRadarList();
+  if (airportMode()) { apFeature(all); checkChimes(ok, R); return; }     // the airport style picks its own plane for the top
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
@@ -1744,7 +1748,7 @@ function renderTimes(){
 }
 
 /* ---------- what goes on the board ---------- */
-const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
+const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -1777,7 +1781,7 @@ function renderFeatured(){
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
-  const mode = MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  const mode = feat.apSt || MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
 }
 const acDetails = new Map();   // hex -> details, or null while looking up / not found
@@ -2512,11 +2516,33 @@ function airportProcess(list){
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
   renderAirport();
 }
+// The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
+function apFocus(which){
+  const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
+  if (which === "arr") return coming || AP.arrs[0] || null;
+  if (which === "dep") return going || null;
+  return AP.deps.find(e => e.st === "TAKE-OFF") || AP.arrs.find(e => e.st === "FINAL") || coming || going || AP.arrs[0] || null;
+}
+function apFeature(all){
+  if (all) AP.all = all;
+  const pg = typeof page === "string" ? page : "";          // the app has no pages
+  const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
+  const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
+  else feat = null;
+  renderFeatured();
+  if (feat) lookupDetails(feat.hex);
+  if (feat && typeof preloadPhoto === "function") preloadPhoto();
+  if (typeof noteFeatured === "function") noteFeatured();
+  if (typeof renderAircraftInfo === "function") renderAircraftInfo();
+  if (typeof renderPage === "function" && (pg === "apland" || pg === "apdep")) renderPage();
+}
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
 const apFlight = e => (e.info && e.info.flightNo) || String(e.ac.flight || "").trim() || e.ac.r || e.hex.toUpperCase();
 const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.info.from); return p ? p.city || p.code || "" : ""; };
-/* Airport mode on the phone: on Now, the take-offs and the landings as lists, in place of the plane overhead. */
+/* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,
+   then the take-offs and the landings as lists (in place of Recent flights). */
 function apRowHtml(e){
   const info = e.info || baseInfo(e.ac), place = e.kind === "dep" ? info.to : info.from;
   const route = place ? (e.kind === "dep" ? `<i>→</i>${placeHtml(place)}` : `${placeHtml(place)}<i>→</i>`) : "";
@@ -2545,15 +2571,16 @@ function setMode(md){
   S.mode = md; saveSettings();
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
+  poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
-  $("apSec").hidden = !ap; $("ovSec").hidden = ap;
-  HERO.off = tab !== "now" || ap;
-  if (ap) { airportPos(); apSig = ""; renderAirport(); } else refreshPanels(true);
+  $("apSec").hidden = !ap; $("recentSec").hidden = ap;
+  if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
+  renderFeatured(); renderAircraftInfo();
 }
 /* ---------- versions and patch notes ----------
    One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
@@ -2561,6 +2588,8 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.11", date: "2026-10-12", notes: [
+    "Airport style, two layouts to compare (Settings → Airport layout): PAGES puts the plane landing or taking off now on top, like the overhead board, with pages below for the take-offs and landings, the landing plane and the departing plane. SCREENS keeps the full-screen lists and adds a Landing and a Take-off screen, each with the plane on top and its photo and details below."]},
   {v: "1.10.1", date: "2026-10-12", notes: [
     "Overhead and Airport sit side by side in the title: tap one to switch (it left Settings).",
     "The legend moved from Spotted today to About.",
@@ -2746,7 +2775,7 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-about").hidden = t !== "about";
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
-  HERO.off = t !== "now" || airportMode(); TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();

@@ -340,7 +340,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead"};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", apLayout:"pages"};
 // With ?app in the address the board is the phone app turned on its side: it shares the app's settings (and, like the
 // app, starts without flap sound). A phone browser goes back to the app when it is turned upright again.
 const IN_APP = new URLSearchParams(location.search).has("app");
@@ -388,6 +388,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (num("rotate") != null) S.rotateS = num("rotate");
   if (q.get("favs")) S.favs = q.get("favs");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
+  if (q.get("aplayout")) S.apLayout = q.get("aplayout") === "screens" ? "screens" : "pages";
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
@@ -464,7 +465,7 @@ for (let i = 0; i < LIST_ROWS; i++) {
 // The lower half rotates between pages. Spotted today uses the list flaps; the other pages have their own.
 const LIST_IDS = [];
 for (let i = 0; i < LIST_ROWS; i++) LIST_IDS.push(`l${i}time`, `l${i}logo`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`);
-const PAGE_FIELDS = {stats: [], aircraft: []};
+const PAGE_FIELDS = {stats: [], aircraft: [], aplists: []};
 function pdef(pg, id, o){ def(id, {...o, pageOff: true}); PAGE_FIELDS[pg].push(id); }
 pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flugzeuge"]});
 pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
@@ -533,6 +534,14 @@ for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
   vdef("airport", `ap${k}${i}alt`,    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:60, loud:.5, label:lab("Altitude", "Höhe")});
   vdef("airport", `ap${k}${i}st`,     {kind:"word",  n:9, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status", "")});
 }
+// The airport style's lists page (pages layout): take-offs on the left, landings on the right, under the plane on top.
+for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
+  const lab = (en, de) => i === 0 ? [en, de] : null, dep = k === "d";
+  pdef("aplists", `apl${k}${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due", dep ? "Zeit" : "Erw.")});
+  pdef("aplists", `apl${k}${i}flight`, {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight", "Flug")});
+  pdef("aplists", `apl${k}${i}city`,   {kind:"chars", n:10, dur:60, loud:.5, label:lab(dep ? "To" : "From", dep ? "Nach" : "Von")});
+  pdef("aplists", `apl${k}${i}st`,     {kind:"word",  n:8, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status", "")});
+}
 for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
   f.cells = [];
@@ -589,6 +598,9 @@ function layout(){
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
+  const als = IW / 66;
+  for (let i = 0; i < 5; i++) for (const [k, x0] of [["d", M], ["a", M + 34 * als]])
+    placeRow(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), [.6, .6, .6], Y.list0 + i * 44, als, 1.45, x0);
   const aps = IW / 58;
   for (let i = 0; i < 5; i++) for (const [k, y0] of [["d", 292], ["a", 708]])
     placeRow(["time", "flight", "city", "type", "alt", "st"].map(c => `ap${k}${i}${c}`), [.8, .8, .8, .8, .8], y0 + i * 46, aps, 1.45);
@@ -1039,7 +1051,7 @@ function drawStatic(){
   railPlate(g);
   engravedSrc = "";
   if (view) viewStatic(g);
-  else if (page === "aircraft") { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
+  else if (isAc(page)) { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   // The two styles side by side in the title: the one showing bright, the other dimmed. Tapping one switches (modeSw).
@@ -1064,6 +1076,12 @@ function drawStatic(){
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, Y.listHead);
   const hw = g.measureText(t1).width;
   g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText(t2, M + hw + 14, Y.listHead);
+  if (page === "aplists") {                         // the right-hand list has its own title
+    const x = M + 34 * IW / 66;
+    g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Landings", x, Y.listHead);
+    const lw = g.measureText("Landings").width;
+    g.font = `400 30px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Landungen", x + lw + 14, Y.listHead);
+  }
 }
 
 function screw(g, x, y, r){
@@ -1851,7 +1869,7 @@ function process(list){
   if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
-    if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
+    if (ac.lat == null || ac.lon == null || (ac.alt_baro === "ground" && !airportMode())) continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
     all.push({ac, alt, ...geo(ac)});
   }
@@ -1888,6 +1906,7 @@ function process(list){
   if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
   radarTrack(all, now);
   if (view === "radar") renderRadarList();
+  if (airportMode()) { apFeature(all); checkChimes(ok, R); return; }     // the airport style picks its own plane for the top
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
@@ -1923,7 +1942,7 @@ function process(list){
   renderFeatured();
   if (feat) { lookupDetails(feat.hex); preloadPhoto(); }
   noteFeatured();
-  if (page === "aircraft") renderPage();
+  if (isAc(page)) renderPage();
 }
 
 /* ---------- flight times and delays ----------
@@ -1995,7 +2014,7 @@ function renderTimes(){
 }
 
 /* ---------- what goes on the board ---------- */
-const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
+const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -2028,7 +2047,7 @@ function renderFeatured(){
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
-  const mode = MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  const mode = feat.apSt || MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
 }
 /* Recent flights: the planes that were on the top half, newest first, kept per screen until the day ends. */
@@ -2075,26 +2094,38 @@ function renderSpotted(){
   }
 }
 /* ---------- rotating pages in the lower half ---------- */
-const PAGE_ORDER = ["spotted", "aircraft", "stats"];
+const PAGE_ORDER_OVERHEAD = ["spotted", "aircraft", "stats"];
+// Airport style: the lists (a page under the plane on top, or the full-screen lists in the screens layout), then the
+// plane landing and the plane taking off, each shown like This aircraft.
+const apScreens = () => airportMode() && S.apLayout === "screens";
+const pageOrder = () => airportMode() ? ["aplists", "apland", "apdep"] : PAGE_ORDER_OVERHEAD;
+const homeView = () => apScreens() ? "airport" : null;
+const isAc = p => p === "aircraft" || p === "apland" || p === "apdep";      // pages showing one aircraft's photo and details
 // The rotation: Recent flights → This aircraft → Recent flights → This aircraft → Today in numbers, and round again.
 // A turn whose page has nothing to show stays on (or goes back to) Recent flights.
-const ROTATION = ["spotted", "aircraft", "spotted", "aircraft", "stats"];
+const ROTATION_OVERHEAD = ["spotted", "aircraft", "spotted", "aircraft", "stats"];
+const rotation = () => !airportMode() ? ROTATION_OVERHEAD : apScreens() ? ["apland", "apdep"] : ["aplists", "apland", "aplists", "apdep"];
 let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
 function pageTitle(p){
   return {spotted: ["Recent flights", "Letzte Flüge"], stats: ["Today in numbers", "Heute in Zahlen"],
-    aircraft: ["This aircraft", "Dieses Flugzeug"]}[p];
+    aircraft: ["This aircraft", "Dieses Flugzeug"], aplists: ["Take-offs", "Abflüge"], apland: ["Landing", "Landung"],
+    apdep: ["Take-off", "Start"]}[p];
 }
-const fieldsOf = p => p === "spotted" ? LIST_IDS : PAGE_FIELDS[p];
+const fieldsOf = p => p === "spotted" ? LIST_IDS : isAc(p) ? PAGE_FIELDS.aircraft : PAGE_FIELDS[p];
 function pageAvailable(p){
   if (p === "spotted") return true;
   if (p === "stats") return spotted.length > 0;
   if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo) || !!(feat && feat.alert); }
+  if (p === "aplists") return true;
+  if (p === "apland") return !!apFocus("arr");
+  if (p === "apdep") return !!apFocus("dep");
   return false;
 }
 /* Changing pages: the whole lower half is one giant split flap. The next page is set up underneath in
    one go, then the panel carrying the current page tips forward, falls and bounces to rest, silently. */
 function goPage(p){
+  if (p === "aplists" && apScreens()) return switchView("airport");      // the screens layout shows the lists full screen
   if (p === page || switching || bigFlap.on || view) return;
   const from = fieldsOf(page), to = fieldsOf(p);
   dlog("debug", `Page: ${pageTitle(p)[0]}`);
@@ -2113,6 +2144,7 @@ function goPage(p){
     }
   }
   page = p; pageSince = Date.now(); switching = false;
+  if (airportMode()) apFeature();                   // the plane on top follows the page: the landing one, the departing one
   drawStatic();
   snapping = true;
   try { renderPage(); } finally { snapping = false; }
@@ -2136,7 +2168,7 @@ function capturePanel(arriving = false, R = PANEL){
   const img = photoReady(), st = photoStyle();
   // The photo is a separate element, so paint it in. An engraved one is already part of the panel, and a
   // screen arriving with a new page is still switched off: it comes on once the page has landed.
-  if (!view && page === "aircraft" && img && st !== "engraved" && !(arriving && st === "screen")) {
+  if (!view && isAc(page) && img && st !== "engraved" && !(arriving && st === "screen")) {
     const b = photoBox();
     g.setTransform(FP, 0, 0, FP, (b.x - R.x) * FP, (b.y - R.y) * FP);
     g.save(); rr(g, 0, 0, b.w, b.h, st === "screen" ? 5 : 6); g.clip();
@@ -2222,15 +2254,17 @@ function endBigFlap(){
   placePhoto();
 }
 function nextPage(){
-  rotStep = (rotStep + 1) % ROTATION.length;
-  const p = pageAvailable(ROTATION[rotStep]) ? ROTATION[rotStep] : "spotted";
+  const R = rotation();
+  rotStep = (rotStep + 1) % R.length;
+  const p = pageAvailable(R[rotStep]) ? R[rotStep] : pageOrder()[0];
   if (p === page) pageSince = Date.now(); else goPage(p);
 }
 // A page put up by hand or by a special plane: the rotation carries on from the turn after it.
 function syncRotation(p){
-  for (let k = 0; k < ROTATION.length; k++) {
-    const i = (rotStep + k) % ROTATION.length;
-    if (ROTATION[i] === p) { rotStep = i; return; }
+  const R = rotation();
+  for (let k = 0; k < R.length; k++) {
+    const i = (rotStep + k) % R.length;
+    if (R[i] === p) { rotStep = i; return; }
   }
 }
 // Picking a page by hand: it stays for at least a minute before the rotation carries on.
@@ -2243,24 +2277,26 @@ function pickPage(p){
   goPage(p);
 }
 function stepPage(dir){
-  let i = PAGE_ORDER.indexOf(page);
-  for (let k = 0; k < PAGE_ORDER.length; k++) {
-    i = (i + dir + PAGE_ORDER.length) % PAGE_ORDER.length;
-    if (pageAvailable(PAGE_ORDER[i])) return pickPage(PAGE_ORDER[i]);
+  const O = pageOrder();
+  let i = O.indexOf(page);
+  for (let k = 0; k < O.length; k++) {
+    i = (i + dir + O.length) % O.length;
+    if (pageAvailable(O[i])) return pickPage(O[i]);
   }
 }
 setInterval(() => {
   updatePager();
   if (switching || bigFlap.on || view) return;
-  if (feat && feat.alert && page === "aircraft") pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
-  if (!pageAvailable(page)) return goPage("spotted");
+  if (feat && feat.alert && isAc(page)) pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
+  if (!pageAvailable(page)) return goPage(pageOrder()[0] === "aplists" && apScreens() ? "apland" : pageOrder()[0]);
   if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage();
 }, 1000);
 function renderPage(){
   if (switching) return;
   if (page === "spotted") renderSpotted();
   else if (page === "stats") renderStats();
-  else if (page === "aircraft") renderAircraft();
+  else if (page === "aplists") renderApLists();
+  else if (isAc(page)) renderAircraft();
 }
 function blankRow(i, d){
   for (const k of ["time", "flight", "from", "to", "type"]) setChars(`l${i}${k}`, "", d);
@@ -2330,7 +2366,7 @@ function lookupDetails(hex){
     if (!a) return;
     acDetails.set(hex, {photo: a.url_photo || "", owner: a.registered_owner || "", country: a.registered_owner_country_name || "",
       type: [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" "), reg: a.registration || ""});
-    if (feat && feat.hex === hex) { preloadPhoto(); if (page === "aircraft") renderAircraft(); }
+    if (feat && feat.hex === hex) { preloadPhoto(); if (isAc(page)) renderAircraft(); }
   }).catch(() => {});
 }
 // Load the photo of the plane on the board ahead of time, so it is ready when its page falls into place.
@@ -2339,7 +2375,7 @@ function preloadPhoto(){
   if (d && d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
 }
 function placePhoto(){
-  const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = page === "aircraft" && !switching && !view;
+  const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = isAc(page) && !switching && !view;
   if (st === "engraved" && here && engravedSrc !== (img ? img.getAttribute("src") : "")) drawStatic();   // cut the new photo into the panel
   const show = here && !bigFlap.on && !!img && st !== "engraved";
   fr.hidden = !show;
@@ -2404,7 +2440,10 @@ function enterFields(ids){
 }
 function switchView(next, opts = {}){
   if (!VIEWS.includes(next)) next = null;
-  if (next === null && airportMode()) next = "airport";      // in airport mode the airport lists are the board's home
+  if (next === null) {                                       // home: the board on a page of this style, or the full-screen lists
+    if (apScreens() && (!opts.page || opts.page === "aplists")) next = "airport";
+    else if (!opts.page && !pageOrder().includes(page)) opts = {...opts, page: pageOrder()[0]};
+  }
   const toPage = opts.page && opts.page !== page ? opts.page : null;
   if (next === view && !toPage) return;
   if (bigFlap.on) endBigFlap();
@@ -2416,6 +2455,7 @@ function switchView(next, opts = {}){
   hideViewParts();
   view = next; viewTouched = Date.now();
   if (toPage) { page = toPage; syncRotation(toPage); pageSince = Date.now(); pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000; }
+  if (airportMode() && !view) apFeature();
   const toIds = view ? VIEW_FIELDS[view] : boardIds();
   enterFields(toIds);
   switching = false;
@@ -2447,7 +2487,7 @@ function renderView(){
   else if (view === "radar") renderRadarList();
   else if (view === "airport") renderAirportBoard();
 }
-setInterval(() => { if (view && view !== (airportMode() ? "airport" : null) && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
+setInterval(() => { if (view && view !== homeView() && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
 ["pointerdown", "keydown", "wheel", "input"].forEach(ev => addEventListener(ev, () => { viewTouched = Date.now(); }, {passive: true, capture: true}));
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
@@ -2501,7 +2541,19 @@ function renderAirportBoard(){
     row("a", i, AP.arrs[i], i === 0 && AP.lat != null);
   }
 }
-function renderAirport(){ renderAirportBoard(); }
+function renderAirport(){
+  renderAirportBoard();
+  if (!view && page === "aplists") renderApLists();
+}
+function renderApLists(){
+  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < 5; i++) {
+    const e = list[i], id = c => `apl${k}${i}${c}`, d = i * 60;
+    setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
+    setChars(id("flight"), e ? apFlight(e) : "", d + 20);
+    setChars(id("city"), e ? apPlace(e) : "", d + 60);
+    setWord(id("st"), e ? e.st : i === 0 && AP.lat != null ? "NO TRAFFIC" : "", d + 100);
+  }
+}
 function airportChanged(){ if (view === "airport") { drawStatic(); renderAirportBoard(); } }
 
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
@@ -2927,11 +2979,12 @@ function renderRadarList(){
 }
 
 /* ---------- the rail: push buttons along the bottom of the board ---------- */
-const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft"};
+const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Take-offs &amp;<br>landings",
+  apland: "Landing", apdep: "Take-off"};
 const RAIL_VIEWS = [["spotted", "Spotted<br>today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 function buildRail(){
   const pb = $("railPages"), vb = $("railViews");
-  pb.innerHTML = PAGE_ORDER.map(p => `<button class="cap" type="button" data-page="${p}"><span>${PAGE_KEYS[p] || p}</span></button>`).join("");
+  pb.innerHTML = pageOrder().map(p => `<button class="cap" type="button" data-page="${p}"><span>${PAGE_KEYS[p] || p}</span></button>`).join("");
   vb.innerHTML = RAIL_VIEWS.map(([v, t]) => `<button class="cap" type="button" data-view="${v}" aria-pressed="false"><span>${t}</span></button>`).join("");
   for (const b of pb.children) b.onclick = e => { e.stopPropagation(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
   for (const b of vb.children) b.onclick = e => { e.stopPropagation(); toggleView(b.dataset.view); };
@@ -2947,8 +3000,10 @@ function setMode(m){
   ctlSound.press();
   S.mode = m; saveSettings();
   dlog("info", `Board style: ${m}`);
+  $("railPages").innerHTML = "";                      // the page buttons belong to the style
   switchView(null);           // to the new style's home: the board, or the airport lists
   drawStatic(); redrawAll();
+  poll(true);                 // the new style picks its plane from fresh positions
 }
 function placeRail(){
   const top = `calc(${Y.rail + 9}px * var(--k))`;
@@ -2959,8 +3014,8 @@ function updateRail(){
   const pb = $("railPages");
   if (!pb.children.length) buildRail();
   for (const b of pb.children) {
-    const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0], on = !view && p === page;
-    b.disabled = airportMode() || (!ok && !on && !view);
+    const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0], on = (!view && p === page) || (p === "aplists" && view === "airport");
+    b.disabled = !ok && !on && !view;
     b.title = ok ? name : `${name}: nothing to show right now`;
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
@@ -3091,6 +3146,27 @@ function airportProcess(list){
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
   renderAirport();
 }
+// The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
+function apFocus(which){
+  const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
+  if (which === "arr") return coming || AP.arrs[0] || null;
+  if (which === "dep") return going || null;
+  return AP.deps.find(e => e.st === "TAKE-OFF") || AP.arrs.find(e => e.st === "FINAL") || coming || going || AP.arrs[0] || null;
+}
+function apFeature(all){
+  if (all) AP.all = all;
+  const pg = typeof page === "string" ? page : "";          // the app has no pages
+  const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
+  const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
+  else feat = null;
+  renderFeatured();
+  if (feat) lookupDetails(feat.hex);
+  if (feat && typeof preloadPhoto === "function") preloadPhoto();
+  if (typeof noteFeatured === "function") noteFeatured();
+  if (typeof renderAircraftInfo === "function") renderAircraftInfo();
+  if (typeof renderPage === "function" && (pg === "apland" || pg === "apdep")) renderPage();
+}
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
 const apFlight = e => (e.info && e.info.flightNo) || String(e.ac.flight || "").trim() || e.ac.r || e.hex.toUpperCase();
@@ -3102,6 +3178,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.11", date: "2026-10-12", notes: [
+    "Airport style, two layouts to compare (Settings → Airport layout): PAGES puts the plane landing or taking off now on top, like the overhead board, with pages below for the take-offs and landings, the landing plane and the departing plane. SCREENS keeps the full-screen lists and adds a Landing and a Take-off screen, each with the plane on top and its photo and details below."]},
   {v: "1.10.1", date: "2026-10-12", notes: [
     "Overhead and Airport sit side by side in the title: tap one to switch (it left Settings).",
     "The legend moved from Spotted today to About.",
@@ -3198,6 +3276,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 4, items: [
+    {k: "apLayout", type: "rotary", label: "Airport layout", opts: [["pages", "PAGES"], ["screens", "SCREENS"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
@@ -3499,6 +3578,7 @@ function applySettings(n){
     nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
   saveSettings(); audioInit();
   AP.code = "";                                               // the home airport may have changed
+  $("railPages").innerHTML = "";                              // the airport layout may have changed the page buttons
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent(); fullDay = {at: 0, rev: null, date: null, list: null}; airtime.clear();
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
@@ -3523,7 +3603,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "a" || e.key === "A") toggleView("about");
   if (e.key === "ArrowRight") { if (view === "spotted") svStep(1); else if (!view) stepPage(1); }
   if (e.key === "ArrowLeft") { if (view === "spotted") svStep(-1); else if (!view) stepPage(-1); }
-  if (/^[1-9]$/.test(e.key) && PAGE_ORDER[+e.key - 1]) { const p = PAGE_ORDER[+e.key - 1]; view ? switchView(null, {page: p}) : pickPage(p); }
+  if (/^[1-9]$/.test(e.key) && pageOrder()[+e.key - 1]) { const p = pageOrder()[+e.key - 1]; view ? switchView(null, {page: p}) : pickPage(p); }
   if (e.key === "d") DIAG.open ? closeDiag() : openDiag();
   if (e.key === "f") toggleFullscreen();
 });
@@ -3687,7 +3767,7 @@ async function start(){
   updateRail();
   for (const b of $("modeSw").children) b.onclick = e => { e.stopPropagation(); setMode(b.dataset.mode); };
   if (VIEWS.includes(h)) switchView(h, {instant: true});
-  else if (airportMode()) switchView("airport", {instant: true});
+  else if (airportMode()) switchView(null, {instant: true, page: apScreens() ? undefined : "aplists"});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);
