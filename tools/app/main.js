@@ -704,8 +704,10 @@ function cockpitOpen(){
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
     `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p id="aboutStatus"></p>` +
-    `<p>On the home screen: in Safari, Share → Add to Home Screen; in Chrome on Android, ⋮ → Add to Home screen. It opens full screen with its own icon. ` +
-    `It needs your home Wi-Fi, because the flight data comes through the relay on your computer.</p>` +
+    `<p>On the home screen: in Chrome on Android, ⋮ → Install app; in Safari, Share → Add to Home Screen. It opens full screen with its own icon. ` +
+    (location.protocol === "https:" ? "" : `Chrome only installs it from an https address: set up Tailscale on your computer and this phone (see the README), ` +
+    `then open the app at https://&lt;your computer&gt;.&lt;tailnet&gt;.ts.net/app/. Here it would only be a bookmark. `) +
+    `The flight data comes through the relay on your computer: on your home Wi-Fi, or anywhere through Tailscale.</p>` +
     `<p>The big board: <a href="../">${escH(location.host)}/</a></p></div>`;
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
@@ -729,6 +731,17 @@ function cockpitOpen(){
 function cockpitDirty(){
   const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "photoStyle" ? (S.photoStyle === "plain" ? "plain" : "screen") : S[it.k]) ?? ""));
   $("saveBtn").setAttribute("aria-pressed", String(dirty));
+}
+// Save applies the draft and keeps it on this phone; Cancel puts the controls back to the saved settings.
+let savedTimer = 0;
+function buildSaveBar(){
+  $("saveBtn").onclick = () => {
+    applySettings(draft); cockpitOpen();
+    const b = $("saveBtn");
+    b.textContent = "Saved"; clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => { b.textContent = "Save"; }, 1600);
+  };
+  $("cancelBtn").onclick = () => cockpitOpen();
 }
 function renderAbout(){
   const el = $("aboutStatus");
@@ -843,7 +856,7 @@ async function start(){
       new Promise(r => setTimeout(r, 2500))
     ]);
   } catch {}
-  buildTabs(); buildSvTools(); buildRadarLegend(); updateWhere();
+  buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });

@@ -39,13 +39,13 @@ def main():
         src = src.replace(real, fake)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
     (tmp / "serve.py").write_text(src, encoding="utf-8")
-    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "")
+    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", PYTHONIOENCODING="utf-8")
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
     cmd = [sys.executable, "serve.py", "--port", "8096", "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
            "--home", "VIE", "--local-root", str(REPO), "--source", FAKE + "/ac/{lat}/{lon}/{nm}"]
     if a.fr24:
         cmd += ["--fr24-key", "goodkey"]
-    relay = subprocess.Popen(cmd, cwd=tmp, stdin=subprocess.DEVNULL)
+    relay = subprocess.Popen(cmd, cwd=tmp, stdin=subprocess.DEVNULL, env=env)  # utf-8: piped output would be cp1252
     print(f"Test relay on http://localhost:8096/ (data in {tmp}). Ctrl+C to stop.", flush=True)
     try:
         while fake.poll() is None and relay.poll() is None:
