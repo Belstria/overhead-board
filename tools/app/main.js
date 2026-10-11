@@ -708,7 +708,7 @@ function cockpitOpen(){
   draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p id="aboutStatus"></p>` +
+    `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
     (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}. <button class="cap small" type="button" id="relayBtn">Change relay</button></p>`
       : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
         `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
@@ -751,11 +751,21 @@ function buildSaveBar(){
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
+/* The app's version: raise APP_VERSION whenever app/index.html changes (this file, head.html or the test-api board's
+   shared code), so About shows whether the phone has the new one. The relay (17 or newer) adds when GitHub published
+   the page, which changes with every push even if the number wasn't raised. */
+const APP_VERSION = 1;
+function versionLine(){
+  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
+  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
+  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+  return `App version ${APP_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+}
 function renderAbout(){
   const el = $("aboutStatus");
   if (!el) return;
-  const v = window.OVERHEAD_RELAY_VERSION;
-  el.textContent = `${statusLine()}${v ? ` · relay version ${v}` : ""}`;
+  el.textContent = statusLine();
+  $("aboutVer").textContent = versionLine();
 }
 function applySettings(n){
   const num = v => parseFloat(String(v).replace(",", "."));

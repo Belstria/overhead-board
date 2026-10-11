@@ -25,6 +25,7 @@ import argparse
 import collections
 import csv
 import datetime
+import email.utils
 import heapq
 import html
 import io
@@ -44,7 +45,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 16
+RELAY_VERSION = 17
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1321,6 +1322,7 @@ def status_json():
 
 
 _board_seen = {}
+_board_date = {}             # when each board was published (GitHub's Last-Modified), in ms since 1970
 
 
 def board_file(sub, name, ext):
@@ -1350,14 +1352,20 @@ def board_html(sub=""):
         if not f.is_file():
             return None
         html = f.read_text(encoding="utf-8")
+        _board_date[sub] = int(f.stat().st_mtime * 1000)
     elif ARGS.local and not sub:
         html = Path(ARGS.local).read_text(encoding="utf-8")
+        _board_date[sub] = int(Path(ARGS.local).stat().st_mtime * 1000)
     else:
         url = BOARD_URL + (sub + "/" if sub else "")
         # GitHub's servers keep a page for up to ten minutes; asking for a fresh address each time skips that wait.
-        status, _, body, _ = cached("page:" + sub, PAGE_TTL, lambda: fetch(f"{url}?v={int(time.time())}", timeout=15))
+        status, _, body, headers = cached("page:" + sub, PAGE_TTL, lambda: fetch(f"{url}?v={int(time.time())}", timeout=15))
         if status == 200:
             html = body.decode("utf-8")
+            try:
+                _board_date[sub] = int(email.utils.parsedate_to_datetime(headers.get("Last-Modified")).timestamp() * 1000)
+            except (AttributeError, TypeError, ValueError):
+                pass
             seen = _board_seen.get(sub)
             if seen and seen != html:
                 event("info", f"Downloaded a newer {'test ' if sub else ''}board from GitHub; screens pick it up when they reload")
@@ -1368,6 +1376,7 @@ def board_html(sub=""):
                 pass
         elif copy.exists():  # GitHub unreachable: use the last copy we saw
             html = copy.read_text(encoding="utf-8")
+            _board_date.setdefault(sub, int(copy.stat().st_mtime * 1000))
         else:
             return None
     defaults = {k: v for k, v in {
@@ -1378,7 +1387,8 @@ def board_html(sub=""):
         defaults["sound"] = bool(ARGS.sound)
     config = json.dumps(defaults).replace("<", "\\u003c")
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
-              f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24_on() else 'false'};</script>")
+              f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24_on() else 'false'};"
+              f"window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
 
 
