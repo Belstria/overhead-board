@@ -269,6 +269,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
+#tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
 #tabs .cap{flex:1 1 0;width:auto;min-width:0;height:44px;margin:0;font-size:11.5px;letter-spacing:.06em}
 .cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
 @keyframes ping{50%{opacity:.35}}
@@ -320,7 +321,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead">Overhead</button><button type="button" data-mode="airport">Airport</button></h1><p id="where"></p></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><p id="where"></p></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
 </header>
@@ -330,32 +331,32 @@ h3 span{color:var(--label2);margin-left:.6em}
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>
-      <h2>This aircraft<span>Dieses Flugzeug</span></h2>
+      <h2 data-t="This aircraft">This aircraft</h2>
       <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none">No picture · Kein Bild</span><span class="credit">Photo airport-data.com</span><span class="glass"></span></div>
+        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
         <b class="led"></b>
       </div>
       <dl class="facts" id="acFacts"></dl>
     </div>
     <div class="groove"></div>
     <div id="recentSec">
-    <h2>Recent flights<span>Letzte Flüge</span></h2>
+    <h2 data-t="Recent flights">Recent flights</h2>
     <ol class="flights" id="recent"></ol>
     </div>
     </div>
     <div id="apSec" hidden>
       <div class="groove"></div>
-      <h2>Take-offs<span>Abflüge</span></h2>
+      <h2 data-t="Take-offs">Take-offs</h2>
       <p class="sum" id="apSub"></p>
       <ol class="flights" id="apDeps"></ol>
       <div class="groove"></div>
-      <h2>Landings<span>Landungen</span></h2>
+      <h2 data-t="Landings">Landings</h2>
       <ol class="flights" id="apArrs"></ol>
     </div>
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-today" hidden>
-    <h2>Spotted today<span>Heute gesichtet</span></h2>
+    <h2 data-t="Spotted today">Spotted today</h2>
     <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
     <dl class="facts" id="todayFacts"></dl>
     <div class="groove"></div>
@@ -365,28 +366,28 @@ h3 span{color:var(--label2);margin-left:.6em}
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-logbook" hidden>
-    <h2>Logbook<span>Logbuch</span></h2>
+    <h2 data-t="Logbook">Logbook</h2>
     <p class="sum" id="lbSum"></p>
     <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
     <p class="model" id="lbModel"></p>
     <div id="lbLists"></div>
   </section>
   <section class="wrap tab" id="t-radar" hidden>
-    <h2>Radar<span>Radar</span></h2>
+    <h2 data-t="Radar">Radar</h2>
     <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
     <ul class="rlegend" id="rLegend"></ul>
-    <h3>Nearest<span>Am nächsten</span></h3>
+    <h3 data-t="Nearest">Nearest</h3>
     <ol class="flights" id="rvList"></ol>
   </section>
   <section class="wrap tab" id="t-about" hidden>
-    <h2>About<span>Info</span></h2>
+    <h2 data-t="About">About</h2>
     <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
-    <h2>Settings<span>Einstellungen</span></h2>
-    <p class="sum">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
+    <h2 data-t="Settings">Settings</h2>
+    <p class="sum" data-t="Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
     <div id="cockpit" style="margin-top:14px"></div>
-    <div class="savebar"><button class="cap big" type="button" id="cancelBtn">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false">Save</button></div>
+    <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
 </main>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
@@ -424,7 +425,7 @@ const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rw
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
 const DRUM_DIGIT = " 0123456789:";
 const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
-const DRUM_POS = " 0123456789.:KMNESWIC";
+const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
@@ -455,7 +456,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings: kept on this phone only ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
@@ -484,6 +485,7 @@ let S = loadSettings();
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
@@ -508,6 +510,331 @@ function trimTo(s, w){
 }
 const nf = new Intl.NumberFormat("en-US");
 function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
+/* ---------- languages ----------
+   English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). Every text a viewer
+   reads goes through T(english, {vars}): the English text is the key, {name} in it is filled in from vars. A text
+   missing from a language shows in English. The status words on the flaps are translated as they are drawn (their
+   English name stays the key for colours and the order on the drum). Patch notes and the connection log stay English. */
+const LANGS = [["auto", "AUTO"], ["en", "EN"], ["de", "DE"], ["fr", "FR"], ["es", "ES"], ["nl", "NL"]];
+const LOCALES = {en: "en-GB", de: "de-AT", fr: "fr-FR", es: "es-ES", nl: "nl-NL"};
+const UNIT = /^(m|ft|km|kt|%)$/i;           // a label's second word that is a unit, not a translation
+let LANG = "en";
+function pickLang(){
+  const want = S.lang && S.lang !== "auto" ? S.lang : String(navigator.language || "en").slice(0, 2).toLowerCase();
+  LANG = LOCALES[want] ? want : "en";
+  try { document.documentElement.lang = LANG; } catch {}
+}
+const LOC = () => LOCALES[LANG] || "en-GB";
+function T(en, vars){
+  const d = I18N[LANG];
+  let t = d && d[en] != null ? d[en] : en;
+  if (vars) t = t.replace(/\{(\w+)\}/g, (m, k) => vars[k] != null ? vars[k] : m);
+  return t;
+}
+// One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
+const I18N_ROWS = [
+  ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
+  ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
+  ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
+  ["Overhead (board style)", "Überflüge", "Survols", "Sobrevuelos", "Overvluchten"],
+  ["Airport (board style)", "Flughafen", "Aéroport", "Aeropuerto", "Luchthaven"],
+  ["RADIUS {n} KM", "RADIUS {n} KM", "RAYON {n} KM", "RADIO {n} KM", "STRAAL {n} KM"],
+  ["Landings", "Landungen", "Atterrissages", "Aterrizajes", "Landingen"],
+  ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
+  ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
+  ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
+  ["{a} types - {b} airlines", "{a} Typen - {b} Airlines", "{a} types - {b} compagnies", "{a} tipos - {b} aerolíneas", "{a} types - {b} maatschappijen"],
+  ["{a} types · {b} airlines", "{a} Typen · {b} Airlines", "{a} types · {b} compagnies", "{a} tipos · {b} aerolíneas", "{a} types · {b} maatschappijen"],
+  ["Nothing new yet", "Noch nichts Neues", "Rien de nouveau", "Nada nuevo todavía", "Nog niets nieuws"],
+  ["Needs the home relay", "Braucht das Relais", "Il faut le relais", "Necesita el relé", "Heeft het relais nodig"],
+  ["flight numbers and routes from Flightradar24", "Flugnummern und Routen von Flightradar24", "numéros de vol et trajets de Flightradar24", "números de vuelo y rutas de Flightradar24", "vluchtnummers en routes van Flightradar24"],
+  ["Range rings every 5 km · the dashed ring is the {n} km spotting radius · the green disc is directly overhead", "Ringe alle 5 km · der gestrichelte Ring ist der Beobachtungsradius von {n} km · die grüne Scheibe ist direkt über uns", "Cercles tous les 5 km · le cercle pointillé est le rayon d'observation de {n} km · le disque vert est juste au-dessus", "Anillos cada 5 km · el anillo discontinuo es el radio de observación de {n} km · el disco verde está justo encima", "Ringen om de 5 km · de gestippelde ring is de spotstraal van {n} km · de groene schijf is recht boven ons"],
+  ["Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.", "Knöpfe drehen und Schalter umlegen, dann Speichern drücken. Die Einstellungen gelten nur für diesen Bildschirm.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer. Les réglages ne valent que pour cet écran.", "Gira los mandos y mueve los interruptores, luego pulsa Guardar. Los ajustes solo se guardan en esta pantalla.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan. De instellingen gelden alleen voor dit scherm."],
+  ["Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.", "Knöpfe drehen und Schalter umlegen, dann Speichern drücken. Die Einstellungen gelten nur für dieses Telefon.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer. Les réglages ne valent que pour ce téléphone.", "Gira los mandos y mueve los interruptores, luego pulsa Guardar. Los ajustes solo se guardan en este teléfono.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan. De instellingen gelden alleen voor deze telefoon."],
+  ["Version {v} · what changed in each version, the keys, and who made it", "Version {v} · was sich in jeder Version geändert hat, die Tasten und wer es gemacht hat", "Version {v} · ce qui a changé à chaque version, les touches et qui l'a fait", "Versión {v} · qué cambió en cada versión, las teclas y quién lo hizo", "Versie {v} · wat er in elke versie veranderde, de toetsen en wie het maakte"],
+  ["Set the home airport in Settings", "Heimatflughafen in den Einstellungen festlegen", "Choisissez l'aéroport de référence dans les réglages", "Elige el aeropuerto base en Ajustes", "Kies de thuisluchthaven in Instellingen"],
+  ["Set the home airport in Settings.", "Heimatflughafen in den Einstellungen festlegen.", "Choisissez l'aéroport de référence dans les réglages.", "Elige el aeropuerto base en Ajustes.", "Kies de thuisluchthaven in Instellingen."],
+  ["Looking up {code} …", "{code} wird nachgeschlagen …", "Recherche de {code} …", "Buscando {code} …", "{code} opzoeken …"],
+  ["Planes rolling for take-off and climbing away from {where}", "Flugzeuge beim Startlauf und im Steigflug ab {where}", "Avions au décollage et en montée depuis {where}", "Aviones despegando y subiendo desde {where}", "Vliegtuigen die opstijgen en wegklimmen van {where}"],
+  ["Take-offs", "Abflüge", "Décollages", "Despegues", "Vertrekken"],
+  ["Planes coming in to land at {where}, with the time they are expected on the ground", "Flugzeuge im Landeanflug auf {where}, mit der erwarteten Landezeit", "Avions en approche de {where}, avec l'heure prévue au sol", "Aviones aproximándose a {where}, con la hora prevista en tierra", "Vliegtuigen die landen op {where}, met de verwachte tijd aan de grond"],
+  ["Nothing spotted yet today. Every plane that comes within {n} km is listed here.", "Heute noch nichts gesichtet. Jedes Flugzeug innerhalb von {n} km erscheint hier.", "Rien d'aperçu aujourd'hui. Chaque avion à moins de {n} km s'affiche ici.", "Nada avistado hoy. Cada avión a menos de {n} km aparece aquí.", "Vandaag nog niets gespot. Elk vliegtuig binnen {n} km komt hier."],
+  ["{n} directly overhead", "{n} direkt über uns", "{n} juste au-dessus", "{n} justo encima", "{n} recht boven ons"],
+  ["shared by every screen through the home relay", "über das Relais mit allen Bildschirmen geteilt", "partagé par tous les écrans via le relais", "compartido por todas las pantallas a través del relé", "gedeeld door alle schermen via het relais"],
+  ["sample flights (demo mode)", "Beispielflüge (Demomodus)", "vols d'exemple (mode démo)", "vuelos de ejemplo (modo demo)", "voorbeeldvluchten (demomodus)"],
+  ["PAGE {a} OF {b}", "SEITE {a} VON {b}", "PAGE {a} SUR {b}", "PÁGINA {a} DE {b}", "PAGINA {a} VAN {b}"],
+  ["Nothing spotted yet today.", "Heute noch nichts gesichtet.", "Rien d'aperçu aujourd'hui.", "Nada avistado hoy.", "Vandaag nog niets gespot."],
+  ["None of today's planes match this filter yet.", "Noch keines der heutigen Flugzeuge passt zu diesem Filter.", "Aucun avion du jour ne correspond encore à ce filtre.", "Ningún avión de hoy coincide aún con este filtro.", "Nog geen vliegtuig van vandaag past bij dit filter."],
+  ["your home airport", "deinem Heimatflughafen", "votre aéroport", "tu aeropuerto", "je thuisluchthaven"],
+  ["Status on the board", "Status auf der Tafel", "Statut sur le tableau", "Estado en el panel", "Status op het bord"],
+  ["Directly above you, within {n} km (in the lists: it came that close)", "Direkt über dir, innerhalb von {n} km (in den Listen: so nah kam es)", "Juste au-dessus de vous, à moins de {n} km (dans les listes : il est passé aussi près)", "Justo encima de ti, a menos de {n} km (en las listas: pasó así de cerca)", "Recht boven je, binnen {n} km (in de lijsten: zo dichtbij kwam het)"],
+  ["On course to pass overhead within three minutes", "Fliegt in den nächsten drei Minuten über uns", "Passera au-dessus dans les trois minutes", "Pasará por encima en menos de tres minutos", "Komt binnen drie minuten over"],
+  ["Getting closer, but won't pass overhead", "Kommt näher, fliegt aber nicht über uns", "Se rapproche, mais ne passera pas au-dessus", "Se acerca, pero no pasará por encima", "Komt dichterbij, maar vliegt niet over"],
+  ["Moving away", "Entfernt sich", "S'éloigne", "Se aleja", "Gaat weg"],
+  ["Just passed overhead", "Gerade über uns hinweg", "Vient de passer au-dessus", "Acaba de pasar por encima", "Net overgevlogen"],
+  ["No planes around right now", "Gerade keine Flugzeuge in der Nähe", "Aucun avion en ce moment", "Ningún avión ahora mismo", "Nu geen vliegtuigen in de buurt"],
+  ["No flight data for over a minute", "Seit über einer Minute keine Flugdaten", "Aucune donnée de vol depuis plus d'une minute", "Sin datos de vuelo desde hace más de un minuto", "Al meer dan een minuut geen vluchtgegevens"],
+  ["Route", "Route", "Trajet", "Ruta", "Route"],
+  ["Flying to {home}", "Fliegt nach {home}", "Vole vers {home}", "Vuela a {home}", "Vliegt naar {home}"],
+  ["Took off from {home}", "Gestartet in {home}", "A décollé de {home}", "Despegó de {home}", "Vertrokken uit {home}"],
+  ["Passing through, not to or from {home}", "Auf der Durchreise, nicht nach oder von {home}", "De passage, ni vers ni depuis {home}", "De paso, ni hacia ni desde {home}", "Op doorreis, niet van of naar {home}"],
+  ["At the airport (Airport style)", "Am Flughafen (Flughafen-Ansicht)", "À l'aéroport (vue Aéroport)", "En el aeropuerto (vista Aeropuerto)", "Op de luchthaven (luchthavenweergave)"],
+  ["Rolling down the runway, or just off the ground", "Beim Startlauf oder gerade abgehoben", "Roule sur la piste ou vient de décoller", "Rodando por la pista o recién despegado", "Rolt over de baan of is net los"],
+  ["Climbing away after taking off from {home}", "Steigt nach dem Start in {home}", "Monte après avoir décollé de {home}", "Sube tras despegar de {home}", "Klimt weg na vertrek uit {home}"],
+  ["Coming down towards {home}", "Sinkt in Richtung {home}", "Descend vers {home}", "Desciende hacia {home}", "Daalt richting {home}"],
+  ["On final approach, the last 12 km or so", "Im Endanflug, die letzten rund 12 km", "En finale, les 12 derniers km environ", "En aproximación final, los últimos 12 km", "In de eindnadering, de laatste 12 km of zo"],
+  ["Just landed, rolling out", "Gerade gelandet, rollt aus", "Vient d'atterrir, ralentit", "Acaba de aterrizar, frenando", "Net geland, rolt uit"],
+  ["Special (lamp lit)", "Besonders (Lampe leuchtet)", "Spécial (voyant allumé)", "Especial (luz encendida)", "Bijzonder (lampje aan)"],
+  ["Squawking an emergency code: 7500, 7600 or 7700", "Sendet einen Notfallcode: 7500, 7600 oder 7700", "Émet un code d'urgence : 7500, 7600 ou 7700", "Emite un código de emergencia: 7500, 7600 o 7700", "Zendt een noodcode uit: 7500, 7600 of 7700"],
+  ["Landing somewhere other than planned (Flightradar24)", "Landet woanders als geplant (Flightradar24)", "Atterrit ailleurs que prévu (Flightradar24)", "Aterriza en otro lugar del previsto (Flightradar24)", "Landt ergens anders dan gepland (Flightradar24)"],
+  ["Antonov An-124, An-225 or An-22", "Antonow An-124, An-225 oder An-22", "Antonov An-124, An-225 ou An-22", "Antonov An-124, An-225 o An-22", "Antonov An-124, An-225 of An-22"],
+  ["Rare, unusual or government aircraft", "Seltenes, ungewöhnliches oder Regierungsflugzeug", "Avion rare, inhabituel ou gouvernemental", "Avión raro, inusual o gubernamental", "Zeldzaam, ongewoon of regeringstoestel"],
+  ["First time this aircraft type is in the logbook", "Dieser Flugzeugtyp ist zum ersten Mal im Logbuch", "Premier passage de ce type d'avion dans le carnet", "Primera vez que este tipo de avión está en el registro", "Eerste keer dat dit type in het logboek staat"],
+  ["First time this airline is in the logbook", "Diese Airline ist zum ersten Mal im Logbuch", "Premier passage de cette compagnie dans le carnet", "Primera vez que esta aerolínea está en el registro", "Eerste keer dat deze maatschappij in het logboek staat"],
+  ["Matches one of your favourites in Settings", "Passt zu einem deiner Favoriten in den Einstellungen", "Correspond à l'un de vos favoris dans les réglages", "Coincide con uno de tus favoritos en Ajustes", "Past bij een van je favorieten in Instellingen"],
+  ["Military aircraft", "Militärflugzeug", "Avion militaire", "Avión militar", "Militair toestel"],
+  ["Helicopter", "Hubschrauber", "Hélicoptère", "Helicóptero", "Helikopter"],
+  ["Cargo flight (Flightradar24)", "Frachtflug (Flightradar24)", "Vol cargo (Flightradar24)", "Vuelo de carga (Flightradar24)", "Vrachtvlucht (Flightradar24)"],
+  ["Business jet (Flightradar24)", "Businessjet (Flightradar24)", "Jet d'affaires (Flightradar24)", "Jet privado de negocios (Flightradar24)", "Zakenjet (Flightradar24)"],
+  ["Private or light aircraft (Flightradar24)", "Privat- oder Kleinflugzeug (Flightradar24)", "Avion privé ou léger (Flightradar24)", "Avioneta o avión privado (Flightradar24)", "Privé- of klein vliegtuig (Flightradar24)"],
+  ["A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.", "Ein Flugzeug kann mehreres davon sein; die Tafel zeigt das Besonderste, in der Reihenfolge der Liste. Ankunft, Abflug und Überflug erscheinen nur in den Listen.", "Un avion peut cumuler plusieurs de ces statuts ; le tableau affiche le plus spécial, dans l'ordre de la liste. Arrivée, Départ et Survol n'apparaissent que dans les listes.", "Un avión puede ser varias de estas cosas; el panel muestra la más especial, en el orden de la lista. Llegada, Salida y Sobrevuelo solo aparecen en las listas.", "Een vliegtuig kan meer dan één hiervan zijn; het bord toont de meest bijzondere, in de volgorde van de lijst. Aankomst, Vertrek en Overvlucht staan alleen in de lijsten."],
+  ["The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.", "Das Logbuch führt das Relais zu Hause (ab Version 5), so teilen es alle Bildschirme und bei einem Neustart geht nichts verloren.", "Le carnet est tenu par le relais à la maison (version 5 ou plus), donc tous les écrans le partagent et rien n'est perdu au redémarrage.", "El registro lo guarda el relé de casa (versión 5 o posterior), así que todas las pantallas lo comparten y no se pierde nada al reiniciar.", "Het logboek wordt bijgehouden door het relais thuis (versie 5 of nieuwer), zodat alle schermen het delen en er bij een herstart niets verloren gaat."],
+  ["Couldn't read the logbook from the relay: {e}", "Logbuch konnte nicht vom Relais gelesen werden: {e}", "Impossible de lire le carnet depuis le relais : {e}", "No se pudo leer el registro del relé: {e}", "Kon het logboek niet van het relais lezen: {e}"],
+  ["Reading the logbook from the relay…", "Logbuch wird vom Relais gelesen …", "Lecture du carnet depuis le relais…", "Leyendo el registro del relé…", "Logboek wordt van het relais gelezen…"],
+  ["Sample logbook (demo mode)", "Beispiel-Logbuch (Demomodus)", "Carnet d'exemple (mode démo)", "Registro de ejemplo (modo demo)", "Voorbeeldlogboek (demomodus)"],
+  ["Counting since {d}", "Gezählt seit {d}", "Compté depuis le {d}", "Contando desde el {d}", "Geteld sinds {d}"],
+  ["the first day is for learning what is normal here; from {d} {t} first sightings are marked NEW", "der erste Tag dient zum Lernen, was hier normal ist; ab {d} {t} werden Erstsichtungen als NEU markiert", "le premier jour sert à apprendre ce qui est normal ici ; à partir du {d} à {t}, les premières observations sont marquées NOUVEAU", "el primer día sirve para aprender qué es normal aquí; desde el {d} a las {t} los primeros avistamientos se marcan como NUEVO", "de eerste dag is om te leren wat hier normaal is; vanaf {d} {t} worden eerste waarnemingen als NIEUW gemarkeerd"],
+  ["categories are counted from relay version 10 on", "Kategorien werden ab Relais-Version 10 gezählt", "les catégories sont comptées à partir de la version 10 du relais", "las categorías se cuentan desde la versión 10 del relé", "categorieën worden geteld vanaf relaisversie 10"],
+  ["{name}: nothing to show right now", "{name}: gerade nichts zu zeigen", "{name} : rien à afficher pour le moment", "{name}: nada que mostrar ahora", "{name}: nu niets te tonen"],
+  ["PAGE", "SEITE", "PAGE", "PÁGINA", "PAGINA"],
+  ["VIEW", "ANSICHT", "VUE", "VISTA", "WEERGAVE"],
+  ["Connecting…", "Verbinde …", "Connexion…", "Conectando…", "Verbinden…"],
+  ["Demo mode · sample flights, not live data", "Demomodus · Beispielflüge, keine Live-Daten", "Mode démo · vols d'exemple, pas de données en direct", "Modo demo · vuelos de ejemplo, no son datos en directo", "Demomodus · voorbeeldvluchten, geen live gegevens"],
+  ["No flight data for over a minute · retrying · press D for details", "Seit über einer Minute keine Flugdaten · neuer Versuch · D für Details", "Aucune donnée de vol depuis plus d'une minute · nouvel essai · D pour les détails", "Sin datos de vuelo desde hace más de un minuto · reintentando · pulsa D para detalles", "Al meer dan een minuut geen vluchtgegevens · opnieuw proberen · druk D voor details"],
+  ["No flight data here · open the board through your home relay", "Hier keine Flugdaten · die Tafel über das Relais zu Hause öffnen", "Pas de données de vol ici · ouvrez le tableau via votre relais", "Aquí no hay datos de vuelo · abre el panel a través del relé de casa", "Hier geen vluchtgegevens · open het bord via je relais thuis"],
+  ["Waiting for flight data · {n} failed attempts · press D for details", "Warte auf Flugdaten · {n} Fehlversuche · D für Details", "En attente des données de vol · {n} essais échoués · D pour les détails", "Esperando datos de vuelo · {n} intentos fallidos · pulsa D para detalles", "Wachten op vluchtgegevens · {n} mislukte pogingen · druk D voor details"],
+  ["Waiting for flight data · {n} failed attempt · press D for details", "Warte auf Flugdaten · {n} Fehlversuch · D für Details", "En attente des données de vol · {n} essai échoué · D pour les détails", "Esperando datos de vuelo · {n} intento fallido · pulsa D para detalles", "Wachten op vluchtgegevens · {n} mislukte poging · druk D voor details"],
+  ["Waiting for flight data · {n} failed attempts", "Warte auf Flugdaten · {n} Fehlversuche", "En attente des données de vol · {n} essais échoués", "Esperando datos de vuelo · {n} intentos fallidos", "Wachten op vluchtgegevens · {n} mislukte pogingen"],
+  ["Waiting for flight data · {n} failed attempt", "Warte auf Flugdaten · {n} Fehlversuch", "En attente des données de vol · {n} essai échoué", "Esperando datos de vuelo · {n} intento fallido", "Wachten op vluchtgegevens · {n} mislukte poging"],
+  ["Live via {src}", "Live über {src}", "En direct via {src}", "En directo vía {src}", "Live via {src}"],
+  ["(last good copy)", "(letzte gute Kopie)", "(dernière bonne copie)", "(última copia buena)", "(laatste goede kopie)"],
+  ["updated just now", "gerade aktualisiert", "mis à jour à l'instant", "actualizado ahora mismo", "zojuist bijgewerkt"],
+  ["updated {n} s ago", "vor {n} s aktualisiert", "mis à jour il y a {n} s", "actualizado hace {n} s", "{n} s geleden bijgewerkt"],
+  ["retrying", "neuer Versuch", "nouvel essai", "reintentando", "opnieuw proberen"],
+  ["{n} aircraft within {km} km", "{n} Flugzeuge im Umkreis von {km} km", "{n} avions dans un rayon de {km} km", "{n} aviones en {km} km", "{n} vliegtuigen binnen {km} km"],
+  ["flight numbers by Flightradar24", "Flugnummern von Flightradar24", "numéros de vol par Flightradar24", "números de vuelo de Flightradar24", "vluchtnummers van Flightradar24"],
+  ["night mode", "Nachtmodus", "mode nuit", "modo noche", "nachtmodus"],
+  ["click or press any key for sound", "für Ton klicken oder eine Taste drücken", "cliquez ou appuyez sur une touche pour le son", "haz clic o pulsa una tecla para el sonido", "klik of druk op een toets voor geluid"],
+  ["Version {v}", "Version {v}", "Version {v}", "Versión {v}", "Versie {v}"],
+  ["published {d}", "veröffentlicht {d}", "publiée le {d}", "publicada el {d}", "gepubliceerd {d}"],
+  ["relay {n}", "Relais {n}", "relais {n}", "relé {n}", "relais {n}"],
+  ["Android app {v}", "Android-App {v}", "app Android {v}", "app Android {v}", "Android-app {v}"],
+  ["shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport.", "zeigt das Flugzeug, das gerade über dich fliegt, auf einer Fallblattanzeige wie in Flughafenhallen, dazu was heute vorbeikam, ein Logbuch und ein Radar. In der Flughafen-Ansicht folgt sie den startenden und landenden Flugzeugen eines Flughafens.", "affiche l'avion qui passe au-dessus de vous sur un tableau à palettes comme dans les halls d'aéroport, avec ce qui est passé aujourd'hui, un carnet de bord et un radar. En vue Aéroport, il suit les avions qui décollent et atterrissent.", "muestra el avión que pasa ahora sobre ti en un panel de paletas como los de los aeropuertos, con lo que pasó hoy, un registro y un radar. En la vista Aeropuerto sigue los aviones que despegan y aterrizan.", "toont het vliegtuig dat nu boven je vliegt op een klapbord zoals in vertrekhallen, met wat vandaag langskwam, een logboek en een radar. In de luchthavenweergave volgt het de vliegtuigen die opstijgen en landen."],
+  ["Made by Belstria, with Claude Code. Source and guide:", "Gemacht von Belstria, mit Claude Code. Quellcode und Anleitung:", "Réalisé par Belstria, avec Claude Code. Source et guide :", "Hecho por Belstria, con Claude Code. Código y guía:", "Gemaakt door Belstria, met Claude Code. Broncode en handleiding:"],
+  ["Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from airport-data.com, logos from Aviasales.", "Positionen von adsb.lol, adsb.fi und airplanes.live über das Relais zu Hause; Routen und Flugzeuge von adsbdb und adsb.lol, Flugnummern von Flightradar24, Zeiten vom Flughafen Wien, Flughäfen von OurAirports, Fotos von airport-data.com, Logos von Aviasales.", "Positions d'adsb.lol, adsb.fi et airplanes.live via le relais à la maison ; trajets et avions d'adsbdb et adsb.lol, numéros de vol de Flightradar24, horaires de l'aéroport de Vienne, aéroports d'OurAirports, photos d'airport-data.com, logos d'Aviasales.", "Posiciones de adsb.lol, adsb.fi y airplanes.live a través del relé de casa; rutas y aviones de adsbdb y adsb.lol, números de vuelo de Flightradar24, horarios del aeropuerto de Viena, aeropuertos de OurAirports, fotos de airport-data.com, logotipos de Aviasales.", "Posities van adsb.lol, adsb.fi en airplanes.live via het relais thuis; routes en toestellen van adsbdb en adsb.lol, vluchtnummers van Flightradar24, tijden van Vienna Airport, luchthavens van OurAirports, foto's van airport-data.com, logo's van Aviasales."],
+  ["ON", "EIN", "MARCHE", "SÍ", "AAN"],
+  ["OFF", "AUS", "ARRÊT", "NO", "UIT"],
+  ["Use current location", "Aktuellen Standort verwenden", "Utiliser ma position", "Usar ubicación actual", "Huidige locatie gebruiken"],
+  ["Fills in latitude and longitude, then finds the nearest airport.", "Trägt Breite und Länge ein und sucht dann den nächsten Flughafen.", "Remplit latitude et longitude, puis trouve l'aéroport le plus proche.", "Rellena latitud y longitud y busca el aeropuerto más cercano.", "Vult breedte- en lengtegraad in en zoekt dan de dichtstbijzijnde luchthaven."],
+  ["Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own.", "Änderungen gelten nach Speichern. Die Einstellungen gelten nur für diesen Bildschirm, jeder Bildschirm kann eigene haben.", "Les changements s'appliquent quand vous appuyez sur Enregistrer. Les réglages ne valent que pour cet écran, chaque écran peut avoir les siens.", "Los cambios se aplican al pulsar Guardar. Los ajustes solo valen para esta pantalla, cada pantalla puede tener los suyos.", "Wijzigingen gelden zodra je op Opslaan drukt. De instellingen gelden alleen voor dit scherm, elk scherm kan zijn eigen hebben."],
+  ["Cancel", "Abbrechen", "Annuler", "Cancelar", "Annuleren"],
+  ["Save", "Speichern", "Enregistrer", "Guardar", "Opslaan"],
+  ["Saved", "Gespeichert", "Enregistré", "Guardado", "Opgeslagen"],
+  ["About", "Info", "À propos", "Acerca de", "Over"],
+  ["About shows what's new in each version, the keys, and who made it.", "Info zeigt, was in jeder Version neu ist, die Tasten und wer es gemacht hat.", "À propos montre les nouveautés de chaque version, les touches et qui l'a fait.", "Acerca de muestra las novedades de cada versión, las teclas y quién lo hizo.", "Over toont wat er nieuw is in elke versie, de toetsen en wie het maakte."],
+  ["Patch notes", "Versionshinweise", "Notes de version", "Notas de versión", "Versie-opmerkingen"],
+  ["Legend", "Legende", "Légende", "Leyenda", "Legenda"],
+  ["Keys", "Tasten", "Touches", "Teclas", "Toetsen"],
+  ["Browsers only allow sound after a first click or key press.", "Browser erlauben Ton erst nach dem ersten Klick oder Tastendruck.", "Les navigateurs n'autorisent le son qu'après un premier clic ou une touche.", "Los navegadores solo permiten sonido tras un primer clic o pulsación.", "Browsers laten pas geluid toe na een eerste klik of toetsaanslag."],
+  ["Settings", "Einstellungen", "Réglages", "Ajustes", "Instellingen"],
+  ["The phone didn't say where it is. Is location turned on?", "Das Telefon hat seinen Standort nicht gemeldet. Ist die Standortermittlung an?", "Le téléphone n'a pas indiqué sa position. La localisation est-elle activée ?", "El teléfono no ha dicho dónde está. ¿Está activada la ubicación?", "De telefoon gaf geen locatie door. Staat locatie aan?"],
+  ["Update the Overhead app to use the phone's location.", "Aktualisiere die Overhead-App, um den Standort des Telefons zu nutzen.", "Mettez à jour l'app Overhead pour utiliser la position du téléphone.", "Actualiza la app Overhead para usar la ubicación del teléfono.", "Werk de Overhead-app bij om de locatie van de telefoon te gebruiken."],
+  ["This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead.", "Dieser Bildschirm kann seinen Standort nicht teilen: Browser tun das nur für https-Seiten oder Seiten auf dem Computer des Relais. Gib Breite und Länge stattdessen ein.", "Cet écran ne peut pas partager sa position : les navigateurs ne le font que pour les pages https ou ouvertes sur l'ordinateur du relais. Saisissez plutôt la latitude et la longitude.", "Esta pantalla no puede compartir su ubicación: los navegadores solo lo hacen en páginas https o abiertas en el ordenador del relé. Escribe la latitud y la longitud.", "Dit scherm kan zijn locatie niet delen: browsers doen dat alleen voor https-pagina's of pagina's op de computer van het relais. Typ de breedte- en lengtegraad in."],
+  ["Location access was turned down. Allow it in the browser's site settings.", "Standortzugriff wurde abgelehnt. Erlaube ihn in den Website-Einstellungen des Browsers.", "L'accès à la position a été refusé. Autorisez-le dans les réglages du site du navigateur.", "Se denegó el acceso a la ubicación. Permítelo en los ajustes del sitio del navegador.", "Toegang tot locatie is geweigerd. Sta het toe in de site-instellingen van de browser."],
+  ["Location access was turned down. Allow it in the phone's settings for the Overhead app.", "Standortzugriff wurde abgelehnt. Erlaube ihn in den Telefoneinstellungen für die Overhead-App.", "L'accès à la position a été refusé. Autorisez-le dans les réglages du téléphone pour l'app Overhead.", "Se denegó el acceso a la ubicación. Permítelo en los ajustes del teléfono para la app Overhead.", "Toegang tot locatie is geweigerd. Sta het toe in de telefooninstellingen voor de Overhead-app."],
+  ["The location isn't available right now.", "Der Standort ist gerade nicht verfügbar.", "La position n'est pas disponible pour le moment.", "La ubicación no está disponible ahora.", "De locatie is nu niet beschikbaar."],
+  ["Finding out where you are …", "Standort wird ermittelt …", "Recherche de votre position …", "Averiguando dónde estás …", "Bepalen waar je bent …"],
+  ["Latitude and longitude set (to within {d}).", "Breite und Länge eingetragen (auf {d} genau).", "Latitude et longitude remplies (à {d} près).", "Latitud y longitud establecidas (con {d} de precisión).", "Breedte- en lengtegraad ingevuld (tot op {d})."],
+  ["Latitude and longitude set.", "Breite und Länge eingetragen.", "Latitude et longitude remplies.", "Latitud y longitud establecidas.", "Breedte- en lengtegraad ingevuld."],
+  ["Looking for the nearest airport …", "Suche den nächsten Flughafen …", "Recherche de l'aéroport le plus proche …", "Buscando el aeropuerto más cercano …", "Zoeken naar de dichtstbijzijnde luchthaven …"],
+  ["Press Save to watch this spot.", "Speichern drücken, um diesen Ort zu beobachten.", "Appuyez sur Enregistrer pour observer cet endroit.", "Pulsa Guardar para vigilar este lugar.", "Druk op Opslaan om deze plek te volgen."],
+  ["The nearest airport, {name} ({code}, {km} km), is already the home airport. Press Save to keep it.", "Der nächste Flughafen, {name} ({code}, {km} km), ist schon der Heimatflughafen. Zum Behalten Speichern drücken.", "L'aéroport le plus proche, {name} ({code}, {km} km), est déjà votre aéroport. Appuyez sur Enregistrer pour le garder.", "El aeropuerto más cercano, {name} ({code}, {km} km), ya es el aeropuerto base. Pulsa Guardar para mantenerlo.", "De dichtstbijzijnde luchthaven, {name} ({code}, {km} km), is al de thuisluchthaven. Druk op Opslaan om hem te houden."],
+  ["Location set. The nearest airport is {name} ({code}), {km} km away. Make it the home airport?", "Standort eingetragen. Der nächste Flughafen ist {name} ({code}), {km} km entfernt. Als Heimatflughafen verwenden?", "Position remplie. L'aéroport le plus proche est {name} ({code}), à {km} km. En faire votre aéroport ?", "Ubicación establecida. El aeropuerto más cercano es {name} ({code}), a {km} km. ¿Usarlo como aeropuerto base?", "Locatie ingevuld. De dichtstbijzijnde luchthaven is {name} ({code}), {km} km verderop. Als thuisluchthaven nemen?"],
+  ["Use {code}", "{code} nehmen", "Prendre {code}", "Usar {code}", "{code} nemen"],
+  ["Keep {code}", "{code} behalten", "Garder {code}", "Mantener {code}", "{code} houden"],
+  ["none", "keinen", "aucun", "ninguno", "geen"],
+  ["Home airport set to {code}. Press Save to keep the new location.", "Heimatflughafen ist jetzt {code}. Zum Behalten des neuen Standorts Speichern drücken.", "Aéroport défini sur {code}. Appuyez sur Enregistrer pour garder la nouvelle position.", "Aeropuerto base: {code}. Pulsa Guardar para mantener la nueva ubicación.", "Thuisluchthaven is nu {code}. Druk op Opslaan om de nieuwe locatie te houden."],
+  ["Home airport unchanged. Press Save to keep the new location.", "Heimatflughafen unverändert. Zum Behalten des neuen Standorts Speichern drücken.", "Aéroport inchangé. Appuyez sur Enregistrer pour garder la nouvelle position.", "Aeropuerto base sin cambios. Pulsa Guardar para mantener la nueva ubicación.", "Thuisluchthaven ongewijzigd. Druk op Opslaan om de nieuwe locatie te houden."],
+  ["Most seen model", "Häufigstes Modell", "Modèle le plus vu", "Modelo más visto", "Meest geziene model"],
+  ["{n} times", "{n}-mal", "{n} fois", "{n} veces", "{n} keer"],
+  ["Categories", "Kategorien", "Catégories", "Categorías", "Categorieën"],
+  ["Aircraft types", "Flugzeugtypen", "Types d'avion", "Tipos de avión", "Vliegtuigtypes"],
+  ["Airlines", "Airlines", "Compagnies", "Aerolíneas", "Maatschappijen"],
+  ["Most seen aircraft", "Meistgesehen", "Avions les plus vus", "Aviones más vistos", "Meest geziene toestellen"],
+  ["Newest aircraft", "Neueste", "Derniers avions", "Aviones más recientes", "Nieuwste toestellen"],
+  ["No planes within {n} km right now.", "Gerade keine Flugzeuge innerhalb von {n} km.", "Aucun avion à moins de {n} km en ce moment.", "Ningún avión a menos de {n} km ahora mismo.", "Nu geen vliegtuigen binnen {n} km."],
+  ["on the ground", "am Boden", "au sol", "en tierra", "aan de grond"],
+  ["Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", "Startende und landende Flugzeuge in {where}. Zeiten: wann sie gestartet sind und wann sie am Boden erwartet werden.", "Avions qui décollent de {where} ou y atterrissent. Heures : décollage, et arrivée prévue au sol.", "Aviones que despegan de {where} o aterrizan allí. Horas: cuándo despegaron y cuándo se espera que toquen tierra.", "Vliegtuigen die opstijgen van en landen op {where}. Tijden: wanneer ze vertrokken en wanneer ze aan de grond verwacht worden."],
+  ["No take-offs right now.", "Gerade keine Starts.", "Aucun décollage en ce moment.", "Ningún despegue ahora mismo.", "Nu geen vertrekken."],
+  ["No landings coming up right now.", "Gerade keine Landungen in Sicht.", "Aucun atterrissage en vue.", "Ningún aterrizaje próximo ahora mismo.", "Nu geen landingen op komst."],
+  ["What's new in each version, the relay and who made it.", "Was in jeder Version neu ist, das Relais und wer es gemacht hat.", "Les nouveautés de chaque version, le relais et qui l'a fait.", "Novedades de cada versión, el relé y quién lo hizo.", "Wat er nieuw is in elke versie, het relais en wie het maakte."],
+  ["The Overhead app for Android, showing the relay at {host}.", "Die Overhead-App für Android, sie zeigt das Relais unter {host}.", "L'app Overhead pour Android, qui affiche le relais à {host}.", "La app Overhead para Android, que muestra el relé en {host}.", "De Overhead-app voor Android, met het relais op {host}."],
+  ["Change relay", "Relais ändern", "Changer de relais", "Cambiar relé", "Relais wijzigen"],
+  ["On Android, install the Overhead app and open the file (allow installs from your browser once):", "Auf Android die Overhead-App installieren und die Datei öffnen (Installationen aus dem Browser einmal erlauben):", "Sur Android, installez l'app Overhead et ouvrez le fichier (autorisez une fois les installations depuis le navigateur) :", "En Android, instala la app Overhead y abre el archivo (permite una vez las instalaciones desde el navegador):", "Op Android: installeer de Overhead-app en open het bestand (sta installaties vanuit je browser één keer toe):"],
+  ["download it", "herunterladen", "la télécharger", "descargarla", "downloaden"],
+  ["On an iPhone, Safari → Share → Add to Home Screen.", "Auf dem iPhone: Safari → Teilen → Zum Home-Bildschirm.", "Sur iPhone : Safari → Partager → Sur l'écran d'accueil.", "En iPhone: Safari → Compartir → Añadir a pantalla de inicio.", "Op een iPhone: Safari → Deel → Zet op beginscherm."],
+  ["It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:", "Es braucht das WLAN zu Hause, weil die Flugdaten über das Relais auf deinem Computer kommen. Die große Tafel:", "Il faut le Wi-Fi de la maison, car les données de vol passent par le relais sur votre ordinateur. Le grand tableau :", "Necesita el wifi de casa, porque los datos de vuelo llegan por el relé de tu ordenador. El panel grande:", "Het heeft je wifi thuis nodig, want de vluchtgegevens komen via het relais op je computer. Het grote bord:"],
+  ["No flight data here: open the app through your home relay, at http://<your computer>:8080/app/", "Hier keine Flugdaten: öffne die App über das Relais zu Hause, unter http://<dein Computer>:8080/app/", "Pas de données de vol ici : ouvrez l'app via votre relais, à http://<votre ordinateur>:8080/app/", "Aquí no hay datos de vuelo: abre la app a través del relé de casa, en http://<tu ordenador>:8080/app/", "Hier geen vluchtgegevens: open de app via je relais thuis, op http://<je computer>:8080/app/"],
+  ["No flight data for over a minute · retrying", "Seit über einer Minute keine Flugdaten · neuer Versuch", "Aucune donnée de vol depuis plus d'une minute · nouvel essai", "Sin datos de vuelo desde hace más de un minuto · reintentando", "Al meer dan een minuut geen vluchtgegevens · opnieuw proberen"],
+  ["Flight", "Flug", "Vol", "Vuelo", "Vlucht"],
+  ["Airline", "Fluglinie", "Compagnie", "Aerolínea", "Maatschappij"],
+  ["Status", "Status", "Statut", "Estado", "Status"],
+  ["From", "Von", "De", "Desde", "Van"],
+  ["To", "Nach", "Vers", "Hacia", "Naar"],
+  ["Aircraft", "Flugzeug", "Avion", "Avión", "Toestel"],
+  ["Reg.", "Kennz.", "Immat.", "Matr.", "Reg."],
+  ["Altitude", "Höhe", "Altitude", "Altitud", "Hoogte"],
+  ["Speed", "Geschw.", "Vitesse", "Velocidad", "Snelheid"],
+  ["Position", "Position", "Position", "Posición", "Positie"],
+  ["Departure", "Abflug", "Départ", "Salida", "Vertrek"],
+  ["Arrival", "Ankunft", "Arrivée", "Llegada", "Aankomst"],
+  ["Flight time", "Flugzeit", "Durée de vol", "Tiempo de vuelo", "Vliegtijd"],
+  ["Planes", "Flugzeuge", "Avions", "Aviones", "Vliegtuigen"],
+  ["Types", "Typen", "Types", "Tipos", "Types"],
+  ["Overhead", "Direkt drüber", "Au-dessus", "Encima", "Recht boven"],
+  ["Airport", "Flughafen", "Aéroport", "Aeropuerto", "Luchthaven"],
+  ["Busiest hour", "Meiste Flüge", "Heure de pointe", "Hora punta", "Drukste uur"],
+  ["Lowest pass", "Tiefster Überflug", "Passage le plus bas", "Paso más bajo", "Laagste passage"],
+  ["Highest pass", "Höchster Überflug", "Passage le plus haut", "Paso más alto", "Hoogste passage"],
+  ["Fastest", "Schnellster", "Le plus rapide", "El más rápido", "Snelste"],
+  ["Most seen airline", "Häufigste Airline", "Compagnie la plus vue", "Aerolínea más vista", "Meest geziene maatschappij"],
+  ["First of the day", "Erster des Tages", "Premier du jour", "Primero del día", "Eerste van de dag"],
+  ["New in the logbook", "Neu im Logbuch", "Nouveau dans le carnet", "Nuevo en el registro", "Nieuw in het logboek"],
+  ["Registration", "Kennzeichen", "Immatriculation", "Matrícula", "Registratie"],
+  ["Operator", "Betreiber", "Exploitant", "Operador", "Exploitant"],
+  ["Registered in", "Registriert in", "Immatriculé en", "Registrado en", "Geregistreerd in"],
+  ["Sightings", "Sichtungen", "Observations", "Avistamientos", "Waarnemingen"],
+  ["Individual aircraft", "Einzelne Flugzeuge", "Avions distincts", "Aviones distintos", "Afzonderlijke toestellen"],
+  ["Time", "Zeit", "Heure", "Hora", "Tijd"],
+  ["Remarks", "Hinweis", "Remarques", "Observaciones", "Opmerkingen"],
+  ["Type", "Typ", "Type", "Tipo", "Type"],
+  ["Due", "Erwartet", "Prévu", "Prevista", "Verwacht"],
+  ["Closest", "Am nächsten", "Au plus près", "Más cerca", "Dichtstbij"],
+  ["Location", "Standort", "Position", "Ubicación", "Locatie"],
+  ["Traffic", "Verkehr", "Trafic", "Tráfico", "Verkeer"],
+  ["Display", "Anzeige", "Affichage", "Pantalla", "Weergave"],
+  ["System", "System", "Système", "Sistema", "Systeem"],
+  ["Control", "Steuerung", "Commandes", "Control", "Bediening"],
+  ["Night", "Nacht", "Nuit", "Noche", "Nacht"],
+  ["Phone", "Telefon", "Téléphone", "Teléfono", "Telefoon"],
+  ["Place name", "Ortsname", "Nom du lieu", "Nombre del lugar", "Plaatsnaam"],
+  ["Home airport", "Heimatflughafen", "Aéroport", "Aeropuerto base", "Thuisluchthaven"],
+  ["Latitude", "Breite", "Latitude", "Latitud", "Breedtegraad"],
+  ["Longitude", "Länge", "Longitude", "Longitud", "Lengtegraad"],
+  ["Radius km", "Radius km", "Rayon km", "Radio km", "Straal km"],
+  ["Overhead within", "Direkt drüber bis", "Au-dessus à moins de", "Encima a menos de", "Recht boven binnen"],
+  ["Current location", "Aktueller Standort", "Position actuelle", "Ubicación actual", "Huidige locatie"],
+  ["Ignore planes above", "Flugzeuge darüber ignorieren", "Ignorer au-dessus de", "Ignorar por encima de", "Negeer boven"],
+  ["Update every", "Aktualisieren alle", "Mise à jour toutes les", "Actualizar cada", "Bijwerken elke"],
+  ["Hovering, min/hour", "Kreisen, Min./Std.", "En vol stationnaire, min/h", "Sobrevolando, min/hora", "Rondcirkelen, min/uur"],
+  ["Favourites: airlines, aircraft types or registrations, separated by commas", "Favoriten: Airlines, Flugzeugtypen oder Kennzeichen, durch Kommas getrennt", "Favoris : compagnies, types d'avion ou immatriculations, séparés par des virgules", "Favoritos: aerolíneas, tipos de avión o matrículas, separados por comas", "Favorieten: maatschappijen, vliegtuigtypes of registraties, gescheiden door komma's"],
+  ["Language", "Sprache", "Langue", "Idioma", "Taal"],
+  ["Airport layout", "Flughafen-Layout", "Mise en page aéroport", "Diseño aeropuerto", "Luchthavenindeling"],
+  ["Board style", "Tafelstil", "Style du tableau", "Estilo del panel", "Bordstijl"],
+  ["Change pages", "Seitenwechsel", "Changer de page", "Cambiar página", "Pagina wisselen"],
+  ["Drawing quality", "Zeichenqualität", "Qualité d'affichage", "Calidad de dibujo", "Tekenkwaliteit"],
+  ["Units", "Einheiten", "Unités", "Unidades", "Eenheden"],
+  ["Flap speed %", "Klappen-Tempo %", "Vitesse des palettes %", "Velocidad de paletas %", "Kleptempo %"],
+  ["Chimes", "Gong", "Carillon", "Avisos", "Gong"],
+  ["Flap sound", "Klappern", "Bruit des palettes", "Sonido de paletas", "Kleppengeluid"],
+  ["Airline logos", "Airline-Logos", "Logos des compagnies", "Logotipos de aerolíneas", "Logo's maatschappijen"],
+  ["Worn hardware", "Abgenutzt", "Usure", "Desgaste", "Slijtage"],
+  ["Demo mode", "Demomodus", "Mode démo", "Modo demo", "Demomodus"],
+  ["Night mode", "Nachtmodus", "Mode nuit", "Modo noche", "Nachtmodus"],
+  ["Dim from", "Dimmen ab", "Atténuer dès", "Atenuar desde", "Dimmen vanaf"],
+  ["Until", "Bis", "Jusqu'à", "Hasta", "Tot"],
+  ["Brightness", "Helligkeit", "Luminosité", "Brillo", "Helderheid"],
+  ["All", "Alle", "Tous", "Todos", "Alle"],
+  ["Special", "Besondere", "Spéciaux", "Especiales", "Bijzonder"],
+  ["Spotted<br>today", "Heute<br>gesichtet", "Vus<br>aujourd'hui", "Vistos<br>hoy", "Vandaag<br>gespot"],
+  ["Spotted today", "Heute gesichtet", "Vus aujourd'hui", "Vistos hoy", "Vandaag gespot"],
+  ["Logbook", "Logbuch", "Carnet", "Registro", "Logboek"],
+  ["ALL", "ALLE", "TOUS", "TODOS", "ALLE"],
+  ["PAGES", "SEITEN", "PAGES", "PÁGINAS", "PAGINA'S"],
+  ["SCREENS", "SCHIRME", "ÉCRANS", "PANTALLAS", "SCHERMEN"],
+  ["CLASSIC", "KLASSISCH", "CLASSIQUE", "CLÁSICO", "KLASSIEK"],
+  ["BLUE", "BLAU", "BLEU", "AZUL", "BLAUW"],
+  ["Now", "Jetzt", "Maintenant", "Ahora", "Nu"],
+  ["Today", "Heute", "Aujourd'hui", "Hoy", "Vandaag"],
+  ["METRIC", "METRISCH", "MÉTRIQUE", "MÉTRICO", "METRISCH"],
+  ["FT · KT", "FT · KT", "FT · KT", "FT · KT", "FT · KT"],
+  ["The pages of the lower half", "Die Seiten der unteren Hälfte", "Les pages de la moitié inférieure", "Las páginas de la mitad inferior", "De pagina's van de onderste helft"],
+  ["Turn the page (in Spotted today: its pages)", "Seite umblättern (in Heute gesichtet: dessen Seiten)", "Tourner la page (dans Vus aujourd'hui : ses pages)", "Pasar página (en Vistos hoy: sus páginas)", "Pagina omslaan (in Vandaag gespot: de pagina's daarvan)"],
+  ["Connection log", "Verbindungsprotokoll", "Journal de connexion", "Registro de conexión", "Verbindingslogboek"],
+  ["Full screen (or click the board)", "Vollbild (oder auf die Tafel klicken)", "Plein écran (ou cliquez sur le tableau)", "Pantalla completa (o haz clic en el panel)", "Volledig scherm (of klik op het bord)"],
+  ["Back to the board", "Zurück zur Tafel", "Retour au tableau", "Volver al panel", "Terug naar het bord"],
+  ["Recent<br>flights", "Letzte<br>Flüge", "Vols<br>récents", "Vuelos<br>recientes", "Recente<br>vluchten"],
+  ["Today in<br>numbers", "Heute in<br>Zahlen", "Aujourd'hui<br>en chiffres", "Hoy en<br>cifras", "Vandaag in<br>cijfers"],
+  ["This<br>aircraft", "Dieses<br>Flugzeug", "Cet<br>avion", "Este<br>avión", "Dit<br>toestel"],
+  ["Take-offs &amp;<br>landings", "Starts &amp;<br>Landungen", "Décollages &amp;<br>atterrissages", "Despegues y<br>aterrizajes", "Vertrek &amp;<br>landing"],
+  ["Landing", "Landung", "Atterrissage", "Aterrizaje", "Landing"],
+  ["Take-off", "Start", "Décollage", "Despegue", "Vertrek"],
+  ["Passenger", "Passagiere", "Passagers", "Pasajeros", "Passagiers"],
+  ["Cargo", "Fracht", "Fret", "Carga", "Vracht"],
+  ["Business jets", "Bizjets", "Jets d'affaires", "Jets de negocios", "Zakenjets"],
+  ["Private, light", "Privat, leicht", "Privés, légers", "Privados, ligeros", "Privé, licht"],
+  ["Helicopters", "Hubschrauber", "Hélicoptères", "Helicópteros", "Helikopters"],
+  ["Military", "Militär", "Militaires", "Militares", "Militair"],
+  ["Other", "Andere", "Autres", "Otros", "Overig"],
+  ["Recent flights", "Letzte Flüge", "Vols récents", "Vuelos recientes", "Recente vluchten"],
+  ["Today in numbers", "Heute in Zahlen", "Aujourd'hui en chiffres", "Hoy en cifras", "Vandaag in cijfers"],
+  ["This aircraft", "Dieses Flugzeug", "Cet avion", "Este avión", "Dit toestel"],
+  ["Inbound", "Kommt näher", "Approche", "Se acerca", "Komt eraan"],
+  ["Flying by", "Fliegt vorbei", "Passe à côté", "De paso", "Vliegt langs"],
+  ["Outbound", "Entfernt sich", "S'éloigne", "Se aleja", "Vliegt weg"],
+  ["Favourite", "Favorit", "Favori", "Favorito", "Favoriet"],
+  ["Too high", "Zu hoch", "Trop haut", "Demasiado alto", "Te hoog"],
+  ["Nearest", "Am nächsten", "Les plus proches", "Más cercanos", "Dichtstbij"],
+  ["{n} plane", "{n} Flugzeug", "{n} avion", "{n} avión", "{n} vliegtuig"],
+  ["{n} planes", "{n} Flugzeuge", "{n} avions", "{n} aviones", "{n} vliegtuigen"],
+  ["{n} airline", "{n} Airline", "{n} compagnie", "{n} aerolínea", "{n} maatschappij"],
+  ["{n} airlines", "{n} Airlines", "{n} compagnies", "{n} aerolíneas", "{n} maatschappijen"],
+  ["{n} aircraft type", "{n} Flugzeugtyp", "{n} type d'avion", "{n} tipo de avión", "{n} vliegtuigtype"],
+  ["{n} aircraft types", "{n} Flugzeugtypen", "{n} types d'avion", "{n} tipos de avión", "{n} vliegtuigtypes"],
+  ["OVERHEAD", "ÜBER UNS", "AU-DESSUS", "ENCIMA", "BOVEN ONS"],
+  ["INBOUND", "KOMMT", "ARRIVE", "LLEGANDO", "KOMT ERAAN"],
+  ["FLYING BY", "VORBEIFLUG", "PASSE À CÔTÉ", "DE PASO", "VLIEGT LANGS"],
+  ["OUTBOUND", "FLIEGT WEG", "S'ÉLOIGNE", "SE ALEJA", "VLIEGT WEG"],
+  ["PASSED", "VORBEI", "PASSÉ", "PASÓ", "VOORBIJ"],
+  ["NEARBY", "IN DER NÄHE", "PROCHE", "CERCA", "IN DE BUURT"],
+  ["NO TRAFFIC", "KEIN VERKEHR", "AUCUN TRAFIC", "SIN TRÁFICO", "GEEN VERKEER"],
+  ["OFFLINE", "OFFLINE", "HORS LIGNE", "SIN CONEXIÓN", "OFFLINE"],
+  ["ARRIVING", "ANKUNFT", "ARRIVÉE", "LLEGADA", "AANKOMST"],
+  ["DEPARTING", "ABFLUG", "DÉPART", "SALIDA", "VERTREK"],
+  ["OVERFLIGHT", "ÜBERFLUG", "SURVOL", "SOBREVUELO", "OVERVLUCHT"],
+  ["CLOSE BY", "GANZ NAH", "TOUT PRÈS", "MUY CERCA", "DICHTBIJ"],
+  ["NEW TYPE", "NEUER TYP", "NOUV. TYPE", "TIPO NUEVO", "NIEUW TYPE"],
+  ["NEW AIRLINE", "NEUE AIRLINE", "NOUV. CIE", "AEROL. NUEVA", "NIEUWE MIJ."],
+  ["FAVOURITE", "FAVORIT", "FAVORI", "FAVORITO", "FAVORIET"],
+  ["MILITARY", "MILITÄR", "MILITAIRE", "MILITAR", "MILITAIR"],
+  ["HELICOPTER", "HUBSCHRAUBER", "HÉLICOPTÈRE", "HELICÓPTERO", "HELIKOPTER"],
+  ["SPECIAL", "BESONDERS", "SPÉCIAL", "ESPECIAL", "BIJZONDER"],
+  ["EMERGENCY", "NOTFALL", "URGENCE", "EMERGENCIA", "NOODGEVAL"],
+  ["DIVERTED", "UMGELEITET", "DÉROUTÉ", "DESVIADO", "OMGELEID"],
+  ["CARGO", "FRACHT", "FRET", "CARGA", "VRACHT"],
+  ["BIZJET", "BIZJET", "JET PRIVÉ", "JET PRIVADO", "ZAKENJET"],
+  ["PRIVATE", "PRIVAT", "PRIVÉ", "PRIVADO", "PRIVÉ"],
+  ["TAKE-OFF", "START", "DÉCOLLAGE", "DESPEGUE", "OPSTIJGEN"],
+  ["CLIMBING", "STEIGFLUG", "MONTÉE", "ASCENSO", "KLIMT"],
+  ["APPROACH", "ANFLUG", "APPROCHE", "APROXIMACIÓN", "NADERING"],
+  ["FINAL", "ENDANFLUG", "FINALE", "FINAL", "EINDNADERING"],
+  ["LANDED", "GELANDET", "ATTERRI", "ATERRIZÓ", "GELAND"],
+];
+const I18N = (() => {
+  const d = {en: {"Overhead (board style)": "Overhead", "Airport (board style)": "Airport"}, de: {}, fr: {}, es: {}, nl: {}};
+  for (const [k, de, fr, es, nl] of I18N_ROWS) { d.de[k] = de; d.fr[k] = fr; d.es[k] = es; d.nl[k] = nl; }
+  return d;
+})();
 
 /* ---------- split-flap panels ----------
    The flaps are drawn exactly as on the board, on canvases set into the page: the plane overhead, the clock, and the
@@ -640,7 +967,8 @@ function tile(f, value, variant = 0){
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
   const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
   if (f.words === "lamp") text = "";
-  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}`;
+  if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
+  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}`;
   let cv = tiles.get(key);
   if (cv) return cv;
   const w = f.pw, h = f.ph;
@@ -685,7 +1013,7 @@ function tile(f, value, variant = 0){
       g.fillText(code, bx + bw / 2, by + bh / 2 + bh * .04); g.restore();
     }
     ax = bx + bw; aw = w - ax;
-    if (!text && code === "-") text = "NO AIRLINE LISTED";
+    if (!text && code === "-") text = T("NO AIRLINE LISTED");
   }
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
@@ -926,7 +1254,7 @@ function drawPanelStatic(P){
   }
 }
 function label(g, f, main, second, size, max = Infinity){
-  const yb = f.y - Math.max(4, size * .5), a = main.toUpperCase(), b = (second || "").toUpperCase();
+  const yb = f.y - Math.max(4, size * .5), a = T(main).toUpperCase(), b = second && UNIT.test(second) ? second.toUpperCase() : "";   // units only
   g.font = `600 ${size}px ${FONT}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
   if ("letterSpacing" in g) g.letterSpacing = (size * .08).toFixed(1) + "px";
   const wa = g.measureText(a).width, gap = size * .7, total = wa + (b ? gap + g.measureText(b).width : 0);
@@ -1539,7 +1867,7 @@ function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft 
 function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
 function countdown(sec){
   const t = Math.max(5, Math.round(sec / 5) * 5);
-  return t < 60 ? `IN ${t} SEC` : `IN ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+  return t < 60 ? T("IN {n} SEC", {n: t}) : T("IN {t}", {t: `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`});
 }
 const overKm = () => Math.min(+S.overKm || 3, +S.radiusKm || 15);
 function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " KM " + o.dir; }
@@ -1804,46 +2132,46 @@ function lookupDetails(hex){
   }).catch(() => {});
 }
 function legendGroups(){
-  const home = (S.home || "").toUpperCase() || "your home airport", OVK = overKm();
+  const home = (S.home || "").toUpperCase() || T("your home airport"), OVK = overKm();
   return [
-    ["Status on the board", [
-      ["OVERHEAD", `Directly above you, within ${OVK} km (in the lists: it came that close)`],
-      ["INBOUND", "On course to pass overhead within three minutes"],
-      ["FLYING BY", "Getting closer, but won't pass overhead"],
-      ["OUTBOUND", "Moving away"],
-      ["PASSED", "Just passed overhead"],
-      ["NO TRAFFIC", "No planes around right now"],
-      ["OFFLINE", "No flight data for over a minute"]]],
-    ["Route", [
-      ["ARRIVING", `Flying to ${home}`],
-      ["DEPARTING", `Took off from ${home}`],
-      ["OVERFLIGHT", `Passing through, not to or from ${home}`]]],
-    ["At the airport (Airport style)", [
-      ["TAKE-OFF", "Rolling down the runway, or just off the ground"],
-      ["CLIMBING", `Climbing away after taking off from ${home}`],
-      ["APPROACH", `Coming down towards ${home}`],
-      ["FINAL", "On final approach, the last 12 km or so"],
-      ["LANDED", "Just landed, rolling out"]]],
-    ["Special (lamp lit)", [
-      ["EMERGENCY", "Squawking an emergency code: 7500, 7600 or 7700"],
-      ["DIVERTED", "Landing somewhere other than planned (Flightradar24)"],
+    [T("Status on the board"), [
+      ["OVERHEAD", T("Directly above you, within {n} km (in the lists: it came that close)", {n: OVK})],
+      ["INBOUND", T("On course to pass overhead within three minutes")],
+      ["FLYING BY", T("Getting closer, but won't pass overhead")],
+      ["OUTBOUND", T("Moving away")],
+      ["PASSED", T("Just passed overhead")],
+      ["NO TRAFFIC", T("No planes around right now")],
+      ["OFFLINE", T("No flight data for over a minute")]]],
+    [T("Route"), [
+      ["ARRIVING", T("Flying to {home}", {home})],
+      ["DEPARTING", T("Took off from {home}", {home})],
+      ["OVERFLIGHT", T("Passing through, not to or from {home}", {home})]]],
+    [T("At the airport (Airport style)"), [
+      ["TAKE-OFF", T("Rolling down the runway, or just off the ground")],
+      ["CLIMBING", T("Climbing away after taking off from {home}", {home})],
+      ["APPROACH", T("Coming down towards {home}", {home})],
+      ["FINAL", T("On final approach, the last 12 km or so")],
+      ["LANDED", T("Just landed, rolling out")]]],
+    [T("Special (lamp lit)"), [
+      ["EMERGENCY", T("Squawking an emergency code: 7500, 7600 or 7700")],
+      ["DIVERTED", T("Landing somewhere other than planned (Flightradar24)")],
       ["SUPERJUMBO", "Airbus A380"],
       ["JUMBO", "Boeing 747"],
       ["BELUGA", "Airbus Beluga"],
-      ["ANTONOV", "Antonov An-124, An-225 or An-22"],
+      ["ANTONOV", T("Antonov An-124, An-225 or An-22")],
       ["CONCORDE", "Concorde"],
-      ["SPECIAL", "Rare, unusual or government aircraft"],
-      ["NEW TYPE", "First time this aircraft type is in the logbook"],
-      ["NEW AIRLINE", "First time this airline is in the logbook"],
-      ["FAVOURITE", "Matches one of your favourites in Settings"],
-      ["MILITARY", "Military aircraft"],
-      ["HELICOPTER", "Helicopter"],
-      ["CARGO", "Cargo flight (Flightradar24)"],
-      ["BIZJET", "Business jet (Flightradar24)"],
-      ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]]
+      ["SPECIAL", T("Rare, unusual or government aircraft")],
+      ["NEW TYPE", T("First time this aircraft type is in the logbook")],
+      ["NEW AIRLINE", T("First time this airline is in the logbook")],
+      ["FAVOURITE", T("Matches one of your favourites in Settings")],
+      ["MILITARY", T("Military aircraft")],
+      ["HELICOPTER", T("Helicopter")],
+      ["CARGO", T("Cargo flight (Flightradar24)")],
+      ["BIZJET", T("Business jet (Flightradar24)")],
+      ["PRIVATE", T("Private or light aircraft (Flightradar24)")]]]]
     .map(([h, items]) => [h, items.filter(([r]) => REMARKS.includes(r))]);
 }
-const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
+const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short"}) : "";
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
 function demoLogbook(){
   const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
@@ -1861,14 +2189,14 @@ function demoLogbook(){
 const lbData = () => S.demo ? demoLogbook() : lbCache;
 let lbCache = null, lbError = "";
 function logbookSummary(){
-  if (!S.demo && !relayV5()) return "The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.";
+  if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
   const b = lbData();
-  if (!b) return lbError ? `Couldn't read the logbook from the relay: ${lbError}` : "Reading the logbook from the relay…";
-  const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}) : "";
+  if (!b) return lbError ? T("Couldn't read the logbook from the relay: {e}", {e: lbError}) : T("Reading the logbook from the relay…");
+  const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"}) : "";
   const learning = b.learningUntil && Date.now() < b.learningUntil;
-  return `${b.sample ? "Sample logbook (demo mode) · " : ""}Counting since ${since}` +
-    (learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : "") +
-    (b.categories ? "" : " · categories are counted from relay version 10 on");
+  return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
+    (learning ? " · " + T("the first day is for learning what is normal here; from {d} {t} first sightings are marked NEW", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
+    (b.categories ? "" : " · " + T("categories are counted from relay version 10 on"));
 }
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
@@ -1905,10 +2233,10 @@ function altNum(ft){
 }
 
 /* ---------- what the lists look like ---------- */
-function chip(r){
+function chip(r){                        // the status word in this language; its colours by the English name
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(r)}</span>`;
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(T(r))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -1937,7 +2265,7 @@ function renderRecent(){
   if (sig === recentSig) return;
   recentSig = sig;
   $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
-    : `<li class="empty">Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.</li>`;
+    : `<li class="empty">${escH(T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
 }
 let shownPhoto = null, factsSig = "";
 function renderAircraftInfo(){
@@ -1966,7 +2294,7 @@ function renderAircraftInfo(){
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${en}${de ? `<span>${de}</span>` : ""}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
 }
 
 /* Spotted today */
@@ -1980,17 +2308,19 @@ function svData(){
 }
 function spottedSummary(){
   const {real, counts} = svData();
-  if (!real.length) return `Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.`;
+  if (!real.length) return T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15});
   const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
   const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
   const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
-  return `${n} plane${n === 1 ? "" : "s"} · ${na} airline${na === 1 ? "" : "s"} · ${nt} aircraft type${nt === 1 ? "" : "s"} · ${st ? st.overhead : counts.over} directly overhead` +
-    `${relayV5() ? " · shared by every screen through the home relay" : ""}${API_NOTE()}${S.demo ? " · sample flights (demo mode)" : ""}`;
+  const pl = (k, one, many) => T(k === 1 ? one : many, {n: k});
+  return [pl(n, "{n} plane", "{n} planes"), pl(na, "{n} airline", "{n} airlines"), pl(nt, "{n} aircraft type", "{n} aircraft types"),
+    T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
+    `${relayV5() ? " · " + T("shared by every screen through the home relay") : ""}${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
 }
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${t}</button>`).join("");
+  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
   for (const b of box.children) b.onclick = () => {
     const k = b.dataset.t;
     svFilter = k;
@@ -2000,7 +2330,7 @@ function buildSvTools(){
 function legendHtml(){
   return legendGroups().map(([h, items]) => `<h3>${escH(h)}</h3><ul class="legend">` +
     items.map(([r, t]) => `<li>${chip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
-    `<p class="sum">A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.</p>`;
+    `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
 function todayNumbers(){
   const st = relayV5() && relayStats, list = dayList(), OVK = overKm();
@@ -2014,7 +2344,7 @@ function todayNumbers(){
       ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
       ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
       ["Most seen airline", "", t ? `${tn} · ${t.count}` : ""],
-      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? `${st.newTypes} types · ${st.newAirlines} airlines` : "Nothing new yet"]]};
+      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? T("{a} types · {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet")]]};
   }
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
   const withAlt = list.filter(e => typeof e.altAtMin === "number");
@@ -2032,7 +2362,7 @@ function renderTodayNumbers(){
   const n = todayNumbers();
   setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
   setChars("stTypes", String(n.types), 120); setChars("stOver", String(n.over), 180);
-  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${en}<span>${de}</span></dt><dd>${escH(v)}</dd></div>`).join("");
+  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
   if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
 }
 function renderToday(){
@@ -2042,7 +2372,7 @@ function renderToday(){
   const d = svData();
   for (const b of $("svTools").children) {
     const k = b.dataset.t, n = d.counts[k];
-    const text = `${SV_TOOLS.find(t => t[0] === k)[1]}${n != null ? " " + nf.format(n) : ""}`;
+    const text = `${T(SV_TOOLS.find(t => t[0] === k)[1])}${n != null ? " " + nf.format(n) : ""}`;
     if (b.textContent !== text) b.textContent = text;
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
@@ -2051,7 +2381,7 @@ function renderToday(){
   if (sig === svSig) return;
   svSig = sig;
   $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
-    : `<li class="empty">${svFilter === "all" ? "Nothing spotted yet today." : "None of today's planes match this filter yet."}</li>`;
+    : `<li class="empty">${svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
 function renderLists(){
   renderRecent();
@@ -2083,22 +2413,22 @@ function renderLogbook(){
   const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent]);
   if (sig === lbSig) return;
   lbSig = sig;
-  $("lbModel").innerHTML = types[0] ? `<small>Most seen model · Häufigstes Modell</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${nf.format(types[0][1].count || 0)} times</span>` : "";
+  $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
   if (b.categories) {
     const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-    html += `<h3>Categories<span>Kategorien</span></h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+    html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
       const n = b.categories[k] || 0;
-      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(en)}<span class="s">${escH(de)}</span></span><span class="n">${nf.format(n)}</span>` +
+      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
         `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
     }).join("") + "</ul>";
   }
-  if (types.length) html += `<h3>Aircraft types<span>Flugzeugtypen</span></h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
-  if (airlines.length) html += `<h3>Airlines<span>Fluglinien</span></h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
-  if ((b.regsTop || []).length) html += `<h3>Most seen aircraft<span>Meistgesehen</span></h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
-  if ((b.regsRecent || []).length) html += `<h3>Newest aircraft<span>Neueste</span></h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+  if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
+  if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
+  if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+  if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
   $("lbLists").innerHTML = html;
 }
 
@@ -2202,7 +2532,7 @@ function drawRadar(t){
 }
 function buildRadarLegend(){
   $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
-    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${t}</li>`).join("");
+    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
 function renderRadarList(){
@@ -2215,7 +2545,7 @@ function renderRadarList(){
     return `<li class="rv" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
       `<span class="num">${distText(o.dist)} ${o.dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
   });
-  const html = rows.length ? rows.join("") : `<li class="empty">No planes within ${range} km right now.</li>`;
+  const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
 }
 
@@ -2235,6 +2565,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
+    {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
@@ -2259,19 +2590,19 @@ function rotaryIndex(it){
 }
 // One control in its cell. The name comes last in the markup and is shown above the control (CSS order).
 function itemHtml(it){
-  const cap = `<span>${escH(it.label)}</span>`;
+  const cap = `<span>${escH(T(it.label))}</span>`;
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}>${body}${cap}</div>`;
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
-    `aria-label="${escH(it.label)}" value="${escH(String(draft[it.k] ?? ""))}">`);
+    `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
     const ang = rotaryAngles(it.opts.length);
-    return cell("", `<div class="rotary" tabindex="0" role="slider" aria-label="${escH(it.label)}" data-k="${it.k}">` +
-      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(o[1])}</b>`).join("") + `<span class="knob"></span></div>`);
+    return cell("", `<div class="rotary" tabindex="0" role="slider" aria-label="${escH(T(it.label))}" data-k="${it.k}">` +
+      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(T(o[1]))}</b>`).join("") + `<span class="knob"></span></div>`);
   }
-  if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(it.label)}">` +
-    `<span class="up">${it.upText || "ON"}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${it.downText || "OFF"}</span></button>`);
-  if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>Use current location</button>` +
-    `<p class="note">Fills in latitude and longitude, then finds the nearest airport.</p><div class="ask" hidden></div>`);
+  if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
+    `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
+  if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
+    `<p class="note">${escH(T("Fills in latitude and longitude, then finds the nearest airport."))}</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
     `<span class="win"><b></b></span><button type="button" class="dec" tabindex="-1" aria-label="Down">▼</button></div>`;
   if (it.type === "wheel") return cell("", wheel(""));
@@ -2373,17 +2704,17 @@ function hereNow(){
   return new Promise((ok, no) => {
     const A = window.OverheadAndroid;
     if (A && A.locate) {
-      const timer = setTimeout(() => no(new Error("The phone didn't say where it is. Is location turned on?")), 30000);
+      const timer = setTimeout(() => no(new Error(T("The phone didn't say where it is. Is location turned on?"))), 30000);
       window.__overheadHere = (lat, lon, acc, err) => { clearTimeout(timer); err ? no(new Error(err)) : ok({lat, lon, acc}); };
       A.locate();
       return;
     }
     if (!window.isSecureContext || !navigator.geolocation)
-      return no(new Error(A ? "Update the Overhead app to use the phone's location." :
-        "This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead."));
+      return no(new Error(T(A ? "Update the Overhead app to use the phone's location." :
+        "This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead.")));
     navigator.geolocation.getCurrentPosition(
       p => ok({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy}),
-      e => no(new Error(e.code === 1 ? "Location access was turned down. Allow it in the browser's site settings." : "The location isn't available right now.")),
+      e => no(new Error(T(e.code === 1 ? "Location access was turned down. Allow it in the browser's site settings." : "The location isn't available right now."))),
       {enableHighAccuracy: true, timeout: 20000, maximumAge: 60000});
   });
 }
@@ -2405,27 +2736,27 @@ function wireLocate(box){
   b.onclick = async () => {
     ctlSound.press(); audioInit();
     ask.hidden = true; ask.innerHTML = ""; b.disabled = true;
-    note.textContent = "Finding out where you are …";
+    note.textContent = T("Finding out where you are …");
     try {
       const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
       put("lat", lat); put("lon", lon); cockpitDirty();
-      const here = `Latitude and longitude set${p.acc ? ` (to within ${p.acc < 1000 ? Math.round(p.acc) + " m" : (p.acc / 1000).toFixed(1) + " km"})` : ""}.`;
-      note.textContent = here + " Looking for the nearest airport …";
+      const here = p.acc ? T("Latitude and longitude set (to within {d}).", {d: p.acc < 1000 ? Math.round(p.acc) + " m" : (p.acc / 1000).toFixed(1) + " km"}) : T("Latitude and longitude set.");
+      note.textContent = here + " " + T("Looking for the nearest airport …");
       let a = null;
       try { a = await nearestAirport(lat, lon); } catch {}
       const km = a ? (a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)) : 0;
-      if (!a) note.textContent = here + " Press Save to watch this spot.";
-      else if (a.code === clean(draft.home)) note.textContent = `${here} The nearest airport, ${a.city || a.name} (${a.code}, ${km} km), is already the home airport. Press Save to keep it.`;
+      if (!a) note.textContent = here + " " + T("Press Save to watch this spot.");
+      else if (a.code === clean(draft.home)) note.textContent = here + " " + T("The nearest airport, {name} ({code}, {km} km), is already the home airport. Press Save to keep it.", {name: a.city || a.name, code: a.code, km});
       else {
-        note.textContent = `Location set. The nearest airport is ${a.city || a.name} (${a.code}), ${km} km away. Make it the home airport?`;
+        note.textContent = T("Location set. The nearest airport is {name} ({code}), {km} km away. Make it the home airport?", {name: a.city || a.name, code: a.code, km});
         b.hidden = true;                                // room for the question in the cell
-        ask.innerHTML = `<button class="cap small" type="button" data-yes>Use ${escH(a.code)}</button><button class="cap small" type="button" data-no>Keep ${escH(clean(draft.home) || "none")}</button>`;
+        ask.innerHTML = `<button class="cap small" type="button" data-yes>${escH(T("Use {code}", {code: a.code}))}</button><button class="cap small" type="button" data-no>${escH(T("Keep {code}", {code: clean(draft.home) || T("none")}))}</button>`;
         ask.hidden = false;
-        ask.querySelector("[data-yes]").onclick = () => { ctlSound.press(); put("home", a.code); cockpitDirty(); ask.hidden = true; b.hidden = false; note.textContent = `Home airport set to ${a.code}. Press Save to keep the new location.`; };
-        ask.querySelector("[data-no]").onclick = () => { ctlSound.press(); ask.hidden = true; b.hidden = false; note.textContent = "Home airport unchanged. Press Save to keep the new location."; };
+        ask.querySelector("[data-yes]").onclick = () => { ctlSound.press(); put("home", a.code); cockpitDirty(); ask.hidden = true; b.hidden = false; note.textContent = T("Home airport set to {code}. Press Save to keep the new location.", {code: a.code}); };
+        ask.querySelector("[data-no]").onclick = () => { ctlSound.press(); ask.hidden = true; b.hidden = false; note.textContent = T("Home airport unchanged. Press Save to keep the new location."); };
       }
     } catch (e) {
-      note.textContent = e.message || "The location isn't available right now.";
+      note.textContent = e.message || T("The location isn't available right now.");
     } finally {
       b.disabled = false;
     }
@@ -2549,21 +2880,29 @@ function apRowHtml(e){
   const meta = [info.type || e.ac.t, e.ac.r].filter(Boolean).map(escH).join(" · ");
   return `<li class="fl"><time>${e.t ? hhmm(new Date(e.t)) : ""}</time>` +
     `<div class="who"><strong>${escH(apFlight(e))}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}</div>${chip(e.st)}` +
-    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? "on the ground" : ""}</span></div></li>`;
+    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? T("on the ground") : ""}</span></div></li>`;
 }
 let apSig = "";
 function renderAirport(){
   if (tab !== "now" || !airportMode()) return;
-  const sub = !AP.code ? "Set the home airport in Settings." : AP.lat == null ? `Looking up ${AP.code} …` :
-    `Planes taking off from and landing at ${apName()}. Times: when they took off, and when they're expected on the ground.`;
-  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">No take-offs right now.</li>`;
-  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">No landings coming up right now.</li>`;
+  const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
+    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()});
+  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">${escH(T("No take-offs right now."))}</li>`;
+  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">${escH(T("No landings coming up right now."))}</li>`;
   const sig = sub + deps + arrs + S.units;
   if (sig === apSig) return;
   apSig = sig;
   $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
 }
 function airportChanged(){ apSig = ""; renderAirport(); }
+// The page's fixed texts are marked data-t with their English; this puts them in the language chosen.
+function applyLang(){
+  pickLang();
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  buildTabs(); buildSvTools(); buildRadarLegend();
+  if (tab) showTab(tab);
+  clearTiles(); refreshPanels(true);
+}
 // Overhead and Airport in the title: tap one to switch.
 function setMode(md){
   if (S.mode === md) return;
@@ -2588,6 +2927,8 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.12", date: "2026-10-12", notes: [
+    "Languages: English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). The German second line under every label is gone; everything is in the one language now, the status words on the flaps too."]},
   {v: "1.11", date: "2026-10-12", notes: [
     "Airport style, two layouts to compare (Settings → Airport layout): PAGES puts the plane landing or taking off now on top, like the overhead board, with pages below for the take-offs and landings, the landing plane and the departing plane. SCREENS keeps the full-screen lists and adds a Landing and a Take-off screen, each with the plane on top and its photo and details below."]},
   {v: "1.10.1", date: "2026-10-12", notes: [
@@ -2645,37 +2986,36 @@ const CHANGELOG = [
     "Whether it will pass overhead, fly by or move away, and whether it climbs or descends.",
     "Live positions through a relay at home, a connection log, metric units and flap sound."]}];
 const VERSION = CHANGELOG[0].v;
-const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"});
 function publishedText(){
   const d = window.OVERHEAD_PAGE_DATE;
-  return d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+  return d ? new Date(d).toLocaleString(LOC(), {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
 }
 function versionLine(){
   const when = publishedText(), rv = window.OVERHEAD_RELAY_VERSION;
   const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
-  return `Version ${VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+  return T("Version {v}", {v: VERSION}) + (when ? " · " + T("published {d}", {d: when}) : "") + (rv ? " · " + T("relay {n}", {n: rv}) : "") +
+    (apk ? " · " + T("Android app {v}", {v: apk}) : "");
 }
 function changelogHtml(){
   return `<ol class="vers">` + CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
     `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("") + `</ol>`;
 }
 // Who made it and where the data comes from: the About plate on the board and the About page in the app.
-const ABOUT_HTML =
-  `<p><b>Overhead · Überflüge</b> shows the plane flying over you right now on a split-flap board, like the ones in ` +
-  `airport halls, with what passed today, a lifetime logbook and a radar.</p>` +
-  `<p>Made by Belstria, with Claude Code. Source and guide: github.com/Belstria/overhead-board</p>` +
-  `<p>Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and ` +
-  `adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from ` +
-  `airport-data.com, logos from Aviasales.</p>`;
+function aboutHtml(){
+  return `<p><b>Overhead</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
+    `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
+    `<p>${escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from airport-data.com, logos from Aviasales."))}</p>`;
+}
 function plateHtml(p){
-  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = {...S};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>What's new in each version, the relay and who made it.</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">About</button></div></div>`;
+    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
   $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
@@ -2708,8 +3048,8 @@ function buildSaveBar(){
     ctlSound.press();
     applySettings(draft); cockpitOpen();
     const b = $("saveBtn");
-    b.textContent = "Saved"; clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => { b.textContent = "Save"; }, 1600);
+    b.textContent = T("Saved"); clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
@@ -2717,15 +3057,15 @@ function buildSaveBar(){
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
-    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}.</p><div class="acts"><button class="cap big" type="button" id="relayBtn">Change relay</button></div>`
-      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
-        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
-    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board: <a href="../">${escH(location.host)}/</a></p>` +
-    ABOUT_HTML + `</div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>Legend · Legende</h3><div class="lgbox">${legendHtml()}</div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><div class="log">${changelogHtml()}</div></div>` +
-    `<div class="acts"><button class="cap big" type="button" id="aboutBack">Settings</button></div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
+    (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+      : `<p>${escH(T("On Android, install the Overhead app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
+    `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>` +
+    aboutHtml() + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
+    `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
@@ -2746,7 +3086,9 @@ function applySettings(n){
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
+  const langWas = LANG;
   saveSettings(); audioInit();
+  pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; airtime.clear(); lbCache = null;
@@ -2764,7 +3106,7 @@ function applySettings(n){
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
 function buildTabs(){
-  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap" type="button" data-tab="${t}">${name}</button>`).join("");
+  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
@@ -2793,14 +3135,14 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){
-  if (S.demo) return "Demo mode · sample flights, not live data";
-  if (!relay()) return "No flight data here: open the app through your home relay, at http://<your computer>:8080/app/";
-  if (isOffline()) return "No flight data for over a minute · retrying";
-  if (!lastOk && failures) return `Waiting for flight data · ${failures} failed attempt${failures > 1 ? "s" : ""}`;
-  if (!lastOk) return "Connecting…";
+  if (S.demo) return T("Demo mode · sample flights, not live data");
+  if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (isOffline()) return T("No flight data for over a minute · retrying");
+  if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});
+  if (!lastOk) return T("Connecting…");
   const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
-  return `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ` +
-    `${nearbyCount ?? 0} aircraft within ${QUERY_KM} km${apiOn() ? " · flight numbers by Flightradar24" : ""}`;
+  return T("Live via {src}", {src: feedName}) + (stale ? " " + T("(last good copy)") : "") + " · " + (age < 3 ? T("updated just now") : T("updated {n} s ago", {n: age})) +
+    (failures ? " · " + T("retrying") : "") + " · " + T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}) + (apiOn() ? " · " + T("flight numbers by Flightradar24") : "");
 }
 function updateFooter(){
   const dot = $("dot");
@@ -2809,7 +3151,7 @@ function updateFooter(){
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  Radius ${+S.radiusKm || 15} km`; }
+function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());
@@ -2872,6 +3214,8 @@ async function start(){
       new Promise(r => setTimeout(r, 2500))
     ]);
   } catch {}
+  pickLang();
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
   for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
   showModes();

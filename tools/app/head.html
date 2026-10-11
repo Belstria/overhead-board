@@ -139,6 +139,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
+#tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
 #tabs .cap{flex:1 1 0;width:auto;min-width:0;height:44px;margin:0;font-size:11.5px;letter-spacing:.06em}
 .cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
 @keyframes ping{50%{opacity:.35}}
@@ -191,7 +192,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead">Overhead</button><button type="button" data-mode="airport">Airport</button></h1><p id="where"></p></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><p id="where"></p></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
 </header>
@@ -201,32 +202,32 @@ h3 span{color:var(--label2);margin-left:.6em}
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>
-      <h2>This aircraft<span>Dieses Flugzeug</span></h2>
+      <h2 data-t="This aircraft">This aircraft</h2>
       <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none">No picture · Kein Bild</span><span class="credit">Photo airport-data.com</span><span class="glass"></span></div>
+        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
         <b class="led"></b>
       </div>
       <dl class="facts" id="acFacts"></dl>
     </div>
     <div class="groove"></div>
     <div id="recentSec">
-    <h2>Recent flights<span>Letzte Flüge</span></h2>
+    <h2 data-t="Recent flights">Recent flights</h2>
     <ol class="flights" id="recent"></ol>
     </div>
     </div>
     <div id="apSec" hidden>
       <div class="groove"></div>
-      <h2>Take-offs<span>Abflüge</span></h2>
+      <h2 data-t="Take-offs">Take-offs</h2>
       <p class="sum" id="apSub"></p>
       <ol class="flights" id="apDeps"></ol>
       <div class="groove"></div>
-      <h2>Landings<span>Landungen</span></h2>
+      <h2 data-t="Landings">Landings</h2>
       <ol class="flights" id="apArrs"></ol>
     </div>
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-today" hidden>
-    <h2>Spotted today<span>Heute gesichtet</span></h2>
+    <h2 data-t="Spotted today">Spotted today</h2>
     <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
     <dl class="facts" id="todayFacts"></dl>
     <div class="groove"></div>
@@ -236,28 +237,28 @@ h3 span{color:var(--label2);margin-left:.6em}
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-logbook" hidden>
-    <h2>Logbook<span>Logbuch</span></h2>
+    <h2 data-t="Logbook">Logbook</h2>
     <p class="sum" id="lbSum"></p>
     <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
     <p class="model" id="lbModel"></p>
     <div id="lbLists"></div>
   </section>
   <section class="wrap tab" id="t-radar" hidden>
-    <h2>Radar<span>Radar</span></h2>
+    <h2 data-t="Radar">Radar</h2>
     <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
     <ul class="rlegend" id="rLegend"></ul>
-    <h3>Nearest<span>Am nächsten</span></h3>
+    <h3 data-t="Nearest">Nearest</h3>
     <ol class="flights" id="rvList"></ol>
   </section>
   <section class="wrap tab" id="t-about" hidden>
-    <h2>About<span>Info</span></h2>
+    <h2 data-t="About">About</h2>
     <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
-    <h2>Settings<span>Einstellungen</span></h2>
-    <p class="sum">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
+    <h2 data-t="Settings">Settings</h2>
+    <p class="sum" data-t="Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
     <div id="cockpit" style="margin-top:14px"></div>
-    <div class="savebar"><button class="cap big" type="button" id="cancelBtn">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false">Save</button></div>
+    <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
 </main>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>

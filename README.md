@@ -160,6 +160,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   who made it. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
+- **Languages** (Settings → Display → Language, or `?lang=de`; test boards and the app): English, German, French,
+  Spanish and Dutch. AUTO follows the browser's language. Everything on the board follows it, the status words on the
+  flaps too; the patch notes and the connection log stay in English.
 - **Airport style** (tap **Airport** in the title, or `?mode=airport`; test boards and the app): for watching from the
   airport. The board follows the planes taking off from the home airport (rolling for take-off, climbing away) and the
   ones coming in to land (approach, final, landed). Two layouts to compare, under Settings → Airport layout:

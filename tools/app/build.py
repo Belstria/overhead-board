@@ -72,6 +72,7 @@ E = {
     "E27": ex("function spottedSummary(){", "const lampOf = r =>"),
     "E28": ex("const LB_CATS = [", "vdef(\"logbook\", \"lvSight\""),
     "E29": ex("function rotaryAngles(n)", "function plateHtml(p){") + ex("function wheelStep(it, part, d){", "function cockpitDirty(){") + ex("/* ---------- Settings: the sounds of the controls", "function applySettings(n){"),
+    "E33": ex("/* ---------- languages ----------", "/* ---------- airport mode ----------"),
     "E32": ex("/* ---------- airport mode ----------", "/* ---------- versions and patch notes ----------"),
     "E31": ex("/* ---------- versions and patch notes", "/* ---------- settings: a cockpit panel ----------"),
     "E30": patched(ex("/* ---------- main loop ---------- */", "async function start(){"),
