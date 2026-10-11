@@ -886,6 +886,14 @@ async function start(){
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
+  // On its side a phone shows the big board (the test-api board, with this app's settings). The Android app swaps the
+  // two pages itself; in a browser the page changes.
+  const sideways = !ANDROID && window.matchMedia && matchMedia("(orientation: landscape) and (max-height: 600px)");
+  if (sideways) {
+    const go = () => { if (sideways.matches) location.replace("../test-api/?app"); };
+    sideways.addEventListener ? sideways.addEventListener("change", go) : sideways.addListener(go);
+    go();
+  }
 }
 start();
 })();

@@ -3,11 +3,16 @@ package io.github.belstria.overhead
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
@@ -18,6 +23,8 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -44,9 +51,19 @@ import org.json.JSONObject
  * /health and checking the relay's Server header). If it can't find one, or the saved relay doesn't answer, it asks
  * for the address. The page's Settings → About → Change relay calls [Bridge.changeRelay], and Settings → Use current
  * location calls [Bridge.locate], which answers through window.__overheadHere(lat, lon, accuracy, error).
+ *
+ * Turned on its side, the phone shows the big board instead (the test-api board with ?app, so it uses the app's
+ * settings), full screen and, while charging, with the screen kept on. Both pages stay loaded in their own WebView, so
+ * turning the phone switches at once.
  */
 class MainActivity : Activity() {
-    private lateinit var web: WebView
+    private lateinit var root: FrameLayout
+    private lateinit var web: WebView              // the phone page, upright
+    private var board: WebView? = null             // the big board, on its side; made the first time it's needed
+    private var boardFor: String? = null           // the relay the board was loaded from
+    private var boardReady = false
+    private var webReady = false
+    private var locateFrom: WebView? = null
     private lateinit var note: TextView
     private val main = Handler(Looper.getMainLooper())
     private val prefs by lazy { getSharedPreferences("overhead", MODE_PRIVATE) }
@@ -57,7 +74,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        val root = FrameLayout(this)
+        root = FrameLayout(this)
         root.setBackgroundColor(BG)
         web = WebView(this)
         web.setBackgroundColor(BG)
@@ -81,21 +98,22 @@ class MainActivity : Activity() {
             }
             insets
         }
-        setUpWeb()
+        setUpWeb(web, false)
         val saved = prefs.getString(KEY, null)
         if (saved != null) open(saved) else search()
+        applyOrientation()
     }
 
-    private fun setUpWeb() {
-        val s = web.settings
+    private fun setUpWeb(view: WebView, isBoard: Boolean) {
+        val s = view.settings
         s.javaScriptEnabled = true
         s.domStorageEnabled = true                  // the page keeps its settings in localStorage
         s.mediaPlaybackRequiresUserGesture = false  // flap sound and chimes
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         s.userAgentString = "${s.userAgentString} OverheadAndroid/$version"   // the relay lists the phone as the app
-        web.addJavascriptInterface(Bridge(), "OverheadAndroid")
-        web.webChromeClient = WebChromeClient()
-        web.webViewClient = object : WebViewClient() {
+        view.addJavascriptInterface(Bridge(view), "OverheadAndroid")
+        view.webChromeClient = WebChromeClient()
+        view.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
                 if (relay != null && url.host == Uri.parse(relay).host) return false
@@ -106,6 +124,12 @@ class MainActivity : Activity() {
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (!request.isForMainFrame) return
+                if (isBoard) {
+                    boardReady = false; boardFor = null
+                    view.visibility = View.GONE
+                    if (landscape()) showNote("Can't load the board from $relay. Turn the phone upright for the phone page.")
+                    return
+                }
                 failed = true
                 web.visibility = View.INVISIBLE
                 showNote("Can't reach the relay at $relay.")
@@ -113,9 +137,15 @@ class MainActivity : Activity() {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
-                if (failed || url.startsWith("about:")) return
-                web.visibility = View.VISIBLE
-                note.visibility = View.GONE
+                if (url.startsWith("about:")) return
+                if (isBoard) {
+                    if (boardFor == null) return
+                    boardReady = true
+                } else {
+                    if (failed) return
+                    webReady = true
+                }
+                applyOrientation()
             }
         }
     }
@@ -128,8 +158,84 @@ class MainActivity : Activity() {
     private fun open(base: String) {
         relay = base
         failed = false
+        webReady = false
+        boardFor = null                             // a new relay: the board reloads from it when it's next needed
         showNote("Connecting to $base …")
         web.loadUrl("$base/app/")
+        if (landscape()) loadBoard()
+    }
+
+    /* ---------- on its side: the big board ---------- */
+
+    private fun landscape() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    private fun loadBoard() {
+        val base = relay ?: return
+        val b = board ?: WebView(this).also {
+            it.setBackgroundColor(BG)
+            it.visibility = View.GONE
+            root.addView(it, 1, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))   // above the phone page, below the note
+            setUpWeb(it, true)
+            board = it
+        }
+        if (boardFor != base) {
+            boardFor = base
+            boardReady = false
+            b.loadUrl("$base/test-api/?app")
+        }
+    }
+
+    /** Show the page that fits the way the phone is held, full screen on its side. */
+    private fun applyOrientation() {
+        val side = landscape()
+        if (side) loadBoard()
+        val b = board
+        if (side) {
+            web.visibility = View.INVISIBLE
+            web.onPause()
+            if (b != null) { b.onResume(); b.visibility = if (boardReady) View.VISIBLE else View.GONE }
+            if (boardReady) note.visibility = View.GONE
+            else if (relay != null && !searching) showNote("Loading the board …")
+        } else {
+            if (b != null) { b.visibility = View.GONE; b.onPause() }
+            web.onResume()
+            if (webReady && !failed) { web.visibility = View.VISIBLE; note.visibility = View.GONE }
+            else if (relay != null && !searching && !failed) showNote("Connecting to $relay …")
+        }
+        immersive(side)
+        keepOn()
+    }
+
+    private fun immersive(on: Boolean) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val c = window.insetsController ?: return
+            if (on) {
+                c.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                c.hide(WindowInsets.Type.systemBars())
+            } else c.show(WindowInsets.Type.systemBars())
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = if (on) View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE else 0
+        }
+    }
+
+    /** On its side and charging (on the stand on the desk), the screen stays on. */
+    private fun keepOn() {
+        val battery = if (Build.VERSION.SDK_INT >= 33) registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
+                      else registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val charging = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
+        if (landscape() && charging) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    private val power = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) { keepOn() }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyOrientation()
     }
 
     private fun use(base: String) {
@@ -166,7 +272,7 @@ class MainActivity : Activity() {
         val box = FrameLayout(this)
         box.setPadding(56, 16, 56, 0)
         box.addView(input)
-        val loaded = !failed && relay != null && web.visibility == View.VISIBLE
+        val loaded = !failed && relay != null && webReady
         dialog = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
             .setTitle("Relay")
             .setMessage((if (message != null) "$message\n\n" else "") +
@@ -232,8 +338,8 @@ class MainActivity : Activity() {
         false
     }
 
-    /** What the page can ask of the app (Settings). */
-    inner class Bridge {
+    /** What a page can ask of the app (Settings). */
+    inner class Bridge(private val view: WebView) {
         @JavascriptInterface
         fun changeRelay() {
             main.post { askAddress(null) }
@@ -242,6 +348,7 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun locate() {
             main.post {
+                locateFrom = view
                 if (hasLocationPermission()) locateNow()
                 else requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
             }
@@ -296,22 +403,27 @@ class MainActivity : Activity() {
     private fun answerHere(loc: Location?, err: String?) {
         val js = if (loc != null) "window.__overheadHere && window.__overheadHere(${loc.latitude}, ${loc.longitude}, ${loc.accuracy}, null)"
                  else "window.__overheadHere && window.__overheadHere(null, null, null, ${JSONObject.quote(err ?: "The location isn't available.")})"
-        web.evaluateJavascript(js, null)
+        (locateFrom ?: web).evaluateJavascript(js, null)
     }
 
     override fun onResume() {
         super.onResume()
-        web.onResume()
+        val f = IntentFilter(Intent.ACTION_POWER_CONNECTED).apply { addAction(Intent.ACTION_POWER_DISCONNECTED) }
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(power, f, RECEIVER_EXPORTED) else registerReceiver(power, f)
+        applyOrientation()
     }
 
     override fun onPause() {
+        try { unregisterReceiver(power) } catch (e: Exception) { }
         web.onPause()
+        board?.onPause()
         super.onPause()
     }
 
     override fun onDestroy() {
         dialog?.dismiss()
         web.destroy()
+        board?.destroy()
         super.onDestroy()
     }
 

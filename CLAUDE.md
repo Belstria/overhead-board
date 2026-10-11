@@ -83,11 +83,13 @@ relay is plain http (Tailscale was tried and dropped on 11 Oct 2026; don't sugge
 WebView of `<relay>/app/`, so web app changes need no new APK. It finds the relay by asking `/health` on every
 address of the phone's /24 (port 8080, `Server: OverheadRelay`), or takes a typed address; Settings → About →
 Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js`). Its user agent ends in
-`OverheadAndroid/<version>`. GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
-8.10.2 from the workflow) and, on `main`, publishes a release `android-1.<run>` with `overhead.apk`
+`OverheadAndroid/<version>`. On its side it shows `<relay>/test-api/?app` in a second WebView (immersive, screen kept on
+while charging); `?app` makes the board use the app's settings key (`od.app.settings`) and, in a phone browser, go back
+to `/app/` when upright (the app page goes to the board when sideways). GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
+8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
 (`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
 `ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print
-it, and never replace it, or phones refuse the update. Bump nothing by hand: the version is the workflow run number.
+it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
 
