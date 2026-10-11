@@ -14,9 +14,11 @@ someone would notice.
   Features that need Flightradar24 only ever go into `test-api/`, so `test/` always works without the API.
 - **The phone app** (`app/`) is built from the test-api board's code (since 11 Oct 2026, so new features reach the
   phone together with test-api; see below); rebuild it when shared code changes.
-- **Version numbers.** Raise `BOARD_VERSION` in every board file you change (`test/`, `test-api/`, later `index.html`)
-  and `APP_VERSION` in `tools/app/main.js` whenever `app/index.html` changes. Settings shows them (Control plate on the
-  boards, About in the app) with the publish time the relay (17+) passes on as `window.OVERHEAD_PAGE_DATE`.
+- **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
+  "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
+  raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
+  short, for Dave, in plain words. Settings → About shows them; the relay (17+) adds the publish time
+  (`window.OVERHEAD_PAGE_DATE`).
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in
   `overhead.json` next to the relay on Dave's PC (`py serve.py --fr24-key ... --save`). Never print, read out or
@@ -39,9 +41,10 @@ someone would notice.
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
 
-The three boards are full copies of one single-file app. To see the API delta: `git diff --no-index test/index.html
-test-api/index.html`. To carry a non-API change to both test boards, make it in `test/` and apply the same patch to
-`test-api/` (a `diff -u` of the change applies cleanly almost always; fix the odd reject by hand).
+The three boards are full copies of one single-file app. `test/` is test-api without the Flightradar24 part: to see
+that delta, `git diff --no-index test-api/index.html test/index.html`. Work in test-api, then rebuild `test/` by applying
+that delta (saved as a patch before the change) to the new test-api, and check the result differs from test-api by
+exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everything from 1.7 and 1.8.
 
 ## How the board works (index.html and the test boards)
 

@@ -133,47 +133,69 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 /* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
 #cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
   font-family:var(--f-board);color:#d8d3c6}
-.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(14px*var(--k)) calc(26px*var(--k)) calc(12px*var(--k));
+.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(10px*var(--k)) calc(22px*var(--k)) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
-  display:flex;flex-wrap:wrap;align-content:flex-start;align-items:flex-end;gap:calc(10px*var(--k)) calc(22px*var(--k))}
+  display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
 .plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
   background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
 .plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
 .plate>i:nth-of-type(3){left:calc(8px*var(--k));bottom:calc(8px*var(--k))}.plate>i:nth-of-type(4){right:calc(8px*var(--k));bottom:calc(8px*var(--k))}
-.plate h3{flex:0 0 100%;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
+.plate h3{grid-column:1/-1;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
   letter-spacing:.22em;text-transform:uppercase;color:rgba(214,208,194,.72);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .plate h3::before,.plate h3::after{content:"";flex:1;height:1px;background:rgba(214,208,194,.25)}
-.inst{display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k))}
-.inst>span{font:600 calc(11.5px*var(--k))/1.15 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:rgba(214,208,194,.66);text-align:center;max-width:calc(170px*var(--k))}
-.inst.wide{flex:1 1 100%;align-items:stretch}
-.inst.wide>span{text-align:left;max-width:none}
-.lcd{font:600 calc(21px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
-  border:0;border-radius:calc(4px*var(--k));padding:calc(9px*var(--k)) calc(12px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
+/* each control sits in its own recessed cell, with its name engraved on a strip above it */
+.inst{grid-column:span var(--span,1);min-width:0;display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k));padding:calc(5px*var(--k)) calc(6px*var(--k)) calc(6px*var(--k));
+  border-radius:calc(5px*var(--k));background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 calc(1px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.05)}
+.inst>span{order:-1;align-self:stretch;padding:0 calc(2px*var(--k)) calc(5px*var(--k));border-bottom:1px solid rgba(214,208,194,.16);
+  font:700 calc(11.5px*var(--k))/1.15 var(--f-board);letter-spacing:.09em;text-transform:uppercase;color:rgba(238,233,220,.9);text-align:center;text-shadow:0 -1px 0 rgba(0,0,0,.85)}
+.inst.wide{grid-column:1/-1;align-items:stretch}
+.inst.wide>span{text-align:left}
+.inst .lcd{width:100%;box-sizing:border-box}
+.inst.loc{justify-content:flex-start;gap:calc(8px*var(--k))}
+.inst.loc p{margin:0;font:500 calc(12.5px*var(--k))/1.3 var(--f-board);color:rgba(214,208,194,.7);text-align:center}
+.inst.loc .ask{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(10px*var(--k))}
+.inst.loc .ask[hidden],.inst.loc .cap[hidden]{display:none}
+.inst.loc .ask .cap{margin:0}
+.lcd{font:600 calc(20px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
+  border:0;border-radius:calc(4px*var(--k));padding:calc(6px*var(--k)) calc(10px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #050505,0 1px 0 calc(3px*var(--k)) rgba(255,255,255,.05);-webkit-user-select:text;user-select:text}
 .lcd:focus{outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #f6c54a}
 /* rotary selector: a fluted knob, its pointer on the chosen position, the positions engraved round it */
-.rotary{position:relative;width:calc(140px*var(--k));height:calc(116px*var(--k));outline:none;cursor:pointer}
-.rotary .knob{position:absolute;left:50%;top:calc(66px*var(--k));width:calc(54px*var(--k));height:calc(54px*var(--k));margin:calc(-27px*var(--k)) 0 0 calc(-27px*var(--k));border-radius:50%;
+.rotary{position:relative;width:calc(140px*var(--k));height:calc(100px*var(--k));outline:none;cursor:pointer}
+.rotary .knob{position:absolute;left:50%;top:calc(58px*var(--k));width:calc(54px*var(--k));height:calc(54px*var(--k));margin:calc(-27px*var(--k)) 0 0 calc(-27px*var(--k));border-radius:50%;
   background:repeating-conic-gradient(#1a1b1e 0 6deg,#3b3d42 6deg 12deg);box-shadow:0 calc(4px*var(--k)) calc(8px*var(--k)) rgba(0,0,0,.7),0 0 0 calc(2px*var(--k)) #0b0b0c;
   transform:rotate(var(--rot,0deg));transition:transform .3s cubic-bezier(.3,1.45,.55,1)}
 .rotary .knob::before{content:"";position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle at 38% 32%,#62656b,#2a2b2f 60%,#18191b)}
 .rotary .knob::after{content:"";position:absolute;left:50%;top:7%;width:calc(3px*var(--k));height:38%;margin-left:calc(-1.5px*var(--k));border-radius:2px;background:#f3f0e8;box-shadow:0 0 calc(4px*var(--k)) rgba(255,255,255,.4)}
 .rotary:focus-visible .knob{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
-.rotary b{position:absolute;left:50%;top:calc(66px*var(--k));font:600 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.06em;color:rgba(214,208,194,.55);white-space:nowrap;
-  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-50px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
+.rotary b{position:absolute;left:50%;top:calc(58px*var(--k));font:600 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.06em;color:rgba(214,208,194,.55);white-space:nowrap;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-46px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
 .rotary b.on{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55)}
-/* flip switch: a chrome bat handle on a nut, flipped up for on */
-.toggle{position:relative;width:calc(66px*var(--k));height:calc(112px*var(--k));padding:0;border:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
-  font:700 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.1em;color:rgba(214,208,194,.45)}
-.toggle .nut{position:relative;width:calc(34px*var(--k));height:calc(34px*var(--k));border-radius:50%;
-  background:radial-gradient(circle at 40% 35%,#b9bcc1,#6d7075 45%,#2c2d31 75%);box-shadow:0 0 0 calc(4px*var(--k)) #111214,0 calc(3px*var(--k)) calc(6px*var(--k)) rgba(0,0,0,.7)}
-.toggle .lever{position:absolute;left:50%;bottom:50%;width:calc(11px*var(--k));height:calc(34px*var(--k));margin-left:calc(-5.5px*var(--k));border-radius:calc(6px*var(--k)) calc(6px*var(--k)) calc(3px*var(--k)) calc(3px*var(--k));
-  background:linear-gradient(90deg,#7c7f84,#eceef1 45%,#9a9da2 70%,#5d6065);transform-origin:50% 100%;transform:scaleY(-1);transition:transform .16s cubic-bezier(.5,0,.4,1.4);
-  box-shadow:0 calc(2px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.6)}
-.toggle[aria-pressed=true] .lever{transform:scaleY(1)}
+/* flip switch: an aircraft toggle. A chrome bat handle with a ball tip sticks out of a knurled bushing in a hex nut and
+   snaps between tilted up (on) and tilted down (off), swinging through the middle in 3D. */
+.toggle{position:relative;width:calc(72px*var(--k));height:calc(90px*var(--k));padding:0;border:0;background:none;cursor:pointer;outline:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;font:700 calc(10.5px*var(--k))/1 var(--f-board);letter-spacing:.12em;color:rgba(214,208,194,.36)}
+.toggle .sw{position:relative;width:calc(40px*var(--k));height:calc(40px*var(--k));perspective:calc(150px*var(--k))}
+.toggle .sw::before{content:"";position:absolute;inset:0;clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0 50%);
+  background:linear-gradient(165deg,#e0e2e6,#9a9ea4 28%,#55585e 58%,#2b2d31 85%)}
+.toggle .sw::after{content:"";position:absolute;inset:calc(-3px*var(--k));z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.65),transparent)}
+.toggle .bush{position:absolute;inset:21%;border-radius:50%;
+  background:radial-gradient(circle,#050506 0 34%,#3a3c40 36%,transparent 40%),repeating-conic-gradient(#a8acb1 0 6deg,#4f5257 6deg 12deg);
+  box-shadow:0 0 0 1px rgba(0,0,0,.7),inset 0 0 calc(3px*var(--k)) rgba(0,0,0,.85)}
+.toggle .shade{position:absolute;left:50%;top:50%;width:calc(9px*var(--k));height:calc(24px*var(--k));margin-left:calc(-4.5px*var(--k));border-radius:calc(5px*var(--k));
+  background:rgba(0,0,0,.55);filter:blur(calc(2.5px*var(--k)));transform-origin:50% 0;transform:translateY(calc(4px*var(--k))) scaleY(1);transition:transform .11s}
+.toggle[aria-pressed=true] .shade{transform:translateY(calc(2px*var(--k))) scaleY(.35)}
+.toggle .bat{position:absolute;left:50%;top:50%;width:calc(8px*var(--k));height:calc(40px*var(--k));margin:calc(-40px*var(--k)) 0 0 calc(-4px*var(--k));
+  border-radius:calc(4px*var(--k));transform-origin:50% 100%;transform-style:preserve-3d;transform:rotateX(-122deg);transition:transform .11s cubic-bezier(.55,0,.35,1.3);
+  background:linear-gradient(90deg,#4a4d52,#c9ccd1 30%,#ffffff 44%,#b4b7bc 64%,#3f4246)}
+.toggle .bat::after{content:"";position:absolute;left:50%;top:calc(-4px*var(--k));width:calc(14px*var(--k));height:calc(14px*var(--k));margin-left:calc(-7px*var(--k));border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#fff,#d6d9dd 28%,#80848a 66%,#3a3c40);transform:rotateX(122deg) translateZ(calc(6px*var(--k)));transition:transform .11s cubic-bezier(.55,0,.35,1.3)}
+.toggle[aria-pressed=true] .bat{transform:rotateX(-58deg)}
+.toggle[aria-pressed=true] .bat::after{transform:rotateX(58deg) translateZ(calc(6px*var(--k)))}
+.toggle.guard .bat::after{background:radial-gradient(circle at 38% 32%,#ffb1a6,#e0473b 34%,#9e2a20 70%,#4e100b)}
 .toggle .up,.toggle .down{transition:color .2s,text-shadow .2s}
 .toggle[aria-pressed=true] .up,.toggle[aria-pressed=false] .down{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.5)}
-.toggle.guard .lever{background:linear-gradient(90deg,#7a1d16,#e0473b 45%,#9e2a20 70%,#5c140f)}
+.toggle:focus-visible .sw::after{background:radial-gradient(closest-side,rgba(246,197,74,.6),transparent)}
 /* thumbwheel: a ridged drum with a number in a window */
 .wheels{display:flex;align-items:center;gap:calc(4px*var(--k))}
 .wheels>em{font:700 calc(26px*var(--k))/1 var(--f-board);font-style:normal;color:#d8d3c6}
@@ -189,8 +211,24 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .wheel .win b.up{animation:rollUp .22s ease-out}.wheel .win b.down{animation:rollDown .22s ease-out}
 @keyframes rollUp{0%{transform:translateY(60%);opacity:.2}100%{transform:none;opacity:1}}
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
-.plate p{flex:0 0 100%;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
-.plate .acts{flex:0 0 100%;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+.plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
+.plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+/* About: patch notes, keys and information, on the same plates as Settings */
+#cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+.plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
+.plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
+.plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
+.plate .log>li{padding:calc(11px*var(--k)) 0;border-top:1px solid rgba(214,208,194,.12)}
+.plate .log>li:first-child{border-top:0;padding-top:calc(4px*var(--k))}
+.plate .log h4{margin:0 0 calc(6px*var(--k));display:flex;align-items:baseline;gap:calc(14px*var(--k));font:700 calc(22px*var(--k))/1 var(--f-board);color:#d8d3c6}
+.plate .log li.now h4 b{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.4)}
+.plate .log time{font:600 calc(13px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:rgba(214,208,194,.55)}
+.plate .log ul{margin:0;padding-left:calc(22px*var(--k));font:500 calc(16px*var(--k))/1.4 var(--f-board);color:rgba(232,227,214,.84)}
+.plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
+.plate dl.keys dt{justify-self:end;min-width:calc(30px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));text-align:center;
+  font:700 calc(13px*var(--k))/1.25 var(--f-board);color:#17140e;background:linear-gradient(#efe9da,#bdb5a2);box-shadow:0 calc(2px*var(--k)) 0 #050505}
+.plate dl.keys dd{margin:0;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
+.plate p b{color:#e8e3d6}
 .plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
 </style>
 </head>
@@ -424,7 +462,7 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -2303,7 +2341,7 @@ const API_NOTE = () => "";
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -2338,6 +2376,7 @@ function switchView(next, opts = {}){
   enterFields(toIds);
   switching = false;
   if (view === "settings") cockpitOpen();
+  if (view === "about") aboutOpen();
   drawStatic();
   snapping = true;
   try { if (view) renderView(); else { renderFeatured(); renderPage(); } } finally { snapping = false; }
@@ -2354,7 +2393,7 @@ function switchView(next, opts = {}){
 const toggleView = v => switchView(view === v ? null : v);
 function viewLanded(){
   if (view === "radar") startRadar();
-  $("cockpit").hidden = view !== "settings";
+  $("cockpit").hidden = view !== "settings" && view !== "about";
   $("viewTools").hidden = !buildViewTools();
 }
 function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; }
@@ -2370,6 +2409,7 @@ function viewSubtitle(){
   if (view === "logbook") return logbookSummary();
   if (view === "radar") return `Range rings every 5 km · the dashed ring is the ${+S.radiusKm || 15} km spotting radius · the green disc is directly overhead`;
   if (view === "settings") return "Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.";
+  if (view === "about") return `Version ${VERSION} · what changed in each version, the keys, and who made it`;
   return "";
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
@@ -2826,7 +2866,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || (view === "about" && b.dataset.view === "settings")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -2867,53 +2907,118 @@ function updateFooter(){
   $("pip").dataset.state = dot.dataset.state || "";
 }
 
-/* ---------- version ----------
-   Raise BOARD_VERSION with every change to this file, so Settings shows whether a screen runs the newest one. The relay
-   (17 or newer) adds when GitHub published the page, which changes with every push even if the number wasn't raised. */
-const BOARD_VERSION = 1;
-function versionLine(){
-  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
-  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
-  return `Test board version ${BOARD_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}`;
+/* ---------- versions and patch notes ----------
+   One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
+   or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
+   parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
+   page, which changes with every push. */
+const CHANGELOG = [
+  {v: "1.8", date: "2026-10-12", notes: [
+    "About: patch notes, the keys and general information, behind a new About button in Settings.",
+    "Version numbers count features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1)."]},
+  {v: "1.7.2", date: "2026-10-12", notes: [
+    "Settings shows the version and when it was published (relay 17)."]},
+  {v: "1.7.1", date: "2026-10-12", notes: [
+    "Knobs and flip switches click like they used to."]},
+  {v: "1.7", date: "2026-10-11", notes: [
+    "Settings → Use current location fills in where you are and offers the nearest airport as home airport (relay 16).",
+    "Every control in Settings sits in its own cell with its name above it.",
+    "Sounds for knobs, switches, thumbwheels and buttons; the flip switches are aircraft toggles now."]},
+  {v: "1.6", date: "2026-10-11", notes: [
+    "The Overhead app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
+  {v: "1.5.0.1", date: "2026-10-11", notes: [
+    "Phone: Save and Cancel in Settings work."]},
+  {v: "1.5", date: "2026-10-11", notes: [
+    "The phone page at /app/: the board laid out for a phone held upright (relay 13).",
+    "The main board gets real flight numbers and routes from Flightradar24."]},
+  {v: "1.4", date: "2026-10-10", notes: [
+    "Spotted today, Logbook, Radar and Settings open on the board itself, from a rail of lamp buttons.",
+    "The aircraft's photo on a small screen set into the board.",
+    "Planned and expected times from Vienna Airport, and an estimated arrival.",
+    "Special planes take over the board; lighter drawing for TVs (relay 11).",
+    "The relay lists the screens using it (relay 12)."]},
+  {v: "1.3", date: "2026-10-09", notes: [
+    "Real flight numbers and routes from Flightradar24 on the test-api board (relay 8).",
+    "The whole day's numbers, recent flights, logbook categories and most seen model, a legend for the remarks.",
+    "A limit for planes that hover around for a long time (relay 10)."]},
+  {v: "1.2.0.1", date: "2026-10-09", notes: [
+    "A route only shows when the plane is actually flying it."]},
+  {v: "1.2", date: "2026-10-09", notes: [
+    "Rotating pages, turned by one giant falling flap.",
+    "Special aircraft and favourites, Spotted today, a lifetime logbook and a radar.",
+    "Board styles and night mode.",
+    "The relay keeps the shared history (relay 5) and picks up a new board within a minute (relay 6)."]},
+  {v: "1.1", date: "2026-10-09", notes: [
+    "A new look: a metal housing, more realistic flaps, sharper drawing up to 4K, and a flap speed setting."]},
+  {v: "1.0.0.1", date: "2026-10-08", notes: [
+    "No more repeat sightings, and the board no longer flips the same plane again."]},
+  {v: "1.0", date: "2026-10-08", notes: [
+    "The board: the plane overhead on split flaps, with flight, airline, route, aircraft, altitude and speed.",
+    "Whether it will pass overhead, fly by or move away, and whether it climbs or descends.",
+    "Live positions through a relay at home, a connection log, metric units and flap sound."]}];
+const VERSION = CHANGELOG[0].v;
+const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+function publishedText(){
+  const d = window.OVERHEAD_PAGE_DATE;
+  return d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
 }
+function versionLine(){
+  const when = publishedText(), rv = window.OVERHEAD_RELAY_VERSION;
+  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
+  return `Version ${VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+}
+function changelogHtml(){
+  return CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
+    `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("");
+}
+// Who made it and where the data comes from: the About plate on the board and the About page in the app.
+const ABOUT_HTML =
+  `<p><b>Overhead · Überflüge</b> shows the plane flying over you right now on a split-flap board, like the ones in ` +
+  `airport halls, with what passed today, a lifetime logbook and a radar.</p>` +
+  `<p>Made by Belstria, with Claude Code. Source and guide: github.com/Belstria/overhead-board</p>` +
+  `<p>Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and ` +
+  `adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from ` +
+  `airport-data.com, logos from Aviasales.</p>`;
 
 /* ---------- settings: a cockpit panel ----------
    Rotary selectors, flip switches, thumbwheels and amber read-outs on painted plates. Nothing changes until Save. */
+// Each plate is a grid of `cols` cells; `span` widens a control to several cells, `wide` to the whole plate.
 const COCKPIT = [
-  {title: ["Location", "Standort"], items: [
-    {k: "place", type: "lcd", label: "Place name", w: 300, max: 24},
-    {k: "home", type: "lcd", label: "Home airport", w: 86, max: 3},
-    {k: "lat", type: "lcd", label: "Latitude", w: 170, max: 12},
-    {k: "lon", type: "lcd", label: "Longitude", w: 170, max: 12},
-    {k: "radiusKm", type: "wheel", label: "Spotting radius km", min: 1, max: 20, step: 1},
-    {k: "overKm", type: "rotary", label: "Directly overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]}]},
-  {title: ["Traffic", "Verkehr"], items: [
+  {title: ["Location", "Standort"], cols: 4, items: [
+    {k: "place", type: "lcd", label: "Place name", span: 3, max: 24},
+    {k: "home", type: "lcd", label: "Home airport", max: 3},
+    {k: "lat", type: "lcd", label: "Latitude", span: 2, max: 12},
+    {k: "lon", type: "lcd", label: "Longitude", span: 2, max: 12},
+    {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
+    {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
+    {type: "locate", label: "Current location", span: 2}]},
+  {title: ["Traffic", "Verkehr"], cols: 3, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
-    {k: "refreshS", type: "rotary", label: "Update position every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]]},
-    {k: "airtimeMin", type: "rotary", label: "Hovering planes, min an hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
+    {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]]},
+    {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
-  {title: ["Display", "Anzeige"], items: [
+  {title: ["Display", "Anzeige"], cols: 4, items: [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
-    {k: "rotateS", type: "rotary", label: "Change pages every", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
+    {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["engraved", "ENGRAVED"], ["plain", "PLAIN"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5}]},
-  {title: ["System", "System"], items: [
-    {k: "screenName", type: "lcd", label: "Screen name", w: 300, max: 24},
+  {title: ["System", "System"], cols: 4, items: [
+    {k: "screenName", type: "lcd", label: "Screen name", span: 2, max: 24},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
   {title: ["Control", "Steuerung"], actions: true},
-  {title: ["Night", "Nacht"], items: [
+  {title: ["Night", "Nacht"], cols: 4, items: [
     {k: "night", type: "switch", label: "Night mode"},
     {k: "nightFrom", type: "time", label: "Dim from"},
     {k: "nightTo", type: "time", label: "Until"},
-    {k: "nightDim", type: "rotary", label: "Night brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
+    {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
 let draft = null;
-const ITEMS = COCKPIT.flatMap(p => p.items || []);
+const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
 function rotaryIndex(it){
   const v = draft[it.k], i = it.opts.findIndex(o => String(o[0]) === String(v));
@@ -2922,31 +3027,35 @@ function rotaryIndex(it){
   it.opts.forEach((o, j) => { if (Math.abs(+o[0] - +v) < Math.abs(+it.opts[best][0] - +v)) best = j; });
   return best;
 }
+// One control in its cell. The name comes last in the markup and is shown above the control (CSS order).
 function itemHtml(it){
   const cap = `<span>${escH(it.label)}</span>`;
-  if (it.type === "lcd") return `<div class="inst${it.wide ? " wide" : ""}"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off"` +
-    `${it.wide ? "" : ` style="width:calc(${it.w}px * var(--k))"`} value="${escH(String(draft[it.k] ?? ""))}">${cap}</div>`;
+  const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}>${body}${cap}</div>`;
+  if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
+    `aria-label="${escH(it.label)}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
     const ang = rotaryAngles(it.opts.length);
-    return `<div class="inst"><div class="rotary" tabindex="0" role="slider" aria-label="${escH(it.label)}" data-k="${it.k}">` +
-      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(o[1])}</b>`).join("") + `<span class="knob"></span></div>${cap}</div>`;
+    return cell("", `<div class="rotary" tabindex="0" role="slider" aria-label="${escH(it.label)}" data-k="${it.k}">` +
+      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(o[1])}</b>`).join("") + `<span class="knob"></span></div>`);
   }
-  if (it.type === "switch") return `<div class="inst"><button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(it.label)}">` +
-    `<span class="up">${it.upText || "ON"}</span><span class="nut"><i class="lever"></i></span><span class="down">${it.downText || "OFF"}</span></button>${cap}</div>`;
+  if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(it.label)}">` +
+    `<span class="up">${it.upText || "ON"}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${it.downText || "OFF"}</span></button>`);
+  if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>Use current location</button>` +
+    `<p class="note">Fills in latitude and longitude, then finds the nearest airport.</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
     `<span class="win"><b></b></span><button type="button" class="dec" tabindex="-1" aria-label="Down">▼</button></div>`;
-  if (it.type === "wheel") return `<div class="inst">${wheel("")}${cap}</div>`;
-  return `<div class="inst"><div class="wheels">${wheel("h")}<em>:</em>${wheel("m")}</div>${cap}</div>`;
+  if (it.type === "wheel") return cell("", wheel(""));
+  return cell("", `<div class="wheels">${wheel("h")}<em>:</em>${wheel("m")}</div>`);
 }
 function plateHtml(p){
   const body = p.actions
     ? `<p>Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own.</p>` +
-      `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button></div>` +
-      `<p>Keys: 1 to 3 pages · T spotted today · L logbook · R radar · S settings · D connection log · F fullscreen · Esc back to the board. ` +
-      `Click the board for fullscreen. Browsers only allow sound after a first click or key press.</p>` +
+      `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button>` +
+      `<button class="cap big" type="button" data-act="about">About</button></div>` +
+      `<p>About shows what's new in each version, the keys, and who made it.</p>` +
       `<p class="ver">${escH(versionLine())}</p>`
     : p.items.map(itemHtml).join("");
-  return `<div class="plate"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
+  return `<div class="plate"${p.cols ? ` style="--cols:${p.cols}"` : ""}><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
 }
 function cockpitOpen(){
   draft = {...S, quality: S.quality || "auto", photoStyle: photoStyle()};
@@ -2958,26 +3067,45 @@ function cockpitOpen(){
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
     else if (el.classList.contains("rotary")) {
-      const turn = i => { draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); detent(); };
+      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
       el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
       el.onwheel = e => { e.preventDefault(); const i = rotaryIndex(it), j = i + (e.deltaY > 0 ? 1 : -1); if (j >= 0 && j < it.opts.length) turn(j); };
       el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
     } else if (el.classList.contains("toggle")) el.onclick = () => {
-      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); detent();
+      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
     };
     else if (el.classList.contains("wheel")) {
-      const roll = d => { wheelStep(it, el.dataset.part, d); cockpitShow(el, d); detent(); };
+      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
       el.querySelector(".inc").onclick = () => roll(1);
       el.querySelector(".dec").onclick = () => roll(-1);
       el.onwheel = e => { e.preventDefault(); roll(e.deltaY < 0 ? 1 : -1); };
       el.onkeydown = e => { const d = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0; if (d) { e.preventDefault(); roll(d); } };
     }
   }
+  wireLocate(box);
   for (const b of box.querySelectorAll("[data-act]")) b.onclick = () => {
+    ctlSound.press();
     if (b.dataset.act === "save") { applySettings(draft); switchView(null); }
+    else if (b.dataset.act === "about") switchView("about");
     else switchView(null);
   };
   cockpitShow();
+}
+/* About: the patch notes on a tall plate, the keys, and who made it, with a way back to Settings. */
+const KEYS = [["1 – 3", "Recent flights, This aircraft, Today in numbers"], ["← →", "Turn the page (in Spotted today: its pages)"],
+  ["T", "Spotted today"], ["L", "Logbook"], ["R", "Radar"], ["S", "Settings"], ["A", "About"], ["D", "Connection log"],
+  ["F", "Full screen (or click the board)"], ["Esc", "Back to the board"]];
+function aboutOpen(){
+  const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
+  Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
+  box.innerHTML =
+    `<div class="plate notes">${screws}<h3>Patch notes · Versionen</h3><ol class="log" tabindex="0">${changelogHtml()}</ol></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Keys · Tasten</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(k)}</dt><dd>${escH(t)}</dd>`).join("")}</dl>` +
+      `<p>Browsers only allow sound after a first click or key press.</p></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3>${ABOUT_HTML}<p class="ver">${escH(versionLine())}</p>` +
+      `<div class="acts"><button class="cap big" type="button" data-act="back">Settings</button></div></div>`;
+  box.onclick = e => e.stopPropagation();
+  box.querySelector('[data-act="back"]').onclick = () => { ctlSound.press(); switchView("settings"); };
 }
 function wheelStep(it, part, d){
   if (it.type === "time") {
@@ -3010,12 +3138,123 @@ function cockpitDirty(){
   const b = $("cockpit").querySelector('[data-act="save"]');
   if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
 }
-function detent(){                            // a small mechanical click for knobs, switches and wheels
-  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+/* ---------- Settings: the sounds of the controls ----------
+   Rotary selectors and flip switches give the board's original small click; a thumbwheel ticks, a push button thocks.
+   They play when the flap sound or the chimes are on. */
+let ctlNoise = null;
+function ctlReady(){
+  if (nightOn || !(S.sound || S.chimes) || !actx || actx.state !== "running") return false;
+  if (!ctlNoise) {
+    const n = Math.floor(actx.sampleRate * .12);
+    ctlNoise = actx.createBuffer(1, n, actx.sampleRate);
+    const d = ctlNoise.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return true;
+}
+function ctlBurst(t, o){      // filtered noise with a sharp attack: metal on metal
+  const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = ctlNoise; src.playbackRate.value = o.rate || 1;
+  f.type = o.type || "bandpass"; f.frequency.value = o.f; f.Q.value = o.q || 1;
+  g.gain.setValueAtTime(o.gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + o.dur);
+  src.connect(f).connect(g).connect(actx.destination);
+  src.start(t, Math.random() * .08); src.stop(t + o.dur + .02);
+}
+function ctlRing(t, freq, dur, gain, type = "sine"){   // a short resonance: the switch body, the panel behind it
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * .85, t + dur);
+  g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + .02);
+}
+function ctlDetent(){
+  if (!ctlReady()) return;
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = 1.6;
   const fl = actx.createBiquadFilter(); fl.type = "highpass"; fl.frequency.value = 2400;
   const gn = actx.createGain(); gn.gain.value = .18;
   src.connect(fl).connect(gn).connect(actx.destination); src.start();
+}
+const ctlSound = {
+  rotary(){ ctlDetent(); },     // rotary selectors and flip switches: the board's original small click
+  toggle(){ ctlDetent(); },
+  wheel(){                    // a thumbwheel's ratchet
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    ctlBurst(t, {type: "highpass", f: 3800, dur: .009, gain: .28});
+    ctlRing(t, 1250, .018, .03, "triangle");
+  },
+  press(){                    // a push button going down and springing back
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    ctlBurst(t, {f: 650, q: .9, dur: .05, gain: .32});
+    ctlRing(t, 215, .07, .2);
+    ctlBurst(t + .09, {f: 1900, q: 1.2, dur: .018, gain: .12});
+  }
+};
+
+/* ---------- Settings: Use current location ----------
+   Browsers only tell pages where they are on https or on this computer (localhost), and a TV has no idea anyway. The
+   Android app (android/ in the repository) offers OverheadAndroid.locate(), which answers through window.__overheadHere. */
+function hereNow(){
+  return new Promise((ok, no) => {
+    const A = window.OverheadAndroid;
+    if (A && A.locate) {
+      const timer = setTimeout(() => no(new Error("The phone didn't say where it is. Is location turned on?")), 30000);
+      window.__overheadHere = (lat, lon, acc, err) => { clearTimeout(timer); err ? no(new Error(err)) : ok({lat, lon, acc}); };
+      A.locate();
+      return;
+    }
+    if (!window.isSecureContext || !navigator.geolocation)
+      return no(new Error(A ? "Update the Overhead app to use the phone's location." :
+        "This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead."));
+    navigator.geolocation.getCurrentPosition(
+      p => ok({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy}),
+      e => no(new Error(e.code === 1 ? "Location access was turned down. Allow it in the browser's site settings." : "The location isn't available right now.")),
+      {enableHighAccuracy: true, timeout: 20000, maximumAge: 60000});
+  });
+}
+// The nearest airport with scheduled flights, from the relay's airport list (relay 16 or newer); null if unknown.
+async function nearestAirport(lat, lon){
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 16) return null;
+  for (let i = 0; i < 8; i++) {                       // the relay downloads the airport list the first time it's asked
+    const j = await fetchJSON(`${relay()}/airports/near?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`, {}, 8000);
+    if (j.status === "ok") return (j.airports || [])[0] || null;
+    await new Promise(r => setTimeout(r, 2500));
+  }
+  return null;
+}
+function wireLocate(box){
+  const b = box.querySelector("[data-loc]");
+  if (!b) return;
+  const note = b.parentNode.querySelector(".note"), ask = b.parentNode.querySelector(".ask");
+  const put = (k, v) => { draft[k] = v; const el = box.querySelector(`.lcd[data-k="${k}"]`); if (el) el.value = v; };
+  b.onclick = async () => {
+    ctlSound.press(); audioInit();
+    ask.hidden = true; ask.innerHTML = ""; b.disabled = true;
+    note.textContent = "Finding out where you are …";
+    try {
+      const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
+      put("lat", lat); put("lon", lon); cockpitDirty();
+      const here = `Latitude and longitude set${p.acc ? ` (to within ${p.acc < 1000 ? Math.round(p.acc) + " m" : (p.acc / 1000).toFixed(1) + " km"})` : ""}.`;
+      note.textContent = here + " Looking for the nearest airport …";
+      let a = null;
+      try { a = await nearestAirport(lat, lon); } catch {}
+      const km = a ? (a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)) : 0;
+      if (!a) note.textContent = here + " Press Save to watch this spot.";
+      else if (a.code === clean(draft.home)) note.textContent = `${here} The nearest airport, ${a.city || a.name} (${a.code}, ${km} km), is already the home airport. Press Save to keep it.`;
+      else {
+        note.textContent = `Location set. The nearest airport is ${a.city || a.name} (${a.code}), ${km} km away. Make it the home airport?`;
+        b.hidden = true;                                // room for the question in the cell
+        ask.innerHTML = `<button class="cap small" type="button" data-yes>Use ${escH(a.code)}</button><button class="cap small" type="button" data-no>Keep ${escH(clean(draft.home) || "none")}</button>`;
+        ask.hidden = false;
+        ask.querySelector("[data-yes]").onclick = () => { ctlSound.press(); put("home", a.code); cockpitDirty(); ask.hidden = true; b.hidden = false; note.textContent = `Home airport set to ${a.code}. Press Save to keep the new location.`; };
+        ask.querySelector("[data-no]").onclick = () => { ctlSound.press(); ask.hidden = true; b.hidden = false; note.textContent = "Home airport unchanged. Press Save to keep the new location."; };
+      }
+    } catch (e) {
+      note.textContent = e.message || "The location isn't available right now.";
+    } finally {
+      b.disabled = false;
+    }
+  };
 }
 function applySettings(n){
   const num = v => parseFloat(String(v).replace(",", "."));
@@ -3051,6 +3290,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
   if (e.key === "s" || e.key === "S") toggleView("settings");
+  if (e.key === "a" || e.key === "A") toggleView("about");
   if (e.key === "ArrowRight") { if (view === "spotted") svStep(1); else if (!view) stepPage(1); }
   if (e.key === "ArrowLeft") { if (view === "spotted") svStep(-1); else if (!view) stepPage(-1); }
   if (/^[1-9]$/.test(e.key) && PAGE_ORDER[+e.key - 1]) { const p = PAGE_ORDER[+e.key - 1]; view ? switchView(null, {page: p}) : pickPage(p); }
