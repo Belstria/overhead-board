@@ -324,7 +324,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, photoStyle:"screen", quality:"auto", screenName:""};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
@@ -364,9 +364,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
-  if (q.get("photo")) S.photoStyle = q.get("photo");
   if (q.get("quality")) S.quality = q.get("quality");
-  if (q.get("screen")) S.screenName = q.get("screen").slice(0, 24);
 })();
 
 /* ---------- diagnostics log ---------- */
@@ -1032,8 +1030,8 @@ function screw(g, x, y, r){
 }
 
 /* ---------- the aircraft photo: on a small screen set into the board, or engraved into the metal ---------- */
-const PHOTO_STYLES = ["screen", "engraved", "plain"], BEZEL = 16;
-const photoStyle = () => PHOTO_STYLES.includes(S.photoStyle) ? S.photoStyle : "screen";
+const BEZEL = 16;
+const photoStyle = () => "screen";      // the photo always sits on its screen (the engraved and plain styles were dropped in 1.8.1)
 let engravedSrc = "", photoShown = null, photoPaintKey = "";
 function photoBox(){              // where the picture itself goes, in board units
   const x = M, y = Y.list0 + 6, w = PHOTO.w, h = PHOTO.h, st = photoStyle();
@@ -2913,6 +2911,8 @@ function updateFooter(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.8.1", date: "2026-10-12", notes: [
+    "Settings: the screen name and the Aircraft photo setting are gone; the photo always sits on its screen."]},
   {v: "1.8", date: "2026-10-12", notes: [
     "About: patch notes, the keys and general information, behind a new About button in Settings.",
     "Version numbers count features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1)."]},
@@ -3000,12 +3000,10 @@ const COCKPIT = [
   {title: ["Display", "Anzeige"], cols: 4, items: [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
-    {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["engraved", "ENGRAVED"], ["plain", "PLAIN"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5}]},
   {title: ["System", "System"], cols: 4, items: [
-    {k: "screenName", type: "lcd", label: "Screen name", span: 2, max: 24},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "logos", type: "switch", label: "Airline logos"},
@@ -3058,7 +3056,7 @@ function plateHtml(p){
   return `<div class="plate"${p.cols ? ` style="--cols:${p.cols}"` : ""}><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
 }
 function cockpitOpen(){
-  draft = {...S, quality: S.quality || "auto", photoStyle: photoStyle()};
+  draft = {...S, quality: S.quality || "auto"};
   const box = $("cockpit");
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML = COCKPIT.map(plateHtml).join("");
@@ -3134,7 +3132,7 @@ function cockpitShow(rolled, dir){
   cockpitDirty();
 }
 function cockpitDirty(){
-  const dirty = ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "quality" ? S.quality || "auto" : it.k === "photoStyle" ? photoStyle() : S[it.k]) ?? ""));
+  const dirty = ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "quality" ? S.quality || "auto" : S[it.k]) ?? ""));
   const b = $("cockpit").querySelector('[data-act="save"]');
   if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
 }
@@ -3264,7 +3262,7 @@ function applySettings(n){
     lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
-    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(), screenName: String(n.screenName || "").trim().slice(0, 24),
+    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, refreshS: +n.refreshS, rotateS: +n.rotateS, airtimeMin: +n.airtimeMin, nightDim: +n.nightDim || 40,
     speedPct: +n.speedPct || 85, overKm: +n.overKm || 3,
     nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
@@ -3389,7 +3387,7 @@ const relayV12 = () => !!relay() && !relayLegacy && (window.OVERHEAD_RELAY_VERSI
 function sayHello(){
   if (!relayV12()) return;
   const q = quality() === "high" ? "4K" : quality();
-  const params = new URLSearchParams({name: S.screenName || "", w: Math.round(W * PX), h: Math.round(H * PX),
+  const params = new URLSearchParams({name: "", w: Math.round(W * PX), h: Math.round(H * PX),
     q: (S.quality || "auto") === "auto" ? `auto (${q})` : q, vis: document.visibilityState || ""});
   timedFetch(`${relay()}/hello?${params}`, {}, 6000).catch(() => {});
 }
