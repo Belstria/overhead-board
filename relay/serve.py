@@ -44,7 +44,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 15
+RELAY_VERSION = 16
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -580,7 +580,8 @@ _fr24_queued = set()
 _fr24_cv = threading.Condition()
 _fr24_order = itertools.count()
 _fr24_state = {"state": "off", "error": ""}
-_airports = None             # {"iata": {code: [city, lat, lon, icao]}, "icao": {icao: iata}}
+_airports = None             # {"iata": {code: [city, lat, lon, icao, name, scheduled]}, "icao": {icao: iata}}
+_airports_lock = threading.Lock()
 
 
 def fr24_key():
@@ -687,7 +688,7 @@ def _load_airports():
     """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
     global _airports
     db = _load(AIRPORTS_FILE, None)
-    if db and time.time() - db.get("fetched", 0) < 60 * 86400:
+    if db and db.get("v") == 2 and time.time() - db.get("fetched", 0) < 60 * 86400:
         _airports = db
         return
     status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
@@ -707,16 +708,44 @@ def _load_airports():
         city = CITY_FIX.get(code) or (r.get("municipality") or r.get("name") or "").split(",")[0].strip()
         ic = (r.get("icao_code") or r.get("gps_code") or r.get("ident") or "").strip().upper()
         if code not in iata or r.get("type") == "large_airport":
-            iata[code] = [city, lat, lon, ic]
+            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0]
         if ic:
             icao[ic] = code
-    _airports = {"fetched": time.time(), "iata": iata, "icao": icao}
+    _airports = {"v": 2, "fetched": time.time(), "iata": iata, "icao": icao}
     try:
         DATA_DIR.mkdir(exist_ok=True)
         AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
     except OSError:
         pass
     event("info", f"Airport list ready: {len(iata)} airports")
+
+
+def _airports_ready():
+    """The airport list, loading it in the background the first time; None while it loads."""
+    if _airports is not None:
+        return _airports
+    if _airports_lock.acquire(blocking=False):
+        def load():
+            try:
+                _load_airports()
+            finally:
+                _airports_lock.release()
+        threading.Thread(target=load, daemon=True).start()
+    return None
+
+
+def airports_near(lat, lon, n=3):
+    """The airports with scheduled flights nearest to a spot (for Settings → Use current location)."""
+    db = _airports_ready()
+    if db is None:
+        return {"status": "loading"}
+    rows = [(code, r) for code, r in (db.get("iata") or {}).items() if len(r) > 5 and r[5]]
+    def km(r):
+        p1, p2 = math.radians(lat), math.radians(r[1])
+        a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(r[2] - lon) / 2) ** 2
+        return 12742 * math.asin(math.sqrt(a))
+    best = heapq.nsmallest(n, ((km(r), code, r) for code, r in rows))
+    return {"status": "ok", "airports": [{"code": code, "icao": r[3], "name": r[4], "city": r[0], "km": round(d, 1)} for d, code, r in best]}
 
 
 def _fr24_lookup(cs, hx):
@@ -1451,6 +1480,15 @@ class Handler(BaseHTTPRequestHandler):
             arg = lambda k: (q.get(k) or [""])[0].strip().upper()[:12]
             body = vie_times(arg("fn"), arg("from"), arg("to")) if arg("fn") else {"status": "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/airports/near":
+            q = self.query()
+            try:
+                lat, lon = float((q.get("lat") or [""])[0]), float((q.get("lon") or [""])[0])
+            except ValueError:
+                return self.reply(400, "text/plain", b"lat and lon are required")
+            if abs(lat) > 90 or abs(lon) > 180:
+                return self.reply(400, "text/plain", b"Out of range")
+            return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
         if path == "/logbook":
             return self.reply(200, "application/json", json.dumps(logbook_json()).encode())
         if path == "/metar":

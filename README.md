@@ -151,7 +151,14 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the twelve nearest planes on flaps beside it.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
-  painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was.
+  painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test-api
+  board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
+  are aircraft toggles, and the controls make their sound (a rotary selector clicks into each detent it passes, a
+  toggle snaps, a thumbwheel ticks) when the flap sound or the chimes are on.
+- **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
+  offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
+  location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
+  on the TVs; in the Android app it asks for the phone's location.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
@@ -284,5 +291,5 @@ copy of this repository, `--source URL` to read positions from your own receiver
 
 `CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
 `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/`;
-`tools/test/shoot.py` takes screenshots of it. The phone app is built from the main board's code with
-`py tools/app/build.py`.
+`tools/test/shoot.py` takes screenshots of it. The phone app is built from the test-api board's code with
+`py tools/app/build.py`, so it gets new features together with that board.

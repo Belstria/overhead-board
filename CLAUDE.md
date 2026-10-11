@@ -12,7 +12,8 @@ someone would notice.
   when Dave says so.
 - **Two test boards.** Changes that don't need the paid API go to both `test/` and `test-api/` ("both TEST").
   Features that need Flightradar24 only ever go into `test-api/`, so `test/` always works without the API.
-- **The phone app** (`app/`) is built from the main board's code (see below); rebuild it when shared code changes.
+- **The phone app** (`app/`) is built from the test-api board's code (since 11 Oct 2026, so new features reach the
+  phone together with test-api; see below); rebuild it when shared code changes.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in
   `overhead.json` next to the relay on Dave's PC (`py serve.py --fr24-key ... --save`). Never print, read out or
@@ -26,7 +27,7 @@ someone would notice.
 
 | Path | What it is |
 |------|------------|
-| `index.html` | Main board (PROD). Since 11 Oct 2026 a copy of `test-api/index.html` (only the title and one comment differ). |
+| `index.html` | Main board (PROD). On 11 Oct 2026 a copy of `test-api/index.html`; test-api has moved on since (the new Settings cockpit). |
 | `test/index.html` | Test board, free data sources only. |
 | `test-api/index.html` | Test board plus Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
 | `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |
@@ -60,10 +61,16 @@ test-api/index.html`. To carry a non-API change to both test boards, make it in 
 ## The phone app
 
 `app/index.html` is generated: `py tools/app/build.py` copies the flap engine, reference tables, network, tracking,
-times, specials, logbook and radar code out of `index.html` by marker strings and wraps them in the phone layout
+times, specials, logbook, radar and Settings control code out of `test-api/index.html` by marker strings and wraps them in the phone layout
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
+
+Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
+cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
+`ctlSound.rotary(steps)/toggle(on)/wheel()/press()` (they play when `S.sound || S.chimes`). "Use current location"
+(`wireLocate`, `hereNow`, `nearestAirport`) uses `navigator.geolocation` (secure contexts only, so not on the TVs) or the
+Android app's `OverheadAndroid.locate()`, and the relay's `/airports/near` (relay 16+) for the home airport.
 
 On Android it is installed as the Overhead app (`android/`), because Chrome installs web apps only from https and the
 relay is plain http (Tailscale was tried and dropped on 11 Oct 2026; don't suggest it again). The app is a full-screen

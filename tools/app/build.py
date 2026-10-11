@@ -1,7 +1,8 @@
 """Build app/index.html: the phone layout (head.html, main.js) around the board's own flap engine and data code,
-copied from the main board (index.html) by the marker strings below.
+copied from the test-api board (test-api/index.html) by the marker strings below. The app follows the test-api board,
+so new features reach the phone together with that board, before the main board.
 
-    py tools/app/build.py                      # index.html -> app/index.html
+    py tools/app/build.py                      # test-api/index.html -> app/index.html
     py tools/app/build.py BOARD.html OUT.html
 
 Don't edit app/index.html by hand: change head.html or main.js here (or the board), then build again. If a marker
@@ -12,7 +13,7 @@ from pathlib import Path
 
 SP = Path(__file__).parent
 REPO = SP.parent.parent
-board = Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "index.html").read_text(encoding="utf-8")
+board = Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "test-api" / "index.html").read_text(encoding="utf-8")
 out = Path(sys.argv[2] if len(sys.argv) > 2 else REPO / "app" / "index.html")
 
 
@@ -70,7 +71,7 @@ E = {
     "E26": ex("const lampOf = r =>", "// Spotted today is engraved text, like the legend"),
     "E27": ex("function spottedSummary(){", "const lampOf = r =>"),
     "E28": ex("const LB_CATS = [", "vdef(\"logbook\", \"lvSight\""),
-    "E29": ex("function rotaryAngles(n)", "function plateHtml(p){") + ex("function wheelStep(it, part, d){", "function cockpitDirty(){") + ex("function detent(){", "function applySettings(n){"),
+    "E29": ex("function rotaryAngles(n)", "function plateHtml(p){") + ex("function wheelStep(it, part, d){", "function cockpitDirty(){") + ex("/* ---------- Settings: the sounds of the controls", "function applySettings(n){"),
     "E30": patched(ex("/* ---------- main loop ---------- */", "async function start(){"),
                    ("timer = setTimeout(poll, S.demo ? 2000 :", "timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 :")),
 }
