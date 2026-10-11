@@ -75,6 +75,10 @@ The app keeps its settings under its own key (`od.app.settings`) and needs the r
 - Useful: `http://localhost:8080/status` (JSON), `/screens` (screens using it), Enter in its window lists screens.
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
+- HTTPS (Chrome installs the phone app only from https): `tailscale serve --bg 8080` on Dave's PC proxies
+  `https://<pc>.<tailnet>.ts.net` to the relay. Boards use `location.origin`, so nothing else changes; the relay
+  (14+) takes the screen's address from `X-Forwarded-For` on loopback requests and prints the https address at start.
+  Never `tailscale funnel`: that would publish the board and the home location.
 - It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
 

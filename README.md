@@ -170,9 +170,10 @@ The logbook and a Spotted today list shared by every screen need relay version 5
 ## Phone app
 
 `/app/` is the board laid out for a phone held upright, with the same flaps, metal, push buttons and engraving. Open
-`http://<computer-name>:8080/app/` on the phone, then add it to the home screen: in Safari, Share → Add to Home
-Screen; in Chrome on Android, ⋮ → Add to Home screen. It opens full screen with its own icon. Five buttons along the
-bottom:
+it on the phone and install it: in Chrome on Android, ⋮ → Install app; in Safari, Share → Add to Home Screen. It
+opens full screen with its own icon. Chrome only installs web apps from an **https** address; from
+`http://<computer-name>:8080/app/` it can only add a bookmark. The relay's https address comes from Tailscale (below).
+Five buttons along the bottom:
 
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival and flight time), its photo on a small screen with its registration details, and the
@@ -185,8 +186,8 @@ bottom:
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
 
-It needs the home Wi-Fi, because the flight data comes through the relay (version 13 or newer serves its icons). It
-checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
+The flight data comes through the relay (version 13 or newer serves its icons), so the phone needs the home Wi-Fi,
+or Tailscale, which reaches the relay from anywhere. It checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
 among its screens as the APP board; Settings → Phone → Name gives it a name there. `?demo` shows sample flights.
 
 ## Controls
@@ -250,6 +251,22 @@ Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
 the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
+
+**HTTPS with Tailscale, for the phone app.** [Tailscale](https://tailscale.com) (free for personal use) gives the
+relay an https address with a real certificate, which Chrome needs before it installs the phone app, and makes it
+reachable from your phones wherever they are, but not from the rest of the internet.
+
+1. Install Tailscale on the relay's computer (`winget install Tailscale.Tailscale`) and on each phone (Play Store or
+   App Store), and sign in to the same account on all of them.
+2. In the [admin console](https://login.tailscale.com/admin/dns), under DNS, turn on **MagicDNS** and **HTTPS
+   Certificates**.
+3. On the relay's computer, once: `tailscale serve --bg 8080`. This setting survives restarts; `tailscale serve
+   reset` removes it. Use `serve`, not `funnel`: funnel would put the board, and your location, on the open internet.
+4. Restart the relay (version 14 or newer): it prints the address, `https://<computer-name>.<tailnet>.ts.net`. Open
+   `/app/` there on the phone, with Tailscale on, and install it. The first visit can take a few seconds while the
+   certificate is issued.
+
+The relay lists phones coming through Tailscale with their own Tailscale address in its list of screens.
 
 **Screens (relay version 12).** The relay keeps track of which screens are using it and prints them in its window
 as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung

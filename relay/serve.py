@@ -7,6 +7,7 @@ turn away cloud servers, so the requests need to come from a machine in your hom
 
 Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at home)
+HTTPS (so the phone app can be installed): `tailscale serve --bg 8080` puts it at https://<this-computer>.<tailnet>.ts.net
 
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
 answers "too many requests" or "forbidden" is rested for a while and the next one is used.
@@ -34,7 +35,9 @@ import math
 import os
 import queue
 import re
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -44,7 +47,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 13
+RELAY_VERSION = 14
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1372,10 +1375,19 @@ class Handler(BaseHTTPRequestHandler):
     def query(self):
         return urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
 
+    def client_ip(self):
+        """The screen's address. Behind `tailscale serve` (or another proxy on this computer) every request comes from
+        this computer, and the proxy names the real one in X-Forwarded-For."""
+        ip = self.client_address[0]
+        fwd = (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+        if ip in ("127.0.0.1", "::1", "::ffff:127.0.0.1") and re.fullmatch(r"[0-9a-fA-F.:]{3,45}", fwd):
+            return fwd
+        return ip
+
     def note_screen(self, path, hello=None, bye=False):
         if path.startswith(BOARD_PATHS):
             try:
-                screen_seen(self.client_address[0], self.headers.get("User-Agent") or "", self.headers.get("Referer") or "",
+                screen_seen(self.client_ip(), self.headers.get("User-Agent") or "", self.headers.get("Referer") or "",
                             (self.query().get("sid") or [""])[0], hello, bye)
             except Exception as e:      # keeping count must never break the board
                 event("warn", f"Couldn't note a screen: {e}", echo=False)
@@ -1486,6 +1498,25 @@ def lan_address():
         return None
 
 
+def tailscale_address(port):
+    """The https address `tailscale serve` gives the relay, if it is set up on this computer; otherwise None."""
+    exe = shutil.which("tailscale") or next((x for x in (r"C:\Program Files\Tailscale\tailscale.exe",
+                                                         "/Applications/Tailscale.app/Contents/MacOS/Tailscale") if os.path.exists(x)), None)
+    if not exe:
+        return None
+    try:
+        out = subprocess.run([exe, "serve", "status", "--json"], capture_output=True, timeout=4).stdout
+        web = (json.loads(out or b"{}") or {}).get("Web") or {}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    for hostport, conf in web.items():
+        for handler in ((conf or {}).get("Handlers") or {}).values():
+            if re.search(rf"(localhost|127\.0\.0\.1):{port}/?$", str((handler or {}).get("Proxy") or "")):
+                host, _, p = hostport.rpartition(":")
+                return f"https://{host}" + ("" if p == "443" else f":{p}")
+    return None
+
+
 def main():
     global ARGS
     p = argparse.ArgumentParser(description="Serve the Overhead board with live flight data from this computer.")
@@ -1549,6 +1580,9 @@ def main():
     ip = lan_address()
     if ip:
         print(f"  http://{ip}:{ARGS.port}")
+    ts = tailscale_address(ARGS.port)
+    if ts:
+        print(f"  {ts}  (Tailscale, https: the phone app installs from {ts}/app/)")
     if fr24_key():
         print(f"Flightradar24 lookups are on for boards that use them (at most {_fr24_budget():,} credits a month).")
     print("Problems with the flight data sources and screens coming and going are printed below.")
