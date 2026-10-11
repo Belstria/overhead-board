@@ -1,11 +1,16 @@
 package io.github.belstria.overhead
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
@@ -29,6 +34,7 @@ import java.net.URL
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
+import org.json.JSONObject
 
 /**
  * The Overhead app: the relay's phone page (/app/) full screen. Everything on the page comes from the relay on the
@@ -36,7 +42,8 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * On first start it looks for the relay on the Wi-Fi (every address of the phone's /24 network, port 8080, asking
  * /health and checking the relay's Server header). If it can't find one, or the saved relay doesn't answer, it asks
- * for the address. The page's Settings → About → Change relay calls [Bridge.changeRelay].
+ * for the address. The page's Settings → About → Change relay calls [Bridge.changeRelay], and Settings → Use current
+ * location calls [Bridge.locate], which answers through window.__overheadHere(lat, lon, accuracy, error).
  */
 class MainActivity : Activity() {
     private lateinit var web: WebView
@@ -225,12 +232,71 @@ class MainActivity : Activity() {
         false
     }
 
-    /** What the page can ask of the app (Settings → About). */
+    /** What the page can ask of the app (Settings). */
     inner class Bridge {
         @JavascriptInterface
         fun changeRelay() {
             main.post { askAddress(null) }
         }
+
+        @JavascriptInterface
+        fun locate() {
+            main.post {
+                if (hasLocationPermission()) locateNow()
+                else requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
+            }
+        }
+    }
+
+    private fun hasLocationPermission() =
+        checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, results)
+        if (requestCode != REQ_LOCATION) return
+        if (hasLocationPermission()) locateNow() else answerHere(null, "Location access was turned down. Allow it in the phone's settings for the Overhead app.")
+    }
+
+    /** A fresh position: a recent last-known one if there is one, otherwise the next fix (network first, then GPS). */
+    @Suppress("MissingPermission")
+    private fun locateNow() {
+        val lm = getSystemService(LocationManager::class.java)
+        val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER).filter {
+            try { lm.isProviderEnabled(it) } catch (e: Exception) { false }
+        }
+        if (providers.isEmpty()) return answerHere(null, "Location is turned off on this phone. Turn it on and try again.")
+        val recent = providers.mapNotNull { try { lm.getLastKnownLocation(it) } catch (e: SecurityException) { null } }
+            .filter { System.currentTimeMillis() - it.time < 2 * 60_000 }
+            .minByOrNull { it.accuracy }
+        if (recent != null) return answerHere(recent, null)
+        var done = false
+        val cancel = CancellationSignal()
+        val settle = { loc: Location?, err: String? ->
+            if (!done) { done = true; cancel.cancel(); answerHere(loc, err) }
+        }
+        main.postDelayed({ settle(null, "The phone couldn't find its position in time. Try again, perhaps near a window.") }, 25_000)
+        val provider = providers.first()
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                lm.getCurrentLocation(provider, cancel, mainExecutor) { loc ->
+                    if (loc != null) settle(loc, null)
+                    else if (providers.size > 1) lm.getCurrentLocation(providers[1], cancel, mainExecutor) { l2 -> settle(l2, if (l2 == null) "The phone couldn't find its position." else null) }
+                    else settle(null, "The phone couldn't find its position.")
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                lm.requestSingleUpdate(provider, { loc -> settle(loc, null) }, Looper.getMainLooper())
+            }
+        } catch (e: Exception) {
+            settle(null, "The phone couldn't find its position.")
+        }
+    }
+
+    private fun answerHere(loc: Location?, err: String?) {
+        val js = if (loc != null) "window.__overheadHere && window.__overheadHere(${loc.latitude}, ${loc.longitude}, ${loc.accuracy}, null)"
+                 else "window.__overheadHere && window.__overheadHere(null, null, null, ${JSONObject.quote(err ?: "The location isn't available.")})"
+        web.evaluateJavascript(js, null)
     }
 
     override fun onResume() {
@@ -251,6 +317,7 @@ class MainActivity : Activity() {
 
     companion object {
         const val KEY = "relay"
+        const val REQ_LOCATION = 7
         const val PORT = 8080
         val BG = 0xFF0B0B0C.toInt()
         val INK = 0xFFE8E2D0.toInt()

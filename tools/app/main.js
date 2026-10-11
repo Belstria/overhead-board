@@ -669,26 +669,28 @@ function renderRadarList(){
 }
 
 /* ---------- settings: the cockpit plates, stacked for a phone ---------- */
+// Two cells to a row on a phone (three for the switches); `span: 2` or `wide` takes the whole row.
 const COCKPIT = [
-  {title: ["Location", "Standort"], items: [
-    {k: "place", type: "lcd", label: "Place name", w: 200, max: 24},
-    {k: "home", type: "lcd", label: "Home airport", w: 70, max: 3},
-    {k: "lat", type: "lcd", label: "Latitude", w: 140, max: 12},
-    {k: "lon", type: "lcd", label: "Longitude", w: 140, max: 12},
-    {k: "radiusKm", type: "wheel", label: "Spotting radius km", min: 1, max: 20, step: 1},
-    {k: "overKm", type: "rotary", label: "Directly overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]}]},
-  {title: ["Traffic", "Verkehr"], items: [
+  {title: ["Location", "Standort"], cols: 2, items: [
+    {k: "place", type: "lcd", label: "Place name", max: 24},
+    {k: "home", type: "lcd", label: "Home airport", max: 3},
+    {k: "lat", type: "lcd", label: "Latitude", max: 12},
+    {k: "lon", type: "lcd", label: "Longitude", max: 12},
+    {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
+    {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
+    {type: "locate", label: "Current location", span: 2}]},
+  {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
-    {k: "airtimeMin", type: "rotary", label: "Hovering planes, min an hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
+    {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
-  {title: ["Display", "Anzeige"], items: [
+  {title: ["Display", "Anzeige"], cols: 2, items: [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["plain", "PLAIN"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"}]},
-  {title: ["Phone", "Telefon"], items: [
+  {title: ["Phone", "Telefon"], cols: 3, items: [
     {k: "screenName", type: "lcd", label: "Name, for the relay's list of screens", wide: true, max: 24},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
@@ -697,10 +699,10 @@ let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-const ITEMS = COCKPIT.flatMap(p => p.items || []);
+const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E29
 function plateHtml(p){
-  return `<div class="plate"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
@@ -717,18 +719,19 @@ function cockpitOpen(){
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
     else if (el.classList.contains("rotary")) {
-      const turn = i => { draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); detent(); };
+      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
       el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
       el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
     } else if (el.classList.contains("toggle")) el.onclick = () => {
-      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); detent();
+      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
     };
     else if (el.classList.contains("wheel")) {
-      const roll = d => { wheelStep(it, el.dataset.part, d); cockpitShow(el, d); detent(); };
+      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
       el.querySelector(".inc").onclick = () => roll(1);
       el.querySelector(".dec").onclick = () => roll(-1);
     }
   }
+  wireLocate(box);
   cockpitShow();
   renderAbout();
 }
@@ -740,12 +743,13 @@ function cockpitDirty(){
 let savedTimer = 0;
 function buildSaveBar(){
   $("saveBtn").onclick = () => {
+    ctlSound.press();
     applySettings(draft); cockpitOpen();
     const b = $("saveBtn");
     b.textContent = "Saved"; clearTimeout(savedTimer);
     savedTimer = setTimeout(() => { b.textContent = "Save"; }, 1600);
   };
-  $("cancelBtn").onclick = () => cockpitOpen();
+  $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
 function renderAbout(){
   const el = $("aboutStatus");
