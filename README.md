@@ -153,8 +153,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
   painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test-api
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
-  are aircraft toggles, and the controls make their sound (a rotary selector clicks into each detent it passes, a
-  toggle snaps, a thumbwheel ticks) when the flap sound or the chimes are on.
+  are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
+  tick, push buttons a thock) when the flap sound or the chimes are on.
 - **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
