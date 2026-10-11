@@ -14,6 +14,9 @@ someone would notice.
   Features that need Flightradar24 only ever go into `test-api/`, so `test/` always works without the API.
 - **The phone app** (`app/`) is built from the test-api board's code (since 11 Oct 2026, so new features reach the
   phone together with test-api; see below); rebuild it when shared code changes.
+- **Version numbers.** Raise `BOARD_VERSION` in every board file you change (`test/`, `test-api/`, later `index.html`)
+  and `APP_VERSION` in `tools/app/main.js` whenever `app/index.html` changes. Settings shows them (Control plate on the
+  boards, About in the app) with the publish time the relay (17+) passes on as `window.OVERHEAD_PAGE_DATE`.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in
   `overhead.json` next to the relay on Dave's PC (`py serve.py --fr24-key ... --save`). Never print, read out or

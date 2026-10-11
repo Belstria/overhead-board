@@ -213,6 +213,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+.plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
 </style>
 </head>
 <body>
@@ -2935,6 +2936,16 @@ function updateFooter(){
   $("pip").dataset.state = dot.dataset.state || "";
 }
 
+/* ---------- version ----------
+   Raise BOARD_VERSION with every change to this file, so Settings shows whether a screen runs the newest one. The relay
+   (17 or newer) adds when GitHub published the page, which changes with every push even if the number wasn't raised. */
+const BOARD_VERSION = 1;
+function versionLine(){
+  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
+  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+  return `Test API board version ${BOARD_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}`;
+}
+
 /* ---------- settings: a cockpit panel ----------
    Rotary selectors, flip switches, thumbwheels and amber read-outs on painted plates. Nothing changes until Save. */
 // Each plate is a grid of `cols` cells; `span` widens a control to several cells, `wide` to the whole plate.
@@ -3007,7 +3018,8 @@ function plateHtml(p){
     ? `<p>Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own.</p>` +
       `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button></div>` +
       `<p>Keys: 1 to 3 pages · T spotted today · L logbook · R radar · S settings · D connection log · F fullscreen · Esc back to the board. ` +
-      `Click the board for fullscreen. Browsers only allow sound after a first click or key press.</p>`
+      `Click the board for fullscreen. Browsers only allow sound after a first click or key press.</p>` +
+      `<p class="ver">${escH(versionLine())}</p>`
     : p.items.map(itemHtml).join("");
   return `<div class="plate"${p.cols ? ` style="--cols:${p.cols}"` : ""}><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
 }
