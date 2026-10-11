@@ -740,11 +740,20 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
+// Taking off or landing: a strip above the flaps in the airport style.
+function showAppSign(kind){
+  const el = $("apSign");
+  el.hidden = !kind || !airportMode();
+  if (el.hidden) return;
+  el.className = "apsign " + kind;
+  el.querySelector("span").textContent = T(kind === "dep" ? "TAKING OFF" : "LANDING");
+}
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
+  if (!ap) $("apSign").hidden = true;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
   renderFeatured(); renderAircraftInfo();
 }

@@ -305,6 +305,15 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .plate{padding:14px 14px 16px;gap:10px}
 #cockpit .plate h3{margin:0 0 4px}
 #cockpit .inst.wide .lcd{width:100%}
+/* airport style: taking off or landing, above the flaps */
+.apsign{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 14px;padding:9px 14px;border-radius:6px;
+  font:700 19px/1 var(--f-board);letter-spacing:.14em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.5)}
+.apsign[hidden]{display:none}
+.apsign.dep{background:linear-gradient(#f6be35,#dc9f1d);color:#17140d}
+.apsign.arr{background:linear-gradient(#27a85e,#1d8a4b);color:#fff}
+.apsign svg{width:28px;height:28px;fill:currentColor}
+.apsign.dep svg{transform:rotate(60deg)}
+.apsign.arr svg{transform:rotate(115deg)}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
 #aboutBox .plate{padding:14px 16px 16px;gap:10px}
 #aboutBox .lgbox{grid-column:1/-1}
@@ -328,6 +337,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 <main>
   <section class="wrap tab" id="t-now">
     <div id="ovSec">
+    <div class="apsign" id="apSign" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><span></span></div>
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>
@@ -533,6 +543,8 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["TAKING OFF", "STARTET", "DÉCOLLE", "DESPEGANDO", "VERTREKT"],
+  ["LANDING", "LANDET", "ATTERRIT", "ATERRIZANDO", "LANDT"],
   ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
   ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
   ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
@@ -552,12 +564,9 @@ const I18N_ROWS = [
   ["Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.", "Knöpfe drehen und Schalter umlegen, dann Speichern drücken. Die Einstellungen gelten nur für diesen Bildschirm.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer. Les réglages ne valent que pour cet écran.", "Gira los mandos y mueve los interruptores, luego pulsa Guardar. Los ajustes solo se guardan en esta pantalla.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan. De instellingen gelden alleen voor dit scherm."],
   ["Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.", "Knöpfe drehen und Schalter umlegen, dann Speichern drücken. Die Einstellungen gelten nur für dieses Telefon.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer. Les réglages ne valent que pour ce téléphone.", "Gira los mandos y mueve los interruptores, luego pulsa Guardar. Los ajustes solo se guardan en este teléfono.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan. De instellingen gelden alleen voor deze telefoon."],
   ["Version {v} · what changed in each version, the keys, and who made it", "Version {v} · was sich in jeder Version geändert hat, die Tasten und wer es gemacht hat", "Version {v} · ce qui a changé à chaque version, les touches et qui l'a fait", "Versión {v} · qué cambió en cada versión, las teclas y quién lo hizo", "Versie {v} · wat er in elke versie veranderde, de toetsen en wie het maakte"],
-  ["Set the home airport in Settings", "Heimatflughafen in den Einstellungen festlegen", "Choisissez l'aéroport de référence dans les réglages", "Elige el aeropuerto base en Ajustes", "Kies de thuisluchthaven in Instellingen"],
   ["Set the home airport in Settings.", "Heimatflughafen in den Einstellungen festlegen.", "Choisissez l'aéroport de référence dans les réglages.", "Elige el aeropuerto base en Ajustes.", "Kies de thuisluchthaven in Instellingen."],
   ["Looking up {code} …", "{code} wird nachgeschlagen …", "Recherche de {code} …", "Buscando {code} …", "{code} opzoeken …"],
-  ["Planes rolling for take-off and climbing away from {where}", "Flugzeuge beim Startlauf und im Steigflug ab {where}", "Avions au décollage et en montée depuis {where}", "Aviones despegando y subiendo desde {where}", "Vliegtuigen die opstijgen en wegklimmen van {where}"],
   ["Take-offs", "Abflüge", "Décollages", "Despegues", "Vertrekken"],
-  ["Planes coming in to land at {where}, with the time they are expected on the ground", "Flugzeuge im Landeanflug auf {where}, mit der erwarteten Landezeit", "Avions en approche de {where}, avec l'heure prévue au sol", "Aviones aproximándose a {where}, con la hora prevista en tierra", "Vliegtuigen die landen op {where}, met de verwachte tijd aan de grond"],
   ["Nothing spotted yet today. Every plane that comes within {n} km is listed here.", "Heute noch nichts gesichtet. Jedes Flugzeug innerhalb von {n} km erscheint hier.", "Rien d'aperçu aujourd'hui. Chaque avion à moins de {n} km s'affiche ici.", "Nada avistado hoy. Cada avión a menos de {n} km aparece aquí.", "Vandaag nog niets gespot. Elk vliegtuig binnen {n} km komt hier."],
   ["{n} directly overhead", "{n} direkt über uns", "{n} juste au-dessus", "{n} justo encima", "{n} recht boven ons"],
   ["shared by every screen through the home relay", "über das Relais mit allen Bildschirmen geteilt", "partagé par tous les écrans via le relais", "compartido por todas las pantallas a través del relé", "gedeeld door alle schermen via het relais"],
@@ -739,7 +748,6 @@ const I18N_ROWS = [
   ["Hovering, min/hour", "Kreisen, Min./Std.", "En vol stationnaire, min/h", "Sobrevolando, min/hora", "Rondcirkelen, min/uur"],
   ["Favourites: airlines, aircraft types or registrations, separated by commas", "Favoriten: Airlines, Flugzeugtypen oder Kennzeichen, durch Kommas getrennt", "Favoris : compagnies, types d'avion ou immatriculations, séparés par des virgules", "Favoritos: aerolíneas, tipos de avión o matrículas, separados por comas", "Favorieten: maatschappijen, vliegtuigtypes of registraties, gescheiden door komma's"],
   ["Language", "Sprache", "Langue", "Idioma", "Taal"],
-  ["Airport layout", "Flughafen-Layout", "Mise en page aéroport", "Diseño aeropuerto", "Luchthavenindeling"],
   ["Board style", "Tafelstil", "Style du tableau", "Estilo del panel", "Bordstijl"],
   ["Change pages", "Seitenwechsel", "Changer de page", "Cambiar página", "Pagina wisselen"],
   ["Drawing quality", "Zeichenqualität", "Qualité d'affichage", "Calidad de dibujo", "Tekenkwaliteit"],
@@ -760,8 +768,6 @@ const I18N_ROWS = [
   ["Spotted today", "Heute gesichtet", "Vus aujourd'hui", "Vistos hoy", "Vandaag gespot"],
   ["Logbook", "Logbuch", "Carnet", "Registro", "Logboek"],
   ["ALL", "ALLE", "TOUS", "TODOS", "ALLE"],
-  ["PAGES", "SEITEN", "PAGES", "PÁGINAS", "PAGINA'S"],
-  ["SCREENS", "SCHIRME", "ÉCRANS", "PANTALLAS", "SCHERMEN"],
   ["CLASSIC", "KLASSISCH", "CLASSIQUE", "CLÁSICO", "KLASSIEK"],
   ["BLUE", "BLAU", "BLEU", "AZUL", "BLAUW"],
   ["Now", "Jetzt", "Maintenant", "Ahora", "Nu"],
@@ -965,7 +971,8 @@ function tile(f, value, variant = 0){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} :
+    f.words === "apsign" && value ? AP_SIGN[value] : {};
   if (f.words === "lamp") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}`;
@@ -1014,6 +1021,15 @@ function tile(f, value, variant = 0){
     }
     ax = bx + bw; aw = w - ax;
     if (!text && code === "-") text = T("NO AIRLINE LISTED");
+  }
+  if (f.words === "apsign") {                // a plane climbing away or coming down onto a runway, then the word
+    text = value ? T(value === "dep" ? "TAKING OFF" : "LANDING") : "";
+    if (value) {
+      const sz = h * .7, cx = h * .78, cy = h * .46;
+      g.save(); g.translate(cx, cy); g.rotate((value === "dep" ? 15 : 70) * Math.PI / 180); drawPlane(g, 0, 0, sz, fg); g.restore();
+      g.fillStyle = fg; g.fillRect(cx - sz * .62, h * .8, sz * 1.24, Math.max(2, h * .05));      // the runway
+      ax = h * 1.45; aw = w - ax - h * .25;
+    }
   }
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
@@ -1142,7 +1158,7 @@ function retarget(c, value, delay){
   if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
-  else if (c.f.words === "lamp") q = [value];
+  else if (c.f.words === "lamp" || c.f.words === "apsign") q = [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -2847,6 +2863,7 @@ function airportProcess(list){
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
   renderAirport();
 }
+const AP_SIGN = {dep: {fill: ["#f6be35", "#dc9f1d"], fg: "#17140d"}, arr: {fill: ["#27a85e", "#1d8a4b"], fg: "#ffffff"}};
 // The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
 function apFocus(which){
   const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
@@ -2859,14 +2876,20 @@ function apFeature(all){
   const pg = typeof page === "string" ? page : "";          // the app has no pages
   const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
   const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
-  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; feat.apKind = e.kind; }
   else feat = null;
+  showApSign(feat ? feat.apKind : "");
   renderFeatured();
   if (feat) lookupDetails(feat.hex);
   if (feat && typeof preloadPhoto === "function") preloadPhoto();
   if (typeof noteFeatured === "function") noteFeatured();
   if (typeof renderAircraftInfo === "function") renderAircraftInfo();
   if (typeof renderPage === "function" && (pg === "apland" || pg === "apdep")) renderPage();
+}
+// Taking off or landing: the board's sign in the header (a flap), the app's strip above its flaps.
+function showApSign(kind){
+  if (typeof fields !== "undefined" && fields.apsign) { if (!fields.apsign.hidden) setWord("apsign", kind || ""); }
+  else if (typeof showAppSign === "function") showAppSign(kind);
 }
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
@@ -2913,11 +2936,20 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
+// Taking off or landing: a strip above the flaps in the airport style.
+function showAppSign(kind){
+  const el = $("apSign");
+  el.hidden = !kind || !airportMode();
+  if (el.hidden) return;
+  el.className = "apsign " + kind;
+  el.querySelector("span").textContent = T(kind === "dep" ? "TAKING OFF" : "LANDING");
+}
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
+  if (!ap) $("apSign").hidden = true;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
   renderFeatured(); renderAircraftInfo();
 }
@@ -2927,6 +2959,9 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.12.1", date: "2026-10-12", notes: [
+    "Airport style: a lit sign in the header says whether the plane on top is TAKING OFF (amber) or LANDING (green).",
+    "The airport style keeps the pages layout; the screens layout and its setting are gone."]},
   {v: "1.12", date: "2026-10-12", notes: [
     "Languages: English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). The German second line under every label is gone; everything is in the one language now, the status words on the flaps too."]},
   {v: "1.11", date: "2026-10-12", notes: [
