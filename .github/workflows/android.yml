@@ -42,7 +42,8 @@ jobs:
 
       # The app is named after the project version (the newest entry in the patch notes) and the build number.
       - name: Version
-        run: echo "PROJECT_VERSION=$(grep -m1 -oP '\{v: "\K[^"]+' test-api/index.html)" >> "$GITHUB_ENV"
+        run: |
+          echo "PROJECT_VERSION=$(grep -m1 -oP '\{v: "\K[^"]+' test-api/index.html)" >> "$GITHUB_ENV"
 
       - name: Build
         env:
