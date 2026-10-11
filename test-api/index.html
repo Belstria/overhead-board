@@ -304,7 +304,7 @@ const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
-  "DIVERTED", "CARGO", "BIZJET", "PRIVATE"];
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -322,12 +322,15 @@ const REMARK_LOOK = {
   MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
   EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
   DIVERTED:{fill:["#ef8a2b","#d0701a"], fg:"#1a1206"}, CARGO:{fill:["#8a5a2b","#714820"], fg:"#fbe9d2"},
-  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"}
+  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"},
+  "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
+  APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
+  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"}
 };
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto"};
+  theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead"};
 // With ?app in the address the board is the phone app turned on its side: it shares the app's settings (and, like the
 // app, starts without flap sound). A phone browser goes back to the app when it is turned upright again.
 const IN_APP = new URLSearchParams(location.search).has("app");
@@ -374,6 +377,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (num("rotate") != null) S.rotateS = num("rotate");
   if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
@@ -473,7 +477,7 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: [], airport: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -508,6 +512,16 @@ for (let i = 0; i < RV_ROWS; i++) {
   vdef("radar", `rv${i}dir`,    {kind:"chars", n:2, dur:55, loud:.4});
   vdef("radar", `rv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
   vdef("radar", `rv${i}st`,     {kind:"word",  n:9, dur:90, words:"remarks", small:true, loud:.4, label:lab("Status","")});
+}
+// Airport mode: take-offs above, landings below (see "airport mode" further down).
+for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
+  const lab = (en, de) => i === 0 ? [en, de] : null, dep = k === "d";
+  vdef("airport", `ap${k}${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due", dep ? "Zeit" : "Erw.")});
+  vdef("airport", `ap${k}${i}flight`, {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight", "Flug")});
+  vdef("airport", `ap${k}${i}city`,   {kind:"chars", n:12, dur:60, loud:.5, label:lab(dep ? "To" : "From", dep ? "Nach" : "Von")});
+  vdef("airport", `ap${k}${i}type`,   {kind:"chars", n:14, dur:60, loud:.5, label:lab("Aircraft", "Flugzeug")});
+  vdef("airport", `ap${k}${i}alt`,    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:60, loud:.5, label:lab("Altitude", "Höhe")});
+  vdef("airport", `ap${k}${i}st`,     {kind:"word",  n:9, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status", "")});
 }
 for (const f of Object.values(fields)) {
   const count = f.kind === "chars" ? f.n : 1;
@@ -565,6 +579,10 @@ function layout(){
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
+  const aps = IW / 58;
+  for (let i = 0; i < 5; i++) for (const [k, y0] of [["d", 292], ["a", 708]])
+    placeRow(["time", "flight", "city", "type", "alt", "st"].map(c => `ap${k}${i}${c}`), [.8, .8, .8, .8, .8], y0 + i * 46, aps, 1.45);
+  fields.apd0alt.label = fields.apa0alt.label = ["Altitude", unit];
 }
 const PHOTO = {w: 600, h: 300};
 layout();
@@ -1366,7 +1384,7 @@ let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
 const POLL_MS = 10000;
 async function getAircraft(){
-  const la = S.lat.toFixed(4), lo = S.lon.toFixed(4), t0 = performance.now();
+  const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
     let res;
     try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}`); }
@@ -1860,6 +1878,7 @@ const recent = new Map();        // hex -> last time and place each aircraft was
 const MISSING_GRACE_MS = 30000;
 let emptyStreak = 0, lastCount = 0;
 function process(list){
+  if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
@@ -2396,7 +2415,7 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], airport: ["Airport", "Flughafen"]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -2416,6 +2435,7 @@ function enterFields(ids){
 }
 function switchView(next, opts = {}){
   if (!VIEWS.includes(next)) next = null;
+  if (next === null && airportMode()) next = "airport";      // in airport mode the airport lists are the board's home
   const toPage = opts.page && opts.page !== page ? opts.page : null;
   if (next === view && !toPage) return;
   if (bigFlap.on) endBigFlap();
@@ -2456,8 +2476,9 @@ function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
   else if (view === "radar") renderRadarList();
+  else if (view === "airport") renderAirportBoard();
 }
-setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
+setInterval(() => { if (view && view !== (airportMode() ? "airport" : null) && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
 ["pointerdown", "keydown", "wheel", "input"].forEach(ev => addEventListener(ev, () => { viewTouched = Date.now(); }, {passive: true, capture: true}));
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
@@ -2465,11 +2486,13 @@ function viewSubtitle(){
   if (view === "radar") return `Range rings every 5 km · the dashed ring is the ${+S.radiusKm || 15} km spotting radius · the green disc is directly overhead`;
   if (view === "settings") return "Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.";
   if (view === "about") return `Version ${VERSION} · what changed in each version, the keys, and who made it`;
+  if (view === "airport") return !airportPos() && !AP.code ? "Set the home airport in Settings" : AP.lat == null ? `Looking up ${AP.code} …` :
+    `Planes rolling for take-off and climbing away from ${apName()}`;
   return "";
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
 function viewStatic(g){
-  const [t1, t2] = VIEW_NAMES[view];
+  const [t1, t2] = view === "airport" ? ["Take-offs", "Abflüge"] : VIEW_NAMES[view];
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, 214);
   const tw = g.measureText(t1).width;
@@ -2477,8 +2500,40 @@ function viewStatic(g){
   staticSub = viewSubtitle();
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
   if (view === "spotted") svLegend ? drawLegend(g) : drawSpottedTable(g);
+  if (view === "airport") airportStatic(g);
   if (view === "radar") radarStatic(g);
 }
+
+/* Airport mode on the board: two lists on flaps, take-offs above and landings below, each with its title engraved. */
+function airportStatic(g){
+  airportPos();
+  g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, 570, IW, 2);
+  g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(M, 572, IW, 1);
+  g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText("Landings", M, 620);
+  const tw = g.measureText("Landings").width;
+  g.font = `400 40px ${FONT}`; g.fillStyle = COL.muted; g.fillText("Landungen", M + tw + 16, 620);
+  g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted;
+  if (AP.lat != null) g.fillText(`Planes coming in to land at ${apName()}, with the time they are expected on the ground`, M, 652);
+}
+function renderAirportBoard(){
+  if (view !== "airport") return;
+  if (viewSubtitle() !== staticSub) drawStatic();             // the airport was looked up since the titles were engraved
+  const row = (k, i, e, empty) => {
+    const id = c => `ap${k}${i}${c}`, d = i * 70;
+    setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
+    setChars(id("flight"), e ? apFlight(e) : "", d + 20);
+    setChars(id("city"), e ? apPlace(e) : "", d + 60);
+    setChars(id("type"), e ? (e.info && e.info.type) || String(e.ac.t || "") : "", d + 100);
+    setChars(id("alt"), e && e.alt != null ? altNum(e.alt) : "", d + 140);
+    setWord(id("st"), e ? e.st : empty ? "NO TRAFFIC" : "", d + 160);
+  };
+  for (let i = 0; i < AP_ROWS; i++) {
+    row("d", i, AP.deps[i], i === 0 && AP.lat != null);
+    row("a", i, AP.arrs[i], i === 0 && AP.lat != null);
+  }
+}
+function renderAirport(){ renderAirportBoard(); }
+function airportChanged(){ if (view === "airport") { drawStatic(); renderAirportBoard(); } }
 
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
 let svFilter = "all", svPageNo = 0, svLegend = false;
@@ -2916,7 +2971,7 @@ function updateRail(){
   if (!pb.children.length) buildRail();
   for (const b of pb.children) {
     const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0], on = !view && p === page;
-    b.disabled = !ok && !on && !view;
+    b.disabled = airportMode() || (!ok && !on && !view);
     b.title = ok ? name : `${name}: nothing to show right now`;
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
@@ -2962,12 +3017,104 @@ function updateFooter(){
   $("pip").dataset.state = dot.dataset.state || "";
 }
 
+/* ---------- airport mode ----------
+   For someone at an airport, looking out of the window: the planes taking off from the home airport and the ones
+   coming in to land there, worked out from the positions around it. A plane is taking off when it rolls fast along
+   the ground or climbs away low and close; it is landing when it comes down towards the airport, and LANDED once it
+   rolls out on the ground. The board shows the two lists in place of the plane overhead (Settings → Board). */
+const airportMode = () => S.mode === "airport";
+const AP_ROWS = 5;
+const AP = {code: "", lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()};
+// The home airport's position: from the board's own table (Vienna), otherwise asked of the relay (18 or newer).
+function airportPos(){
+  const code = clean(S.home).slice(0, 3);
+  if (AP.code !== code) Object.assign(AP, {code, lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()});
+  const known = AIRPORTS[code];
+  if (known && AP.lat == null) Object.assign(AP, {lat: known.lat, lon: known.lon, city: known.name});
+  if (AP.lat == null && code.length === 3 && AP.asked !== code && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
+    AP.asked = code;
+    fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000).then(j => {
+      if (AP.code !== code) return;
+      if (j.status === "ok") { Object.assign(AP, {lat: j.lat, lon: j.lon, name: j.name || "", city: j.city || ""}); airportChanged(); }
+      else if (j.status === "loading") setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 3000);
+    }).catch(() => setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 10000));
+  }
+  return AP.lat == null ? null : [AP.lat, AP.lon];
+}
+// Where to ask for positions: around the home airport in airport mode, around the board's location otherwise.
+const queryCenter = () => (airportMode() && airportPos()) || [S.lat, S.lon];
+const apName = () => AP.code ? `${AP.city || AP.name || AP.code} (${AP.code})` : "";
+function airportProcess(list){
+  const at = airportPos(), now = Date.now();
+  if (!at) { AP.deps = []; AP.arrs = []; renderAirport(); return; }
+  const [alat, alon] = at, kx = 111.32 * Math.cos(alat * Math.PI / 180), ky = 110.57;
+  const deps = [], arrs = [], here = new Set();
+  for (const ac of list) {
+    if (ac.lat == null || ac.lon == null || !ac.hex) continue;
+    const x = (ac.lon - alon) * kx, y = (ac.lat - alat) * ky, dist = Math.hypot(x, y);
+    if (dist > 50) continue;
+    const ground = ac.alt_baro === "ground", alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
+    const gs = ac.gs || 0, kmMin = gs * 1.852 / 60;
+    const prev = AP.seen.get(ac.hex);
+    let rate = typeof ac.baro_rate === "number" ? ac.baro_rate : typeof ac.geom_rate === "number" ? ac.geom_rate : null;
+    if (rate == null && prev && prev.alt != null && alt != null && now - prev.at > 4000) rate = (alt - prev.alt) / ((now - prev.at) / 60000);
+    // 0°: flying straight away from the airport, 180°: straight towards it
+    const out = ac.track == null || dist < .3 ? 90 : Math.abs(((ac.track - Math.atan2(x, y) * 180 / Math.PI) % 360 + 540) % 360 - 180);
+    let kind = null, st = "", t = null;
+    if (ground) {
+      if (dist <= 5 && gs >= 30) {                    // on the runway at speed: a take-off roll, or rolling out after landing
+        kind = prev && prev.kind ? prev.kind : prev && prev.gs != null && gs < prev.gs - 2 ? "arr" : "dep";
+        st = kind === "arr" ? "LANDED" : "TAKE-OFF";
+      } else if (prev && prev.kind === "arr" && dist <= 5) { kind = "arr"; st = "LANDED"; }
+      if (kind === "arr") t = prev && prev.landed ? prev.landed : now;
+      if (kind === "dep") t = now;
+    } else if (alt != null && alt <= 12000) {
+      const climbing = rate != null ? rate > 250 : prev && prev.kind === "dep";
+      const descending = rate != null ? rate < -150 : alt <= 4000;
+      if (prev && prev.kind === "dep" && dist <= 35 && !(rate != null && rate < -500)) { kind = "dep"; }
+      else if (climbing && dist <= 30 && out <= 75 && alt <= 10000) kind = "dep";
+      else if (prev && prev.kind === "arr" && dist <= 45 && !(rate != null && rate > 800 && out < 60)) kind = "arr";
+      else if (descending && dist <= 45 && out >= 135 && alt <= 10000) kind = "arr";
+      if (kind === "dep") {
+        st = dist <= 4 && alt <= 3000 ? "TAKE-OFF" : "CLIMBING";
+        t = prev && prev.off ? prev.off : now - (kmMin > 1 ? dist / kmMin : 0) * 60000;      // when it left the ground
+      } else if (kind === "arr") {
+        st = dist <= 12 || alt <= 3500 ? "FINAL" : "APPROACH";
+        t = now + (kmMin > 1 ? dist / kmMin + 1 : 5) * 60000;                                 // expected on the ground
+      }
+    }
+    const rec = {kind, gs, alt, at: now, off: prev && prev.off, landed: prev && prev.landed, since: prev ? prev.since : now};
+    if (kind === "dep" && !rec.off) rec.off = t;
+    if (st === "LANDED" && !rec.landed) rec.landed = now;
+    AP.seen.set(ac.hex, rec);
+    here.add(ac.hex);
+    if (!kind) continue;
+    if (kind === "arr" && st === "LANDED" && now - rec.landed > 4 * 60000) continue;      // landed a while ago: off the list
+    if (kind === "dep" && st === "CLIMBING" && rec.off && now - rec.off > 12 * 60000) continue;
+    const p = enrich(ac), e = {ac, hex: ac.hex, kind, st, t, dist, alt: ground ? null : alt, ground, info: p.info};
+    p.then(info => { e.info = info; scheduleAirport(); });
+    (kind === "dep" ? deps : arrs).push(e);
+  }
+  for (const [hex, r] of AP.seen) if (!here.has(hex) && now - r.at > 5 * 60000) AP.seen.delete(hex);
+  // Take-offs: the ones on the runway first, then the most recent. Landings: next one down first, the landed ones after.
+  deps.sort((a, b) => (a.st === "TAKE-OFF" ? 0 : 1) - (b.st === "TAKE-OFF" ? 0 : 1) || b.t - a.t);
+  arrs.sort((a, b) => (a.st === "LANDED" ? 1 : 0) - (b.st === "LANDED" ? 1 : 0) || (a.st === "LANDED" ? b.t - a.t : a.t - b.t));
+  AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
+  renderAirport();
+}
+let apTimer = 0;
+function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
+const apFlight = e => (e.info && e.info.flightNo) || String(e.ac.flight || "").trim() || e.ac.r || e.hex.toUpperCase();
+const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.info.from); return p ? p.city || p.code || "" : ""; };
+
 /* ---------- versions and patch notes ----------
    One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
    or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.10", date: "2026-10-12", notes: [
+    "Airport mode (Settings → Board): for watching from the airport, the planes taking off from the home airport on top and the ones coming in to land below, with their flight, destination or origin, aircraft, height and time (relay 18 for airports other than Vienna)."]},
   {v: "1.9", date: "2026-10-12", notes: [
     "Phone on its side: the Android app shows the full board, full screen and with the app's settings, and keeps the screen on while charging. Upright again, the phone page is back.",
     "In a phone's browser, turning the phone switches between the phone page and the board too."]},
@@ -3058,6 +3205,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 4, items: [
+    {k: "mode", type: "rotary", label: "Board", opts: [["overhead", "OVERHEAD"], ["airport", "AIRPORT"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
@@ -3327,6 +3475,7 @@ function applySettings(n){
     speedPct: +n.speedPct || 85, overKm: +n.overKm || 3,
     nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
   saveSettings(); audioInit();
+  AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; recentFlights = loadRecent(); fullDay = {at: 0, rev: null, date: null, list: null}; airtime.clear();
     spotted = relayV5() ? [] : loadLog(); if (relayV5()) syncSightings();
@@ -3524,6 +3673,7 @@ async function start(){
   const h = location.hash.slice(1);
   updateRail();
   if (VIEWS.includes(h)) switchView(h, {instant: true});
+  else if (airportMode()) switchView("airport", {instant: true});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
   setTimeout(poll, 500);

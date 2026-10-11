@@ -44,7 +44,8 @@ someone would notice.
 The three boards are full copies of one single-file app. `test/` is test-api without the Flightradar24 part: to see
 that delta, `git diff --no-index test-api/index.html test/index.html`. Work in test-api, then rebuild `test/` by applying
 that delta (saved as a patch before the change) to the new test-api, and check the result differs from test-api by
-exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everything from 1.7 and 1.8.
+exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everything from 1.7 and 1.8. A hunk that touches the
+`REMARKS`/`REMARK_LOOK` tables needs fixing by hand: `test/` has no DIVERTED, CARGO, BIZJET, PRIVATE (API remarks).
 
 ## How the board works (index.html and the test boards)
 
@@ -71,6 +72,11 @@ times, specials, logbook, radar and Settings control code out of `test-api/index
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
+
+Airport mode (`S.mode === "airport"`, the "airport mode" block, copied by the app): the view `airport` is the board's
+home (`switchView(null)` goes there); `airportProcess()` sorts the planes around the home airport (`AP`, position from
+`AIRPORTS` or the relay's `/airport?code=`, relay 18+) into take-offs and landings; the board draws them on flaps
+(`renderAirportBoard`), the app as lists on Now (`renderAirport`). `queryCenter()` asks for positions around the airport.
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
 cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
