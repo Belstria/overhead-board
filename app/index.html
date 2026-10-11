@@ -120,6 +120,22 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+/* About: patch notes, keys and information, on the same plates as Settings */
+#cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+.plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
+.plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
+.plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
+.plate .log>li{padding:calc(11px*var(--k)) 0;border-top:1px solid rgba(214,208,194,.12)}
+.plate .log>li:first-child{border-top:0;padding-top:calc(4px*var(--k))}
+.plate .log h4{margin:0 0 calc(6px*var(--k));display:flex;align-items:baseline;gap:calc(14px*var(--k));font:700 calc(22px*var(--k))/1 var(--f-board);color:#d8d3c6}
+.plate .log li.now h4 b{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.4)}
+.plate .log time{font:600 calc(13px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:rgba(214,208,194,.55)}
+.plate .log ul{margin:0;padding-left:calc(22px*var(--k));font:500 calc(16px*var(--k))/1.4 var(--f-board);color:rgba(232,227,214,.84)}
+.plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
+.plate dl.keys dt{justify-self:end;min-width:calc(30px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));text-align:center;
+  font:700 calc(13px*var(--k))/1.25 var(--f-board);color:#17140e;background:linear-gradient(#efe9da,#bdb5a2);box-shadow:0 calc(2px*var(--k)) 0 #050505}
+.plate dl.keys dd{margin:0;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
+.plate p b{color:#e8e3d6}
 .plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
@@ -277,6 +293,9 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .plate{padding:14px 14px 16px;gap:10px}
 #cockpit .plate h3{margin:0 0 4px}
 #cockpit .inst.wide .lcd{width:100%}
+#aboutBox{display:flex;flex-direction:column;gap:14px}
+#aboutBox .plate{padding:14px 16px 16px;gap:10px}
+#aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
 .savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
@@ -333,6 +352,10 @@ h3 span{color:var(--label2);margin-left:.6em}
     <ul class="rlegend" id="rLegend"></ul>
     <h3>Nearest<span>Am nächsten</span></h3>
     <ol class="flights" id="rvList"></ol>
+  </section>
+  <section class="wrap tab" id="t-about" hidden>
+    <h2>About<span>Info</span></h2>
+    <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2>Settings<span>Einstellungen</span></h2>
@@ -2368,6 +2391,78 @@ function wireLocate(box){
     }
   };
 }
+/* ---------- versions and patch notes ----------
+   One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
+   or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
+   parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
+   page, which changes with every push. */
+const CHANGELOG = [
+  {v: "1.8", date: "2026-10-12", notes: [
+    "About: patch notes, the keys and general information, behind a new About button in Settings.",
+    "Version numbers count features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1)."]},
+  {v: "1.7.2", date: "2026-10-12", notes: [
+    "Settings shows the version and when it was published (relay 17)."]},
+  {v: "1.7.1", date: "2026-10-12", notes: [
+    "Knobs and flip switches click like they used to."]},
+  {v: "1.7", date: "2026-10-11", notes: [
+    "Settings → Use current location fills in where you are and offers the nearest airport as home airport (relay 16).",
+    "Every control in Settings sits in its own cell with its name above it.",
+    "Sounds for knobs, switches, thumbwheels and buttons; the flip switches are aircraft toggles now."]},
+  {v: "1.6", date: "2026-10-11", notes: [
+    "The Overhead app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
+  {v: "1.5.0.1", date: "2026-10-11", notes: [
+    "Phone: Save and Cancel in Settings work."]},
+  {v: "1.5", date: "2026-10-11", notes: [
+    "The phone page at /app/: the board laid out for a phone held upright (relay 13).",
+    "The main board gets real flight numbers and routes from Flightradar24."]},
+  {v: "1.4", date: "2026-10-10", notes: [
+    "Spotted today, Logbook, Radar and Settings open on the board itself, from a rail of lamp buttons.",
+    "The aircraft's photo on a small screen set into the board.",
+    "Planned and expected times from Vienna Airport, and an estimated arrival.",
+    "Special planes take over the board; lighter drawing for TVs (relay 11).",
+    "The relay lists the screens using it (relay 12)."]},
+  {v: "1.3", date: "2026-10-09", notes: [
+    "Real flight numbers and routes from Flightradar24 on the test-api board (relay 8).",
+    "The whole day's numbers, recent flights, logbook categories and most seen model, a legend for the remarks.",
+    "A limit for planes that hover around for a long time (relay 10)."]},
+  {v: "1.2.0.1", date: "2026-10-09", notes: [
+    "A route only shows when the plane is actually flying it."]},
+  {v: "1.2", date: "2026-10-09", notes: [
+    "Rotating pages, turned by one giant falling flap.",
+    "Special aircraft and favourites, Spotted today, a lifetime logbook and a radar.",
+    "Board styles and night mode.",
+    "The relay keeps the shared history (relay 5) and picks up a new board within a minute (relay 6)."]},
+  {v: "1.1", date: "2026-10-09", notes: [
+    "A new look: a metal housing, more realistic flaps, sharper drawing up to 4K, and a flap speed setting."]},
+  {v: "1.0.0.1", date: "2026-10-08", notes: [
+    "No more repeat sightings, and the board no longer flips the same plane again."]},
+  {v: "1.0", date: "2026-10-08", notes: [
+    "The board: the plane overhead on split flaps, with flight, airline, route, aircraft, altitude and speed.",
+    "Whether it will pass overhead, fly by or move away, and whether it climbs or descends.",
+    "Live positions through a relay at home, a connection log, metric units and flap sound."]}];
+const VERSION = CHANGELOG[0].v;
+const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+function publishedText(){
+  const d = window.OVERHEAD_PAGE_DATE;
+  return d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
+}
+function versionLine(){
+  const when = publishedText(), rv = window.OVERHEAD_RELAY_VERSION;
+  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
+  return `Version ${VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+}
+function changelogHtml(){
+  return CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
+    `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("");
+}
+// Who made it and where the data comes from: the About plate on the board and the About page in the app.
+const ABOUT_HTML =
+  `<p><b>Overhead · Überflüge</b> shows the plane flying over you right now on a split-flap board, like the ones in ` +
+  `airport halls, with what passed today, a lifetime logbook and a radar.</p>` +
+  `<p>Made by Belstria, with Claude Code. Source and guide: github.com/Belstria/overhead-board</p>` +
+  `<p>Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and ` +
+  `adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from ` +
+  `airport-data.com, logos from Aviasales.</p>`;
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
@@ -2375,13 +2470,9 @@ function cockpitOpen(){
   draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}. <button class="cap small" type="button" id="relayBtn">Change relay</button></p>`
-      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
-        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
-    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer.</p>` +
-    `<p>The big board: <a href="../">${escH(location.host)}/</a></p></div>`;
-  if (ANDROID) $("relayBtn").onclick = () => window.OverheadAndroid.changeRelay();
+    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>What's new in each version, the relay and who made it.</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">About</button></div></div>`;
+  $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
@@ -2418,15 +2509,21 @@ function buildSaveBar(){
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
-/* The app's version: raise APP_VERSION whenever app/index.html changes (this file, head.html or the test-api board's
-   shared code), so About shows whether the phone has the new one. The relay (17 or newer) adds when GitHub published
-   the page, which changes with every push even if the number wasn't raised. */
-const APP_VERSION = 1;
-function versionLine(){
-  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
-  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
-  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
-  return `App version ${APP_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test-api). */
+function aboutOpen(){
+  const screws = "<i></i><i></i><i></i><i></i>";
+  $("aboutBox").innerHTML =
+    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
+    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}.</p><div class="acts"><button class="cap big" type="button" id="relayBtn">Change relay</button></div>`
+      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
+        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
+    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board: <a href="../">${escH(location.host)}/</a></p>` +
+    ABOUT_HTML + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><ol class="log">${changelogHtml()}</ol></div>` +
+    `<div class="acts"><button class="cap big" type="button" id="aboutBack">Settings</button></div>`;
+  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
+  renderAbout();
 }
 function renderAbout(){
   const el = $("aboutStatus");
@@ -2465,11 +2562,12 @@ function buildTabs(){
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){
-  if (!TABS.some(x => x[0] === t)) t = "now";
+  if (!TABS.some(x => x[0] === t) && t !== "about") t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
-  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  $("t-about").hidden = t !== "about";
+  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
@@ -2479,6 +2577,7 @@ function showTab(t){
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") cockpitOpen();
+  else if (t === "about") aboutOpen();
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   if (was !== t) window.scrollTo(0, 0);
@@ -2501,7 +2600,7 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
-  if (tab === "settings") renderAbout();
+  if (tab === "about") renderAbout();
 }
 function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  Radius ${+S.radiusKm || 15} km`; }
 function tickClock(){

@@ -213,6 +213,22 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+/* About: patch notes, keys and information, on the same plates as Settings */
+#cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+.plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
+.plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
+.plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
+.plate .log>li{padding:calc(11px*var(--k)) 0;border-top:1px solid rgba(214,208,194,.12)}
+.plate .log>li:first-child{border-top:0;padding-top:calc(4px*var(--k))}
+.plate .log h4{margin:0 0 calc(6px*var(--k));display:flex;align-items:baseline;gap:calc(14px*var(--k));font:700 calc(22px*var(--k))/1 var(--f-board);color:#d8d3c6}
+.plate .log li.now h4 b{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.4)}
+.plate .log time{font:600 calc(13px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:rgba(214,208,194,.55)}
+.plate .log ul{margin:0;padding-left:calc(22px*var(--k));font:500 calc(16px*var(--k))/1.4 var(--f-board);color:rgba(232,227,214,.84)}
+.plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
+.plate dl.keys dt{justify-self:end;min-width:calc(30px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));text-align:center;
+  font:700 calc(13px*var(--k))/1.25 var(--f-board);color:#17140e;background:linear-gradient(#efe9da,#bdb5a2);box-shadow:0 calc(2px*var(--k)) 0 #050505}
+.plate dl.keys dd{margin:0;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
+.plate p b{color:#e8e3d6}
 .plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
 </style>
 </head>
@@ -449,7 +465,7 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -2372,7 +2388,7 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -2407,6 +2423,7 @@ function switchView(next, opts = {}){
   enterFields(toIds);
   switching = false;
   if (view === "settings") cockpitOpen();
+  if (view === "about") aboutOpen();
   drawStatic();
   snapping = true;
   try { if (view) renderView(); else { renderFeatured(); renderPage(); } } finally { snapping = false; }
@@ -2423,7 +2440,7 @@ function switchView(next, opts = {}){
 const toggleView = v => switchView(view === v ? null : v);
 function viewLanded(){
   if (view === "radar") startRadar();
-  $("cockpit").hidden = view !== "settings";
+  $("cockpit").hidden = view !== "settings" && view !== "about";
   $("viewTools").hidden = !buildViewTools();
 }
 function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; }
@@ -2439,6 +2456,7 @@ function viewSubtitle(){
   if (view === "logbook") return logbookSummary();
   if (view === "radar") return `Range rings every 5 km · the dashed ring is the ${+S.radiusKm || 15} km spotting radius · the green disc is directly overhead`;
   if (view === "settings") return "Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.";
+  if (view === "about") return `Version ${VERSION} · what changed in each version, the keys, and who made it`;
   return "";
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
@@ -2895,7 +2913,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || (view === "about" && b.dataset.view === "settings")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -2936,15 +2954,78 @@ function updateFooter(){
   $("pip").dataset.state = dot.dataset.state || "";
 }
 
-/* ---------- version ----------
-   Raise BOARD_VERSION with every change to this file, so Settings shows whether a screen runs the newest one. The relay
-   (17 or newer) adds when GitHub published the page, which changes with every push even if the number wasn't raised. */
-const BOARD_VERSION = 1;
-function versionLine(){
-  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
-  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
-  return `Test API board version ${BOARD_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}`;
+/* ---------- versions and patch notes ----------
+   One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
+   or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
+   parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
+   page, which changes with every push. */
+const CHANGELOG = [
+  {v: "1.8", date: "2026-10-12", notes: [
+    "About: patch notes, the keys and general information, behind a new About button in Settings.",
+    "Version numbers count features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1)."]},
+  {v: "1.7.2", date: "2026-10-12", notes: [
+    "Settings shows the version and when it was published (relay 17)."]},
+  {v: "1.7.1", date: "2026-10-12", notes: [
+    "Knobs and flip switches click like they used to."]},
+  {v: "1.7", date: "2026-10-11", notes: [
+    "Settings → Use current location fills in where you are and offers the nearest airport as home airport (relay 16).",
+    "Every control in Settings sits in its own cell with its name above it.",
+    "Sounds for knobs, switches, thumbwheels and buttons; the flip switches are aircraft toggles now."]},
+  {v: "1.6", date: "2026-10-11", notes: [
+    "The Overhead app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
+  {v: "1.5.0.1", date: "2026-10-11", notes: [
+    "Phone: Save and Cancel in Settings work."]},
+  {v: "1.5", date: "2026-10-11", notes: [
+    "The phone page at /app/: the board laid out for a phone held upright (relay 13).",
+    "The main board gets real flight numbers and routes from Flightradar24."]},
+  {v: "1.4", date: "2026-10-10", notes: [
+    "Spotted today, Logbook, Radar and Settings open on the board itself, from a rail of lamp buttons.",
+    "The aircraft's photo on a small screen set into the board.",
+    "Planned and expected times from Vienna Airport, and an estimated arrival.",
+    "Special planes take over the board; lighter drawing for TVs (relay 11).",
+    "The relay lists the screens using it (relay 12)."]},
+  {v: "1.3", date: "2026-10-09", notes: [
+    "Real flight numbers and routes from Flightradar24 on the test-api board (relay 8).",
+    "The whole day's numbers, recent flights, logbook categories and most seen model, a legend for the remarks.",
+    "A limit for planes that hover around for a long time (relay 10)."]},
+  {v: "1.2.0.1", date: "2026-10-09", notes: [
+    "A route only shows when the plane is actually flying it."]},
+  {v: "1.2", date: "2026-10-09", notes: [
+    "Rotating pages, turned by one giant falling flap.",
+    "Special aircraft and favourites, Spotted today, a lifetime logbook and a radar.",
+    "Board styles and night mode.",
+    "The relay keeps the shared history (relay 5) and picks up a new board within a minute (relay 6)."]},
+  {v: "1.1", date: "2026-10-09", notes: [
+    "A new look: a metal housing, more realistic flaps, sharper drawing up to 4K, and a flap speed setting."]},
+  {v: "1.0.0.1", date: "2026-10-08", notes: [
+    "No more repeat sightings, and the board no longer flips the same plane again."]},
+  {v: "1.0", date: "2026-10-08", notes: [
+    "The board: the plane overhead on split flaps, with flight, airline, route, aircraft, altitude and speed.",
+    "Whether it will pass overhead, fly by or move away, and whether it climbs or descends.",
+    "Live positions through a relay at home, a connection log, metric units and flap sound."]}];
+const VERSION = CHANGELOG[0].v;
+const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+function publishedText(){
+  const d = window.OVERHEAD_PAGE_DATE;
+  return d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
 }
+function versionLine(){
+  const when = publishedText(), rv = window.OVERHEAD_RELAY_VERSION;
+  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
+  return `Version ${VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+}
+function changelogHtml(){
+  return CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
+    `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("");
+}
+// Who made it and where the data comes from: the About plate on the board and the About page in the app.
+const ABOUT_HTML =
+  `<p><b>Overhead · Überflüge</b> shows the plane flying over you right now on a split-flap board, like the ones in ` +
+  `airport halls, with what passed today, a lifetime logbook and a radar.</p>` +
+  `<p>Made by Belstria, with Claude Code. Source and guide: github.com/Belstria/overhead-board</p>` +
+  `<p>Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and ` +
+  `adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from ` +
+  `airport-data.com, logos from Aviasales.</p>`;
 
 /* ---------- settings: a cockpit panel ----------
    Rotary selectors, flip switches, thumbwheels and amber read-outs on painted plates. Nothing changes until Save. */
@@ -3016,9 +3097,9 @@ function itemHtml(it){
 function plateHtml(p){
   const body = p.actions
     ? `<p>Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own.</p>` +
-      `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button></div>` +
-      `<p>Keys: 1 to 3 pages · T spotted today · L logbook · R radar · S settings · D connection log · F fullscreen · Esc back to the board. ` +
-      `Click the board for fullscreen. Browsers only allow sound after a first click or key press.</p>` +
+      `<div class="acts"><button class="cap big" type="button" data-act="cancel">Cancel</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">Save</button>` +
+      `<button class="cap big" type="button" data-act="about">About</button></div>` +
+      `<p>About shows what's new in each version, the keys, and who made it.</p>` +
       `<p class="ver">${escH(versionLine())}</p>`
     : p.items.map(itemHtml).join("");
   return `<div class="plate"${p.cols ? ` style="--cols:${p.cols}"` : ""}><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${body}</div>`;
@@ -3052,9 +3133,26 @@ function cockpitOpen(){
   for (const b of box.querySelectorAll("[data-act]")) b.onclick = () => {
     ctlSound.press();
     if (b.dataset.act === "save") { applySettings(draft); switchView(null); }
+    else if (b.dataset.act === "about") switchView("about");
     else switchView(null);
   };
   cockpitShow();
+}
+/* About: the patch notes on a tall plate, the keys, and who made it, with a way back to Settings. */
+const KEYS = [["1 – 3", "Recent flights, This aircraft, Today in numbers"], ["← →", "Turn the page (in Spotted today: its pages)"],
+  ["T", "Spotted today"], ["L", "Logbook"], ["R", "Radar"], ["S", "Settings"], ["A", "About"], ["D", "Connection log"],
+  ["F", "Full screen (or click the board)"], ["Esc", "Back to the board"]];
+function aboutOpen(){
+  const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
+  Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
+  box.innerHTML =
+    `<div class="plate notes">${screws}<h3>Patch notes · Versionen</h3><ol class="log" tabindex="0">${changelogHtml()}</ol></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Keys · Tasten</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(k)}</dt><dd>${escH(t)}</dd>`).join("")}</dl>` +
+      `<p>Browsers only allow sound after a first click or key press.</p></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3>${ABOUT_HTML}<p class="ver">${escH(versionLine())}</p>` +
+      `<div class="acts"><button class="cap big" type="button" data-act="back">Settings</button></div></div>`;
+  box.onclick = e => e.stopPropagation();
+  box.querySelector('[data-act="back"]').onclick = () => { ctlSound.press(); switchView("settings"); };
 }
 function wheelStep(it, part, d){
   if (it.type === "time") {
@@ -3239,6 +3337,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
   if (e.key === "s" || e.key === "S") toggleView("settings");
+  if (e.key === "a" || e.key === "A") toggleView("about");
   if (e.key === "ArrowRight") { if (view === "spotted") svStep(1); else if (!view) stepPage(1); }
   if (e.key === "ArrowLeft") { if (view === "spotted") svStep(-1); else if (!view) stepPage(-1); }
   if (/^[1-9]$/.test(e.key) && PAGE_ORDER[+e.key - 1]) { const p = PAGE_ORDER[+e.key - 1]; view ? switchView(null, {page: p}) : pickPage(p); }

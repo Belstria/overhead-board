@@ -172,6 +172,9 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .plate{padding:14px 14px 16px;gap:10px}
 #cockpit .plate h3{margin:0 0 4px}
 #cockpit .inst.wide .lcd{width:100%}
+#aboutBox{display:flex;flex-direction:column;gap:14px}
+#aboutBox .plate{padding:14px 16px 16px;gap:10px}
+#aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
 .savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
@@ -229,6 +232,10 @@ h3 span{color:var(--label2);margin-left:.6em}
     <ul class="rlegend" id="rLegend"></ul>
     <h3>Nearest<span>Am nächsten</span></h3>
     <ol class="flights" id="rvList"></ol>
+  </section>
+  <section class="wrap tab" id="t-about" hidden>
+    <h2>About<span>Info</span></h2>
+    <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2>Settings<span>Einstellungen</span></h2>

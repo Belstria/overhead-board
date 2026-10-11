@@ -701,6 +701,7 @@ const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay)
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
 const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E29
+//@E31
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
@@ -708,13 +709,9 @@ function cockpitOpen(){
   draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}. <button class="cap small" type="button" id="relayBtn">Change relay</button></p>`
-      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
-        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
-    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer.</p>` +
-    `<p>The big board: <a href="../">${escH(location.host)}/</a></p></div>`;
-  if (ANDROID) $("relayBtn").onclick = () => window.OverheadAndroid.changeRelay();
+    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>What's new in each version, the relay and who made it.</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">About</button></div></div>`;
+  $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
@@ -751,15 +748,21 @@ function buildSaveBar(){
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
-/* The app's version: raise APP_VERSION whenever app/index.html changes (this file, head.html or the test-api board's
-   shared code), so About shows whether the phone has the new one. The relay (17 or newer) adds when GitHub published
-   the page, which changes with every push even if the number wasn't raised. */
-const APP_VERSION = 1;
-function versionLine(){
-  const d = window.OVERHEAD_PAGE_DATE, rv = window.OVERHEAD_RELAY_VERSION;
-  const apk = (navigator.userAgent.match(/OverheadAndroid\/([\w.]+)/) || [])[1];
-  const when = d ? new Date(d).toLocaleString("en-GB", {day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"}) : "";
-  return `App version ${APP_VERSION}${when ? ` · published ${when}` : ""}${rv ? ` · relay ${rv}` : ""}${apk ? ` · Android app ${apk}` : ""}`;
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test-api). */
+function aboutOpen(){
+  const screws = "<i></i><i></i><i></i><i></i>";
+  $("aboutBox").innerHTML =
+    `<div class="plate" style="--cols:1">${screws}<h3>About · Info</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
+    (ANDROID ? `<p>The Overhead app for Android, showing the relay at ${escH(location.host)}.</p><div class="acts"><button class="cap big" type="button" id="relayBtn">Change relay</button></div>`
+      : `<p>On Android, install the Overhead app: <a href="${APK_URL}">download it</a> and open the file (allow installs from your browser once). ` +
+        `On an iPhone, Safari → Share → Add to Home Screen.</p>`) +
+    `<p>It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board: <a href="../">${escH(location.host)}/</a></p>` +
+    ABOUT_HTML + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>Patch notes · Versionen</h3><ol class="log">${changelogHtml()}</ol></div>` +
+    `<div class="acts"><button class="cap big" type="button" id="aboutBack">Settings</button></div>`;
+  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
+  renderAbout();
 }
 function renderAbout(){
   const el = $("aboutStatus");
@@ -798,11 +801,12 @@ function buildTabs(){
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){
-  if (!TABS.some(x => x[0] === t)) t = "now";
+  if (!TABS.some(x => x[0] === t) && t !== "about") t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
-  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  $("t-about").hidden = t !== "about";
+  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
@@ -812,6 +816,7 @@ function showTab(t){
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") cockpitOpen();
+  else if (t === "about") aboutOpen();
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   if (was !== t) window.scrollTo(0, 0);
@@ -834,7 +839,7 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
-  if (tab === "settings") renderAbout();
+  if (tab === "about") renderAbout();
 }
 function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  Radius ${+S.radiusKm || 15} km`; }
 function tickClock(){

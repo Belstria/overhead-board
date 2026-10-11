@@ -155,9 +155,10 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
   tick, push buttons a thock) when the flap sound or the chimes are on.
-- **Version** (Settings → Control on the test boards, Settings → About in the app): the board's or app's version
-  number, when GitHub published it (relay 17 or newer), the relay's version and, in the Android app, the app's
-  version. A screen that still shows an older time needs a reload.
+- **About** (Settings → About, or press **A**; test boards and the app): what changed in each version, the keys, and
+  who made it. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
+  this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
+  a reload.
 - **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
@@ -212,6 +213,7 @@ among its screens as the APP board; Settings → Phone → Name gives it a name 
 
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
+- Press **A** for About: patch notes, the keys and who made it (test boards).
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
