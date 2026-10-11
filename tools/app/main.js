@@ -6,7 +6,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 
 /* ---------- settings: kept on this phone only ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead"};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
@@ -35,6 +35,7 @@ let S = loadSettings();
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
 /* ---------- a small log, for the About plate in Settings ---------- */
@@ -682,6 +683,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
+    {k: "mode", type: "rotary", label: "Board", opts: [["overhead", "OVERHEAD"], ["airport", "AIRPORT"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
@@ -697,6 +699,36 @@ const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay)
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
 const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E29
+//@E32
+/* Airport mode on the phone: on Now, the take-offs and the landings as lists, in place of the plane overhead. */
+function apRowHtml(e){
+  const info = e.info || baseInfo(e.ac), place = e.kind === "dep" ? info.to : info.from;
+  const route = place ? (e.kind === "dep" ? `<i>→</i>${placeHtml(place)}` : `${placeHtml(place)}<i>→</i>`) : "";
+  const meta = [info.type || e.ac.t, e.ac.r].filter(Boolean).map(escH).join(" · ");
+  return `<li class="fl"><time>${e.t ? hhmm(new Date(e.t)) : ""}</time>` +
+    `<div class="who"><strong>${escH(apFlight(e))}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}</div>${chip(e.st)}` +
+    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? "on the ground" : ""}</span></div></li>`;
+}
+let apSig = "";
+function renderAirport(){
+  if (tab !== "now" || !airportMode()) return;
+  const sub = !AP.code ? "Set the home airport in Settings." : AP.lat == null ? `Looking up ${AP.code} …` :
+    `Planes taking off from and landing at ${apName()}. Times: when they took off, and when they're expected on the ground.`;
+  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">No take-offs right now.</li>`;
+  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">No landings coming up right now.</li>`;
+  const sig = sub + deps + arrs + S.units;
+  if (sig === apSig) return;
+  apSig = sig;
+  $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
+}
+function airportChanged(){ apSig = ""; renderAirport(); }
+// Which of the two the Now tab shows.
+function applyMode(){
+  const ap = airportMode();
+  $("apSec").hidden = !ap; $("ovSec").hidden = ap;
+  HERO.off = tab !== "now" || ap;
+  if (ap) { airportPos(); apSig = ""; renderAirport(); } else refreshPanels(true);
+}
 //@E31
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
@@ -777,6 +809,7 @@ function applySettings(n){
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   saveSettings(); audioInit();
+  AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; airtime.clear(); lbCache = null;
     fullDay = {at: 0, rev: null, date: null, list: null};
@@ -785,6 +818,7 @@ function applySettings(n){
   }
   applyTheme(); updateWhere();
   recentSig = svSig = lbSig = factsSig = ""; shownPhoto = null;
+  if (tab === "now") applyMode();
   renderLists(); renderFeatured(); renderAircraftInfo(); updateFooter(); poll(true); sayHello();
 }
 
@@ -803,11 +837,11 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-about").hidden = t !== "about";
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
-  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now" || airportMode(); TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
-  if (t === "now") { pingNow(false); renderFeatured(); renderAircraftInfo(); renderRecent(); }
+  if (t === "now") { pingNow(false); applyMode(); renderFeatured(); renderAircraftInfo(); renderRecent(); }
   else if (t === "today") { svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }

@@ -3,7 +3,7 @@
 It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey") and Vienna Airport's
 flight lists. The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
-a landing and a take-off, a callsign with a wrong route in the database, and one far away and high.
+a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead.
 """
 import json, math, os, time
@@ -137,6 +137,8 @@ class H(BaseHTTPRequestHandler):
             plane("471f8d", "WZZ4307", "A21N", -9.0, -3.0, 45, 780, 7000, 1800, r="HA-LVF"),    # outbound-ish
             plane("440b11", "AUA802", "A20N", arr[0], arr[1], 295, 300, 2600, -700, r="OE-LBW"),  # landing on 29
             plane("440b12", "LDM5AB", "A320", dep[0], dep[1], 295, 380, 2500, 2200, r="OE-LMA"),  # taking off from 29
+            plane("440c55", "AUA411X", "E195", along(VIE, 115, 1.2)[0], along(VIE, 115, 1.2)[1], 295, 220, 0, 0,
+                  r="OE-LWA", alt_baro="ground"),                                              # take-off roll on 29
             plane("4b1814", "SWR1514", "BCS3", 18.0, 10.0, 250, 750, 12000, -1200, r="HB-JCA"),
             plane("4ca9f1", "RYR3EG", "B38M", 3.0, -6.0, 300, 800, 5000, 0, r="9H-QEG"),       # stale route in the database
             plane("4ca123", "EIN2AB", "A320", 30.0, 30.0, 220, 800, 36000, 0),                   # far and high

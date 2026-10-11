@@ -45,7 +45,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 17
+RELAY_VERSION = 18
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -749,6 +749,17 @@ def airports_near(lat, lon, n=3):
     return {"status": "ok", "airports": [{"code": code, "icao": r[3], "name": r[4], "city": r[0], "km": round(d, 1)} for d, code, r in best]}
 
 
+def airport_info(code):
+    """One airport by its IATA code, for the board's airport mode (the home airport's position)."""
+    db = _airports_ready()
+    if db is None:
+        return {"status": "loading"}
+    r = (db.get("iata") or {}).get(code.upper())
+    if not r:
+        return {"status": "none"}
+    return {"status": "ok", "code": code.upper(), "icao": r[3], "name": r[4] if len(r) > 4 else "", "city": r[0], "lat": r[1], "lon": r[2]}
+
+
 def _fr24_lookup(cs, hx):
     """One flight-summary request: the most recent flight with this callsign. Returns (info or None, http status)."""
     now = time.time()
@@ -1432,7 +1443,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -1490,6 +1501,11 @@ class Handler(BaseHTTPRequestHandler):
             arg = lambda k: (q.get(k) or [""])[0].strip().upper()[:12]
             body = vie_times(arg("fn"), arg("from"), arg("to")) if arg("fn") else {"status": "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/airport":
+            code = re.sub(r"[^A-Za-z]", "", (self.query().get("code") or [""])[0])[:3]
+            if len(code) != 3:
+                return self.reply(400, "text/plain", b"code=XXX (an IATA airport code) is required")
+            return self.reply(200, "application/json", json.dumps(airport_info(code)).encode())
         if path == "/airports/near":
             q = self.query()
             try:

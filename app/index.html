@@ -313,6 +313,15 @@ h3 span{color:var(--label2);margin-left:.6em}
 </header>
 <main>
   <section class="wrap tab" id="t-now">
+    <div id="apSec" hidden>
+      <h2>Take-offs<span>Abflüge</span></h2>
+      <p class="sum" id="apSub"></p>
+      <ol class="flights" id="apDeps"></ol>
+      <div class="groove"></div>
+      <h2>Landings<span>Landungen</span></h2>
+      <ol class="flights" id="apArrs"></ol>
+    </div>
+    <div id="ovSec">
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>
@@ -326,6 +335,7 @@ h3 span{color:var(--label2);margin-left:.6em}
     <div class="groove"></div>
     <h2>Recent flights<span>Letzte Flüge</span></h2>
     <ol class="flights" id="recent"></ol>
+    </div>
     <p class="status statusText"></p>
   </section>
   <section class="wrap tab" id="t-today" hidden>
@@ -404,7 +414,7 @@ const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
-  "DIVERTED", "CARGO", "BIZJET", "PRIVATE"];
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -422,12 +432,15 @@ const REMARK_LOOK = {
   MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
   EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
   DIVERTED:{fill:["#ef8a2b","#d0701a"], fg:"#1a1206"}, CARGO:{fill:["#8a5a2b","#714820"], fg:"#fbe9d2"},
-  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"}
+  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"},
+  "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
+  APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
+  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"}
 };
 
 /* ---------- settings: kept on this phone only ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead"};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
@@ -456,6 +469,7 @@ let S = loadSettings();
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
 /* ---------- a small log, for the About plate in Settings ---------- */
@@ -1127,7 +1141,7 @@ let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
 const POLL_MS = 10000;
 async function getAircraft(){
-  const la = S.lat.toFixed(4), lo = S.lon.toFixed(4), t0 = performance.now();
+  const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
     let res;
     try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}`); }
@@ -1573,6 +1587,7 @@ const recent = new Map();        // hex -> last time and place each aircraft was
 const MISSING_GRACE_MS = 30000;
 let emptyStreak = 0, lastCount = 0;
 function process(list){
+  if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
@@ -2201,6 +2216,7 @@ const COCKPIT = [
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
+    {k: "mode", type: "rotary", label: "Board", opts: [["overhead", "OVERHEAD"], ["airport", "AIRPORT"]]},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
@@ -2387,12 +2403,132 @@ function wireLocate(box){
     }
   };
 }
+/* ---------- airport mode ----------
+   For someone at an airport, looking out of the window: the planes taking off from the home airport and the ones
+   coming in to land there, worked out from the positions around it. A plane is taking off when it rolls fast along
+   the ground or climbs away low and close; it is landing when it comes down towards the airport, and LANDED once it
+   rolls out on the ground. The board shows the two lists in place of the plane overhead (Settings → Board). */
+const airportMode = () => S.mode === "airport";
+const AP_ROWS = 5;
+const AP = {code: "", lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()};
+// The home airport's position: from the board's own table (Vienna), otherwise asked of the relay (18 or newer).
+function airportPos(){
+  const code = clean(S.home).slice(0, 3);
+  if (AP.code !== code) Object.assign(AP, {code, lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()});
+  const known = AIRPORTS[code];
+  if (known && AP.lat == null) Object.assign(AP, {lat: known.lat, lon: known.lon, city: known.name});
+  if (AP.lat == null && code.length === 3 && AP.asked !== code && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
+    AP.asked = code;
+    fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000).then(j => {
+      if (AP.code !== code) return;
+      if (j.status === "ok") { Object.assign(AP, {lat: j.lat, lon: j.lon, name: j.name || "", city: j.city || ""}); airportChanged(); }
+      else if (j.status === "loading") setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 3000);
+    }).catch(() => setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 10000));
+  }
+  return AP.lat == null ? null : [AP.lat, AP.lon];
+}
+// Where to ask for positions: around the home airport in airport mode, around the board's location otherwise.
+const queryCenter = () => (airportMode() && airportPos()) || [S.lat, S.lon];
+const apName = () => AP.code ? `${AP.city || AP.name || AP.code} (${AP.code})` : "";
+function airportProcess(list){
+  const at = airportPos(), now = Date.now();
+  if (!at) { AP.deps = []; AP.arrs = []; renderAirport(); return; }
+  const [alat, alon] = at, kx = 111.32 * Math.cos(alat * Math.PI / 180), ky = 110.57;
+  const deps = [], arrs = [], here = new Set();
+  for (const ac of list) {
+    if (ac.lat == null || ac.lon == null || !ac.hex) continue;
+    const x = (ac.lon - alon) * kx, y = (ac.lat - alat) * ky, dist = Math.hypot(x, y);
+    if (dist > 50) continue;
+    const ground = ac.alt_baro === "ground", alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
+    const gs = ac.gs || 0, kmMin = gs * 1.852 / 60;
+    const prev = AP.seen.get(ac.hex);
+    let rate = typeof ac.baro_rate === "number" ? ac.baro_rate : typeof ac.geom_rate === "number" ? ac.geom_rate : null;
+    if (rate == null && prev && prev.alt != null && alt != null && now - prev.at > 4000) rate = (alt - prev.alt) / ((now - prev.at) / 60000);
+    // 0°: flying straight away from the airport, 180°: straight towards it
+    const out = ac.track == null || dist < .3 ? 90 : Math.abs(((ac.track - Math.atan2(x, y) * 180 / Math.PI) % 360 + 540) % 360 - 180);
+    let kind = null, st = "", t = null;
+    if (ground) {
+      if (dist <= 5 && gs >= 30) {                    // on the runway at speed: a take-off roll, or rolling out after landing
+        kind = prev && prev.kind ? prev.kind : prev && prev.gs != null && gs < prev.gs - 2 ? "arr" : "dep";
+        st = kind === "arr" ? "LANDED" : "TAKE-OFF";
+      } else if (prev && prev.kind === "arr" && dist <= 5) { kind = "arr"; st = "LANDED"; }
+      if (kind === "arr") t = prev && prev.landed ? prev.landed : now;
+      if (kind === "dep") t = now;
+    } else if (alt != null && alt <= 12000) {
+      const climbing = rate != null ? rate > 250 : prev && prev.kind === "dep";
+      const descending = rate != null ? rate < -150 : alt <= 4000;
+      if (prev && prev.kind === "dep" && dist <= 35 && !(rate != null && rate < -500)) { kind = "dep"; }
+      else if (climbing && dist <= 30 && out <= 75 && alt <= 10000) kind = "dep";
+      else if (prev && prev.kind === "arr" && dist <= 45 && !(rate != null && rate > 800 && out < 60)) kind = "arr";
+      else if (descending && dist <= 45 && out >= 135 && alt <= 10000) kind = "arr";
+      if (kind === "dep") {
+        st = dist <= 4 && alt <= 3000 ? "TAKE-OFF" : "CLIMBING";
+        t = prev && prev.off ? prev.off : now - (kmMin > 1 ? dist / kmMin : 0) * 60000;      // when it left the ground
+      } else if (kind === "arr") {
+        st = dist <= 12 || alt <= 3500 ? "FINAL" : "APPROACH";
+        t = now + (kmMin > 1 ? dist / kmMin + 1 : 5) * 60000;                                 // expected on the ground
+      }
+    }
+    const rec = {kind, gs, alt, at: now, off: prev && prev.off, landed: prev && prev.landed, since: prev ? prev.since : now};
+    if (kind === "dep" && !rec.off) rec.off = t;
+    if (st === "LANDED" && !rec.landed) rec.landed = now;
+    AP.seen.set(ac.hex, rec);
+    here.add(ac.hex);
+    if (!kind) continue;
+    if (kind === "arr" && st === "LANDED" && now - rec.landed > 4 * 60000) continue;      // landed a while ago: off the list
+    if (kind === "dep" && st === "CLIMBING" && rec.off && now - rec.off > 12 * 60000) continue;
+    const p = enrich(ac), e = {ac, hex: ac.hex, kind, st, t, dist, alt: ground ? null : alt, ground, info: p.info};
+    p.then(info => { e.info = info; scheduleAirport(); });
+    (kind === "dep" ? deps : arrs).push(e);
+  }
+  for (const [hex, r] of AP.seen) if (!here.has(hex) && now - r.at > 5 * 60000) AP.seen.delete(hex);
+  // Take-offs: the ones on the runway first, then the most recent. Landings: next one down first, the landed ones after.
+  deps.sort((a, b) => (a.st === "TAKE-OFF" ? 0 : 1) - (b.st === "TAKE-OFF" ? 0 : 1) || b.t - a.t);
+  arrs.sort((a, b) => (a.st === "LANDED" ? 1 : 0) - (b.st === "LANDED" ? 1 : 0) || (a.st === "LANDED" ? b.t - a.t : a.t - b.t));
+  AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
+  renderAirport();
+}
+let apTimer = 0;
+function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
+const apFlight = e => (e.info && e.info.flightNo) || String(e.ac.flight || "").trim() || e.ac.r || e.hex.toUpperCase();
+const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.info.from); return p ? p.city || p.code || "" : ""; };
+/* Airport mode on the phone: on Now, the take-offs and the landings as lists, in place of the plane overhead. */
+function apRowHtml(e){
+  const info = e.info || baseInfo(e.ac), place = e.kind === "dep" ? info.to : info.from;
+  const route = place ? (e.kind === "dep" ? `<i>→</i>${placeHtml(place)}` : `${placeHtml(place)}<i>→</i>`) : "";
+  const meta = [info.type || e.ac.t, e.ac.r].filter(Boolean).map(escH).join(" · ");
+  return `<li class="fl"><time>${e.t ? hhmm(new Date(e.t)) : ""}</time>` +
+    `<div class="who"><strong>${escH(apFlight(e))}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}</div>${chip(e.st)}` +
+    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? "on the ground" : ""}</span></div></li>`;
+}
+let apSig = "";
+function renderAirport(){
+  if (tab !== "now" || !airportMode()) return;
+  const sub = !AP.code ? "Set the home airport in Settings." : AP.lat == null ? `Looking up ${AP.code} …` :
+    `Planes taking off from and landing at ${apName()}. Times: when they took off, and when they're expected on the ground.`;
+  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">No take-offs right now.</li>`;
+  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">No landings coming up right now.</li>`;
+  const sig = sub + deps + arrs + S.units;
+  if (sig === apSig) return;
+  apSig = sig;
+  $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
+}
+function airportChanged(){ apSig = ""; renderAirport(); }
+// Which of the two the Now tab shows.
+function applyMode(){
+  const ap = airportMode();
+  $("apSec").hidden = !ap; $("ovSec").hidden = ap;
+  HERO.off = tab !== "now" || ap;
+  if (ap) { airportPos(); apSig = ""; renderAirport(); } else refreshPanels(true);
+}
 /* ---------- versions and patch notes ----------
    One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
    or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.10", date: "2026-10-12", notes: [
+    "Airport mode (Settings → Board): for watching from the airport, the planes taking off from the home airport on top and the ones coming in to land below, with their flight, destination or origin, aircraft, height and time (relay 18 for airports other than Vienna)."]},
   {v: "1.9", date: "2026-10-12", notes: [
     "Phone on its side: the Android app shows the full board, full screen and with the app's settings, and keeps the screen on while charging. Upright again, the phone page is back.",
     "In a phone's browser, turning the phone switches between the phone page and the board too."]},
@@ -2543,6 +2679,7 @@ function applySettings(n){
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   saveSettings(); audioInit();
+  AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
     feat = null; infoCache.clear(); sightRev = null; relayStats = null; airtime.clear(); lbCache = null;
     fullDay = {at: 0, rev: null, date: null, list: null};
@@ -2551,6 +2688,7 @@ function applySettings(n){
   }
   applyTheme(); updateWhere();
   recentSig = svSig = lbSig = factsSig = ""; shownPhoto = null;
+  if (tab === "now") applyMode();
   renderLists(); renderFeatured(); renderAircraftInfo(); updateFooter(); poll(true); sayHello();
 }
 
@@ -2569,11 +2707,11 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-about").hidden = t !== "about";
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
-  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now" || airportMode(); TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
-  if (t === "now") { pingNow(false); renderFeatured(); renderAircraftInfo(); renderRecent(); }
+  if (t === "now") { pingNow(false); applyMode(); renderFeatured(); renderAircraftInfo(); renderRecent(); }
   else if (t === "today") { svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
