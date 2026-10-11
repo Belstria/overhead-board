@@ -696,7 +696,8 @@ const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/down
 const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E29
 //@E32
-/* Airport mode on the phone: on Now, the take-offs and the landings as lists, in place of the plane overhead. */
+/* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,
+   then the take-offs and the landings as lists (in place of Recent flights). */
 function apRowHtml(e){
   const info = e.info || baseInfo(e.ac), place = e.kind === "dep" ? info.to : info.from;
   const route = place ? (e.kind === "dep" ? `<i>→</i>${placeHtml(place)}` : `${placeHtml(place)}<i>→</i>`) : "";
@@ -725,15 +726,16 @@ function setMode(md){
   S.mode = md; saveSettings();
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
+  poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
-  $("apSec").hidden = !ap; $("ovSec").hidden = ap;
-  HERO.off = tab !== "now" || ap;
-  if (ap) { airportPos(); apSig = ""; renderAirport(); } else refreshPanels(true);
+  $("apSec").hidden = !ap; $("recentSec").hidden = ap;
+  if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
+  renderFeatured(); renderAircraftInfo();
 }
 //@E31
 function plateHtml(p){
@@ -844,7 +846,7 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-about").hidden = t !== "about";
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
-  HERO.off = t !== "now" || airportMode(); TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();

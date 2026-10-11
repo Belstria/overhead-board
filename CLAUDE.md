@@ -73,8 +73,11 @@ from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.h
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
 
-Airport mode (`S.mode === "airport"`, the "airport mode" block, copied by the app): the view `airport` is the board's
-home (`switchView(null)` goes there); `airportProcess()` sorts the planes around the home airport (`AP`, position from
+Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in the title; the "airport mode" block,
+copied by the app). Two layouts for Dave to compare (`S.apLayout`, Settings → Airport layout; one will go):
+`pages` keeps the board with `pageOrder()` = aplists (compact lists), apland, apdep under the plane on top (`apFeature`
+picks it: `apFocus`); `screens` makes the view `airport` (full-screen lists) the home (`homeView()`), with apland/apdep
+as pages. apland/apdep reuse the This aircraft page (`isAc(page)`). `airportProcess()` sorts the planes around the home airport (`AP`, position from
 `AIRPORTS` or the relay's `/airport?code=`, relay 18+) into take-offs and landings; the board draws them on flaps
 (`renderAirportBoard`), the app as lists on Now (`renderAirport`). `queryCenter()` asks for positions around the airport.
 
