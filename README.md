@@ -194,6 +194,11 @@ app, because it installs web apps only from https addresses and the relay is pla
 
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen.
 
+**On its side** (on a charging stand on the desk, say), the phone shows the full board instead, with the app's settings.
+The Android app (1.9 or newer; see About for its version) switches at once, hides the status and navigation bars, and keeps the screen on while
+the phone is charging; turned upright, the phone page is back. Auto-rotate has to be on. In a phone's browser the page
+switches to the board too (`/test-api/?app`), and back when the phone is upright again.
+
 Five buttons along the bottom:
 
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,

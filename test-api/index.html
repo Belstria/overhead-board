@@ -328,19 +328,29 @@ const REMARK_LOOK = {
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto"};
+// With ?app in the address the board is the phone app turned on its side: it shares the app's settings (and, like the
+// app, starts without flap sound). A phone browser goes back to the app when it is turned upright again.
+const IN_APP = new URLSearchParams(location.search).has("app");
+const SKEY = IN_APP ? "od.app.settings" : "od.settings";
 function loadSettings(){
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem("od.settings") || "{}") || {}; } catch {}
-  if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
+  try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
+  if (!IN_APP && saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
   delete saved.v;
   return {...DEFAULTS, ...saved};
 }
 function saveSettings(){
-  const changed = {v: 2};
+  const changed = IN_APP ? {} : {v: 2};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
-  try { localStorage.setItem("od.settings", JSON.stringify(changed)); } catch {}
+  try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
+if (IN_APP) DEFAULTS.sound = false;
+if (IN_APP && !window.OverheadAndroid) {      // the Android app swaps the two pages itself
+  const upright = window.matchMedia && matchMedia("(orientation: portrait) and (max-width: 600px)");
+  const back = () => { if (upright.matches) location.replace("../app/"); };
+  if (upright) { upright.addEventListener ? upright.addEventListener("change", back) : upright.addListener(back); back(); }
+}
 let S = loadSettings();
 S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off");
 (() => { // URL overrides for this session, handy for kiosk setups: ?lat=..&lon=..&radius=..&home=..&place=..&demo
@@ -2958,6 +2968,9 @@ function updateFooter(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.9", date: "2026-10-12", notes: [
+    "Phone on its side: the Android app shows the full board, full screen and with the app's settings, and keeps the screen on while charging. Upright again, the phone page is back.",
+    "In a phone's browser, turning the phone switches between the phone page and the board too."]},
   {v: "1.8.1", date: "2026-10-12", notes: [
     "Settings: the screen name and the Aircraft photo setting are gone; the photo always sits on its screen."]},
   {v: "1.8", date: "2026-10-12", notes: [

@@ -40,12 +40,16 @@ jobs:
             echo "::warning::No signing key in the secrets: the APK is signed with a throwaway debug key and not released."
           fi
 
+      # The app is named after the project version (the newest entry in the patch notes) and the build number.
+      - name: Version
+        run: echo "PROJECT_VERSION=$(grep -m1 -oP '\{v: "\K[^"]+' test-api/index.html)" >> "$GITHUB_ENV"
+
       - name: Build
         env:
           OVERHEAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           OVERHEAD_KEY_ALIAS: overhead
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 1.${{ github.run_number }}
+          VERSION_NAME: ${{ env.PROJECT_VERSION }} (build ${{ github.run_number }})
         run: gradle -p android :app:assembleRelease --no-daemon --stacktrace
 
       - run: cp android/app/build/outputs/apk/release/app-release.apk overhead.apk
@@ -60,7 +64,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "android-1.${{ github.run_number }}" overhead.apk \
+          gh release create "android-build-${{ github.run_number }}" overhead.apk \
             --target "${{ github.sha }}" --latest \
-            --title "Android app 1.${{ github.run_number }}" \
+            --title "Android app ${{ env.PROJECT_VERSION }} (build ${{ github.run_number }})" \
             --notes "The Overhead app for Android. On the phone, download overhead.apk and open it. It shows the phone page from the home relay, so it needs the home Wi-Fi."
