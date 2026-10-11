@@ -79,12 +79,10 @@ from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.h
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
 
 Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in the title; the "airport mode" block,
-copied by the app). Two layouts for Dave to compare (`S.apLayout`, Settings → Airport layout; one will go):
-`pages` keeps the board with `pageOrder()` = aplists (compact lists), apland, apdep under the plane on top (`apFeature`
-picks it: `apFocus`); `screens` makes the view `airport` (full-screen lists) the home (`homeView()`), with apland/apdep
-as pages. apland/apdep reuse the This aircraft page (`isAc(page)`). `airportProcess()` sorts the planes around the home airport (`AP`, position from
-`AIRPORTS` or the relay's `/airport?code=`, relay 18+) into take-offs and landings; the board draws them on flaps
-(`renderAirportBoard`), the app as lists on Now (`renderAirport`). `queryCenter()` asks for positions around the airport.
+copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on
+top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The header sign
+(`apsign`, a word flap: `AP_SIGN`, `showApSign`) says TAKING OFF or LANDING; the app shows it as a strip (`showAppSign`).
+Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
 cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are

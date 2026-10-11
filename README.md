@@ -165,14 +165,11 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   flaps too; the patch notes and the connection log stay in English.
 - **Airport style** (tap **Airport** in the title, or `?mode=airport`; test boards and the app): for watching from the
   airport. The board follows the planes taking off from the home airport (rolling for take-off, climbing away) and the
-  ones coming in to land (approach, final, landed). Two layouts to compare, under Settings → Airport layout:
-  - **Pages**: like the overhead board, with the plane taking off or landing right now on top, and pages below for the
-    take-offs and landings (two lists side by side), the landing plane and the departing plane (photo and details, like
-    This aircraft).
-  - **Screens**: the take-offs and landings as full-screen lists, plus a Landing and a Take-off screen, each with the
-    plane on top and its photo and details below.
-  Set the home airport first (Use current location offers the nearest one). Vienna works with any relay; other airports
-  need relay 18 or newer. In the app, Now shows the plane on top, its details, and the two lists.
+  ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now, with
+  a lit sign in the header: TAKING OFF in amber or LANDING in green. Below, the pages turn between the take-offs and
+  landings (two lists side by side), the landing plane and the departing plane (photo and details, like This
+  aircraft). Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
+  other airports need relay 18 or newer. In the app, Now shows the sign, the plane, its details and the two lists.
 - **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
