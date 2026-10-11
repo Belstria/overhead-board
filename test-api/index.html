@@ -3141,7 +3141,8 @@ function renderDiag(){
   const f = st && st.fr24;
   if (f && f.state && f.state !== "off") {
     const say = {ok: "Working", ready: "Ready, no lookups yet", budget: "Monthly budget used up, using the free sources",
-      refused: "Key refused, using the free sources", error: "Problem: " + (f.error || "unknown")}[f.state] || f.state;
+      refused: "Key refused, using the free sources", error: "Problem: " + (f.error || "unknown"),
+      paced: "Today's share of the monthly budget is used; the free sources fill in until tomorrow"}[f.state] || f.state;
     $("diagSources").insertAdjacentHTML("beforeend", `<h3>Flightradar24</h3><p class="${f.state === "ok" || f.state === "ready" ? "good" : "meh"}">${escH(say)} · ` +
       `${nf.format(f.credits)} of ${nf.format(f.budget)} credits used this month · ${nf.format(f.lookupsToday)} lookups today (${nf.format(f.creditsToday)} credits)` +
       `${f.queue ? ` · ${f.queue} waiting` : ""}${f.airports ? "" : " · airport names not loaded yet"}</p>`);

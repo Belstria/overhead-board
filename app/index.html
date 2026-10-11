@@ -1,0 +1,2408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Overhead</title>
+<meta name="theme-color" content="#141517">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Overhead">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
+.rail{position:absolute;display:flex;z-index:2}
+.cap{position:relative;flex:none;width:calc(104px*var(--k));height:calc(44px*var(--k));margin:0 0 0 calc(14px*var(--k));padding:0;border:0;border-radius:calc(4px*var(--k));
+  display:grid;place-items:center;text-align:center;font:700 calc(12.5px*var(--k))/1.1 var(--f-board);letter-spacing:.07em;text-transform:uppercase;
+  color:rgba(24,22,18,.74);background:linear-gradient(#97928a,#7b776e 70%,#6e6a63);
+  box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,255,255,.28),inset 0 calc(-3px*var(--k)) calc(5px*var(--k)) rgba(0,0,0,.3);
+  transition:box-shadow .4s ease-out,transform .14s ease-out,filter .3s}
+.cap:first-child{margin-left:0}
+.cap[aria-current=page],.cap[aria-pressed=true]{color:#17140e;background:radial-gradient(75% 70% at 50% 44%,#fffdf6,#f6ecd4 60%,#e2d0a4);transform:translateY(calc(2.5px*var(--k)));
+  box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,0 0 calc(24px*var(--k)) calc(3px*var(--k)) rgba(255,224,150,.3),
+    inset 0 0 calc(12px*var(--k)) rgba(255,206,120,.5);
+  animation:lampOn .55s linear}
+.cap.go[aria-pressed=true]{background:radial-gradient(75% 70% at 50% 44%,#eaffd8,#9be07f 58%,#55a443);box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(1.5px*var(--k)) 0 calc(3px*var(--k)) #000,
+  0 0 calc(24px*var(--k)) calc(3px*var(--k)) rgba(140,235,110,.3),inset 0 0 calc(12px*var(--k)) rgba(40,120,20,.4)}
+@keyframes lampOn{0%{filter:brightness(.45)}12%{filter:brightness(1.12)}19%{filter:brightness(.72)}32%{filter:brightness(1.04)}100%{filter:none}}
+body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animation:none}
+.cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
+.cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
+.cap:disabled{cursor:default;filter:brightness(.6)}
+.cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
+.cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
+/* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
+#cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
+  font-family:var(--f-board);color:#d8d3c6}
+.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(14px*var(--k)) calc(26px*var(--k)) calc(12px*var(--k));
+  box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
+  display:flex;flex-wrap:wrap;align-content:flex-start;align-items:flex-end;gap:calc(10px*var(--k)) calc(22px*var(--k))}
+.plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
+  background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
+.plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
+.plate>i:nth-of-type(3){left:calc(8px*var(--k));bottom:calc(8px*var(--k))}.plate>i:nth-of-type(4){right:calc(8px*var(--k));bottom:calc(8px*var(--k))}
+.plate h3{flex:0 0 100%;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
+  letter-spacing:.22em;text-transform:uppercase;color:rgba(214,208,194,.72);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.plate h3::before,.plate h3::after{content:"";flex:1;height:1px;background:rgba(214,208,194,.25)}
+.inst{display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k))}
+.inst>span{font:600 calc(11.5px*var(--k))/1.15 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:rgba(214,208,194,.66);text-align:center;max-width:calc(170px*var(--k))}
+.inst.wide{flex:1 1 100%;align-items:stretch}
+.inst.wide>span{text-align:left;max-width:none}
+.lcd{font:600 calc(21px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
+  border:0;border-radius:calc(4px*var(--k));padding:calc(9px*var(--k)) calc(12px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #050505,0 1px 0 calc(3px*var(--k)) rgba(255,255,255,.05);-webkit-user-select:text;user-select:text}
+.lcd:focus{outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #f6c54a}
+/* rotary selector: a fluted knob, its pointer on the chosen position, the positions engraved round it */
+.rotary{position:relative;width:calc(140px*var(--k));height:calc(116px*var(--k));outline:none;cursor:pointer}
+.rotary .knob{position:absolute;left:50%;top:calc(66px*var(--k));width:calc(54px*var(--k));height:calc(54px*var(--k));margin:calc(-27px*var(--k)) 0 0 calc(-27px*var(--k));border-radius:50%;
+  background:repeating-conic-gradient(#1a1b1e 0 6deg,#3b3d42 6deg 12deg);box-shadow:0 calc(4px*var(--k)) calc(8px*var(--k)) rgba(0,0,0,.7),0 0 0 calc(2px*var(--k)) #0b0b0c;
+  transform:rotate(var(--rot,0deg));transition:transform .3s cubic-bezier(.3,1.45,.55,1)}
+.rotary .knob::before{content:"";position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle at 38% 32%,#62656b,#2a2b2f 60%,#18191b)}
+.rotary .knob::after{content:"";position:absolute;left:50%;top:7%;width:calc(3px*var(--k));height:38%;margin-left:calc(-1.5px*var(--k));border-radius:2px;background:#f3f0e8;box-shadow:0 0 calc(4px*var(--k)) rgba(255,255,255,.4)}
+.rotary:focus-visible .knob{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
+.rotary b{position:absolute;left:50%;top:calc(66px*var(--k));font:600 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.06em;color:rgba(214,208,194,.55);white-space:nowrap;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-50px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
+.rotary b.on{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55)}
+/* flip switch: a chrome bat handle on a nut, flipped up for on */
+.toggle{position:relative;width:calc(66px*var(--k));height:calc(112px*var(--k));padding:0;border:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  font:700 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.1em;color:rgba(214,208,194,.45)}
+.toggle .nut{position:relative;width:calc(34px*var(--k));height:calc(34px*var(--k));border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#b9bcc1,#6d7075 45%,#2c2d31 75%);box-shadow:0 0 0 calc(4px*var(--k)) #111214,0 calc(3px*var(--k)) calc(6px*var(--k)) rgba(0,0,0,.7)}
+.toggle .lever{position:absolute;left:50%;bottom:50%;width:calc(11px*var(--k));height:calc(34px*var(--k));margin-left:calc(-5.5px*var(--k));border-radius:calc(6px*var(--k)) calc(6px*var(--k)) calc(3px*var(--k)) calc(3px*var(--k));
+  background:linear-gradient(90deg,#7c7f84,#eceef1 45%,#9a9da2 70%,#5d6065);transform-origin:50% 100%;transform:scaleY(-1);transition:transform .16s cubic-bezier(.5,0,.4,1.4);
+  box-shadow:0 calc(2px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.6)}
+.toggle[aria-pressed=true] .lever{transform:scaleY(1)}
+.toggle .up,.toggle .down{transition:color .2s,text-shadow .2s}
+.toggle[aria-pressed=true] .up,.toggle[aria-pressed=false] .down{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.5)}
+.toggle.guard .lever{background:linear-gradient(90deg,#7a1d16,#e0473b 45%,#9e2a20 70%,#5c140f)}
+/* thumbwheel: a ridged drum with a number in a window */
+.wheels{display:flex;align-items:center;gap:calc(4px*var(--k))}
+.wheels>em{font:700 calc(26px*var(--k))/1 var(--f-board);font-style:normal;color:#d8d3c6}
+.wheel{display:flex;flex-direction:column;align-items:center;outline:none}
+.wheel button{width:calc(52px*var(--k));height:calc(18px*var(--k));padding:0;border:0;border-radius:calc(3px*var(--k));font-size:calc(9px*var(--k));color:rgba(214,208,194,.6);
+  background:repeating-linear-gradient(#3c3e43 0 calc(2px*var(--k)),#1a1b1e calc(2px*var(--k)) calc(4px*var(--k)));box-shadow:0 0 0 calc(2px*var(--k)) #0b0b0c}
+.wheel button:hover{color:#f6c54a}
+.wheel .win{position:relative;overflow:hidden;width:calc(52px*var(--k));height:calc(44px*var(--k));margin:calc(4px*var(--k)) 0;border-radius:calc(4px*var(--k));display:grid;place-items:center;
+  font:700 calc(28px*var(--k))/1 var(--f-board);color:#f3f0e8;background:linear-gradient(#2a2b2f,#17181b 50%,#0e0f11 50%,#1f2023);
+  box-shadow:inset 0 0 0 calc(2px*var(--k)) #000,0 calc(2px*var(--k)) calc(4px*var(--k)) rgba(0,0,0,.6)}
+.wheel .win::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.9)}
+.wheel:focus-visible .win{box-shadow:inset 0 0 0 calc(2px*var(--k)) #f6c54a}
+.wheel .win b.up{animation:rollUp .22s ease-out}.wheel .win b.down{animation:rollDown .22s ease-out}
+@keyframes rollUp{0%{transform:translateY(60%);opacity:.2}100%{transform:none;opacity:1}}
+@keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
+.plate p{flex:0 0 100%;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
+.plate .acts{flex:0 0 100%;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
+/* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
+   upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
+   board's backlit push buttons. */
+:root{
+  color-scheme: dark;
+  --housing:#0b0b0c;
+  --metal:#141517;
+  --ink:#f3f0e8;
+  --amber:#f0b429;
+  --muted:#7f838b;
+  --label2:#6d7179;
+  --line:#26272b;
+  --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
+  --k:1;
+  --gut:14px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--housing)}
+button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:1px solid transparent;border-radius:6px;padding:.25em .7em;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+body{margin:0;min-height:100vh;min-height:100dvh;color:var(--ink);font:15px/1.4 var(--f-board);
+  background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 90% 70% at 50% 42%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42))}
+.wrap{position:relative;max-width:560px;margin:0 auto;padding:0 var(--gut)}
+/* the header plate: logo, title and the clock on flaps; it stays at the top while the page scrolls */
+#top{position:sticky;top:0;z-index:5;padding-top:env(safe-area-inset-top);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  box-shadow:0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.7),0 8px 18px rgba(0,0,0,.38)}
+#top .wrap{display:flex;align-items:center;gap:11px;padding-top:10px;padding-bottom:11px}
+#mark{width:40px;height:40px;flex:none}
+.title{min-width:0;flex:1}
+.title h1{margin:0;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.title h1 span{font-weight:400;color:var(--muted);margin-left:.18em}
+.title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clockbox{position:relative;flex:none}
+@media (max-width:400px){.title h1{font-size:22px}}
+@media (max-width:374px){.title h1 span{display:none}}
+#clockP{width:112px}
+.dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+.dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
+main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
+/* split-flap panels: canvases drawn by the same flap engine as the board */
+.panel{position:relative;width:100%;aspect-ratio:var(--w)/var(--h)}
+.panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* engraved headings and grooves */
+h2{margin:24px 0 10px;font:700 21px/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+h2 span{font-weight:400;color:var(--muted);margin-left:.3em}
+h2:first-child{margin-top:4px}
+h3{margin:22px 0 8px;font:600 12px/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+h3 span{color:var(--label2);margin-left:.6em}
+.groove{height:3px;margin:18px 0 0;background:linear-gradient(rgba(0,0,0,.7) 0 2px,rgba(255,255,255,.06) 2px 3px)}
+.sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
+.status{margin-top:20px;font-size:12.5px}
+/* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
+.bezel{position:relative;padding:12px;border-radius:10px;background:linear-gradient(#2a2b2f,#1c1d20 50%,#141518);
+  box-shadow:0 6px 16px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5)}
+.bezel>i{position:absolute;width:7px;height:7px;border-radius:50%;
+  background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
+.bezel>i:nth-of-type(1){left:4px;top:4px}.bezel>i:nth-of-type(2){right:4px;top:4px}.bezel>i:nth-of-type(3){left:4px;bottom:4px}.bezel>i:nth-of-type(4){right:4px;bottom:4px}
+.led{position:absolute;right:24px;bottom:4px;width:5px;height:5px;border-radius:50%;background:#62e896;box-shadow:0 0 6px 2px rgba(90,230,140,.35),0 0 0 1px #0c2a17}
+.screen{position:relative;aspect-ratio:568/268;border-radius:5px;overflow:hidden;background:#08090b;
+  box-shadow:0 0 0 4px #010202,0 5px 0 4px rgba(255,255,255,.05),0 0 20px rgba(165,190,225,.1)}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.86) contrast(1.05) brightness(.95);opacity:0}
+.screen.has img{opacity:1}
+.screen::before{content:"";position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(rgba(0,0,0,.11) 0 1px,transparent 1px 3px)}
+.screen::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 52%,rgba(0,0,0,.42))}
+.screen .glass{position:absolute;inset:0;z-index:2;background:linear-gradient(115deg,rgba(255,255,255,.07),rgba(255,255,255,.022) 44%,rgba(255,255,255,0) 44.5%),
+  linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0) 12px)}
+.screen .none,.screen .credit{position:absolute;z-index:3;font:600 11px/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
+.screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
+.screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
+.screen.has .none,.screen:not(.has) .credit{display:none}
+.screen.on{animation:screenOn .95s ease-out both}
+@keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
+.bezel.plain{padding:0;background:none;box-shadow:none}
+.bezel.plain>i,.bezel.plain .led,.bezel.plain .screen::before,.bezel.plain .screen::after,.bezel.plain .glass{display:none}
+.bezel.plain .screen{border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
+.bezel.plain .screen img{filter:saturate(.9) contrast(1.05)}
+/* engraved facts: a label in amber, the value below */
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:16px 0 0}
+.facts div{min-width:0}
+.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.facts dt span{color:var(--label2);margin-left:.5em}
+.facts dd{margin:5px 0 0;font:600 16px/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
+.facts .wide{grid-column:1/-1}
+/* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
+.flights{list-style:none;margin:6px -10px 0;padding:0}
+.flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
+.flights li.empty{color:var(--muted);padding-left:10px;font-size:14px;border:0;box-shadow:none}
+.fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center}
+.fl time{font:600 14px/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.fl .who strong{font:700 16.5px/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
+.fl .who span{font:500 13.5px/1 var(--f-board);color:var(--muted);margin-left:.45em}
+.fl .rt,.fl .meta{grid-column:2/4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl .rt{font:500 14.5px/1.25 var(--f-board);color:var(--ink)}
+.fl .rt b{font-weight:700;color:var(--amber);margin-right:.25em}
+.fl .rt i{font-style:normal;color:var(--muted);margin:0 .4em}
+.fl .rt .no{color:rgba(255,255,255,.25)}
+.fl .meta{display:flex;justify-content:space-between;gap:10px;font:500 13px/1.2 var(--f-board);color:var(--muted)}
+.fl .meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
+.flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
+.chip{position:relative;display:inline-grid;place-items:center;min-width:86px;height:23px;padding:0 8px;border-radius:3px;
+  font:700 11px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
+.chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5)}
+/* radar list */
+.rv{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
+.rv strong{font:700 15.5px/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv strong span{font-weight:500;color:var(--muted);font-size:13px;margin-left:.4em}
+.rv .num{font:600 13.5px/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
+.rv .chip{min-width:78px}
+/* buttons above lists, and the tab bar: the board's push buttons */
+.tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
+.tools .cap{margin:0}
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
+#tabs .wrap{display:flex;gap:9px;--k:.88}
+#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:44px;margin:0;font-size:11.5px;letter-spacing:.06em}
+.cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
+@keyframes ping{50%{opacity:.35}}
+/* logbook */
+.ranks{list-style:none;margin:0;padding:0;counter-reset:r}
+.ranks li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03);font:600 15px/1.2 var(--f-board)}
+.ranks li::before{counter-increment:r;content:counter(r);color:var(--label2);font-weight:600;font-size:13px}
+.ranks.plain li{grid-template-columns:minmax(0,1fr) auto}
+.ranks.plain li::before{display:none}
+.ranks .n{color:var(--amber);font-variant-numeric:tabular-nums}
+.ranks .s{color:var(--muted);font-weight:500;font-size:13px;margin-left:.4em}
+.ranks .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cats li{grid-template-columns:12px minmax(0,1fr) auto}
+.cats li::before{display:none}
+.cats .lamp{width:10px;height:10px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp);align-self:center}
+.cats .bar{grid-column:2/4;height:3px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden}
+.cats .bar i{display:block;height:100%;background:var(--lamp);opacity:.75}
+.model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
+.model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
+/* radar */
+.scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
+.scope canvas{position:absolute;inset:0;width:100%;height:100%}
+.rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
+.rlegend li{display:flex;align-items:center;gap:6px}
+.rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+/* legend */
+.legend{list-style:none;margin:0;padding:0}
+.legend li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0;font:500 14px/1.3 var(--f-board)}
+.legend .chip{min-width:96px}
+/* settings */
+#cockpit{position:static;display:flex;flex-direction:column;gap:14px;--k:1}
+#cockpit .plate{padding:14px 16px 16px;gap:12px 14px;justify-content:space-around}
+#cockpit .plate h3{margin:0 0 4px}
+#cockpit .inst.wide .lcd{width:100%}
+.about p{text-align:left}
+.about a{color:var(--amber)}
+.savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
+  border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
+.savebar .cap{margin:0}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="wrap">
+    <canvas id="mark" aria-hidden="true"></canvas>
+    <div class="title"><h1>Overhead<span>Überflüge</span></h1><p id="where"></p></div>
+    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
+  </div>
+</header>
+<main>
+  <section class="wrap tab" id="t-now">
+    <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+    <div id="acSec" hidden>
+      <div class="groove"></div>
+      <h2>This aircraft<span>Dieses Flugzeug</span></h2>
+      <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
+        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none">No picture · Kein Bild</span><span class="credit">Photo airport-data.com</span><span class="glass"></span></div>
+        <b class="led"></b>
+      </div>
+      <dl class="facts" id="acFacts"></dl>
+    </div>
+    <div class="groove"></div>
+    <h2>Recent flights<span>Letzte Flüge</span></h2>
+    <ol class="flights" id="recent"></ol>
+    <p class="status statusText"></p>
+  </section>
+  <section class="wrap tab" id="t-today" hidden>
+    <h2>Spotted today<span>Heute gesichtet</span></h2>
+    <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
+    <dl class="facts" id="todayFacts"></dl>
+    <div class="groove"></div>
+    <div class="tools" id="svTools"></div>
+    <p class="sum" id="svSum"></p>
+    <ol class="flights" id="svList"></ol>
+    <div id="legendBox" hidden></div>
+    <p class="status statusText"></p>
+  </section>
+  <section class="wrap tab" id="t-logbook" hidden>
+    <h2>Logbook<span>Logbuch</span></h2>
+    <p class="sum" id="lbSum"></p>
+    <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
+    <p class="model" id="lbModel"></p>
+    <div id="lbLists"></div>
+  </section>
+  <section class="wrap tab" id="t-radar" hidden>
+    <h2>Radar<span>Radar</span></h2>
+    <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+    <ul class="rlegend" id="rLegend"></ul>
+    <h3>Nearest<span>Am nächsten</span></h3>
+    <ol class="flights" id="rvList"></ol>
+  </section>
+  <section class="wrap tab" id="t-settings" hidden>
+    <h2>Settings<span>Einstellungen</span></h2>
+    <p class="sum">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
+    <div id="cockpit" style="margin-top:14px"></div>
+    <div class="savebar"><button class="cap big" type="button" id="cancelBtn">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false">Save</button></div>
+  </section>
+</main>
+<nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
+const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#7f838b", labelEn:"#6d7179"};
+const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
+const THEMES = {
+  classic:   {font:'"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif', flap:["#2b2c2f","#232427","#1c1d1f","#161719"],
+              ink:"#f3f0e8", accent:"#f0b429", label2:"#6d7179", metal:["#1d1e21","#141517","#18191c"]},
+  frankfurt: {font:'"Oswald","Archivo Narrow","Arial Narrow",sans-serif', flap:["#222222","#1b1b1b","#151515","#101010"],
+              ink:"#ffd21f", accent:"#ffffff", label2:"#8c8c8c", metal:["#1a1a1a","#111111","#161616"]},
+  blue:      {font:'"Barlow Condensed","Archivo Narrow","Arial Narrow",sans-serif', flap:["#29406e","#21365f","#1b2d51","#152443"],
+              ink:"#f5f7fb", accent:"#9ccaff", label2:"#71809c", metal:["#151d2d","#0e1422","#121a29"]}
+};
+let METAL = THEMES.classic.metal;
+// Aircraft worth running to the window for. Type codes are ICAO designators.
+const SPECIAL_TYPES = {A388:"SUPERJUMBO", B741:"JUMBO", B742:"JUMBO", B743:"JUMBO", B744:"JUMBO", B748:"JUMBO", B74S:"JUMBO", B74R:"JUMBO",
+  A3ST:"BELUGA", A337:"BELUGA", A124:"ANTONOV", A225:"ANTONOV", AN22:"ANTONOV", CONC:"CONCORDE",
+  C17:"MILITARY", C5M:"MILITARY", A400:"MILITARY", C130:"MILITARY", C30J:"MILITARY", K35R:"MILITARY", EUFI:"MILITARY", F16:"MILITARY", F35:"MILITARY", P3:"MILITARY",
+  C295:"MILITARY", E390:"MILITARY",
+  EC35:"HELICOPTER", EC45:"HELICOPTER", EC30:"HELICOPTER", EC55:"HELICOPTER", EC75:"HELICOPTER", AS50:"HELICOPTER", AS65:"HELICOPTER",
+  A139:"HELICOPTER", A169:"HELICOPTER", H160:"HELICOPTER", B06:"HELICOPTER", B407:"HELICOPTER", R44:"HELICOPTER", R66:"HELICOPTER",
+  S76:"HELICOPTER", NH90:"HELICOPTER", UH1:"HELICOPTER", H60:"HELICOPTER", AS32:"HELICOPTER"};
+// Home airports the board knows runways for (true track of each runway direction).
+const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rwys:[[116,"11"],[296,"29"],[164,"16"],[344,"34"]],
+  strips:[[48.1228, 16.5334, 48.1090, 16.5756], [48.1198, 16.5782, 48.0886, 16.5913]]}};   // runway ends (OurAirports), for the radar
+
+/* Drums: the order a real flap module turns through. */
+const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
+const DRUM_DIGIT = " 0123456789:";
+const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
+const DRUM_POS = " 0123456789.:KMNESWIC";
+const TRENDS = ["", "UP", "LEVEL", "DOWN"];
+const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
+const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
+  "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE"];
+const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
+const REMARK_LOOK = {
+  OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
+  INBOUND:{fill:["#f6be35","#dc9f1d"], fg:"#17140d"},
+  PASSED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
+  NEARBY:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
+  "FLYING BY":{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
+  OUTBOUND:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
+  "NO TRAFFIC":{fill:["#2f3135","#26282b"], fg:"#a6a49e"},
+  OFFLINE:{fill:["#cb3a2f","#aa2d24"], fg:"#ffffff"},
+  ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}, "CLOSE BY":{fg:"#86b8ff"},
+  "NEW TYPE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c", tint:"#efe2c0"}, "NEW AIRLINE":{fill:["#f4ecd8","#e2d6b8"], fg:"#8c1c1c", tint:"#efe2c0"},
+  FAVOURITE:{fill:["#c93d80","#a72f68"], fg:"#ffffff"},
+  SUPERJUMBO:GOLD, JUMBO:GOLD, BELUGA:GOLD, ANTONOV:GOLD, CONCORDE:GOLD, SPECIAL:GOLD,
+  MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
+  EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
+  DIVERTED:{fill:["#ef8a2b","#d0701a"], fg:"#1a1206"}, CARGO:{fill:["#8a5a2b","#714820"], fg:"#fbe9d2"},
+  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"}
+};
+
+/* ---------- settings: kept on this phone only ---------- */
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, photoStyle:"screen", screenName:""};
+const SKEY = "od.app.settings";
+function loadSettings(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
+  return {...DEFAULTS, ...saved};
+}
+function saveSettings(){
+  const changed = {};
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
+}
+Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
+DEFAULTS.sound = false;                                    // a phone starts quiet; flap sound can be turned on in Settings
+let S = loadSettings();
+(() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
+  const q = new URLSearchParams(location.search);
+  const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
+  if (num("lat") != null) S.lat = num("lat");
+  if (num("lon") != null) S.lon = num("lon");
+  if (num("radius") != null) S.radiusKm = num("radius");
+  if (num("over") != null) S.overKm = num("over");
+  if (q.get("home")) S.home = q.get("home").toUpperCase();
+  if (q.get("place")) S.place = q.get("place");
+  if (q.get("units")) S.units = q.get("units") === "metric" ? "metric" : "aviation";
+  if (q.get("proxy")) S.proxy = q.get("proxy");
+  if (q.has("demo")) S.demo = q.get("demo") !== "0";
+  if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
+  if (q.get("favs")) S.favs = q.get("favs");
+  if (q.get("screen")) S.screenName = q.get("screen").slice(0, 24);
+})();
+
+/* ---------- a small log, for the About plate in Settings ---------- */
+const DIAG = {log: [], polls: [], closest: null};
+function dlog(level, msg){
+  DIAG.log.unshift({t: Date.now(), level, msg: String(msg)});
+  if (DIAG.log.length > 200) DIAG.log.length = 200;
+}
+const scheduleDiag = () => {};
+let nightOn = false;          // the board's night mode; a phone doesn't need it
+/* ---------- text helpers ---------- */
+function clean(s){
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "SS").replace(/[Øø]/g, "O").replace(/[Łł]/g, "L")
+    .toUpperCase().replace(/[^A-Z0-9 .\-\/:,'&()]/g, "").replace(/\s+/g, " ").trim();
+}
+function trimTo(s, w){
+  if (s.length <= w) return s;
+  let cut = -1;
+  for (let i = Math.min(w, s.length - 1); i > 0; i--) if (" -/".includes(s[i])) { cut = i; break; }
+  return (cut >= Math.ceil(w * .5) ? s.slice(0, cut) : s.slice(0, w)).replace(/[\s,.:\/&'-]+$/, "");   // "PENDIK, ISTANBUL" → "PENDIK", not "PENDIK,"
+}
+const nf = new Intl.NumberFormat("en-US");
+function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
+
+/* ---------- split-flap panels ----------
+   The flaps are drawn exactly as on the board, on canvases set into the page: the plane overhead, the clock, and the
+   counters on Spotted today and the Logbook. Each panel is laid out in its own units and scaled to its width. */
+const LITE = () => false;
+const fields = {}, allCells = [], panels = [];
+function makePanel(el, w, h, lab = 11){
+  const P = {el, w, h, lab, px: 1, cssW: 0, ids: [], off: false};
+  el.style.setProperty("--w", w); el.style.setProperty("--h", h);
+  el.innerHTML = '<canvas aria-hidden="true"></canvas><canvas aria-hidden="true"></canvas>';
+  [P.bg, P.fx] = el.querySelectorAll("canvas");
+  P.bgx = P.bg.getContext("2d"); P.fxx = P.fx.getContext("2d");
+  panels.push(P);
+  return P;
+}
+function def(P, id, o){
+  const f = fields[id] = {id, drum: DRUM_ALPHA, style: "ink", align: "left", loud: .7, panel: P, ...o};
+  P.ids.push(id);
+  const count = f.kind === "chars" ? f.n : 1;
+  f.cells = [];
+  for (let i = 0; i < count; i++) {
+    const hsh = [...f.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) | 0, i * 977 + 13);
+    const c = {f, i, cur: f.kind === "chars" ? " " : "", target: null, queue: [], anim: null, next: 0,
+      variant: [...f.id].reduce((a, ch) => a + ch.charCodeAt(0), i * 7) % 3,
+      jx: ((hsh & 255) / 255 - .5) * 2, jy: (((hsh >> 8) & 255) / 255 - .5) * 2};
+    c.target = c.cur; f.cells.push(c); allCells.push(c);
+  }
+}
+function placeRow(ids, gaps, y, step, ratio, x0){
+  let x = x0;
+  ids.forEach((id, i) => {
+    const f = fields[id];
+    f.x = x; f.y = y; f.step = step; f.cw = step * .9; f.ch = f.cw * ratio;
+    f.wordW = f.n * step - (step - f.cw);
+    x += f.n * step + (gaps[i] || 0) * step;
+  });
+}
+// The plane overhead: the board's top half, rearranged into eight rows for a phone held upright.
+const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
+const HERO = makePanel($("hero"), 390, 404, 10.5);
+def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
+def(HERO, "remarks", {kind:"word",  n:6.3, dur:120, words:"remarks", label:["Status",""], loud:1});
+def(HERO, "airline", {kind:"word",  n:13.93, dur:120, words:"airline", label:["Airline","Fluglinie"], loud:1});
+def(HERO, "fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","Von"], loud:1});
+def(HERO, "fromCity",{kind:"chars", n:10, dur:82, loud:1});
+def(HERO, "toCode",  {kind:"chars", n:3, dur:82, style:"amber", label:["To","Nach"], loud:1});
+def(HERO, "toCity",  {kind:"chars", n:10, dur:82, loud:1});
+def(HERO, "type",    {kind:"chars", n:17, dur:66, label:["Aircraft","Flugzeug"]});
+def(HERO, "reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
+def(HERO, "alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
+def(HERO, "trend",   {kind:"word",  n:2, dur:110, words:"trend"});
+def(HERO, "speed",   {kind:"chars", n:8, dur:66, drum:DRUM_ALT, align:"right", label:["Speed","Geschw."]});
+def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]});
+def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
+def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
+def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
+placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
+placeRow(["airline"], [], 71, 26, 1.45, UM);
+placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
+placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
+placeRow(["type"], [], 232, 21.4, 1.45, UM);
+placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
+placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
+placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+const CLOCK = makePanel($("clockP"), 112, 34);
+def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
+placeRow(["clock"], [], 4, 22.4, 1.25, 1);
+// Spotted today: today's numbers on flaps.
+const TODAYP = makePanel($("todayP"), 390, 52);
+def(TODAYP, "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flüge"]});
+def(TODAYP, "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines",""]});
+def(TODAYP, "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
+def(TODAYP, "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead",""]});
+placeRow(["stPlanes", "stAirlines", "stTypes", "stOver"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
+// Logbook totals.
+const LBP = makePanel($("lbP"), 390, 108);
+def(LBP, "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Sightings","Sichtungen"]});
+def(LBP, "lvRegs",     {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Individual aircraft",""]});
+def(LBP, "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Aircraft types","Typen"]});
+def(LBP, "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines",""]});
+placeRow(["lvSight", "lvRegs"], [1.5], 18, 22, 1.3, UM);
+placeRow(["lvTypes", "lvAirlines"], [4.5], 69, 22, 1.3, UM);
+/* ---------- tiles: each flap face pre-rendered once ---------- */
+const tiles = new Map();
+let tileBytes = 0;
+const clearTiles = () => { tiles.clear(); tileBytes = 0; };
+const IVORY = ["#f4f1ea", "#ece8de", "#e3dfd4", "#dad6ca"];
+const logos = new Map();
+function logo(code){
+  if (!code || !S.logos) return null;
+  let L = logos.get(code);
+  if (!L) {
+    L = {state: "loading", img: new Image()};
+    logos.set(code, L);
+    const srcs = [`https://img.wway.io/pics/root/${code}@png?exar=1&rs=fit:360:144`, `https://pics.avs.io/360/144/${code}.png`];
+    let k = 0;
+    const done = state => { L.state = state; clearTiles(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
+    L.img.onload = () => L.img.naturalWidth > 4 ? done("ok") : L.img.onerror();
+    L.img.onerror = () => { if (++k < srcs.length) L.img.src = srcs[k]; else done("fail"); };
+    L.img.src = srcs[0];
+  }
+  return L;
+}
+function drawLogo(g, L, x, y, bw, bh){
+  const iw = L.img.naturalWidth, ih = L.img.naturalHeight, sc = Math.min(bw / iw, bh / ih);
+  const dw = iw * sc, dh = ih * sc;
+  g.drawImage(L.img, x + (bw - dw) / 2, y + (bh - dh) / 2, dw, dh);
+}
+function airlineCodeOf(x){
+  if (!x) return "";
+  if (x.airlineCode) return x.airlineCode;
+  const m = /^([A-Z0-9]{2}) \d/.exec(x.flightNo || x.flight || "");
+  return m ? m[1] : "";
+}
+const AIRLINE_WORDS = () => Object.values(AIRLINES).map(a => clean(a[1]));
+function rr(g, x, y, w, h, r){
+  g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+  g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
+  g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+}
+function shade(hex, k){
+  const n = parseInt(hex.slice(1), 16), m = v => Math.max(0, Math.min(255, Math.round(v * (1 + k))));
+  return `rgb(${m(n >> 16)},${m((n >> 8) & 255)},${m(n & 255)})`;
+}
+function tile(f, value, variant = 0){
+  const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
+  let code = "", text = value;
+  if (isLogo) { code = value; text = ""; }
+  if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
+  const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
+  if (f.words === "lamp") text = "";
+  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}`;
+  let cv = tiles.get(key);
+  if (cv) return cv;
+  const w = f.pw, h = f.ph;
+  cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d");
+  const r = Math.max(1.5, Math.min(w, h) * .045);
+  const base = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : FLAP);
+  const tint = look.fill || (isLogo && logoOk) ? 0 : [0, .06, -.05][variant];
+  const body = base.map(c => tint ? shade(c, tint) : c);
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, body[0]); grad.addColorStop(.5, body[1]); grad.addColorStop(.5, body[2]); grad.addColorStop(1, body[3]);
+  g.fillStyle = grad; rr(g, 0, 0, w, h, r); g.fill();
+  g.save(); rr(g, 0, 0, w, h, r); g.clip();
+  const sheen = g.createLinearGradient(0, 0, 0, h * .5);            // light catching the top of the upper flap
+  sheen.addColorStop(0, "rgba(255,255,255,.09)"); sheen.addColorStop(.3, "rgba(255,255,255,.025)"); sheen.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = sheen; g.fillRect(0, 0, w, h * .5);
+  const curl = g.createLinearGradient(0, h * .4, 0, h * .5);         // the upper flap's lower edge lifts away slightly
+  curl.addColorStop(0, "rgba(0,0,0,0)"); curl.addColorStop(1, "rgba(0,0,0,.28)");
+  g.fillStyle = curl; g.fillRect(0, h * .4, w, h * .1);
+  const foot = g.createLinearGradient(0, h * .72, 0, h);              // lower flap falls into shadow
+  foot.addColorStop(0, "rgba(0,0,0,0)"); foot.addColorStop(1, "rgba(0,0,0,.22)");
+  g.fillStyle = foot; g.fillRect(0, h * .72, w, h * .28);
+  g.restore();
+  let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : COL.ink);
+  // "-" means the flight has no airline code (private, military, unlisted): show a plain aircraft mark.
+  // A known airline without a logo shows its two-letter code instead.
+  if (isLogo) {
+    if (logoOk) drawLogo(g, L, w * .1, h * .14, w * .8, h * .72);
+    else if (code === "-") drawPlane(g, w / 2, h / 2, h * .72, COL.muted);
+    else if (code) { text = code; fg = COL.amber; }
+  }
+  if (isAirline && S.logos && code) {        // small logo badge printed on the left of the airline flap
+    const bh = Math.round(h * .64), bw = Math.round(bh * 2.3), bx = Math.round(h * .22), by = Math.round((h - bh) / 2);
+    const bg2 = g.createLinearGradient(0, by, 0, by + bh);
+    if (logoOk) { bg2.addColorStop(0, IVORY[0]); bg2.addColorStop(1, IVORY[3]); }
+    else { bg2.addColorStop(0, "#34363a"); bg2.addColorStop(1, "#2a2b2f"); }
+    g.fillStyle = bg2; rr(g, bx, by, bw, bh, bh * .12); g.fill();
+    if (logoOk) drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76);
+    else if (code === "-") drawPlane(g, bx + bw / 2, by + bh / 2, bh * .9, COL.muted);
+    else {
+      g.save(); g.font = `700 ${Math.round(bh * .62)}px ${FONT}`; g.fillStyle = COL.amber; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillText(code, bx + bw / 2, by + bh / 2 + bh * .04); g.restore();
+    }
+    ax = bx + bw; aw = w - ax;
+    if (!text && code === "-") text = "NO AIRLINE LISTED";
+  }
+  if (f.words === "trend") {                 // climbing, level or descending arrow
+    text = "";
+    if (value) {
+      const ang = {UP: -Math.PI / 5, LEVEL: 0, DOWN: Math.PI / 5}[value] || 0, L = Math.min(w * .62, h * .78);
+      g.save(); g.translate(w / 2, h / 2); g.rotate(ang);
+      g.strokeStyle = g.fillStyle = TREND_COLOR[value] || COL.ink; g.lineWidth = Math.max(2, h * .1); g.lineCap = "round";
+      g.beginPath(); g.moveTo(-L / 2, 0); g.lineTo(L / 2 - h * .14, 0); g.stroke();
+      g.beginPath(); g.moveTo(L / 2 + h * .02, 0); g.lineTo(L / 2 - h * .22, -h * .2); g.lineTo(L / 2 - h * .22, h * .2); g.closePath(); g.fill();
+      g.restore();
+    }
+  }
+  if (text && text !== " ") {
+    const size = f.kind === "chars" ? h * .8 : h * (f.small ? .56 : .5);
+    g.font = `700 ${size}px ${FONT}`;
+    if (f.kind !== "chars" && "letterSpacing" in g) g.letterSpacing = Math.round(size * .06) + "px";
+    let asc = size * .7;
+    try { const m = g.measureText("H"); if (m.actualBoundingBoxAscent) asc = m.actualBoundingBoxAscent; } catch {}
+    const tw = g.measureText(text).width, max = aw * (f.kind === "chars" ? .88 : .86);
+    const sx = tw > max ? Math.max(.55, max / tw) : 1;
+    g.save(); g.translate(ax + aw / 2, Math.round(h / 2 + asc / 2)); g.scale(sx, 1);
+    g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "alphabetic"; g.fillText(text, 0, 0); g.restore();
+  }
+  const hinge = Math.max(1, Math.round(h * .028)), mid = Math.round(h / 2);
+  g.fillStyle = "rgba(0,0,0,.92)"; g.fillRect(0, mid - Math.floor(hinge / 2), w, hinge);       // gap between the two flaps
+  g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(0, mid + Math.ceil(hinge / 2), w, Math.max(1, h * .008));
+  const nh = Math.max(3, Math.round(h * .13)), nw = Math.max(2, Math.round(Math.min(w, h * .7) * .07));   // axle pins
+  const pin = g.createLinearGradient(0, mid - nh / 2, 0, mid + nh / 2);
+  pin.addColorStop(0, "#8a8d92"); pin.addColorStop(.5, "#55585d"); pin.addColorStop(1, "#2c2e31");
+  g.fillStyle = pin; rr(g, 0, mid - nh / 2, nw, nh, nw * .4); g.fill(); rr(g, w - nw, mid - nh / 2, nw, nh, nw * .4); g.fill();
+  g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = Math.max(1, h * .012); rr(g, .5, .5, w - 1, h - 1, r); g.stroke();
+  tiles.set(key, cv); tileBytes += w * h * 4;
+  const budget = (LITE() ? 40 : 160) * 1048576;            // weak TVs have little memory to spare
+  while (tileBytes > budget && tiles.size > 1) {
+    const [k0, c0] = tiles.entries().next().value;
+    tiles.delete(k0); tileBytes -= c0.width * c0.height * 4;
+  }
+  return cv;
+}
+/* ---------- drawing a flap, mid-flip or at rest ---------- */
+function drawCell(c, p){
+  const f = c.f, P = f.panel;
+  if (f.hidden || P.off || !P.cssW) return;
+  paintCell(P.fxx, c, p, false);
+}
+// Paints a flap onto the board, or onto the page that is falling away (opaque: it has no board behind it).
+function paintCell(g, c, p, opaque){
+  const f = c.f, x = c.x, y = c.y, w = f.pw, h = f.ph;
+  if (opaque) { g.fillStyle = "#08080a"; g.fillRect(x - 1, y - 1, w + 2, h + 2); }
+  else g.clearRect(x - 1, y - 1, w + 2, h + 2);
+  if (p == null || !c.anim) { g.drawImage(tile(f, c.cur, c.variant), x, y); return; }
+  const A = tile(f, c.anim.from, c.variant), B = tile(f, c.anim.to, c.variant), hh = Math.round(h / 2), bh = h - hh;
+  g.drawImage(B, 0, 0, w, hh, x, y, w, hh);          // new face, top half (revealed)
+  g.drawImage(A, 0, hh, w, bh, x, y + hh, w, bh);    // old face, bottom half (about to be covered)
+  if (p < .5) {
+    const q = p * 2, s = Math.cos(q * q * Math.PI / 2), dh = hh * s;   // old top flap falling towards the viewer
+    g.fillStyle = `rgba(0,0,0,${.3 * (1 - s)})`; g.fillRect(x, y + hh, w, bh * (1 - s) * .7);  // its shadow on the lower flap
+    if (dh > .5) {
+      g.drawImage(A, 0, 0, w, hh, x, y + hh - dh, w, dh);
+      g.fillStyle = `rgba(0,0,0,${.6 * (1 - s)})`; g.fillRect(x, y + hh - dh, w, dh);
+    }
+  } else {
+    const q = (p - .5) * 2;                               // new bottom flap dropping into place, then a small bounce
+    const ang = q < .82 ? (Math.PI / 2) * (1 - (q / .82) ** 2) : .16 * Math.sin(Math.PI * (q - .82) / .18);
+    const s = Math.cos(ang), dh = bh * s;
+    g.fillStyle = `rgba(0,0,0,${.35 * (1 - s)})`; g.fillRect(x, y + hh, w, bh);
+    if (dh > .5) {
+      g.drawImage(B, 0, hh, w, bh, x, y + hh, w, dh);
+      g.fillStyle = `rgba(0,0,0,${.45 * (1 - s)})`; g.fillRect(x, y + hh, w, dh);
+    }
+  }
+}
+function redrawAll(){
+  for (const P of panels) {
+    if (P.off || !P.cssW) continue;
+    P.fxx.clearRect(0, 0, P.fx.width, P.fx.height);
+    for (const id of P.ids) for (const c of fields[id].cells) drawCell(c, c.anim ? .0001 : null);
+  }
+}
+let running = false, lastFrame = 0;
+function kick(){ if (!running) { running = true; requestAnimationFrame(frame); } }
+function frame(now){
+  if (LITE() && now - lastFrame < 30) { requestAnimationFrame(frame); return; }   // 30 frames a second is plenty for a TV
+  lastFrame = now;
+  let active = false, starts = 0;
+  for (const c of allCells) {
+    if (c.anim) {
+      const a = c.anim, el = now - a.t0;
+      let p = el / a.dur;
+      if (a.stall) { const s0 = a.stall.at * a.dur; p = el < s0 ? p : el < s0 + a.stall.ms ? a.stall.at : (el - a.stall.ms) / a.dur; }
+      if (p < 1) { drawCell(c, p); active = true; continue; }
+      c.cur = c.anim.to; c.anim = null; drawCell(c);
+    }
+    if (c.queue.length) {
+      active = true;
+      if (now >= c.next) {
+        if (S.imperfect && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
+        c.hes = false;
+        c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * pace() * (.9 + Math.random() * .2)};
+        if (S.imperfect && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
+        drawCell(c, 0); if (!c.f.pageOff || c.f.leaving) starts++;
+      }
+    }
+  }
+  if (starts) clack(starts);
+  if (active) requestAnimationFrame(frame); else running = false;
+}
+
+/* drum paths */
+function path(drum, from, to){
+  let i = drum.indexOf(from), j = drum.indexOf(to);
+  if (j < 0) { to = " "; j = 0; }
+  if (i < 0) i = 0;
+  const out = [];
+  while (i !== j) { i = (i + 1) % drum.length; out.push(drum[i]); }
+  return out;
+}
+let snapping = false;     // set while a new page is drawn straight onto the board, without flipping each flap
+// Flap speed as a percentage of full speed (100% = fastest, 10% = ten times slower).
+const pace = () => 100 / Math.min(100, Math.max(10, +S.speedPct || 85));
+function retarget(c, value, delay){
+  if (value === c.target) return;
+  c.target = value;
+  const base = c.anim ? c.anim.to : c.cur;
+  let q;
+  if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
+  else if (c.f.words === "remarks") q = path(REMARKS, base, value);
+  else if (c.f.words === "trend") q = path(TRENDS, base, value);
+  else if (c.f.words === "lamp") q = [value];
+  else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
+    const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
+    q = [];
+    for (let n = Math.min(pool.length, 1 + Math.floor(Math.random() * 3)); n > 0; n--) q.push(pool[Math.floor(Math.random() * pool.length)]);
+    q.push(value);
+  } else {
+    const pool = AIRLINE_WORDS(); q = [];
+    for (let n = 3 + Math.floor(Math.random() * 4); n > 0; n--) q.push("|" + pool[Math.floor(Math.random() * pool.length)]);
+    q.push(value);
+  }
+  if (REDUCED || snapping || c.f.panel.off) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
+  if (!c.queue.length && !c.anim) c.next = performance.now() + delay * pace();
+  c.queue = q;
+  kick();
+}
+function setChars(id, text, delay = 0){
+  const f = fields[id];
+  let s = trimTo(clean(text), f.n);
+  s = f.align === "right" ? s.padStart(f.n) : s.padEnd(f.n);
+  f.cells.forEach((c, i) => retarget(c, s[i], delay + i * 32 + Math.random() * 90));
+}
+function setWord(id, text, delay = 0){
+  const f = fields[id];
+  retarget(f.cells[0], text || "", delay + Math.random() * 60);
+}
+// Panel geometry in device pixels, worked out when a panel is shown (a hidden one has no size).
+function sizePanel(P){
+  const css = P.el.clientWidth;
+  if (!css) return false;
+  const dpr = window.devicePixelRatio || 1;
+  P.cssW = css; P.px = Math.min(3, css / P.w * dpr);
+  P.bg.width = P.fx.width = Math.round(P.w * P.px);
+  P.bg.height = P.fx.height = Math.round(P.h * P.px);
+  for (const id of P.ids) {
+    const f = fields[id];
+    f.pw = Math.round((f.kind === "chars" ? f.cw : f.wordW) * P.px);
+    f.ph = Math.round(f.ch * P.px);
+    const wear = S.imperfect ? Math.min(f.pw, f.ph) : 0;           // worn modules sit a hair out of line
+    f.cells.forEach((c, i) => {
+      c.x = Math.round((f.x + i * f.step) * P.px + c.jx * wear * .02);
+      c.y = Math.round(f.y * P.px + c.jy * wear * .028);
+    });
+  }
+  return true;
+}
+function showPanel(P){
+  if (P.off) return;
+  if (P.el.clientWidth !== P.cssW && !sizePanel(P)) return;
+  drawPanelStatic(P);
+  P.fxx.clearRect(0, 0, P.fx.width, P.fx.height);
+  for (const id of P.ids) for (const c of fields[id].cells) drawCell(c, c.anim ? .0001 : null);
+}
+function refreshPanels(force){
+  if (force) for (const P of panels) P.cssW = 0;
+  for (const P of panels) showPanel(P);
+}
+function drawPlane(g, cx, cy, size, color){
+  g.save();
+  g.translate(cx, cy); g.rotate(Math.PI / 4); g.scale(size / 100, size / 100); g.translate(-50, -50);
+  g.fillStyle = color;
+  rr(g, 45.5, 8, 9, 82, 4.5); g.fill();
+  g.beginPath(); g.moveTo(50, 34); g.lineTo(92, 56); g.lineTo(92, 63); g.lineTo(50, 52); g.lineTo(8, 63); g.lineTo(8, 56); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(50, 76); g.lineTo(67, 86); g.lineTo(67, 91); g.lineTo(50, 87); g.lineTo(33, 91); g.lineTo(33, 86); g.closePath(); g.fill();
+  g.restore();
+}
+function pictogram(g, x, y, s){
+  g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
+  drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
+}
+const shadowSprites = new Map();
+function slotShadow(w, h, blur, off){
+  const key = `${w}x${h}|${blur}|${off}`;
+  let sp = shadowSprites.get(key);
+  if (!sp) {
+    const pad = Math.ceil(blur * 2 + Math.abs(off)) + 1, cv = document.createElement("canvas");
+    cv.width = w + pad * 2; cv.height = h + pad * 2;
+    const c = cv.getContext("2d");
+    c.shadowColor = "rgba(0,0,0,.85)"; c.shadowBlur = blur; c.shadowOffsetY = off; c.fillStyle = "#000"; c.fillRect(pad, pad, w, h);
+    sp = {cv, pad}; shadowSprites.set(key, sp);
+    if (shadowSprites.size > 120) shadowSprites.delete(shadowSprites.keys().next().value);
+  }
+  return sp;
+}
+// The panel itself: a recessed channel for each row of flaps, each module casting a shadow, and the engraved labels.
+function drawPanelStatic(P){
+  const g = P.bgx;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, P.bg.width, P.bg.height);
+  g.setTransform(P.px, 0, 0, P.px, 0, 0);
+  for (const id of P.ids) {
+    const f = fields[id];
+    if (f.hidden || f.cw == null) continue;
+    const pad = Math.max(2, f.step * .11), wide = f.kind === "chars" ? (f.n - 1) * f.step + f.cw : f.wordW;
+    const x = f.x - pad, y = f.y - pad, w = wide + pad * 2, h = f.ch + pad * 2;
+    g.fillStyle = "#060607"; rr(g, x, y, w, h, pad * .8); g.fill();
+    const inset = g.createLinearGradient(0, y, 0, y + h);
+    inset.addColorStop(0, "rgba(0,0,0,.8)"); inset.addColorStop(.15, "rgba(0,0,0,0)"); inset.addColorStop(.9, "rgba(255,255,255,0)"); inset.addColorStop(1, "rgba(255,255,255,.06)");
+    g.fillStyle = inset; rr(g, x, y, w, h, pad * .8); g.fill();
+    const cells = f.kind === "chars" ? f.n : 1;
+    const sw = Math.round(((f.kind === "chars" ? f.cw : f.wordW) - 2) * P.px), sh = Math.round((f.ch - 2) * P.px);
+    const sp = slotShadow(sw, sh, Math.round(f.ch * .12 * P.px), Math.round(f.ch * .05 * P.px));
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+    for (let i = 0; i < cells; i++) g.drawImage(sp.cv, Math.round((f.x + i * f.step + 1) * P.px) - sp.pad, Math.round((f.y + 1) * P.px) - sp.pad);
+    g.restore();
+  }
+  for (const id of P.ids) { const f = fields[id]; if (f.label && !f.hidden) label(g, f, f.label[0], f.label[1], P.lab); }
+}
+function label(g, f, main, second, size){
+  const yb = f.y - Math.max(4, size * .5);
+  g.font = `600 ${size}px ${FONT}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
+  if ("letterSpacing" in g) g.letterSpacing = (size * .08).toFixed(1) + "px";
+  g.fillStyle = COL.amber; g.fillText(main.toUpperCase(), f.x, yb);
+  if (second) { const w = g.measureText(main.toUpperCase()).width; g.fillStyle = COL.labelEn; g.fillText(second.toUpperCase(), f.x + w + size * .7, yb); }
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+}
+function screw(g, x, y, r){
+  const sg = g.createRadialGradient(x - r * .35, y - r * .35, r * .1, x, y, r);
+  sg.addColorStop(0, "#8d9095"); sg.addColorStop(.6, "#45474c"); sg.addColorStop(1, "#1b1c1f");
+  g.fillStyle = sg; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  g.save(); g.translate(x, y); g.rotate((x * 7 + y * 3) % Math.PI); g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(-r * .75, -r * .14, r * 1.5, r * .28); g.restore();
+}
+/* ---------- the metal: brushed, a little worn, as a tile the page is painted with ---------- */
+let metalUrl = "";
+function metalTile(){
+  const T = 600, d = Math.min(2, window.devicePixelRatio || 1), cv = document.createElement("canvas");
+  cv.width = cv.height = Math.round(T * d);
+  const g = cv.getContext("2d");
+  g.scale(d, d);
+  g.fillStyle = METAL[1]; g.fillRect(0, 0, T, T);
+  const rnd = (seed => () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)(1234567);
+  g.lineWidth = .7;                                         // brushed grain, wrapping round the tile's edges
+  for (let i = 0; i < 700; i++) {
+    const y = 1 + rnd() * (T - 2), x = rnd() * T, len = 60 + rnd() * 380, light = rnd() < .5;
+    g.strokeStyle = light ? `rgba(255,255,255,${.012 + rnd() * .03})` : `rgba(0,0,0,${.03 + rnd() * .06})`;
+    for (const dx of [0, -T]) { g.beginPath(); g.moveTo(x + dx, y); g.lineTo(x + dx + len, y); g.stroke(); }
+  }
+  if (S.imperfect) {
+    for (let i = 0; i < 6; i++) {                           // dull polish marks
+      const x = 120 + rnd() * (T - 240), y = 120 + rnd() * (T - 240), r = 50 + rnd() * 60;
+      const pg = g.createRadialGradient(x, y, 0, x, y, r);
+      pg.addColorStop(0, `rgba(255,255,255,${.01 + rnd() * .012})`); pg.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = pg; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    for (let i = 0; i < 16; i++) {                          // fine scratches
+      const x = 40 + rnd() * (T - 80), y = 40 + rnd() * (T - 80), ang = rnd() * Math.PI * 2, len = 10 + rnd() * 30, a = .04 + rnd() * .06;
+      const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+      g.lineCap = "round";
+      g.lineWidth = .9; g.strokeStyle = `rgba(0,0,0,${a * .9})`; g.beginPath(); g.moveTo(x, y + .8); g.lineTo(ex, ey + .8); g.stroke();
+      g.lineWidth = .6; g.strokeStyle = `rgba(235,238,245,${a})`; g.beginPath(); g.moveTo(x, y); g.lineTo(ex, ey); g.stroke();
+    }
+  }
+  cv.toBlob(b => {
+    if (!b) return;
+    if (metalUrl) URL.revokeObjectURL(metalUrl);
+    metalUrl = URL.createObjectURL(b);
+    document.documentElement.style.setProperty("--metal-img", `url(${metalUrl})`);
+  });
+}
+function drawMark(){
+  const cv = $("mark"), d = window.devicePixelRatio || 1, s = 40;
+  cv.width = cv.height = Math.round(s * d);
+  const g = cv.getContext("2d");
+  g.setTransform(d, 0, 0, d, 0, 0);
+  pictogram(g, 0, 0, s);
+}
+/* ---------- sound: synthesised flap clatter, only after a click or key press ---------- */
+let actx = null, noise = null, lastClack = 0;
+function audioInit(){
+  if (!S.sound && !S.chimes) return;
+  try {
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      const len = Math.floor(actx.sampleRate * .012);
+      noise = actx.createBuffer(1, len, actx.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 6);
+    }
+    actx.resume();
+  } catch { actx = null; }
+}
+function clack(n){
+  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+  const t = actx.currentTime; if (t - lastClack < .014) return; lastClack = t;
+  const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
+  const fl = actx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1400 + Math.random() * 1800; fl.Q.value = 1;
+  const gn = actx.createGain(); gn.gain.value = Math.min(.3, .05 + n * .008);
+  src.connect(fl).connect(gn).connect(actx.destination); src.start();
+}
+
+// A soft station chime: two falling notes for special aircraft, three rising ones for favourites.
+function chime(kind){
+  if (!S.chimes || nightOn || !actx || actx.state !== "running") return;
+  const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
+  const t0 = actx.currentTime + .03, out = actx.createGain();
+  out.gain.value = .55; out.connect(actx.destination);
+  for (const [freq, dt] of notes) {
+    for (const [mult, amp] of [[1, .26], [2.01, .07], [3.02, .035], [4.2, .015]]) {
+      const o = actx.createOscillator(), g = actx.createGain(), t = t0 + dt;
+      o.type = "sine"; o.frequency.value = freq * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8 / mult);
+      o.connect(g).connect(out); o.start(t); o.stop(t + 1.9);
+    }
+  }
+}
+
+/* ---------- board styles ---------- */
+function applyTheme(){
+  const T = THEMES[S.theme] || THEMES.classic;
+  FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
+  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
+  const root = document.documentElement.style;
+  root.setProperty("--f-board", T.font); root.setProperty("--amber", T.accent); root.setProperty("--ink", T.ink);
+  root.setProperty("--label2", T.label2); root.setProperty("--metal", T.metal[1]);
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.content = T.metal[1];
+  metalTile();
+  const redraw = () => { clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); };
+  try {
+    Promise.race([Promise.all(["700 40px", "600 20px", "400 40px"].map(w => document.fonts.load(`${w} ${T.font}`))), new Promise(r => setTimeout(r, 2500))])
+      .then(redraw, redraw);
+  } catch { redraw(); }
+}
+/* ---------- reference tables ---------- */
+const AIRLINES = {
+  AUA:["OS","Austrian"],DLH:["LH","Lufthansa"],LDM:["OE","Lauda"],RYR:["FR","Ryanair"],EZY:["U2","easyJet"],EJU:["EC","easyJet"],
+  WZZ:["W6","Wizz Air"],WMT:["W4","Wizz Air"],WUK:["W9","Wizz Air"],SWR:["LX","Swiss"],EWG:["EW","Eurowings"],BAW:["BA","British Airways"],
+  AFR:["AF","Air France"],KLM:["KL","KLM"],THY:["TK","Turkish Airlines"],PGT:["PC","Pegasus"],UAE:["EK","Emirates"],QTR:["QR","Qatar Airways"],
+  ETD:["EY","Etihad"],AEE:["A3","Aegean"],LOT:["LO","LOT"],CSA:["OK","Czech Airlines"],TAP:["TP","TAP Portugal"],IBE:["IB","Iberia"],
+  VLG:["VY","Vueling"],ITY:["AZ","ITA Airways"],SAS:["SK","SAS"],FIN:["AY","Finnair"],ELY:["LY","El Al"],CTN:["OU","Croatia Airlines"],
+  ASL:["JU","Air Serbia"],ROT:["RO","Tarom"],BEL:["SN","Brussels Airlines"],TVS:["QS","Smartwings"],CFG:["DE","Condor"],TUI:["X3","TUIfly"],
+  SXS:["XQ","SunExpress"],EVA:["BR","EVA Air"],CCA:["CA","Air China"],KAL:["KE","Korean Air"],UAL:["UA","United"],DAL:["DL","Delta"],
+  AAL:["AA","American"],ACA:["AC","Air Canada"],ETH:["ET","Ethiopian"],MSR:["MS","EgyptAir"],SVA:["SV","Saudia"],FDB:["FZ","flydubai"],
+  RJA:["RJ","Royal Jordanian"],KZR:["KC","Air Astana"],BTI:["BT","airBaltic"],ENT:["E4","Enter Air"],NOZ:["DY","Norwegian"],
+  ICE:["FI","Icelandair"],CES:["MU","China Eastern"],HNA:["HU","Hainan Airlines"],SIA:["SQ","Singapore Airlines"],
+  FDX:["FX","FedEx"],UPS:["5X","UPS"],BCS:["QY","DHL"],DHK:["D0","DHL"],GEC:["LH","Lufthansa Cargo"],CLX:["CV","Cargolux"],
+  LGL:["LG","Luxair"],AHY:["J2","Azerbaijan Airlines"],TAR:["TU","Tunisair"],RAM:["AT","Royal Air Maroc"],OMA:["WY","Oman Air"],
+  GFA:["GF","Gulf Air"],KAC:["KU","Kuwait Airways"],JAF:["TB","TUI fly"],AZA:["AZ","ITA Airways"],SDM:["FV","Rossiya"]
+};
+const TYPES = {
+  A318:"Airbus A318",A319:"Airbus A319",A320:"Airbus A320",A321:"Airbus A321",A19N:"Airbus A319neo",A20N:"Airbus A320neo",A21N:"Airbus A321neo",
+  BCS1:"Airbus A220-100",BCS3:"Airbus A220-300",A332:"Airbus A330-200",A333:"Airbus A330-300",A338:"Airbus A330-800neo",A339:"Airbus A330-900neo",
+  A343:"Airbus A340-300",A346:"Airbus A340-600",A359:"Airbus A350-900",A35K:"Airbus A350-1000",A388:"Airbus A380",A306:"Airbus A300",A310:"Airbus A310",
+  B712:"Boeing 717",B733:"Boeing 737-300",B734:"Boeing 737-400",B735:"Boeing 737-500",B736:"Boeing 737-600",B737:"Boeing 737-700",B738:"Boeing 737-800",
+  B739:"Boeing 737-900",B37M:"Boeing 737 MAX 7",B38M:"Boeing 737 MAX 8",B39M:"Boeing 737 MAX 9",B3XM:"Boeing 737 MAX 10",B752:"Boeing 757-200",
+  B753:"Boeing 757-300",B762:"Boeing 767-200",B763:"Boeing 767-300",B764:"Boeing 767-400",B772:"Boeing 777-200",B77L:"Boeing 777-200LR",
+  B773:"Boeing 777-300",B77W:"Boeing 777-300ER",B778:"Boeing 777-8",B779:"Boeing 777-9",B744:"Boeing 747-400",B748:"Boeing 747-8",
+  B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E170:"Embraer E170",E75L:"Embraer E175",E75S:"Embraer E175",E190:"Embraer E190",
+  E195:"Embraer E195",E290:"Embraer E190-E2",E295:"Embraer E195-E2",E135:"Embraer ERJ-135",E145:"Embraer ERJ-145",CRJ2:"Bombardier CRJ200",
+  CRJ7:"Bombardier CRJ700",CRJ9:"Bombardier CRJ900",CRJX:"Bombardier CRJ1000",DH8D:"Dash 8 Q400",DH8C:"Dash 8-300",
+  AT43:"ATR 42",AT45:"ATR 42-500",AT46:"ATR 42-600",AT72:"ATR 72",AT75:"ATR 72-500",AT76:"ATR 72-600",F100:"Fokker 100",F70:"Fokker 70",
+  SB20:"Saab 2000",SF34:"Saab 340",C130:"C-130 Hercules",C30J:"C-130J Hercules",A400:"Airbus A400M",
+  EC35:"Airbus H135",EC45:"Airbus H145",EC30:"Airbus H130",AS50:"Airbus H125",A139:"Leonardo AW139",A169:"Leonardo AW169",
+  B06:"Bell 206",R44:"Robinson R44",C172:"Cessna 172",C182:"Cessna 182",PC12:"Pilatus PC-12",PC24:"Pilatus PC-24",
+  C25A:"Citation CJ2",C25B:"Citation CJ3",C25C:"Citation CJ4",C56X:"Citation Excel",C68A:"Citation Latitude",C700:"Citation Longitude",
+  CL35:"Challenger 350",CL60:"Challenger 650",GLF5:"Gulfstream G550",GLF6:"Gulfstream G650",GL5T:"Global 5000",GLEX:"Global Express",
+  GL7T:"Global 7500",E55P:"Phenom 300",F2TH:"Falcon 2000",F900:"Falcon 900",FA7X:"Falcon 7X",FA8X:"Falcon 8X",LJ45:"Learjet 45",
+  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",B190:"Beech 1900",
+  B741:"Boeing 747-100",B742:"Boeing 747-200",B743:"Boeing 747-300",B74S:"Boeing 747SP",B74R:"Boeing 747SR",A124:"Antonov An-124",A225:"Antonov An-225",
+  AN22:"Antonov An-22",A3ST:"Airbus Beluga",A337:"Airbus BelugaXL",CONC:"Concorde",C17:"Boeing C-17",C5M:"C-5 Galaxy",K35R:"KC-135",
+  EUFI:"Eurofighter",F16:"F-16",F35:"F-35",P3:"P-3 Orion",C295:"Airbus C295",E390:"Embraer C-390",EC55:"Airbus H155",EC75:"Airbus H175",
+  AS65:"Airbus H155 Dauphin",H160:"Airbus H160",B407:"Bell 407",R66:"Robinson R66",S76:"Sikorsky S-76",NH90:"NH90",UH1:"Bell UH-1",
+  H60:"Black Hawk",AS32:"Super Puma"
+};
+function typeName(code, desc){
+  code = (code || "").toUpperCase();
+  if (TYPES[code]) return {name: TYPES[code], sure: true};
+  if (desc) return {name: String(desc).replace(/-(\d)/, "$1"), sure: true};
+  return {name: code, sure: false};
+}
+function fmtFlight(f){ const m = String(f).toUpperCase().match(/^([A-Z0-9]{2})(\d+[A-Z]?)$/); return m ? m[1] + " " + m[2] : f; }
+function shortAirline(name){
+  let n = clean(name);
+  if (n.length > 14) n = n.replace(/\b(AIRLINES|AIRWAYS|AIR LINES|AIRLINE|INTERNATIONAL|LIMITED|LTD|GMBH|AG)\b/g, "").replace(/\s+/g, " ").trim();
+  return n;
+}
+function code3(a){ return a && a.code && a.code.length === 3 ? a.code : ""; }
+
+/* ---------- geometry ---------- */
+const COMPASS = ["N","NE","E","SE","S","SW","W","NW"];
+function geo(ac){
+  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), ky = 110.57;
+  const x = (ac.lon - S.lon) * kx, y = (ac.lat - S.lat) * ky;
+  const dist = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
+  const v = (ac.gs || 0) * 1.852 / 3600, th = (ac.track || 0) * Math.PI / 180;
+  const vx = v * Math.sin(th), vy = v * Math.cos(th), vv = vx * vx + vy * vy;
+  const tcpa = vv > 0 ? -(x * vx + y * vy) / vv : Infinity;
+  const cpa = isFinite(tcpa) ? Math.hypot(x + vx * tcpa, y + vy * tcpa) : dist;
+  return {dist, dir: COMPASS[Math.round(brg / 45) % 8], tcpa, cpa};
+}
+/* ---------- network ---------- */
+// Every request to the relay carries this page's session id, so the relay can tell the screens apart (see sayHello).
+const SID = (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(-12);
+function tagged(url){
+  const r = relay();
+  return r && String(url).startsWith(r + "/") ? url + (String(url).includes("?") ? "&" : "?") + "sid=" + SID : url;
+}
+function timedFetch(url, opts = {}, ms = 9000){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  url = tagged(url);
+  return fetch(url, {...opts, signal: ctl.signal, cache: "no-store"}).finally(() => clearTimeout(t));
+}
+function netError(e, what){
+  if (e && e.name === "AbortError") return `${what} didn't answer within 9 seconds`;
+  if (e instanceof TypeError) return relay() && what === "relay" ? "couldn't reach the relay (is serve.py still running?)" : `${what} couldn't be reached or blocked the request`;
+  return (e && e.message) || String(e);
+}
+async function fetchJSON(url, opts = {}, ms = 9000){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  url = tagged(url);
+  try {
+    const res = await fetch(url, {...opts, signal: ctl.signal, cache: "no-store"});
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+/* The position services don't allow direct browser access from other sites and turn away cloud
+   servers, so requests go through the home relay (relay/serve.py) when the board is opened from it. */
+const PROXY = window.OVERHEAD_RELAY || "";
+const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
+// Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
+const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
+// The main board (and test-api) also gets real flight numbers and routes from Flightradar24, through the home
+// relay (version 8 or newer, with an API key). Without that, everything falls back to the free sources.
+const USE_API = true;
+let apiLive = true;     // turns off when the relay says Flightradar24 isn't available (key refused, budget used up)
+const apiOn = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true && apiLive;
+const FEEDS = [
+  {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
+  {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
+];
+let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
+const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
+const POLL_MS = 10000;
+async function getAircraft(){
+  const la = S.lat.toFixed(4), lo = S.lon.toFixed(4), t0 = performance.now();
+  if (relay() && !relayLegacy) {          // the relay picks a working source itself
+    let res;
+    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}`); }
+    catch (e) { throw new Error(netError(e, "relay")); }
+    if (res.status === 404) {
+      relayLegacy = true;
+      dlog("warn", "The relay is an older version without automatic source switching. Download serve.py again to update it.");
+      return getAircraft();
+    }
+    if (!res.ok) {
+      let detail = "";
+      try { const j = await res.json(); detail = res.status === 503 ? "no position source available right now (see the relay lines)" : (j.error || ""); } catch {}
+      throw new Error(`relay answered ${res.status}${detail ? ": " + detail : ""}`);
+    }
+    const j = await res.json(), list = j.ac || j.aircraft || [];
+    const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
+    if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
+    if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
+    feedName = src; lastFreshness = fresh;
+    const rev = res.headers.get("X-Sightings-Rev");
+    if (relayV5() && rev != null && rev !== sightRev) syncSightings();
+    DIAG.polls.push({t: Date.now(), ok: true, stale: fresh.startsWith("stale"), ms: performance.now() - t0, n: list.length});
+    return list;
+  }
+  let err;
+  for (let i = 0; i < FEEDS.length; i++) {
+    const f = FEEDS[(feedIdx + i) % FEEDS.length];
+    try {
+      const j = await fetchJSON(f.url(la, lo, QUERY_NM));
+      if (f.name !== feedName && feedName) dlog("info", `Now getting positions from ${f.name}`);
+      feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name; lastFreshness = "live";
+      const list = j.ac || j.aircraft || [];
+      DIAG.polls.push({t: Date.now(), ok: true, ms: performance.now() - t0, n: list.length});
+      return list;
+    } catch (e) { err = new Error(`${f.name}: ${netError(e, f.name)}`); dlog("debug", err.message); }
+  }
+  throw err;
+}
+function baseInfo(ac){
+  const cs = (ac.flight || "").trim().toUpperCase();
+  const m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/);
+  const al = m && AIRLINES[m[1]];
+  const tn = typeName(ac.t, ac.desc);
+  return {callsign: cs, flightNo: al && al[0] ? al[0] + " " + m[2] : (cs || ac.r || (ac.hex || "").toUpperCase()),
+    airline: al ? al[1] : "", airlineCode: al ? al[0] : "", from: null, to: null, type: tn.name, typeSure: tn.sure, reg: ac.r || ""};
+}
+// Route databases go by callsign, and airlines reuse callsigns: Ryanair's RYR3EG can be listed as Newcastle to
+// Dublin while that callsign is flying something else entirely. So a listed route is only used when the plane
+// is actually somewhere along it, heading the right way.
+function routeFits(from, to, ac){
+  if (!from || !to || from.lat == null || to.lat == null || ac.lat == null || ac.lon == null) return true;
+  const rad = Math.PI / 180, R = 6371, p = {lat: ac.lat, lon: ac.lon};
+  const ang = (a, b) => Math.acos(Math.min(1, Math.max(-1, Math.sin(a.lat * rad) * Math.sin(b.lat * rad) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lon - a.lon) * rad))));
+  const brg = (a, b) => Math.atan2(Math.sin((b.lon - a.lon) * rad) * Math.cos(b.lat * rad),
+    Math.cos(a.lat * rad) * Math.sin(b.lat * rad) - Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lon - a.lon) * rad));
+  const len = ang(from, to) * R, d13 = ang(from, p), toDest = ang(p, to) * R;
+  if (Math.min(d13 * R, toDest) < 80) return true;                       // climbing out or coming in
+  const off = brg(from, p) - brg(from, to);
+  const xt = Math.asin(Math.sin(d13) * Math.sin(off)) * R;                // distance from the straight route
+  const at = Math.acos(Math.min(1, Math.max(-1, Math.cos(d13) / Math.cos(xt / R)))) * R * (Math.cos(off) < 0 ? -1 : 1);
+  if (Math.abs(xt) > Math.max(120, len * .3) || at < -100 || at > len + 100) return false;
+  if (ac.track != null) {                                                 // and flying towards the destination
+    const want = (brg(p, to) / rad + 360) % 360, diff = Math.abs(((ac.track - want + 540) % 360) - 180);
+    if (diff > 100) return false;
+  }
+  return true;
+}
+async function routeLookup(cs, ac){
+  try {
+    const j = await fetchJSON(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(cs)}`);
+    const fr = j && j.response && j.response.flightroute;
+    if (fr && fr.origin && fr.destination) {
+      const out = {
+        from: {code: fr.origin.iata_code || fr.origin.icao_code, city: fr.origin.municipality || fr.origin.name, lat: fr.origin.latitude, lon: fr.origin.longitude},
+        to: {code: fr.destination.iata_code || fr.destination.icao_code, city: fr.destination.municipality || fr.destination.name, lat: fr.destination.latitude, lon: fr.destination.longitude}
+      };
+      if (!routeFits(out.from, out.to, ac)) {
+        dlog("info", `Ignoring the listed route ${out.from.code} → ${out.to.code} for ${cs}: the plane is nowhere near it (the callsign is used for other flights too)`);
+      } else {
+        if (fr.callsign_iata) out.flightNo = fmtFlight(fr.callsign_iata);
+        if (fr.airline && fr.airline.name) out.airline = fr.airline.name;
+        if (fr.airline && fr.airline.iata) out.airlineCode = fr.airline.iata;
+        dlog("debug", `Route for ${cs}: ${out.from.code} → ${out.to.code} (adsbdb)`);
+        return out;
+      }
+    }
+  } catch (e) {
+    if (!/HTTP 404/.test(e.message)) dlog("warn", `adsbdb route lookup for ${cs} failed: ${netError(e, "adsbdb")}`);
+  }
+  try {
+    const j = await fetchJSON(relay() ? `${relay()}/routeset` : "https://api.adsb.lol/api/0/routeset", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({planes: [{callsign: cs, lat: ac.lat, lng: ac.lon}]})
+    });
+    const r = Array.isArray(j) ? j[0] : null, ap = r && r._airports;
+    const fits = ap && ap.length >= 2 && routeFits(ap[0], ap[ap.length - 1], ac);
+    if (ap && ap.length >= 2 && r.plausible !== false && r.plausible !== 0 && fits) {
+      const a = ap[0], b = ap[ap.length - 1];
+      dlog("debug", `Route for ${cs}: ${a.iata || a.icao} → ${b.iata || b.icao} (adsb.lol)`);
+      return {from: {code: a.iata || a.icao, city: a.location || a.name}, to: {code: b.iata || b.icao, city: b.location || b.name}};
+    }
+  } catch (e) { dlog("debug", `adsb.lol route lookup for ${cs} failed: ${netError(e, "adsb.lol")}`); }
+  dlog("debug", `No route listed for ${cs}`);
+  return null;
+}
+async function aircraftLookup(hex){
+  try {
+    const j = await fetchJSON(`https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(hex)}`);
+    const a = j && j.response && j.response.aircraft;
+    if (!a) return null;
+    const tn = typeName(a.icao_type);
+    if (tn.sure) return tn.name;
+    return [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" ");
+  } catch { return null; }
+}
+/* Flightradar24 through the relay: the relay queues the lookup (10 a minute at most) and answers from its cache. */
+function apiLookup(cs, hex, info, tries = 0){
+  if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return;
+  fetchJSON(`${relay()}/flightinfo?cs=${encodeURIComponent(cs)}&hex=${encodeURIComponent(hex)}`, {}, 6000).then(d => {
+    if (d.status === "off") { if (apiLive) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); apiLive = false; updateFooter(); return; }
+    if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); return; }
+    if (d.status !== "ok") return;
+    const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
+    if (d.flight) Object.assign(info, {flightNo: fmtFlight(d.flight)}, marketedBy(d.flight));
+    if (d.from && d.to) { info.from = d.from; info.to = d.to; }
+    Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator, takeoff: d.takeoff || ""});
+    const after = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
+    dlog("debug", `Flightradar24: ${cs} is ${info.flightNo}, ${d.from ? d.from.code : "?"} → ${d.to ? d.to.code : "?"}${before !== after ? ` (free sources said ${before})` : ""}`);
+    infoChanged(info);
+  }).catch(() => {});
+}
+function infoChanged(info){
+  if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }
+}
+const infoCache = new Map();
+function enrich(ac){
+  const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
+  if (infoCache.has(key)) return infoCache.get(key);
+  const info = baseInfo(ac);
+  const p = (async () => {
+    if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); return info; }
+    const jobs = [];
+    if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) Object.assign(info, r); }));
+    if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) info.type = t; }));
+    await Promise.all(jobs);
+    if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
+    return info;
+  })();
+  p.info = info;
+  infoCache.set(key, p);
+  if (infoCache.size > 300) infoCache.delete(infoCache.keys().next().value);
+  return p;
+}
+/* ---------- demo traffic (clearly sample data) ---------- */
+const DEMO = [
+  {hex:"demo01", flight:"AUA123", t:"A320", r:"OE-LBN", alt:5600, rate:1800, track:300, off:.7,
+   info:{flightNo:"OS 123", airline:"Austrian", from:{code:"VIE",city:"Vienna"}, to:{code:"FRA",city:"Frankfurt am Main"}}},
+  {hex:"demo02", flight:"UAE127", t:"A388", r:"A6-EVB", alt:3900, rate:-900, track:115, off:-.4,
+   info:{flightNo:"EK 127", airline:"Emirates", from:{code:"DXB",city:"Dubai"}, to:{code:"VIE",city:"Vienna"}}},
+  {hex:"demo03", flight:"THY1885", t:"A321", r:"TC-JSL", alt:4400, rate:-850, track:150, off:1.1,
+   info:{flightNo:"TK 1885", airline:"Turkish Airlines", from:{code:"IST",city:"Istanbul"}, to:{code:"VIE",city:"Vienna"}}},
+  {hex:"demo04", flight:"OEXEN", t:"EC35", r:"OE-XEN", alt:1300, rate:0, track:20, off:.3,
+   info:{flightNo:"OE-XEN", airline:"Christophorus"}},
+  {hex:"demo05", flight:"RYR8RT", t:"B38M", r:"9H-VUA", alt:11800, rate:2200, track:250, off:-1.4,
+   info:{flightNo:"FR 2381", airline:"Ryanair", from:{code:"VIE",city:"Vienna"}, to:{code:"STN",city:"London"}}}
+];
+const DEMO_CYCLE = 60000, DEMO_FLY = 40000, DEMO_KMS = .25;
+function demoAircraft(){
+  const T = Date.now(), d = DEMO[Math.floor(T / DEMO_CYCLE) % 5], t = T % DEMO_CYCLE;   // the 5 flying samples; the 6th is the distant extra
+  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180);
+  const out = [];
+  if (t <= DEMO_FLY) {
+    const s = -6 + DEMO_KMS * t / 1000, th = d.track * Math.PI / 180;
+    const x = s * Math.sin(th) + d.off * Math.cos(th), y = s * Math.cos(th) - d.off * Math.sin(th);
+    out.push({hex: d.hex, flight: d.flight, t: d.t, r: d.r, lat: S.lat + y / 110.57, lon: S.lon + x / kx,
+      alt_baro: d.alt + Math.round(d.rate * t / 60000), baro_rate: d.rate, gs: DEMO_KMS * 3600 / 1.852, track: d.track});
+  }
+  out.push({hex:"demo99", flight:"LOT615", t:"E195", r:"SP-LNI", lat: S.lat + .16, lon: S.lon - .21, alt_baro: 34000, gs: 450, track: 200});
+  for (let i = 0; i < 21; i++) out.push({hex: "fill" + i, lat: S.lat + .3, lon: S.lon + .3, alt_baro: 36000});
+  return out;
+}
+DEMO.push({hex:"demo99", info:{flightNo:"LO 615", airline:"LOT", from:{code:"WAW",city:"Warsaw"}, to:{code:"ZAG",city:"Zagreb"}}});
+function demoLog(){
+  const ago = m => hhmm(new Date(Date.now() - m * 60000));
+  const e = (m, flight, airline, f, fc, t, tc, type, typeCode, x) => ({time: ago(m), ts: Date.now() - m * 60000, flight, airline,
+    airlineCode: flight.slice(0, 2), from:{code:f, city:fc}, to:{code:t, city:tc}, type, typeCode, sample: true, ...x});
+  return [
+    e(7, "OS 89", "Austrian", "VIE", "Vienna", "JFK", "New York", "Boeing 777-200", "B772", {minDist: 1.2, altAtMin: 4100, maxSpeed: 230}),
+    e(16, "LH 1239", "Lufthansa", "FRA", "Frankfurt", "VIE", "Vienna", "Airbus A321neo", "A21N", {minDist: 6.4, altAtMin: 5200, maxSpeed: 250}),
+    e(24, "QR 185", "Qatar Airways", "DOH", "Doha", "VIE", "Vienna", "Boeing 787-8", "B788", {newType: true, minDist: 4.1, altAtMin: 3800, maxSpeed: 210}),
+    e(31, "W6 4307", "Wizz Air", "VIE", "Vienna", "TLV", "Tel Aviv", "Airbus A321neo", "A21N", {minDist: 9.8, altAtMin: 9100, maxSpeed: 330}),
+    e(43, "LO 381", "LOT", "WAW", "Warsaw", "LJU", "Ljubljana", "Embraer E175", "E75L", {minDist: 12.5, altAtMin: 33000, maxSpeed: 455}),
+    e(52, "OS 112", "Austrian", "DUS", "Duesseldorf", "VIE", "Vienna", "Embraer E195", "E195", {minDist: 2.6, altAtMin: 3300, maxSpeed: 190}),
+    e(66, "FR 1029", "Ryanair", "VIE", "Vienna", "BCN", "Barcelona", "Boeing 737 MAX 8", "B38M", {minDist: 7.7, altAtMin: 7400, maxSpeed: 300}),
+    e(81, "EK 125", "Emirates", "DXB", "Dubai", "VIE", "Vienna", "Boeing 777-300ER", "B77W", {minDist: 5.2, altAtMin: 4600, maxSpeed: 220})
+  ];
+}
+
+/* ---------- Spotted today: the relay records every sighting; the app mirrors its list ---------- */
+const DAY_START_H = 3;      // "today" runs from 03:00 to 03:00, so late flights count to the evening they belong to
+function boardDay(){ const d = new Date(Date.now() - DAY_START_H * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function todayKey(){ return `od.log.${boardDay()}`; }
+function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
+function saveLog(){ if (S.demo) return; try { localStorage.setItem(todayKey(), JSON.stringify(spotted)); } catch {} }
+const SAME_PASS_MS = 45 * 60000;   // the same aircraft within 45 minutes counts as one sighting
+function entryTime(e){
+  if (e.ts) return e.ts;
+  const [hh, mm] = String(e.time || "").split(":").map(Number), d = new Date();
+  d.setHours(hh || 0, mm || 0, 0, 0);
+  return d.getTime();
+}
+function dedupe(list){
+  const kept = [];
+  for (const e of list.slice().reverse()) {        // oldest first, so the first sighting of a pass wins
+    if (e.hex && kept.some(k => k.hex === e.hex && Math.abs(entryTime(e) - entryTime(k)) < SAME_PASS_MS)) continue;
+    kept.push(e);
+  }
+  return kept.reverse();
+}
+let spotted = [], logDay = todayKey();
+function rollDay(){
+  if (logDay === todayKey()) return;
+  logDay = todayKey();
+  if (relayV5()) { sightRev = null; fullDay = {at: 0, rev: null, date: null, list: null}; syncSightings(); return; }
+  spotted = S.demo ? demoLog() : []; renderLists();
+}
+/* With relay version 5 the relay records every sighting; the board just mirrors its list. */
+let sightRev = null, sightBusy = false, relayStats = null, sightDay = null;   // relayStats: Today in numbers over the whole day
+function fromRelay(r){
+  const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
+  const tn = typeName(r.typeCode, r.desc);
+  const dbType = [String(r.manufacturer || "").split(" ")[0], r.aircraftType].filter(Boolean).join(" ");
+  return {id: r.id, time: r.time, ts: r.ts, hex: r.hex, callsign: cs, reg: r.reg || "",
+    flight: r.flightIata ? fmtFlight(r.flightIata) : al && al[0] ? al[0] + " " + m[2] : (cs || r.reg || String(r.hex || "").toUpperCase()),
+    airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
+    from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
+    minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
+    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg,
+    photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
+    fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
+}
+// Flightradar24 gives the flight number the flight is sold under; show that airline (Lauda flies many Ryanair flights).
+function marketedBy(flight){
+  const m = /^([A-Z0-9]{2})\d/.exec(flight || "");
+  if (!m) return {};
+  const known = Object.values(AIRLINES).find(a => a[0] === m[1]);
+  return known ? {airlineCode: m[1], airline: known[1]} : {airlineCode: m[1]};
+}
+async function syncSightings(){
+  if (sightBusy || !relayV5()) return;
+  sightBusy = true;
+  try {
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 8000);
+    if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
+    const first = sightRev === null;
+    spotted = (j.entries || []).map(fromRelay);
+    relayStats = j.stats || null;
+    sightRev = String(j.rev); sightDay = j.date || null;
+    if (first) dlog("info", `Spotted today comes from the relay (${spotted.length} so far)`);
+    renderLists(); updateFooter();
+  } catch (e) { dlog("warn", `Couldn't read Spotted today from the relay: ${netError(e, "relay")}`); }
+  finally { sightBusy = false; }
+}
+// The regular sync has the newest 400; the Spotted today tab asks the relay for the whole day.
+let fullDay = {at: 0, rev: null, date: null, list: null};
+async function loadFullDay(){
+  const now = Date.now();
+  if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
+  fullDay.busy = true; fullDay.at = now;
+  try {
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 20000);
+    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
+    if (j.stats) relayStats = j.stats;
+    renderToday();
+  } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
+  finally { fullDay.busy = false; }
+}
+function dayList(){
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return spotted;
+  const ids = new Set(spotted.map(e => e.id));
+  return spotted.concat(fullDay.list.filter(e => !ids.has(e.id)));
+}
+/* ---------- special aircraft and favourites ---------- */
+const SPECIAL_BIG = new Set(["EMERGENCY", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "SPECIAL"]);
+function emergencyOf(ac){
+  const sq = String(ac.squawk || "");
+  if (["7500", "7600", "7700"].includes(sq)) return sq;
+  return ac.emergency && ac.emergency !== "none" ? String(ac.emergency) : "";
+}
+function specialOf(x){
+  if (x.emergency) return "EMERGENCY";
+  const t = SPECIAL_TYPES[String(x.typeCode || "").toUpperCase()];
+  if (t && t !== "MILITARY" && t !== "HELICOPTER") return t;
+  if (x.interesting) return "SPECIAL";
+  if (t === "MILITARY" || x.military) return "MILITARY";
+  return t || "";
+}
+let favCache = {src: null, list: []};
+function favList(){
+  if (favCache.src !== S.favs) favCache = {src: S.favs, list: String(S.favs || "").split(/[,;\n]+/).map(clean).filter(Boolean)};
+  return favCache.list;
+}
+function isFav(x){
+  const toks = favList();
+  if (!toks.length) return false;
+  const sq = v => clean(v).replace(/[\s-]/g, "");
+  const exact = new Set([x.airlineCode, String(x.callsign || "").slice(0, 3), x.typeCode, x.reg, x.flight, x.callsign].filter(Boolean).map(sq));
+  const names = " " + [clean(x.airline), clean(x.type)].join(" ");
+  return toks.some(t => exact.has(sq(t)) || (t.length >= 3 && names.includes(" " + t)));
+}
+// The most interesting thing about a plane, if anything: shown in the remarks instead of the route type.
+function badgeFor(x){
+  const sp = specialOf(x);
+  if (sp === "EMERGENCY") return sp;
+  if (x.divertedTo) return "DIVERTED";                    // from Flightradar24
+  if (SPECIAL_BIG.has(sp)) return sp;
+  if (x.newType) return "NEW TYPE";
+  if (x.newAirline) return "NEW AIRLINE";
+  if (isFav(x)) return "FAVOURITE";
+  return sp || categoryBadge(x);
+}
+// Flightradar24's flight categories: Passenger, Cargo, Business_jets, General_aviation, Military_and_government, Helicopters...
+function categoryBadge(x){
+  const c = String(x.category || "");
+  return /cargo/i.test(c) ? "CARGO" : /business/i.test(c) ? "BIZJET" : /general.aviation|private/i.test(c) ? "PRIVATE"
+    : /military|government/i.test(c) ? "MILITARY" : /helicopter/i.test(c) ? "HELICOPTER" : "";
+}
+function liveFacts(ac, info){
+  info = info || enrich(ac).info;
+  const e = spotted.find(x => x.hex === ac.hex);
+  return {typeCode: String(ac.t || (e && e.typeCode) || "").toUpperCase(), military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2),
+    emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline),
+    category: info.category || (e && e.category) || "", divertedTo: info.divertedTo || (e && e.divertedTo) || null,
+    airline: info.airline, airlineCode: airlineCodeOf(info), callsign: String(ac.flight || "").trim().toUpperCase(),
+    flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
+}
+const chimed = new Map();       // hex -> when its chime played, once per pass
+function alertKind(o){
+  const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
+  if (sp === "EMERGENCY") return "emergency";
+  if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return "special";
+  return favList().length && isFav(liveFacts(ac)) ? "fav" : null;
+}
+function checkChimes(ok, R){
+  const now = Date.now();
+  for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
+  let kind = null;
+  for (const o of ok) {
+    if (o.dist > R || chimed.has(o.ac.hex)) continue;
+    const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
+    let k = sp === "EMERGENCY" ? "emergency" : SPECIAL_BIG.has(sp) || sp === "MILITARY" ? "special" : null;
+    const x = k || favList().length ? liveFacts(ac) : null;   // favourites need the airline, so only look it up when there are any
+    if (!k && x && isFav(x)) k = "fav";
+    if (!k) continue;
+    chimed.set(o.ac.hex, now);
+    dlog("info", `${x.flight || o.ac.hex} is ${k === "fav" ? "a favourite" : sp === "EMERGENCY" ? "squawking emergency " + x.emergency : sp.toLowerCase()} (${o.dist.toFixed(1)} km away)`);
+    kind = kind || k;
+  }
+  if (kind) chime(kind);
+}
+
+function remarkFor(e){
+  const badge = badgeFor(e);
+  if (badge) return badge;
+  if (e.minDist != null && e.minDist <= overKm()) return "OVERHEAD";
+  const home = (S.home || "").toUpperCase(), f = e.from && e.from.code, t = e.to && e.to.code;
+  if (home && t === home) return "ARRIVING";
+  if (home && f === home) return "DEPARTING";
+  return f && t ? "OVERFLIGHT" : "";
+}
+function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg}); }
+/* ---------- tracking ---------- */
+let feat = null, nearbyCount = null, failures = 0, lastOk = 0, wasOffline = false;
+const OFFLINE_AFTER = 60000;
+const isOffline = () => !S.demo && (lastOk ? Date.now() - lastOk > OFFLINE_AFTER : failures >= 3);
+const planeName = (h, ac) => (h && h.info && h.info.flightNo) || (ac && (ac.flight || "").trim()) || (h && h.hex) || "?";
+const HOLD = () => S.demo ? 8000 : 25000;
+function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
+function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
+function countdown(sec){
+  const t = Math.max(5, Math.round(sec / 5) * 5);
+  return t < 60 ? `IN ${t} SEC` : `IN ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+}
+const overKm = () => Math.min(+S.overKm || 3, +S.radiusKm || 15);
+function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " KM " + o.dir; }
+function setFeat(o, mode, alert = false){
+  const now = Date.now();
+  if (!feat || feat.hex !== o.ac.hex) {
+    const p = enrich(o.ac);
+    const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
+    p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
+  }
+  if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km`);
+  feat.o = o; feat.mode = mode;
+  if (mode === "over" || mode === "soon") feat.lastSeen = now;
+  if (alert && !feat.alert) {
+    feat.alert = true;
+    dlog("info", `${planeName(feat, o.ac)} rang the bell`);
+    if (tab !== "now") pingNow(true);
+  } else if (!alert) feat.alert = false;
+}
+/* Airtime. Planes that hang around (a police helicopter over an incident, a circling light aircraft) get at most
+   a few minutes an hour on the top half while other planes are around. Airliners passing over are never cut short:
+   a whole pass, from Inbound to Passed, takes less than six minutes. */
+const airtime = new Map();        // hex -> [[when, ms on the top half], ...] over the last hour
+const restLogged = new Map();     // hex -> when "giving other planes a turn" was last logged
+let airTick = 0;
+const SLOW_KT = 140, NORMAL_PASS_MS = 6 * 60000;
+function airUsed(hex, now){
+  const a = airtime.get(hex);
+  if (!a) return 0;
+  while (a.length && now - a[0][0] > 3600e3) a.shift();
+  if (!a.length) { airtime.delete(hex); return 0; }
+  return a.reduce((n, x) => n + x[1], 0);
+}
+function noteAirtime(now){
+  const dt = Math.min(now - airTick, 30000);
+  airTick = now;
+  if (!feat || !(dt > 0)) return;
+  let a = airtime.get(feat.hex);
+  if (!a) airtime.set(feat.hex, a = []);
+  a.push([now, dt]);
+}
+const hangsAround = ac => SPECIAL_TYPES[String(ac.t || "").toUpperCase()] === "HELICOPTER" || ac.category === "A7" || (typeof ac.gs === "number" && ac.gs < SLOW_KT);
+function restingPlanes(ok, R, now){
+  const cap = (+S.airtimeMin || 0) * 60000, out = new Set();
+  if (!cap) return out;
+  for (const o of ok) {
+    const used = airUsed(o.ac.hex, now);
+    if (used >= cap && (hangsAround(o.ac) || used >= Math.max(cap, NORMAL_PASS_MS))) out.add(o.ac.hex);
+  }
+  if (!out.size || !ok.some(o => o.dist <= R && !out.has(o.ac.hex))) return new Set();   // nobody else to show: keep it
+  for (const h of out) {
+    if (now - (restLogged.get(h) || 0) < 10 * 60000) continue;
+    restLogged.set(h, now);
+    const o = ok.find(x => x.ac.hex === h);
+    dlog("info", `${planeName(feat && feat.hex === h ? feat : null, o.ac)} has been on the board for ${Math.round(airUsed(h, now) / 60000)} min in the last hour; giving other planes a turn`);
+  }
+  return out;
+}
+const recent = new Map();        // hex -> last time and place each aircraft was seen
+const MISSING_GRACE_MS = 30000;
+let emptyStreak = 0, lastCount = 0;
+function process(list){
+  const now = Date.now(), R = +S.radiusKm || 15, all = [];
+  for (const ac of list) {
+    if (ac.lat == null || ac.lon == null || ac.alt_baro === "ground") continue;
+    const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
+    all.push({ac, alt, ...geo(ac)});
+  }
+  // A source that suddenly reports an empty sky is almost always a glitch: skip a couple of those.
+  if (!all.length && lastCount > 3 && ++emptyStreak < 3) {
+    dlog("warn", `${feedName || "The source"} reported no aircraft at all; ignoring this update`);
+    return;
+  }
+  if (all.length) emptyStreak = 0;
+  lastCount = all.length;
+  nearbyCount = all.length;
+  for (const o of all) {
+    let rate = typeof o.ac.baro_rate === "number" ? o.ac.baro_rate : typeof o.ac.geom_rate === "number" ? o.ac.geom_rate : null;
+    const prev = recent.get(o.ac.hex);
+    if (rate == null && prev && prev.o.alt != null && o.alt != null && now - prev.t > 4000) rate = (o.alt - prev.o.alt) / ((now - prev.t) / 60000);
+    o.rate = rate;
+    recent.set(o.ac.hex, {o, t: now});
+  }
+  for (const [hex, r] of recent) if (now - r.t > 120000) recent.delete(hex);
+  // Sources differ slightly in coverage, so the plane on the board can be missing from one update.
+  // Keep showing it from its last position for a short while instead of switching away and back.
+  if (feat && !all.some(o => o.ac.hex === feat.hex)) {
+    const r = recent.get(feat.hex);
+    if (r && now - r.t < MISSING_GRACE_MS) {
+      all.push(r.o);
+      if (!feat.missing) dlog("debug", `${planeName(feat)} missing from this update (${feedName}); keeping it on the board`);
+      feat.missing = true;
+    }
+  } else if (feat) feat.missing = false;
+  const ok = all.filter(o => o.alt == null || o.alt <= S.maxAltFt);
+  noteAirtime(now);
+  const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
+  DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
+  radarTrack(all, now);
+  if (tab === "radar") renderRadarList();
+  // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
+  const OVK = overKm();
+  for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
+  const rest = restingPlanes(ok, R, now), cand = rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok;
+  const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
+  const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
+  const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
+  // A plane that rings the bell (emergency, special, military, favourite) takes the board while it is in the radius.
+  const alerts = cand.filter(o => o.dist <= R && alertKind(o)).sort((a, b) => a.dist - b.dist);
+  const modeOf = o => o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.tcpa > 0 ? "by" : "away";
+  let pick = null, mode = null, alert = false;
+  if (alerts.length) { pick = mine(alerts) || alerts[0]; mode = modeOf(pick); alert = true; }
+  else if (mine(over)) { pick = mine(over); mode = "over"; }
+  else if (over.length) { pick = over[0]; mode = "over"; }
+  else if (mine(soon)) { pick = mine(soon); mode = "soon"; }
+  else if (soon.length) { pick = soon[0]; mode = "soon"; }
+
+  if (pick) setFeat(pick, mode, alert);
+  else if (feat && !rest.has(feat.hex) && ["over", "soon", "passed"].includes(feat.mode) && now - feat.lastSeen < HOLD()) {
+    const still = all.find(o => o.ac.hex === feat.hex);
+    if (still) feat.o = still;
+    if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
+    feat.mode = "passed";
+  } else {
+    // Nothing overhead or on its way: show the most relevant plane in the radius, preferring ones coming closer.
+    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && cand.find(o => o.ac.hex === feat.hex);
+    const coming = (a, b) => (a.tcpa > 0 ? 0 : 1) - (b.tcpa > 0 ? 0 : 1) || a.dist - b.dist;
+    const next = keep || cand.filter(o => o.dist <= R).sort(coming)[0] || cand.slice().sort((a, b) => a.dist - b.dist)[0];
+    if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
+    else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
+  }
+  checkChimes(ok, R);
+  renderFeatured();
+  if (feat) lookupDetails(feat.hex);
+  renderAircraftInfo();
+}
+/* ---------- flight times and delays ----------
+   Vienna Airport publishes its arrivals and departures with planned and expected times; the home relay (version
+   11 or newer) reads them, so flights to and from Vienna show their times. Flightradar24 adds the take-off time
+   of any flight on this board. Other flights show what is known, often nothing. */
+const timesCache = new Map();          // flight number -> {t, d}: the relay's answer, asked again after two minutes
+function timesFor(info){
+  const fn = info && info.flightNo;
+  if (!fn || !/^[A-Z0-9]{2} \d/.test(fn) || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 11) return null;
+  const now = Date.now();
+  let h = timesCache.get(fn);
+  if (!h) { h = {t: 0, d: null, busy: false}; timesCache.set(fn, h); if (timesCache.size > 200) timesCache.delete(timesCache.keys().next().value); }
+  if (!h.busy && now - h.t > 120000) {
+    h.busy = true; h.t = now;
+    fetchJSON(`${relay()}/times?fn=${encodeURIComponent(fn)}&from=${code3(info.from)}&to=${code3(info.to)}`, {}, 8000)
+      .then(d => {
+        h.d = d;
+        if (d.status === "pending") h.t = now - 100000;          // the relay is still reading the lists: ask again soon
+        else if (d.status === "ok") dlog("debug", `Times for ${fn}: ${d.kind === "arr" ? "arrives" : "departed"} ${hhmm(new Date(d.actual || d.sched))}, planned ${d.sched ? hhmm(new Date(d.sched)) : "?"} (Vienna Airport: ${d.text || d.code})`);
+        if (feat && feat.info && feat.info.flightNo === fn) renderTimes();
+      })
+      .catch(() => {}).finally(() => { h.busy = false; });
+  }
+  return h.d && h.d.status === "ok" ? h.d : null;
+}
+function utcMs(v){
+  if (!v) return null;
+  const t = Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(v) ? v : v + "Z");       // Flightradar24's times are UTC
+  return isFinite(t) ? t : null;
+}
+function demoTimes(hex){                  // demo mode: believable made-up times
+  const n = parseInt(String(hex).slice(-4), 16) || 0, now = Date.now();
+  return {dep: now - (25 + n % 90) * 60000, arr: now + (8 + n % 50) * 60000, delay: [0, 3, 12, 27, -6, 0, 45, 8][n % 8]};
+}
+// No arrival time from the airport: estimate one from how far the destination is, how fast the plane is going (at
+// least cruising speed while it's far out) and a few minutes to come down and land. Small changes are ignored so the
+// flaps don't flicker between two minutes.
+function gcKm(la1, lo1, la2, lo2){
+  const r = Math.PI / 180, a = Math.sin((la2 - la1) * r / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin((lo2 - lo1) * r / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+function estArrival(info, o){
+  const to = info && info.to;
+  if (!to || to.lat == null || to.lon == null || !o || o.ac.lat == null) return null;
+  const km = gcKm(o.ac.lat, o.ac.lon, +to.lat, +to.lon), gs = (o.ac.gs || 0) * 1.852;
+  const v = km > 300 ? Math.max(gs, 780) : Math.max(gs, 420);
+  let eta = Date.now() + km / v * 3600e3 + (km > 60 ? 10 : 4) * 60000;
+  if (feat.eta && feat.etaTo === to.code && Math.abs(feat.eta - eta) < 150000) eta = feat.eta;
+  feat.eta = eta; feat.etaTo = to.code;
+  return eta;
+}
+function renderTimes(){
+  if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
+  const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
+  let dep = utcMs(info.takeoff), arr = null;
+  if (S.demo) ({dep, arr} = demoTimes(feat.hex));
+  else {
+    const t = timesFor(info);
+    if (t) {
+      if (t.kind === "dep") dep = dep || t.actual || t.sched;
+      else arr = t.actual || t.sched;
+    }
+  }
+  if (!arr) arr = estArrival(info, feat.o);
+  setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
+  setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
+  const mins = dep ? Math.floor((now - dep) / 60000) : -1;
+  setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
+}
+
+/* ---------- what goes on the board ---------- */
+const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY"};
+function renderFeatured(){
+  const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
+  if (!feat) {
+    const offline = isOffline();
+    ids.forEach(id => setChars(id, ""));
+    setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
+    renderTimes();
+    return;
+  }
+  const o = feat.o, ac = o.ac, info = feat.info || baseInfo(ac);
+  setChars("flight", info.flightNo);
+  const aCode = airlineCodeOf(info), aName = trimTo(shortAirline(info.airline), 18);
+  setWord("airline", (aCode || "-") + "|" + aName);
+  setWord("remarks", featRemark());
+  setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
+  setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
+  setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
+  const now = Date.now();
+  if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
+    const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
+    feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
+      feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
+    feat.liveAt = now; feat.liveMode = feat.mode;
+  }
+  setChars("alt", feat.live[0], 380);
+  setChars("speed", feat.live[1], 400);
+  setChars("pos", feat.live[2], 420);
+  setWord("trend", feat.live[3] || "", 390);
+  renderTimes();
+}
+// Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
+function featRemark(){
+  const mode = MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
+}
+const acDetails = new Map();   // hex -> details, or null while looking up / not found
+function detailsOf(hex){
+  if (!hex) return null;
+  const d = acDetails.get(hex);
+  if (d) return d;
+  const e = spotted.find(x => x.hex === hex && (x.photo || x.owner));
+  return e ? {photo: e.photo, owner: e.owner, country: e.ownerCountry, type: e.aircraftType ? [String(e.manufacturer || "").split(" ")[0], e.aircraftType].filter(Boolean).join(" ") : "", reg: e.reg} : null;
+}
+function lookupDetails(hex){
+  if (!hex || acDetails.has(hex) || S.demo) return;
+  acDetails.set(hex, null);
+  fetchJSON(`https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(hex)}`).then(j => {
+    const a = j && j.response && j.response.aircraft;
+    if (!a) return;
+    acDetails.set(hex, {photo: a.url_photo || "", owner: a.registered_owner || "", country: a.registered_owner_country_name || "",
+      type: [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" "), reg: a.registration || ""});
+    if (feat && feat.hex === hex) renderAircraftInfo();
+  }).catch(() => {});
+}
+function legendGroups(){
+  const home = (S.home || "").toUpperCase() || "your home airport", OVK = overKm();
+  return [
+    ["Status on the board", [
+      ["OVERHEAD", `Directly above you, within ${OVK} km (in the lists: it came that close)`],
+      ["INBOUND", "On course to pass overhead within three minutes"],
+      ["FLYING BY", "Getting closer, but won't pass overhead"],
+      ["OUTBOUND", "Moving away"],
+      ["PASSED", "Just passed overhead"],
+      ["NO TRAFFIC", "No planes around right now"],
+      ["OFFLINE", "No flight data for over a minute"]]],
+    ["Route", [
+      ["ARRIVING", `Flying to ${home}`],
+      ["DEPARTING", `Took off from ${home}`],
+      ["OVERFLIGHT", `Passing through, not to or from ${home}`]]],
+    ["Special (lamp lit)", [
+      ["EMERGENCY", "Squawking an emergency code: 7500, 7600 or 7700"],
+      ["DIVERTED", "Landing somewhere other than planned (Flightradar24)"],
+      ["SUPERJUMBO", "Airbus A380"],
+      ["JUMBO", "Boeing 747"],
+      ["BELUGA", "Airbus Beluga"],
+      ["ANTONOV", "Antonov An-124, An-225 or An-22"],
+      ["CONCORDE", "Concorde"],
+      ["SPECIAL", "Rare, unusual or government aircraft"],
+      ["NEW TYPE", "First time this aircraft type is in the logbook"],
+      ["NEW AIRLINE", "First time this airline is in the logbook"],
+      ["FAVOURITE", "Matches one of your favourites in Settings"],
+      ["MILITARY", "Military aircraft"],
+      ["HELICOPTER", "Helicopter"],
+      ["CARGO", "Cargo flight (Flightradar24)"],
+      ["BIZJET", "Business jet (Flightradar24)"],
+      ["PRIVATE", "Private or light aircraft (Flightradar24)"]]]]
+    .map(([h, items]) => [h, items.filter(([r]) => REMARKS.includes(r))]);
+}
+const fmtDay = ts => ts ? new Date(ts).toLocaleDateString("en-GB", {day: "numeric", month: "short"}) : "";
+const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
+function demoLogbook(){
+  const now = Date.now(), d = n => now - n * 86400e3, t = (count, first, name) => ({count, first: d(first), name: name || ""});
+  return {sample: true, since: new Date(d(41)).toISOString().slice(0, 10), sightings: 2314, regsCount: 1187, learningUntil: d(40),
+    types: {A320: t(412, 41), B738: t(301, 41), A21N: t(233, 41), E195: t(188, 40), A20N: t(176, 41), B38M: t(142, 41), A319: t(131, 41),
+      DH8D: t(97, 39), E75L: t(64, 38), B789: t(45, 38), B77W: t(38, 37), A359: t(22, 30), EC35: t(19, 36), A388: t(6, 12), B748: t(2, 3), A124: t(1, .1)},
+    airlines: {AUA: t(690, 41), RYR: t(301, 41), WZZ: t(254, 41), DLH: t(141, 41), EWG: t(120, 41), THY: t(98, 40), LDM: t(77, 41), SWR: t(61, 40),
+      UAE: t(44, 39), QTR: t(40, 39), LOT: t(37, 38), BAW: t(31, 37), AFR: t(25, 35), KLM: t(24, 34), ETD: t(9, 20), ADB: t(1, .1, "Antonov Airlines")},
+    regsTop: [["OE-LBN", "A320", 23], ["OE-LWA", "E195", 21], ["OE-LBO", "A320", 19], ["9H-QAA", "A320", 17], ["OE-LPA", "B772", 15], ["D-AIUA", "A320", 14]]
+      .map(([reg, name, count], i) => ({reg, name, count, first: d(41 - i)})),
+    regsRecent: [["UR-82008", "A124", .1], ["A6-EVB", "A388", .4], ["OE-LBW", "A20N", .7], ["9H-VUE", "B38M", 1.2], ["HA-LVF", "A21N", 1.6], ["D-AINZ", "A20N", 2]]
+      .map(([reg, name, first]) => ({reg, name, count: 1, first: d(first)})),
+    categories: {passenger: 2104, bizjet: 71, private: 58, cargo: 36, helicopter: 27, military: 9, other: 9}};
+}
+const lbData = () => S.demo ? demoLogbook() : lbCache;
+let lbCache = null, lbError = "";
+function logbookSummary(){
+  if (!S.demo && !relayV5()) return "The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.";
+  const b = lbData();
+  if (!b) return lbError ? `Couldn't read the logbook from the relay: ${lbError}` : "Reading the logbook from the relay…";
+  const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}) : "";
+  const learning = b.learningUntil && Date.now() < b.learningUntil;
+  return `${b.sample ? "Sample logbook (demo mode) · " : ""}Counting since ${since}` +
+    (learning ? ` · the first day is for learning what is normal here; from ${fmtDay(b.learningUntil)} ${hhmm(new Date(b.learningUntil))} first sightings are marked NEW` : "") +
+    (b.categories ? "" : " · categories are counted from relay version 10 on");
+}
+const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
+const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
+const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
+function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function radarTrack(all, now){
+  radar.planes = all; radar.at = now;
+  for (const o of all) {
+    let tr = radar.trails.get(o.ac.hex);
+    if (!tr) radar.trails.set(o.ac.hex, tr = []);
+    const last = tr[tr.length - 1];
+    if (!last || last.lat !== o.ac.lat || last.lon !== o.ac.lon) tr.push({lat: o.ac.lat, lon: o.ac.lon, t: now});
+    while (tr.length && (tr.length > 36 || now - tr[0].t > 4 * 60000)) tr.shift();
+  }
+  for (const [k, tr] of radar.trails) if (!tr.length || now - tr[tr.length - 1].t > 90000) radar.trails.delete(k);
+}
+const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
+function altShort(ft){
+  if (ft == null) return "";
+  return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 50) * 50) + " m" : ft >= 18000 ? "FL" + Math.round(ft / 100) : nf.format(Math.round(ft / 100) * 100) + " ft";
+}
+function radarColor(o){
+  const x = liveFacts(o.ac, (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac));
+  const sp = specialOf(x);
+  if (sp === "EMERGENCY") return RADAR_COL.emergency;
+  if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return RADAR_COL.special;
+  if (isFav(x)) return RADAR_COL.fav;
+  return RADAR_COL[o.kind] || RADAR_COL.high;
+}
+const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
+function altNum(ft){
+  if (typeof ft !== "number") return "";
+  return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) : nf.format(Math.round(ft / 100) * 100);
+}
+
+/* ---------- what the lists look like ---------- */
+function chip(r){
+  const L = REMARK_LOOK[r] || {};
+  const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(r)}</span>`;
+}
+const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
+const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
+function placeHtml(a){
+  if (!a) return `<span class="no">–</span>`;
+  const c = code3(a) || a.code || "";
+  return `${c ? `<b>${escH(c)}</b>` : ""}${escH(a.city || "")}`;
+}
+function rowHtml(e){
+  const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
+  const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
+  const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
+  const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
+  return `<li class="fl${col ? " sp" : ""}"${style}><time>${escH(e.time || "")}</time>` +
+    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span>${escH(e.airline)}</span>` : ""}</div>` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${placeHtml(e.from)}<i>→</i>${placeHtml(e.to)}</div>` : ""}` +
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+}
+const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
+
+/* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
+let recentSig = "";
+function renderRecent(){
+  const list = dayList().filter(e => !e.sample || S.demo).slice(0, 8);
+  const sig = list.map(rowSig).join("~") + S.units;
+  if (sig === recentSig) return;
+  recentSig = sig;
+  $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
+    : `<li class="empty">Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.</li>`;
+}
+let shownPhoto = null, factsSig = "";
+function renderAircraftInfo(){
+  $("acSec").hidden = !feat;
+  if (!feat) return;
+  const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
+  $("bezel").classList.toggle("plain", S.photoStyle === "plain");
+  const src = d.photo || "";
+  if (src !== shownPhoto) {
+    shownPhoto = src;
+    const scr = $("screen"), img = $("photo");
+    scr.classList.remove("on", "has");
+    if (src) {
+      img.onload = () => {
+        if (img.getAttribute("src") !== src) return;
+        scr.classList.add("has");
+        if (!REDUCED && S.photoStyle !== "plain") { void scr.offsetWidth; scr.classList.add("on"); }
+      };
+      img.onerror = () => scr.classList.remove("has");
+      img.src = src;
+    } else img.removeAttribute("src");
+  }
+  const route = info.from && info.to ? `${code3(info.from) || info.from.code} → ${code3(info.to) || info.to.code}` : "";
+  const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
+    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", d.owner || info.airline, true],
+    ["Registered in", "Land", d.country], ["Route", "", route]].filter(f => f[2]);
+  const sig = JSON.stringify(facts);
+  if (sig === factsSig) return;
+  factsSig = sig;
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${en}${de ? `<span>${de}</span>` : ""}</dt><dd>${escH(v)}</dd></div>`).join("");
+}
+
+/* Spotted today */
+let svFilter = "all", svLegend = false, svSig = "";
+function svData(){
+  const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
+  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
+  const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
+  return {real, rows, counts};
+}
+function spottedSummary(){
+  const {real, counts} = svData();
+  if (!real.length) return `Nothing spotted yet today. Every plane that comes within ${+S.radiusKm || 15} km is listed here.`;
+  const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
+  const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
+  const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
+  return `${n} plane${n === 1 ? "" : "s"} · ${na} airline${na === 1 ? "" : "s"} · ${nt} aircraft type${nt === 1 ? "" : "s"} · ${st ? st.overhead : counts.over} directly overhead` +
+    `${relayV5() ? " · shared by every screen through the home relay" : ""}${API_NOTE()}${S.demo ? " · sample flights (demo mode)" : ""}`;
+}
+const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["legend", "Legend"]];
+function buildSvTools(){
+  const box = $("svTools");
+  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${t}</button>`).join("");
+  for (const b of box.children) b.onclick = () => {
+    const k = b.dataset.t;
+    if (k === "legend") svLegend = !svLegend;
+    else { svLegend = false; svFilter = k; }
+    svSig = ""; renderToday();
+  };
+}
+function legendHtml(){
+  return legendGroups().map(([h, items]) => `<h3>${escH(h)}</h3><ul class="legend">` +
+    items.map(([r, t]) => `<li>${chip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
+    `<p class="sum">A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists.</p>`;
+}
+function todayNumbers(){
+  const st = relayV5() && relayStats, list = dayList(), OVK = overKm();
+  if (st) {
+    const name = x => x ? fromRelay(x).flight : "";
+    const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
+    return {planes: st.planes, airlines: st.airlines, types: st.types, over: st.overhead, facts: [
+      ["Busiest hour", "Meiste Flüge", st.busiestHour != null ? `${String(st.busiestHour).padStart(2, "0")}:00` : ""],
+      ["First of the day", "Erster", st.first ? `${st.first.time} ${name(st.first)}` : ""],
+      ["Lowest pass", "Tiefster", st.lowest ? `${name(st.lowest)} · ${altText(st.lowest.altAtMin)}` : ""],
+      ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
+      ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
+      ["Most seen airline", "", t ? `${tn} · ${t.count}` : ""],
+      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? `${st.newTypes} types · ${st.newAirlines} airlines` : "Nothing new yet"]]};
+  }
+  const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
+  const withAlt = list.filter(e => typeof e.altAtMin === "number");
+  const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
+  const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
+  const first = list[list.length - 1];
+  return {planes: list.length, airlines: uniq(e => e.airlineCode || clean(e.airline)), types: uniq(e => e.typeCode || clean(e.type)),
+    over: list.filter(e => e.minDist != null && e.minDist <= OVK).length, facts: [
+      ["First of the day", "Erster", first ? `${first.time} ${first.flight}` : ""],
+      ["Lowest pass", "Tiefster", low ? `${low.flight} · ${altText(low.altAtMin)}` : ""],
+      ["Highest pass", "Höchster", high ? `${high.flight} · ${altText(high.altAtMin)}` : ""]]};
+}
+let todayFactsSig = "";
+function renderTodayNumbers(){
+  const n = todayNumbers();
+  setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
+  setChars("stTypes", String(n.types), 120); setChars("stOver", String(n.over), 180);
+  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${en}<span>${de}</span></dt><dd>${escH(v)}</dd></div>`).join("");
+  if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
+}
+function renderToday(){
+  if (tab !== "today") return;
+  loadFullDay();
+  renderTodayNumbers();
+  const d = svData();
+  for (const b of $("svTools").children) {
+    const k = b.dataset.t, n = d.counts[k];
+    const text = `${SV_TOOLS.find(t => t[0] === k)[1]}${n != null ? " " + nf.format(n) : ""}`;
+    if (b.textContent !== text) b.textContent = text;
+    b.setAttribute("aria-pressed", String(k === "legend" ? svLegend : k === svFilter && !svLegend));
+  }
+  $("svSum").textContent = spottedSummary();
+  $("legendBox").hidden = !svLegend; $("svList").hidden = svLegend;
+  if (svLegend) { if (!$("legendBox").innerHTML) $("legendBox").innerHTML = legendHtml(); return; }
+  const sig = svFilter + S.units + d.rows.map(rowSig).join("~");
+  if (sig === svSig) return;
+  svSig = sig;
+  $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
+    : `<li class="empty">${svFilter === "all" ? "Nothing spotted yet today." : "None of today's planes match this filter yet."}</li>`;
+}
+function renderLists(){
+  renderRecent();
+  if (tab === "today") renderToday();
+}
+
+/* Logbook */
+const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
+  ["private", "Private, light", "Privat", "#9aa4ae"], ["helicopter", "Helicopters", "Heli", "#22b0ae"], ["military", "Military", "Militär", "#8fa05a"],
+  ["other", "Other", "Andere", "#6b6e75"]];
+async function fetchLogbook(){
+  if (!S.demo && relayV5()) {
+    try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
+    catch (e) { lbError = netError(e, "relay"); }
+  }
+  renderLogbook();
+}
+let lbSig = "";
+function renderLogbook(){
+  if (tab !== "logbook") return;
+  $("lbSum").textContent = logbookSummary();
+  const b = lbData() || {}, has = !!lbData();
+  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
+  const types = byCount(b.types), airlines = byCount(b.airlines);
+  setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
+  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
+  setChars("lvTypes", has ? nf.format(types.length) : "", 120);
+  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent]);
+  if (sig === lbSig) return;
+  lbSig = sig;
+  $("lbModel").innerHTML = types[0] ? `<small>Most seen model · Häufigstes Modell</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${nf.format(types[0][1].count || 0)} times</span>` : "";
+  const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
+  const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  let html = "";
+  if (b.categories) {
+    const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
+    html += `<h3>Categories<span>Kategorien</span></h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+      const n = b.categories[k] || 0;
+      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(en)}<span class="s">${escH(de)}</span></span><span class="n">${nf.format(n)}</span>` +
+        `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
+    }).join("") + "</ul>";
+  }
+  if (types.length) html += `<h3>Aircraft types<span>Flugzeugtypen</span></h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
+  if (airlines.length) html += `<h3>Airlines<span>Fluglinien</span></h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
+  if ((b.regsTop || []).length) html += `<h3>Most seen aircraft<span>Meistgesehen</span></h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+  if ((b.regsRecent || []).length) html += `<h3>Newest aircraft<span>Neueste</span></h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+  $("lbLists").innerHTML = html;
+}
+
+/* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
+const RG = {S: 400, cx: 200, cy: 200, R: 172};
+function radarSize(){
+  const css = $("scope").clientWidth;
+  if (!css) return;
+  radar.px = Math.min(3, css / RG.S * (window.devicePixelRatio || 1));
+  for (const cv of [$("radarBg"), $("radarCv")]) cv.width = cv.height = Math.round(RG.S * radar.px);
+  radarStatic();
+}
+function radarStatic(){
+  const g = $("radarBg").getContext("2d"), {cx, cy, R} = RG, TAU = Math.PI * 2;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  g.setTransform(radar.px, 0, 0, radar.px, 0, 0);
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 12 * radar.px; g.shadowOffsetY = 4 * radar.px;
+  const ring = g.createLinearGradient(0, cy - R - 22, 0, cy + R + 22);
+  ring.addColorStop(0, "#303135"); ring.addColorStop(.5, "#1d1e21"); ring.addColorStop(1, "#141517");
+  g.fillStyle = ring; g.beginPath(); g.arc(cx, cy, R + 22, 0, TAU); g.fill();
+  g.restore();
+  g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.2; g.beginPath(); g.arc(cx, cy, R + 21, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+  g.fillStyle = "#050607"; g.beginPath(); g.arc(cx, cy, R + 3, 0, TAU); g.fill();
+  const scope = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+  scope.addColorStop(0, "#15191b"); scope.addColorStop(1, "#090b0c");
+  g.fillStyle = scope; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + Math.PI / 8; screw(g, cx + Math.cos(a) * (R + 12), cy + Math.sin(a) * (R + 12), 3.2); }
+}
+function startRadar(){
+  radarSize();
+  const loop = t => {
+    if (tab !== "radar") return;
+    if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
+    radar.raf = requestAnimationFrame(loop);
+  };
+  cancelAnimationFrame(radar.raf); radar.raf = requestAnimationFrame(loop);
+}
+function stopRadar(){ cancelAnimationFrame(radar.raf); }
+function drawRadar(t){
+  const g = $("radarCv").getContext("2d"), now = Date.now(), {cx, cy, R} = RG, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+  g.setTransform(radar.px, 0, 0, radar.px, 0, 0); g.clearRect(0, 0, RG.S, RG.S);
+  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), ky = 110.57;
+  const toXY = (lat, lon) => [cx + (lon - S.lon) * kx * k, cy - (lat - S.lat) * ky * k];
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+  const a0 = (t / 7000) * TAU;                                  // slow sweep
+  for (let i = 0; i < 28; i++) {
+    g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
+    g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
+  }
+  g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill();
+  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
+  g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  for (let r = 5; r <= range; r += 5) {
+    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
+    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + Math.sin(.42) * r * k + 4, cy - Math.cos(.42) * r * k + 11);
+  }
+  g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
+  g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
+  const ap = AIRPORTS[S.home];
+  if (ap && ap.strips) {
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 3.5;
+    for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+    const [ax, ay] = toXY(ap.lat, ap.lon);
+    g.font = `700 12px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 12, ay + 18); g.lineCap = "butt";
+  }
+  const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
+  for (const o of radar.planes) {
+    const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
+    const lat = ac.lat + v * Math.cos(th) / ky, lon = ac.lon + v * Math.sin(th) / kx;
+    const [x, y] = toXY(lat, lon);
+    if (Math.hypot(x - cx, y - cy) > R + 8) continue;
+    const col = radarColor(o), tr = radar.trails.get(ac.hex);
+    if (tr && tr.length > 1) {
+      g.strokeStyle = rgba(col, .35); g.lineWidth = 1.8; g.beginPath();
+      tr.forEach((p, i) => { const [px, py] = toXY(p.lat, p.lon); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+      g.lineTo(x, y); g.stroke();
+    }
+    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
+    drawPlane(g, 0, 0, o.kind ? 19 : 14, col);
+    g.restore();
+    shown.push({o, x, y, col});
+  }
+  for (const {o, x, y, col} of shown) {
+    if (!o.kind) continue;
+    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
+    const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
+    g.font = `700 11.5px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x + 12, y - 3);
+    g.font = `500 10px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 12, y + 9);
+  }
+  g.restore();
+  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+  const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
+  gl.addColorStop(0, "rgba(255,255,255,.06)"); gl.addColorStop(.5, "rgba(255,255,255,.015)"); gl.addColorStop(.501, "rgba(255,255,255,0)");
+  g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  g.font = `700 13px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 12), cy - Math.cos(a) * (R - 12)); });
+  pictogram(g, cx - 8, cy - 8, 16);
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+}
+function buildRadarLegend(){
+  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
+    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${t}</li>`).join("");
+}
+let rvSig = "";
+function renderRadarList(){
+  if (tab !== "radar") return;
+  const range = radarRange(), list = radar.planes.filter(o => o.kind && o.dist <= range).sort((a, b) => a.dist - b.dist).slice(0, 12);
+  const rows = list.map(o => {
+    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
+    const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
+    const st = MODE_REMARK[o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.kind === "by" ? "by" : "away"];
+    return `<li class="rv" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
+      `<span class="num">${distText(o.dist)} ${o.dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
+  });
+  const html = rows.length ? rows.join("") : `<li class="empty">No planes within ${range} km right now.</li>`;
+  if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
+}
+
+/* ---------- settings: the cockpit plates, stacked for a phone ---------- */
+const COCKPIT = [
+  {title: ["Location", "Standort"], items: [
+    {k: "place", type: "lcd", label: "Place name", w: 200, max: 24},
+    {k: "home", type: "lcd", label: "Home airport", w: 70, max: 3},
+    {k: "lat", type: "lcd", label: "Latitude", w: 140, max: 12},
+    {k: "lon", type: "lcd", label: "Longitude", w: 140, max: 12},
+    {k: "radiusKm", type: "wheel", label: "Spotting radius km", min: 1, max: 20, step: 1},
+    {k: "overKm", type: "rotary", label: "Directly overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]}]},
+  {title: ["Traffic", "Verkehr"], items: [
+    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
+    {k: "airtimeMin", type: "rotary", label: "Hovering planes, min an hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
+    {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
+  {title: ["Display", "Anzeige"], items: [
+    {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
+    {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["plain", "PLAIN"]]},
+    {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
+    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
+    {k: "logos", type: "switch", label: "Airline logos"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"}]},
+  {title: ["Phone", "Telefon"], items: [
+    {k: "screenName", type: "lcd", label: "Name, for the relay's list of screens", wide: true, max: 24},
+    {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "sound", type: "switch", label: "Flap sound"},
+    {k: "demo", type: "switch", label: "Demo mode", guard: true}]}];
+let draft = null;
+const ITEMS = COCKPIT.flatMap(p => p.items || []);
+function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
+function rotaryIndex(it){
+  const v = draft[it.k], i = it.opts.findIndex(o => String(o[0]) === String(v));
+  if (i >= 0) return i;
+  let best = 0;
+  it.opts.forEach((o, j) => { if (Math.abs(+o[0] - +v) < Math.abs(+it.opts[best][0] - +v)) best = j; });
+  return best;
+}
+function itemHtml(it){
+  const cap = `<span>${escH(it.label)}</span>`;
+  if (it.type === "lcd") return `<div class="inst${it.wide ? " wide" : ""}"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off"` +
+    `${it.wide ? "" : ` style="width:calc(${it.w}px * var(--k))"`} value="${escH(String(draft[it.k] ?? ""))}">${cap}</div>`;
+  if (it.type === "rotary") {
+    const ang = rotaryAngles(it.opts.length);
+    return `<div class="inst"><div class="rotary" tabindex="0" role="slider" aria-label="${escH(it.label)}" data-k="${it.k}">` +
+      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(o[1])}</b>`).join("") + `<span class="knob"></span></div>${cap}</div>`;
+  }
+  if (it.type === "switch") return `<div class="inst"><button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(it.label)}">` +
+    `<span class="up">${it.upText || "ON"}</span><span class="nut"><i class="lever"></i></span><span class="down">${it.downText || "OFF"}</span></button>${cap}</div>`;
+  const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
+    `<span class="win"><b></b></span><button type="button" class="dec" tabindex="-1" aria-label="Down">▼</button></div>`;
+  if (it.type === "wheel") return `<div class="inst">${wheel("")}${cap}</div>`;
+  return `<div class="inst"><div class="wheels">${wheel("h")}<em>:</em>${wheel("m")}</div>${cap}</div>`;
+}
+function wheelStep(it, part, d){
+  if (it.type === "time") {
+    const [h, m] = String(draft[it.k] || "00:00").split(":").map(Number);
+    const nh = part === "h" ? (h + d + 24) % 24 : h, nm = part === "m" ? (Math.round(m / 5) * 5 + d * 5 + 60) % 60 : m;
+    draft[it.k] = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+  } else draft[it.k] = Math.min(it.max, Math.max(it.min, Math.round((+draft[it.k] || it.min) / it.step) * it.step + d * it.step));
+}
+// Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
+function cockpitShow(rolled, dir){
+  const box = $("cockpit");
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k), v = draft[it.k];
+    if (el.classList.contains("rotary")) {
+      const i = rotaryIndex(it);
+      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(it.opts.length)[i] + "deg");
+      el.querySelectorAll("b").forEach((b, j) => b.classList.toggle("on", j === i));
+      el.setAttribute("aria-valuetext", it.opts[i][1]);
+    } else if (el.classList.contains("toggle")) el.setAttribute("aria-pressed", String(it.on ? v === it.on : !!v));
+    else if (el.classList.contains("wheel")) {
+      const b = el.querySelector(".win b"), [h, m] = String(v || "00:00").split(":");
+      b.textContent = it.type === "time" ? (el.dataset.part === "h" ? h : m) : String(v);
+      if (el === rolled) { b.className = ""; void b.offsetWidth; b.className = dir > 0 ? "up" : "down"; }
+    }
+  }
+  cockpitDirty();
+}
+function detent(){                            // a small mechanical click for knobs, switches and wheels
+  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+  const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = 1.6;
+  const fl = actx.createBiquadFilter(); fl.type = "highpass"; fl.frequency.value = 2400;
+  const gn = actx.createGain(); gn.gain.value = .18;
+  src.connect(fl).connect(gn).connect(actx.destination); src.start();
+}
+function plateHtml(p){
+  return `<div class="plate"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
+}
+function cockpitOpen(){
+  draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
+  const box = $("cockpit");
+  box.innerHTML = COCKPIT.map(plateHtml).join("") +
+    `<div class="plate about"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p id="aboutStatus"></p>` +
+    `<p>On the home screen: in Safari, Share → Add to Home Screen; in Chrome on Android, ⋮ → Add to Home screen. It opens full screen with its own icon. ` +
+    `It needs your home Wi-Fi, because the flight data comes through the relay on your computer.</p>` +
+    `<p>The big board: <a href="../">${escH(location.host)}/</a></p></div>`;
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k);
+    if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
+    else if (el.classList.contains("rotary")) {
+      const turn = i => { draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); detent(); };
+      el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
+      el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
+    } else if (el.classList.contains("toggle")) el.onclick = () => {
+      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); detent();
+    };
+    else if (el.classList.contains("wheel")) {
+      const roll = d => { wheelStep(it, el.dataset.part, d); cockpitShow(el, d); detent(); };
+      el.querySelector(".inc").onclick = () => roll(1);
+      el.querySelector(".dec").onclick = () => roll(-1);
+    }
+  }
+  cockpitShow();
+  renderAbout();
+}
+function cockpitDirty(){
+  const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "photoStyle" ? (S.photoStyle === "plain" ? "plain" : "screen") : S[it.k]) ?? ""));
+  $("saveBtn").setAttribute("aria-pressed", String(dirty));
+}
+function renderAbout(){
+  const el = $("aboutStatus");
+  if (!el) return;
+  const v = window.OVERHEAD_RELAY_VERSION;
+  el.textContent = `${statusLine()}${v ? ` · relay version ${v}` : ""}`;
+}
+function applySettings(n){
+  const num = v => parseFloat(String(v).replace(",", "."));
+  const lat = num(n.lat), lon = num(n.lon), wasDemo = S.demo;
+  S = {...S, ...n,
+    place: String(n.place || "").trim() || DEFAULTS.place,
+    lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
+    lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
+    radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
+    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(), screenName: String(n.screenName || "").trim().slice(0, 24),
+    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
+  saveSettings(); audioInit();
+  if (wasDemo !== S.demo) {
+    feat = null; infoCache.clear(); sightRev = null; relayStats = null; airtime.clear(); lbCache = null;
+    fullDay = {at: 0, rev: null, date: null, list: null};
+    spotted = relayV5() ? [] : S.demo ? demoLog() : [];
+    if (relayV5()) syncSightings();
+  }
+  applyTheme(); updateWhere();
+  recentSig = svSig = lbSig = factsSig = ""; shownPhoto = null;
+  renderLists(); renderFeatured(); renderAircraftInfo(); updateFooter(); poll(true); sayHello();
+}
+
+/* ---------- tabs: the board's push buttons along the bottom ---------- */
+const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
+let tab = "now", tabTimer = null;
+function buildTabs(){
+  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap" type="button" data-tab="${t}">${name}</button>`).join("");
+  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); showTab(b.dataset.tab); };
+}
+function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
+function showTab(t){
+  if (!TABS.some(x => x[0] === t)) t = "now";
+  const was = tab;
+  tab = t;
+  for (const [x] of TABS) $("t-" + x).hidden = x !== t;
+  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  clearInterval(tabTimer); tabTimer = null;
+  stopRadar();
+  refreshPanels();
+  if (t === "now") { pingNow(false); renderFeatured(); renderAircraftInfo(); renderRecent(); }
+  else if (t === "today") { svSig = ""; renderToday(); }
+  else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
+  else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
+  else if (t === "settings") cockpitOpen();
+  const hash = t === "now" ? "" : "#" + t;
+  if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
+  if (was !== t) window.scrollTo(0, 0);
+}
+addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+
+/* ---------- status: a dot by the clock, a line under the lists ---------- */
+function statusLine(){
+  if (S.demo) return "Demo mode · sample flights, not live data";
+  if (!relay()) return "No flight data here: open the app through your home relay, at http://<your computer>:8080/app/";
+  if (isOffline()) return "No flight data for over a minute · retrying";
+  if (!lastOk && failures) return `Waiting for flight data · ${failures} failed attempt${failures > 1 ? "s" : ""}`;
+  if (!lastOk) return "Connecting…";
+  const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
+  return `Live via ${feedName}${stale ? " (last good copy)" : ""} · updated ${age < 3 ? "just now" : age + " s ago"}${failures ? " · retrying" : ""} · ` +
+    `${nearbyCount ?? 0} aircraft within ${QUERY_KM} km${apiOn() ? " · flight numbers by Flightradar24" : ""}`;
+}
+function updateFooter(){
+  const dot = $("dot");
+  dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
+  const line = statusLine();
+  for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
+  if (tab === "settings") renderAbout();
+}
+function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  Radius ${+S.radiusKm || 15} km`; }
+function tickClock(){
+  setChars("clock", hhmm()); rollDay(); updateFooter();
+  if (feat && !isOffline()) setWord("remarks", featRemark());
+}
+
+/* ---------- saying hello to the relay, so it can list this phone among its screens ---------- */
+const relayV12 = () => !!relay() && !relayLegacy && (window.OVERHEAD_RELAY_VERSION || 0) >= 12;
+function sayHello(){
+  if (!relayV12()) return;
+  const d = window.devicePixelRatio || 1;
+  const params = new URLSearchParams({name: S.screenName || "", w: Math.round(screen.width * d), h: Math.round(screen.height * d), q: "", vis: document.visibilityState || ""});
+  timedFetch(`${relay()}/hello?${params}`, {}, 6000).catch(() => {});
+}
+addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeacon) navigator.sendBeacon(tagged(`${relay()}/bye`)); } catch {} });
+/* ---------- main loop ---------- */
+let timer = null, busy = false;
+async function poll(force){
+  if (busy && !force) return;
+  clearTimeout(timer); busy = true;
+  try {
+    const list = S.demo ? demoAircraft() : await getAircraft();
+    if (S.demo) DIAG.polls.push({t: Date.now(), ok: true, ms: 0, n: list.length});
+    if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
+    if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
+    if (wasOffline) dlog("info", "Back online");
+    failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
+  } catch (e) {
+    failures++;
+    DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
+    dlog(failures >= 3 ? "error" : "warn", `Position update failed: ${e.message || e}`);
+    if (isOffline()) {
+      if (!wasOffline) dlog("error", "Showing OFFLINE: no position data for over a minute");
+      wasOffline = true; feat = null; renderFeatured();
+    }
+  } finally {
+    if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
+    busy = false; updateFooter(); scheduleDiag();
+    timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 : failures >= 3 ? POLL_MS * 2 : POLL_MS);
+  }
+}
+
+// A phone in a pocket doesn't need updates every ten seconds: back to full speed as soon as the app is looked at.
+document.addEventListener("visibilitychange", () => {
+  sayHello();
+  if (document.visibilityState !== "visible") return;
+  poll(true); if (relayV5()) syncSightings();
+  if (tab === "logbook") fetchLogbook();
+});
+["pointerdown", "touchstart", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
+let resizeQ = 0;
+addEventListener("resize", () => {
+  cancelAnimationFrame(resizeQ);
+  resizeQ = requestAnimationFrame(() => { clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
+});
+
+async function start(){
+  try {
+    await Promise.race([
+      Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
+      new Promise(r => setTimeout(r, 2500))
+    ]);
+  } catch {}
+  buildTabs(); buildSvTools(); buildRadarLegend(); updateWhere();
+  applyTheme();
+  showTab(location.hash.slice(1) || "now");
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
+  if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
+  tickClock(); setInterval(tickClock, 1000);
+  renderFeatured(); renderLists(); updateFooter();
+  if (relayV5()) syncSightings();
+  dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
+  setTimeout(poll, 300);
+  setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
+}
+start();
+})();
+</script>
+</body>
+</html>

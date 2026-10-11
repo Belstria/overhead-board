@@ -26,15 +26,15 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
 | `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
-| `theme` | Test board: `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
-| `rotate` | Test board: seconds per page, `0` to stay on one page (default 30) | `rotate=0` |
-| `favs` | Test board: favourites, separated by commas | `favs=Austrian,A380` |
-| `chimes` | Test board: chimes on (`1`, the default) or off (`0`) | `chimes=0` |
-| `night` | Test board: night mode on (`1`, the default) or off (`0`) | `night=0` |
-| `airtime` | Test board: minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
-| `photo` | Test board: the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
-| `quality` | Test board: `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
-| `screen` | Test board: this screen's name, shown in the relay's list of screens | `screen=Living%20room` |
+| `theme` | `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
+| `rotate` | seconds per page, `0` to stay on one page (default 30) | `rotate=0` |
+| `favs` | favourites, separated by commas | `favs=Austrian,A380` |
+| `chimes` | chimes on (`1`, the default) or off (`0`) | `chimes=0` |
+| `night` | night mode on (`1`, the default) or off (`0`) | `night=0` |
+| `airtime` | minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
+| `photo` | the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
+| `quality` | `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
+| `screen` | This screen's name, shown in the relay's list of screens | `screen=Living%20room` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -59,19 +59,20 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
 
 | Address | What it is |
 |---------|------------|
-| `/` | **Main board**: the version for everyday use. Free data sources only. |
+| `/` | **Main board**: the version for everyday use, with Flightradar24 when the relay has a key (a copy of the test API board). |
 | `/test/` | **Test board**: where changes are tried before they go to the main board. Free data sources only. |
 | `/test-api/` | **Test API board**: the test board plus features that need the paid Flightradar24 API. |
+| `/app/` | **Phone app**: the board laid out for a phone, to add to the home screen (see below). |
 
 Changes are tried on a test board first and copied to the main board when they're ready. Features that need the
 API are only ever built on `/test-api/`, so `/test/` always holds a complete version that works without it. If the
-subscription ends, the main board keeps working: either it never had API features, or it falls back to the free
-sources by itself (and `/test/` can be copied over it to remove them completely).
+subscription ends, the main board keeps working: it falls back to the free sources by itself (and `/test/` can be
+copied over it to remove the API features completely).
 
-### Flightradar24 on the test API board
+### Flightradar24 on the main board and the test API board
 
-With a [Flightradar24 API](https://fr24api.flightradar24.com) key on the relay (version 8 or newer), `/test-api/`
-shows the real flight number and route for airline flights: RYR3EG becomes FR 1234 Vienna to London instead of a
+With a [Flightradar24 API](https://fr24api.flightradar24.com) key on the relay (version 8 or newer), the main board,
+`/test-api/` and the phone app show the real flight number and route for airline flights: RYR3EG becomes FR 1234 Vienna to London instead of a
 guess from a callsign database. Add the key once on the relay computer (it is saved in `overhead.json` there and
 never leaves that computer):
 
@@ -82,17 +83,21 @@ py serve.py --fr24-key YOUR_KEY --save
 - Remarks from Flightradar24: **DIVERTED** (the Spotted today tab shows where to), **CARGO**, **BIZJET**, **PRIVATE**,
   and military and helicopter flights by Flightradar24's own category. Flightradar24's API has no schedules, so delays
   aren't available from it.
-- Lookups happen only while a test API board is open, once per flight, shared by every screen, at most 10 a minute.
+- Lookups happen only while a board that uses them is open, once per flight, shared by every screen, at most 10 a
+  minute.
 - Each lookup costs 1 to 3 credits. The relay stops at 27,000 credits a month (the Explorer plan includes 30,000);
-  change that with `--fr24-budget 50000 --save`. Diagnostics on the test API board shows what has been used.
+  change that with `--fr24-budget 50000 --save`. Diagnostics on the board shows what has been used.
+- The budget is spread over the month (relay 13 or newer): each day may spend its share of what is left, and unspent
+  credits carry over. Past the day's share only the plane on the top half is still looked up; past one and a half
+  shares nothing is, until the next day. A busy day can't use up the month, and the free sources fill in meanwhile.
 - If the key is refused (the subscription ended) or the budget is used up, the boards quietly use the free sources.
 - To turn it off: `py serve.py --fr24-key off --save`.
 - Flightradar24 data is kept for two days at most (their terms allow 30); the lifetime logbook doesn't use it.
 
-## Test board
+## Board features
 
-`/test/` is where changes are tried out before they go to the main board. Open it through the relay at
-`http://<computer-name>:8080/test/`. It currently adds:
+The main board has everything below. New features are tried on `/test/` (and `/test-api/` for the ones that need
+Flightradar24) first; open them through the relay at `http://<computer-name>:8080/test/`.
 
 - **Flight times** in a fourth row of the top half: departure, arrival and flight time so far. Vienna Airport
   publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
@@ -154,13 +159,35 @@ py serve.py --fr24-key YOUR_KEY --save
   Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
 - **Screen name** (Settings → System, or `?screen=Living%20room`): what the relay calls this screen in its list of
-  screens (relay 12 or newer, see below). The test boards also tell the relay how big they are drawn and at what quality.
+  screens (relay 12 or newer, see below). Boards also tell the relay how big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
   Fire TV and LG TVs, which get `1080`: drawn at 1080p, 30 frames a second, shorter flap runs and a smaller image cache,
   because their graphics chips struggle with the full board. `1440` sits in between, `high` forces the sharpest. The
   falling page is always drawn at 1080p at most; it moves too fast to need more.
 
 The logbook and a Spotted today list shared by every screen need relay version 5 or newer (see below).
+
+## Phone app
+
+`/app/` is the board laid out for a phone held upright, with the same flaps, metal, push buttons and engraving. Open
+`http://<computer-name>:8080/app/` on the phone, then add it to the home screen: in Safari, Share → Add to Home
+Screen; in Chrome on Android, ⋮ → Add to Home screen. It opens full screen with its own icon. Five buttons along the
+bottom:
+
+- **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
+  position, departure, arrival and flight time), its photo on a small screen with its registration details, and the
+  latest planes spotted.
+- **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
+  airline), and every plane spotted today, with the same filters and legend as the board.
+- **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+- **Radar**: the radar instrument and the nearest planes.
+- **Settings**: the cockpit plates, kept on the phone only. Flap sound starts off; chimes play for special planes and
+  favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
+  shows a red light.
+
+It needs the home Wi-Fi, because the flight data comes through the relay (version 13 or newer serves its icons). It
+checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
+among its screens as the APP board; Settings → Phone → Name gives it a name there. `?demo` shows sample flights.
 
 ## Controls
 
@@ -228,9 +255,8 @@ window and appear in the board's diagnostics panel.
 as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung
 TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is
 drawn and how long it has been on. Press **Enter** in the relay's window for the current list, or open
-`http://<computer-name>:8080/screens`; the board's diagnostics panel lists them too. The test boards send their name,
-size and drawing quality; the live board is known by its address and browser until it gets the same update. A screen
-that hasn't asked for anything for a minute counts as gone.
+`http://<computer-name>:8080/screens`; the board's diagnostics panel lists them too. The boards and the phone app send their
+name, size and drawing quality; a screen that hasn't asked for anything for a minute counts as gone.
 
 **Shared history (relay version 5).** The relay records every plane that comes within its spotting radius
 itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It
@@ -241,5 +267,6 @@ NEW AIRLINE marks start the day after. The spotting radius the relay uses is `--
 The relay always serves the latest published board from GitHub Pages (it checks for a newer one at most once
 a minute, so a change shows up a minute or two after it is published; a local copy is kept for when GitHub is
 unreachable). Use `--local path/to/index.html` to serve a
-local file instead, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
+local file instead, `--local-root path/to/overhead-board` to serve every board, the phone app and its icons from a
+copy of this repository, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
 `{nm}` placeholders, or a local `aircraft.json`), and `--help` for all options.

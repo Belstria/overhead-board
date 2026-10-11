@@ -44,7 +44,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 12
+RELAY_VERSION = 13
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -60,6 +60,8 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
+BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico))$")  # the phone app's icons
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget")
 DATA_DIR = Path(__file__).with_name("data")
@@ -630,6 +632,20 @@ def _fr24_budget():
         return FR24_BUDGET
 
 
+def fr24_paced(priority):
+    """Spread the monthly budget over the month: each day may spend its share of what is left (unspent credits carry
+    over). Past the share, only the plane on the board is still looked up; past one and a half shares, nothing until
+    tomorrow. Boards show the free sources' answer meanwhile."""
+    with _data_lock:
+        u = _fr24_usage()
+        today = u.get("creditsToday", 0)
+        left = _fr24_budget() - (u.get("credits", 0) - today)
+    now = datetime.date.today()
+    nxt = (now.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+    share = max(0, left) / max(1, (nxt - now).days)
+    return today >= share * (1.5 if priority == 0 else 1.0)
+
+
 def fr24_info(cs, hx):
     """What Flightradar24 said about this flight, if it was looked up and is still fresh."""
     with _data_lock:
@@ -644,7 +660,7 @@ def fr24_info(cs, hx):
 
 def fr24_want(cs, hx, priority):
     """Queue a lookup for a flight with a callsign (airline, cargo, business or private)."""
-    if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z0-9]{3,8}$", cs) or fr24_info(cs, hx):
+    if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z0-9]{3,8}$", cs) or fr24_info(cs, hx) or fr24_paced(priority):
         return
     key = f"{hx}|{cs}"
     with _fr24_cv:
@@ -748,9 +764,14 @@ def _fr24_worker():
         with _fr24_cv:
             while not _fr24_q:
                 _fr24_cv.wait()
-            _, _, key, cs, hx = heapq.heappop(_fr24_q)
+            priority, _, key, cs, hx = heapq.heappop(_fr24_q)
         try:
             if not fr24_on() or fr24_info(cs, hx):
+                continue
+            if fr24_paced(priority):
+                if _fr24_state["state"] not in ("paced", "budget"):
+                    event("info", "Flightradar24: today's share of the monthly budget is used; more lookups tomorrow")
+                    _fr24_state.update(state="paced")
                 continue
             with _data_lock:
                 usage = _fr24_usage()
@@ -785,7 +806,7 @@ def _fr24_worker():
                 _fr24_state.update(state="error", error=f"HTTP {status}")
                 event("warn", f"Flightradar24 lookup for {cs} failed (HTTP {status})", echo=False)
             else:
-                if _fr24_state["state"] != "ok":
+                if _fr24_state["state"] not in ("ok", "paced"):
                     event("info", "Flightradar24 lookups working")
                 _fr24_state.update(state="ok", error="")
                 if info and not info.get("none"):
@@ -804,7 +825,12 @@ def fr24_status():
         return {"state": "off"}
     with _data_lock:
         u = dict(_fr24_usage())
-    return {"state": _fr24_state["state"] if _fr24_state["state"] != "off" else "ready", "error": _fr24_state["error"],
+    state = _fr24_state["state"] if _fr24_state["state"] != "off" else "ready"
+    if state == "paced" and not fr24_paced(1):     # a new day
+        state = _fr24_state["state"] = "ok"
+    if u.get("credits", 0) >= _fr24_budget():
+        state = "budget"
+    return {"state": state, "error": _fr24_state["error"],
             "credits": u.get("credits", 0), "budget": _fr24_budget(), "lookups": u.get("lookups", 0),
             "creditsToday": u.get("creditsToday", 0), "lookupsToday": u.get("lookupsToday", 0),
             "queue": len(_fr24_q), "airports": len((_airports or {}).get("iata") or {})}
@@ -1266,9 +1292,34 @@ def status_json():
 _board_seen = {}
 
 
+def board_file(sub, name, ext):
+    """An icon or the web app manifest next to a board (the phone app needs them to go on the home screen)."""
+    rel = (sub + "/" if sub else "") + name
+    if ARGS.local_root:
+        f = Path(ARGS.local_root) / rel
+        return (200, f.read_bytes()) if f.is_file() else (404, b"Not found")
+    copy = DATA_DIR / "board-files" / rel.replace("/", "--")
+    status, _, body, _ = cached("file:" + rel, PAGE_TTL * 10, lambda: fetch(f"{BOARD_URL}{rel}?v={int(time.time()) // 600}", timeout=15))
+    if status == 200:
+        try:
+            copy.parent.mkdir(parents=True, exist_ok=True)
+            copy.write_bytes(body)
+        except OSError:
+            pass
+        return 200, body
+    if copy.exists():
+        return 200, copy.read_bytes()
+    return (404 if status == 404 else 502), b"Not found"
+
+
 def board_html(sub=""):
     copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
-    if ARGS.local and not sub:
+    if ARGS.local_root:
+        f = Path(ARGS.local_root) / sub / "index.html" if sub else Path(ARGS.local_root) / "index.html"
+        if not f.is_file():
+            return None
+        html = f.read_text(encoding="utf-8")
+    elif ARGS.local and not sub:
         html = Path(ARGS.local).read_text(encoding="utf-8")
     else:
         url = BOARD_URL + (sub + "/" if sub else "")
@@ -1336,6 +1387,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Location", path + "/")
             self.end_headers()
             return
+        bf = BOARD_FILE.match(path)
+        if bf:
+            status, body = board_file(bf.group(1) or "", bf.group(2), bf.group(3))
+            return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body)
         page = PAGE.match(path)
         if page:
             html = board_html(page.group(1) or "")
@@ -1374,6 +1429,8 @@ class Handler(BaseHTTPRequestHandler):
                 info = fr24_info(cs, hx)
                 if info:
                     body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
+                elif fr24_paced(0):
+                    body = {"status": "none"}
                 else:
                     fr24_want(cs, hx, 0)
                     body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
@@ -1444,6 +1501,7 @@ def main():
     p.add_argument("--mute", action="store_true", help="flap sound off by default")
     p.add_argument("--save", action="store_true", help=f"remember these settings in {CONFIG_FILE.name}, so next time `serve.py` alone is enough")
     p.add_argument("--local", help="serve this index.html instead of the published board")
+    p.add_argument("--local-root", help="serve every board (and the phone app) from this folder, a copy of the repository")
     p.add_argument("--fr24-key", help="Flightradar24 API key, for boards that use it (the test-api board); 'off' turns it off")
     p.add_argument("--fr24-budget", type=int, help=f"most Flightradar24 credits to spend a month (default {FR24_BUDGET:,})")
     p.add_argument("--source", help="use this position source instead of the public ones: a URL with {lat} {lon} {nm} placeholders, or a local receiver's aircraft.json")
