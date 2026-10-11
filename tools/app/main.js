@@ -6,7 +6,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 
 /* ---------- settings: kept on this phone only ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, photoStyle:"screen", screenName:""};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
@@ -35,7 +35,6 @@ let S = loadSettings();
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
-  if (q.get("screen")) S.screenName = q.get("screen").slice(0, 24);
 })();
 
 /* ---------- a small log, for the About plate in Settings ---------- */
@@ -399,7 +398,6 @@ function renderAircraftInfo(){
   $("acSec").hidden = !feat;
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  $("bezel").classList.toggle("plain", S.photoStyle === "plain");
   const src = d.photo || "";
   if (src !== shownPhoto) {
     shownPhoto = src;
@@ -409,7 +407,7 @@ function renderAircraftInfo(){
       img.onload = () => {
         if (img.getAttribute("src") !== src) return;
         scr.classList.add("has");
-        if (!REDUCED && S.photoStyle !== "plain") { void scr.offsetWidth; scr.classList.add("on"); }
+        if (!REDUCED) { void scr.offsetWidth; scr.classList.add("on"); }
       };
       img.onerror = () => scr.classList.remove("has");
       img.src = src;
@@ -685,13 +683,11 @@ const COCKPIT = [
     {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
-    {k: "photoStyle", type: "rotary", label: "Aircraft photo", opts: [["screen", "SCREEN"], ["plain", "PLAIN"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"}]},
   {title: ["Phone", "Telefon"], cols: 3, items: [
-    {k: "screenName", type: "lcd", label: "Name, for the relay's list of screens", wide: true, max: 24},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]}];
@@ -706,7 +702,7 @@ function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${p.title[0]} · ${p.title[1]}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
-  draft = {...S, photoStyle: S.photoStyle === "plain" ? "plain" : "screen"};
+  draft = {...S};
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
     `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>About · Info</h3><p class="ver">${escH(versionLine())}</p>` +
@@ -733,7 +729,7 @@ function cockpitOpen(){
   renderAbout();
 }
 function cockpitDirty(){
-  const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "photoStyle" ? (S.photoStyle === "plain" ? "plain" : "screen") : S[it.k]) ?? ""));
+  const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String(S[it.k] ?? ""));
   $("saveBtn").setAttribute("aria-pressed", String(dirty));
 }
 // Save applies the draft and keeps it on this phone; Cancel puts the controls back to the saved settings.
@@ -778,7 +774,7 @@ function applySettings(n){
     lat: isFinite(lat) && Math.abs(lat) <= 90 ? lat : S.lat,
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
-    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(), screenName: String(n.screenName || "").trim().slice(0, 24),
+    home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   saveSettings(); audioInit();
   if (wasDemo !== S.demo) {
@@ -852,7 +848,7 @@ const relayV12 = () => !!relay() && !relayLegacy && (window.OVERHEAD_RELAY_VERSI
 function sayHello(){
   if (!relayV12()) return;
   const d = window.devicePixelRatio || 1;
-  const params = new URLSearchParams({name: S.screenName || "", w: Math.round(screen.width * d), h: Math.round(screen.height * d), q: "", vis: document.visibilityState || ""});
+  const params = new URLSearchParams({name: "", w: Math.round(screen.width * d), h: Math.round(screen.height * d), q: "", vis: document.visibilityState || ""});
   timedFetch(`${relay()}/hello?${params}`, {}, 6000).catch(() => {});
 }
 addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeacon) navigator.sendBeacon(tagged(`${relay()}/bye`)); } catch {} });

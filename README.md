@@ -32,9 +32,9 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `chimes` | chimes on (`1`, the default) or off (`0`) | `chimes=0` |
 | `night` | night mode on (`1`, the default) or off (`0`) | `night=0` |
 | `airtime` | minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
-| `photo` | the aircraft photo `screen` (default), `engraved` or `plain` | `photo=engraved` |
+| `photo` | the aircraft photo `screen` (default), `engraved` or `plain` (main board only) | `photo=engraved` |
 | `quality` | `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
-| `screen` | This screen's name, shown in the relay's list of screens | `screen=Living%20room` |
+| `screen` | This screen's name, shown in the relay's list of screens (main board only) | `screen=Living%20room` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -124,8 +124,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   panel. Press the button again, Esc, or a page button to turn back; left alone for five minutes, a view turns back by itself. Add
   `#spotted`, `#logbook`, `#radar` or `#settings` to the address to open one at start.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
-  screen is off while the page falls into place and warms up after it lands. Settings → Aircraft photo (or
-  `?photo=engraved` / `?photo=plain`) can instead engrave it into the metal as fine lines, or show the plain photo.
+  screen is off while the page falls into place and warms up after it lands. On the main board, Settings → Aircraft
+  photo (or `?photo=engraved` / `?photo=plain`) can instead engrave it into the metal as fine lines, or show the plain
+  photo; the test boards and the app always use the screen (1.8.1).
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -169,8 +170,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
-- **Screen name** (Settings → System, or `?screen=Living%20room`): what the relay calls this screen in its list of
-  screens (relay 12 or newer, see below). Boards also tell the relay how big they are drawn and at what quality.
+- **Screen name** (main board only: Settings → System, or `?screen=Living%20room`): what the relay calls this screen
+  in its list of screens (relay 12 or newer, see below). The test boards and the app no longer have it (1.8.1); the
+  relay lists them by device. Boards also tell the relay how big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
   Fire TV and LG TVs, which get `1080`: drawn at 1080p, 30 frames a second, shorter flap runs and a smaller image cache,
   because their graphics chips struggle with the full board. `1440` sits in between, `high` forces the sharpest. The
@@ -207,7 +209,7 @@ Five buttons along the bottom:
 
 The flight data comes through the relay (version 13 or newer serves its icons), so the phone needs the home Wi-Fi.
 It checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
-among its screens as the APP board; Settings → Phone → Name gives it a name there. `?demo` shows sample flights.
+among its screens as the APP board. `?demo` shows sample flights.
 
 ## Controls
 
