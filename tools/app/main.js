@@ -86,8 +86,8 @@ function placeRow(ids, gaps, y, step, ratio, x0){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-// The plane overhead: the board's top half, in eight rows for a phone held upright and in four rows (like the board)
-// on its side.
+// The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
+// across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -109,13 +109,12 @@ def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
 function heroLayout(){
   const wide = SIDEWAYS.matches;
-  HERO.w = wide ? 560 : 390; HERO.h = wide ? 194 : 404;
+  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 404;
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
-    placeRow(["flight", "airline", "remarks"], [.6, .6], 18, 18.6, 1.45, UM);
-    placeRow(["fromCode", "fromCity", "toCode", "toCity"], [.4, 1, .4], 66, 18.6, 1.45, UM);
-    placeRow(["type", "reg", "alt", "trend"], [.5, .5, .3], 116, 14.4, 1.45, UM);
-    placeRow(["speed", "pos", "depTime", "arrTime", "airTime"], [.6, 1, 1, 1], 160, 14.4, 1.45, UM);
+    placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type"], [.4, 1, .4, 1], 66, 18, 1.45, UM);
+    placeRow(["alt", "trend", "speed", "pos", "depTime", "arrTime", "airTime"], [.3, .8, .8, 1, .8, .8], 114, 18, 1.45, UM);
     return;
   }
   placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
@@ -128,6 +127,41 @@ function heroLayout(){
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
 }
 heroLayout();
+// On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
+const NOW_ROWS = 6;
+const RECENTP = makePanel($("recentP"), 900, 196);
+for (let i = 0; i < NOW_ROWS; i++) {
+  const lab = en => i === 0 ? [en, ""] : null, s = 14.5;
+  def(RECENTP, `nl${i}time`,    {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time")});
+  def(RECENTP, `nl${i}flight`,  {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
+  def(RECENTP, `nl${i}from`,    {kind:"chars", n:10, dur:60, loud:.5, label:lab("From")});
+  def(RECENTP, `nl${i}to`,      {kind:"chars", n:10, dur:60, loud:.5, label:lab("To")});
+  def(RECENTP, `nl${i}type`,    {kind:"chars", n:14, dur:60, loud:.5, label:lab("Aircraft")});
+  def(RECENTP, `nl${i}remarks`, {kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks")});
+  placeRow(["time", "flight", "from", "to", "type", "remarks"].map(c => `nl${i}${c}`), [.8, .8, .8, .8, .8], 18 + i * 30, s, 1.45, UM);
+}
+const APP = makePanel($("apP"), 900, 196);
+for (const k of ["d", "a"]) for (let i = 0; i < NOW_ROWS; i++) {
+  const dep = k === "d", lab = en => i === 0 ? [en, ""] : null, s = 13.2, id = c => `na${k}${i}${c}`;
+  def(APP, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
+  def(APP, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
+  def(APP, id("city"),   {kind:"chars", n:10, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
+  def(APP, id("st"),     {kind:"word",  n:8, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  placeRow(["time", "flight", "city", "st"].map(id), [.6, .6, .6], 18 + i * 30, s, 1.45, dep ? UM : UM + 34.2 * s);
+}
+const ACP = makePanel($("acP"), 560, 192);
+def(ACP, "naReg",     {kind:"chars", n:8,  dur:70, style:"amber", label:["Registration", ""]});
+def(ACP, "naHex",     {kind:"chars", n:6,  dur:70, label:["Mode S", ""]});
+def(ACP, "naFlight",  {kind:"chars", n:9,  dur:70, label:["Flight", ""]});
+def(ACP, "naType",    {kind:"chars", n:26, dur:70, label:["Aircraft", ""]});
+def(ACP, "naOwner",   {kind:"chars", n:26, dur:70, label:["Operator", ""]});
+def(ACP, "naCountry", {kind:"chars", n:14, dur:70, label:["Registered in", ""]});
+def(ACP, "naRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route", ""]});
+placeRow(["naReg", "naHex", "naFlight"], [1.5, 1.5], 18, 20.4, 1.45, UM);
+placeRow(["naType"], [], 64, 20.4, 1.45, UM);
+placeRow(["naOwner"], [], 110, 20.4, 1.45, UM);
+placeRow(["naCountry", "naRoute"], [2], 156, 20.4, 1.45, UM);
+RECENTP.off = APP.off = ACP.off = true;
 const CLOCK = makePanel($("clockP"), 112, 34);
 def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 placeRow(["clock"], [], 4, 22.4, 1.25, 1);
@@ -412,10 +446,20 @@ function renderRecent(){
   recentSig = sig;
   $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
     : `<li class="empty">${escH(T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
+  for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
+    const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
+    setChars(id("time"), e ? e.time || "" : "", d);
+    setChars(id("flight"), e ? e.flight || String(e.hex || "").toUpperCase() : "", d + 60);
+    setChars(id("from"), e && e.from ? e.from.city || e.from.code || "" : "", d + 120);
+    setChars(id("to"), e && e.to ? e.to.city || e.to.code || "" : "", d + 180);
+    setChars(id("type"), e ? e.type || "" : "", d + 240);
+    setWord(id("remarks"), e ? remarkFor(e) : "", d + 300);
+  }
 }
 let shownPhoto = null, factsSig = "";
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
+  nowEmptyNote(); nowPanels();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || "";
@@ -434,6 +478,13 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   const route = info.from && info.to ? `${code3(info.from) || info.from.code} → ${code3(info.to) || info.to.code}` : "";
+  setChars("naReg", info.reg || d.reg || "");
+  setChars("naHex", feat.hex.toUpperCase(), 60);
+  setChars("naFlight", info.flightNo || "", 120);
+  setChars("naType", d.type || info.type || "", 180);
+  setChars("naOwner", d.owner || info.airline || "", 240);
+  setChars("naCountry", d.country || "", 300);
+  setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
   const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
     ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", d.owner || info.airline, true],
     ["Registered in", "Land", d.country], ["Route", "", route]].filter(f => f[2]);
@@ -738,6 +789,13 @@ function renderAirport(){
   if (sig === apSig) return;
   apSig = sig;
   $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
+  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < NOW_ROWS; i++) {   // on flaps, on its side
+    const e = list[i], id = c => `na${k}${i}${c}`, d = i * 60;
+    setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
+    setChars(id("flight"), e ? apFlight(e) : "", d + 20);
+    setChars(id("city"), e ? apPlace(e) : "", d + 60);
+    setWord(id("st"), e ? e.st : i === 0 && AP.lat != null ? "NO TRAFFIC" : "", d + 100);
+  }
 }
 function airportChanged(){ apSig = ""; renderAirport(); }
 // The page's fixed texts are marked data-t with their English; this puts them in the language chosen.
@@ -764,8 +822,45 @@ function applyMode(){
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
+  buildNowPages();
   renderFeatured(); renderAircraftInfo();
 }
+/* On its side, Now works like the board: the plane on top and one page under it, Recent flights (or Take-offs &
+   landings) and This aircraft, picked with lamp buttons. The pages turn every 20 seconds, skipping This aircraft when
+   there is no plane; a page picked by hand stays a minute and, empty, says so. */
+let nowPage = "lists", nowHold = 0, nowTurn = Date.now();
+function buildNowPages(){
+  const pages = [["lists", airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights"], ["ac", "This<br>aircraft"]];
+  $("nowPages").innerHTML = pages.map(([p, name]) => `<button class="cap" type="button" data-page="${p}">${T(name)}</button>`).join("");
+  for (const b of $("nowPages").children) b.onclick = () => { audioInit(); ctlSound.press(); nowHold = Date.now() + 60000; showNowPage(b.dataset.page); };
+  showNowPage(nowPage);
+}
+function showNowPage(p){
+  nowPage = p; nowTurn = Date.now();
+  $("t-now").dataset.page = p;
+  for (const b of $("nowPages").children) b.setAttribute("aria-pressed", String(b.dataset.page === p));
+  nowEmptyNote(); nowPanels();
+}
+// Only the flaps of the page showing are drawn.
+function nowPanels(){
+  const on = tab === "now" && SIDEWAYS.matches, ap = airportMode(), lists = on && nowPage === "lists";
+  let changed = false;
+  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && nowPage === "ac" && !!feat]])
+    if (P.off === show) { P.off = !show; changed = true; }
+  if (changed) refreshPanels(true);
+}
+function nowEmptyNote(){
+  const el = $("nowEmpty"), empty = nowPage === "ac" && !feat;
+  el.hidden = !empty;
+  if (empty) el.innerHTML = `${escH(T("No plane to show right now"))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
+}
+setInterval(() => {
+  if (!SIDEWAYS.matches || tab !== "now" || Date.now() < nowHold) return;
+  const empty = nowPage === "ac" && !feat;
+  if (!empty && Date.now() - nowTurn < 20000) return;
+  const next = nowPage === "lists" && feat ? "ac" : "lists";
+  if (next !== nowPage) showNowPage(next); else nowTurn = Date.now();
+}, 1000);
 //@E31
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
@@ -967,7 +1062,7 @@ async function start(){
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
-  const turned = () => { heroLayout(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  const turned = () => { heroLayout(); nowPanels(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();
