@@ -1044,26 +1044,18 @@ function drawStatic(){
   else if (isAc(page)) { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  // The two styles as a two-way switch in the title: a recessed track, the style showing on a raised plate with an
-  // amber lamp, the other one dimmed. Tapping either switches (modeSw, buttons laid over the words).
-  const ap = airportMode(), t1 = T("Overhead (board style)"), t2 = T("Airport (board style)");
-  g.font = `700 58px ${FONT}`;
-  const w1 = g.measureText(t1).width, w2 = g.measureText(t2).width, pad = 20, tx = M + 110, ty = 36, th = 80;
-  const x1 = tx + pad, x2 = x1 + w1 + pad * 2, tw = w1 + w2 + pad * 4;
-  g.fillStyle = "rgba(0,0,0,.55)"; rr(g, tx, ty, tw, th, 12); g.fill();
-  g.strokeStyle = "rgba(255,255,255,.07)"; g.lineWidth = 1.5; rr(g, tx + .75, ty + .75, tw - 1.5, th - 1.5, 11.5); g.stroke();
-  const sx = ap ? x2 - pad + 5 : tx + 5, sw = (ap ? w2 : w1) + pad * 2 - 10;
-  const plate = g.createLinearGradient(0, ty + 5, 0, ty + th - 5);
-  plate.addColorStop(0, "#3c3e43"); plate.addColorStop(1, "#24262a");
-  g.save(); g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 8; g.shadowOffsetY = 3;
-  g.fillStyle = plate; rr(g, sx, ty + 5, sw, th - 10, 9); g.fill(); g.restore();
-  g.fillStyle = COL.amber; rr(g, sx + sw / 2 - 18, ty + th - 13, 36, 4, 2); g.fill();          // the lamp under the style showing
+  // The two styles in the title, "Overhead / Airport": the one showing bright, the other dimmed. Tapping either
+  // switches (modeSw, buttons laid over the words).
+  const ap = airportMode(), t1 = T("Overhead (board style)"), t2 = T("Airport (board style)"), x1 = M + 116;
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  g.font = `${ap ? 400 : 700} 58px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText(t1, x1, ty + 58);
-  g.font = `${ap ? 700 : 400} 58px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText(t2, x2, ty + 58);
-  placeModeSwitch(x1, w1, x2, w2);
+  g.font = `${ap ? 400 : 700} 66px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText(t1, x1, 98);
+  const w1 = g.measureText(t1).width;
+  g.font = `400 66px ${FONT}`; g.fillStyle = COL.muted; g.fillText(" / ", x1 + w1, 98);
+  const x2 = x1 + w1 + g.measureText(" / ").width;
+  g.font = `${ap ? 700 : 400} 66px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText(t2, x2, 98);
+  placeModeSwitch(x1, w1, x2, g.measureText(t2).width);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
-  g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 140);
+  g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
@@ -3009,8 +3001,8 @@ function buildRail(){
   for (const b of vb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); toggleView(b.dataset.view); };
 }
 function placeModeSwitch(x1, w1, x2, w2){
-  const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 15}px * var(--k))`,
-    top: `calc(36px * var(--k))`, width: `calc(${w + 30}px * var(--k))`, height: `calc(80px * var(--k))`});
+  const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 6}px * var(--k))`,
+    top: `calc(38px * var(--k))`, width: `calc(${w + 12}px * var(--k))`, height: `calc(76px * var(--k))`});
   box(a, x1, w1); box(b, x2, w2);
   a.setAttribute("aria-pressed", String(!airportMode())); b.setAttribute("aria-pressed", String(airportMode()));
 }
@@ -3522,6 +3514,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.1", date: "2026-10-12", notes: [
+    "The title reads Overhead / Airport again, plainly: the style showing bright, the other dimmed, a slash between them."]},
   {v: "1.13", date: "2026-10-12", notes: [
     "Phone on its side: the app has its own landscape layout (the plane's flaps on the left, the rest on the right, the buttons along the edge) instead of switching to the big board.",
     "Overhead and Airport look like a switch now: the style showing sits on a lit plate.",
