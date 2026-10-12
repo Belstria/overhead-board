@@ -840,6 +840,24 @@ function showNowPage(p){
   $("t-now").dataset.page = p;
   for (const b of $("nowPages").children) b.setAttribute("aria-pressed", String(b.dataset.page === p));
   nowEmptyNote(); nowPanels();
+  if (airportMode()) { fitSideways(); refreshPanels(); }   // the airport page's two titles take a line
+}
+// On its side the plane's flaps and the page under them are as big as the screen allows: the full width if they fit
+// in its height, narrower (and centred) if not.
+function fitSideways(){
+  const el = $("t-now");
+  if (!SIDEWAYS.matches) return;
+  const cs = getComputedStyle(el), availW = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const titles = airportMode() && nowPage === "lists" ? 26 : 0;
+  const availH = innerHeight - $("top").offsetHeight - 6 - 8 - 6 - titles;    // main's padding, the gap, a margin
+  const W = Math.floor(Math.max(200, Math.min(availW, availH / ((150 + 196) / 900))));
+  el.style.setProperty("--fitW", W + "px"); el.style.setProperty("--lowH", Math.floor(W * 196 / 900) + "px");
+}
+// Only Now on its side: the tab open before comes back when the phone is upright again.
+let sideFrom = null;
+function sideways(){
+  if (SIDEWAYS.matches) { if (tab !== "now") { sideFrom = tab; showTab("now"); } }
+  else if (sideFrom) { const t = sideFrom; sideFrom = null; showTab(t); }
 }
 // Only the flaps of the page showing are drawn.
 function nowPanels(){
@@ -966,7 +984,7 @@ function buildTabs(){
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){
-  if (!TABS.some(x => x[0] === t) && t !== "about") t = "now";
+  if (!TABS.some(x => x[0] === t) && t !== "about" || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
@@ -1004,6 +1022,9 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
+  const bad = ["off", "warn", "demo"].includes(dot.dataset.state), al = $("sideAlert");     // on its side: only when something is wrong
+  al.hidden = !bad; al.dataset.state = dot.dataset.state;
+  if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
 function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
@@ -1036,7 +1057,7 @@ document.addEventListener("visibilitychange", () => {
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
-  resizeQ = requestAnimationFrame(() => { clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
+  resizeQ = requestAnimationFrame(() => { fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
 });
 
 async function start(){
@@ -1053,6 +1074,7 @@ async function start(){
   showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
+  fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
   tickClock(); setInterval(tickClock, 1000);
@@ -1062,7 +1084,7 @@ async function start(){
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
-  const turned = () => { heroLayout(); nowPanels(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  const turned = () => { sideways(); heroLayout(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();

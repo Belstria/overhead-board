@@ -97,11 +97,14 @@ WebView of `<relay>/app/`, so web app changes need no new APK. It finds the rela
 address of the phone's /24 (port 8080, `Server: OverheadRelay`), or takes a typed address; Settings → About →
 Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js`). Its user agent ends in
 `OverheadAndroid/<version>`. On its side the app page itself takes its landscape layout (CSS for
-`(orientation: landscape) and (max-height: 600px)`: each tab has a `.lcol` and `.rcol`, the tabs become a column on the
-right. Now is the board (1.13.2, Dave's choice): `heroLayout()` puts the flaps in three rows across the width, and under
-them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons (`buildNowPages`), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by `nowPanels()`) in place of the text lists; the
-other tabs take two columns); the Android app goes immersive and keeps the screen on
-while charging. (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
+`(orientation: landscape) and (max-height: 600px)`): only Now, full screen, no tab buttons (`sideways()` switches to
+Now and back; `showTab` refuses other tabs on its side), the status line only as a pop-up when something is wrong
+(`#sideAlert`). Now is the board (1.13.2/1.13.3, Dave's choice): `heroLayout()` puts the flaps in three rows across the
+width, and under them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons in the title strip
+(`buildNowPages`), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by
+`nowPanels()`) in place of the text lists; `fitSideways()` sizes it all to fill the screen (`--fitW`, `--lowH`). The
+Android app goes immersive, draws under the camera cutout and tells the page how far it reaches (`--cut-l`, `--cut-r`),
+and keeps the screen on while charging. (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
 8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
 (`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
 `ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print
