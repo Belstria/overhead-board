@@ -180,8 +180,11 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 #mark{width:40px;height:40px;flex:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted);margin-right:.3em}
-.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink)}
+/* Overhead / Airport: a two-way switch, the style showing on a raised plate with an amber lamp */
+.title h1{display:inline-flex;max-width:100%;padding:3px;border-radius:9px;background:rgba(0,0,0,.5);box-shadow:inset 0 1px 3px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.06)}
+.title h1 button{all:unset;position:relative;cursor:pointer;padding:3px 9px 6px;border-radius:6px;font-weight:400;color:var(--muted);font-size:.88em}
+.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink);background:linear-gradient(#3c3e43,#26282c);box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1)}
+.title h1 button[aria-pressed=true]::after{content:"";position:absolute;left:50%;bottom:2px;width:22px;height:3px;margin-left:-11px;border-radius:2px;background:var(--amber);box-shadow:0 0 6px rgba(240,180,41,.6)}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
@@ -326,6 +329,38 @@ h3 span{color:var(--label2);margin-left:.6em}
 .savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
+/* ---------- a phone on its side: the board's arrangement, laid out for a wide, low screen ----------
+   The left column (the plane's flaps, the radar, the numbers) stays put while the right one scrolls; the tab buttons
+   stand in a column along the right edge, like the board's rail. */
+.lcol,.rcol{min-width:0}
+@media (orientation:landscape) and (max-height:600px){
+  .wrap{max-width:none;padding:0 calc(var(--gut) + 104px + env(safe-area-inset-right)) 0 calc(var(--gut) + env(safe-area-inset-left))}
+  #top .wrap{padding-top:5px;padding-bottom:5px}
+  #mark{width:32px;height:32px}
+  .title h1{font-size:20px}
+  .title p{margin-top:4px}
+  #clockP{width:92px}
+  main{padding:10px 0 18px}
+  .tab.cols:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:24px;align-items:start}
+  .tab.cols .lcol{position:sticky;top:62px}
+  .tab.cols .rcol>.groove:first-child{display:none}
+  /* Now: the plane's flaps with the lists under them on the left, This aircraft on the right */
+  #t-now.cols:not([hidden]){grid-auto-flow:row dense}
+  #t-now .rcol{display:contents}
+  #t-now .lcol{position:static;grid-column:1}
+  #t-now #acSec{grid-column:2;grid-row:1/span 8}
+  #t-now #acSec>.groove:first-child{display:none}
+  #t-now #acSec h2{margin-top:0}
+  #t-now #recentSec,#t-now #apSec,#t-now .status{grid-column:1}
+  .tab.cols .rcol h2:first-of-type{margin-top:2px}
+  #tabs{left:auto;top:0;width:calc(104px + env(safe-area-inset-right));padding:calc(8px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) 0;
+    box-shadow:-1px 0 0 rgba(255,255,255,.05),-2px 0 0 rgba(0,0,0,.7),-8px 0 18px rgba(0,0,0,.38)}
+  #tabs .wrap{flex-direction:column;justify-content:center;height:100%;padding:0 10px;gap:10px}
+  #tabs .cap{flex:0 1 50px;height:auto;min-height:38px;width:100%}
+  .savebar{bottom:10px}
+  #cockpit,#aboutBox{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  .scope{max-width:min(440px,calc(100dvh - 130px))}
+}
 </style>
 </head>
 <body>
@@ -337,58 +372,72 @@ h3 span{color:var(--label2);margin-left:.6em}
   </div>
 </header>
 <main>
-  <section class="wrap tab" id="t-now">
-    <div id="ovSec">
-    <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-    <div id="acSec" hidden>
-      <div class="groove"></div>
-      <h2 data-t="This aircraft">This aircraft</h2>
-      <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
-        <b class="led"></b>
+  <section class="wrap tab cols" id="t-now">
+    <div class="lcol">
+      <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+    </div>
+    <div class="rcol">
+      <div id="acSec" hidden>
+        <div class="groove"></div>
+        <h2 data-t="This aircraft">This aircraft</h2>
+        <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
+          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
+          <b class="led"></b>
+        </div>
+        <dl class="facts" id="acFacts"></dl>
       </div>
-      <dl class="facts" id="acFacts"></dl>
+      <div id="recentSec">
+        <div class="groove"></div>
+        <h2 data-t="Recent flights">Recent flights</h2>
+        <ol class="flights" id="recent"></ol>
+      </div>
+      <div id="apSec" hidden>
+        <div class="groove"></div>
+        <h2 data-t="Take-offs">Take-offs</h2>
+        <p class="sum" id="apSub"></p>
+        <ol class="flights" id="apDeps"></ol>
+        <div class="groove"></div>
+        <h2 data-t="Landings">Landings</h2>
+        <ol class="flights" id="apArrs"></ol>
+      </div>
+      <p class="status statusText"></p>
     </div>
-    <div class="groove"></div>
-    <div id="recentSec">
-    <h2 data-t="Recent flights">Recent flights</h2>
-    <ol class="flights" id="recent"></ol>
+  </section>
+  <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lcol">
+      <h2 data-t="Spotted today">Spotted today</h2>
+      <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
+      <dl class="facts" id="todayFacts"></dl>
     </div>
-    </div>
-    <div id="apSec" hidden>
+    <div class="rcol">
       <div class="groove"></div>
-      <h2 data-t="Take-offs">Take-offs</h2>
-      <p class="sum" id="apSub"></p>
-      <ol class="flights" id="apDeps"></ol>
-      <div class="groove"></div>
-      <h2 data-t="Landings">Landings</h2>
-      <ol class="flights" id="apArrs"></ol>
+      <div class="tools" id="svTools"></div>
+      <p class="sum" id="svSum"></p>
+      <ol class="flights" id="svList"></ol>
+      <p class="status statusText"></p>
     </div>
-    <p class="status statusText"></p>
   </section>
-  <section class="wrap tab" id="t-today" hidden>
-    <h2 data-t="Spotted today">Spotted today</h2>
-    <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-    <dl class="facts" id="todayFacts"></dl>
-    <div class="groove"></div>
-    <div class="tools" id="svTools"></div>
-    <p class="sum" id="svSum"></p>
-    <ol class="flights" id="svList"></ol>
-    <p class="status statusText"></p>
+  <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lcol">
+      <h2 data-t="Logbook">Logbook</h2>
+      <p class="sum" id="lbSum"></p>
+      <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
+      <p class="model" id="lbModel"></p>
+    </div>
+    <div class="rcol">
+      <div id="lbLists"></div>
+    </div>
   </section>
-  <section class="wrap tab" id="t-logbook" hidden>
-    <h2 data-t="Logbook">Logbook</h2>
-    <p class="sum" id="lbSum"></p>
-    <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
-    <p class="model" id="lbModel"></p>
-    <div id="lbLists"></div>
-  </section>
-  <section class="wrap tab" id="t-radar" hidden>
-    <h2 data-t="Radar">Radar</h2>
-    <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
-    <ul class="rlegend" id="rLegend"></ul>
-    <h3 data-t="Nearest">Nearest</h3>
-    <ol class="flights" id="rvList"></ol>
+  <section class="wrap tab cols" id="t-radar" hidden>
+    <div class="lcol">
+      <h2 data-t="Radar">Radar</h2>
+      <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+      <ul class="rlegend" id="rLegend"></ul>
+    </div>
+    <div class="rcol">
+      <h3 data-t="Nearest">Nearest</h3>
+      <ol class="flights" id="rvList"></ol>
+    </div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
     <h2 data-t="About">About</h2>
@@ -546,6 +595,10 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["No plane to show right now", "Gerade kein Flugzeug zu zeigen", "Aucun avion à afficher pour le moment", "Ningún avión que mostrar ahora", "Nu geen vliegtuig om te tonen"],
+  ["No plane taking off right now", "Gerade startet kein Flugzeug", "Aucun avion ne décolle en ce moment", "Ningún avión despegando ahora", "Er vertrekt nu geen vliegtuig"],
+  ["No plane landing right now", "Gerade landet kein Flugzeug", "Aucun avion n'atterrit en ce moment", "Ningún avión aterrizando ahora", "Er landt nu geen vliegtuig"],
+  ["The page fills in as soon as there is one.", "Die Seite füllt sich, sobald eines da ist.", "La page se remplit dès qu'il y en a un.", "La página se llena en cuanto haya uno.", "De pagina vult zich zodra er een is."],
   ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
   ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
   ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
@@ -879,7 +932,8 @@ function placeRow(ids, gaps, y, step, ratio, x0){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-// The plane overhead: the board's top half, rearranged into eight rows for a phone held upright.
+// The plane overhead: the board's top half, in eight rows for a phone held upright and in four rows (like the board)
+// on its side.
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -898,14 +952,28 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
-placeRow(["airline"], [], 71, 26, 1.45, UM);
-placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
-placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
-placeRow(["type"], [], 232, 21.4, 1.45, UM);
-placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
-placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
-placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
+function heroLayout(){
+  const wide = SIDEWAYS.matches;
+  HERO.w = wide ? 560 : 390; HERO.h = wide ? 194 : 404;
+  HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
+  if (wide) {
+    placeRow(["flight", "airline", "remarks"], [.6, .6], 18, 18.6, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity"], [.4, 1, .4], 66, 18.6, 1.45, UM);
+    placeRow(["type", "reg", "alt", "trend"], [.5, .5, .3], 116, 14.4, 1.45, UM);
+    placeRow(["speed", "pos", "depTime", "arrTime", "airTime"], [.6, 1, 1, 1], 160, 14.4, 1.45, UM);
+    return;
+  }
+  placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
+  placeRow(["airline"], [], 71, 26, 1.45, UM);
+  placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
+  placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
+  placeRow(["type"], [], 232, 21.4, 1.45, UM);
+  placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
+  placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
+  placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+}
+heroLayout();
 const CLOCK = makePanel($("clockP"), 112, 34);
 def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 placeRow(["clock"], [], 4, 22.4, 1.25, 1);
@@ -2685,10 +2753,10 @@ const ctlSound = {
     const t0 = actx.currentTime + .005;
     for (let i = 0; i < Math.min(Math.max(1, steps), 6); i++) {
       const t = t0 + i * .06, v = 1 - i * .06;
-      ctlBurst(t, {f: 3400 + Math.random() * 500, q: 2.2, dur: .014, gain: .55 * v});
-      ctlBurst(t + .003, {f: 1150, q: 1.3, dur: .035, gain: .22 * v});
-      ctlRing(t, 185 + Math.random() * 15, .05, .16 * v);
-      ctlRing(t + .002, 2300 + Math.random() * 150, .07, .025 * v);
+      ctlBurst(t, {f: 4100 + Math.random() * 500, q: 2.2, dur: .013, gain: .55 * v});
+      ctlBurst(t + .003, {f: 1400, q: 1.3, dur: .03, gain: .22 * v});
+      ctlRing(t, 225 + Math.random() * 15, .045, .16 * v);
+      ctlRing(t + .002, 2800 + Math.random() * 150, .06, .025 * v);
     }
   },
   toggle(on){                 // the over-centre spring lets go: a snap, then the handle hits its stop
@@ -2944,6 +3012,11 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13", date: "2026-10-12", notes: [
+    "Phone on its side: the app has its own landscape layout (the plane's flaps on the left, the rest on the right, the buttons along the edge) instead of switching to the big board.",
+    "Overhead and Airport look like a switch now: the style showing sits on a lit plate.",
+    "Page buttons always work: a page with no plane to show opens empty and says so.",
+    "The knobs click a little higher."]},
   {v: "1.12.2", date: "2026-10-12", notes: [
     "Airport style: the status flap shows a plane taking off or landing in front of the word, instead of the sign in the header.",
     "Take-off comes before Landing on the page buttons, as in Take-offs & landings.",
@@ -3255,14 +3328,9 @@ async function start(){
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
-  // On its side a phone shows the big board (the test-api board, with this app's settings). The Android app swaps the
-  // two pages itself; in a browser the page changes.
-  const sideways = !ANDROID && window.matchMedia && matchMedia("(orientation: landscape) and (max-height: 600px)");
-  if (sideways) {
-    const go = () => { if (sideways.matches) location.replace("../test-api/?app"); };
-    sideways.addEventListener ? sideways.addEventListener("change", go) : sideways.addListener(go);
-    go();
-  }
+  // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
+  const turned = () => { heroLayout(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();
 })();
