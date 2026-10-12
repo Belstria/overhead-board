@@ -43,6 +43,7 @@ someone would notice.
 | `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
 | `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
+| `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service on Linux (the homelab). |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
 
@@ -112,13 +113,20 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
-- Dave runs it from `%USERPROFILE%\overhead-relay` (the folder the README sets up), not from this repository: that
-  folder also holds `overhead.json` (settings and the API key) and `data/` (sightings per day, logbook,
-  Flightradar24 cache). Started with `py serve.py` in a terminal; port 8080.
-- To update it: copy `relay/serve.py` over the one in that folder (after `py -m py_compile relay/serve.py`), then
-  restart it: Ctrl+C in its window, `py serve.py`. Bump `RELAY_VERSION` with every relay change and gate board
-  features that need the new version on `OVERHEAD_RELAY_VERSION`.
-- Useful: `http://localhost:8080/status` (JSON), `/screens` (screens using it), Enter in its window lists screens.
+- Since 12 Oct 2026 it runs on Dave's homelab: a Debian LXC container on Proxmox (`overhead-relay`, always on), as the
+  systemd service `overhead-relay` (`relay/overhead-relay.service`) in `/opt/overhead-relay`, which also holds
+  `overhead.json` (settings and the API key) and `data/` (sightings per day, logbook, Flightradar24 cache). Port 8080.
+  The container's address and how to reach it are in Claude's memory for this project, not here (the repository is
+  public). Claude logs in as root with the key `~/.ssh/overhead_homelab` on Dave's PC. The old copy in
+  `%USERPROFILE%\overhead-relay` on the PC stays stopped: two relays on one network confuse the Android app's search.
+- To update it: `py -m py_compile relay/serve.py`, copy `relay/serve.py`, `relay/overhead-relay.service` and
+  `relay/install.sh` to the container (scp, to `/root/overhead-install/`) and run `sh /root/overhead-install/install.sh`
+  there: it checks the file compiles, replaces it, keeps the settings and data, and restarts the service. (After the
+  change is on `main`, `curl -fsSL .../relay/install.sh | sh` on the container does the same from GitHub.) Bump
+  `RELAY_VERSION` with every relay change and gate board features that need the new version on
+  `OVERHEAD_RELAY_VERSION`.
+- Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
+  `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
 - Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
@@ -142,7 +150,7 @@ a restart.
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
 Screens update themselves when a new version is published; wake The Frame and reopen the board when it drops off,
-Art Mode at night (Samsung's local TV API); start the relay with Windows, later Docker on the homelab; a spotter's
+Art Mode at night (Samsung's local TV API); a spotter's
 collection page and weekly bingo of rare planes; rarity marks ("first time ever", "seen 4 times"); worth going to
 the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; a Hue
 light pulse for special planes (local Hue Bridge API), phone push via ntfy; a Vestaboard-style 6x22 view; a report of

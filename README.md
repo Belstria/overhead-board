@@ -275,11 +275,22 @@ command line still wins over the saved file. Other relay options: `--units aviat
 
 When Windows Firewall asks, allow Python on **private** networks so other screens at home can reach it.
 
-**Linux / homelab**
+**Linux / homelab (always on)**
+
+On a Debian or Ubuntu machine, or a small LXC container on Proxmox (1 core, 512 MB, 4 GB is plenty), as root:
 
 ```bash
-python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
+curl -fsSL https://raw.githubusercontent.com/Belstria/overhead-board/main/relay/install.sh | sh
+cd /opt/overhead-relay && sudo -u overhead python3 serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
+systemctl restart overhead-relay
 ```
+
+`install.sh` puts the relay in `/opt/overhead-relay` and runs it as a service (`overhead-relay`) that starts at boot
+and restarts itself; the second line saves your location (press Ctrl+C once it has started). Running `install.sh`
+again updates the relay and keeps your settings and logbook. Set the machine's time zone (`timedatectl
+set-timezone Europe/Vienna`): the logbook's days follow it. The relay's messages: `journalctl -u overhead-relay -f`.
+Moving from another computer: stop the relay there and copy its `overhead.json` and `data` folder into
+`/opt/overhead-relay` (then `chown -R overhead:overhead /opt/overhead-relay` and restart the service).
 
 Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV, tablet or phone.
 The relay prints the addresses when it starts. Your location stays on the relay machine: it is handed
