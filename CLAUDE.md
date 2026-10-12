@@ -80,8 +80,10 @@ The app keeps its settings under its own key (`od.app.settings`) and needs the r
 
 Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in the title; the "airport mode" block,
 copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on
-top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The header sign
-(`apsign`, a word flap: `AP_SIGN`, `showApSign`) says TAKING OFF or LANDING; the app shows it as a strip (`showAppSign`).
+top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The airport
+statuses (`AP_ICON`) carry a plane pictogram in front of the word, in the flap tile and the app's chips (Dave's choice
+over a header sign, which was tried in 1.12.1). On a phone on its side (`?app`, wider than 16:9) the board fills the
+width (`CROP`, cropping the title strip and rail) and a tap zooms out (`peek`).
 Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`

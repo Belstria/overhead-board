@@ -175,19 +175,21 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .plate{padding:14px 14px 16px;gap:10px}
 #cockpit .plate h3{margin:0 0 4px}
 #cockpit .inst.wide .lcd{width:100%}
-/* airport style: taking off or landing, above the flaps */
-.apsign{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 14px;padding:9px 14px;border-radius:6px;
-  font:700 19px/1 var(--f-board);letter-spacing:.14em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.5)}
-.apsign[hidden]{display:none}
-.apsign.dep{background:linear-gradient(#f6be35,#dc9f1d);color:#17140d}
-.apsign.arr{background:linear-gradient(#27a85e,#1d8a4b);color:#fff}
-.apsign svg{width:28px;height:28px;fill:currentColor}
-.apsign.dep svg{transform:rotate(60deg)}
-.apsign.arr svg{transform:rotate(115deg)}
+/* the airport statuses carry a small plane taking off or landing */
+.chip .apic{display:inline-grid;width:15px;height:15px;margin-right:6px}
+.chip .apic svg{width:100%;height:100%;fill:currentColor}
+.chip .apic.dep svg{transform:rotate(60deg)}
+.chip .apic.arr svg{transform:rotate(115deg)}
+.chip:has(.apic){display:inline-flex;align-items:center;justify-content:center}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
 #aboutBox .plate{padding:14px 16px 16px;gap:10px}
 #aboutBox .lgbox{grid-column:1/-1}
-#aboutBox .lgbox h3{margin:10px 0 6px;font-size:14px}
+#aboutBox .lgbox h3{margin:14px 0 6px;font:700 13px/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
+#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
+#aboutBox ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
+#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 14px/1.3 var(--f-board);color:rgba(232,227,214,.84)}
+#aboutBox ul.legend .chip{min-width:0;width:118px}
+#aboutBox .lgbox p.sum{margin:12px 0 0}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -208,7 +210,6 @@ h3 span{color:var(--label2);margin-left:.6em}
 <main>
   <section class="wrap tab" id="t-now">
     <div id="ovSec">
-    <div class="apsign" id="apSign" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><span></span></div>
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>

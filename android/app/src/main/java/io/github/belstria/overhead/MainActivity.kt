@@ -109,6 +109,9 @@ class MainActivity : Activity() {
         s.javaScriptEnabled = true
         s.domStorageEnabled = true                  // the page keeps its settings in localStorage
         s.mediaPlaybackRequiresUserGesture = false  // flap sound and chimes
+        s.minimumFontSize = 1                       // the board is drawn small on a phone and scaled in its own units:
+        s.minimumLogicalFontSize = 1                // Android's minimum text size would make its labels overflow
+        s.textZoom = 100
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         s.userAgentString = "${s.userAgentString} OverheadAndroid/$version"   // the relay lists the phone as the app
         view.addJavascriptInterface(Bridge(view), "OverheadAndroid")
