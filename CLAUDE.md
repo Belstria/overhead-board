@@ -99,7 +99,7 @@ Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js
 `OverheadAndroid/<version>`. On its side the app page itself takes its landscape layout (CSS for
 `(orientation: landscape) and (max-height: 600px)`: each tab has a `.lcol` and `.rcol`, the tabs become a column on the
 right. Now is the board (1.13.2, Dave's choice): `heroLayout()` puts the flaps in three rows across the width, and under
-them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons (`buildNowPages`), turning every 20 s; the
+them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons (`buildNowPages`), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by `nowPanels()`) in place of the text lists; the
 other tabs take two columns); the Android app goes immersive and keeps the screen on
 while charging. (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
 8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
