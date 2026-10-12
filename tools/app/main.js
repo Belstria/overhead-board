@@ -932,6 +932,8 @@ addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeaco
 document.addEventListener("visibilitychange", () => {
   sayHello();
   if (document.visibilityState !== "visible") return;
+  // A phone may throw away a hidden page's canvas pictures (and the cached flap faces): draw everything afresh.
+  clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize();
   poll(true); if (relayV5()) syncSightings();
   if (tab === "logbook") fetchLogbook();
 });
