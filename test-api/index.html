@@ -1255,15 +1255,18 @@ function audioInit(){
     actx.resume();
   } catch { actx = null; }
 }
-// Every sound goes through one output (sfxOut): a cut of the deepest rumble, a short room and a limiter. Phone and TV
-// speakers can't play low tones and add a room of their own; headphones play everything, bone-dry, which made the
-// synthesised sounds dull and fake there. The limiter keeps overlapping clicks from distorting.
+// Every sound goes through one output (sfxOut): a cut of the deepest rumble and of the hiss above ~6 kHz, a short room
+// and a limiter. Phone and TV speakers play neither the low tones nor the top octaves and add a room of their own;
+// headphones play everything, bone-dry, so the synthesised clicks sounded hissy and fake there (the noise bursts reach
+// up to 20 kHz). The limiter keeps overlapping clicks from distorting.
 let sfxBus = null;
 function sfxOut(){
   if (sfxBus) return sfxBus;
   try {
     const sr = actx.sampleRate, hp = actx.createBiquadFilter(), lim = actx.createDynamicsCompressor(), trim = actx.createGain();
     hp.type = "highpass"; hp.frequency.value = 110; hp.Q.value = .7;
+    const lp = actx.createBiquadFilter(), lp2 = actx.createBiquadFilter();   // two in a row: a steep enough slope
+    lp.type = lp2.type = "lowpass"; lp.frequency.value = lp2.frequency.value = 6500; lp.Q.value = lp2.Q.value = .6;
     lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .001; lim.release.value = .1;
     trim.gain.value = .82;                            // the compressor's own make-up gain, taken back
     const room = actx.createConvolver(), wet = actx.createGain(), n = Math.floor(sr * .22), ir = actx.createBuffer(2, n, sr);
@@ -1272,7 +1275,7 @@ function sfxOut(){
       for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4) * Math.min(1, i / (sr * .004));
     }
     room.buffer = ir; wet.gain.value = .1;
-    hp.connect(lim); hp.connect(room).connect(wet).connect(lim); lim.connect(trim).connect(actx.destination);
+    hp.connect(lp).connect(lp2); lp2.connect(lim); lp2.connect(room).connect(wet).connect(lim); lim.connect(trim).connect(actx.destination);
     sfxBus = hp;
   } catch { sfxBus = actx.destination; }
   return sfxBus;
@@ -3536,6 +3539,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.1.2", date: "2026-10-12", notes: [
+    "Sounds on headphones, part two: the hiss on top of the clicks is gone (phone and TV speakers never played it), so they sound like on a speaker."]},
   {v: "1.13.1.1", date: "2026-10-12", notes: [
     "Sounds on headphones: the clicks no longer have a dull, fake hum under them, start without a pop, sit in a small room instead of bone-dry, and can't distort when several play at once."]},
   {v: "1.13.1", date: "2026-10-12", notes: [
@@ -3858,7 +3863,7 @@ const ctlSound = {
   toggle(on){                 // the over-centre spring lets go: a snap, then the handle hits its stop
     if (!ctlReady()) return;
     const t = actx.currentTime + .005;
-    ctlBurst(t, {type: "highpass", f: 2600, dur: .006, gain: .75});
+    ctlBurst(t, {f: 3000, q: .9, dur: .006, gain: .75});
     ctlRing(t + .001, on ? 1700 : 1550, .03, .05, "triangle");
     ctlBurst(t + .008, {f: on ? 880 : 760, q: 1.5, dur: .045, gain: .38});
     ctlRing(t + .008, on ? 150 : 128, .07, .32);
@@ -3866,7 +3871,7 @@ const ctlSound = {
   wheel(){                    // a thumbwheel's ratchet
     if (!ctlReady()) return;
     const t = actx.currentTime + .005;
-    ctlBurst(t, {type: "highpass", f: 3800, dur: .009, gain: .28});
+    ctlBurst(t, {f: 3600, q: 1.2, dur: .009, gain: .28});
     ctlRing(t, 1250, .018, .03, "triangle");
   },
   press(){                    // a push button going down and springing back
