@@ -3,16 +3,12 @@ package io.github.belstria.overhead
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
-import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
@@ -53,8 +49,8 @@ import org.json.JSONObject
  * for the address. The page's Settings → About → Change relay calls [Bridge.changeRelay], and Settings → Use current
  * location calls [Bridge.locate], which answers through window.__overheadHere(lat, lon, accuracy, error).
  *
- * Turned on its side, the page takes its landscape layout (the page itself does that); the app goes full screen and,
- * while charging, keeps the screen on.
+ * Turned on its side, the page takes its landscape layout (the page itself does that) and the app goes full screen.
+ * While the app is open the screen stays on (Android lets it time out again once the app is left).
  */
 class MainActivity : Activity() {
     private lateinit var root: FrameLayout
@@ -82,6 +78,7 @@ class MainActivity : Activity() {
         root.addView(web, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         root.addView(note, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         setContentView(root)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)   // a board doesn't go dark: on as long as the app is open
         // Upright, the page keeps clear of the status bar, the navigation bar and the camera cutout (Android 15 draws edge
         // to edge). On its side (full screen) it fills the whole screen, under the camera too, and is told how far the
         // cutout reaches (--cut-l, --cut-r) to keep its flaps clear of it.
@@ -205,7 +202,6 @@ class MainActivity : Activity() {
     private fun applyOrientation() {
         if (webReady && !failed) { web.visibility = View.VISIBLE; note.visibility = View.GONE }
         immersive(landscape())
-        keepOn()
     }
 
     private fun immersive(on: Boolean) {
@@ -220,19 +216,6 @@ class MainActivity : Activity() {
             window.decorView.systemUiVisibility = if (on) View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE else 0
         }
-    }
-
-    /** On its side and charging (on the stand on the desk), the screen stays on. */
-    private fun keepOn() {
-        val battery = if (Build.VERSION.SDK_INT >= 33) registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED), RECEIVER_NOT_EXPORTED)
-                      else registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        val charging = (battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
-        if (landscape() && charging) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
-
-    private val power = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) { keepOn() }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -411,14 +394,11 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        val f = IntentFilter(Intent.ACTION_POWER_CONNECTED).apply { addAction(Intent.ACTION_POWER_DISCONNECTED) }
-        if (Build.VERSION.SDK_INT >= 33) registerReceiver(power, f, RECEIVER_EXPORTED) else registerReceiver(power, f)
         web.onResume()                              // paused in onPause: without this the page stayed frozen and black
         applyOrientation()
     }
 
     override fun onPause() {
-        try { unregisterReceiver(power) } catch (e: Exception) { }
         web.onPause()
         super.onPause()
     }

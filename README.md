@@ -206,7 +206,7 @@ half: Recent flights (or Take-offs & landings) and This aircraft. Lamp buttons i
 turns by itself every 20 seconds, and a page you pick stays a minute. There are no tab buttons (Today, Logbook, Radar
 and Settings are for upright; the one you had open comes back when you turn the phone upright again), and the status
 line only pops up when something is wrong. The Android app goes full screen, draws under the camera (1.13.3 or newer)
-and keeps the screen on while the phone is charging. Auto-rotate has to be on.
+and keeps the screen on as long as it is open (1.13.3.1 or newer). Auto-rotate has to be on.
 
 Five buttons along the bottom:
 

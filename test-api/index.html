@@ -3539,6 +3539,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.3.1", date: "2026-10-12", notes: [
+    "Android app: the screen stays on as long as the app is open, upright or on its side, charging or not (needs the new Android app)."]},
   {v: "1.13.3", date: "2026-10-12", notes: [
     "Phone app on its side: only the board, full screen and as big as the screen allows. The page buttons sit in the title strip, there are no tab buttons, and the status line only pops up when something is wrong.",
     "Android app: on its side it fills the screen under the camera too, instead of leaving a dark band (needs the new Android app)."]},
