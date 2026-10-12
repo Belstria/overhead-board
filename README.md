@@ -176,6 +176,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
+- **Quick flaps** (Settings → Display, 1.14): every flap still turns through its letters and words, but as a blur,
+  and the whole board lands on the new text in about 1.5 seconds. Flap speed % doesn't apply while it is on.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
 - **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
   big they are drawn and at what quality.

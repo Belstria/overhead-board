@@ -57,7 +57,7 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 - Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,
   engraved labels; `drawStatic()`) and `fx` (the flaps).
 - Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
-  `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`), `frame()` animates and
+  `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
   `paintCell()` draws a flap mid-flip. Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
 - Top half: the plane overhead (`process()` picks it: alerts first, then overhead, inbound, flying by; airtime limit
   for hovering planes) rendered by `renderFeatured()` and `renderTimes()`.
