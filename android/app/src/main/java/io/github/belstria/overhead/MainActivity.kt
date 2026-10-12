@@ -26,6 +26,7 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -72,9 +73,7 @@ class MainActivity : Activity() {
         super.onCreate(state)
         root = FrameLayout(this)
         root.setBackgroundColor(BG)
-        web = WebView(this)
-        web.setBackgroundColor(BG)
-        web.visibility = View.INVISIBLE
+        web = newWeb()
         note = TextView(this)
         note.setTextColor(INK)
         note.textSize = 17f
@@ -94,10 +93,17 @@ class MainActivity : Activity() {
             }
             insets
         }
-        setUpWeb(web)
         val saved = prefs.getString(KEY, null)
         if (saved != null) open(saved) else search()
         applyOrientation()
+    }
+
+    private fun newWeb(): WebView {
+        val view = WebView(this)
+        view.setBackgroundColor(BG)
+        view.visibility = View.INVISIBLE
+        setUpWeb(view)
+        return view
     }
 
     private fun setUpWeb(view: WebView) {
@@ -127,6 +133,19 @@ class MainActivity : Activity() {
                 web.visibility = View.INVISIBLE
                 showNote("Can't reach the relay at $relay.")
                 askAddress("Can't reach the relay at $relay. Is the computer on, the relay running, and this phone on the home Wi-Fi?")
+            }
+
+            // Away for a while, Android may end the page's renderer to free memory. Without this the app stayed black
+            // (or closed): a fresh WebView takes the old one's place and loads the page again.
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                if (view !== web) return true
+                root.removeView(view)
+                view.destroy()
+                if (locateFrom === view) locateFrom = null
+                web = newWeb()
+                root.addView(web, 0, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+                relay?.let { open(it) } ?: search()
+                return true
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -365,6 +384,7 @@ class MainActivity : Activity() {
         super.onResume()
         val f = IntentFilter(Intent.ACTION_POWER_CONNECTED).apply { addAction(Intent.ACTION_POWER_DISCONNECTED) }
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(power, f, RECEIVER_EXPORTED) else registerReceiver(power, f)
+        web.onResume()                              // paused in onPause: without this the page stayed frozen and black
         applyOrientation()
     }
 
