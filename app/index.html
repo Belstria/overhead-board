@@ -305,19 +305,21 @@ h3 span{color:var(--label2);margin-left:.6em}
 #cockpit .plate{padding:14px 14px 16px;gap:10px}
 #cockpit .plate h3{margin:0 0 4px}
 #cockpit .inst.wide .lcd{width:100%}
-/* airport style: taking off or landing, above the flaps */
-.apsign{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 14px;padding:9px 14px;border-radius:6px;
-  font:700 19px/1 var(--f-board);letter-spacing:.14em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.5)}
-.apsign[hidden]{display:none}
-.apsign.dep{background:linear-gradient(#f6be35,#dc9f1d);color:#17140d}
-.apsign.arr{background:linear-gradient(#27a85e,#1d8a4b);color:#fff}
-.apsign svg{width:28px;height:28px;fill:currentColor}
-.apsign.dep svg{transform:rotate(60deg)}
-.apsign.arr svg{transform:rotate(115deg)}
+/* the airport statuses carry a small plane taking off or landing */
+.chip .apic{display:inline-grid;width:15px;height:15px;margin-right:6px}
+.chip .apic svg{width:100%;height:100%;fill:currentColor}
+.chip .apic.dep svg{transform:rotate(60deg)}
+.chip .apic.arr svg{transform:rotate(115deg)}
+.chip:has(.apic){display:inline-flex;align-items:center;justify-content:center}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
 #aboutBox .plate{padding:14px 16px 16px;gap:10px}
 #aboutBox .lgbox{grid-column:1/-1}
-#aboutBox .lgbox h3{margin:10px 0 6px;font-size:14px}
+#aboutBox .lgbox h3{margin:14px 0 6px;font:700 13px/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
+#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
+#aboutBox ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
+#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 14px/1.3 var(--f-board);color:rgba(232,227,214,.84)}
+#aboutBox ul.legend .chip{min-width:0;width:118px}
+#aboutBox .lgbox p.sum{margin:12px 0 0}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -337,7 +339,6 @@ h3 span{color:var(--label2);margin-left:.6em}
 <main>
   <section class="wrap tab" id="t-now">
     <div id="ovSec">
-    <div class="apsign" id="apSign" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><span></span></div>
     <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     <div id="acSec" hidden>
       <div class="groove"></div>
@@ -441,6 +442,8 @@ const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
+// The airport statuses show a plane taking off or landing in front of the word (tile).
+const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "arr"};
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -543,8 +546,6 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
-  ["TAKING OFF", "STARTET", "DÉCOLLE", "DESPEGANDO", "VERTREKT"],
-  ["LANDING", "LANDET", "ATTERRIT", "ATERRIZANDO", "LANDT"],
   ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
   ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
   ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
@@ -971,8 +972,7 @@ function tile(f, value, variant = 0){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} :
-    f.words === "apsign" && value ? AP_SIGN[value] : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
   if (f.words === "lamp") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}`;
@@ -1022,14 +1022,12 @@ function tile(f, value, variant = 0){
     ax = bx + bw; aw = w - ax;
     if (!text && code === "-") text = T("NO AIRLINE LISTED");
   }
-  if (f.words === "apsign") {                // a plane climbing away or coming down onto a runway, then the word
-    text = value ? T(value === "dep" ? "TAKING OFF" : "LANDING") : "";
-    if (value) {
-      const sz = h * .7, cx = h * .78, cy = h * .46;
-      g.save(); g.translate(cx, cy); g.rotate((value === "dep" ? 15 : 70) * Math.PI / 180); drawPlane(g, 0, 0, sz, fg); g.restore();
-      g.fillStyle = fg; g.fillRect(cx - sz * .62, h * .8, sz * 1.24, Math.max(2, h * .05));      // the runway
-      ax = h * 1.45; aw = w - ax - h * .25;
-    }
+  const icon = f.words === "remarks" && AP_ICON[value];
+  if (icon) {                                // the airport statuses: a plane climbing away from or coming down onto a runway
+    const sz = h * .62, cx = h * .66, cy = h * .44;
+    g.save(); g.translate(cx, cy); g.rotate((icon === "dep" ? 15 : 70) * Math.PI / 180); drawPlane(g, 0, 0, sz, fg); g.restore();
+    g.fillStyle = fg; g.fillRect(cx - sz * .6, h * .76, sz * 1.2, Math.max(1.5, h * .05));     // the runway
+    ax = h * 1.2; aw = w - ax - h * .2;
   }
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
@@ -1158,7 +1156,7 @@ function retarget(c, value, delay){
   if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
-  else if (c.f.words === "lamp" || c.f.words === "apsign") q = [value];
+  else if (c.f.words === "lamp") q = [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -2249,10 +2247,12 @@ function altNum(ft){
 }
 
 /* ---------- what the lists look like ---------- */
+const PLANE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>';
 function chip(r){                        // the status word in this language; its colours by the English name
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(T(r))}</span>`;
+  const icon = AP_ICON[r] ? `<i class="apic ${AP_ICON[r]}">${PLANE_SVG}</i>` : "";        // taking off or landing, as on the flaps
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -2338,6 +2338,7 @@ function buildSvTools(){
   const box = $("svTools");
   box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
   for (const b of box.children) b.onclick = () => {
+    ctlSound.press();
     const k = b.dataset.t;
     svFilter = k;
     svSig = ""; renderToday();
@@ -2863,7 +2864,6 @@ function airportProcess(list){
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
   renderAirport();
 }
-const AP_SIGN = {dep: {fill: ["#f6be35", "#dc9f1d"], fg: "#17140d"}, arr: {fill: ["#27a85e", "#1d8a4b"], fg: "#ffffff"}};
 // The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
 function apFocus(which){
   const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
@@ -2876,20 +2876,14 @@ function apFeature(all){
   const pg = typeof page === "string" ? page : "";          // the app has no pages
   const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
   const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
-  if (o) { setFeat(o, "ap"); feat.apSt = e.st; feat.apKind = e.kind; }
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
   else feat = null;
-  showApSign(feat ? feat.apKind : "");
   renderFeatured();
   if (feat) lookupDetails(feat.hex);
   if (feat && typeof preloadPhoto === "function") preloadPhoto();
   if (typeof noteFeatured === "function") noteFeatured();
   if (typeof renderAircraftInfo === "function") renderAircraftInfo();
   if (typeof renderPage === "function" && (pg === "apland" || pg === "apdep")) renderPage();
-}
-// Taking off or landing: the board's sign in the header (a flap), the app's strip above its flaps.
-function showApSign(kind){
-  if (typeof fields !== "undefined" && fields.apsign) { if (!fields.apsign.hidden) setWord("apsign", kind || ""); }
-  else if (typeof showAppSign === "function") showAppSign(kind);
 }
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
@@ -2936,20 +2930,11 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
-// Taking off or landing: a strip above the flaps in the airport style.
-function showAppSign(kind){
-  const el = $("apSign");
-  el.hidden = !kind || !airportMode();
-  if (el.hidden) return;
-  el.className = "apsign " + kind;
-  el.querySelector("span").textContent = T(kind === "dep" ? "TAKING OFF" : "LANDING");
-}
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
-  if (!ap) $("apSign").hidden = true;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
   renderFeatured(); renderAircraftInfo();
 }
@@ -2959,6 +2944,12 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.12.2", date: "2026-10-12", notes: [
+    "Airport style: the status flap shows a plane taking off or landing in front of the word, instead of the sign in the header.",
+    "Take-off comes before Landing on the page buttons, as in Take-offs & landings.",
+    "The lamp buttons click when pressed.",
+    "Phone on its side: the board fills the width; tap for the title, the clock and the buttons.",
+    "Phone: the legend in About reads properly on small screens."]},
   {v: "1.12.1", date: "2026-10-12", notes: [
     "Airport style: a lit sign in the header says whether the plane on top is TAKING OFF (amber) or LANDING (green).",
     "The airport style keeps the pages layout; the screens layout and its setting are gone."]},
@@ -3142,7 +3133,7 @@ const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["rada
 let tab = "now", tabTimer = null;
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
-  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); showTab(b.dataset.tab); };
+  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){

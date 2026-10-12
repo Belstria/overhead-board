@@ -317,6 +317,8 @@ const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
+// The airport statuses show a plane taking off or landing in front of the word (tile).
+const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "arr"};
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
@@ -488,8 +490,7 @@ pdef("aircraft", "acOwner",   {kind:"chars", n:26, dur:70, label:["Operator","Be
 pdef("aircraft", "acCountry", {kind:"chars", n:14, dur:70, label:["Registered in","Registriert in"]});
 pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route","Route"]});
 // The top half's fields, shown whenever no view is open.
-def("apsign", {kind:"word", n:10, dur:130, words:"apsign", loud:.8});
-const TOP_IDS = ["apsign", "flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
+const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
 const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
@@ -594,9 +595,6 @@ function layout(){
   const als = IW / 66;
   for (let i = 0; i < 5; i++) for (const [k, x0] of [["d", M], ["a", M + 34 * als]])
     placeRow(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), [.6, .6, .6], Y.list0 + i * 44, als, 1.45, x0);
-  // Airport style: the sign in the header, between the title and the clock, saying whether the plane on top takes off or lands
-  const sg = fields.apsign;
-  sg.hidden = S.mode !== "airport"; sg.step = 52; sg.cw = 46.8; sg.ch = 74; sg.wordW = 500; sg.x = 990; sg.y = 44;
 }
 const PHOTO = {w: 600, h: 300};
 layout();
@@ -616,12 +614,17 @@ function geometry(){
 }
 function resize(){
   const vw = innerWidth, vh = innerHeight;
-  K = Math.min(vw / W, vh / H);
+  // A phone on its side (the app's board, ?app) is wider than 16:9: the board fills the width, which crops the title
+  // strip and the button row; a tap shows the whole board for a few seconds (zoomed out, see peek()).
+  CROP = IN_APP && vw / vh > W / H * 1.05;
+  K = CROP ? vw / W : Math.min(vw / W, vh / H);
   const dpr = window.devicePixelRatio || 1;
   PX = S.hd ? 2 : Math.min(pxCap(), K * dpr);
   document.body.classList.toggle("lite", LITE());
   const cssW = W * K, cssH = H * K;
-  Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
+  const top = CROP ? vh / 2 - CROP_MID * K : (vh - cssH) / 2;
+  Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: top + "px", transformOrigin: "0 0"});
+  peek(PEEK.on, true);
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
   clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placeRail();
@@ -677,8 +680,7 @@ function tile(f, value, variant = 0){
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} :
-    f.words === "apsign" && value ? AP_SIGN[value] : {};
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
   if (f.words === "lamp") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}`;
@@ -728,14 +730,12 @@ function tile(f, value, variant = 0){
     ax = bx + bw; aw = w - ax;
     if (!text && code === "-") text = T("NO AIRLINE LISTED");
   }
-  if (f.words === "apsign") {                // a plane climbing away or coming down onto a runway, then the word
-    text = value ? T(value === "dep" ? "TAKING OFF" : "LANDING") : "";
-    if (value) {
-      const sz = h * .7, cx = h * .78, cy = h * .46;
-      g.save(); g.translate(cx, cy); g.rotate((value === "dep" ? 15 : 70) * Math.PI / 180); drawPlane(g, 0, 0, sz, fg); g.restore();
-      g.fillStyle = fg; g.fillRect(cx - sz * .62, h * .8, sz * 1.24, Math.max(2, h * .05));      // the runway
-      ax = h * 1.45; aw = w - ax - h * .25;
-    }
+  const icon = f.words === "remarks" && AP_ICON[value];
+  if (icon) {                                // the airport statuses: a plane climbing away from or coming down onto a runway
+    const sz = h * .62, cx = h * .66, cy = h * .44;
+    g.save(); g.translate(cx, cy); g.rotate((icon === "dep" ? 15 : 70) * Math.PI / 180); drawPlane(g, 0, 0, sz, fg); g.restore();
+    g.fillStyle = fg; g.fillRect(cx - sz * .6, h * .76, sz * 1.2, Math.max(1.5, h * .05));     // the runway
+    ax = h * 1.2; aw = w - ax - h * .2;
   }
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
@@ -861,7 +861,7 @@ function retarget(c, value, delay){
   if (c.f.kind === "chars") { q = path(c.f.drum, base, value); if (LITE() && q.length > 7) q = q.slice(-7); }
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
-  else if (c.f.words === "lamp" || c.f.words === "apsign") q = [value];
+  else if (c.f.words === "lamp") q = [value];
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -2137,12 +2137,12 @@ function renderSpotted(){
 const PAGE_ORDER_OVERHEAD = ["spotted", "aircraft", "stats"];
 // Airport style: the lists (a page under the plane on top, or the full-screen lists in the screens layout), then the
 // plane landing and the plane taking off, each shown like This aircraft.
-const pageOrder = () => airportMode() ? ["aplists", "apland", "apdep"] : PAGE_ORDER_OVERHEAD;
+const pageOrder = () => airportMode() ? ["aplists", "apdep", "apland"] : PAGE_ORDER_OVERHEAD;
 const isAc = p => p === "aircraft" || p === "apland" || p === "apdep";      // pages showing one aircraft's photo and details
 // The rotation: Recent flights → This aircraft → Recent flights → This aircraft → Today in numbers, and round again.
 // A turn whose page has nothing to show stays on (or goes back to) Recent flights.
 const ROTATION_OVERHEAD = ["spotted", "aircraft", "spotted", "aircraft", "stats"];
-const rotation = () => !airportMode() ? ROTATION_OVERHEAD : ["aplists", "apland", "aplists", "apdep"];
+const rotation = () => !airportMode() ? ROTATION_OVERHEAD : ["aplists", "apdep", "aplists", "apland"];
 let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
 function pageTitle(p){
@@ -2740,7 +2740,7 @@ function buildViewTools(){
   if (!box.children.length) {
     box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
     for (const b of box.children) b.onclick = e => {
-      e.stopPropagation();
+      e.stopPropagation(); ctlSound.press();
       const k = b.dataset.t;
       if (k === "prev" || k === "next") return svStep(k === "next" ? 1 : -1);
       if (k === "legend") return setLegend(!svLegend), updateViewTools();
@@ -2985,8 +2985,8 @@ function buildRail(){
   const pb = $("railPages"), vb = $("railViews");
   pb.innerHTML = pageOrder().map(p => `<button class="cap" type="button" data-page="${p}"><span>${T(PAGE_KEYS[p] || p)}</span></button>`).join("");
   vb.innerHTML = RAIL_VIEWS.map(([v, t]) => `<button class="cap" type="button" data-view="${v}" aria-pressed="false"><span>${T(t)}</span></button>`).join("");
-  for (const b of pb.children) b.onclick = e => { e.stopPropagation(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
-  for (const b of vb.children) b.onclick = e => { e.stopPropagation(); toggleView(b.dataset.view); };
+  for (const b of pb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
+  for (const b of vb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); toggleView(b.dataset.view); };
 }
 function placeModeSwitch(x1, w1, x2, w2){
   const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 6}px * var(--k))`,
@@ -2999,8 +2999,6 @@ function setMode(m){
   ctlSound.press();
   S.mode = m; saveSettings();
   dlog("info", `Board style: ${m}`);
-  layout(); geometry();                               // the sign in the header belongs to the airport style
-  if (!airportMode()) { const c = fields.apsign.cells[0]; c.cur = c.target = ""; c.queue = []; c.anim = null; }
   $("railPages").innerHTML = "";                      // the page buttons belong to the style
   switchView(null);           // to the new style's home: the board, or the airport lists
   drawStatic(); redrawAll();
@@ -3086,8 +3084,6 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
-  ["TAKING OFF", "STARTET", "DÉCOLLE", "DESPEGANDO", "VERTREKT"],
-  ["LANDING", "LANDET", "ATTERRIT", "ATERRIZANDO", "LANDT"],
   ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
   ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
   ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
@@ -3470,7 +3466,6 @@ function airportProcess(list){
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
   renderAirport();
 }
-const AP_SIGN = {dep: {fill: ["#f6be35", "#dc9f1d"], fg: "#17140d"}, arr: {fill: ["#27a85e", "#1d8a4b"], fg: "#ffffff"}};
 // The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
 function apFocus(which){
   const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
@@ -3483,20 +3478,14 @@ function apFeature(all){
   const pg = typeof page === "string" ? page : "";          // the app has no pages
   const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
   const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
-  if (o) { setFeat(o, "ap"); feat.apSt = e.st; feat.apKind = e.kind; }
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
   else feat = null;
-  showApSign(feat ? feat.apKind : "");
   renderFeatured();
   if (feat) lookupDetails(feat.hex);
   if (feat && typeof preloadPhoto === "function") preloadPhoto();
   if (typeof noteFeatured === "function") noteFeatured();
   if (typeof renderAircraftInfo === "function") renderAircraftInfo();
   if (typeof renderPage === "function" && (pg === "apland" || pg === "apdep")) renderPage();
-}
-// Taking off or landing: the board's sign in the header (a flap), the app's strip above its flaps.
-function showApSign(kind){
-  if (typeof fields !== "undefined" && fields.apsign) { if (!fields.apsign.hidden) setWord("apsign", kind || ""); }
-  else if (typeof showAppSign === "function") showAppSign(kind);
 }
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
@@ -3509,6 +3498,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.12.2", date: "2026-10-12", notes: [
+    "Airport style: the status flap shows a plane taking off or landing in front of the word, instead of the sign in the header.",
+    "Take-off comes before Landing on the page buttons, as in Take-offs & landings.",
+    "The lamp buttons click when pressed.",
+    "Phone on its side: the board fills the width; tap for the title, the clock and the buttons.",
+    "Phone: the legend in About reads properly on small screens."]},
   {v: "1.12.1", date: "2026-10-12", notes: [
     "Airport style: a lit sign in the header says whether the plane on top is TAKING OFF (amber) or LANDING (green).",
     "The airport style keeps the pages layout; the screens layout and its setting are gone."]},
@@ -4058,10 +4053,25 @@ addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeaco
 let wakeLock = null;
 async function keepAwake(){ try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch {} }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") keepAwake(); });
+// Cropped on a phone: the middle of the board fills the screen; peek() zooms out to the whole board and back.
+let CROP = false;
+const CROP_MID = 567;                       // the middle of what stays in view: the flaps, from the top half to the lowest row
+const PEEK = {on: false, timer: 0};
+function peek(on, now){
+  clearTimeout(PEEK.timer);
+  PEEK.on = !!on && CROP;
+  const vw = innerWidth, vh = innerHeight;
+  if (!PEEK.on) { stage.style.transition = now ? "none" : "transform .45s ease"; stage.style.transform = ""; return; }
+  const s = Math.min(vw / W, vh / H) / K, top = vh / 2 - CROP_MID * K;
+  stage.style.transition = now ? "none" : "transform .45s ease";
+  stage.style.transform = `translate(${(vw - W * K * s) / 2 - (vw - W * K) / 2}px, ${(vh - H * K * s) / 2 - top}px) scale(${s})`;
+  PEEK.timer = setTimeout(() => peek(false), 7000);
+}
+addEventListener("pointerdown", () => { if (PEEK.on) peek(true); }, {capture: true, passive: true});     // still being used: stay out
 function toggleFullscreen(){
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch {}
 }
-fx.addEventListener("click", () => { audioInit(); keepAwake(); toggleFullscreen(); });
+fx.addEventListener("click", () => { audioInit(); keepAwake(); if (CROP) peek(!PEEK.on); else toggleFullscreen(); });
 ["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
 function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 4000); }

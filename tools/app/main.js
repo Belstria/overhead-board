@@ -362,10 +362,12 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
 //@E26
 
 /* ---------- what the lists look like ---------- */
+const PLANE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>';
 function chip(r){                        // the status word in this language; its colours by the English name
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${escH(T(r))}</span>`;
+  const icon = AP_ICON[r] ? `<i class="apic ${AP_ICON[r]}">${PLANE_SVG}</i>` : "";        // taking off or landing, as on the flaps
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -441,6 +443,7 @@ function buildSvTools(){
   const box = $("svTools");
   box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
   for (const b of box.children) b.onclick = () => {
+    ctlSound.press();
     const k = b.dataset.t;
     svFilter = k;
     svSig = ""; renderToday();
@@ -740,20 +743,11 @@ function setMode(md){
   poll(true);                                       // the new style picks its plane from fresh positions
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
-// Taking off or landing: a strip above the flaps in the airport style.
-function showAppSign(kind){
-  const el = $("apSign");
-  el.hidden = !kind || !airportMode();
-  if (el.hidden) return;
-  el.className = "apsign " + kind;
-  el.querySelector("span").textContent = T(kind === "dep" ? "TAKING OFF" : "LANDING");
-}
 // Which of the two the Now tab shows.
 function applyMode(){
   showModes();
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
-  if (!ap) $("apSign").hidden = true;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
   renderFeatured(); renderAircraftInfo();
 }
@@ -858,7 +852,7 @@ const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["rada
 let tab = "now", tabTimer = null;
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
-  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); showTab(b.dataset.tab); };
+  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){
