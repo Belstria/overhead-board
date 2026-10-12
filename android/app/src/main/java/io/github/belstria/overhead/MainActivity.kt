@@ -52,16 +52,12 @@ import org.json.JSONObject
  * for the address. The page's Settings → About → Change relay calls [Bridge.changeRelay], and Settings → Use current
  * location calls [Bridge.locate], which answers through window.__overheadHere(lat, lon, accuracy, error).
  *
- * Turned on its side, the phone shows the big board instead (the test-api board with ?app, so it uses the app's
- * settings), full screen and, while charging, with the screen kept on. Both pages stay loaded in their own WebView, so
- * turning the phone switches at once.
+ * Turned on its side, the page takes its landscape layout (the page itself does that); the app goes full screen and,
+ * while charging, keeps the screen on.
  */
 class MainActivity : Activity() {
     private lateinit var root: FrameLayout
-    private lateinit var web: WebView              // the phone page, upright
-    private var board: WebView? = null             // the big board, on its side; made the first time it's needed
-    private var boardFor: String? = null           // the relay the board was loaded from
-    private var boardReady = false
+    private lateinit var web: WebView              // the phone page
     private var webReady = false
     private var locateFrom: WebView? = null
     private lateinit var note: TextView
@@ -98,19 +94,19 @@ class MainActivity : Activity() {
             }
             insets
         }
-        setUpWeb(web, false)
+        setUpWeb(web)
         val saved = prefs.getString(KEY, null)
         if (saved != null) open(saved) else search()
         applyOrientation()
     }
 
-    private fun setUpWeb(view: WebView, isBoard: Boolean) {
+    private fun setUpWeb(view: WebView) {
         val s = view.settings
         s.javaScriptEnabled = true
         s.domStorageEnabled = true                  // the page keeps its settings in localStorage
         s.mediaPlaybackRequiresUserGesture = false  // flap sound and chimes
-        s.minimumFontSize = 1                       // the board is drawn small on a phone and scaled in its own units:
-        s.minimumLogicalFontSize = 1                // Android's minimum text size would make its labels overflow
+        s.minimumFontSize = 1                       // the page sizes its own small print (Settings' engraving):
+        s.minimumLogicalFontSize = 1                // Android's minimum text size would make it overflow
         s.textZoom = 100
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         s.userAgentString = "${s.userAgentString} OverheadAndroid/$version"   // the relay lists the phone as the app
@@ -127,12 +123,6 @@ class MainActivity : Activity() {
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (!request.isForMainFrame) return
-                if (isBoard) {
-                    boardReady = false; boardFor = null
-                    view.visibility = View.GONE
-                    if (landscape()) showNote("Can't load the board from $relay. Turn the phone upright for the phone page.")
-                    return
-                }
                 failed = true
                 web.visibility = View.INVISIBLE
                 showNote("Can't reach the relay at $relay.")
@@ -141,13 +131,8 @@ class MainActivity : Activity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 if (url.startsWith("about:")) return
-                if (isBoard) {
-                    if (boardFor == null) return
-                    boardReady = true
-                } else {
-                    if (failed) return
-                    webReady = true
-                }
+                if (failed) return
+                webReady = true
                 applyOrientation()
             }
         }
@@ -162,50 +147,17 @@ class MainActivity : Activity() {
         relay = base
         failed = false
         webReady = false
-        boardFor = null                             // a new relay: the board reloads from it when it's next needed
         showNote("Connecting to $base …")
         web.loadUrl("$base/app/")
-        if (landscape()) loadBoard()
     }
 
-    /* ---------- on its side: the big board ---------- */
+    /* ---------- on its side: the same page in its landscape layout, full screen ---------- */
 
     private fun landscape() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    private fun loadBoard() {
-        val base = relay ?: return
-        val b = board ?: WebView(this).also {
-            it.setBackgroundColor(BG)
-            it.visibility = View.GONE
-            root.addView(it, 1, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))   // above the phone page, below the note
-            setUpWeb(it, true)
-            board = it
-        }
-        if (boardFor != base) {
-            boardFor = base
-            boardReady = false
-            b.loadUrl("$base/test-api/?app")
-        }
-    }
-
-    /** Show the page that fits the way the phone is held, full screen on its side. */
     private fun applyOrientation() {
-        val side = landscape()
-        if (side) loadBoard()
-        val b = board
-        if (side) {
-            web.visibility = View.INVISIBLE
-            web.onPause()
-            if (b != null) { b.onResume(); b.visibility = if (boardReady) View.VISIBLE else View.GONE }
-            if (boardReady) note.visibility = View.GONE
-            else if (relay != null && !searching) showNote("Loading the board …")
-        } else {
-            if (b != null) { b.visibility = View.GONE; b.onPause() }
-            web.onResume()
-            if (webReady && !failed) { web.visibility = View.VISIBLE; note.visibility = View.GONE }
-            else if (relay != null && !searching && !failed) showNote("Connecting to $relay …")
-        }
-        immersive(side)
+        if (webReady && !failed) { web.visibility = View.VISIBLE; note.visibility = View.GONE }
+        immersive(landscape())
         keepOn()
     }
 
@@ -419,14 +371,12 @@ class MainActivity : Activity() {
     override fun onPause() {
         try { unregisterReceiver(power) } catch (e: Exception) { }
         web.onPause()
-        board?.onPause()
         super.onPause()
     }
 
     override fun onDestroy() {
         dialog?.dismiss()
         web.destroy()
-        board?.destroy()
         super.onDestroy()
     }
 

@@ -50,8 +50,11 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 #mark{width:40px;height:40px;flex:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted);margin-right:.3em}
-.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink)}
+/* Overhead / Airport: a two-way switch, the style showing on a raised plate with an amber lamp */
+.title h1{display:inline-flex;max-width:100%;padding:3px;border-radius:9px;background:rgba(0,0,0,.5);box-shadow:inset 0 1px 3px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.06)}
+.title h1 button{all:unset;position:relative;cursor:pointer;padding:3px 9px 6px;border-radius:6px;font-weight:400;color:var(--muted);font-size:.88em}
+.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink);background:linear-gradient(#3c3e43,#26282c);box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1)}
+.title h1 button[aria-pressed=true]::after{content:"";position:absolute;left:50%;bottom:2px;width:22px;height:3px;margin-left:-11px;border-radius:2px;background:var(--amber);box-shadow:0 0 6px rgba(240,180,41,.6)}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
@@ -196,6 +199,38 @@ h3 span{color:var(--label2);margin-left:.6em}
 .savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
+/* ---------- a phone on its side: the board's arrangement, laid out for a wide, low screen ----------
+   The left column (the plane's flaps, the radar, the numbers) stays put while the right one scrolls; the tab buttons
+   stand in a column along the right edge, like the board's rail. */
+.lcol,.rcol{min-width:0}
+@media (orientation:landscape) and (max-height:600px){
+  .wrap{max-width:none;padding:0 calc(var(--gut) + 104px + env(safe-area-inset-right)) 0 calc(var(--gut) + env(safe-area-inset-left))}
+  #top .wrap{padding-top:5px;padding-bottom:5px}
+  #mark{width:32px;height:32px}
+  .title h1{font-size:20px}
+  .title p{margin-top:4px}
+  #clockP{width:92px}
+  main{padding:10px 0 18px}
+  .tab.cols:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:24px;align-items:start}
+  .tab.cols .lcol{position:sticky;top:62px}
+  .tab.cols .rcol>.groove:first-child{display:none}
+  /* Now: the plane's flaps with the lists under them on the left, This aircraft on the right */
+  #t-now.cols:not([hidden]){grid-auto-flow:row dense}
+  #t-now .rcol{display:contents}
+  #t-now .lcol{position:static;grid-column:1}
+  #t-now #acSec{grid-column:2;grid-row:1/span 8}
+  #t-now #acSec>.groove:first-child{display:none}
+  #t-now #acSec h2{margin-top:0}
+  #t-now #recentSec,#t-now #apSec,#t-now .status{grid-column:1}
+  .tab.cols .rcol h2:first-of-type{margin-top:2px}
+  #tabs{left:auto;top:0;width:calc(104px + env(safe-area-inset-right));padding:calc(8px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) 0;
+    box-shadow:-1px 0 0 rgba(255,255,255,.05),-2px 0 0 rgba(0,0,0,.7),-8px 0 18px rgba(0,0,0,.38)}
+  #tabs .wrap{flex-direction:column;justify-content:center;height:100%;padding:0 10px;gap:10px}
+  #tabs .cap{flex:0 1 50px;height:auto;min-height:38px;width:100%}
+  .savebar{bottom:10px}
+  #cockpit,#aboutBox{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  .scope{max-width:min(440px,calc(100dvh - 130px))}
+}
 /*CAPS_AND_COCKPIT*/
 </style>
 </head>
@@ -208,58 +243,72 @@ h3 span{color:var(--label2);margin-left:.6em}
   </div>
 </header>
 <main>
-  <section class="wrap tab" id="t-now">
-    <div id="ovSec">
-    <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-    <div id="acSec" hidden>
-      <div class="groove"></div>
-      <h2 data-t="This aircraft">This aircraft</h2>
-      <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-        <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
-        <b class="led"></b>
+  <section class="wrap tab cols" id="t-now">
+    <div class="lcol">
+      <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+    </div>
+    <div class="rcol">
+      <div id="acSec" hidden>
+        <div class="groove"></div>
+        <h2 data-t="This aircraft">This aircraft</h2>
+        <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
+          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
+          <b class="led"></b>
+        </div>
+        <dl class="facts" id="acFacts"></dl>
       </div>
-      <dl class="facts" id="acFacts"></dl>
+      <div id="recentSec">
+        <div class="groove"></div>
+        <h2 data-t="Recent flights">Recent flights</h2>
+        <ol class="flights" id="recent"></ol>
+      </div>
+      <div id="apSec" hidden>
+        <div class="groove"></div>
+        <h2 data-t="Take-offs">Take-offs</h2>
+        <p class="sum" id="apSub"></p>
+        <ol class="flights" id="apDeps"></ol>
+        <div class="groove"></div>
+        <h2 data-t="Landings">Landings</h2>
+        <ol class="flights" id="apArrs"></ol>
+      </div>
+      <p class="status statusText"></p>
     </div>
-    <div class="groove"></div>
-    <div id="recentSec">
-    <h2 data-t="Recent flights">Recent flights</h2>
-    <ol class="flights" id="recent"></ol>
+  </section>
+  <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lcol">
+      <h2 data-t="Spotted today">Spotted today</h2>
+      <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
+      <dl class="facts" id="todayFacts"></dl>
     </div>
-    </div>
-    <div id="apSec" hidden>
+    <div class="rcol">
       <div class="groove"></div>
-      <h2 data-t="Take-offs">Take-offs</h2>
-      <p class="sum" id="apSub"></p>
-      <ol class="flights" id="apDeps"></ol>
-      <div class="groove"></div>
-      <h2 data-t="Landings">Landings</h2>
-      <ol class="flights" id="apArrs"></ol>
+      <div class="tools" id="svTools"></div>
+      <p class="sum" id="svSum"></p>
+      <ol class="flights" id="svList"></ol>
+      <p class="status statusText"></p>
     </div>
-    <p class="status statusText"></p>
   </section>
-  <section class="wrap tab" id="t-today" hidden>
-    <h2 data-t="Spotted today">Spotted today</h2>
-    <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-    <dl class="facts" id="todayFacts"></dl>
-    <div class="groove"></div>
-    <div class="tools" id="svTools"></div>
-    <p class="sum" id="svSum"></p>
-    <ol class="flights" id="svList"></ol>
-    <p class="status statusText"></p>
+  <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lcol">
+      <h2 data-t="Logbook">Logbook</h2>
+      <p class="sum" id="lbSum"></p>
+      <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
+      <p class="model" id="lbModel"></p>
+    </div>
+    <div class="rcol">
+      <div id="lbLists"></div>
+    </div>
   </section>
-  <section class="wrap tab" id="t-logbook" hidden>
-    <h2 data-t="Logbook">Logbook</h2>
-    <p class="sum" id="lbSum"></p>
-    <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
-    <p class="model" id="lbModel"></p>
-    <div id="lbLists"></div>
-  </section>
-  <section class="wrap tab" id="t-radar" hidden>
-    <h2 data-t="Radar">Radar</h2>
-    <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
-    <ul class="rlegend" id="rLegend"></ul>
-    <h3 data-t="Nearest">Nearest</h3>
-    <ol class="flights" id="rvList"></ol>
+  <section class="wrap tab cols" id="t-radar" hidden>
+    <div class="lcol">
+      <h2 data-t="Radar">Radar</h2>
+      <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+      <ul class="rlegend" id="rLegend"></ul>
+    </div>
+    <div class="rcol">
+      <h3 data-t="Nearest">Nearest</h3>
+      <ol class="flights" id="rvList"></ol>
+    </div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
     <h2 data-t="About">About</h2>

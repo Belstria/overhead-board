@@ -82,8 +82,7 @@ Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in t
 copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on
 top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The airport
 statuses (`AP_ICON`) carry a plane pictogram in front of the word, in the flap tile and the app's chips (Dave's choice
-over a header sign, which was tried in 1.12.1). On a phone on its side (`?app`, wider than 16:9) the board fills the
-width (`CROP`, cropping the title strip and rail) and a tap zooms out (`peek`).
+over a header sign, which was tried in 1.12.1).
 Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
@@ -97,9 +96,10 @@ relay is plain http (Tailscale was tried and dropped on 11 Oct 2026; don't sugge
 WebView of `<relay>/app/`, so web app changes need no new APK. It finds the relay by asking `/health` on every
 address of the phone's /24 (port 8080, `Server: OverheadRelay`), or takes a typed address; Settings → About →
 Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js`). Its user agent ends in
-`OverheadAndroid/<version>`. On its side it shows `<relay>/test-api/?app` in a second WebView (immersive, screen kept on
-while charging); `?app` makes the board use the app's settings key (`od.app.settings`) and, in a phone browser, go back
-to `/app/` when upright (the app page goes to the board when sideways). GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
+`OverheadAndroid/<version>`. On its side the app page itself takes its landscape layout (CSS for
+`(orientation: landscape) and (max-height: 600px)`: each tab has a `.lcol` and `.rcol`, the tabs become a column on the
+right; `heroLayout()` puts the flaps in four board-like rows); the Android app goes immersive and keeps the screen on
+while charging. (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
 8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
 (`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
 `ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print

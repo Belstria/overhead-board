@@ -343,29 +343,20 @@ const REMARK_LOOK = {
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
-// With ?app in the address the board is the phone app turned on its side: it shares the app's settings (and, like the
-// app, starts without flap sound). A phone browser goes back to the app when it is turned upright again.
-const IN_APP = new URLSearchParams(location.search).has("app");
-const SKEY = IN_APP ? "od.app.settings" : "od.settings";
+const SKEY = "od.settings";
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  if (!IN_APP && saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
+  if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
   delete saved.v;
   return {...DEFAULTS, ...saved};
 }
 function saveSettings(){
-  const changed = IN_APP ? {} : {v: 2};
+  const changed = {v: 2};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
-if (IN_APP) DEFAULTS.sound = false;
-if (IN_APP && !window.OverheadAndroid) {      // the Android app swaps the two pages itself
-  const upright = window.matchMedia && matchMedia("(orientation: portrait) and (max-width: 600px)");
-  const back = () => { if (upright.matches) location.replace("../app/"); };
-  if (upright) { upright.addEventListener ? upright.addEventListener("change", back) : upright.addListener(back); back(); }
-}
 let S = loadSettings();
 S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off");
 (() => { // URL overrides for this session, handy for kiosk setups: ?lat=..&lon=..&radius=..&home=..&place=..&demo
@@ -612,17 +603,12 @@ function geometry(){
 }
 function resize(){
   const vw = innerWidth, vh = innerHeight;
-  // A phone on its side (the app's board, ?app) is wider than 16:9: the board fills the width, which crops the title
-  // strip and the button row; a tap shows the whole board for a few seconds (zoomed out, see peek()).
-  CROP = IN_APP && vw / vh > W / H * 1.05;
-  K = CROP ? vw / W : Math.min(vw / W, vh / H);
+  K = Math.min(vw / W, vh / H);
   const dpr = window.devicePixelRatio || 1;
   PX = S.hd ? 2 : Math.min(pxCap(), K * dpr);
   document.body.classList.toggle("lite", LITE());
   const cssW = W * K, cssH = H * K;
-  const top = CROP ? vh / 2 - CROP_MID * K : (vh - cssH) / 2;
-  Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: top + "px", transformOrigin: "0 0"});
-  peek(PEEK.on, true);
+  Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
   clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placeRail();
@@ -1056,14 +1042,26 @@ function drawStatic(){
   else if (isAc(page)) { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  // The two styles side by side in the title: the one showing bright, the other dimmed. Tapping one switches (modeSw).
-  const ap = airportMode(), x1 = M + 116;
-  g.font = `${ap ? 400 : 700} 66px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText(T("Overhead (board style)"), x1, 98);
-  const w1 = g.measureText(T("Overhead (board style)")).width, x2 = x1 + w1 + 28;
-  g.font = `${ap ? 700 : 400} 66px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText(T("Airport (board style)"), x2, 98);
-  placeModeSwitch(x1, w1, x2, g.measureText(T("Airport (board style)")).width);
+  // The two styles as a two-way switch in the title: a recessed track, the style showing on a raised plate with an
+  // amber lamp, the other one dimmed. Tapping either switches (modeSw, buttons laid over the words).
+  const ap = airportMode(), t1 = T("Overhead (board style)"), t2 = T("Airport (board style)");
+  g.font = `700 58px ${FONT}`;
+  const w1 = g.measureText(t1).width, w2 = g.measureText(t2).width, pad = 20, tx = M + 110, ty = 36, th = 80;
+  const x1 = tx + pad, x2 = x1 + w1 + pad * 2, tw = w1 + w2 + pad * 4;
+  g.fillStyle = "rgba(0,0,0,.55)"; rr(g, tx, ty, tw, th, 12); g.fill();
+  g.strokeStyle = "rgba(255,255,255,.07)"; g.lineWidth = 1.5; rr(g, tx + .75, ty + .75, tw - 1.5, th - 1.5, 11.5); g.stroke();
+  const sx = ap ? x2 - pad + 5 : tx + 5, sw = (ap ? w2 : w1) + pad * 2 - 10;
+  const plate = g.createLinearGradient(0, ty + 5, 0, ty + th - 5);
+  plate.addColorStop(0, "#3c3e43"); plate.addColorStop(1, "#24262a");
+  g.save(); g.shadowColor = "rgba(0,0,0,.7)"; g.shadowBlur = 8; g.shadowOffsetY = 3;
+  g.fillStyle = plate; rr(g, sx, ty + 5, sw, th - 10, 9); g.fill(); g.restore();
+  g.fillStyle = COL.amber; rr(g, sx + sw / 2 - 18, ty + th - 13, 36, 4, 2); g.fill();          // the lamp under the style showing
+  g.textBaseline = "alphabetic"; g.textAlign = "left";
+  g.font = `${ap ? 400 : 700} 58px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText(t1, x1, ty + 58);
+  g.font = `${ap ? 700 : 400} 58px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText(t2, x2, ty + 58);
+  placeModeSwitch(x1, w1, x2, w2);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
-  g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
+  g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 140);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
@@ -1076,6 +1074,21 @@ function drawStatic(){
   if (view) return;
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(T(pageTitle(page)[0]), M, Y.listHead);
   if (page === "aplists") g.fillText(T("Landings"), M + 34 * IW / 66, Y.listHead);     // the right-hand list's own title
+  shownEmpty = emptyNote();
+  if (shownEmpty && !isAc(page)) {                    // an empty page opened by hand (the aircraft pages say it on their screen)
+    g.font = `700 30px ${FONT}`; const tw = g.measureText(T(pageTitle(page)[0])).width;
+    g.font = `500 20px ${FONT}`; g.fillStyle = COL.muted; g.fillText(`${shownEmpty} ${T("The page fills in as soon as there is one.")}`, M + tw + 30, Y.listHead);
+  }
+}
+// What to say on a page that has nothing to show (the page buttons always work; the rotation skips empty pages).
+let shownEmpty = "";
+function emptyNote(){
+  if (view) return "";
+  if (page === "aircraft") return feat ? "" : T("No plane to show right now");
+  if (page === "apdep") return apFocus("dep") ? "" : T("No plane taking off right now");
+  if (page === "apland") return apFocus("arr") ? "" : T("No plane landing right now");
+  if (page === "stats") return spotted.length ? "" : T("Nothing spotted yet today.");
+  return "";
 }
 
 function screw(g, x, y, r){
@@ -1124,7 +1137,12 @@ function drawBezel(g){
   g.translate(b.x, b.y); glass(g, b.w, b.h, 1.4);
   if (!(feat && (detailsOf(feat.hex) || {}).photo)) {
     g.font = `600 15px ${FONT}`; g.textAlign = "center"; if ("letterSpacing" in g) g.letterSpacing = "3px";
-    g.fillStyle = "rgba(170,190,215,.32)"; g.fillText(T("NO PICTURE"), b.w / 2, b.h / 2 + 5);
+    const note = emptyNote();
+    if (note) {                                       // a page opened by hand with no plane on it: the screen says so
+      if ("letterSpacing" in g) g.letterSpacing = "1px";
+      g.font = `600 24px ${FONT}`; g.fillStyle = "rgba(200,212,228,.62)"; g.fillText(note, b.w / 2, b.h / 2 - 4);
+      g.font = `500 16px ${FONT}`; g.fillStyle = "rgba(170,190,215,.42)"; g.fillText(T("The page fills in as soon as there is one."), b.w / 2, b.h / 2 + 24);
+    } else { g.fillStyle = "rgba(170,190,215,.32)"; g.fillText(T("NO PICTURE"), b.w / 2, b.h / 2 + 5); }
     if ("letterSpacing" in g) g.letterSpacing = "0px"; g.textAlign = "left";
   }
   g.restore();
@@ -2261,7 +2279,7 @@ function syncRotation(p){
 // Picking a page by hand: it stays for at least a minute before the rotation carries on.
 let pageHold = 0;
 function pickPage(p){
-  if (switching || bigFlap.on || !pageAvailable(p)) return;
+  if (switching || bigFlap.on) return;
   pageHold = Date.now() + Math.max(60, +S.rotateS || 0) * 1000;
   syncRotation(p);
   if (p === page) { pageSince = Date.now(); return; }
@@ -2272,14 +2290,16 @@ function stepPage(dir){
   let i = O.indexOf(page);
   for (let k = 0; k < O.length; k++) {
     i = (i + dir + O.length) % O.length;
-    if (pageAvailable(O[i])) return pickPage(O[i]);
+    return pickPage(O[i]);
   }
 }
 setInterval(() => {
   updatePager();
   if (switching || bigFlap.on || view) return;
   if (feat && feat.alert && isAc(page)) pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
-  if (!pageAvailable(page)) return goPage(pageOrder()[0]);
+  const em = emptyNote();
+  if (em !== shownEmpty) drawStatic();                // a plane came along, or went: the note comes or goes
+  if (!pageAvailable(page) && Date.now() > pageHold) return goPage(pageOrder()[0]);   // picked by hand: it stays a while
   if (S.rotateS > 0 && Date.now() - pageSince > S.rotateS * 1000 && Date.now() > pageHold) nextPage();
 }, 1000);
 function renderPage(){
@@ -2943,8 +2963,8 @@ function buildRail(){
   for (const b of vb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); toggleView(b.dataset.view); };
 }
 function placeModeSwitch(x1, w1, x2, w2){
-  const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 6}px * var(--k))`,
-    top: `calc(38px * var(--k))`, width: `calc(${w + 12}px * var(--k))`, height: `calc(76px * var(--k))`});
+  const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 15}px * var(--k))`,
+    top: `calc(36px * var(--k))`, width: `calc(${w + 30}px * var(--k))`, height: `calc(80px * var(--k))`});
   box(a, x1, w1); box(b, x2, w2);
   a.setAttribute("aria-pressed", String(!airportMode())); b.setAttribute("aria-pressed", String(airportMode()));
 }
@@ -2968,7 +2988,7 @@ function updateRail(){
   if (!pb.children.length) buildRail();
   for (const b of pb.children) {
     const p = b.dataset.page, ok = pageAvailable(p), name = pageTitle(p)[0], on = (!view && p === page);
-    b.disabled = !ok && !on && !view;
+    b.disabled = false;                               // an empty page can be opened too; it says so
     b.title = ok ? T(name) : T("{name}: nothing to show right now", {name: T(name)});
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
@@ -3038,6 +3058,10 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["No plane to show right now", "Gerade kein Flugzeug zu zeigen", "Aucun avion à afficher pour le moment", "Ningún avión que mostrar ahora", "Nu geen vliegtuig om te tonen"],
+  ["No plane taking off right now", "Gerade startet kein Flugzeug", "Aucun avion ne décolle en ce moment", "Ningún avión despegando ahora", "Er vertrekt nu geen vliegtuig"],
+  ["No plane landing right now", "Gerade landet kein Flugzeug", "Aucun avion n'atterrit en ce moment", "Ningún avión aterrizando ahora", "Er landt nu geen vliegtuig"],
+  ["The page fills in as soon as there is one.", "Die Seite füllt sich, sobald eines da ist.", "La page se remplit dès qu'il y en a un.", "La página se llena en cuanto haya uno.", "De pagina vult zich zodra er een is."],
   ["IN {n} SEC", "IN {n} SEK", "DANS {n} S", "EN {n} S", "OVER {n} SEC"],
   ["IN {t}", "IN {t}", "DANS {t}", "EN {t}", "OVER {t}"],
   ["NO AIRLINE LISTED", "KEINE AIRLINE", "SANS COMPAGNIE", "SIN AEROLÍNEA", "GEEN MAATSCHAPPIJ"],
@@ -3452,6 +3476,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13", date: "2026-10-12", notes: [
+    "Phone on its side: the app has its own landscape layout (the plane's flaps on the left, the rest on the right, the buttons along the edge) instead of switching to the big board.",
+    "Overhead and Airport look like a switch now: the style showing sits on a lit plate.",
+    "Page buttons always work: a page with no plane to show opens empty and says so.",
+    "The knobs click a little higher."]},
   {v: "1.12.2", date: "2026-10-12", notes: [
     "Airport style: the status flap shows a plane taking off or landing in front of the word, instead of the sign in the header.",
     "Take-off comes before Landing on the page buttons, as in Take-offs & landings.",
@@ -3754,10 +3783,10 @@ const ctlSound = {
     const t0 = actx.currentTime + .005;
     for (let i = 0; i < Math.min(Math.max(1, steps), 6); i++) {
       const t = t0 + i * .06, v = 1 - i * .06;
-      ctlBurst(t, {f: 3400 + Math.random() * 500, q: 2.2, dur: .014, gain: .55 * v});
-      ctlBurst(t + .003, {f: 1150, q: 1.3, dur: .035, gain: .22 * v});
-      ctlRing(t, 185 + Math.random() * 15, .05, .16 * v);
-      ctlRing(t + .002, 2300 + Math.random() * 150, .07, .025 * v);
+      ctlBurst(t, {f: 4100 + Math.random() * 500, q: 2.2, dur: .013, gain: .55 * v});
+      ctlBurst(t + .003, {f: 1400, q: 1.3, dur: .03, gain: .22 * v});
+      ctlRing(t, 225 + Math.random() * 15, .045, .16 * v);
+      ctlRing(t + .002, 2800 + Math.random() * 150, .06, .025 * v);
     }
   },
   toggle(on){                 // the over-centre spring lets go: a snap, then the handle hits its stop
@@ -3997,25 +4026,10 @@ addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeaco
 let wakeLock = null;
 async function keepAwake(){ try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch {} }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") keepAwake(); });
-// Cropped on a phone: the middle of the board fills the screen; peek() zooms out to the whole board and back.
-let CROP = false;
-const CROP_MID = 567;                       // the middle of what stays in view: the flaps, from the top half to the lowest row
-const PEEK = {on: false, timer: 0};
-function peek(on, now){
-  clearTimeout(PEEK.timer);
-  PEEK.on = !!on && CROP;
-  const vw = innerWidth, vh = innerHeight;
-  if (!PEEK.on) { stage.style.transition = now ? "none" : "transform .45s ease"; stage.style.transform = ""; return; }
-  const s = Math.min(vw / W, vh / H) / K, top = vh / 2 - CROP_MID * K;
-  stage.style.transition = now ? "none" : "transform .45s ease";
-  stage.style.transform = `translate(${(vw - W * K * s) / 2 - (vw - W * K) / 2}px, ${(vh - H * K * s) / 2 - top}px) scale(${s})`;
-  PEEK.timer = setTimeout(() => peek(false), 7000);
-}
-addEventListener("pointerdown", () => { if (PEEK.on) peek(true); }, {capture: true, passive: true});     // still being used: stay out
 function toggleFullscreen(){
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch {}
 }
-fx.addEventListener("click", () => { audioInit(); keepAwake(); if (CROP) peek(!PEEK.on); else toggleFullscreen(); });
+fx.addEventListener("click", () => { audioInit(); keepAwake(); toggleFullscreen(); });
 ["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
 function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 4000); }

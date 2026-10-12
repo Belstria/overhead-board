@@ -168,7 +168,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now;
   its status flap shows a plane climbing away from or coming down onto a runway in front of the word. Below, the pages
   turn between the take-offs and landings (two lists side by side), the departing plane and the landing plane (photo
-  and details, like This aircraft). Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
+  and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
+  skips it). The two styles sit in the title as a switch: tap the other one to change. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
 - **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
@@ -204,11 +205,10 @@ app, because it installs web apps only from https addresses and the relay is pla
 
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen.
 
-**On its side** (on a charging stand on the desk, say), the phone shows the full board instead, with the app's settings.
-The board fills the width of the phone; the title strip and the buttons don't fit, so a tap
-zooms out to the whole board for a few seconds. The Android app (1.9 or newer; see About for its version) switches at
-once, hides the status and navigation bars, and keeps the screen on while the phone is charging; turned upright, the phone page is back. Auto-rotate has to be on. In a phone's browser the page
-switches to the board too (`/test-api/?app`), and back when the phone is upright again.
+**On its side** (on a charging stand on the desk, say), the app takes a landscape layout like the board's: the plane's
+flaps on the left with the lists under them, This aircraft on the right, the tab buttons in a column along the edge.
+The other tabs split into two columns too. The Android app (1.13 or newer) goes full screen and keeps the screen on
+while the phone is charging. Auto-rotate has to be on.
 
 Five buttons along the bottom:
 

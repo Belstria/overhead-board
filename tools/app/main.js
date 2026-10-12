@@ -86,7 +86,8 @@ function placeRow(ids, gaps, y, step, ratio, x0){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-// The plane overhead: the board's top half, rearranged into eight rows for a phone held upright.
+// The plane overhead: the board's top half, in eight rows for a phone held upright and in four rows (like the board)
+// on its side.
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -105,14 +106,28 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
-placeRow(["airline"], [], 71, 26, 1.45, UM);
-placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
-placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
-placeRow(["type"], [], 232, 21.4, 1.45, UM);
-placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
-placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
-placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
+function heroLayout(){
+  const wide = SIDEWAYS.matches;
+  HERO.w = wide ? 560 : 390; HERO.h = wide ? 194 : 404;
+  HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
+  if (wide) {
+    placeRow(["flight", "airline", "remarks"], [.6, .6], 18, 18.6, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity"], [.4, 1, .4], 66, 18.6, 1.45, UM);
+    placeRow(["type", "reg", "alt", "trend"], [.5, .5, .3], 116, 14.4, 1.45, UM);
+    placeRow(["speed", "pos", "depTime", "arrTime", "airTime"], [.6, 1, 1, 1], 160, 14.4, 1.45, UM);
+    return;
+  }
+  placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
+  placeRow(["airline"], [], 71, 26, 1.45, UM);
+  placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
+  placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
+  placeRow(["type"], [], 232, 21.4, 1.45, UM);
+  placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
+  placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
+  placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+}
+heroLayout();
 const CLOCK = makePanel($("clockP"), 112, 34);
 def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 placeRow(["clock"], [], 4, 22.4, 1.25, 1);
@@ -949,14 +964,9 @@ async function start(){
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
-  // On its side a phone shows the big board (the test-api board, with this app's settings). The Android app swaps the
-  // two pages itself; in a browser the page changes.
-  const sideways = !ANDROID && window.matchMedia && matchMedia("(orientation: landscape) and (max-height: 600px)");
-  if (sideways) {
-    const go = () => { if (sideways.matches) location.replace("../test-api/?app"); };
-    sideways.addEventListener ? sideways.addEventListener("change", go) : sideways.addListener(go);
-    go();
-  }
+  // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
+  const turned = () => { heroLayout(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();
 })();
