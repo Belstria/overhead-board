@@ -119,6 +119,11 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   The container's address and how to reach it are in Claude's memory for this project, not here (the repository is
   public). Claude logs in as root with the key `~/.ssh/overhead_homelab` on Dave's PC. The old copy in
   `%USERPROFILE%\overhead-relay` on the PC stays stopped: two relays on one network confuse the Android app's search.
+- The container is kept to a standard (13 Oct 2026): security updates install themselves (unattended-upgrades), SSH
+  takes keys only (`/etc/ssh/sshd_config.d/10-overhead.conf`; `ssh.socket` is off, as with both on a reload leaves SSH
+  dead), nftables lets in only 22 and 8080 from private addresses (`/etc/nftables.conf`), the journal is capped at
+  100 MB, and the service runs in a tight systemd sandbox (`systemd-analyze security overhead-relay`: 1.3). Change SSH
+  or the firewall only with a `systemd-run --on-active=180` rollback armed, cancelled once a fresh login works.
 - To update it: `py -m py_compile relay/serve.py`, copy `relay/serve.py`, `relay/overhead-relay.service` and
   `relay/install.sh` to the container (scp, to `/root/overhead-install/`) and run `sh /root/overhead-install/install.sh`
   there: it checks the file compiles, replaces it, keeps the settings and data, and restarts the service. (After the
