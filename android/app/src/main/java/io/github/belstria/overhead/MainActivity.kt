@@ -82,20 +82,47 @@ class MainActivity : Activity() {
         root.addView(web, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         root.addView(note, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         setContentView(root)
-        // Keep the page clear of the status bar, the navigation bar and a camera cutout (Android 15 draws edge to edge).
+        // Upright, the page keeps clear of the status bar, the navigation bar and the camera cutout (Android 15 draws edge
+        // to edge). On its side (full screen) it fills the whole screen, under the camera too, and is told how far the
+        // cutout reaches (--cut-l, --cut-r) to keep its flaps clear of it.
+        if (Build.VERSION.SDK_INT >= 28) window.attributes = window.attributes.also {
+            it.layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= 30) WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                                           else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
         root.setOnApplyWindowInsetsListener { v, insets ->
+            val side = landscape()
             if (Build.VERSION.SDK_INT >= 30) {
                 val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                v.setPadding(b.left, b.top, b.right, b.bottom)
+                val cut = insets.getInsets(WindowInsets.Type.displayCutout())
+                if (side) v.setPadding(0, 0, 0, 0) else v.setPadding(b.left, b.top, b.right, b.bottom)
+                cutL = if (side) cut.left else 0
+                cutR = if (side) cut.right else 0
             } else {
+                val cut = if (Build.VERSION.SDK_INT >= 28) insets.displayCutout else null
                 @Suppress("DEPRECATION")
-                v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                if (side) v.setPadding(0, 0, 0, 0)
+                else v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                cutL = if (side && Build.VERSION.SDK_INT >= 28) cut?.safeInsetLeft ?: 0 else 0
+                cutR = if (side && Build.VERSION.SDK_INT >= 28) cut?.safeInsetRight ?: 0 else 0
             }
+            pushCut()
             insets
         }
         val saved = prefs.getString(KEY, null)
         if (saved != null) open(saved) else search()
         applyOrientation()
+    }
+
+    private var cutL = 0
+    private var cutR = 0
+
+    /** Tells the page how far the camera cutout reaches into the screen at the sides, in CSS pixels. */
+    private fun pushCut() {
+        if (!webReady) return
+        val d = resources.displayMetrics.density
+        val css = "document.documentElement.style"
+        web.evaluateJavascript("$css.setProperty('--cut-l','${cutL / d}px');$css.setProperty('--cut-r','${cutR / d}px');" +
+            "dispatchEvent(new Event('resize'))", null)
     }
 
     private fun newWeb(): WebView {
@@ -153,6 +180,7 @@ class MainActivity : Activity() {
                 if (failed) return
                 webReady = true
                 applyOrientation()
+                pushCut()
             }
         }
     }
@@ -210,6 +238,7 @@ class MainActivity : Activity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         applyOrientation()
+        root.requestApplyInsets()                   // padding and the cutout differ upright and on its side
     }
 
     private fun use(base: String) {

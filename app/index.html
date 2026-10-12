@@ -328,52 +328,50 @@ h3 span{color:var(--label2);margin-left:.6em}
 .savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
-/* ---------- a phone on its side: the board's arrangement, laid out for a wide, low screen ----------
-   Now is the board itself: the plane's flaps across the top, one page under them (Recent flights or Take-offs &
-   landings, This aircraft), picked with lamp buttons and turning by itself. The other tabs take two columns, the left
-   one (the radar, the numbers) staying put while the right one scrolls. The tab buttons stand in a column along the
-   right edge, like the board's rail. */
+/* ---------- a phone on its side: only Now, full screen, laid out like the board ----------
+   The plane's flaps across the top and one page under them (Recent flights or Take-offs & landings, This aircraft),
+   picked with lamp buttons in the title strip and turning by itself. No tab buttons: the other tabs are for upright.
+   fitSideways() makes both as big as the screen allows (--fitW, --lowH). The status line only pops up when something
+   is wrong (#sideAlert). --cut-l/--cut-r: the camera cutout, from the Android app, which draws under it. */
 .lcol,.rcol{min-width:0}
-.pages,.pageEmpty,.lsOnly{display:none}
+.pages,.pageEmpty,.lsOnly,#sideAlert{display:none}
 @media (orientation:landscape) and (max-height:600px){
-  .wrap{max-width:none;padding:0 calc(var(--gut) + 104px + env(safe-area-inset-right)) 0 calc(var(--gut) + env(safe-area-inset-left))}
-  #top .wrap{padding-top:5px;padding-bottom:5px}
-  #mark{width:32px;height:32px}
-  .title h1{font-size:20px}
-  .title p{margin-top:4px}
-  #clockP{width:92px}
-  main{padding:10px 0 18px}
-  .tab.cols:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:24px;align-items:start}
-  .tab.cols .lcol{position:sticky;top:62px}
-  .tab.cols .rcol>.groove:first-child{display:none}
-  /* Now: the plane's flaps across the top, one page under them */
+  :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
+  .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
+  #tabs,.tab:not(#t-now){display:none!important}
+  #top{padding-top:0}
+  #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
+  #mark{width:28px;height:28px}
+  .title{flex:0 1 auto}
+  .title h1{font-size:18px}
+  .title p{margin-top:3px;font-size:9.5px}
+  #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
+  #top .pages .cap{width:104px;height:30px;margin:0;font-size:9.5px;letter-spacing:.05em}
+  #clockP{width:84px}
+  main{padding:6px 0 0}
   #t-now.cols:not([hidden]){display:block}
   #t-now .lcol{position:static}
-  #t-now .pages{display:flex;gap:14px;margin:12px 0 4px 3px}
-  #t-now .pages .cap{width:112px;height:36px;margin:0;font-size:10px;letter-spacing:.05em}
-  #t-now .rcol .groove,#t-now #acSec h2,#t-now #recentSec h2{display:none}     /* the lit button names the page */
+  #t-now #hero,#t-now .rcol{width:var(--fitW,100%);margin:0 auto}
+  #t-now .rcol{margin-top:8px}
+  #t-now .rcol .groove,#t-now #acSec h2,#t-now #recentSec h2,#t-now .status{display:none}
   /* the pages are flaps, like the board's lower half: the text lists and facts are for upright */
   #t-now .lsOnly{display:block}
   #t-now #recent,#t-now #apSub,#t-now #apDeps,#t-now #apArrs,#t-now #acFacts{display:none}
-  #t-now #recentP{margin-top:8px}
-  #t-now .rcol h2{margin-top:6px}
-  #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:17px;font-weight:600}
-  #t-now .pageEmpty small{display:block;margin-top:4px;font-size:13px;font-weight:500}
-  #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);column-gap:24px;align-items:start;margin-top:10px}
+  #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:18px;font-weight:600}
+  #t-now .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
+  #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
+  #t-now #acP{width:calc(var(--lowH,190px) * 560 / 192)}
+  #t-now #bezel{box-sizing:border-box;height:var(--lowH,190px)}
+  #t-now #bezel .screen{aspect-ratio:auto;height:100%}
   #t-now #apSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
-  #t-now #apSec h2{font-size:17px;margin:8px 0 2px}
+  #t-now #apSec h2{font-size:17px;line-height:20px;margin:0 0 6px}
   #t-now #apSec h2:nth-of-type(1){grid-column:1;grid-row:1}
   #t-now #apSec h2:nth-of-type(2){grid-column:2;grid-row:1}
   #t-now #apP{grid-column:1/-1;grid-row:2}
   #t-now[data-page=lists] #acSec,#t-now[data-page=ac] #recentSec,#t-now[data-page=ac] #apSec{display:none}   /* last: wins over the grids */
-  .tab.cols .rcol h2:first-of-type{margin-top:2px}
-  #tabs{left:auto;top:0;width:calc(104px + env(safe-area-inset-right));padding:calc(8px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) 0;
-    box-shadow:-1px 0 0 rgba(255,255,255,.05),-2px 0 0 rgba(0,0,0,.7),-8px 0 18px rgba(0,0,0,.38)}
-  #tabs .wrap{flex-direction:column;justify-content:center;height:100%;padding:0 10px;gap:10px}
-  #tabs .cap{flex:0 1 50px;height:auto;min-height:38px;width:100%}
-  .savebar{bottom:10px}
-  #cockpit,#aboutBox{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
-  .scope{max-width:min(440px,calc(100dvh - 130px))}
+  #sideAlert:not([hidden]){display:block;position:fixed;left:50%;bottom:10px;z-index:6;transform:translateX(-50%);max-width:70vw;padding:8px 14px;
+    border:1px solid var(--amber);border-radius:8px;background:rgba(11,11,12,.92);box-shadow:0 6px 18px rgba(0,0,0,.6);color:var(--ink);font:600 13px/1.35 var(--f-board);text-align:center}
+  #sideAlert[data-state=off]{border-color:#c7372d}
 }
 </style>
 </head>
@@ -382,6 +380,7 @@ h3 span{color:var(--label2);margin-left:.6em}
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
     <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><p id="where"></p></div>
+    <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
 </header>
@@ -389,7 +388,6 @@ h3 span{color:var(--label2);margin-left:.6em}
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="pages" id="nowPages"></div>
     </div>
     <div class="rcol">
       <p class="pageEmpty" id="nowEmpty" hidden></p>
@@ -469,6 +467,7 @@ h3 span{color:var(--label2);margin-left:.6em}
     <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
 </main>
+<p id="sideAlert" role="status" hidden></p>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
 <script>
 (() => {
@@ -3126,6 +3125,24 @@ function showNowPage(p){
   $("t-now").dataset.page = p;
   for (const b of $("nowPages").children) b.setAttribute("aria-pressed", String(b.dataset.page === p));
   nowEmptyNote(); nowPanels();
+  if (airportMode()) { fitSideways(); refreshPanels(); }   // the airport page's two titles take a line
+}
+// On its side the plane's flaps and the page under them are as big as the screen allows: the full width if they fit
+// in its height, narrower (and centred) if not.
+function fitSideways(){
+  const el = $("t-now");
+  if (!SIDEWAYS.matches) return;
+  const cs = getComputedStyle(el), availW = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const titles = airportMode() && nowPage === "lists" ? 26 : 0;
+  const availH = innerHeight - $("top").offsetHeight - 6 - 8 - 6 - titles;    // main's padding, the gap, a margin
+  const W = Math.floor(Math.max(200, Math.min(availW, availH / ((150 + 196) / 900))));
+  el.style.setProperty("--fitW", W + "px"); el.style.setProperty("--lowH", Math.floor(W * 196 / 900) + "px");
+}
+// Only Now on its side: the tab open before comes back when the phone is upright again.
+let sideFrom = null;
+function sideways(){
+  if (SIDEWAYS.matches) { if (tab !== "now") { sideFrom = tab; showTab("now"); } }
+  else if (sideFrom) { const t = sideFrom; sideFrom = null; showTab(t); }
 }
 // Only the flaps of the page showing are drawn.
 function nowPanels(){
@@ -3153,6 +3170,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.3", date: "2026-10-12", notes: [
+    "Phone app on its side: only the board, full screen and as big as the screen allows. The page buttons sit in the title strip, there are no tab buttons, and the status line only pops up when something is wrong.",
+    "Android app: on its side it fills the screen under the camera too, instead of leaving a dark band (needs the new Android app)."]},
   {v: "1.13.2", date: "2026-10-12", notes: [
     "Phone app on its side: laid out like the board. The plane's flaps run across the top, and under them one page at a time on flaps too (Recent flights or Take-offs & landings, This aircraft), picked with lamp buttons and turning by itself."]},
   {v: "1.13.1.2", date: "2026-10-12", notes: [
@@ -3360,7 +3380,7 @@ function buildTabs(){
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 function showTab(t){
-  if (!TABS.some(x => x[0] === t) && t !== "about") t = "now";
+  if (!TABS.some(x => x[0] === t) && t !== "about" || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
@@ -3398,6 +3418,9 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
+  const bad = ["off", "warn", "demo"].includes(dot.dataset.state), al = $("sideAlert");     // on its side: only when something is wrong
+  al.hidden = !bad; al.dataset.state = dot.dataset.state;
+  if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
 function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
@@ -3455,7 +3478,7 @@ document.addEventListener("visibilitychange", () => {
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
-  resizeQ = requestAnimationFrame(() => { clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
+  resizeQ = requestAnimationFrame(() => { fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
 });
 
 async function start(){
@@ -3472,6 +3495,7 @@ async function start(){
   showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
+  fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
   tickClock(); setInterval(tickClock, 1000);
@@ -3481,7 +3505,7 @@ async function start(){
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
-  const turned = () => { heroLayout(); nowPanels(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  const turned = () => { sideways(); heroLayout(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();
