@@ -5,7 +5,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 //@E1
 
 /* ---------- settings: kept on this phone only ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = "od.app.settings";
 function loadSettings(){
@@ -755,6 +755,7 @@ const COCKPIT = [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
+    {k: "quick", type: "switch", label: "Quick flaps"},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"}]},
   {title: ["Phone", "Telefon"], cols: 3, items: [

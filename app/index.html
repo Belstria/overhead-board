@@ -348,6 +348,7 @@ h3 span{color:var(--label2);margin-left:.6em}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
   #top .pages .cap{width:104px;height:30px;margin:0;font-size:9.5px;letter-spacing:.05em}
   #clockP{width:84px}
+  #top .clockbox{margin-right:16px}          /* clear of the screen's rounded corner */
   main{padding:6px 0 0}
   #t-now.cols:not([hidden]){display:block}
   #t-now .lcol{position:static}
@@ -535,7 +536,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings: kept on this phone only ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = "od.app.settings";
 function loadSettings(){
@@ -613,6 +614,7 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Quick flaps", "Schnelle Klappen", "Volets rapides", "Paletas rápidas", "Snelle flaps"],
   ["No plane to show right now", "Gerade kein Flugzeug zu zeigen", "Aucun avion à afficher pour le moment", "Ningún avión que mostrar ahora", "Nu geen vliegtuig om te tonen"],
   ["No plane taking off right now", "Gerade startet kein Flugzeug", "Aucun avion ne décolle en ce moment", "Ningún avión despegando ahora", "Er vertrekt nu geen vliegtuig"],
   ["No plane landing right now", "Gerade landet kein Flugzeug", "Aucun avion n'atterrit en ce moment", "Ningún avión aterrizando ahora", "Er landt nu geen vliegtuig"],
@@ -1239,15 +1241,21 @@ function frame(now){
       let p = el / a.dur;
       if (a.stall) { const s0 = a.stall.at * a.dur; p = el < s0 ? p : el < s0 + a.stall.ms ? a.stall.at : (el - a.stall.ms) / a.dur; }
       if (p < 1) { drawCell(c, p); active = true; continue; }
+      c.over = 0;
+      if (a.quick) {                     // quick: the next flap starts where this one ended, and a slow frame skips flaps
+        let k = 1;
+        for (; k < Math.floor(el / a.dur) && c.queue.length > 1; k++) a.to = c.queue.shift();
+        c.over = Math.min(el - k * a.dur, a.dur);
+      }
       c.cur = c.anim.to; c.anim = null; drawCell(c);
     }
     if (c.queue.length) {
       active = true;
       if (now >= c.next) {
-        if (S.imperfect && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
+        if (S.imperfect && !c.qdur && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
         c.hes = false;
-        c.anim = {from: c.cur, to: c.queue.shift(), t0: now, dur: c.f.dur * pace() * (.9 + Math.random() * .2)};
-        if (S.imperfect && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
+        c.anim = {from: c.cur, to: c.queue.shift(), t0: now - (c.qdur ? c.over || 0 : 0), dur: c.qdur || c.f.dur * pace() * (.9 + Math.random() * .2), quick: !!c.qdur};
+        if (S.imperfect && !c.qdur && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
         drawCell(c, 0); if (!c.f.pageOff || c.f.leaving) starts++;
       }
     }
@@ -1268,6 +1276,7 @@ function path(drum, from, to){
 let snapping = false;     // set while a new page is drawn straight onto the board, without flipping each flap
 // Flap speed as a percentage of full speed (100% = fastest, 10% = ten times slower).
 const pace = () => 100 / Math.min(100, Math.max(10, +S.speedPct || 85));
+const QUICK_MS = 1350;                         // with the stagger and frame timing, about 1.5 s in all
 function retarget(c, value, delay){
   if (value === c.target) return;
   c.target = value;
@@ -1288,7 +1297,11 @@ function retarget(c, value, delay){
     q.push(value);
   }
   if (REDUCED || snapping || c.f.panel.off) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
-  if (!c.queue.length && !c.anim) c.next = performance.now() + delay * pace();
+  const now = performance.now();
+  if (!c.queue.length && !c.anim) { c.next = now + (S.quick ? Math.min(delay, 1200) * .25 : delay * pace()); c.over = 0; }
+  // Quick flaps (Settings): the whole run, A to Z and every word on the drum, takes about 1.5 s, the flaps a blur on the
+  // way; the stagger between the flaps is shortened too.
+  c.qdur = S.quick ? Math.max(6, Math.min(c.f.dur, (QUICK_MS - Math.max(0, c.next - now)) / q.length)) : 0;
   c.queue = q;
   kick();
 }
@@ -1491,7 +1504,7 @@ function sfxOut(){
 }
 function clack(n){
   if (!S.sound || nightOn || !actx || actx.state !== "running") return;
-  const t = actx.currentTime; if (t - lastClack < .014) return; lastClack = t;
+  const t = actx.currentTime; if (t - lastClack < (S.quick ? .035 : .014)) return; lastClack = t;    // quick flaps whirr, not buzz
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
   const fl = actx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1400 + Math.random() * 1800; fl.Q.value = 1;
   const gn = actx.createGain(); gn.gain.value = Math.min(.3, .05 + n * .008);
@@ -2748,6 +2761,7 @@ const COCKPIT = [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
+    {k: "quick", type: "switch", label: "Quick flaps"},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"}]},
   {title: ["Phone", "Telefon"], cols: 3, items: [
@@ -3170,6 +3184,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.14", date: "2026-10-12", notes: [
+    "Quick flaps (Settings → Display): every flap still turns through its letters, but as a blur, and lands on the new text in about 1.5 seconds.",
+    "Phone app on its side: the clock's last digit is no longer cut off at the screen's rounded corner."]},
+  {v: "1.13.3.1", date: "2026-10-12", notes: [
+    "Android app: the screen stays on as long as the app is open, upright or on its side, charging or not (needs the new Android app)."]},
   {v: "1.13.3", date: "2026-10-12", notes: [
     "Phone app on its side: only the board, full screen and as big as the screen allows. The page buttons sit in the title strip, there are no tab buttons, and the status line only pops up when something is wrong.",
     "Android app: on its side it fills the screen under the camera too, instead of leaving a dark band (needs the new Android app)."]},

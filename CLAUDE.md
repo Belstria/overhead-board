@@ -57,7 +57,7 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 - Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,
   engraved labels; `drawStatic()`) and `fx` (the flaps).
 - Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
-  `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`), `frame()` animates and
+  `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
   `paintCell()` draws a flap mid-flip. Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
 - Top half: the plane overhead (`process()` picks it: alerts first, then overhead, inbound, flying by; airtime limit
   for hovering planes) rendered by `renderFeatured()` and `renderTimes()`.
@@ -104,7 +104,7 @@ width, and under them one page at a time, `nowPage` "lists" or "ac", picked by l
 (`buildNowPages`), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by
 `nowPanels()`) in place of the text lists; `fitSideways()` sizes it all to fill the screen (`--fitW`, `--lowH`). The
 Android app goes immersive, draws under the camera cutout and tells the page how far it reaches (`--cut-l`, `--cut-r`),
-and keeps the screen on while charging. (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
+and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1; before only on its side and charging). (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
 8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
 (`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
 `ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print
