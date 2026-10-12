@@ -1411,13 +1411,35 @@ function audioInit(){
     actx.resume();
   } catch { actx = null; }
 }
+// Every sound goes through one output (sfxOut): a cut of the deepest rumble, a short room and a limiter. Phone and TV
+// speakers can't play low tones and add a room of their own; headphones play everything, bone-dry, which made the
+// synthesised sounds dull and fake there. The limiter keeps overlapping clicks from distorting.
+let sfxBus = null;
+function sfxOut(){
+  if (sfxBus) return sfxBus;
+  try {
+    const sr = actx.sampleRate, hp = actx.createBiquadFilter(), lim = actx.createDynamicsCompressor(), trim = actx.createGain();
+    hp.type = "highpass"; hp.frequency.value = 110; hp.Q.value = .7;
+    lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .001; lim.release.value = .1;
+    trim.gain.value = .82;                            // the compressor's own make-up gain, taken back
+    const room = actx.createConvolver(), wet = actx.createGain(), n = Math.floor(sr * .22), ir = actx.createBuffer(2, n, sr);
+    for (let c = 0; c < 2; c++) {                     // a small room: decaying noise, different in each ear
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4) * Math.min(1, i / (sr * .004));
+    }
+    room.buffer = ir; wet.gain.value = .1;
+    hp.connect(lim); hp.connect(room).connect(wet).connect(lim); lim.connect(trim).connect(actx.destination);
+    sfxBus = hp;
+  } catch { sfxBus = actx.destination; }
+  return sfxBus;
+}
 function clack(n){
   if (!S.sound || nightOn || !actx || actx.state !== "running") return;
   const t = actx.currentTime; if (t - lastClack < .014) return; lastClack = t;
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
   const fl = actx.createBiquadFilter(); fl.type = "bandpass"; fl.frequency.value = 1400 + Math.random() * 1800; fl.Q.value = 1;
   const gn = actx.createGain(); gn.gain.value = Math.min(.3, .05 + n * .008);
-  src.connect(fl).connect(gn).connect(actx.destination); src.start();
+  src.connect(fl).connect(gn).connect(sfxOut()); src.start();
 }
 
 // A soft station chime: two falling notes for special aircraft, three rising ones for favourites.
@@ -1425,7 +1447,7 @@ function chime(kind){
   if (!S.chimes || nightOn || !actx || actx.state !== "running") return;
   const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
   const t0 = actx.currentTime + .03, out = actx.createGain();
-  out.gain.value = .55; out.connect(actx.destination);
+  out.gain.value = .55; out.connect(sfxOut());
   for (const [freq, dt] of notes) {
     for (const [mult, amp] of [[1, .26], [2.01, .07], [3.02, .035], [4.2, .015]]) {
       const o = actx.createOscillator(), g = actx.createGain(), t = t0 + dt;
@@ -2737,14 +2759,16 @@ function ctlBurst(t, o){      // filtered noise with a sharp attack: metal on me
   src.buffer = ctlNoise; src.playbackRate.value = o.rate || 1;
   f.type = o.type || "bandpass"; f.frequency.value = o.f; f.Q.value = o.q || 1;
   g.gain.setValueAtTime(o.gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + o.dur);
-  src.connect(f).connect(g).connect(actx.destination);
+  src.connect(f).connect(g).connect(sfxOut());
   src.start(t, Math.random() * .08); src.stop(t + o.dur + .02);
 }
 function ctlRing(t, freq, dur, gain, type = "sine"){   // a short resonance: the switch body, the panel behind it
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * .85, t + dur);
-  g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + .02);
+  const lo = freq < 400 ? .4 : 1;                      // the deep body tone: speakers drop it, headphones play it all
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain * lo, t + .002);    // eased in: no pop
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(sfxOut()); o.start(t); o.stop(t + dur + .02);
 }
 const ctlSound = {
   rotary(steps = 1){          // the spring-loaded ball dropping into each detent
@@ -3011,6 +3035,8 @@ function applyMode(){
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.1.1", date: "2026-10-12", notes: [
+    "Sounds on headphones: the clicks no longer have a dull, fake hum under them, start without a pop, sit in a small room instead of bone-dry, and can't distort when several play at once."]},
   {v: "1.13.1", date: "2026-10-12", notes: [
     "The title reads Overhead / Airport again, plainly: the style showing bright, the other dimmed, a slash between them."]},
   {v: "1.13", date: "2026-10-12", notes: [
