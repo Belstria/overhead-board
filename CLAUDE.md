@@ -37,7 +37,7 @@ someone would notice.
 
 | Path | What it is |
 |------|------------|
-| `index.html` | Main board (PROD). On 11 Oct 2026 a copy of `test-api/index.html`; test-api has moved on since (the new Settings cockpit). |
+| `index.html` | Main board (PROD). Since 12 Oct 2026 (1.13) a copy of `test-api/index.html` (only the title and one comment differ). |
 | `test/index.html` | Test board, free data sources only. |
 | `test-api/index.html` | Test board plus Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
 | `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |

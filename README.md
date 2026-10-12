@@ -32,9 +32,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `chimes` | chimes on (`1`, the default) or off (`0`) | `chimes=0` |
 | `night` | night mode on (`1`, the default) or off (`0`) | `night=0` |
 | `airtime` | minutes an hour a helicopter or circling plane may hold the top half, `0` for no limit (default 3) | `airtime=5` |
-| `photo` | the aircraft photo `screen` (default), `engraved` or `plain` (main board only) | `photo=engraved` |
 | `quality` | `auto` (default), `high`, `1440`, or `1080` (lighter, for TVs) | `quality=1080` |
-| `screen` | This screen's name, shown in the relay's list of screens (main board only) | `screen=Living%20room` |
 | `demo` | Sample flights instead of live data | `demo` |
 | `debug` | Open the diagnostics panel at start | `debug` |
 
@@ -124,9 +122,7 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   panel. Press the button again, Esc, or a page button to turn back; left alone for five minutes, a view turns back by itself. Add
   `#spotted`, `#logbook`, `#radar` or `#settings` to the address to open one at start.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
-  screen is off while the page falls into place and warms up after it lands. On the main board, Settings → Aircraft
-  photo (or `?photo=engraved` / `?photo=plain`) can instead engrave it into the metal as fine lines, or show the plain
-  photo; the test boards and the app always use the screen (1.8.1).
+  screen is off while the page falls into place and warms up after it lands.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -156,14 +152,14 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
   tick, push buttons a thock) when the flap sound or the chimes are on.
-- **About** (Settings → About, or press **A**; test boards and the app): what changed in each version, the keys, and
+- **About** (Settings → About, or press **A**): what changed in each version, the keys, and
   who made it. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
-- **Languages** (Settings → Display → Language, or `?lang=de`; test boards and the app): English, German, French,
+- **Languages** (Settings → Display → Language, or `?lang=de`): English, German, French,
   Spanish and Dutch. AUTO follows the browser's language. Everything on the board follows it, the status words on the
   flaps too; the patch notes and the connection log stay in English.
-- **Airport style** (tap **Airport** in the title, or `?mode=airport`; test boards and the app): for watching from the
+- **Airport style** (tap **Airport** in the title, or `?mode=airport`): for watching from the
   airport. The board follows the planes taking off from the home airport (rolling for take-off, climbing away) and the
   ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now;
   its status flap shows a plane climbing away from or coming down onto a runway in front of the word. Below, the pages
@@ -171,7 +167,7 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
   skips it). The two styles sit in the title as a switch: tap the other one to change. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
-- **Use current location** (Settings → Location; test-api board and phone app): fills in latitude and longitude and
+- **Use current location** (Settings → Location; boards and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
@@ -181,9 +177,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
-- **Screen name** (main board only: Settings → System, or `?screen=Living%20room`): what the relay calls this screen
-  in its list of screens (relay 12 or newer, see below). The test boards and the app no longer have it (1.8.1); the
-  relay lists them by device. Boards also tell the relay how big they are drawn and at what quality.
+- **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
+  big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
   Fire TV and LG TVs, which get `1080`: drawn at 1080p, 30 frames a second, shorter flap runs and a smaller image cache,
   because their graphics chips struggle with the full board. `1440` sits in between, `high` forces the sharpest. The
@@ -231,7 +226,7 @@ among its screens as the APP board. `?demo` shows sample flights.
 
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
-- Press **A** for About: patch notes, the keys and who made it (test boards).
+- Press **A** for About: patch notes, the keys and who made it .
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
@@ -244,7 +239,7 @@ among its screens as the APP board. `?demo` shows sample flights.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
-- Planned and expected times (test boards): [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
+- Planned and expected times : [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
   code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
