@@ -200,9 +200,10 @@ app, because it installs web apps only from https addresses and the relay is pla
 
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen.
 
-**On its side** (on a charging stand on the desk, say), the app takes a landscape layout like the board's: the plane's
-flaps on the left with the lists under them, This aircraft on the right, the tab buttons in a column along the edge.
-The other tabs split into two columns too. The Android app (1.13 or newer) goes full screen and keeps the screen on
+**On its side** (on a charging stand on the desk, say), the app is laid out like the board: the plane's flaps
+across the top, and under them one page at a time, Recent flights (or Take-offs & landings) and This aircraft. Lamp
+buttons pick the page; it turns by itself every 20 seconds, and a page you pick stays a minute. The tab buttons stand
+in a column along the edge, and the other tabs split into two columns. The Android app (1.13 or newer) goes full screen and keeps the screen on
 while the phone is charging. Auto-rotate has to be on.
 
 Five buttons along the bottom:

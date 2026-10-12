@@ -329,9 +329,12 @@ h3 span{color:var(--label2);margin-left:.6em}
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
 /* ---------- a phone on its side: the board's arrangement, laid out for a wide, low screen ----------
-   The left column (the plane's flaps, the radar, the numbers) stays put while the right one scrolls; the tab buttons
-   stand in a column along the right edge, like the board's rail. */
+   Now is the board itself: the plane's flaps across the top, one page under them (Recent flights or Take-offs &
+   landings, This aircraft), picked with lamp buttons and turning by itself. The other tabs take two columns, the left
+   one (the radar, the numbers) staying put while the right one scrolls. The tab buttons stand in a column along the
+   right edge, like the board's rail. */
 .lcol,.rcol{min-width:0}
+.pages,.pageEmpty{display:none}
 @media (orientation:landscape) and (max-height:600px){
   .wrap{max-width:none;padding:0 calc(var(--gut) + 104px + env(safe-area-inset-right)) 0 calc(var(--gut) + env(safe-area-inset-left))}
   #top .wrap{padding-top:5px;padding-bottom:5px}
@@ -343,14 +346,24 @@ h3 span{color:var(--label2);margin-left:.6em}
   .tab.cols:not([hidden]){display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:24px;align-items:start}
   .tab.cols .lcol{position:sticky;top:62px}
   .tab.cols .rcol>.groove:first-child{display:none}
-  /* Now: the plane's flaps with the lists under them on the left, This aircraft on the right */
-  #t-now.cols:not([hidden]){grid-auto-flow:row dense}
-  #t-now .rcol{display:contents}
-  #t-now .lcol{position:static;grid-column:1}
-  #t-now #acSec{grid-column:2;grid-row:1/span 8}
-  #t-now #acSec>.groove:first-child{display:none}
-  #t-now #acSec h2{margin-top:0}
-  #t-now #recentSec,#t-now #apSec,#t-now .status{grid-column:1}
+  /* Now: the plane's flaps across the top, one page under them */
+  #t-now.cols:not([hidden]){display:block}
+  #t-now .lcol{position:static}
+  #t-now .pages{display:flex;gap:14px;margin:12px 0 4px 3px}
+  #t-now .pages .cap{width:112px;height:36px;margin:0;font-size:10px;letter-spacing:.05em}
+  #t-now .rcol .groove,#t-now #acSec h2,#t-now #recentSec h2{display:none}     /* the lit button names the page */
+  #t-now .rcol h2{margin-top:6px}
+  #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:17px;font-weight:600}
+  #t-now .pageEmpty small{display:block;margin-top:4px;font-size:13px;font-weight:500}
+  #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);column-gap:24px;align-items:start;margin-top:10px}
+  #t-now #recent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
+  #t-now #apSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
+  #t-now #apSec h2:nth-of-type(1){grid-column:1;grid-row:1}
+  #t-now #apSec h2:nth-of-type(2){grid-column:2;grid-row:1}
+  #t-now #apSub{grid-column:1/-1;grid-row:2}
+  #t-now #apDeps{grid-column:1;grid-row:3}
+  #t-now #apArrs{grid-column:2;grid-row:3}
+  #t-now[data-page=lists] #acSec,#t-now[data-page=ac] #recentSec,#t-now[data-page=ac] #apSec{display:none}   /* last: wins over the grids */
   .tab.cols .rcol h2:first-of-type{margin-top:2px}
   #tabs{left:auto;top:0;width:calc(104px + env(safe-area-inset-right));padding:calc(8px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) 0;
     box-shadow:-1px 0 0 rgba(255,255,255,.05),-2px 0 0 rgba(0,0,0,.7),-8px 0 18px rgba(0,0,0,.38)}
@@ -374,8 +387,10 @@ h3 span{color:var(--label2);margin-left:.6em}
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+      <div class="pages" id="nowPages"></div>
     </div>
     <div class="rcol">
+      <p class="pageEmpty" id="nowEmpty" hidden></p>
       <div id="acSec" hidden>
         <div class="groove"></div>
         <h2 data-t="This aircraft">This aircraft</h2>
@@ -931,8 +946,8 @@ function placeRow(ids, gaps, y, step, ratio, x0){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
-// The plane overhead: the board's top half, in eight rows for a phone held upright and in four rows (like the board)
-// on its side.
+// The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
+// across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
@@ -954,13 +969,12 @@ def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
 function heroLayout(){
   const wide = SIDEWAYS.matches;
-  HERO.w = wide ? 560 : 390; HERO.h = wide ? 194 : 404;
+  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 404;
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
-    placeRow(["flight", "airline", "remarks"], [.6, .6], 18, 18.6, 1.45, UM);
-    placeRow(["fromCode", "fromCity", "toCode", "toCity"], [.4, 1, .4], 66, 18.6, 1.45, UM);
-    placeRow(["type", "reg", "alt", "trend"], [.5, .5, .3], 116, 14.4, 1.45, UM);
-    placeRow(["speed", "pos", "depTime", "arrTime", "airTime"], [.6, 1, 1, 1], 160, 14.4, 1.45, UM);
+    placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type"], [.4, 1, .4, 1], 66, 18, 1.45, UM);
+    placeRow(["alt", "trend", "speed", "pos", "depTime", "arrTime", "airTime"], [.3, .8, .8, 1, .8, .8], 114, 18, 1.45, UM);
     return;
   }
   placeRow(["flight", "remarks"], [.6], 18, 26, 1.45, UM);
@@ -2378,6 +2392,7 @@ function renderRecent(){
 let shownPhoto = null, factsSig = "";
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
+  nowEmptyNote();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || "";
@@ -3030,14 +3045,45 @@ function applyMode(){
   const ap = airportMode();
   $("apSec").hidden = !ap; $("recentSec").hidden = ap;
   if (ap) { airportPos(); apSig = ""; renderAirport(); apFeature(); }
+  buildNowPages();
   renderFeatured(); renderAircraftInfo();
 }
+/* On its side, Now works like the board: the plane on top and one page under it, Recent flights (or Take-offs &
+   landings) and This aircraft, picked with lamp buttons. The pages turn every 20 seconds, skipping This aircraft when
+   there is no plane; a page picked by hand stays a minute and, empty, says so. */
+let nowPage = "lists", nowHold = 0, nowTurn = Date.now();
+function buildNowPages(){
+  const pages = [["lists", airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights"], ["ac", "This<br>aircraft"]];
+  $("nowPages").innerHTML = pages.map(([p, name]) => `<button class="cap" type="button" data-page="${p}">${T(name)}</button>`).join("");
+  for (const b of $("nowPages").children) b.onclick = () => { audioInit(); ctlSound.press(); nowHold = Date.now() + 60000; showNowPage(b.dataset.page); };
+  showNowPage(nowPage);
+}
+function showNowPage(p){
+  nowPage = p; nowTurn = Date.now();
+  $("t-now").dataset.page = p;
+  for (const b of $("nowPages").children) b.setAttribute("aria-pressed", String(b.dataset.page === p));
+  nowEmptyNote();
+}
+function nowEmptyNote(){
+  const el = $("nowEmpty"), empty = nowPage === "ac" && !feat;
+  el.hidden = !empty;
+  if (empty) el.innerHTML = `${escH(T("No plane to show right now"))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
+}
+setInterval(() => {
+  if (!SIDEWAYS.matches || tab !== "now" || Date.now() < nowHold) return;
+  const empty = nowPage === "ac" && !feat;
+  if (!empty && Date.now() - nowTurn < 20000) return;
+  const next = nowPage === "lists" && feat ? "ac" : "lists";
+  if (next !== nowPage) showNowPage(next); else nowTurn = Date.now();
+}, 1000);
 /* ---------- versions and patch notes ----------
    One version for the boards and the phone app. A new feature raises the second number (1.8 → 1.9), a small change adds
    or raises a third (1.8.1), a bug fix a fourth (1.8.1.1). Add an entry at the top with every change (`where` says which
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.13.2", date: "2026-10-12", notes: [
+    "Phone app on its side: laid out like the board. The plane's flaps run across the top, and under them one page at a time (Recent flights or Take-offs & landings, This aircraft), picked with lamp buttons and turning by itself."]},
   {v: "1.13.1.2", date: "2026-10-12", notes: [
     "Phone app: coming back to it after a while no longer leaves a black screen (needs the new Android app); the page also redraws itself when shown again."]},
   {v: "1.13.1.1", date: "2026-10-12", notes: [
