@@ -1,4 +1,8 @@
-# Overhead board: notes for Claude
+# Fallblatt (the Overhead board): notes for Claude
+
+The app is called Fallblatt since 13 Oct 2026 (1.16). Overhead (planes flying over you) and Airport
+(take-offs and landings) are the names of its two styles and stay; so do the OVERHEAD status, the repository name,
+`OVERHEAD_*` page variables, storage keys, the cookie and the `OverheadRelay` server header the Android app looks for.
 
 A split-flap "planes overhead" board for Dave's home in Vienna: an airport departures board look, drawn on canvas,
 showing the plane flying over right now plus Spotted today, a lifetime logbook and a radar. Published with GitHub

@@ -1,6 +1,8 @@
-# Overhead
+# Fallblatt
 
-An airport-style split-flap board that shows the planes flying over a chosen spot, live.
+An airport-style split-flap board (*Fallblatt* is German for split-flap) that shows the planes flying over a
+chosen spot, live. It has two styles: **Overhead**, the planes flying over you, and **Airport**, the planes taking
+off and landing at an airport.
 It is a single static page: open `index.html` in any modern browser, or serve it from GitHub Pages.
 
 ## Choosing the location
@@ -192,7 +194,7 @@ The logbook and a Spotted today list shared by every screen need relay version 5
 
 `/app/` is the board laid out for a phone held upright, with the same flaps, metal, push buttons and engraving.
 
-**On Android**, install the Overhead app: on the phone, download
+**On Android**, install the Fallblatt app: on the phone, download
 [overhead.apk](https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk) and open it (Android
 asks once to allow installs from the browser). On first start it looks for the relay on the Wi-Fi by itself; if it
 can't find it, type the address the relay prints, such as `http://192.168.1.20:8080`. Settings → About → Change relay

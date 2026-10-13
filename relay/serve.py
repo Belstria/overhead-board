@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Overhead board home relay.
+"""Fallblatt (the Overhead board) home relay.
 
 Serves the board and fetches live aircraft positions from your home connection.
 The public ADS-B services don't let browsers on other websites read their data and
@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 20
+RELAY_VERSION = 21
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1139,7 +1139,7 @@ def device_of(ua):
     if not u:
         return "unknown device"
     if "OverheadAndroid/" in u:      # the Android app (android/ in the repository) tags its user agent
-        return "Android phone · Overhead app"
+        return "Android phone · Fallblatt app"
     m = re.search(r"\bAFT[A-Z0-9]+", u)
     if m:
         return f"Fire TV ({m.group(0)})"
@@ -1353,7 +1353,7 @@ def screens_html():
               "Test boards send their name (Settings → Screen name, or <code>?screen=Living%20room</code>), size and drawing quality; "
               "the live board is known by its address and browser.</p>")
     return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
-            "<meta http-equiv=refresh content=10><title>Screens · Overhead relay</title><style>"
+            "<meta http-equiv=refresh content=10><title>Screens · Fallblatt relay</title><style>"
             ":root{color-scheme:dark}body{margin:0;padding:24px 16px;background:#141414;color:#e8e4da;font:15px/1.45 system-ui,sans-serif}"
             "h1{font-size:22px;font-weight:600;margin:0 0 16px}h1 span{color:#f0b03c}h2{font-size:16px;margin:28px 0 10px;color:#aaa}"
             "table{border-collapse:collapse;width:100%;max-width:1200px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #2b2b2b;vertical-align:top}"
@@ -1610,8 +1610,13 @@ def _ago(t):
 PAGE_CSS = """body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b0c;color:#e8e2d0;
 font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:620px;padding:32px 22px}
 h1{font-size:26px;margin:0 0 10px}h2{font-size:18px;margin:28px 0 8px}p{color:#b9b3a3}a{color:#f2b134}
-.mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:9px;background:#f2b134;color:#111;
-font-weight:800;font-size:24px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:14px}
+.word{display:flex;gap:4px;margin:0 0 22px;perspective:400px}.word b{position:relative;display:grid;place-items:center;width:30px;
+height:42px;border-radius:4px;background:linear-gradient(#232428 0 49%,#141518 51%);box-shadow:0 2px 0 #000,inset 0 1px 0 rgba(255,255,255,.08);
+color:#f4efe2;font:700 26px/1 "Arial Narrow",Arial,sans-serif;transform-origin:50% 50%;animation:flip .5s cubic-bezier(.3,.7,.4,1) both}
+.word b::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.85)}
+.word b:last-child{animation-duration:1.3s;animation-timing-function:cubic-bezier(.15,.85,.25,1)}
+@keyframes flip{0%{transform:rotateX(90deg);opacity:0}60%{opacity:1}100%{transform:rotateX(0)}}
+@media (prefers-reduced-motion:reduce){.word b{animation:none}}table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{padding:8px 6px;border-bottom:1px solid #26272b;text-align:left;vertical-align:top}th{color:#8d887b;font-weight:600}
 input[type=text]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px}
 button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
@@ -1623,7 +1628,10 @@ font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b
 def plain_page(title, body):
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,'
             f'initial-scale=1"><title>{html.escape(title)}</title><style>{PAGE_CSS}</style></head><body><main>'
-            f'<div class="mark">&#9992;</div>{body}</main></body></html>').encode("utf-8")
+            f'<div class="word" role="img" aria-label="Fallblatt">{WORDMARK}</div>{body}</main></body></html>').encode("utf-8")
+
+
+WORDMARK = "".join(f'<b style="animation-delay:{i * 70}ms">{ch}</b>' for i, ch in enumerate("FALLBLATT"))
 
 
 # Copying the link: the clipboard API only works on https pages, and the admin page is plain http at home, so the
@@ -1675,11 +1683,11 @@ def admin_html(host, made=None):
                           "Start it once with <code>--public-url https://overhead.example.com --save</code>.</p>")
     table = (f"<table><tr><th>Who</th><th>Devices</th><th></th><th></th></tr>{''.join(rows)}</table>" if rows
              else "<p>Nobody yet. Invite someone below.</p>")
-    body = (f"<h1>Overhead: friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
+    body = (f"<h1>Friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
             f"today and logbook. This page only opens at home.</p>{made_html}<h2>People</h2>{table}<h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
             f"<button class=go>Make a link</button></form>")
-    return plain_page("Overhead: friends & family", body)
+    return plain_page("Fallblatt: friends & family", body)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1759,8 +1767,8 @@ class Handler(BaseHTTPRequestHandler):
         if not allow("stranger:" + self.client_ip(), 1, 20):
             return self.reply(429, "text/plain", b"Too many requests")
         if PAGE.match(path):
-            return self.reply(403, "text/html; charset=utf-8", plain_page("Overhead", (
-                "<h1>Overhead is private</h1><p>It shows the planes flying over your home, for friends and family. "
+            return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", (
+                "<h1>This board is private</h1><p>Fallblatt shows the planes flying over your home on a split-flap board, for friends and family. "
                 "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
                 "<p class=muted>Already in, but on a new device? Ask for a new link.</p>")))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
@@ -1771,7 +1779,7 @@ class Handler(BaseHTTPRequestHandler):
         pid, token = redeem(code, self.headers.get("User-Agent") or "")
         if not pid:
             event("warn", f"An invite link was used that has expired or been used before ({self.client_ip()})")
-            return self.reply(410, "text/html; charset=utf-8", plain_page("Overhead", (
+            return self.reply(410, "text/html; charset=utf-8", plain_page("Fallblatt", (
                 "<h1>This link has been used</h1><p>Each invite link works once, on the first phone or computer that "
                 "opens it, for two weeks. Ask the person who sent it for a new one.</p>")))
         cookie = f"{COOKIE}={token}; Path=/; Max-Age={400 * 86400}; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else "")
@@ -1989,7 +1997,7 @@ def lan_address():
 
 def main():
     global ARGS
-    p = argparse.ArgumentParser(description="Serve the Overhead board with live flight data from this computer.")
+    p = argparse.ArgumentParser(description="Serve Fallblatt (the split-flap board and phone app) with live flight data from this computer.")
     p.add_argument("--port", type=int, help="port to listen on (default 8080)")
     p.add_argument("--bind", default="0.0.0.0", help="address to listen on (default: all, so other screens at home can reach it)")
     p.add_argument("--lat", type=float, help="latitude of the spot to watch")
@@ -2046,7 +2054,7 @@ def main():
         profiles()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
-    print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")
+    print(f"Fallblatt relay {RELAY_VERSION} running. Open the board at:")
     print(f"  http://localhost:{ARGS.port}")
     print(f"  http://{socket.gethostname()}:{ARGS.port}")
     ip = lan_address()

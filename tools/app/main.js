@@ -952,8 +952,8 @@ function aboutOpen(){
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
         `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
         `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>`
-    : (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
-      : `<p>${escH(T("On Android, install the Overhead app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+      : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
@@ -998,10 +998,34 @@ function applySettings(n){
 }
 
 /* ---------- a guest's first visit: where to watch the sky ---------- */
+// The greeting flips in on a row of flaps of its own: a drum with "!" just after Z, so the "!" (which also starts
+// last) has the longest way to go, and its last few flips slow down (slowEnd) like a drum coasting to a stop.
+const GREET_DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789,.'-";
+function greetText(){
+  const first = String(GUEST.name || "").trim().split(/\s+/)[0] || "";
+  const t = T("Hi {name}!", {name: first}).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "SS").toUpperCase();
+  let out = [...t].filter(ch => GREET_DRUM.includes(ch)).join("").replace(/\s+/g, " ").trim();
+  if (!out.endsWith("!")) out += "!";
+  return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
+}
+function greetFlaps(){
+  const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
+  $("wHello").style.width = `min(100%, ${n * 34}px)`;
+  def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
+  placeRow(["greet"], [], 11, step, 1.45, 8);
+  requestAnimationFrame(() => {
+    showPanel(P);
+    fields.greet.cells.forEach((c, i) => {
+      if (text[i] === "!") c.slowEnd = true;          // the longest run anyway: it starts early and still lands last
+      retarget(c, text[i], text[i] === "!" ? 400 : 250 + i * 70 + Math.random() * 60);
+    });
+  });
+}
 function welcome(){
   const box = $("welcome"), note = $("wNote");
   $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
   box.hidden = false;
+  try { greetFlaps(); } catch {}
   let found = null;
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();

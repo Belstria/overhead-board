@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Overhead</title>
+<title>Fallblatt</title>
 <meta name="theme-color" content="#141517">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Overhead">
+<meta name="apple-mobile-web-app-title" content="Fallblatt">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -212,6 +212,8 @@ h3 span{color:var(--label2);margin-left:.6em}
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 50px rgba(0,0,0,.7)}
 #welcome .wmark{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:11px;background:var(--amber);color:#111;font-size:28px}
 #welcome h2{margin:14px 0 6px;font-size:24px}
+#welcome #wHello{margin:16px auto 10px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #welcome p{margin:0 0 16px;color:var(--muted);line-height:1.45}
 #welcome .cap{margin:0 auto 6px}
 #welcome .note{min-height:1.4em;font-size:14px}
@@ -355,8 +357,9 @@ h3 span{color:var(--label2);margin-left:.6em}
 <p id="sideAlert" role="status" hidden></p>
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wHi" hidden><div class="wbox">
   <div class="wmark" aria-hidden="true">&#9992;</div>
-  <h2 id="wHi"></h2>
-  <p data-t="Overhead shows the planes flying over your home on a split-flap board. Where should it watch the sky?">Overhead shows the planes flying over your home on a split-flap board. Where should it watch the sky?</p>
+  <div class="panel" id="wHello" aria-hidden="true"></div>
+  <h2 id="wHi" class="vh"></h2>
+  <p data-t="Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?">Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?</p>
   <button class="cap big go" type="button" id="wLoc" data-t="Use my location">Use my location</button>
   <p class="note" id="wNote" aria-live="polite"></p>
   <div id="wMore" hidden>
