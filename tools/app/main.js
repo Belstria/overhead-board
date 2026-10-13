@@ -4,19 +4,36 @@ const $ = id => document.getElementById(id);
 const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 //@E1
 
-/* ---------- settings: kept on this phone only ---------- */
+/* ---------- settings: kept on this phone (and, for a guest, with their profile on the relay) ---------- */
+// A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
+// from the relay instead of the home location, and their settings go back to it, so their other devices know them.
+const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = "od.app.settings";
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  return {...DEFAULTS, ...saved};
+  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved};
 }
+// A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
+// set one), so the relay knows where to count their planes even when it happens to be the default spot.
+let meQ = 0;
+function saveMe(changed, now){
+  if (!GUEST) return Promise.resolve();
+  const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
+  const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
+  clearTimeout(meQ);
+  if (now) return send();
+  meQ = setTimeout(send, 1200);
+  return Promise.resolve();
+}
+const located = () => !GUEST || !!S.located;
 function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
+  return saveMe(changed);
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 DEFAULTS.sound = false;                                    // a phone starts quiet; flap sound can be turned on in Settings
@@ -932,15 +949,18 @@ function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+    (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
+        `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
+        `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>`
+    : (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
       : `<p>${escH(T("On Android, install the Overhead app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
-    `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>` +
+    `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
-  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
 }
@@ -961,6 +981,7 @@ function applySettings(n){
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   const langWas = LANG;
+  if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
   saveSettings(); audioInit();
   pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
@@ -974,6 +995,39 @@ function applySettings(n){
   recentSig = svSig = lbSig = factsSig = ""; shownPhoto = null;
   if (tab === "now") applyMode();
   renderLists(); renderFeatured(); renderAircraftInfo(); updateFooter(); poll(true); sayHello();
+}
+
+/* ---------- a guest's first visit: where to watch the sky ---------- */
+function welcome(){
+  const box = $("welcome"), note = $("wNote");
+  $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
+  box.hidden = false;
+  let found = null;
+  $("wLoc").onclick = async () => {
+    ctlSound.press(); audioInit();
+    $("wLoc").disabled = true; note.textContent = T("Finding out where you are …");
+    try {
+      const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
+      let a = null;
+      try { a = await nearestAirport(lat, lon); } catch {}
+      found = {lat, lon, home: a ? a.code : S.home};
+      $("wPlace").value = a ? (a.city || a.name || "") : "";
+      note.textContent = a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.");
+      $("wMore").hidden = false; $("wLoc").hidden = true;
+      $("wPlace").focus();
+    } catch (e) {
+      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("You can type it in Settings instead.");
+    } finally { $("wLoc").disabled = false; }
+  };
+  $("wGo").onclick = () => {
+    if (!found) return;
+    ctlSound.press();
+    S = {...S, ...found, place: $("wPlace").value.trim() || T("Home"), located: true};
+    saveSettings();
+    const changed = JSON.parse(localStorage.getItem(SKEY) || "{}");
+    saveMe(changed, true).finally(() => location.reload());   // start afresh around the new place
+  };
+  $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; showTab("settings"); };
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
@@ -1075,6 +1129,8 @@ async function start(){
   showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
+  if (!located()) welcome();
+  if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];

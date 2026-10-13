@@ -119,12 +119,26 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   The container's address and how to reach it are in Claude's memory for this project, not here (the repository is
   public). Claude logs in as root with the key `~/.ssh/overhead_homelab` on Dave's PC. The old copy in
   `%USERPROFILE%\overhead-relay` on the PC stays stopped: two relays on one network confuse the Android app's search.
+- The container is kept to a standard (13 Oct 2026): security updates install themselves (unattended-upgrades), SSH
+  takes keys only (`/etc/ssh/sshd_config.d/10-overhead.conf`; `ssh.socket` is off, as with both on a reload leaves SSH
+  dead), nftables lets in only 22 and 8080 from private addresses (`/etc/nftables.conf`), the journal is capped at
+  100 MB, and the service runs in a tight systemd sandbox (`systemd-analyze security overhead-relay`: 1.3). Change SSH
+  or the firewall only with a `systemd-run --on-active=180` rollback armed, cancelled once a fresh login works.
 - To update it: `py -m py_compile relay/serve.py`, copy `relay/serve.py`, `relay/overhead-relay.service` and
   `relay/install.sh` to the container (scp, to `/root/overhead-install/`) and run `sh /root/overhead-install/install.sh`
   there: it checks the file compiles, replaces it, keeps the settings and data, and restarts the service. (After the
   change is on `main`, `curl -fsSL .../relay/install.sh | sh` on the container does the same from GitHub.) Bump
   `RELAY_VERSION` with every relay change and gate board features that need the new version on
   `OVERHEAD_RELAY_VERSION`.
+- Friends and family (relay 19, app 1.15): every visitor is home (a direct connection from a private address, no
+  `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link, `/join/<code>`; profiles, invite and
+  cookie hashes in `data/profiles.json`) or a stranger (only the "private" page, `/health`, the app's icons and
+  manifest). Each profile has a `Spot` (sightings and logbook; home in `data/`, guests in `data/profiles/<id>/`), and
+  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get only
+  `/app/` (boards redirect), `OVERHEAD_GUEST` instead of the home location, their settings back via `/me`, no
+  `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
+  (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
+  address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place.
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
   `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a

@@ -1,5 +1,6 @@
 # The Overhead relay as a service on Linux (an LXC container on the homelab, say). relay/install.sh puts it in place.
-# It starts at boot, restarts itself if it stops, and runs as its own user with write access to its folder only.
+# It starts at boot, restarts itself if it stops, and runs as its own user in a tight sandbox: it may only write its
+# own folder, talk over IPv4/IPv6, and use the system calls an ordinary network service needs.
 # Logs: journalctl -u overhead-relay -f
 [Unit]
 Description=Overhead board relay
@@ -12,11 +13,34 @@ WorkingDirectory=/opt/overhead-relay
 ExecStart=/usr/bin/python3 -u /opt/overhead-relay/serve.py
 Restart=always
 RestartSec=5
+UMask=0077
+MemoryMax=400M
+
 NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
 ProtectSystem=strict
+ReadWritePaths=/opt/overhead-relay
 ProtectHome=yes
 PrivateTmp=yes
-ReadWritePaths=/opt/overhead-relay
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
 
 [Install]
 WantedBy=multi-user.target

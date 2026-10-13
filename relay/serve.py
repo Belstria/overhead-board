@@ -26,8 +26,11 @@ import collections
 import csv
 import datetime
 import email.utils
+import hashlib
 import heapq
 import html
+import http.cookies
+import ipaddress
 import io
 import itertools
 import json
@@ -35,6 +38,8 @@ import math
 import os
 import queue
 import re
+import secrets
+import shutil
 import socket
 import sys
 import threading
@@ -45,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 18
+RELAY_VERSION = 19
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -64,7 +69,7 @@ PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the 
 BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico))$")  # the phone app's icons
 FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
-SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget")
+SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "public_url")
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
@@ -179,10 +184,6 @@ def aircraft(lat, lon, nm):
                 was_failing = st["strikes"] > 0
                 st.update(ok=st["ok"] + 1, strikes=0, last_status=status, last_ok=time.time(), last_error="")
                 _positions[key] = (time.time(), body, src["name"])
-                try:
-                    record(planes, lat, lon)
-                except Exception as e:  # never let history problems break the live board
-                    event("warn", f"Couldn't record sightings: {e}")
                 if was_failing:
                     event("info", f"{src['name']} answering again")
                 event("debug", f"{src['name']}: {count} aircraft in {ms} ms", echo=False)
@@ -204,15 +205,13 @@ def aircraft(lat, lon, nm):
         return 503, body, "", "none"
 
 
-# ---------- shared sightings and lifetime logbook ----------
+# ---------- sightings and lifetime logbooks: one "spot" per profile ----------
+# The home spot (data/) is the relay's own place, shared by every screen at home. Since relay 19 each guest profile
+# (friends and family, let in with a personal invite link) has a spot of its own in data/profiles/<id>/, around the
+# location they set, so their planes never end up in the home logbook and the other way round.
 _data_lock = threading.RLock()
-_day = None
-_entries = []          # today's sightings, newest first
-_by_hex = {}           # hex -> its latest entry today
-_logbook = None
-_rev = 0
-_dirty = set()
-_enrich_q = queue.Queue()
+_dirty = set()             # relay-wide files to write: "fr24", "profiles"
+_enrich_q = queue.Queue()  # (spot, sighting id)
 _route_cache = {}
 _aircraft_cache = {}
 
@@ -228,29 +227,79 @@ def board_day(t=None):
     return time.strftime("%Y-%m-%d", time.localtime((t or time.time()) - DAY_STARTS_H * 3600))
 
 
-def _ensure_day():
-    global _day, _entries, _by_hex
-    d = board_day()
-    if d != _day:
-        _day = d
-        _entries = _load(DATA_DIR / f"sightings-{d}.json", [])
-        _by_hex = {}
-        for e in reversed(_entries):
-            _by_hex[e.get("hex", "")] = e
+class Spot:
+    """Today's sightings and the lifetime logbook of one place. `center()` says where it is (None: unknown) and
+    `radius()` how far around it planes count; the home spot without a saved location records around the screen's
+    own point, as before relay 19."""
+
+    def __init__(self, folder, center, radius, legacy=False):
+        self.dir, self.center, self.radius, self.legacy = folder, center, radius, legacy
+        self.day = None
+        self.entries = []       # today's sightings, newest first
+        self.by_hex = {}        # hex -> its latest entry today
+        self.logbook = None
+        self.rev = 0
+        self.dirty = set()
+        self.last_body = None
+
+    def ensure_day(self):
+        d = board_day()
+        if d != self.day:
+            self.day = d
+            self.entries = _load(self.dir / f"sightings-{d}.json", [])
+            self.by_hex = {}
+            for e in reversed(self.entries):
+                self.by_hex[e.get("hex", "")] = e
+
+    def book(self):
+        if self.logbook is None:
+            self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
+                                                                       "sightings": 0, "types": {}, "airlines": {}, "regs": {}}
+        return self.logbook
+
+    def changed(self, *what):
+        self.rev += 1
+        self.dirty.update(what)
+
+    def files(self):
+        """The files to write now (called by the saver, under the lock)."""
+        todo, out = set(self.dirty), []
+        self.dirty.clear()
+        if "day" in todo and self.day:
+            out.append((self.dir / f"sightings-{self.day}.json", json.dumps(self.entries, separators=(",", ":"))))
+        if "book" in todo and self.logbook is not None:
+            out.append((self.dir / "logbook.json", json.dumps(self.logbook, separators=(",", ":"))))
+        return out
+
+    def take(self, body, lat, lon, nm):
+        """A screen of this spot got positions around (lat, lon): record them if they cover the spot."""
+        if body is self.last_body:          # the same answer again (several screens, one upstream request)
+            return
+        self.last_body = body
+        lat, lon = float(lat), float(lon)
+        c = self.center()
+        if c is None:
+            if not self.legacy:
+                return
+            c = (lat, lon)
+        elif _dist_km(lat, lon, c[0], c[1]) + self.radius() > int(nm) * 1.852 + 1:
+            return                          # looking somewhere else: nothing to count for this spot
+        data = json.loads(body)
+        planes = data.get("ac", data.get("aircraft"))
+        if isinstance(planes, list):
+            self.record(planes, c[0], c[1])
 
 
-def _book():
-    global _logbook
-    if _logbook is None:
-        _logbook = _load(LOGBOOK_FILE, None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
-                                                 "sightings": 0, "types": {}, "airlines": {}, "regs": {}}
-    return _logbook
+def _home_center():
+    return (ARGS.lat, ARGS.lon) if ARGS.lat is not None and ARGS.lon is not None else None
 
 
-def _changed(*what):
-    global _rev
-    _rev += 1
-    _dirty.update(what)
+HOME = Spot(DATA_DIR, _home_center, lambda: ARGS.radius or 15.0, legacy=True)
+_guest_spots = {}
+
+
+def all_spots():
+    return [HOME, *_guest_spots.values()]
 
 
 def _saver():
@@ -258,18 +307,16 @@ def _saver():
     while True:
         time.sleep(4)
         with _data_lock:
+            files = [f for sp in all_spots() for f in sp.files()]
             todo = set(_dirty)
             _dirty.clear()
-            files = []
-            if "day" in todo and _day:
-                files.append((DATA_DIR / f"sightings-{_day}.json", json.dumps(_entries, separators=(",", ":"))))
             if "fr24" in todo and _fr24 is not None:
                 files.append((FR24_FILE, json.dumps(_fr24, separators=(",", ":"))))
-            if "book" in todo and _logbook is not None:
-                files.append((LOGBOOK_FILE, json.dumps(_logbook, separators=(",", ":"))))
+            if "profiles" in todo and _profiles is not None:
+                files.append((PROFILES_FILE, json.dumps(_profiles, separators=(",", ":"))))
         for path, text in files:
             try:
-                DATA_DIR.mkdir(exist_ok=True)
+                path.parent.mkdir(parents=True, exist_ok=True)
                 tmp = path.with_suffix(".tmp")
                 tmp.write_text(text, encoding="utf-8")
                 os.replace(tmp, path)
@@ -302,16 +349,16 @@ def _note_first(book, key, name, e, flag, learning=False):
         item["name"] = name
 
 
-def record(planes, lat, lon):
+def _record(self, planes, lat, lon):
     """Called with every fresh position update: log planes that enter the spotting radius."""
-    radius = ARGS.radius or 15.0
+    radius = self.radius()
     now = time.time()
     try:
         lat, lon = float(lat), float(lon)
     except ValueError:
         return
     with _data_lock:
-        _ensure_day()
+        self.ensure_day()
         changed = False
         for ac in planes:
             if not isinstance(ac, dict):
@@ -321,7 +368,7 @@ def record(planes, lat, lon):
                 continue
             d = _dist_km(lat, lon, la, lo)
             alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
-            e = _by_hex.get(hx)
+            e = self.by_hex.get(hx)
             if e and now - e.get("lastSeen", 0) > SAME_PASS_S:
                 e = None
             if e:
@@ -347,10 +394,10 @@ def record(planes, lat, lon):
                      "adsbCat": str(ac.get("category") or "")}
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
-                _entries.insert(0, e)
-                del _entries[5000:]
-                _by_hex[hx] = e
-                book = _book()
+                self.entries.insert(0, e)
+                del self.entries[5000:]
+                self.by_hex[hx] = e
+                book = self.book()
                 book["sightings"] = book.get("sightings", 0) + 1
                 cats = book.setdefault("categories", {})
                 cat = category_of(e)
@@ -363,12 +410,15 @@ def record(planes, lat, lon):
                 m = re.match(r"^([A-Z]{3})\d", cs)
                 if m:
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
-                _changed("book")
-                _enrich_q.put(e["id"])
+                self.changed("book")
+                _enrich_q.put((self, e["id"]))
                 changed = True
                 event("debug", f"Spotted {cs or hx} at {d:.1f} km", echo=False)
         if changed:
-            _changed("day")
+            self.changed("day")
+
+
+Spot.record = _record
 
 
 # ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
@@ -416,18 +466,18 @@ def category_of(e):
     return "other"
 
 
-def _backfill_categories():
+def _backfill_categories(spot):
     """Older logbooks have no categories: count them once from the saved days."""
-    b = _book()
+    b = spot.book()
     if "categories" in b:
         return
     cats = {}
-    for f in sorted(DATA_DIR.glob("sightings-*.json")):
+    for f in sorted(spot.dir.glob("sightings-*.json")):
         for e in _load(f, []):
             c = category_of(e)
             cats[c] = cats.get(c, 0) + 1
     b["categories"] = cats
-    _changed("book")
+    spot.changed("book")
     if cats:
         event("info", f"Logbook categories counted from {sum(cats.values())} saved sightings")
 
@@ -533,9 +583,9 @@ def _aircraft_for(hx):
 def _enricher():
     """Look up route and aircraft details for new sightings, one at a time, gently."""
     while True:
-        eid = _enrich_q.get()
+        spot, eid = _enrich_q.get()
         with _data_lock:
-            e = next((x for x in _entries if x.get("id") == eid), None)
+            e = next((x for x in spot.entries if x.get("id") == eid), None)
             cs, hx = (e or {}).get("callsign", ""), (e or {}).get("hex", "")
         if not e:
             continue
@@ -559,7 +609,7 @@ def _enricher():
                     e["reg"] = info["regFromDb"]
                 if not e.get("typeCode") and info.get("icaoType"):
                     e["typeCode"] = info["icaoType"]
-            book = _book()
+            book = spot.book()
             t = book["types"].get(e.get("typeCode") or "")
             if t is not None and not t.get("name") and info:
                 t["name"] = " ".join(x for x in (info.get("manufacturer", "").split(" ")[0], info.get("aircraftType")) if x)
@@ -568,7 +618,7 @@ def _enricher():
             if a is not None and route:
                 a["name"] = a.get("name") or route.get("airlineName", "")
                 a["iata"] = a.get("iata") or route.get("airlineIata", "")
-            _changed("day", "book")
+            spot.changed("day", "book")
         time.sleep(.4)
 
 
@@ -832,7 +882,7 @@ def _fr24_worker():
                     usage["lookupsToday"] = usage.get("lookupsToday", 0) + 1
                 if info:
                     _fr24_data()["flights"][key] = info
-                _changed("fr24")
+                _dirty.add("fr24")
             if status in (401, 403):
                 _fr24_state.update(state="refused", error=f"key refused (HTTP {status})", refusedAt=time.time())
                 event("warn", f"Flightradar24 refused the API key (HTTP {status}): boards use the free sources. "
@@ -937,20 +987,20 @@ def day_stats(entries, over_km):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
-def sightings_json(api=False, over_km=3.0, everything_wanted=False):
+def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False):
     with _data_lock:
-        _ensure_day()
-        everything = list(_entries)
-        day, rev = _day, _rev
+        spot.ensure_day()
+        everything = list(spot.entries)
+        day, rev = spot.day, spot.rev
     if api:
         everything = fr24_overlay(everything)
     return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
             "stats": day_stats(everything, over_km)}
 
 
-def logbook_json():
+def logbook_json(spot):
     with _data_lock:
-        b = _book()
+        b = spot.book()
         regs = b.get("regs", {})
         top = sorted(regs.items(), key=lambda kv: -kv[1].get("count", 0))[:15]
         return {"version": RELAY_VERSION, "since": b.get("since"), "sightings": b.get("sightings", 0),
@@ -1356,7 +1406,7 @@ def board_file(sub, name, ext):
     return (404 if status == 404 else 502), b"Not found"
 
 
-def board_html(sub=""):
+def board_html(sub="", guest=None):
     copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
     if ARGS.local_root:
         f = Path(ARGS.local_root) / sub / "index.html" if sub else Path(ARGS.local_root) / "index.html"
@@ -1396,15 +1446,232 @@ def board_html(sub=""):
     }.items() if v is not None}
     if ARGS.sound is not None:
         defaults["sound"] = bool(ARGS.sound)
+    fr24 = fr24_on() and (guest is None or bool(guest.get("fr24")))
+    if guest is not None:               # a guest never gets the home location; their own settings come with their profile
+        defaults = {"units": ARGS.units} if ARGS.units else {}
     config = json.dumps(defaults).replace("<", "\\u003c")
+    who = json.dumps({"name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
-              f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24_on() else 'false'};"
-              f"window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};</script>")
+              f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
+              f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
+
+
+# ---------- friends and family: profiles, personal invite links and the admin page (relay 19) ----------
+# Screens at home (a direct connection from a private address) are the home profile, as always. Everyone else, which
+# through the Cloudflare tunnel is everyone from outside, needs a profile: Dave makes a personal invite link on /admin
+# (home only), the first device to open it gets a long-lived cookie, and the link is used up. Only a hash of each
+# link and each device's cookie is kept. A guest's settings (their location) are kept with their profile.
+PROFILES_FILE = DATA_DIR / "profiles.json"
+COOKIE = "overhead"
+INVITE_DAYS = 14
+GUEST_FR24_DAY = 150        # most Flightradar24 lookups a day for a guest it has been turned on for
+_profiles = None            # {"profiles": {id: {...}}, "invites": {hash: {...}}}
+_buckets = {}
+
+
+def _hash(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def profiles():
+    global _profiles
+    if _profiles is None:
+        _profiles = _load(PROFILES_FILE, None) or {"profiles": {}, "invites": {}}
+    return _profiles
+
+
+def new_invite(name=None, pid=None):
+    """A personal invite link: for a new profile (`name`) or another device of an existing one (`pid`)."""
+    code = secrets.token_urlsafe(18)
+    with _data_lock:
+        P = profiles()
+        if pid is None:
+            pid = secrets.token_hex(4)
+            while pid in P["profiles"]:
+                pid = secrets.token_hex(4)
+            P["profiles"][pid] = {"name": name, "created": time.time(), "lastSeen": 0, "fr24": False, "devices": [],
+                                  "settings": None, "fr24Day": "", "fr24Count": 0}
+        elif pid not in P["profiles"]:
+            return None
+        now = time.time()
+        P["invites"] = {h: i for h, i in P["invites"].items() if i["expires"] > now}
+        P["invites"][_hash(code)] = {"profile": pid, "created": now, "expires": now + INVITE_DAYS * 86400}
+        _dirty.add("profiles")
+        who = P["profiles"][pid]["name"]
+    event("info", f"Invite link made for {who}")
+    return code
+
+
+def redeem(code, ua):
+    """The first device to open an invite link: a new device of that profile. Returns (profile id, cookie value)."""
+    with _data_lock:
+        P = profiles()
+        inv = P["invites"].pop(_hash(code), None)
+        if inv:
+            _dirty.add("profiles")
+        p = P["profiles"].get(inv["profile"]) if inv and inv["expires"] > time.time() else None
+        if not p:
+            return None, None
+        token = secrets.token_urlsafe(32)
+        p["devices"].append({"token": _hash(token), "device": device_of(ua), "added": time.time(), "lastSeen": time.time()})
+        p["lastSeen"] = time.time()
+    event("info", f"{p['name']} joined on a {device_of(ua)}")
+    return inv["profile"], token
+
+
+def profile_for(token):
+    """The profile a device's cookie belongs to: (id, profile) or (None, None)."""
+    if not token:
+        return None, None
+    h, now = _hash(token), time.time()
+    with _data_lock:
+        for pid, p in profiles()["profiles"].items():
+            for d in p["devices"]:
+                if secrets.compare_digest(d["token"], h):
+                    if now - d.get("lastSeen", 0) > 60:     # keep "last seen" without writing on every request
+                        d["lastSeen"] = p["lastSeen"] = now
+                        _dirty.add("profiles")
+                    return pid, p
+    return None, None
+
+
+def remove_profile(pid):
+    with _data_lock:
+        p = profiles()["profiles"].pop(pid, None)
+        profiles()["invites"] = {h: i for h, i in profiles()["invites"].items() if i["profile"] != pid}
+        _guest_spots.pop(pid, None)
+        _dirty.add("profiles")
+    if p:
+        shutil.rmtree(DATA_DIR / "profiles" / pid, ignore_errors=True)
+        event("info", f"Removed {p['name']} and their sightings")
+
+
+def _guest_center(pid):
+    def center():
+        st = (profiles()["profiles"].get(pid) or {}).get("settings") or {}
+        try:
+            lat, lon = float(st.get("lat")), float(st.get("lon"))
+        except (TypeError, ValueError):
+            return None
+        return (lat, lon) if abs(lat) <= 90 and abs(lon) <= 180 else None
+    return center
+
+
+def _guest_radius(pid):
+    def radius():
+        st = (profiles()["profiles"].get(pid) or {}).get("settings") or {}
+        try:
+            return min(20.0, max(1.0, float(st.get("radiusKm") or 15)))
+        except (TypeError, ValueError):
+            return 15.0
+    return radius
+
+
+def guest_spot(pid):
+    with _data_lock:
+        sp = _guest_spots.get(pid)
+        if sp is None:
+            sp = _guest_spots[pid] = Spot(DATA_DIR / "profiles" / pid, _guest_center(pid), _guest_radius(pid))
+        return sp
+
+
+def guest_fr24(p):
+    """May this guest's board ask Flightradar24 now? Only if Dave turned it on for them, and within a daily share."""
+    if not p.get("fr24") or not fr24_on():
+        return False
+    with _data_lock:
+        today = board_day()
+        if p.get("fr24Day") != today:
+            p["fr24Day"], p["fr24Count"] = today, 0
+        return p.get("fr24Count", 0) < GUEST_FR24_DAY
+
+
+def allow(key, rate, burst):
+    """A token bucket per visitor: `rate` requests a second on average, `burst` at once."""
+    now = time.time()
+    with _lock:
+        tokens, t = _buckets.get(key, (burst, now))
+        tokens = min(burst, tokens + (now - t) * rate)
+        ok = tokens >= 1
+        _buckets[key] = (tokens - 1 if ok else tokens, now)
+        if len(_buckets) > 5000:
+            _buckets.clear()
+        return ok
+
+
+def _ago(t):
+    if not t:
+        return "never"
+    s = time.time() - t
+    return "just now" if s < 120 else f"{int(s // 60)} min ago" if s < 3600 else f"{int(s // 3600)} h ago" if s < 86400 else f"{int(s // 86400)} days ago"
+
+
+PAGE_CSS = """body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0b0c;color:#e8e2d0;
+font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:620px;padding:32px 22px}
+h1{font-size:26px;margin:0 0 10px}h2{font-size:18px;margin:28px 0 8px}p{color:#b9b3a3}a{color:#f2b134}
+.mark{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:9px;background:#f2b134;color:#111;
+font-weight:800;font-size:24px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 6px;border-bottom:1px solid #26272b;text-align:left;vertical-align:top}th{color:#8d887b;font-weight:600}
+input[type=text]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px}
+button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}form{display:inline}
+.link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;
+font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
+
+
+def plain_page(title, body):
+    return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,'
+            f'initial-scale=1"><title>{html.escape(title)}</title><style>{PAGE_CSS}</style></head><body><main>'
+            f'<div class="mark">&#9992;</div>{body}</main></body></html>').encode("utf-8")
+
+
+def admin_html(host, made=None):
+    esc = html.escape
+    base = (ARGS.public_url or "").rstrip("/") or f"http://{host}"
+    rows = []
+    with _data_lock:
+        items = sorted(profiles()["profiles"].items(), key=lambda kv: -kv[1].get("lastSeen", 0))
+        pending = collections.Counter(i["profile"] for i in profiles()["invites"].values() if i["expires"] > time.time())
+        for pid, p in items:
+            kinds = collections.Counter(d.get("device") or "device" for d in p["devices"])
+            devs = ", ".join(f"{k} ×{n}" if n > 1 else k for k, n in sorted(kinds.items())) or "not joined yet"
+            st = p.get("settings") or {}
+            where = esc(str(st.get("place") or "")) or ('location set' if st.get("lat") is not None else "no location yet")
+            fr = "on" if p.get("fr24") else "off"
+            rows.append(
+                f"<tr><td><b>{esc(p['name'])}</b><br><span class=muted>{where}</span></td>"
+                f"<td>{esc(devs)}<br><span class=muted>seen {_ago(p.get('lastSeen'))}"
+                f"{f' · {pending[pid]} unused link' if pending[pid] else ''}</span></td>"
+                f"<td><form method=post action='/admin/fr24'><input type=hidden name=pid value='{pid}'>"
+                f"<input type=hidden name=on value='{'0' if p.get('fr24') else '1'}'><button title='Flightradar24 flight numbers, "
+                f"at most {GUEST_FR24_DAY} lookups a day'>FR24 {fr}</button></form></td>"
+                f"<td><form method=post action='/admin/link'><input type=hidden name=pid value='{pid}'><button>New link</button></form> "
+                f"<form method=post action='/admin/remove' onsubmit=\"return confirm({esc(json.dumps('Remove ' + p['name'] + ' and their sightings?'))})\">"
+                f"<input type=hidden name=pid value='{pid}'><button>Remove</button></form></td></tr>")
+    made_html = ""
+    if made:
+        name, code = made
+        link = f"{base}/join/{code}"
+        made_html = (f"<h2>Link for {esc(name)}</h2><p>Send this to {esc(name)}. It works once, on the first phone or "
+                     f"computer that opens it, within {INVITE_DAYS} days.</p><a class=link href='#' "
+                     f"onclick=\"navigator.clipboard&&navigator.clipboard.writeText(this.textContent);this.style.borderColor='#3c3';return false\">{esc(link)}</a>"
+                     f"<p class=muted>Tap the link to copy it.</p>")
+        if not ARGS.public_url:
+            made_html += ("<p class=muted>The relay doesn't know its public address yet, so this link only works at home. "
+                          "Start it once with <code>--public-url https://overhead.example.com --save</code>.</p>")
+    table = (f"<table><tr><th>Who</th><th>Devices</th><th></th><th></th></tr>{''.join(rows)}</table>" if rows
+             else "<p>Nobody yet. Invite someone below.</p>")
+    body = (f"<h1>Overhead: friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
+            f"today and logbook. This page only opens at home.</p>{made_html}<h2>People</h2>{table}<h2>Invite someone</h2>"
+            f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
+            f"<button class=go>Make a link</button></form>")
+    return plain_page("Overhead: friends & family", body)
 
 
 class Handler(BaseHTTPRequestHandler):
     server_version = f"OverheadRelay/{RELAY_VERSION}"
+    timeout = 30                    # a connection that sends nothing for this long is closed
 
     def log_message(self, fmt, *args):
         if ARGS.verbose:
@@ -1415,6 +1682,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
         for k, v in (extra or {}).items():
             self.send_header(k, v)
         self.end_headers()
@@ -1425,15 +1695,83 @@ class Handler(BaseHTTPRequestHandler):
         return urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
 
     def client_ip(self):
-        """The screen's address. Behind a proxy on this computer every request comes from this computer, and the proxy
-        names the real one in X-Forwarded-For."""
+        """The screen's address. Behind a proxy on this computer (the Cloudflare tunnel, say) every request comes from
+        this computer, and the proxy names the real one in Cf-Connecting-IP or X-Forwarded-For."""
         ip = self.client_address[0]
-        fwd = (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+        fwd = (self.headers.get("Cf-Connecting-IP") or self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
         if ip in ("127.0.0.1", "::1", "::ffff:127.0.0.1") and re.fullmatch(r"[0-9a-fA-F.:]{3,45}", fwd):
             return fwd
         return ip
 
+    def at_home(self):
+        """A screen at home: a direct connection from a private address, or one a proxy on this computer passes on
+        from a private address. Anything through the Cloudflare tunnel (Cf-Connecting-IP) is from outside."""
+        if self.headers.get("Cf-Connecting-IP"):
+            return False
+        try:
+            a = ipaddress.ip_address(self.client_ip())
+            a = a.ipv4_mapped or a if a.version == 6 else a
+            return a.is_private or a.is_loopback
+        except ValueError:
+            return False
+
+    def identify(self):
+        """Who is asking: self.guest = (id, profile) for a guest's device, None at home; self.stranger for anyone else."""
+        jar = http.cookies.SimpleCookie()
+        try:
+            jar.load(self.headers.get("Cookie") or "")
+        except http.cookies.CookieError:
+            pass
+        pid, p = profile_for(jar[COOKIE].value if COOKIE in jar else "")
+        self.guest = (pid, p) if pid else None            # a guest's phone stays the guest, even on the home Wi-Fi
+        self.stranger = not self.guest and not self.at_home()
+        self.spot = guest_spot(pid) if pid else HOME
+
+    def https(self):
+        return (self.headers.get("X-Forwarded-Proto") or "").lower() == "https" or '"https"' in (self.headers.get("Cf-Visitor") or "")
+
+    def same_origin(self):
+        """A form on the admin page, not another site posting to it."""
+        origin = self.headers.get("Origin") or self.headers.get("Referer") or ""
+        return urllib.parse.urlsplit(origin).netloc == (self.headers.get("Host") or "")
+
+    def form(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > 4096:
+            return {}
+        return {k: v[0] for k, v in urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).items()}
+
+    def refuse(self, path):
+        """Not at home and no profile: a friendly page for people, a short answer for scripts."""
+        if not allow("stranger:" + self.client_ip(), 1, 20):
+            return self.reply(429, "text/plain", b"Too many requests")
+        if PAGE.match(path):
+            return self.reply(403, "text/html; charset=utf-8", plain_page("Overhead", (
+                "<h1>Overhead is private</h1><p>It shows the planes flying over your home, for friends and family. "
+                "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
+                "<p class=muted>Already in, but on a new device? Ask for a new link.</p>")))
+        return self.reply(401, "application/json", b'{"error":"not signed in"}')
+
+    def join(self, code):
+        if not allow("join:" + self.client_ip(), 0.2, 10):
+            return self.reply(429, "text/plain", b"Too many requests")
+        pid, token = redeem(code, self.headers.get("User-Agent") or "")
+        if not pid:
+            event("warn", f"An invite link was used that has expired or been used before ({self.client_ip()})")
+            return self.reply(410, "text/html; charset=utf-8", plain_page("Overhead", (
+                "<h1>This link has been used</h1><p>Each invite link works once, on the first phone or computer that "
+                "opens it, for two weeks. Ask the person who sent it for a new one.</p>")))
+        cookie = f"{COOKIE}={token}; Path=/; Max-Age={400 * 86400}; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else "")
+        self.send_response(303)
+        self.send_header("Location", "/app/")
+        self.send_header("Set-Cookie", cookie)
+        self.send_header("Content-Length", "0")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.end_headers()
+
     def note_screen(self, path, hello=None, bye=False):
+        if hello is not None and self.guest:
+            hello = {**hello, "name": self.guest[1]["name"]}     # a guest's screen is listed under their name
         if path.startswith(BOARD_PATHS):
             try:
                 screen_seen(self.client_ip(), self.headers.get("User-Agent") or "", self.headers.get("Referer") or "",
@@ -1443,7 +1781,26 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport"):
+        self.identify()
+        m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
+        if m:
+            return self.join(m.group(1))
+        if path == "/health" or BOARD_FILE.match(path):
+            pass                                  # the app's icons and manifest (fetched without cookies) and the check
+        elif self.stranger:
+            return self.refuse(path)
+        elif self.guest and not allow("guest:" + self.guest[0], 4, 60):
+            return self.reply(429, "text/plain", b"Too many requests")
+        if path in ("/screens", "/status", "/admin") and self.guest:
+            return self.reply(403, "text/plain", b"Only at home")
+        if path == "/admin":
+            return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or ""))
+        if path == "/me":
+            if not self.guest:
+                return self.reply(200, "application/json", b'{"home":true}')
+            p = self.guest[1]
+            return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -1454,7 +1811,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body)
         page = PAGE.match(path)
         if page:
-            html = board_html(page.group(1) or "")
+            if self.guest and (page.group(1) or "") != "app":     # guests have the phone app; the boards are for the TVs
+                self.send_response(302)
+                self.send_header("Location", "/app/")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            html = board_html(page.group(1) or "", self.guest[1] if self.guest else None)
             if html is None:
                 return self.reply(502, "text/plain; charset=utf-8", b"Couldn't download the board from GitHub yet. Check the internet connection and reload.")
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))
@@ -1475,8 +1838,8 @@ class Handler(BaseHTTPRequestHandler):
                 over = min(20.0, max(0.1, float((q.get("over") or ["3"])[0])))
             except ValueError:
                 over = 3.0
-            api = (q.get("api") or [""])[0] == "1"
-            data = sightings_json(api, over, (q.get("all") or [""])[0] == "1")
+            api = (q.get("api") or [""])[0] == "1" and (not self.guest or bool(self.guest[1].get("fr24")))
+            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1")
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())
@@ -1484,7 +1847,7 @@ class Handler(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
             cs = (q.get("cs") or [""])[0].strip().upper()[:8]
             hx = (q.get("hex") or [""])[0].strip().lower()[:6]
-            if not fr24_on():
+            if not fr24_on() or (self.guest and not guest_fr24(self.guest[1])):
                 body = {"status": "off"}
             else:
                 info = fr24_info(cs, hx)
@@ -1494,6 +1857,9 @@ class Handler(BaseHTTPRequestHandler):
                     body = {"status": "none"}
                 else:
                     fr24_want(cs, hx, 0)
+                    if self.guest:
+                        with _data_lock:
+                            self.guest[1]["fr24Count"] = self.guest[1].get("fr24Count", 0) + 1
                     body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/times":
@@ -1516,7 +1882,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(400, "text/plain", b"Out of range")
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
         if path == "/logbook":
-            return self.reply(200, "application/json", json.dumps(logbook_json()).encode())
+            return self.reply(200, "application/json", json.dumps(logbook_json(self.spot)).encode())
         if path == "/metar":
             q = self.path.split("?", 1)[1] if "?" in self.path else ""
             ids = (re.search(r"ids=([A-Za-z]{4})", q) or [None, ""])[1].upper()
@@ -1531,14 +1897,61 @@ class Handler(BaseHTTPRequestHandler):
             lat, lon, nm = m.groups()[-3:]
             if abs(float(lat)) > 90 or abs(float(lon)) > 180 or not 1 <= int(nm) <= 50:
                 return self.reply(400, "text/plain", b"Out of range")
+            if self.guest and not allow("pos:" + self.guest[0], 0.6, 12):   # a few phones polling every 10 s fit easily
+                return self.reply(429, "text/plain", b"Too many requests")
             status, body, source, freshness = aircraft(lat, lon, nm)
-            return self.reply(status, "application/json", body, {"X-Relay-Source": source, "X-Relay-Data": freshness, "X-Sightings-Rev": str(_rev)})
+            if status == 200:
+                try:
+                    with _data_lock:
+                        self.spot.take(body, lat, lon, nm)
+                except Exception as e:  # never let history problems break the live board
+                    event("warn", f"Couldn't record sightings: {e}")
+            return self.reply(status, "application/json", body, {"X-Relay-Source": source, "X-Relay-Data": freshness, "X-Sightings-Rev": str(self.spot.rev)})
         self.reply(404, "text/plain", b"Not found")
 
     do_HEAD = do_GET
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        self.identify()
+        if self.stranger:
+            return self.refuse(path)
+        if self.guest and not allow("guest:" + self.guest[0], 4, 60):
+            return self.reply(429, "text/plain", b"Too many requests")
+        if path.startswith("/admin/"):
+            if self.guest or not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from the admin page at home")
+            f, made = self.form(), None
+            if path == "/admin/invite" and (f.get("name") or "").strip():
+                name = re.sub(r"[\x00-\x1f<>]", "", f["name"]).strip()[:40]
+                made = (name, new_invite(name=name))
+            elif path == "/admin/link" and f.get("pid"):
+                code = new_invite(pid=f["pid"])
+                if code:
+                    made = (profiles()["profiles"][f["pid"]]["name"], code)
+            elif path == "/admin/remove" and f.get("pid"):
+                remove_profile(f["pid"])
+            elif path == "/admin/fr24" and f.get("pid") in profiles()["profiles"]:
+                with _data_lock:
+                    profiles()["profiles"][f["pid"]]["fr24"] = f.get("on") == "1"
+                    _dirty.add("profiles")
+            return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
+        if path == "/me":               # a guest's settings, so their other devices (and the relay) know their place
+            length = int(self.headers.get("Content-Length") or 0)
+            if not self.guest:
+                return self.reply(204, "text/plain", b"")
+            if length > 8192:
+                return self.reply(413, "text/plain", b"Too large")
+            try:
+                st = json.loads(self.rfile.read(length) or b"{}").get("settings")
+            except (ValueError, AttributeError):
+                st = None
+            if not isinstance(st, dict):
+                return self.reply(400, "text/plain", b"settings missing")
+            with _data_lock:
+                self.guest[1]["settings"] = st
+                _dirty.add("profiles")
+            return self.reply(204, "text/plain", b"")
         if path == "/bye":              # a board page closing or reloading
             self.note_screen(path, bye=True)
             return self.reply(204, "text/plain", b"")
@@ -1580,6 +1993,7 @@ def main():
     p.add_argument("--fr24-key", help="Flightradar24 API key, for boards that use it (the test-api board); 'off' turns it off")
     p.add_argument("--fr24-budget", type=int, help=f"most Flightradar24 credits to spend a month (default {FR24_BUDGET:,})")
     p.add_argument("--source", help="use this position source instead of the public ones: a URL with {lat} {lon} {nm} placeholders, or a local receiver's aircraft.json")
+    p.add_argument("--public-url", help="the address friends and family reach the relay at (https://overhead.example.com), for invite links")
     p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
     ARGS = p.parse_args()
 
@@ -1612,10 +2026,11 @@ def main():
     threading.Thread(target=_fr24_worker, daemon=True).start()
     threading.Thread(target=_screen_watch, daemon=True).start()
     with _data_lock:
-        _ensure_day()
-        _book()
+        HOME.ensure_day()
+        HOME.book()
         _fr24_data()
-        _backfill_categories()
+        _backfill_categories(HOME)
+        profiles()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Overhead relay {RELAY_VERSION} running. Open the board at:")
@@ -1627,6 +2042,7 @@ def main():
     if fr24_key():
         print(f"Flightradar24 lookups are on for boards that use them (at most {_fr24_budget():,} credits a month).")
     print("Problems with the flight data sources and screens coming and going are printed below.")
+    print(f"Friends and family: invite them at http://localhost:{ARGS.port}/admin (only opens at home).")
     print(f"Press Enter for the screens using the relay (also at http://localhost:{ARGS.port}/screens). Press Ctrl+C to stop.", flush=True)
     threading.Thread(target=_console, daemon=True).start()
     try:
