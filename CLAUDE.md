@@ -72,6 +72,9 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 - Lower half: rotating pages (Recent flights, This aircraft, Today in numbers; `ROTATION`), turned by one giant
   falling flap (`startBigFlap`). Views (Spotted today, Logbook, Radar, Settings) take over below the header at once
   (`switchView`). The rail of lamp buttons is DOM (`.cap`), as is the Settings cockpit (`COCKPIT`, `cockpitOpen`).
+- Look (1.18): the footer and the app's status line stay quiet while live (`updateFooter`, `body[data-health]` in
+  the app), the radar's labels go through `radarLabels()` (no overlaps, inside the scope), the app's Save bar only
+  shows when `#t-settings.dirty`, the app's tabs carry line icons (`TAB_ICONS`), and altitudes below zero show as 0.
 - Drawing quality: Fire TV and LG TVs (`WEAK_TV`) draw at 1080p, 30 fps, shorter flap runs (`LITE()`).
 - Data: positions from the relay (`/aircraft/...`), routes and aircraft from adsbdb (browser) and adsb.lol's
   routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from

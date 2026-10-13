@@ -19,7 +19,7 @@
 /* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
 .rail{position:absolute;display:flex;z-index:2}
 .cap{position:relative;flex:none;width:calc(104px*var(--k));height:calc(44px*var(--k));margin:0 0 0 calc(14px*var(--k));padding:0;border:0;border-radius:calc(4px*var(--k));
-  display:grid;place-items:center;text-align:center;font:700 calc(12.5px*var(--k))/1.1 var(--f-board);letter-spacing:.07em;text-transform:uppercase;
+  display:grid;place-items:center;text-align:center;font:700 calc(13.5px*var(--k))/1.1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;
   color:rgba(24,22,18,.74);background:linear-gradient(#97928a,#7b776e 70%,#6e6a63);
   box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,255,255,.28),inset 0 calc(-3px*var(--k)) calc(5px*var(--k)) rgba(0,0,0,.3);
   transition:box-shadow .4s ease-out,transform .14s ease-out,filter .3s}
@@ -155,7 +155,7 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
   --metal:#141517;
   --ink:#f3f0e8;
   --amber:#f0b429;
-  --muted:#7f838b;
+  --muted:#959aa3;
   --label2:#6d7179;
   --line:#26272b;
   --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
@@ -197,13 +197,16 @@ main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-
 .panel{position:relative;width:100%;aspect-ratio:var(--w)/var(--h)}
 .panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* engraved headings and grooves */
-h2{margin:24px 0 10px;font:700 21px/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+h2{margin:22px 0 12px;font:700 21px/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
 h2 span{font-weight:400;color:var(--muted);margin-left:.3em}
 h2:first-child{margin-top:4px}
 h3{margin:22px 0 8px;font:600 12px/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 h3 span{color:var(--label2);margin-left:.6em}
-.groove{height:3px;margin:18px 0 0;background:linear-gradient(rgba(0,0,0,.7) 0 2px,rgba(255,255,255,.06) 2px 3px)}
+.groove{height:3px;margin:26px 0 0;background:linear-gradient(rgba(0,0,0,.7) 0 2px,rgba(255,255,255,.06) 2px 3px)}
 .sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
+.status{display:none}
+body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
+.brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
 /* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
 .bezel{position:relative;padding:12px;border-radius:10px;background:linear-gradient(#2a2b2f,#1c1d20 50%,#141518);
@@ -272,7 +275,8 @@ h3 span{color:var(--label2);margin-left:.6em}
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
 #tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
-#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:44px;margin:0;font-size:11.5px;letter-spacing:.06em}
+#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:54px;margin:0;font-size:10.5px;letter-spacing:.06em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#tabs .cap .ico{width:19px;height:19px;opacity:.85}
 .cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
 @keyframes ping{50%{opacity:.35}}
 /* logbook */
@@ -325,9 +329,10 @@ h3 span{color:var(--label2);margin-left:.6em}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
-.savebar{position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;display:flex;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
+.savebar{display:none;position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
+#t-settings.dirty .savebar{display:flex;justify-content:center}
 /* ---------- a phone on its side: only Now, full screen, laid out like the board ----------
    The plane's flaps across the top and one page under them (Recent flights or Take-offs & landings, This aircraft),
    picked with lamp buttons in the title strip and turning by itself. No tab buttons: the other tabs are for upright.
@@ -355,7 +360,7 @@ h3 span{color:var(--label2);margin-left:.6em}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
   .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
-  #tabs,.tab:not(#t-now){display:none!important}
+  #tabs,.tab:not(#t-now),.brandline{display:none!important}
   #top{padding-top:0}
   #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
   #mark{width:28px;height:28px}
@@ -480,10 +485,11 @@ h3 span{color:var(--label2);margin-left:.6em}
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>
-    <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.">Turn the knobs and flip the switches, then press Save. Settings are kept on this phone only.</p>
+    <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save.">Turn the knobs and flip the switches, then press Save.</p>
     <div id="cockpit" style="margin-top:14px"></div>
     <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
+  <p class="brandline">Fallblatt</p>
 </main>
 <p id="sideAlert" role="status" hidden></p>
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wHi" hidden><div class="wbox">
@@ -517,7 +523,7 @@ const $ = id => document.getElementById(id);
 const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
-const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#7f838b", labelEn:"#6d7179"};
+const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#959aa3", labelEn:"#6d7179"};
 const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
 const THEMES = {
   classic:   {font:'"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif', flap:["#2b2c2f","#232427","#1c1d1f","#161719"],
@@ -671,6 +677,12 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Live · {n} aircraft nearby", "Live · {n} Flugzeuge in der Nähe", "En direct · {n} avions à proximité", "En directo · {n} aviones cerca", "Live · {n} vliegtuigen in de buurt"],
+  ["Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", "Ringe alle 5 km · gestrichelt: der Sichtungsradius von {n} km · grün: direkt drüber", "Cercles tous les 5 km · en pointillé : le rayon de repérage de {n} km · vert : juste au-dessus", "Anillos cada 5 km · discontinuo: el radio de avistamiento de {n} km · verde: justo encima", "Ringen om de 5 km · gestippeld: de spotstraal van {n} km · groen: recht boven"],
+  ["Turn the knobs and flip the switches, then press Save.", "Drehe die Knöpfe und lege die Schalter um, dann Speichern drücken.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer.", "Gira los mandos y acciona los interruptores, luego pulsa Guardar.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan."],
+  ["first sightings are marked NEW from {d} {t}", "Erstsichtungen sind ab {d} {t} als NEU markiert", "les premières observations sont marquées NOUVEAU à partir du {d} {t}", "los primeros avistamientos se marcan como NUEVO desde el {d} {t}", "eerste waarnemingen worden vanaf {d} {t} als NIEUW gemarkeerd"],
+  ["Press Save to apply. Each screen keeps its own settings.", "Speichern übernimmt die Änderungen. Jeder Bildschirm hat eigene Einstellungen.", "Appuyez sur Enregistrer pour appliquer. Chaque écran garde ses propres réglages.", "Pulsa Guardar para aplicar. Cada pantalla guarda sus propios ajustes.", "Druk op Opslaan om toe te passen. Elk scherm houdt zijn eigen instellingen."],
+  ["Flaps & sound", "Klappen & Klang", "Palettes et son", "Paletas y sonido", "Klappen en geluid"],
   ["Sounds", "Klänge", "Sons", "Sonidos", "Geluiden"],
   ["RECORDED", "AUFNAHMEN", "ENREGISTRÉS", "GRABADOS", "OPNAMEN"],
   ["Sounds: split-flap by matucha (CC BY-NC 4.0), switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE (Pixabay Content License).", "Klänge: Fallblatt von matucha (CC BY-NC 4.0), Schalter und Taster von joedeshon (CC BY 4.0) und Drehknopf von shewbox (CC BY 3.0), von freesound.org; Knopf von EAGLAXLE (Pixabay-Inhaltslizenz).", "Sons : palette par matucha (CC BY-NC 4.0), interrupteur et bouton-poussoir par joedeshon (CC BY 4.0) et bouton rotatif par shewbox (CC BY 3.0), sur freesound.org ; bouton par EAGLAXLE (licence de contenu Pixabay).", "Sonidos: paleta de matucha (CC BY-NC 4.0), interruptor y pulsador de joedeshon (CC BY 4.0) y mando giratorio de shewbox (CC BY 3.0), de freesound.org; botón de EAGLAXLE (licencia de contenido de Pixabay).", "Geluiden: klapbord van matucha (CC BY-NC 4.0), schakelaar en drukknop van joedeshon (CC BY 4.0) en draaiknop van shewbox (CC BY 3.0), van freesound.org; knop van EAGLAXLE (Pixabay-contentlicentie)."],
@@ -2162,7 +2174,8 @@ const OFFLINE_AFTER = 60000;
 const isOffline = () => !S.demo && (lastOk ? Date.now() - lastOk > OFFLINE_AFTER : failures >= 3);
 const planeName = (h, ac) => (h && h.info && h.info.flightNo) || (ac && (ac.flight || "").trim()) || (h && h.hex) || "?";
 const HOLD = () => S.demo ? 8000 : 25000;
-function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
+// Pressure altitudes near the ground can come out a little below zero (the air pressure that day): shown as 0.
+function altitudeStr(ft){ ft = Math.max(0, ft); return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
 function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
 function countdown(sec){
   const t = Math.max(5, Math.round(sec / 5) * 5);
@@ -2494,7 +2507,7 @@ function logbookSummary(){
   const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"}) : "";
   const learning = b.learningUntil && Date.now() < b.learningUntil;
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
-    (learning ? " · " + T("the first day is for learning what is normal here; from {d} {t} first sightings are marked NEW", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
+    (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on"));
 }
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
@@ -2515,6 +2528,7 @@ function radarTrack(all, now){
 const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
 function altShort(ft){
   if (ft == null) return "";
+  ft = Math.max(0, ft);
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 50) * 50) + " m" : ft >= 18000 ? "FL" + Math.round(ft / 100) : nf.format(Math.round(ft / 100) * 100) + " ft";
 }
 function radarColor(o){
@@ -2525,9 +2539,34 @@ function radarColor(o){
   if (isFav(x)) return RADAR_COL.fav;
   return RADAR_COL[o.kind] || RADAR_COL.high;
 }
+// Plane labels that never cover each other or leave the scope: nearest planes first, each label tries the right of its
+// plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
+function radarLabels(g, shown, cx, cy, R, f, taken = []){
+  const boxes = [...taken], out = [];
+  const nameOf = o => { const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
+    return (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase(); };
+  for (const s of shown.filter(s => s.o.kind).sort((a, b) => a.o.dist - b.o.dist)) {
+    const name = nameOf(s.o), alt = altShort(s.o.alt);
+    g.font = `700 ${f.name}px ${FONT}`; const wn = g.measureText(name).width;
+    g.font = `500 ${f.alt}px ${FONT}`; const w = Math.max(wn, g.measureText(alt).width), h = f.name + f.alt + 2, d = f.gap;
+    for (const [x, y] of [[s.x + d, s.y - f.name], [s.x - d - w, s.y - f.name], [s.x - w / 2, s.y - d - h], [s.x - w / 2, s.y + d]]) {
+      const b = {x: x - 2, y: y - 2, w: w + 4, h: h + 4};
+      if (![[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].every(([px, py]) => Math.hypot(px - cx, py - cy) < R - 6)) continue;
+      if (boxes.some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h)) continue;
+      boxes.push(b); out.push({s, x, y, name, alt});
+      break;
+    }
+  }
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  for (const {s, x, y, name, alt} of out) {
+    g.font = `700 ${f.name}px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x, y + f.name - 1);
+    g.font = `500 ${f.alt}px ${FONT}`; g.fillStyle = s.col; g.fillText(alt, x, y + f.name + f.alt + 1);
+  }
+}
 const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
 function altNum(ft){
   if (typeof ft !== "number") return "";
+  ft = Math.max(0, ft);
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) : nf.format(Math.round(ft / 100) * 100);
 }
 
@@ -2633,7 +2672,7 @@ function spottedSummary(){
   const pl = (k, one, many) => T(k === 1 ? one : many, {n: k});
   return [pl(n, "{n} plane", "{n} planes"), pl(na, "{n} airline", "{n} airlines"), pl(nt, "{n} aircraft type", "{n} aircraft types"),
     T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
-    `${relayV5() ? " · " + T("shared by every screen through the home relay") : ""}${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
+    `${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
 }
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
 function buildSvTools(){
@@ -2782,6 +2821,7 @@ function startRadar(){
   const loop = t => {
     if (tab !== "radar") return;
     if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
+    if (t - (radar.listAt || 0) > 1000) { radar.listAt = t; renderRadarList(); }   // the list keeps up with the scope
     radar.raf = requestAnimationFrame(loop);
   };
   cancelAnimationFrame(radar.raf); radar.raf = requestAnimationFrame(loop);
@@ -2810,11 +2850,13 @@ function drawRadar(t){
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
   const ap = AIRPORTS[S.home];
   if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 3.5;
+    g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 2.2;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 12px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 12, ay + 18); g.lineCap = "butt";
-  }
+    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)";
+    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
+    g.lineCap = "butt";
+  } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
     const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
@@ -2832,13 +2874,7 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
-  for (const {o, x, y, col} of shown) {
-    if (!o.kind) continue;
-    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
-    const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    g.font = `700 11.5px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x + 12, y - 3);
-    g.font = `500 10px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 12, y + 9);
-  }
+  radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, radar.apBox ? [radar.apBox] : []);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
@@ -2887,15 +2923,15 @@ const COCKPIT = [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
+    {k: "logos", type: "switch", label: "Airline logos"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"},
+    {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
+  {title: ["Flaps & sound", "Klappen & Klang"], cols: 2, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "quick", type: "switch", label: "Quick flaps"},
-    {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"}]},
-  {title: ["Phone", "Telefon"], cols: 2, items: [
-    {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
-    {k: "demo", type: "switch", label: "Demo mode", guard: true}]}];
+    {k: "chimes", type: "switch", label: "Chimes", span: 2}]}];
 let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
@@ -3316,6 +3352,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.18", date: "2026-10-14", notes: [
+    "A cleaner look: a quiet \"Live\" instead of the long status line (the details show when something is wrong, and in Diagnostics), shorter lines under the titles, slightly brighter small print and bigger button labels, and the Fallblatt name in the footer.",
+    "Radar: plane labels make way for each other and stay inside the scope; the runway is drawn more quietly.",
+    "Settings: the plates are rebalanced (Display, and a new Flaps & sound plate) with shorter help text.",
+    "Phone app: icons on the tab buttons, the Save bar only appears once something has changed, and evener spacing."]},
   {v: "1.17", date: "2026-10-14", notes: [
     "New sounds, recorded from the real things: a split-flap module for the flaps, a rotary switch, a rocker switch, a thumbwheel and a push button for the controls. Several takes of each, so repeats don't sound copied.",
     "Settings → Sounds: CLASSIC brings back the old synthesised sounds. The recordings are credited in About."]},
@@ -3472,6 +3513,7 @@ function cockpitOpen(){
 function cockpitDirty(){
   const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String(S[it.k] ?? ""));
   $("saveBtn").setAttribute("aria-pressed", String(dirty));
+  $("t-settings").classList.toggle("dirty", dirty);
 }
 // Save applies the draft and keeps it on this phone; Cancel puts the controls back to the saved settings.
 let savedTimer = 0;
@@ -3611,10 +3653,19 @@ function welcome(){
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
+// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a knob.
+const ICON = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const TAB_ICONS = {
+  now: ICON('<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>'),
+  today: ICON('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
+  logbook: ICON('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
+  radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+  settings: ICON('<circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 12V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
+};
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
 function buildTabs(){
-  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
+  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
@@ -3657,6 +3708,7 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
+  document.body.dataset.health = dot.dataset.state || "";          // the line under the lists only shows when it matters
   const bad = ["off", "warn", "demo"].includes(dot.dataset.state), al = $("sideAlert");     // on its side: only when something is wrong
   al.hidden = !bad; al.dataset.state = dot.dataset.state;
   if (bad && al.textContent !== line) al.textContent = line;

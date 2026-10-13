@@ -16,7 +16,7 @@
   --wall:#050505;
   --ink:#f3f0e8;
   --amber:#f0b429;
-  --muted:#7f838b;
+  --muted:#959aa3;
   --line:#26272b;
   --surface:#151618;
   --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
@@ -46,6 +46,7 @@ footer #status,footer .actions{pointer-events:auto}
 body.idle .pip[data-state=warn]{opacity:.8;background:var(--amber)}
 body.idle .pip[data-state=off]{opacity:.9;background:#e0483d}
 #status{display:flex;align-items:center;gap:.6em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status .brand{margin-right:.9em;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);opacity:.55}
 .dot{width:.5em;height:.5em;border-radius:50%;background:var(--muted);flex:none}
 .dot[data-state=live]{background:#22a058}
 .dot[data-state=demo]{background:var(--amber)}
@@ -108,7 +109,7 @@ body.lite .photo.screen.on{animation:screenOnLite .8s ease-out both}
 /* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
 .rail{position:absolute;display:flex;z-index:2}
 .cap{position:relative;flex:none;width:calc(104px*var(--k));height:calc(44px*var(--k));margin:0 0 0 calc(14px*var(--k));padding:0;border:0;border-radius:calc(4px*var(--k));
-  display:grid;place-items:center;text-align:center;font:700 calc(12.5px*var(--k))/1.1 var(--f-board);letter-spacing:.07em;text-transform:uppercase;
+  display:grid;place-items:center;text-align:center;font:700 calc(13.5px*var(--k))/1.1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;
   color:rgba(24,22,18,.74);background:linear-gradient(#97928a,#7b776e 70%,#6e6a63);
   box-shadow:0 0 0 calc(3px*var(--k)) #050505,0 calc(4px*var(--k)) 0 calc(3px*var(--k)) #000,inset 0 calc(1px*var(--k)) 0 rgba(255,255,255,.28),inset 0 calc(-3px*var(--k)) calc(5px*var(--k)) rgba(0,0,0,.3);
   transition:box-shadow .4s ease-out,transform .14s ease-out,filter .3s}
@@ -259,7 +260,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
   <div id="shade"></div>
   <span class="pip" id="pip" aria-hidden="true"></span>
   <footer>
-    <div id="status"><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
+    <div id="status"><b class="brand">Fallblatt</b><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
     <div class="actions">
       <button id="btnDiag" type="button">Diagnostics</button>
     </div>
@@ -284,7 +285,7 @@ const $ = id => document.getElementById(id);
 const W = 1920, H = 1080, M = 64, IW = W - 2 * M;
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let FONT = '"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif';
-const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#7f838b", labelEn:"#6d7179"};
+const COL = {housing:"#0b0b0c", rule:"#25262a", ink:"#f3f0e8", amber:"#f0b429", muted:"#959aa3", labelEn:"#6d7179"};
 const FLAP = ["#2b2c2f", "#232427", "#1c1d1f", "#161719"];
 const THEMES = {
   classic:   {font:'"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif', flap:["#2b2c2f","#232427","#1c1d1f","#161719"],
@@ -1860,7 +1861,8 @@ const OFFLINE_AFTER = 60000;
 const isOffline = () => !S.demo && (lastOk ? Date.now() - lastOk > OFFLINE_AFTER : failures >= 3);
 const planeName = (h, ac) => (h && h.info && h.info.flightNo) || (ac && (ac.flight || "").trim()) || (h && h.hex) || "?";
 const HOLD = () => S.demo ? 8000 : 25000;
-function altitudeStr(ft){ return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
+// Pressure altitudes near the ground can come out a little below zero (the air pressure that day): shown as 0.
+function altitudeStr(ft){ ft = Math.max(0, ft); return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) + " M" : nf.format(Math.round(ft / 50) * 50) + " FT"; }
 function speedStr(kt){ return S.units === "metric" ? Math.round(kt * 1.852) + " KM/H" : Math.round(kt) + " KT"; }
 function countdown(sec){
   const t = Math.max(5, Math.round(sec / 5) * 5);
@@ -2582,8 +2584,8 @@ setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_I
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
   if (view === "logbook") return logbookSummary();
-  if (view === "radar") return T("Range rings every 5 km · the dashed ring is the {n} km spotting radius · the green disc is directly overhead", {n: +S.radiusKm || 15});
-  if (view === "settings") return T("Turn the knobs and flip the switches, then press Save. Settings are kept on this screen only.");
+  if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
+  if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
   if (view === "about") return T("Version {v} · what changed in each version, the keys, and who made it", {v: VERSION});
   return "";
 }
@@ -2628,11 +2630,12 @@ function spottedSummary(){
   const pl = (k, one, many) => T(k === 1 ? one : many, {n: k});
   return [pl(n, "{n} plane", "{n} planes"), pl(na, "{n} airline", "{n} airlines"), pl(nt, "{n} aircraft type", "{n} aircraft types"),
     T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
-    `${relayV5() ? " · " + T("shared by every screen through the home relay") : ""}${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
+    `${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
 }
 const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
 function altNum(ft){
   if (typeof ft !== "number") return "";
+  ft = Math.max(0, ft);
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 10) * 10) : nf.format(Math.round(ft / 100) * 100);
 }
 // Spotted today is engraved text, like the legend: redrawn only when what it shows has changed.
@@ -2852,7 +2855,7 @@ function logbookSummary(){
   const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"}) : "";
   const learning = b.learningUntil && Date.now() < b.learningUntil;
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
-    (learning ? " · " + T("the first day is for learning what is normal here; from {d} {t} first sightings are marked NEW", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
+    (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on"));
 }
 function renderLogbookBoard(){
@@ -2944,6 +2947,7 @@ function radarStatic(g){
 }
 function altShort(ft){
   if (ft == null) return "";
+  ft = Math.max(0, ft);
   return S.units === "metric" ? nf.format(Math.round(ft * .3048 / 50) * 50) + " m" : ft >= 18000 ? "FL" + Math.round(ft / 100) : nf.format(Math.round(ft / 100) * 100) + " ft";
 }
 function radarColor(o){
@@ -2953,6 +2957,30 @@ function radarColor(o){
   if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return RADAR_COL.special;
   if (isFav(x)) return RADAR_COL.fav;
   return RADAR_COL[o.kind] || RADAR_COL.high;
+}
+// Plane labels that never cover each other or leave the scope: nearest planes first, each label tries the right of its
+// plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
+function radarLabels(g, shown, cx, cy, R, f, taken = []){
+  const boxes = [...taken], out = [];
+  const nameOf = o => { const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
+    return (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase(); };
+  for (const s of shown.filter(s => s.o.kind).sort((a, b) => a.o.dist - b.o.dist)) {
+    const name = nameOf(s.o), alt = altShort(s.o.alt);
+    g.font = `700 ${f.name}px ${FONT}`; const wn = g.measureText(name).width;
+    g.font = `500 ${f.alt}px ${FONT}`; const w = Math.max(wn, g.measureText(alt).width), h = f.name + f.alt + 2, d = f.gap;
+    for (const [x, y] of [[s.x + d, s.y - f.name], [s.x - d - w, s.y - f.name], [s.x - w / 2, s.y - d - h], [s.x - w / 2, s.y + d]]) {
+      const b = {x: x - 2, y: y - 2, w: w + 4, h: h + 4};
+      if (![[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].every(([px, py]) => Math.hypot(px - cx, py - cy) < R - 6)) continue;
+      if (boxes.some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h)) continue;
+      boxes.push(b); out.push({s, x, y, name, alt});
+      break;
+    }
+  }
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  for (const {s, x, y, name, alt} of out) {
+    g.font = `700 ${f.name}px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x, y + f.name - 1);
+    g.font = `500 ${f.alt}px ${FONT}`; g.fillStyle = s.col; g.fillText(alt, x, y + f.name + f.alt + 1);
+  }
 }
 function drawRadar(t){
   const cv = $("radarCv"), g = cv.getContext("2d"), now = Date.now(), b = radarBox();
@@ -2979,11 +3007,13 @@ function drawRadar(t){
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
   const ap = AIRPORTS[S.home];
   if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 5;
+    g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 3;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 18px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 20, ay + 28); g.lineCap = "butt";
-  }
+    g.font = `700 16px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)";
+    if (Math.hypot(ax - cx, ay - cy) < R - 40) { g.fillText(S.home, ax + 16, ay + 24); radar.apBox = {x: ax + 14, y: ay + 8, w: 46, h: 22}; } else radar.apBox = null;
+    g.lineCap = "butt";
+  } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
     const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
@@ -3001,14 +3031,7 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
-  g.font = `700 16px ${FONT}`;
-  for (const {o, x, y, col} of shown) {
-    if (!o.kind) continue;
-    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
-    const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    g.fillStyle = COL.ink; g.fillText(name, x + 20, y - 4);
-    g.font = `500 14px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 20, y + 13); g.font = `700 16px ${FONT}`;
-  }
+  radarLabels(g, shown, cx, cy, R, {name: 16, alt: 14, gap: 18}, radar.apBox ? [radar.apBox] : []);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const glass = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
@@ -3110,8 +3133,10 @@ function updateFooter(){
   else if (lastOk) {
     const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
     dot.dataset.state = failures || stale ? "warn" : "live";
-    txt.textContent = T("Live via {src}", {src: feedName}) + (stale ? " " + T("(last good copy)") : "") + " · " + (age < 3 ? T("updated just now") : T("updated {n} s ago", {n: age})) +
-      (failures ? " · " + T("retrying") : "") + " · " + T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM});
+    // All well: a quiet "Live". The details (source, age, range) are in Diagnostics, and here when something is off.
+    txt.textContent = failures || stale || age > 30
+      ? T("Live via {src}", {src: feedName}) + (stale ? " " + T("(last good copy)") : "") + " · " + T("updated {n} s ago", {n: age}) + (failures ? " · " + T("retrying") : "")
+      : T("Live · {n} aircraft nearby", {n: nearbyCount ?? 0});
   }
   if (nightOn) txt.textContent += " · " + T("night mode");
   else if ((S.sound || S.chimes) && !(actx && actx.state === "running")) txt.textContent += " · " + T("click or press any key for sound");
@@ -3141,6 +3166,12 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Live · {n} aircraft nearby", "Live · {n} Flugzeuge in der Nähe", "En direct · {n} avions à proximité", "En directo · {n} aviones cerca", "Live · {n} vliegtuigen in de buurt"],
+  ["Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", "Ringe alle 5 km · gestrichelt: der Sichtungsradius von {n} km · grün: direkt drüber", "Cercles tous les 5 km · en pointillé : le rayon de repérage de {n} km · vert : juste au-dessus", "Anillos cada 5 km · discontinuo: el radio de avistamiento de {n} km · verde: justo encima", "Ringen om de 5 km · gestippeld: de spotstraal van {n} km · groen: recht boven"],
+  ["Turn the knobs and flip the switches, then press Save.", "Drehe die Knöpfe und lege die Schalter um, dann Speichern drücken.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer.", "Gira los mandos y acciona los interruptores, luego pulsa Guardar.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan."],
+  ["first sightings are marked NEW from {d} {t}", "Erstsichtungen sind ab {d} {t} als NEU markiert", "les premières observations sont marquées NOUVEAU à partir du {d} {t}", "los primeros avistamientos se marcan como NUEVO desde el {d} {t}", "eerste waarnemingen worden vanaf {d} {t} als NIEUW gemarkeerd"],
+  ["Press Save to apply. Each screen keeps its own settings.", "Speichern übernimmt die Änderungen. Jeder Bildschirm hat eigene Einstellungen.", "Appuyez sur Enregistrer pour appliquer. Chaque écran garde ses propres réglages.", "Pulsa Guardar para aplicar. Cada pantalla guarda sus propios ajustes.", "Druk op Opslaan om toe te passen. Elk scherm houdt zijn eigen instellingen."],
+  ["Flaps & sound", "Klappen & Klang", "Palettes et son", "Paletas y sonido", "Klappen en geluid"],
   ["Sounds", "Klänge", "Sons", "Sonidos", "Geluiden"],
   ["RECORDED", "AUFNAHMEN", "ENREGISTRÉS", "GRABADOS", "OPNAMEN"],
   ["Sounds: split-flap by matucha (CC BY-NC 4.0), switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE (Pixabay Content License).", "Klänge: Fallblatt von matucha (CC BY-NC 4.0), Schalter und Taster von joedeshon (CC BY 4.0) und Drehknopf von shewbox (CC BY 3.0), von freesound.org; Knopf von EAGLAXLE (Pixabay-Inhaltslizenz).", "Sons : palette par matucha (CC BY-NC 4.0), interrupteur et bouton-poussoir par joedeshon (CC BY 4.0) et bouton rotatif par shewbox (CC BY 3.0), sur freesound.org ; bouton par EAGLAXLE (licence de contenu Pixabay).", "Sonidos: paleta de matucha (CC BY-NC 4.0), interruptor y pulsador de joedeshon (CC BY 4.0) y mando giratorio de shewbox (CC BY 3.0), de freesound.org; botón de EAGLAXLE (licencia de contenido de Pixabay).", "Geluiden: klapbord van matucha (CC BY-NC 4.0), schakelaar en drukknop van joedeshon (CC BY 4.0) en draaiknop van shewbox (CC BY 3.0), van freesound.org; knop van EAGLAXLE (Pixabay-contentlicentie)."],
@@ -3584,6 +3615,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.18", date: "2026-10-14", notes: [
+    "A cleaner look: a quiet \"Live\" instead of the long status line (the details show when something is wrong, and in Diagnostics), shorter lines under the titles, slightly brighter small print and bigger button labels, and the Fallblatt name in the footer.",
+    "Radar: plane labels make way for each other and stay inside the scope; the runway is drawn more quietly.",
+    "Settings: the plates are rebalanced (Display, and a new Flaps & sound plate) with shorter help text.",
+    "Phone app: icons on the tab buttons, the Save bar only appears once something has changed, and evener spacing."]},
   {v: "1.17", date: "2026-10-14", notes: [
     "New sounds, recorded from the real things: a split-flap module for the flaps, a rotary switch, a rocker switch, a thumbwheel and a push button for the controls. Several takes of each, so repeats don't sound copied.",
     "Settings → Sounds: CLASSIC brings back the old synthesised sounds. The recordings are credited in About."]},
@@ -3728,18 +3764,18 @@ const COCKPIT = [
   {title: ["Display", "Anzeige"], cols: 4, items: [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
-    {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
+    {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
-    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
-    {k: "quick", type: "switch", label: "Quick flaps"}]},
-  {title: ["System", "System"], cols: 4, items: [
-    {k: "chimes", type: "switch", label: "Chimes"},
-    {k: "sound", type: "switch", label: "Flap sound"},
-    {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
     {k: "logos", type: "switch", label: "Airline logos"},
     {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
+  {title: ["Flaps & sound", "Klappen & Klang"], cols: 3, items: [
+    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
+    {k: "quick", type: "switch", label: "Quick flaps"},
+    {k: "sound", type: "switch", label: "Flap sound"},
+    {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
+    {k: "chimes", type: "switch", label: "Chimes", span: 2}]},
   {title: ["Control", "Steuerung"], actions: true},
   {title: ["Night", "Nacht"], cols: 4, items: [
     {k: "night", type: "switch", label: "Night mode"},
@@ -3778,7 +3814,7 @@ function itemHtml(it){
 }
 function plateHtml(p){
   const body = p.actions
-    ? `<p>${escH(T("Changes apply when you press Save. Settings are kept on this screen only, so every screen can have its own."))}</p>` +
+    ? `<p>${escH(T("Press Save to apply. Each screen keeps its own settings."))}</p>` +
       `<div class="acts"><button class="cap big" type="button" data-act="cancel">${T("Cancel")}</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">${T("Save")}</button>` +
       `<button class="cap big" type="button" data-act="about">${T("About")}</button></div>` +
       `<p>${escH(T("About shows what's new in each version, the keys, and who made it."))}</p>` +

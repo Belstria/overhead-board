@@ -236,10 +236,13 @@ among its screens as the APP board. `?demo` shows sample flights.
 
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
-- Press **A** for About: patch notes, the keys and who made it .
+- Press **A** for About: patch notes, the keys and who made it.
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
+- The footer shows the name and a quiet lamp with "Live · 12 aircraft nearby" while all is well; when the data is
+  late, comes from a fallback copy or doesn't arrive, it says so in full (the phone app shows that line under its
+  lists only then). Diagnostics always has the details.
 - Flap sound is on by default but starts after the first click or key press (browsers block it until then);
   the status line reminds you. Turn it off in Settings, with `?sound=0`, or with the relay's `--mute`.
 
