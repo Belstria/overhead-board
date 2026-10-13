@@ -219,6 +219,8 @@ h3 span{color:var(--label2);margin-left:.6em}
 #welcome .note{min-height:1.4em;font-size:14px}
 #welcome .wlab{display:block;margin:4px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 17px var(--f-board);text-align:center}
+#welcome #wPick .cap{margin-top:6px}
+#welcome #wPick .sub{margin:6px 0 14px;font-size:13px}
 #welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:14px;text-decoration:underline}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
@@ -359,6 +361,7 @@ h3 span{color:var(--label2);margin-left:.6em}
   <div class="wmark" aria-hidden="true">&#9992;</div>
   <div class="panel" id="wHello" aria-hidden="true"></div>
   <h2 id="wHi" class="vh"></h2>
+  <div id="wStep1">
   <p data-t="Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?">Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?</p>
   <button class="cap big go" type="button" id="wLoc" data-t="Use my location">Use my location</button>
   <p class="note" id="wNote" aria-live="polite"></p>
@@ -368,6 +371,14 @@ h3 span{color:var(--label2);margin-left:.6em}
     <button class="cap big go" type="button" id="wGo" data-t="Start">Start</button>
   </div>
   <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>
+  </div>
+  <div id="wPick" hidden>
+    <p data-t="How do you want to watch?">How do you want to watch?</p>
+    <button class="cap big" type="button" id="wApp" aria-pressed="false" data-t="Phone app">Phone app</button>
+    <p class="sub" data-t="On this phone; you can add it to your home screen.">On this phone; you can add it to your home screen.</p>
+    <button class="cap big" type="button" id="wBoard" aria-pressed="false" data-t="Full board">Full board</button>
+    <p class="sub" data-t="The big split-flap board, for a computer or a TV.">The big split-flap board, for a computer or a TV.</p>
+  </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
 <script>

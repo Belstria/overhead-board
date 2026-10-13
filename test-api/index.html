@@ -345,18 +345,27 @@ const REMARK_LOOK = {
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
-const SKEY = "od.settings";
+// A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
+// profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
+const GUEST = window.OVERHEAD_GUEST || null;
+if (GUEST && !(GUEST.settings && GUEST.settings.located)) location.replace("/app/");
+const SKEY = GUEST ? "od.settings.g." + GUEST.id : "od.settings";
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
   if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
   delete saved.v;
-  return {...DEFAULTS, ...saved};
+  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved};
 }
 function saveSettings(){
   const changed = {v: 2};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
+  if (GUEST) {                                       // the profile learns them too, always with the place
+    const {v, ...mine} = changed;
+    fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({settings: {...mine, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true}})}).catch(() => {});
+  }
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
@@ -3133,6 +3142,13 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["How do you want to watch?", "Wie möchtest du zuschauen?", "Comment voulez-vous regarder ?", "¿Cómo quieres verlo?", "Hoe wil je kijken?"],
+  ["Phone app", "Handy-App", "Appli téléphone", "App del móvil", "Telefoon-app"],
+  ["Full board", "Große Tafel", "Grand tableau", "Panel completo", "Groot bord"],
+  ["On this phone; you can add it to your home screen.", "Auf diesem Handy; du kannst sie zum Startbildschirm hinzufügen.", "Sur ce téléphone ; vous pouvez l'ajouter à l'écran d'accueil.", "En este móvil; puedes añadirla a la pantalla de inicio.", "Op deze telefoon; je kunt hem op je startscherm zetten."],
+  ["The big split-flap board, for a computer or a TV.", "Die große Fallblatttafel, für Computer oder Fernseher.", "Le grand tableau à palettes, pour un ordinateur ou une télé.", "El gran panel de paletas, para un ordenador o una tele.", "Het grote klapbord, voor een computer of tv."],
+  ["Sign out of this device", "Auf diesem Gerät abmelden", "Se déconnecter sur cet appareil", "Cerrar sesión en este dispositivo", "Afmelden op dit apparaat"],
+  ["Sign out of this device? Your profile stays, but you'll need a new link to come back on it.", "Auf diesem Gerät abmelden? Dein Profil bleibt, aber du brauchst einen neuen Link, um hier zurückzukommen.", "Se déconnecter sur cet appareil ? Votre profil reste, mais il faudra un nouveau lien pour revenir ici.", "¿Cerrar sesión en este dispositivo? Tu perfil se queda, pero necesitarás un enlace nuevo para volver aquí.", "Afmelden op dit apparaat? Je profiel blijft, maar je hebt een nieuwe link nodig om hier terug te komen."],
   ["Hi {name}!", "Hallo {name}!", "Bonjour {name} !", "¡Hola, {name}!", "Hoi {name}!"],
   ["Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?", "Fallblatt zeigt die Flugzeuge über deinem Zuhause auf einer Fallblattanzeige. Wo soll es den Himmel beobachten?", "Fallblatt affiche les avions qui survolent votre maison sur un tableau à palettes. Où doit-il observer le ciel ?", "Fallblatt muestra los aviones que pasan sobre tu casa en un panel de paletas. ¿Dónde debe mirar el cielo?", "Fallblatt toont de vliegtuigen boven je huis op een klapbord. Waar moet het naar de lucht kijken?"],
   ["Use my location", "Meinen Standort verwenden", "Utiliser ma position", "Usar mi ubicación", "Mijn locatie gebruiken"],
@@ -3568,7 +3584,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
 const CHANGELOG = [
   {v: "1.16", date: "2026-10-13", notes: [
     "The app is called Fallblatt now (Overhead and Airport stay the names of its two styles).",
-    "A guest's welcome flips in on split flaps: \"HI ALINA!\", the exclamation mark last, coasting to a stop."]},
+    "A guest's welcome flips in on split flaps: \"HI ALINA!\", the exclamation mark last, coasting to a stop.",
+    "After choosing their place, a guest picks the phone app or the full board; guests have their own settings on the board too.",
+    "Guests can sign out of a device (About), and a browser that opens a new link starts with a clean profile."]},
   {v: "1.15", date: "2026-10-13", notes: [
     "Friends and family: Dave can send personal invite links. Opening one sets up that phone with its own profile: its own location, Spotted today and logbook. Guests start with a short welcome that asks where to watch the sky.",
     "Settings of a guest are kept with their profile, so a new device picks them up."]},

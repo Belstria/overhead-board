@@ -307,8 +307,10 @@ window and appear in the board's diagnostics panel.
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it sets up
 that phone or computer (it works once, on the first device that opens it, within two weeks; for another device press
-**New link**). They get a short welcome that asks for their location, and can add the app to their home screen from
-the browser. The admin page lists everyone with their devices and when they were last seen, removes a profile with
+**New link**). They get a short welcome that asks for their location and then whether they want the **phone app**
+(which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
+settings follow them between the two and to other devices. About → **Sign out of this device** forgets a device again
+(the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
 its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day each; off by default).
 Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:

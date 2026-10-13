@@ -1407,6 +1407,9 @@ def board_file(sub, name, ext):
 
 
 def board_html(sub="", guest=None):
+    """The board (or the phone app) with what it needs to know injected: the home location for screens at home, a
+    guest's name, id and saved settings for a guest (`guest` is (id, profile))."""
+    gid, guest = guest if guest else (None, None)
     copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
     if ARGS.local_root:
         f = Path(ARGS.local_root) / sub / "index.html" if sub else Path(ARGS.local_root) / "index.html"
@@ -1450,7 +1453,7 @@ def board_html(sub="", guest=None):
     if guest is not None:               # a guest never gets the home location; their own settings come with their profile
         defaults = {"units": ARGS.units} if ARGS.units else {}
     config = json.dumps(defaults).replace("<", "\\u003c")
-    who = json.dumps({"name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
+    who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
               f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};</script>")
@@ -1534,6 +1537,17 @@ def profile_for(token):
                         _dirty.add("profiles")
                     return pid, p
     return None, None
+
+
+def remove_device(pid, token):
+    with _data_lock:
+        p = profiles()["profiles"].get(pid)
+        if p:
+            h = _hash(token)
+            p["devices"] = [d for d in p["devices"] if not secrets.compare_digest(d["token"], h)]
+            _dirty.add("profiles")
+    if p:
+        event("info", f"{p['name']} signed out a device")
 
 
 def remove_profile(pid):
@@ -1738,15 +1752,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def identify(self):
         """Who is asking: self.guest = (id, profile) for a guest's device, None at home; self.stranger for anyone else."""
+        pid, p = profile_for(self.cookie_token())
+        self.guest = (pid, p) if pid else None            # a guest's phone stays the guest, even on the home Wi-Fi
+        self.stranger = not self.guest and not self.at_home()
+        self.spot = guest_spot(pid) if pid else HOME
+
+    def cookie_token(self):
         jar = http.cookies.SimpleCookie()
         try:
             jar.load(self.headers.get("Cookie") or "")
         except http.cookies.CookieError:
             pass
-        pid, p = profile_for(jar[COOKIE].value if COOKIE in jar else "")
-        self.guest = (pid, p) if pid else None            # a guest's phone stays the guest, even on the home Wi-Fi
-        self.stranger = not self.guest and not self.at_home()
-        self.spot = guest_spot(pid) if pid else HOME
+        return jar[COOKIE].value if COOKIE in jar else ""
 
     def https(self):
         return (self.headers.get("X-Forwarded-Proto") or "").lower() == "https" or '"https"' in (self.headers.get("Cf-Visitor") or "")
@@ -1832,13 +1849,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body)
         page = PAGE.match(path)
         if page:
-            if self.guest and (page.group(1) or "") != "app":     # guests have the phone app; the boards are for the TVs
-                self.send_response(302)
-                self.send_header("Location", "/app/")
-                self.send_header("Content-Length", "0")
-                self.end_headers()
-                return
-            html = board_html(page.group(1) or "", self.guest[1] if self.guest else None)
+            html = board_html(page.group(1) or "", self.guest)
             if html is None:
                 return self.reply(502, "text/plain; charset=utf-8", b"Couldn't download the board from GitHub yet. Check the internet connection and reload.")
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))
@@ -1970,9 +1981,20 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(st, dict):
                 return self.reply(400, "text/plain", b"settings missing")
             with _data_lock:
-                self.guest[1]["settings"] = st
+                merged = {**(self.guest[1].get("settings") or {}), **st}
+                if len(json.dumps(merged)) > 8192:
+                    return self.reply(413, "text/plain", b"Too large")
+                self.guest[1]["settings"] = merged
                 _dirty.add("profiles")
             return self.reply(204, "text/plain", b"")
+        if path == "/signout":          # "Sign out of this device": forget this device; the profile stays
+            if self.guest:
+                remove_device(self.guest[0], self.cookie_token())
+            self.send_response(204)
+            self.send_header("Set-Cookie", f"{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else ""))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if path == "/bye":              # a board page closing or reloading
             self.note_screen(path, bye=True)
             return self.reply(204, "text/plain", b"")
