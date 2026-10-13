@@ -301,6 +301,17 @@ Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A
 the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
 
+**Friends and family (relay version 19).** The phone app can be shared with friends and family over the internet,
+each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
+`http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it sets up
+that phone or computer (it works once, on the first device that opens it, within two weeks; for another device press
+**New link**). They get a short welcome that asks for their location, and can add the app to their home screen from
+the browser. The admin page lists everyone with their devices and when they were last seen, removes a profile with
+its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day each; off by default).
+Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
+The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
+`--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
+
 **Screens (relay version 12).** The relay keeps track of which screens are using it and prints them in its window
 as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung
 TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is

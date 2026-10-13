@@ -130,6 +130,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   change is on `main`, `curl -fsSL .../relay/install.sh | sh` on the container does the same from GitHub.) Bump
   `RELAY_VERSION` with every relay change and gate board features that need the new version on
   `OVERHEAD_RELAY_VERSION`.
+- Friends and family (relay 19, app 1.15): every visitor is home (a direct connection from a private address, no
+  `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link, `/join/<code>`; profiles, invite and
+  cookie hashes in `data/profiles.json`) or a stranger (only the "private" page, `/health`, the app's icons and
+  manifest). Each profile has a `Spot` (sightings and logbook; home in `data/`, guests in `data/profiles/<id>/`), and
+  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get only
+  `/app/` (boards redirect), `OVERHEAD_GUEST` instead of the home location, their settings back via `/me`, no
+  `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
+  (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
+  address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place.
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
   `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
