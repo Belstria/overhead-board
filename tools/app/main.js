@@ -8,7 +8,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, quick:false, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, soundSet:"recorded", speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
@@ -666,6 +666,7 @@ function startRadar(){
   const loop = t => {
     if (tab !== "radar") return;
     if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
+    if (t - (radar.listAt || 0) > 1000) { radar.listAt = t; renderRadarList(); }   // the list keeps up with the scope
     radar.raf = requestAnimationFrame(loop);
   };
   cancelAnimationFrame(radar.raf); radar.raf = requestAnimationFrame(loop);
@@ -694,11 +695,13 @@ function drawRadar(t){
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
   const ap = AIRPORTS[S.home];
   if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineCap = "round"; g.lineWidth = 3.5;
+    g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 2.2;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 12px ${FONT}`; g.fillStyle = "rgba(255,255,255,.6)"; g.fillText(S.home, ax + 12, ay + 18); g.lineCap = "butt";
-  }
+    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)";
+    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
+    g.lineCap = "butt";
+  } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
     const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
@@ -716,13 +719,7 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
-  for (const {o, x, y, col} of shown) {
-    if (!o.kind) continue;
-    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
-    const name = (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    g.font = `700 11.5px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x + 12, y - 3);
-    g.font = `500 10px ${FONT}`; g.fillStyle = col; g.fillText(altShort(o.alt), x + 12, y + 9);
-  }
+  radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, radar.apBox ? [radar.apBox] : []);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
@@ -771,14 +768,15 @@ const COCKPIT = [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
+    {k: "logos", type: "switch", label: "Airline logos"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"},
+    {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
+  {title: ["Flaps & sound", "Klappen & Klang"], cols: 2, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "quick", type: "switch", label: "Quick flaps"},
-    {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"}]},
-  {title: ["Phone", "Telefon"], cols: 3, items: [
-    {k: "chimes", type: "switch", label: "Chimes"},
     {k: "sound", type: "switch", label: "Flap sound"},
-    {k: "demo", type: "switch", label: "Demo mode", guard: true}]}];
+    {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
+    {k: "chimes", type: "switch", label: "Chimes", span: 2}]}];
 let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
@@ -931,6 +929,7 @@ function cockpitOpen(){
 function cockpitDirty(){
   const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String(S[it.k] ?? ""));
   $("saveBtn").setAttribute("aria-pressed", String(dirty));
+  $("t-settings").classList.toggle("dirty", dirty);
 }
 // Save applies the draft and keeps it on this phone; Cancel puts the controls back to the saved settings.
 let savedTimer = 0;
@@ -1070,10 +1069,19 @@ function welcome(){
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
+// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a knob.
+const ICON = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const TAB_ICONS = {
+  now: ICON('<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>'),
+  today: ICON('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
+  logbook: ICON('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
+  radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+  settings: ICON('<circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 12V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
+};
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
 function buildTabs(){
-  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${T(name)}</button>`).join("");
+  $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
@@ -1116,6 +1124,7 @@ function updateFooter(){
   dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
+  document.body.dataset.health = dot.dataset.state || "";          // the line under the lists only shows when it matters
   const bad = ["off", "warn", "demo"].includes(dot.dataset.state), al = $("sideAlert");     // on its side: only when something is wrong
   al.hidden = !bad; al.dataset.state = dot.dataset.state;
   if (bad && al.textContent !== line) al.textContent = line;

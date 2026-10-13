@@ -44,7 +44,7 @@ E = {
     "E6": ex("function drawPlane(g, cx, cy, size, color){", "const metalCache = "),
     "E8": ex("const shadowSprites = new Map();", "function slots(g){"),
     "E9": ex("function screw(g, x, y, r){", "/* ---------- the aircraft photo"),
-    "E10": ex("/* ---------- sound: synthesised flap clatter", "/* ---------- board styles and night mode ---------- */"),
+    "E10": ex("/* ---------- sound: recorded flap clatter", "/* ---------- board styles and night mode ---------- */"),
     "E11": ex("/* ---------- reference tables ---------- */", "/* ---------- network ---------- */"),
     "E12": patched(ex("/* ---------- network ---------- */", "/* ---------- demo traffic (clearly sample data) ---------- */"),
                    ("function infoChanged(info){\n  if (feat && feat.info === info) { renderFeatured(); if (isAc(page)) renderAircraft(); }\n}",

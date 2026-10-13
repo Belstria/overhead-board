@@ -175,6 +175,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   on the TVs; in the Android app it asks for the phone's location.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
+- **Sounds** (1.17): the flaps and the Settings controls play short recordings of the real things: a Pragotron
+  split-flap module, a rotary switch, a rocker switch, a thumbwheel and a push button (credited in About; see
+  [tools/sounds/](tools/sounds/README.md)). Settings → Sounds → CLASSIC brings back the earlier synthesised sounds.
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
@@ -233,10 +236,13 @@ among its screens as the APP board. `?demo` shows sample flights.
 
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
-- Press **A** for About: patch notes, the keys and who made it .
+- Press **A** for About: patch notes, the keys and who made it.
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
+- The footer shows the name and a quiet lamp with "Live · 12 aircraft nearby" while all is well; when the data is
+  late, comes from a fallback copy or doesn't arrive, it says so in full (the phone app shows that line under its
+  lists only then). Diagnostics always has the details.
 - Flap sound is on by default but starts after the first click or key press (browsers block it until then);
   the status line reminds you. Turn it off in Settings, with `?sound=0`, or with the relay's `--mute`.
 

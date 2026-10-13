@@ -49,6 +49,7 @@ someone would notice.
 | `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service on Linux (the homelab). |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
+| `tools/sounds/` | `build_sounds.py` cuts the recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block; credits and licenses in its README. |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
 
 The three boards are full copies of one single-file app. `test/` is test-api without the Flightradar24 part: to see
@@ -63,12 +64,17 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
   engraved labels; `drawStatic()`) and `fx` (the flaps).
 - Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
   `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
-  `paintCell()` draws a flap mid-flip. Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
+  `paintCell()` draws a flap mid-flip. Sounds (1.17): recordings in `SOUND_DATA` (embedded, made by
+  `tools/sounds/build_sounds.py`), decoded by `loadSounds()`, played by `sample()` from `clack()` and `ctlSound`; with
+  `S.soundSet === "classic"` or before decoding, the old synthesised sounds play. Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
 - Top half: the plane overhead (`process()` picks it: alerts first, then overhead, inbound, flying by; airtime limit
   for hovering planes) rendered by `renderFeatured()` and `renderTimes()`.
 - Lower half: rotating pages (Recent flights, This aircraft, Today in numbers; `ROTATION`), turned by one giant
   falling flap (`startBigFlap`). Views (Spotted today, Logbook, Radar, Settings) take over below the header at once
   (`switchView`). The rail of lamp buttons is DOM (`.cap`), as is the Settings cockpit (`COCKPIT`, `cockpitOpen`).
+- Look (1.18): the footer and the app's status line stay quiet while live (`updateFooter`, `body[data-health]` in
+  the app), the radar's labels go through `radarLabels()` (no overlaps, inside the scope), the app's Save bar only
+  shows when `#t-settings.dirty`, the app's tabs carry line icons (`TAB_ICONS`), and altitudes below zero show as 0.
 - Drawing quality: Fire TV and LG TVs (`WEAK_TV`) draw at 1080p, 30 fps, shorter flap runs (`LITE()`).
 - Data: positions from the relay (`/aircraft/...`), routes and aircraft from adsbdb (browser) and adsb.lol's
   routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from
