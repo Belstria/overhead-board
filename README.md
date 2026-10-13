@@ -1,6 +1,8 @@
-# Overhead
+# Fallblatt
 
-An airport-style split-flap board that shows the planes flying over a chosen spot, live.
+An airport-style split-flap board (*Fallblatt* is German for split-flap) that shows the planes flying over a
+chosen spot, live. It has two styles: **Overhead**, the planes flying over you, and **Airport**, the planes taking
+off and landing at an airport.
 It is a single static page: open `index.html` in any modern browser, or serve it from GitHub Pages.
 
 ## Choosing the location
@@ -192,7 +194,7 @@ The logbook and a Spotted today list shared by every screen need relay version 5
 
 `/app/` is the board laid out for a phone held upright, with the same flaps, metal, push buttons and engraving.
 
-**On Android**, install the Overhead app: on the phone, download
+**On Android**, install the Fallblatt app: on the phone, download
 [overhead.apk](https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk) and open it (Android
 asks once to allow installs from the browser). On first start it looks for the relay on the Wi-Fi by itself; if it
 can't find it, type the address the relay prints, such as `http://192.168.1.20:8080`. Settings → About → Change relay
@@ -305,8 +307,10 @@ window and appear in the board's diagnostics panel.
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it sets up
 that phone or computer (it works once, on the first device that opens it, within two weeks; for another device press
-**New link**). They get a short welcome that asks for their location, and can add the app to their home screen from
-the browser. The admin page lists everyone with their devices and when they were last seen, removes a profile with
+**New link**). They get a short welcome that asks for their location and then whether they want the **phone app**
+(which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
+settings follow them between the two and to other devices. About → **Sign out of this device** forgets a device again
+(the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
 its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day each; off by default).
 Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:

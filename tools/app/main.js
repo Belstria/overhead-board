@@ -10,7 +10,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
-const SKEY = "od.app.settings";
+const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
@@ -951,15 +951,23 @@ function aboutOpen(){
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
         `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
-        `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>`
-    : (ANDROID ? `<p>${escH(T("The Overhead app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
-      : `<p>${escH(T("On Android, install the Overhead app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+        `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>` +
+        `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
+    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+      : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
+  if (GUEST) $("signOut").onclick = async () => {
+    ctlSound.press();
+    if (!confirm(T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
+    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
+    try { localStorage.removeItem(SKEY); } catch {}
+    location.reload();
+  };
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
@@ -998,11 +1006,35 @@ function applySettings(n){
 }
 
 /* ---------- a guest's first visit: where to watch the sky ---------- */
+// The greeting flips in on a row of flaps of its own: a drum with "!" just after Z, so the "!" (which also starts
+// last) has the longest way to go, and its last few flips slow down (slowEnd) like a drum coasting to a stop.
+const GREET_DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789,.'-";
+function greetText(){
+  const first = String(GUEST.name || "").trim().split(/\s+/)[0] || "";
+  const t = T("Hi {name}!", {name: first}).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "SS").toUpperCase();
+  let out = [...t].filter(ch => GREET_DRUM.includes(ch)).join("").replace(/\s+/g, " ").trim();
+  if (!out.endsWith("!")) out += "!";
+  return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
+}
+function greetFlaps(){
+  const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
+  $("wHello").style.width = `min(100%, ${n * 34}px)`;
+  def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
+  placeRow(["greet"], [], 11, step, 1.45, 8);
+  requestAnimationFrame(() => {
+    showPanel(P);
+    fields.greet.cells.forEach((c, i) => {
+      if (text[i] === "!") c.slowEnd = true;          // the longest run anyway: it starts early and still lands last
+      retarget(c, text[i], text[i] === "!" ? 400 : 250 + i * 70 + Math.random() * 60);
+    });
+  });
+}
 function welcome(){
   const box = $("welcome"), note = $("wNote");
   $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
   box.hidden = false;
-  let found = null;
+  try { greetFlaps(); } catch {}
+  let found = null, sent = Promise.resolve();
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
     $("wLoc").disabled = true; note.textContent = T("Finding out where you are …");
@@ -1025,8 +1057,15 @@ function welcome(){
     S = {...S, ...found, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
     const changed = JSON.parse(localStorage.getItem(SKEY) || "{}");
-    saveMe(changed, true).finally(() => location.reload());   // start afresh around the new place
+    sent = saveMe(changed, true);
+    // Then: the phone app or the full board. A phone is offered the app, a computer the board.
+    $("wStep1").hidden = true; $("wPick").hidden = false;
+    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, pick = $(phone ? "wApp" : "wBoard");
+    pick.classList.add("go"); pick.setAttribute("aria-pressed", "true");
   };
+  const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
+  $("wApp").onclick = () => go(() => location.reload());                                 // start afresh around the new place
+  $("wBoard").onclick = () => go(() => { location.href = "/"; });
   $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; showTab("settings"); };
 }
 

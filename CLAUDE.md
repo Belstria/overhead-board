@@ -1,4 +1,8 @@
-# Overhead board: notes for Claude
+# Fallblatt (the Overhead board): notes for Claude
+
+The app is called Fallblatt since 13 Oct 2026 (1.16). Overhead (planes flying over you) and Airport
+(take-offs and landings) are the names of its two styles and stay; so do the OVERHEAD status, the repository name,
+`OVERHEAD_*` page variables, storage keys, the cookie and the `OverheadRelay` server header the Android app looks for.
 
 A split-flap "planes overhead" board for Dave's home in Vienna: an airport departures board look, drawn on canvas,
 showing the plane flying over right now plus Spotted today, a lifetime logbook and a radar. Published with GitHub
@@ -140,9 +144,11 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link, `/join/<code>`; profiles, invite and
   cookie hashes in `data/profiles.json`) or a stranger (only the "private" page, `/health`, the app's icons and
   manifest). Each profile has a `Spot` (sightings and logbook; home in `data/`, guests in `data/profiles/<id>/`), and
-  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get only
-  `/app/` (boards redirect), `OVERHEAD_GUEST` instead of the home location, their settings back via `/me`, no
-  `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
+  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get
+  `OVERHEAD_GUEST` (id, name, settings) instead of the home location, their settings back via `/me`
+  (merged, so the app and the board don't wipe each other's), the boards too (1.16; the welcome's "Phone app / Full
+  board" choice; a board sends a guest without `located` to the app's welcome), per-guest storage keys
+  (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
   (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
   address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place.
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container

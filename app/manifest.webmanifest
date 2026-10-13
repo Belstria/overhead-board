@@ -1,6 +1,6 @@
 {
-  "name": "Overhead · Überflüge",
-  "short_name": "Overhead",
+  "name": "Fallblatt",
+  "short_name": "Fallblatt",
   "description": "The planes flying over you, on split flaps.",
   "start_url": "./",
   "scope": "./",

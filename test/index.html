@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Overhead Flight Board (Test)</title>
+<title>Fallblatt (Test)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
@@ -343,18 +343,27 @@ const REMARK_LOOK = {
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
-const SKEY = "od.settings";
+// A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
+// profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
+const GUEST = window.OVERHEAD_GUEST || null;
+if (GUEST && !(GUEST.settings && GUEST.settings.located)) location.replace("/app/");
+const SKEY = GUEST ? "od.settings.g." + GUEST.id : "od.settings";
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
   if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
   delete saved.v;
-  return {...DEFAULTS, ...saved};
+  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved};
 }
 function saveSettings(){
   const changed = {v: 2};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
+  if (GUEST) {                                       // the profile learns them too, always with the place
+    const {v, ...mine} = changed;
+    fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({settings: {...mine, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true}})}).catch(() => {});
+  }
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
@@ -822,6 +831,7 @@ function frame(now){
         if (S.imperfect && !c.qdur && !c.hes && Math.random() < .012) { c.hes = true; c.next = now + 90 + Math.random() * 260; continue; }
         c.hes = false;
         c.anim = {from: c.cur, to: c.queue.shift(), t0: now - (c.qdur ? c.over || 0 : 0), dur: c.qdur || c.f.dur * pace() * (.9 + Math.random() * .2), quick: !!c.qdur};
+        if (c.slowEnd && c.queue.length < 4) c.anim.dur *= [3.4, 2.3, 1.6, 1.2][c.queue.length];   // a drum coasting to a stop
         if (S.imperfect && !c.qdur && Math.random() < .01) c.anim.stall = {at: .18 + Math.random() * .2, ms: 110 + Math.random() * 240};
         drawCell(c, 0); if (!c.f.pageOff || c.f.leaving) starts++;
       }
@@ -3086,8 +3096,15 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["How do you want to watch?", "Wie möchtest du zuschauen?", "Comment voulez-vous regarder ?", "¿Cómo quieres verlo?", "Hoe wil je kijken?"],
+  ["Phone app", "Handy-App", "Appli téléphone", "App del móvil", "Telefoon-app"],
+  ["Full board", "Große Tafel", "Grand tableau", "Panel completo", "Groot bord"],
+  ["On this phone; you can add it to your home screen.", "Auf diesem Handy; du kannst sie zum Startbildschirm hinzufügen.", "Sur ce téléphone ; vous pouvez l'ajouter à l'écran d'accueil.", "En este móvil; puedes añadirla a la pantalla de inicio.", "Op deze telefoon; je kunt hem op je startscherm zetten."],
+  ["The big split-flap board, for a computer or a TV.", "Die große Fallblatttafel, für Computer oder Fernseher.", "Le grand tableau à palettes, pour un ordinateur ou une télé.", "El gran panel de paletas, para un ordenador o una tele.", "Het grote klapbord, voor een computer of tv."],
+  ["Sign out of this device", "Auf diesem Gerät abmelden", "Se déconnecter sur cet appareil", "Cerrar sesión en este dispositivo", "Afmelden op dit apparaat"],
+  ["Sign out of this device? Your profile stays, but you'll need a new link to come back on it.", "Auf diesem Gerät abmelden? Dein Profil bleibt, aber du brauchst einen neuen Link, um hier zurückzukommen.", "Se déconnecter sur cet appareil ? Votre profil reste, mais il faudra un nouveau lien pour revenir ici.", "¿Cerrar sesión en este dispositivo? Tu perfil se queda, pero necesitarás un enlace nuevo para volver aquí.", "Afmelden op dit apparaat? Je profiel blijft, maar je hebt een nieuwe link nodig om hier terug te komen."],
   ["Hi {name}!", "Hallo {name}!", "Bonjour {name} !", "¡Hola, {name}!", "Hoi {name}!"],
-  ["Overhead shows the planes flying over your home on a split-flap board. Where should it watch the sky?", "Overhead zeigt die Flugzeuge über deinem Zuhause auf einer Fallblattanzeige. Wo soll es den Himmel beobachten?", "Overhead affiche les avions qui survolent votre maison sur un tableau à palettes. Où doit-il observer le ciel ?", "Overhead muestra los aviones que pasan sobre tu casa en un panel de paletas. ¿Dónde debe mirar el cielo?", "Overhead toont de vliegtuigen boven je huis op een klapbord. Waar moet het naar de lucht kijken?"],
+  ["Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?", "Fallblatt zeigt die Flugzeuge über deinem Zuhause auf einer Fallblattanzeige. Wo soll es den Himmel beobachten?", "Fallblatt affiche les avions qui survolent votre maison sur un tableau à palettes. Où doit-il observer le ciel ?", "Fallblatt muestra los aviones que pasan sobre tu casa en un panel de paletas. ¿Dónde debe mirar el cielo?", "Fallblatt toont de vliegtuigen boven je huis op een klapbord. Waar moet het naar de lucht kijken?"],
   ["Use my location", "Meinen Standort verwenden", "Utiliser ma position", "Usar mi ubicación", "Mijn locatie gebruiken"],
   ["Start", "Los geht's", "Commencer", "Empezar", "Starten"],
   ["Set it later in Settings", "Später in den Einstellungen festlegen", "Le régler plus tard dans les réglages", "Configurarlo más tarde en Ajustes", "Later instellen in Instellingen"],
@@ -3217,10 +3234,10 @@ const I18N_ROWS = [
   ["Browsers only allow sound after a first click or key press.", "Browser erlauben Ton erst nach dem ersten Klick oder Tastendruck.", "Les navigateurs n'autorisent le son qu'après un premier clic ou une touche.", "Los navegadores solo permiten sonido tras un primer clic o pulsación.", "Browsers laten pas geluid toe na een eerste klik of toetsaanslag."],
   ["Settings", "Einstellungen", "Réglages", "Ajustes", "Instellingen"],
   ["The phone didn't say where it is. Is location turned on?", "Das Telefon hat seinen Standort nicht gemeldet. Ist die Standortermittlung an?", "Le téléphone n'a pas indiqué sa position. La localisation est-elle activée ?", "El teléfono no ha dicho dónde está. ¿Está activada la ubicación?", "De telefoon gaf geen locatie door. Staat locatie aan?"],
-  ["Update the Overhead app to use the phone's location.", "Aktualisiere die Overhead-App, um den Standort des Telefons zu nutzen.", "Mettez à jour l'app Overhead pour utiliser la position du téléphone.", "Actualiza la app Overhead para usar la ubicación del teléfono.", "Werk de Overhead-app bij om de locatie van de telefoon te gebruiken."],
+  ["Update the Fallblatt app to use the phone's location.", "Aktualisiere die Fallblatt-App, um den Standort des Telefons zu nutzen.", "Mettez à jour l'app Fallblatt pour utiliser la position du téléphone.", "Actualiza la app Fallblatt para usar la ubicación del teléfono.", "Werk de Fallblatt-app bij om de locatie van de telefoon te gebruiken."],
   ["This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead.", "Dieser Bildschirm kann seinen Standort nicht teilen: Browser tun das nur für https-Seiten oder Seiten auf dem Computer des Relais. Gib Breite und Länge stattdessen ein.", "Cet écran ne peut pas partager sa position : les navigateurs ne le font que pour les pages https ou ouvertes sur l'ordinateur du relais. Saisissez plutôt la latitude et la longitude.", "Esta pantalla no puede compartir su ubicación: los navegadores solo lo hacen en páginas https o abiertas en el ordenador del relé. Escribe la latitud y la longitud.", "Dit scherm kan zijn locatie niet delen: browsers doen dat alleen voor https-pagina's of pagina's op de computer van het relais. Typ de breedte- en lengtegraad in."],
   ["Location access was turned down. Allow it in the browser's site settings.", "Standortzugriff wurde abgelehnt. Erlaube ihn in den Website-Einstellungen des Browsers.", "L'accès à la position a été refusé. Autorisez-le dans les réglages du site du navigateur.", "Se denegó el acceso a la ubicación. Permítelo en los ajustes del sitio del navegador.", "Toegang tot locatie is geweigerd. Sta het toe in de site-instellingen van de browser."],
-  ["Location access was turned down. Allow it in the phone's settings for the Overhead app.", "Standortzugriff wurde abgelehnt. Erlaube ihn in den Telefoneinstellungen für die Overhead-App.", "L'accès à la position a été refusé. Autorisez-le dans les réglages du téléphone pour l'app Overhead.", "Se denegó el acceso a la ubicación. Permítelo en los ajustes del teléfono para la app Overhead.", "Toegang tot locatie is geweigerd. Sta het toe in de telefooninstellingen voor de Overhead-app."],
+  ["Location access was turned down. Allow it in the phone's settings for the Fallblatt app.", "Standortzugriff wurde abgelehnt. Erlaube ihn in den Telefoneinstellungen für die Fallblatt-App.", "L'accès à la position a été refusé. Autorisez-le dans les réglages du téléphone pour l'app Fallblatt.", "Se denegó el acceso a la ubicación. Permítelo en los ajustes del teléfono para la app Fallblatt.", "Toegang tot locatie is geweigerd. Sta het toe in de telefooninstellingen voor de Fallblatt-app."],
   ["The location isn't available right now.", "Der Standort ist gerade nicht verfügbar.", "La position n'est pas disponible pour le moment.", "La ubicación no está disponible ahora.", "De locatie is nu niet beschikbaar."],
   ["Finding out where you are …", "Standort wird ermittelt …", "Recherche de votre position …", "Averiguando dónde estás …", "Bepalen waar je bent …"],
   ["Latitude and longitude set (to within {d}).", "Breite und Länge eingetragen (auf {d} genau).", "Latitude et longitude remplies (à {d} près).", "Latitud y longitud establecidas (con {d} de precisión).", "Breedte- en lengtegraad ingevuld (tot op {d})."],
@@ -3247,9 +3264,9 @@ const I18N_ROWS = [
   ["No take-offs right now.", "Gerade keine Starts.", "Aucun décollage en ce moment.", "Ningún despegue ahora mismo.", "Nu geen vertrekken."],
   ["No landings coming up right now.", "Gerade keine Landungen in Sicht.", "Aucun atterrissage en vue.", "Ningún aterrizaje próximo ahora mismo.", "Nu geen landingen op komst."],
   ["What's new in each version, the relay and who made it.", "Was in jeder Version neu ist, das Relais und wer es gemacht hat.", "Les nouveautés de chaque version, le relais et qui l'a fait.", "Novedades de cada versión, el relé y quién lo hizo.", "Wat er nieuw is in elke versie, het relais en wie het maakte."],
-  ["The Overhead app for Android, showing the relay at {host}.", "Die Overhead-App für Android, sie zeigt das Relais unter {host}.", "L'app Overhead pour Android, qui affiche le relais à {host}.", "La app Overhead para Android, que muestra el relé en {host}.", "De Overhead-app voor Android, met het relais op {host}."],
+  ["The Fallblatt app for Android, showing the relay at {host}.", "Die Fallblatt-App für Android, sie zeigt das Relais unter {host}.", "L'app Fallblatt pour Android, qui affiche le relais à {host}.", "La app Fallblatt para Android, que muestra el relé en {host}.", "De Fallblatt-app voor Android, met het relais op {host}."],
   ["Change relay", "Relais ändern", "Changer de relais", "Cambiar relé", "Relais wijzigen"],
-  ["On Android, install the Overhead app and open the file (allow installs from your browser once):", "Auf Android die Overhead-App installieren und die Datei öffnen (Installationen aus dem Browser einmal erlauben):", "Sur Android, installez l'app Overhead et ouvrez le fichier (autorisez une fois les installations depuis le navigateur) :", "En Android, instala la app Overhead y abre el archivo (permite una vez las instalaciones desde el navegador):", "Op Android: installeer de Overhead-app en open het bestand (sta installaties vanuit je browser één keer toe):"],
+  ["On Android, install the Fallblatt app and open the file (allow installs from your browser once):", "Auf Android die Fallblatt-App installieren und die Datei öffnen (Installationen aus dem Browser einmal erlauben):", "Sur Android, installez l'app Fallblatt et ouvrez le fichier (autorisez une fois les installations depuis le navigateur) :", "En Android, instala la app Fallblatt y abre el archivo (permite una vez las instalaciones desde el navegador):", "Op Android: installeer de Fallblatt-app en open het bestand (sta installaties vanuit je browser één keer toe):"],
   ["download it", "herunterladen", "la télécharger", "descargarla", "downloaden"],
   ["On an iPhone, Safari → Share → Add to Home Screen.", "Auf dem iPhone: Safari → Teilen → Zum Home-Bildschirm.", "Sur iPhone : Safari → Partager → Sur l'écran d'accueil.", "En iPhone: Safari → Compartir → Añadir a pantalla de inicio.", "Op een iPhone: Safari → Deel → Zet op beginscherm."],
   ["It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:", "Es braucht das WLAN zu Hause, weil die Flugdaten über das Relais auf deinem Computer kommen. Die große Tafel:", "Il faut le Wi-Fi de la maison, car les données de vol passent par le relais sur votre ordinateur. Le grand tableau :", "Necesita el wifi de casa, porque los datos de vuelo llegan por el relé de tu ordenador. El panel grande:", "Het heeft je wifi thuis nodig, want de vluchtgegevens komen via het relais op je computer. Het grote bord:"],
@@ -3519,6 +3536,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.16", date: "2026-10-13", notes: [
+    "The app is called Fallblatt now (Overhead and Airport stay the names of its two styles).",
+    "A guest's welcome flips in on split flaps: \"HI ALINA!\", the exclamation mark last, coasting to a stop.",
+    "After choosing their place, a guest picks the phone app or the full board; guests have their own settings on the board too.",
+    "Guests can sign out of a device (About), and a browser that opens a new link starts with a clean profile."]},
   {v: "1.15", date: "2026-10-13", notes: [
     "Friends and family: Dave can send personal invite links. Opening one sets up that phone with its own profile: its own location, Spotted today and logbook. Guests start with a short welcome that asks where to watch the sky.",
     "Settings of a guest are kept with their profile, so a new device picks them up."]},
@@ -3580,7 +3602,7 @@ const CHANGELOG = [
     "Every control in Settings sits in its own cell with its name above it.",
     "Sounds for knobs, switches, thumbwheels and buttons; the flip switches are aircraft toggles now."]},
   {v: "1.6", date: "2026-10-11", notes: [
-    "The Overhead app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
+    "The Fallblatt app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
   {v: "1.5.0.1", date: "2026-10-11", notes: [
     "Phone: Save and Cancel in Settings work."]},
   {v: "1.5", date: "2026-10-11", notes: [
@@ -3629,7 +3651,7 @@ function changelogHtml(){
 }
 // Who made it and where the data comes from: the About plate on the board and the About page in the app.
 function aboutHtml(){
-  return `<p><b>Overhead</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
+  return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from airport-data.com, logos from Aviasales."))}</p>`;
 }
@@ -3891,7 +3913,7 @@ function hereNow(){
       return;
     }
     if (!window.isSecureContext || !navigator.geolocation)
-      return no(new Error(T(A ? "Update the Overhead app to use the phone's location." :
+      return no(new Error(T(A ? "Update the Fallblatt app to use the phone's location." :
         "This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead.")));
     navigator.geolocation.getCurrentPosition(
       p => ok({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy}),
@@ -4054,7 +4076,7 @@ function diagText(){
   const src = (DIAG.relayStatus && DIAG.relayStatus.sources ? "\n\nRelay sources\n" + DIAG.relayStatus.sources.map(x => `${x.name}: ${x.state}${x.resting_s ? " " + x.resting_s + " s" : ""} · ${x.ok} ok · ${x.fail} failed · ${x.last_error || ""}`).join("\n") : "") +
     (DIAG.relayStatus && DIAG.relayStatus.screens ? "\n\nScreens using the relay\n" + DIAG.relayStatus.screens.map(x => `${x.name || x.device}${x.sid === SID ? " (this screen)" : ""} · ${x.device} · ${x.ip}${x.host ? " (" + x.host + ")" : ""} · ${x.board} · ${x.size} · on for ${forText(x.on_s)}`).join("\n") : "");
   const log = mergedLog().map(e => `${new Date(e.t).toISOString().slice(11, 19)}  ${e.src.padEnd(5)}  ${e.level.padEnd(5)}  ${e.msg}`).join("\n");
-  return `Overhead board diagnostics · ${new Date().toString()}\n${navigator.userAgent}\n\n${head}${src}\n\nLog (newest first)\n${log}\n`;
+  return `Fallblatt diagnostics · ${new Date().toString()}\n${navigator.userAgent}\n\n${head}${src}\n\nLog (newest first)\n${log}\n`;
 }
 $("btnDiag").onclick = e => { e.stopPropagation(); DIAG.open ? closeDiag() : openDiag(); };
 $("diagClose").onclick = closeDiag;
