@@ -124,6 +124,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   dead), nftables lets in only 22 and 8080 from private addresses (`/etc/nftables.conf`), the journal is capped at
   100 MB, and the service runs in a tight systemd sandbox (`systemd-analyze security overhead-relay`: 1.3). Change SSH
   or the firewall only with a `systemd-run --on-active=180` rollback armed, cancelled once a fresh login works.
+- From outside it is reached through a Cloudflare Tunnel (since 13 Oct 2026; the address is in Claude's memory, not
+  here): `cloudflared` from Cloudflare's apt repository (also updated by unattended-upgrades), the tunnel's token in
+  `/etc/cloudflared/token` (root only; Dave pasted it in the console, it never passes through chat), and a sandbox
+  drop-in `cloudflared.service.d/10-sandbox.conf` (DynamicUser, the token handed over with LoadCredential). The tunnel
+  sends the hostname to `http://localhost:8080`; Cloudflare Access is off, as the relay's invite links decide who gets
+  in. The relay's `public_url` in `overhead.json` makes the admin page hand out full links.
 - To update it: `py -m py_compile relay/serve.py`, copy `relay/serve.py`, `relay/overhead-relay.service` and
   `relay/install.sh` to the container (scp, to `/root/overhead-install/`) and run `sh /root/overhead-install/install.sh`
   there: it checks the file compiles, replaces it, keeps the settings and data, and restarts the service. (After the
