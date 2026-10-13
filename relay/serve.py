@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 19
+RELAY_VERSION = 20
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1616,7 +1616,7 @@ td,th{padding:8px 6px;border-bottom:1px solid #26272b;text-align:left;vertical-a
 input[type=text]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px}
 button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
 button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}form{display:inline}
-.link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;
+.link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;user-select:all;-webkit-user-select:all;
 font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
 
 
@@ -1624,6 +1624,19 @@ def plain_page(title, body):
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,'
             f'initial-scale=1"><title>{html.escape(title)}</title><style>{PAGE_CSS}</style></head><body><main>'
             f'<div class="mark">&#9992;</div>{body}</main></body></html>').encode("utf-8")
+
+
+# Copying the link: the clipboard API only works on https pages, and the admin page is plain http at home, so the
+# old way (a hidden text field and the copy command) goes first. "Copied" only when it worked; otherwise the link is
+# selected, ready to copy by hand.
+COPY_JS = ("function cp(){var t=document.getElementById('lnk').textContent,ok=false,d=document.getElementById('cpd');"
+           "try{var a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.position='fixed';"
+           "a.style.opacity='0';document.body.appendChild(a);a.select();a.setSelectionRange(0,t.length);ok=document.execCommand('copy');"
+           "a.remove()}catch(e){}"
+           "var done=function(){d.textContent='Copied';d.style.color='#3c3';document.getElementById('lnk').style.borderColor='#3c3'};"
+           "var hand=function(){var r=document.createRange();r.selectNodeContents(document.getElementById('lnk'));"
+           "var g=getSelection();g.removeAllRanges();g.addRange(r);d.textContent='Selected: copy it with Ctrl+C or the menu';d.style.color=''};"
+           "if(ok)return done();if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,hand);else hand()}")
 
 
 def admin_html(host, made=None):
@@ -1654,9 +1667,9 @@ def admin_html(host, made=None):
         name, code = made
         link = f"{base}/join/{code}"
         made_html = (f"<h2>Link for {esc(name)}</h2><p>Send this to {esc(name)}. It works once, on the first phone or "
-                     f"computer that opens it, within {INVITE_DAYS} days.</p><a class=link href='#' "
-                     f"onclick=\"navigator.clipboard&&navigator.clipboard.writeText(this.textContent);this.style.borderColor='#3c3';return false\">{esc(link)}</a>"
-                     f"<p class=muted>Tap the link to copy it.</p>")
+                     f"computer that opens it, within {INVITE_DAYS} days.</p><div class=link id=lnk>{esc(link)}</div>"
+                     f"<button class=go type=button onclick='cp()'>Copy link</button> <span id=cpd class=muted></span>"
+                     f"<script>{COPY_JS}</script>")
         if not ARGS.public_url:
             made_html += ("<p class=muted>The relay doesn't know its public address yet, so this link only works at home. "
                           "Start it once with <code>--public-url https://overhead.example.com --save</code>.</p>")
