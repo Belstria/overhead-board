@@ -76,6 +76,11 @@ h3 span{color:var(--label2);margin-left:.6em}
 .sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
 .status{display:none}
 body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
+#newVer{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));z-index:7;transform:translateX(-50%);padding:9px 16px;border:0;border-radius:20px;background:#f2c44e;color:#17140e;font:700 13px var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6);cursor:pointer}
+#newVer[hidden]{display:none}
+.pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
+.pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
+#pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
 .brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
 /* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
@@ -363,6 +368,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   <p class="brandline">Fallblatt</p>
 </main>
 <p id="sideAlert" role="status" hidden></p>
+<button id="newVer" type="button" hidden></button>
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wHi" hidden><div class="wbox">
   <div class="wmark" aria-hidden="true">&#9992;</div>
   <div class="panel" id="wHello" aria-hidden="true"></div>

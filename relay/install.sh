@@ -11,8 +11,8 @@ SRC=https://raw.githubusercontent.com/Belstria/overhead-board/main/relay
 HERE=/nonexistent
 [ -f "$0" ] && HERE=$(cd "$(dirname "$0")" && pwd)       # run as a file: use the copies next to it (not when piped)
 
-if ! command -v python3 >/dev/null || ! command -v curl >/dev/null; then
-  apt-get update -q && apt-get install -y -q python3 curl
+if ! command -v python3 >/dev/null || ! command -v curl >/dev/null || ! python3 -c "import cryptography" 2>/dev/null; then
+  apt-get update -q && apt-get install -y -q python3 curl python3-cryptography   # cryptography: push notifications
 fi
 id overhead >/dev/null 2>&1 || useradd --system --home-dir "$DIR" --shell /usr/sbin/nologin overhead
 mkdir -p "$DIR/data"

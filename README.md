@@ -334,6 +334,17 @@ Screens at home are the home profile as always; anyone else without a profile on
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
 
+**Notifications (relay version 25).** Through the public https address, the phone app can send an evening summary
+(22:30: planes, points, the rarest and the lowest) and a "worth going to the window" nudge when something special, a
+first-ever type, a favourite or a very low plane will pass within about 5 km in the next three minutes; the relay
+watches for these even when no screen is open. Turn them on in the app under About → Notifications (Chrome on Android
+and computers; on an iPhone after adding Fallblatt to the home screen). The relay needs the `cryptography` package for
+this (`install.sh` installs `python3-cryptography`). To get them for your own home and logbook, use **Link a device to
+Home** on the admin page: that phone then opens the public address as home, from anywhere.
+
+**New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
+update. Nothing reloads by itself.
+
 **Screens (relay version 12).** The relay keeps track of which screens are using it and prints them in its window
 as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung
 TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is
