@@ -125,8 +125,8 @@ Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js
 Now and back; `showTab` refuses other tabs on its side), the status line only as a pop-up when something is wrong
 (`#sideAlert`). Now is the board (1.13.2/1.13.3, Dave's choice): `heroLayout()` puts the flaps in three rows across the
 width, and under them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons in the title strip
-(`buildNowPages`), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by
-`nowPanels()`) in place of the text lists; `fitSideways()` sizes it all to fill the screen (`--fitW`, `--lowH`). The
+(`buildNowPages`; in the Airport style `lists`/`dep`/`land`, the board's pages, `appApPage()` telling `apFeature` which plane, `paintRwy()` the runway screen; upright a `#apPick` switch), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by
+`nowPanels()`) in place of the text lists; `fitSideways()` sizes it all to fill the screen (`--fitW`, `--lowH`), with fewer list rows (`setNowRows`, 6 down to 4) on a screen short for its width. The
 Android app goes immersive, draws under the camera cutout and tells the page how far it reaches (`--cut-l`, `--cut-r`),
 and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1; before only on its side and charging). (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
 8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`

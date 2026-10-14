@@ -8,7 +8,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
@@ -36,7 +36,6 @@ function saveSettings(){
   return saveMe(changed);
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
-DEFAULTS.sound = false;                                    // a phone starts quiet; flap sound can be turned on in Settings
 let S = loadSettings();
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
@@ -147,6 +146,16 @@ function heroLayout(){
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
 const NOW_ROWS = 6;
+let nowRows = NOW_ROWS;
+const lowUnits = k => 196 - 30 * (NOW_ROWS - k);              // the list panels' height for k rows
+function setNowRows(k){
+  if (k === nowRows) return;
+  nowRows = k;
+  for (const P of [RECENTP, APP]) {
+    P.h = lowUnits(k); P.el.style.setProperty("--h", P.h); P.cssW = 0;
+    for (const id of P.ids) fields[id].hidden = +id.match(/\d+/)[0] >= k;
+  }
+}
 const RECENTP = makePanel($("recentP"), 900, 196);
 for (let i = 0; i < NOW_ROWS; i++) {
   const lab = en => i === 0 ? [en, ""] : null, s = 14.5;
@@ -489,13 +498,14 @@ function renderAircraftInfo(){
     if (src) {
       img.onload = () => {
         if (img.getAttribute("src") !== src) return;
-        scr.classList.add("has");
+        scr.classList.add("has"); paintRwy();
         if (!REDUCED) { void scr.offsetWidth; scr.classList.add("on"); }
       };
       img.onerror = () => scr.classList.remove("has");
       img.src = src;
     } else img.removeAttribute("src");
   }
+  paintRwy();
   const route = info.from && info.to ? `${code3(info.from) || info.from.code} → ${code3(info.to) || info.to.code}` : "";
   setChars("naReg", info.reg || d.reg || "");
   setChars("naHex", feat.hex.toUpperCase(), 60);
@@ -511,6 +521,30 @@ function renderAircraftInfo(){
   if (sig === factsSig) return;
   factsSig = sig;
   $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+}
+
+// The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
+// inset (drawCover is the board's, which the app doesn't copy).
+function drawCover(g, img, x, y, w, h){
+  const sc = Math.max(w / img.naturalWidth, h / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+  g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+}
+let rwyKey = "";
+function paintRwy(){
+  const scr = $("screen"), cv = $("rwyCv"), img = $("photo");
+  const e = airportMode() && (nowPage === "dep" || nowPage === "land") && feat && feat.apE && AP.rwys.length && AP.lat != null ? feat.apE : null;
+  scr.classList.toggle("rwyOn", !!e);
+  if (!e) { rwyKey = ""; return; }
+  const w = scr.clientWidth, h = scr.clientHeight;
+  if (!w || !h) return;
+  const px = Math.min(3, window.devicePixelRatio || 1), photo = scr.classList.contains("has") && img.naturalWidth ? img : null;
+  const key = [e.hex, e.ac.lat, e.ac.lon, e.st, AP.rwyLine, w, h, px, FONT, LANG, photo ? img.src : ""].join("|");
+  if (key === rwyKey) return;
+  rwyKey = key;
+  cv.width = Math.round(w * px); cv.height = Math.round(h * px);
+  const g = cv.getContext("2d");
+  g.setTransform(px, 0, 0, px, 0, 0);
+  try { paintRunwayScreen(g, w, h, e, photo); } catch (err) { scr.classList.remove("rwyOn"); }
 }
 
 /* Spotted today */
@@ -870,30 +904,50 @@ function applyMode(){
 /* On its side, Now works like the board: the plane on top and one page under it, Recent flights (or Take-offs &
    landings) and This aircraft, picked with lamp buttons. The pages turn every 20 seconds, skipping This aircraft when
    there is no plane; a page picked by hand stays a minute and, empty, says so. */
-let nowPage = "lists", nowHold = 0, nowTurn = Date.now();
+// In the Airport style the pages are the board's: Take-offs & landings, Take-off and Landing, the last two putting that
+// plane on top, with the runway screen. Upright, the lists are always there and a switch picks Take-off or Landing.
+let nowPage = "lists", nowHold = 0, nowTurn = Date.now(), rotI = 0;
+const isAcPage = p => p === "ac" || p === "dep" || p === "land";
+const PAGE_NAME = {ac: "This<br>aircraft", dep: "Take-off", land: "Landing"};
+const nowPageList = () => !airportMode() ? ["lists", "ac"] : SIDEWAYS.matches ? ["lists", "dep", "land"] : ["dep", "land"];
+function appApPage(){ return !airportMode() ? "" : nowPage === "dep" ? "apdep" : nowPage === "land" ? "apland" : ""; }
+const pageHas = p => p === "lists" || (p === "ac" ? !!feat : !!apFocus(p === "dep" ? "dep" : "arr"));
 function buildNowPages(){
-  const pages = [["lists", airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights"], ["ac", "This<br>aircraft"]];
-  $("nowPages").innerHTML = pages.map(([p, name]) => `<button class="cap" type="button" data-page="${p}">${T(name)}</button>`).join("");
-  for (const b of $("nowPages").children) b.onclick = () => { audioInit(); ctlSound.press(); nowHold = Date.now() + 60000; showNowPage(b.dataset.page); };
-  showNowPage(nowPage);
+  const pages = nowPageList(), name = p => p === "lists" ? (airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights") : PAGE_NAME[p];
+  const html = list => list.map(p => `<button class="cap" type="button" data-page="${p}">${T(name(p))}</button>`).join("");
+  $("nowPages").innerHTML = html(pages);
+  $("apPick").innerHTML = html(["dep", "land"]);
+  for (const b of [...$("nowPages").children, ...$("apPick").children])
+    b.onclick = () => { audioInit(); ctlSound.press(); nowHold = Date.now() + 60000; showNowPage(b.dataset.page); };
+  $("t-now").classList.toggle("ap", airportMode());
+  showNowPage(pages.includes(nowPage) ? nowPage : pages[0]);
 }
 function showNowPage(p){
+  const was = nowPage;
   nowPage = p; nowTurn = Date.now();
   $("t-now").dataset.page = p;
-  for (const b of $("nowPages").children) b.setAttribute("aria-pressed", String(b.dataset.page === p));
+  for (const b of [...$("nowPages").children, ...$("apPick").children]) b.setAttribute("aria-pressed", String(b.dataset.page === p));
+  if (airportMode() && was !== p) apFeature();                // the plane on top: the one taking off or landing
   nowEmptyNote(); nowPanels();
   if (airportMode()) { fitSideways(); refreshPanels(); }   // the airport page's two titles take a line
 }
-// On its side the plane's flaps and the page under them are as big as the screen allows: the full width if they fit
-// in its height, narrower (and centred) if not.
+// On its side the plane's flaps and the page under them are as big as the screen allows. A screen that is short for its
+// width (a browser's bars, a wide phone) shows fewer list rows, so the flaps can grow until they fill the width; at
+// least four rows.
 function fitSideways(){
   const el = $("t-now");
   if (!SIDEWAYS.matches) return;
   const cs = getComputedStyle(el), availW = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const titles = airportMode() && nowPage === "lists" ? 26 : 0;
   const availH = innerHeight - $("top").offsetHeight - 6 - 8 - 6 - titles;    // main's padding, the gap, a margin
-  const W = Math.floor(Math.max(200, Math.min(availW, availH / ((150 + 196) / 900))));
-  el.style.setProperty("--fitW", W + "px"); el.style.setProperty("--lowH", Math.floor(W * 196 / 900) + "px");
+  const fit = k => Math.floor(Math.max(200, Math.min(availW, availH / ((150 + lowUnits(k)) / 900))));
+  let k = NOW_ROWS;
+  while (k > 4 && fit(k) < availW - 1) k--;
+  const W = fit(k), was = nowRows;
+  setNowRows(k);
+  el.style.setProperty("--fitW", W + "px"); el.style.setProperty("--lowH", Math.floor(W * lowUnits(k) / 900) + "px");
+  if (k !== was) { clearTiles(); refreshPanels(true); }
+  paintRwy();
 }
 // Only Now on its side: the tab open before comes back when the phone is upright again.
 let sideFrom = null;
@@ -905,21 +959,31 @@ function sideways(){
 function nowPanels(){
   const on = tab === "now" && SIDEWAYS.matches, ap = airportMode(), lists = on && nowPage === "lists";
   let changed = false;
-  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && nowPage === "ac" && !!feat]])
+  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat]])
     if (P.off === show) { P.off = !show; changed = true; }
   if (changed) refreshPanels(true);
 }
 function nowEmptyNote(){
-  const el = $("nowEmpty"), empty = nowPage === "ac" && !feat;
+  const el = $("nowEmpty"), empty = isAcPage(nowPage) && !feat;
   el.hidden = !empty;
-  if (empty) el.innerHTML = `${escH(T("No plane to show right now"))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
+  const say = nowPage === "dep" ? "No plane taking off right now" : nowPage === "land" ? "No plane landing right now" : "No plane to show right now";
+  if (empty) el.innerHTML = `${escH(T(say))}<small>${escH(T("The page fills in as soon as there is one."))}</small>`;
 }
+// The pages turn every 20 seconds, like the board's (Airport: the lists, Take-off, the lists, Landing), skipping a page
+// with no plane; upright, only the Airport style's Take-off and Landing turn.
 setInterval(() => {
-  if (!SIDEWAYS.matches || tab !== "now" || Date.now() < nowHold) return;
-  const empty = nowPage === "ac" && !feat;
-  if (!empty && Date.now() - nowTurn < 20000) return;
-  const next = nowPage === "lists" && feat ? "ac" : "lists";
-  if (next !== nowPage) showNowPage(next); else nowTurn = Date.now();
+  const ap = airportMode();
+  if (tab !== "now" || Date.now() < nowHold || (!SIDEWAYS.matches && !ap)) return;
+  if (pageHas(nowPage) && Date.now() - nowTurn < 20000) return;
+  const seq = !ap ? ["lists", "ac"] : SIDEWAYS.matches ? ["lists", "dep", "lists", "land"] : ["dep", "land"];
+  for (let k = 1; k <= seq.length; k++) {
+    const i = (rotI + k) % seq.length, p = seq[i];
+    if (!pageHas(p)) continue;
+    rotI = i;
+    if (p !== nowPage) showNowPage(p); else nowTurn = Date.now();
+    return;
+  }
+  nowTurn = Date.now();
 }, 1000);
 //@E31
 function plateHtml(p){
@@ -1363,7 +1427,7 @@ async function start(){
   setTimeout(poll, 300);
   setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
-  const turned = () => { sideways(); heroLayout(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); if (tab === "radar") radarSize(); };
+  const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
 start();
