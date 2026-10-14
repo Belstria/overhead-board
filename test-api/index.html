@@ -139,6 +139,20 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(10px*var(--k)) calc(22px*var(--k)) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
   display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
+/* Realistic look (Settings → Display; body.real): brushed, bevelled plates, engraved labels, metal knob caps and glowing
+   displays. The board's glass glare is #glass. */
+#glass{position:absolute;inset:0;pointer-events:none;display:none}
+body.real #glass{display:block;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0) 7%),
+  linear-gradient(118deg,rgba(255,255,255,.075) 0%,rgba(255,255,255,.02) 33%,rgba(255,255,255,0) 33.3%),
+  radial-gradient(ellipse 75% 70% at 50% 42%,rgba(0,0,0,0) 60%,rgba(0,0,0,.3) 100%)}
+body.real .plate{background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,rgba(0,0,0,.022) 1px 2px,rgba(255,255,255,0) 2px 4px),linear-gradient(#2e2f33,#1a1b1e);
+  box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12),inset 1px 0 0 rgba(255,255,255,.05),inset -1px 0 0 rgba(0,0,0,.45),inset 0 -2px 0 rgba(0,0,0,.65),inset 0 -6px 10px rgba(0,0,0,.35)}
+body.real .inst>span,body.real .plate h3{text-shadow:0 1px 0 rgba(255,255,255,.07),0 -1px 0 rgba(0,0,0,.95)}
+body.real .inst{box-shadow:inset 0 calc(2px*var(--k)) calc(4px*var(--k)) rgba(0,0,0,.75),inset 0 -1px 0 rgba(255,255,255,.04),0 1px 0 rgba(255,255,255,.06)}
+body.real .rotary .knob::before{background:radial-gradient(circle at 36% 28%,rgba(255,255,255,.42),rgba(255,255,255,0) 42%),
+  conic-gradient(#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5,#4b4e53,#a7abb1,#43464b,#9a9ea5);box-shadow:0 1px 2px rgba(0,0,0,.8),inset 0 0 0 1px rgba(0,0,0,.35)}
+body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px rgba(246,197,74,.8);
+  background-image:repeating-linear-gradient(rgba(0,0,0,.2) 0 1px,rgba(0,0,0,0) 1px 3px),linear-gradient(#0b0e09,#151b10)}
 .plate>i{position:absolute;width:calc(9px*var(--k));height:calc(9px*var(--k));border-radius:50%;
   background:linear-gradient(35deg,transparent 42%,rgba(0,0,0,.75) 42% 58%,transparent 58%),radial-gradient(circle at 35% 35%,#8d9095,#45474c 60%,#1b1c1f)}
 .plate>i:nth-of-type(1){left:calc(8px*var(--k));top:calc(8px*var(--k))}.plate>i:nth-of-type(2){right:calc(8px*var(--k));top:calc(8px*var(--k))}
@@ -257,6 +271,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 <div id="stage">
   <canvas id="bg"></canvas>
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
+  <div id="glass" aria-hidden="true"></div>
   <div id="modeSw"><button type="button" data-mode="overhead" aria-label="Overhead">​</button><button type="button" data-mode="airport" aria-label="Airport">​</button></div>
   <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas></div>
   <img id="photoImg" alt="" referrerpolicy="no-referrer">
@@ -353,7 +368,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
 // A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
 // profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
@@ -679,6 +694,22 @@ function shade(hex, k){
   const n = parseInt(hex.slice(1), 16), m = v => Math.max(0, Math.min(255, Math.round(v * (1 + k))));
   return `rgb(${m(n >> 16)},${m((n >> 8) & 255)},${m(n & 255)})`;
 }
+// Realistic look (Settings → Display): flaps printed on two cards (the halves of a letter a hair out of line), a fine
+// grain on the plastic, the next card's edge in the gap, light catching a turning flap; glass and brushed metal around.
+const REAL = () => S.real !== false;
+function applyLook(){ document.body.classList.toggle("real", REAL()); }
+let grainCv = null;
+function grain(){
+  if (grainCv) return grainCv;
+  grainCv = document.createElement("canvas"); grainCv.width = grainCv.height = 96;
+  const g = grainCv.getContext("2d"), d = g.createImageData(96, 96);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const v = Math.random() < .5 ? 0 : 255;
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = Math.random() * 14;
+  }
+  g.putImageData(d, 0, 0);
+  return grainCv;
+}
 function tile(f, value, variant = 0){
   const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
   let code = "", text = value;
@@ -688,7 +719,7 @@ function tile(f, value, variant = 0){
   const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
   if (f.words === "lamp") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
-  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}`;
+  const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}|${REAL() ? 1 : 0}`;
   let cv = tiles.get(key);
   if (cv) return cv;
   const w = f.pw, h = f.ph;
@@ -761,8 +792,18 @@ function tile(f, value, variant = 0){
     try { const m = g.measureText("H"); if (m.actualBoundingBoxAscent) asc = m.actualBoundingBoxAscent; } catch {}
     const tw = g.measureText(text).width, max = aw * (f.kind === "chars" ? .88 : .86);
     const sx = tw > max ? Math.max(.55, max / tw) : 1;
-    g.save(); g.translate(ax + aw / 2, Math.round(h / 2 + asc / 2)); g.scale(sx, 1);
-    g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "alphabetic"; g.fillText(text, 0, 0); g.restore();
+    const print = (y0, y1, dx) => {
+      g.save(); g.beginPath(); g.rect(0, y0, w, y1 - y0); g.clip();
+      g.translate(ax + aw / 2 + dx, Math.round(h / 2 + asc / 2)); g.scale(sx, 1);
+      g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "alphabetic"; g.fillText(text, 0, 0); g.restore();
+    };
+    if (REAL() && f.kind === "chars") {     // two cards, printed apart: the halves of a letter a hair out of line
+      const d = Math.max(.4, h * .011) * [-.7, .45, 1][variant];
+      print(0, h / 2, d / 2); print(h / 2, h, -d / 2);
+    } else print(0, h, 0);
+  }
+  if (REAL()) {                              // the plastic's fine grain
+    g.save(); rr(g, 0, 0, w, h, r); g.clip(); g.fillStyle = g.createPattern(grain(), "repeat"); g.fillRect(0, 0, w, h); g.restore();
   }
   const hinge = Math.max(1, Math.round(h * .028)), mid = Math.round(h / 2);
   g.fillStyle = "rgba(0,0,0,.92)"; g.fillRect(0, mid - Math.floor(hinge / 2), w, hinge);       // gap between the two flaps
@@ -771,6 +812,21 @@ function tile(f, value, variant = 0){
   const pin = g.createLinearGradient(0, mid - nh / 2, 0, mid + nh / 2);
   pin.addColorStop(0, "#8a8d92"); pin.addColorStop(.5, "#55585d"); pin.addColorStop(1, "#2c2e31");
   g.fillStyle = pin; rr(g, 0, mid - nh / 2, nw, nh, nw * .4); g.fill(); rr(g, w - nw, mid - nh / 2, nw, nh, nw * .4); g.fill();
+  if (REAL()) {
+    g.fillStyle = "rgba(160,162,168,.22)"; g.fillRect(nw, mid, w - 2 * nw, 1);                         // the next card's edge in the gap
+    g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(0, mid - Math.floor(hinge / 2) - 1, w, 1);           // the upper card's lit edge
+    g.save(); rr(g, 0, 0, w, h, r); g.clip();
+    const lit = g.createLinearGradient(0, 0, 0, mid);                                                      // light from above on the upper card
+    lit.addColorStop(0, "rgba(255,250,235,.07)"); lit.addColorStop(1, "rgba(255,250,235,.015)");
+    g.fillStyle = lit; g.fillRect(0, 0, w, mid - hinge);
+    const cast = g.createLinearGradient(0, mid, 0, mid + h * .16);                                          // the upper card's shadow
+    cast.addColorStop(0, "rgba(0,0,0,.38)"); cast.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = cast; g.fillRect(0, mid + hinge, w, h * .16);
+    const tilt = g.createLinearGradient(0, mid, 0, h);                                                     // the lower card leans back
+    tilt.addColorStop(0, "rgba(0,0,0,.12)"); tilt.addColorStop(1, "rgba(0,0,0,.2)");
+    g.fillStyle = tilt; g.fillRect(0, mid + hinge, w, h - mid - hinge);
+    g.restore();
+  }
   g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = Math.max(1, h * .012); rr(g, .5, .5, w - 1, h - 1, r); g.stroke();
   tiles.set(key, cv); tileBytes += w * h * 4;
   const budget = (LITE() ? 40 : 160) * 1048576;            // weak TVs have little memory to spare
@@ -803,6 +859,10 @@ function paintCell(g, c, p, opaque){
     if (dh > .5) {
       g.drawImage(A, 0, 0, w, hh, x, y + hh - dh, w, dh);
       g.fillStyle = `rgba(0,0,0,${.6 * (1 - s)})`; g.fillRect(x, y + hh - dh, w, dh);
+      if (REAL()) {
+        g.fillStyle = `rgba(255,250,235,${.13 * Math.sin((1 - s) * Math.PI)})`; g.fillRect(x, y + hh - dh, w, dh);   // tipping towards the lights
+        g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(x, y + hh - dh, w, Math.max(1, h * .018));                     // its edge
+      }
     }
   } else {
     const q = (p - .5) * 2;                               // new bottom flap dropping into place, then a small bounce
@@ -812,6 +872,10 @@ function paintCell(g, c, p, opaque){
     if (dh > .5) {
       g.drawImage(B, 0, hh, w, bh, x, y + hh, w, dh);
       g.fillStyle = `rgba(0,0,0,${.45 * (1 - s)})`; g.fillRect(x, y + hh, w, dh);
+      if (REAL()) {
+        g.fillStyle = `rgba(255,250,235,${.08 * Math.sin((1 - s) * Math.PI)})`; g.fillRect(x, y + hh, w, dh);
+        g.fillStyle = "rgba(0,0,0,.5)"; g.fillRect(x, y + hh + dh - Math.max(1, h * .018), w, Math.max(1, h * .018));
+      }
     }
   }
 }
@@ -1394,6 +1458,7 @@ function chime(kind){
 
 /* ---------- board styles and night mode ---------- */
 function applyTheme(){
+  applyLook();
   const T = THEMES[S.theme] || THEMES.classic;
   FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
   COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
@@ -3248,6 +3313,8 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Realistic look", "Realistische Optik", "Aspect réaliste", "Aspecto realista", "Realistisch uiterlijk"],
+  ["Printed flaps, glass and brushed metal, like a real board.", "Bedruckte Klappen, Glas und gebürstetes Metall, wie bei einer echten Tafel.", "Palettes imprimées, verre et métal brossé, comme un vrai tableau.", "Paletas impresas, cristal y metal cepillado, como un panel de verdad.", "Bedrukte kleppen, glas en geborsteld metaal, zoals een echt bord."],
   ["The name shown under the title.", "Der Name unter dem Titel.", "Le nom affiché sous le titre.", "El nombre que aparece bajo el título.", "De naam onder de titel."],
   ["Airport code for the times and the Airport style, e.g. VIE.", "Flughafencode für die Zeiten und den Flughafen-Stil, z. B. VIE.", "Code de l'aéroport pour les horaires et le style Aéroport, p. ex. VIE.", "Código del aeropuerto para los horarios y el estilo Aeropuerto, p. ej. VIE.", "Luchthavencode voor de tijden en de luchthavenstijl, bv. VIE."],
   ["Where to watch the sky. Use current location fills it in.", "Wo der Himmel beobachtet wird. „Aktuellen Standort verwenden“ füllt es aus.", "Où observer le ciel. « Utiliser la position actuelle » le remplit.", "Dónde mirar el cielo. «Usar la ubicación actual» lo rellena.", "Waar naar de lucht wordt gekeken. 'Huidige locatie gebruiken' vult het in."],
@@ -3724,6 +3791,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.19", date: "2026-10-14", notes: [
+    "Realistic look: printed flaps, glass and brushed metal (Settings → Display)."]},
   {v: "1.18.2", date: "2026-10-14", notes: [
     "Settings: a short description for every control (hover, or press and hold on a phone).",
     "Radar: labels no longer overlap or get cut off."]},
@@ -3856,14 +3925,15 @@ const COCKPIT = [
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"},
+    {k: "real", type: "switch", label: "Realistic look"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
   {title: ["Flaps & sound", "Klappen & Klang"], cols: 3, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "quick", type: "switch", label: "Quick flaps"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
-    {k: "chimes", type: "switch", label: "Chimes", span: 2}]},
+    {k: "chimes", type: "switch", label: "Chimes"}]},
   {title: ["Control", "Steuerung"], actions: true},
   {title: ["Night", "Nacht"], cols: 4, items: [
     {k: "night", type: "switch", label: "Night mode"},
@@ -3899,6 +3969,7 @@ const HINTS = {
   rotateS: "How long each page stays before the next one turns.",
   units: "Metres and km/h, or feet and knots.",
   logos: "Airline logos next to the airline name.",
+  real: "Printed flaps, glass and brushed metal, like a real board.",
   imperfect: "Slightly uneven modules and the odd hesitating flap, like a well-used board.",
   demo: "Sample flights instead of live data.",
   speedPct: "How fast each flap turns.",

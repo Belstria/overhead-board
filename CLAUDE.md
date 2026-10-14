@@ -76,6 +76,9 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 - Look (1.18): the footer and the app's status line stay quiet while live (`updateFooter`, `body[data-health]` in
   the app), the radar's labels go through `radarLabels()` (no overlaps, inside the scope), the app's Save bar only
   shows when `#t-settings.dirty`, the app's tabs carry line icons (`TAB_ICONS`), and altitudes below zero show as 0.
+- Realistic look (1.19, `S.real`, `REAL()`): extra layers in `tile()` (two-card print, grain, lighting) and
+  `paintCell()` (light and edge on a turning flap), `#glass` over the stage and `body.real` CSS for the cockpit. Settings
+  show a description per control (`HINTS`, hover; press and hold on touch).
 - Drawing quality: Fire TV and LG TVs (`WEAK_TV`) draw at 1080p, 30 fps, shorter flap runs (`LITE()`).
 - Data: positions from the relay (`/aircraft/...`), routes and aircraft from adsbdb (browser) and adsb.lol's
   routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from

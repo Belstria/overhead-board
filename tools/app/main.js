@@ -8,7 +8,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, soundSet:"recorded", speedPct:85, quick:false, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:false, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
@@ -334,6 +334,7 @@ function drawMark(){
 
 /* ---------- board styles ---------- */
 function applyTheme(){
+  applyLook();
   const T = THEMES[S.theme] || THEMES.classic;
   FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
   COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
@@ -772,14 +773,15 @@ const COCKPIT = [
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"},
+    {k: "real", type: "switch", label: "Realistic look"},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
   {title: ["Flaps & sound", "Klappen & Klang"], cols: 2, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
     {k: "quick", type: "switch", label: "Quick flaps"},
+    {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
-    {k: "chimes", type: "switch", label: "Chimes", span: 2}]}];
+    {k: "chimes", type: "switch", label: "Chimes"}]}];
 let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);

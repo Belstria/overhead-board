@@ -178,6 +178,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Sounds** (1.17): the flaps and the Settings controls play short recordings of the real things: a Pragotron
   split-flap module, a rotary switch, a rocker switch, a thumbwheel and a push button (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). Settings → Sounds → CLASSIC brings back the earlier synthesised sounds.
+- **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
+  light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
   some honest wear: fine scratches, polish marks, grime in the corners, paint rubbed off the edges, a few small dings.
   Can be turned off.
