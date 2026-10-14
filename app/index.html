@@ -1876,6 +1876,8 @@ function sample(k, t, gain, rate = 1, hall = 0){
 function audioInit(){
   if (!S.sound && !S.chimes && !soundForced) return;
   try {
+    // iPhones mute web sound with the ring/silent switch unless the page says it plays sound on purpose (Safari 16.4+).
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
     if (!actx) {
       actx = new (window.AudioContext || window.webkitAudioContext)();
       const len = Math.floor(actx.sampleRate * .012);
@@ -3905,6 +3907,8 @@ const CHANGELOG = [
   {v: "1.25", date: "2026-10-14", notes: [
     "Rarity now goes by how many planes of a type fly today, not by how often it was seen here; the logbook is scored again that way.",
     "Rarity names are plainer: common, uncommon, rare, very rare and special. The app's collection shows their icons."]},
+  {v: "1.24.0.2", date: "2026-10-14", notes: [
+    "Sound plays on iPhones, also with the silent switch on."]},
   {v: "1.24.0.1", date: "2026-10-14", notes: [
     "The welcome shows the app's own plane logo on every phone, not the phone's emoji."]},
   {v: "1.24", date: "2026-10-14", notes: [
@@ -4459,7 +4463,8 @@ document.addEventListener("visibilitychange", () => {
   poll(true); if (relayV5()) syncSightings();
   if (tab === "logbook") fetchLogbook();
 });
-["pointerdown", "touchstart", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
+// iPhones allow sound only from a tap as the finger lifts (touchend, click), not as it lands.
+["pointerdown", "touchstart", "touchend", "click", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
