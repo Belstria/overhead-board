@@ -68,6 +68,21 @@ def trim_tail(x, rate, below=0.004, keep_ms=4):
     return x[:min(len(x), end + int(rate * keep_ms / 1000))]
 
 
+def highpass(x, rate, f, q=0.707):
+    """A 12 dB/octave high-pass (RBJ biquad): takes away the low body of a clip."""
+    w = 2 * math.pi * f / rate
+    al = math.sin(w) / (2 * q)
+    c = math.cos(w)
+    b0, b1, b2 = (1 + c) / 2, -(1 + c), (1 + c) / 2
+    a0, a1, a2 = 1 + al, -2 * c, 1 - al
+    y, x1, x2, y1, y2 = [], 0.0, 0.0, 0.0, 0.0
+    for v in x:
+        o = (b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        x2, x1, y2, y1 = x1, v, y1, o
+        y.append(o)
+    return y
+
+
 def normalise(x, to=0.7):
     p = peak(x)
     return [v * to / p for v in x] if p else x

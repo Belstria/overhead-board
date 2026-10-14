@@ -21,7 +21,8 @@ someone would notice.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
   "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
-  short, for Dave, in plain words. Settings → About shows them; the relay (17+) adds the publish time
+  short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
+  versions (guests read them too; the history was rewritten that way on 14 Oct 2026). Settings → About shows them; the relay (17+) adds the publish time
   (`window.OVERHEAD_PAGE_DATE`).
 - **Every visible text goes through `T()`** (test boards and app): `T("English text", {vars})`, with `{name}`
   placeholders. Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row
@@ -75,6 +76,9 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 - Look (1.18): the footer and the app's status line stay quiet while live (`updateFooter`, `body[data-health]` in
   the app), the radar's labels go through `radarLabels()` (no overlaps, inside the scope), the app's Save bar only
   shows when `#t-settings.dirty`, the app's tabs carry line icons (`TAB_ICONS`), and altitudes below zero show as 0.
+- Realistic look (1.19, `S.real`, `REAL()`): extra layers in `tile()` (two-card print, grain, lighting) and
+  `paintCell()` (light and edge on a turning flap), `#glass` over the stage and `body.real` CSS for the cockpit. Settings
+  show a description per control (`HINTS`, hover; press and hold on touch).
 - Drawing quality: Fire TV and LG TVs (`WEAK_TV`) draw at 1080p, 30 fps, shorter flap runs (`LITE()`).
 - Data: positions from the relay (`/aircraft/...`), routes and aircraft from adsbdb (browser) and adsb.lol's
   routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from
