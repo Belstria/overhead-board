@@ -1437,6 +1437,8 @@ function sample(k, t, gain, rate = 1, hall = 0){
 function audioInit(){
   if (!S.sound && !S.chimes && !soundForced) return;
   try {
+    // iPhones mute web sound with the ring/silent switch unless the page says it plays sound on purpose (Safari 16.4+).
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
     if (!actx) {
       actx = new (window.AudioContext || window.webkitAudioContext)();
       const len = Math.floor(actx.sampleRate * .012);
@@ -4112,6 +4114,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.24.0.2", date: "2026-10-14", notes: [
+    "Sound plays on iPhones, also with the silent switch on."]},
   {v: "1.24.0.1", date: "2026-10-14", notes: [
     "The welcome shows the app's own plane logo on every phone, not the phone's emoji."]},
   {v: "1.24", date: "2026-10-14", notes: [
@@ -4771,7 +4775,7 @@ function toggleFullscreen(){
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch {}
 }
 fx.addEventListener("click", () => { audioInit(); keepAwake(); toggleFullscreen(); });
-["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
+["pointerdown", "keydown", "touchstart", "touchend"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
 function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 4000); }
 ["mousemove","keydown","touchstart"].forEach(ev => addEventListener(ev, wake, {passive: true}));
