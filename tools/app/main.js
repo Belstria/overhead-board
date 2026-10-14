@@ -695,10 +695,16 @@ function drawRadar(t){
   }
   g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
-  const ap = AIRPORTS[S.home];
-  if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 2.2;
-    for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  airportPos();
+  const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
+  if (ap) {
+    const u = rwyInUse();
+    g.lineCap = "round"; g.lineWidth = 2.2;
+    for (const r of ap.rwys) {
+      const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
+      g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
+      const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    }
     const [ax, ay] = toXY(ap.lat, ap.lon);
     g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3; g.lineJoin = "round";
     if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.strokeText(S.home, ax + 10, ay + 16); g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
@@ -803,7 +809,8 @@ let apSig = "";
 function renderAirport(){
   if (tab !== "now" || !airportMode()) return;
   const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
-    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()});
+    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()}) +
+    (AP.rwyLine ? " " + AP.rwyLine + "." : "");
   const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">${escH(T("No take-offs right now."))}</li>`;
   const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">${escH(T("No landings coming up right now."))}</li>`;
   const sig = sub + deps + arrs + S.units;

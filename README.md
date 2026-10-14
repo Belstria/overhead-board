@@ -173,6 +173,10 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
+- **Runways in use** (Airport style, 1.20): worked out from the planes lined up with each runway; shown next to the
+  lists' title ("Landing 29 · departing 16") and lit on the radar. The Take-off and Landing pages show the plane on a
+  runway screen with how far it is to touchdown or how high it has climbed. Home airports other than Vienna need
+  relay 23.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker

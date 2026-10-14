@@ -100,6 +100,10 @@ top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft p
 statuses (`AP_ICON`) carry a plane pictogram in front of the word, in the flap tile and the app's chips (Dave's choice
 over a header sign, which was tried in 1.12.1).
 Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
+Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
+runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
+`rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),
+and the Take-off and Landing pages paint `paintRunwayScreen()` on the photo screen (the photo as an inset).
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
 cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are

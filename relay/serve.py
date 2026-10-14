@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 22
+RELAY_VERSION = 23
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -82,6 +82,7 @@ FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
 FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
 AIRPORTS_FILE = DATA_DIR / "airports.json"
+RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
 CITY_FIX = {"SAW": "Istanbul", "NCL": "Newcastle", "STN": "London", "LGW": "London", "LTN": "London", "BVA": "Paris",
             "CRL": "Brussels", "NYO": "Stockholm", "BGY": "Milan", "MXP": "Milan", "LIN": "Milan", "CIA": "Rome", "FCO": "Rome"}
 ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "LOWS", "INN": "LOWI", "KLU": "LOWK",
@@ -799,15 +800,55 @@ def airports_near(lat, lon, n=3):
     return {"status": "ok", "airports": [{"code": code, "icao": r[3], "name": r[4], "city": r[0], "km": round(d, 1)} for d, code, r in best]}
 
 
+_runways = {}                # ICAO -> [[ident, lat, lon, ident, lat, lon], ...] (hard-surfaced, open), fetched on demand
+
+
+def runways_of(icao):
+    """An airport's runways, ends with their position, from OurAirports (cached in data/runways-<icao>.json)."""
+    icao = (icao or "").upper()
+    if not icao:
+        return []
+    if icao in _runways:
+        return _runways[icao]
+    f = DATA_DIR / f"runways-{re.sub(r'[^A-Z0-9]', '', icao)}.json"
+    cached = _load(f, None)
+    if cached is not None:
+        _runways[icao] = cached
+        return cached
+    status, _, body, _ = fetch(RUNWAYS_CSV, timeout=60)
+    if status != 200:
+        return []
+    out = []
+    for r in csv.DictReader(io.StringIO(body.decode("utf-8", "replace"))):
+        if (r.get("airport_ident") or "").upper() != icao or r.get("closed") == "1":
+            continue
+        try:
+            ends = [r["le_ident"], round(float(r["le_latitude_deg"]), 5), round(float(r["le_longitude_deg"]), 5),
+                    r["he_ident"], round(float(r["he_latitude_deg"]), 5), round(float(r["he_longitude_deg"]), 5)]
+        except (KeyError, ValueError):
+            continue
+        if not re.match(r"^(ASP|CON|ASPH|CONC|PEM|BIT)", (r.get("surface") or "").upper()) and r.get("lighted") != "1":
+            continue
+        out.append(ends)
+    _runways[icao] = out
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        f.write_text(json.dumps(out), encoding="utf-8")
+    except OSError:
+        pass
+    return out
+
+
 def airport_info(code):
-    """One airport by its IATA code, for the board's airport mode (the home airport's position)."""
+    """One airport by its IATA code, for the board's airport mode: its position and (relay 23+) its runways."""
     db = _airports_ready()
     if db is None:
         return {"status": "loading"}
     r = (db.get("iata") or {}).get(code.upper())
     if not r:
         return {"status": "none"}
-    return {"status": "ok", "code": code.upper(), "icao": r[3], "name": r[4] if len(r) > 4 else "", "city": r[0], "lat": r[1], "lon": r[2]}
+    return {"status": "ok", "code": code.upper(), "icao": r[3], "name": r[4] if len(r) > 4 else "", "city": r[0], "lat": r[1], "lon": r[2],
+            "runways": runways_of(r[3])}
 
 
 def _fr24_lookup(cs, hx):
