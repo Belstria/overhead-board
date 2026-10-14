@@ -149,6 +149,15 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 /* each control sits in its own recessed cell, with its name engraved on a strip above it */
 .inst{grid-column:span var(--span,1);min-width:0;display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k));padding:calc(5px*var(--k)) calc(6px*var(--k)) calc(6px*var(--k));
   border-radius:calc(5px*var(--k));background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 calc(1px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.05)}
+.inst[data-hint]{position:relative}
+.inst[data-hint]::after{content:attr(data-hint);position:absolute;left:50%;bottom:calc(100% + 8px*var(--k));z-index:30;width:max-content;max-width:calc(240px*var(--k));padding:calc(7px*var(--k)) calc(10px*var(--k));border-radius:calc(6px*var(--k));background:rgba(12,13,15,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 calc(6px*var(--k)) calc(18px*var(--k)) rgba(0,0,0,.6);color:#e9e5da;font:500 calc(13px*var(--k))/1.35 var(--f-board);letter-spacing:0;text-transform:none;text-align:left;white-space:normal;pointer-events:none;opacity:0;transform:translate(-50%,calc(4px*var(--k)));transition:opacity .15s,transform .15s}
+.inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:1;transform:translate(-50%,0);transition-delay:.35s}
+@media (pointer:coarse){   /* a phone: inside the control's own cell (plates clip what sticks out), after a tap */
+  .inst[data-hint]::after{left:calc(6px*var(--k));right:calc(6px*var(--k));bottom:calc(6px*var(--k));width:auto;max-width:none;transform:none;text-align:center}
+  .inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:0}
+  .inst[data-hint].hinting::after{opacity:1;transition-delay:0s}
+  .inst[data-hint]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+}
 .inst>span{order:-1;align-self:stretch;padding:0 calc(2px*var(--k)) calc(5px*var(--k));border-bottom:1px solid rgba(214,208,194,.16);
   font:700 calc(11.5px*var(--k))/1.15 var(--f-board);letter-spacing:.09em;text-transform:uppercase;color:rgba(238,233,220,.9);text-align:center;text-shadow:0 -1px 0 rgba(0,0,0,.85)}
 .inst.wide{grid-column:1/-1;align-items:stretch}
@@ -3239,6 +3248,33 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["The name shown under the title.", "Der Name unter dem Titel.", "Le nom affiché sous le titre.", "El nombre que aparece bajo el título.", "De naam onder de titel."],
+  ["Airport code for the times and the Airport style, e.g. VIE.", "Flughafencode für die Zeiten und den Flughafen-Stil, z. B. VIE.", "Code de l'aéroport pour les horaires et le style Aéroport, p. ex. VIE.", "Código del aeropuerto para los horarios y el estilo Aeropuerto, p. ej. VIE.", "Luchthavencode voor de tijden en de luchthavenstijl, bv. VIE."],
+  ["Where to watch the sky. Use current location fills it in.", "Wo der Himmel beobachtet wird. „Aktuellen Standort verwenden“ füllt es aus.", "Où observer le ciel. « Utiliser la position actuelle » le remplit.", "Dónde mirar el cielo. «Usar la ubicación actual» lo rellena.", "Waar naar de lucht wordt gekeken. 'Huidige locatie gebruiken' vult het in."],
+  ["Planes within this distance count as spotted.", "Flugzeuge innerhalb dieser Entfernung zählen als gesichtet.", "Les avions dans ce rayon comptent comme repérés.", "Los aviones dentro de esta distancia cuentan como avistados.", "Vliegtuigen binnen deze afstand tellen als gespot."],
+  ["Closer than this counts as directly overhead.", "Näher als das zählt als direkt drüber.", "Plus près que cela, c'est juste au-dessus.", "Más cerca que esto cuenta como justo encima.", "Dichterbij dan dit telt als recht boven."],
+  ["Uses this device's location and suggests the nearest airport.", "Nimmt den Standort dieses Geräts und schlägt den nächsten Flughafen vor.", "Utilise la position de cet appareil et propose l'aéroport le plus proche.", "Usa la ubicación de este dispositivo y sugiere el aeropuerto más cercano.", "Gebruikt de locatie van dit apparaat en stelt de dichtstbijzijnde luchthaven voor."],
+  ["Planes higher than this are left out.", "Höhere Flugzeuge werden ausgelassen.", "Les avions plus hauts sont ignorés.", "Los aviones más altos se omiten.", "Hogere vliegtuigen worden weggelaten."],
+  ["How often new positions are fetched.", "Wie oft neue Positionen geholt werden.", "Fréquence de mise à jour des positions.", "Cada cuánto se actualizan las posiciones.", "Hoe vaak nieuwe posities worden opgehaald."],
+  ["How long a hovering helicopter or circling plane may stay on top, per hour.", "Wie lange ein schwebender Hubschrauber oder kreisendes Flugzeug pro Stunde oben bleiben darf.", "Combien de temps un hélicoptère en vol stationnaire ou un avion qui tourne peut rester en haut, par heure.", "Cuánto tiempo puede quedarse arriba, por hora, un helicóptero suspendido o un avión que da vueltas.", "Hoe lang een hangende helikopter of rondcirkelend vliegtuig per uur bovenaan mag blijven."],
+  ["Planes that match light up and get a chime.", "Passende Flugzeuge leuchten auf und bekommen einen Gong.", "Les avions correspondants s'allument et ont un carillon.", "Los aviones que coinciden se iluminan y suenan.", "Overeenkomende vliegtuigen lichten op en krijgen een gong."],
+  ["AUTO follows this device's language.", "AUTO folgt der Sprache dieses Geräts.", "AUTO suit la langue de cet appareil.", "AUTO sigue el idioma de este dispositivo.", "AUTO volgt de taal van dit apparaat."],
+  ["The board's colours and lettering.", "Farben und Schrift der Tafel.", "Les couleurs et la typographie du tableau.", "Los colores y la tipografía del panel.", "De kleuren en letters van het bord."],
+  ["Lower it if the board stutters on a TV.", "Niedriger stellen, wenn die Tafel auf einem Fernseher ruckelt.", "À baisser si le tableau saccade sur une télé.", "Bájala si el panel va a tirones en una tele.", "Lager zetten als het bord hapert op een tv."],
+  ["How long each page stays before the next one turns.", "Wie lange jede Seite bleibt, bevor die nächste umklappt.", "Durée d'affichage de chaque page avant la suivante.", "Cuánto dura cada página antes de pasar a la siguiente.", "Hoe lang elke pagina blijft voor de volgende omslaat."],
+  ["Metres and km/h, or feet and knots.", "Meter und km/h, oder Fuß und Knoten.", "Mètres et km/h, ou pieds et nœuds.", "Metros y km/h, o pies y nudos.", "Meters en km/u, of voet en knopen."],
+  ["Airline logos next to the airline name.", "Airline-Logos neben dem Namen.", "Logos des compagnies à côté de leur nom.", "Logos de las aerolíneas junto a su nombre.", "Logo's van luchtvaartmaatschappijen naast de naam."],
+  ["Slightly uneven modules and the odd hesitating flap, like a well-used board.", "Leicht unregelmäßige Module und ab und zu ein zögerndes Blatt, wie bei einer viel benutzten Tafel.", "Modules légèrement irréguliers et une palette qui hésite parfois, comme un tableau bien usé.", "Módulos algo irregulares y alguna paleta que duda, como un panel muy usado.", "Licht ongelijke modules en af en toe een aarzelende klep, als een veelgebruikt bord."],
+  ["Sample flights instead of live data.", "Beispielflüge statt Live-Daten.", "Vols d'exemple au lieu des données en direct.", "Vuelos de ejemplo en vez de datos en directo.", "Voorbeeldvluchten in plaats van live gegevens."],
+  ["How fast each flap turns.", "Wie schnell sich jedes Blatt dreht.", "Vitesse de rotation des palettes.", "La velocidad de giro de cada paleta.", "Hoe snel elke klep draait."],
+  ["Flaps blur through their letters and land in about 1.5 seconds.", "Die Blätter rauschen durch und stehen in etwa 1,5 Sekunden.", "Les palettes défilent et s'arrêtent en 1,5 seconde environ.", "Las paletas pasan rápido y se paran en unos 1,5 segundos.", "Kleppen razen erdoorheen en staan in ongeveer 1,5 seconde."],
+  ["The clatter of the flaps.", "Das Klappern der Blätter.", "Le cliquetis des palettes.", "El traqueteo de las paletas.", "Het geklapper van de kleppen."],
+  ["RECORDED real flaps and switches, or CLASSIC synthesised sounds.", "AUFNAHMEN echter Blätter und Schalter, oder KLASSISCH synthetische Klänge.", "ENREGISTRÉS : vraies palettes et interrupteurs, ou CLASSIQUE : sons synthétiques.", "GRABADOS: paletas e interruptores reales, o CLÁSICO: sonidos sintéticos.", "OPNAMEN van echte kleppen en schakelaars, of KLASSIEK: synthetische geluiden."],
+  ["A chime for special planes and favourites.", "Ein Gong bei besonderen Flugzeugen und Favoriten.", "Un carillon pour les avions spéciaux et les favoris.", "Un aviso para aviones especiales y favoritos.", "Een gong bij bijzondere vliegtuigen en favorieten."],
+  ["Dims and quiets the board at night.", "Dimmt die Tafel nachts und macht sie leise.", "Atténue le tableau et le rend silencieux la nuit.", "Atenúa y silencia el panel por la noche.", "Dimt het bord 's nachts en maakt het stil."],
+  ["When night mode starts.", "Wann der Nachtmodus beginnt.", "Début du mode nuit.", "Cuándo empieza el modo noche.", "Wanneer de nachtmodus begint."],
+  ["When night mode ends.", "Wann der Nachtmodus endet.", "Fin du mode nuit.", "Cuándo termina el modo noche.", "Wanneer de nachtmodus eindigt."],
+  ["How bright the board stays at night.", "Wie hell die Tafel nachts bleibt.", "Luminosité du tableau la nuit.", "Lo brillante que queda el panel por la noche.", "Hoe helder het bord 's nachts blijft."],
   ["Live · {n} aircraft nearby", "Live · {n} Flugzeuge in der Nähe", "En direct · {n} avions à proximité", "En directo · {n} aviones cerca", "Live · {n} vliegtuigen in de buurt"],
   ["Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", "Ringe alle 5 km · gestrichelt: der Sichtungsradius von {n} km · grün: direkt drüber", "Cercles tous les 5 km · en pointillé : le rayon de repérage de {n} km · vert : juste au-dessus", "Anillos cada 5 km · discontinuo: el radio de avistamiento de {n} km · verde: justo encima", "Ringen om de 5 km · gestippeld: de spotstraal van {n} km · groen: recht boven"],
   ["Turn the knobs and flip the switches, then press Save.", "Drehe die Knöpfe und lege die Schalter um, dann Speichern drücken.", "Tournez les boutons et basculez les interrupteurs, puis appuyez sur Enregistrer.", "Gira los mandos y acciona los interruptores, luego pulsa Guardar.", "Draai aan de knoppen en zet de schakelaars om, druk dan op Opslaan."],
@@ -3869,9 +3905,52 @@ function rotaryIndex(it){
   return best;
 }
 // One control in its cell. The name comes last in the markup and is shown above the control (CSS order).
+// What each setting does, shown above it on hover (or a tap on a phone).
+const HINTS = {
+  place: "The name shown under the title.",
+  home: "Airport code for the times and the Airport style, e.g. VIE.",
+  lat: "Where to watch the sky. Use current location fills it in.",
+  radiusKm: "Planes within this distance count as spotted.",
+  overKm: "Closer than this counts as directly overhead.",
+  locate: "Uses this device's location and suggests the nearest airport.",
+  maxAltFt: "Planes higher than this are left out.",
+  refreshS: "How often new positions are fetched.",
+  airtimeMin: "How long a hovering helicopter or circling plane may stay on top, per hour.",
+  favs: "Planes that match light up and get a chime.",
+  lang: "AUTO follows this device's language.",
+  theme: "The board's colours and lettering.",
+  quality: "Lower it if the board stutters on a TV.",
+  rotateS: "How long each page stays before the next one turns.",
+  units: "Metres and km/h, or feet and knots.",
+  logos: "Airline logos next to the airline name.",
+  imperfect: "Slightly uneven modules and the odd hesitating flap, like a well-used board.",
+  demo: "Sample flights instead of live data.",
+  speedPct: "How fast each flap turns.",
+  quick: "Flaps blur through their letters and land in about 1.5 seconds.",
+  sound: "The clatter of the flaps.",
+  soundSet: "RECORDED real flaps and switches, or CLASSIC synthesised sounds.",
+  chimes: "A chime for special planes and favourites.",
+  night: "Dims and quiets the board at night.",
+  nightFrom: "When night mode starts.",
+  nightTo: "When night mode ends.",
+  nightDim: "How bright the board stays at night.",
+  lon: "Where to watch the sky. Use current location fills it in.",
+};
+// On a phone a description shows while a control is held for a moment (a tap just works the control).
+(() => {
+  let t = 0, el = null;
+  const off = () => { clearTimeout(t); if (el) { const e = el; setTimeout(() => e.classList.remove("hinting"), 1400); el = null; } };
+  addEventListener("touchstart", e => {
+    const c = e.target.closest && e.target.closest(".inst[data-hint]");
+    off();
+    if (c) t = setTimeout(() => { el = c; c.classList.add("hinting"); }, 450);
+  }, {passive: true});
+  addEventListener("touchend", off, {passive: true});
+  addEventListener("touchmove", off, {passive: true});
+})();
 function itemHtml(it){
-  const cap = `<span>${escH(T(it.label))}</span>`;
-  const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}>${body}${cap}</div>`;
+  const cap = `<span>${escH(T(it.label))}</span>`, hint = HINTS[it.k || it.type];
+  const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
