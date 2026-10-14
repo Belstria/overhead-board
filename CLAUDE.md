@@ -108,6 +108,14 @@ Since 1.25 (relay 26) the tier goes by fleet size: `FLEET` (types in service wor
 the board, keep them equal. The keys stay `common/uncommon/rare/epic/legendary` (stored in sightings); shown as Common,
 Uncommon, Rare, Very rare, Special. A logbook scored under an older rule (`gameV` < `GAME_V`) is scored again from its
 saved days when loaded (`_rescore`).
+Spotter facts (1.27, relay 28): `seenText()` (relay `/seen?reg=`, from the logbook's `regs`: count, first, last and `prev`,
+the sighting before the last) and `toGoText()` fill the top half's `seen` and `toGo` flaps (row 3; in `TOP_IDS`) and
+the app's This aircraft facts; `skyCheck()` reads `/sky?code=` (the home airport's METAR: the lowest BKN/OVC/VV layer
+plus the airport's elevation, from the airport list's v3) every ten minutes and `featRemark` shows ABOVE CLOUD;
+`liveryLine()` (test-api only) puts Flightradar24's `painted_as` on the Operator line; the relay keeps lifetime
+`records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
+("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
+Flightradar24's credits this month and what it added (`fr24_admin_html`, `usage.found/wetLease/diverted`).
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),

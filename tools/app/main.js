@@ -511,12 +511,13 @@ function renderAircraftInfo(){
   setChars("naHex", feat.hex.toUpperCase(), 60);
   setChars("naFlight", info.flightNo || "", 120);
   setChars("naType", d.type || info.type || "", 180);
-  setChars("naOwner", d.owner || info.airline || "", 240);
+  setChars("naOwner", liveryLine(info) || d.owner || info.airline || "", 240);
   setChars("naCountry", d.country || "", 300);
   setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
   const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
-    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", d.owner || info.airline, true],
-    ["Registered in", "Land", d.country], ["Route", "", route]].filter(f => f[2]);
+    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
+    ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
+    ["Seen here", "", seenText(info.reg || d.reg || feat.o.ac.r || ""), true]].filter(f => f[2]);
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
@@ -651,7 +652,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -678,6 +679,15 @@ function renderLogbook(){
     html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
       (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
       `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
+  }
+  const r = b.records;
+  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
+    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+    const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
+      ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
+    const rec = `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, v]) => li(T(en), v(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
+    html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
   }
   $("lbLists").innerHTML = html;
 }

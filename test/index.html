@@ -346,7 +346,8 @@ const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
-  "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
+  "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
+  "ABOVE CLOUD"];
 // The airport statuses show a plane taking off or landing in front of the word (tile).
 const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "arr"};
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
@@ -367,7 +368,8 @@ const REMARK_LOOK = {
   EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
   "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
   APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
-  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"}
+  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
+  "ABOVE CLOUD":{fill:["#8796a8","#6e7c8e"], fg:"#ffffff"}
 };
 
 /* ---------- settings ---------- */
@@ -485,6 +487,8 @@ def("pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position",""]}
 def("depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def("arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def("airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
+def("toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
+def("seen",    {kind:"chars", n:20, dur:60, style:"amber", label:["Seen here",""]});
 for (let i = 0; i < LIST_ROWS; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null;
   def(`l${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time","Zeit")});
@@ -519,9 +523,9 @@ pdef("aircraft", "acOwner",   {kind:"chars", n:26, dur:70, label:["Operator","Be
 pdef("aircraft", "acCountry", {kind:"chars", n:14, dur:70, label:["Registered in","Registriert in"]});
 pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route","Route"]});
 // The top half's fields, shown whenever no view is open.
-const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
+const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime","toGo","seen"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], radar: [], settings: [], about: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], radar: [], settings: [], about: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -568,6 +572,11 @@ for (const t of CV_TIERS) {
   vdef("collection", `cvl_${t}`, {kind:"word", n:1, dur:90, words:"tier", loud:.3, label:[CV_TNAME[t], ""]});
   vdef("collection", `cvn_${t}`, {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70, loud:.5});
 }
+// Records & trophies (1.27): the logbook's lifetime records (relay 28).
+vdef("records", "rcClose", {kind:"chars", n:24, dur:60, label:["Closest ever", ""]});
+vdef("records", "rcLow",   {kind:"chars", n:24, dur:60, label:["Lowest ever", ""]});
+vdef("records", "rcFast",  {kind:"chars", n:24, dur:60, label:["Fastest ever", ""]});
+vdef("records", "rcFar",   {kind:"chars", n:24, dur:60, style:"amber", label:["Farthest route", ""]});
 for (let i = 0; i < CV_SETS; i++) {
   vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Collections", ""] : null});
   vdef("collection", `cs${i}n`,    {kind:"chars", n:7, dur:55, loud:.4});
@@ -608,7 +617,7 @@ function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
   placeRow(["type","tier","reg","alt","trend","speed","pos"], [.15, .65, .8, .3, .8, .8], Y.row2, MID, 1.45);
-  placeRow(["depTime","arrTime","airTime"], [2.6, 2.6], Y.row3, MID, 1.45);
+  placeRow(["depTime","arrTime","airTime","toGo","seen"], [2.6, 2.6, 2.6, 2.6], Y.row3, MID, 1.45);
   const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
   for (let i = 0; i < LIST_ROWS; i++) {
     fields[`l${i}logo`].hidden = !lg;
@@ -640,6 +649,8 @@ function layout(){
   placeRow(["cvPoints", "cvToday", "cvBest", "cvStreak"], [3, 3, 3], 300, IW / 40, 1.45);
   placeRow(CV_TIERS.flatMap(t => [`cvl_${t}`, `cvn_${t}`]), CV_TIERS.slice(1).flatMap(() => [.3, 2.4]).concat([.3]), 412, IW / 50, 1.45);
   for (let i = 0; i < CV_SETS; i++) placeRow([`cs${i}name`, `cs${i}n`], [.6], 500 + i * 44, IW / 67, 1.45);
+  placeRow(["rcClose", "rcLow"], [2], 300, IW / 50, 1.45);
+  placeRow(["rcFast", "rcFar"], [2], 374, IW / 50, 1.45);
   const als = IW / 66;
   for (let i = 0; i < 5; i++) for (const [k, x0] of [["d", M], ["a", M + 34 * als]])
     placeRow(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), [.6, .6, .6], Y.list0 + i * 44, als, 1.45, x0);
@@ -2281,12 +2292,60 @@ function renderTimes(){
 }
 
 /* ---------- what goes on the board ---------- */
+// How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
+// MONTHS when it had been away for two months or more. The count is the times before this pass.
+const seenCache = new Map();
+function seenText(reg){
+  reg = clean(reg).replace(/\s/g, "");
+  if (!reg || S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 28) return "";
+  let c = seenCache.get(reg);
+  if (!c || (!c.busy && Date.now() - c.t > 120000)) {
+    c = {t: Date.now(), busy: true, d: c && c.d};
+    seenCache.set(reg, c);
+    if (seenCache.size > 200) seenCache.delete(seenCache.keys().next().value);
+    fetchJSON(`${relay()}/seen?reg=${encodeURIComponent(reg)}`, {}, 8000).then(d => {
+      c.d = d; c.t = Date.now(); c.busy = false;
+      if (feat && clean((feat.info || {}).reg || feat.o.ac.r || "").replace(/\s/g, "") === reg) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
+    }).catch(() => { c.busy = false; });
+  }
+  const d = c.d;
+  if (!d) return "";
+  const now = Date.now(), thisPass = d.last && now - d.last < SAME_PASS_MS;
+  const before = Math.max(0, (d.count || 0) - (thisPass ? 1 : 0)), last = thisPass ? d.prev : d.last;
+  if (!before) return T("FIRST TIME EVER");
+  const months = last ? Math.floor((now - last) / (30.44 * 86400e3)) : 0;
+  if (months >= 2) return T("BACK AFTER {n} MONTHS", {n: months});
+  return before === 1 ? T("SEEN ONCE") : T("SEEN {n} TIMES", {n: nf.format(before)});
+}
+// How far the plane still has to fly, by great circle to its destination (only routes with the airport's position).
+function toGoText(info, o){
+  const to = info && info.to;
+  if (!to || to.lat == null || to.lon == null || !o || o.ac.lat == null) return "";
+  const km = gcKm(o.ac.lat, o.ac.lon, +to.lat, +to.lon);
+  return km >= 20 ? nf.format(Math.round(km / 10) * 10) + " KM" : "";
+}
+// The cloud base at the home airport (relay 28, /sky, from its METAR), read every ten minutes: a plane above it is
+// heard rather than seen, and the status says ABOVE CLOUD in turn with the rest.
+let sky = null, skyAt = 0;
+function skyCheck(){
+  const code = clean(S.home).slice(0, 3);
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 28 || code.length !== 3) return;
+  if (sky && sky.code === code && Date.now() - skyAt < 10 * 60000) return;
+  if (Date.now() - skyAt < 60000) return;
+  skyAt = Date.now();
+  fetchJSON(`${relay()}/sky?code=${code}`, {}, 8000).then(j => {
+    sky = j && j.status === "ok" ? {...j, code} : {code};
+    if (sky.ceiling != null) dlog("debug", `Cloud base at ${j.icao}: ${nf.format(sky.ceiling)} ft above sea level`);
+  }).catch(() => {});
+}
+const aboveCloud = alt => !!(sky && sky.ceiling != null && alt != null && alt > sky.ceiling + 200);
 const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
+    if (fields.seen) { setChars("seen", ""); setChars("toGo", ""); }
     setWord("airline", ""); setWord("trend", ""); setWord("tier", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     renderTimes();
     return;
@@ -2306,6 +2365,7 @@ function renderFeatured(){
       feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
+  if (fields.seen) { setChars("seen", seenText(info.reg || ac.r || ""), 520); setChars("toGo", toGoText(info, o), 510); }
   setChars("alt", feat.live[0], 380);
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
@@ -2314,7 +2374,9 @@ function renderFeatured(){
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
-  const mode = feat.apSt || MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  const mode = feat.apSt || MODE_REMARK[feat.mode];
+  let badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  if (!badge && !feat.apSt && (feat.mode === "over" || feat.mode === "soon") && aboveCloud(feat.o && feat.o.alt)) badge = "ABOVE CLOUD";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
 }
 /* Recent flights: the planes that were on the top half, newest first, kept per screen until the day ends. */
@@ -2688,7 +2750,7 @@ const API_NOTE = () => "";
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -2734,7 +2796,7 @@ function switchView(next, opts = {}){
   try { history.replaceState(null, "", location.pathname + location.search + (view ? "#" + view : "")); } catch {}
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
-  else if (view === "logbook" || view === "collection") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
+  else if (view === "logbook" || view === "collection" || view === "records") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
   viewLanded();
   placePhoto();
   dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
@@ -2750,6 +2812,7 @@ function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
   else if (view === "collection") renderCollection();
+  else if (view === "records") renderRecords();
   else if (view === "radar") renderRadarList();
 }
 setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
@@ -2758,6 +2821,7 @@ function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
   if (view === "logbook") return logbookSummary();
   if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
+  if (view === "records") { const b = lbData(); return T("The logbook's records since {d}: the closest, lowest and fastest pass, and the route from farthest away.", {d: b && b.since ? fmtDay(Date.parse(b.since)) : "-"}); }
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
   if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
   if (view === "about") return T("Version {v} · what changed in each version, the keys, and who made it", {v: VERSION});
@@ -2903,6 +2967,7 @@ function legendGroups(){
       ["OUTBOUND", T("Moving away")],
       ["PASSED", T("Just passed overhead")],
       ["NO TRAFFIC", T("No planes around right now")],
+      ["ABOVE CLOUD", T("Above the cloud base at {home}: you'll hear it rather than see it", {home})],
       ["OFFLINE", T("No flight data for over a minute")]]],
     [T("Route"), [
       ["ARRIVING", T("Flying to {home}", {home})],
@@ -2972,10 +3037,10 @@ function drawLegend(g){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
-  if (view === "logbook" || view === "collection") {
-    const to = view === "logbook" ? "collection" : "logbook";
-    box.innerHTML = `<button class="cap small" type="button">${T(to === "collection" ? "Collection" : "Logbook")}</button>`;
-    box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(to); };
+  if (view === "logbook" || view === "collection" || view === "records") {
+    const to = ["logbook", "collection", "records"].filter(v => v !== view);
+    box.innerHTML = to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records"}[v])}</button>`).join("");
+    for (const b of box.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(b.dataset.v); };
     box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
     return true;
   }
@@ -3007,6 +3072,18 @@ function updateViewTools(){
   }
 }
 
+
+/* ---------- the Records & trophies view ---------- */
+function renderRecords(){
+  if (view !== "records") return;
+  const r = (lbData() || {}).records || {};
+  const who = x => x.callsign || x.reg || x.type || "";
+  setChars("rcClose", r.closest ? `${who(r.closest)} - ${r.closest.v < 10 ? r.closest.v.toFixed(2) : Math.round(r.closest.v)} KM` : "-");
+  setChars("rcLow", r.lowest ? `${who(r.lowest)} - ${altitudeStr(r.lowest.v)}` : "-", 60);
+  setChars("rcFast", r.fastest ? `${who(r.fastest)} - ${speedStr(r.fastest.v)}` : "-", 120);
+  const p = r.farthest && r.farthest.place;
+  setChars("rcFar", r.farthest ? `${who(r.farthest)} - ${p ? p.code || p.city : ""} ${nf.format(r.farthest.v)} KM` : "-", 180);
+}
 
 /* ---------- the Collection view ---------- */
 const game = () => (lbData() || {}).game || null;
@@ -3068,7 +3145,7 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
   }
-  renderLogbookBoard(); renderCollection();
+  renderLogbookBoard(); renderCollection(); renderRecords();
   if (feat && !view) setWord("tier", tierOf(feat.o.ac, feat.info));      // the tier needs the logbook
   const g0 = game(), gs = g0 ? `${g0.today}|${g0.best && g0.best.points}` : "";
   if (gs !== gameSig) { gameSig = gs; if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic(); }
@@ -3368,7 +3445,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || (view === "about" && b.dataset.view === "settings")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || (view === "about" && b.dataset.view === "settings") || ((view === "collection" || view === "records") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -3449,6 +3526,22 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Seen here", "Hier gesehen", "Vu ici", "Visto aquí", "Hier gezien"],
+  ["To go", "Noch", "Reste", "Faltan", "Nog"],
+  ["FIRST TIME EVER", "ZUM ERSTEN MAL", "PREMIÈRE FOIS", "PRIMERA VEZ", "VOOR HET EERST"],
+  ["SEEN {n} TIMES", "{n} MAL GESEHEN", "VU {n} FOIS", "VISTO {n} VECES", "{n} KEER GEZIEN"],
+  ["SEEN ONCE", "EINMAL GESEHEN", "VU UNE FOIS", "VISTO UNA VEZ", "EEN KEER GEZIEN"],
+  ["BACK AFTER {n} MONTHS", "ZURÜCK NACH {n} MON.", "REVU APRÈS {n} MOIS", "VUELVE TRAS {n} MESES", "TERUG NA {n} MAANDEN"],
+  ["{op} · PAINTED AS {a}", "{op} · IN {a}-FARBEN", "{op} · COULEURS {a}", "{op} · COLORES DE {a}", "{op} · IN {a}-KLEUREN"],
+  ["ABOVE CLOUD", "ÜBER DEN WOLKEN", "AU-DESSUS DES NUAGES", "SOBRE LAS NUBES", "BOVEN DE WOLKEN"],
+  ["Above the cloud base at {home}: you'll hear it rather than see it", "Über der Wolkenuntergrenze in {home}: eher zu hören als zu sehen", "Au-dessus de la base des nuages à {home} : on l'entend plus qu'on ne le voit", "Por encima de la base de nubes en {home}: se oye más que se ve", "Boven de wolkenbasis bij {home}: eerder te horen dan te zien"],
+  ["Records & trophies", "Rekorde & Trophäen", "Records et trophées", "Récords y trofeos", "Records en trofeeën"],
+  ["Records", "Rekorde", "Records", "Récords", "Records"],
+  ["Closest ever", "Am nächsten", "Le plus proche", "El más cercano", "Dichtstbij ooit"],
+  ["Lowest ever", "Am tiefsten", "Le plus bas", "El más bajo", "Laagste ooit"],
+  ["Fastest ever", "Am schnellsten", "Le plus rapide", "El más rápido", "Snelste ooit"],
+  ["Farthest route", "Weiteste Strecke", "Route la plus lointaine", "Ruta más lejana", "Verste route"],
+  ["The logbook's records since {d}: the closest, lowest and fastest pass, and the route from farthest away.", "Die Rekorde des Logbuchs seit {d}: der nächste, tiefste und schnellste Überflug und die Strecke von am weitesten weg.", "Les records du carnet depuis le {d} : le passage le plus proche, le plus bas et le plus rapide, et la route venue de plus loin.", "Los récords del registro desde el {d}: el paso más cercano, el más bajo y el más rápido, y la ruta desde más lejos.", "De records van het logboek sinds {d}: de dichtstbijzijnde, laagste en snelste passage, en de route van het verst weg."],
   ["London", "London", "Londres", "Londres", "Londen"],
   ["A board for {name}", "Eine Tafel für {name}", "Un tableau pour {name}", "Un panel para {name}", "Een bord voor {name}"],
   ["Tap to open", "Zum Öffnen tippen", "Touchez pour ouvrir", "Toca para abrir", "Tik om te openen"],
@@ -4112,6 +4205,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.27", date: "2026-10-15", notes: [
+    "The plane on the board says how often it was seen here (first time ever, seen 4 times, back after 7 months) and how far it still has to go.",
+    "ABOVE CLOUD in the status when a plane passes over the cloud base, from the airport's weather.",
+    "Records & trophies, from the Logbook: the closest, lowest and fastest pass ever, and the route from farthest away."]},
   {v: "1.26", date: "2026-10-14", notes: [
     "Take-off and Landing show the plane's photo full size while it is far out, with a countdown for landings; close in, the photo slides into the corner and the radar shows the runways up close."]},
   {v: "1.25.2", date: "2026-10-14", notes: [
@@ -4792,7 +4889,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
