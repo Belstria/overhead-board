@@ -21,7 +21,8 @@ someone would notice.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
   "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
-  short, for Dave, in plain words. Settings → About shows them; the relay (17+) adds the publish time
+  short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
+  versions (guests read them too; the history was rewritten that way on 14 Oct 2026). Settings → About shows them; the relay (17+) adds the publish time
   (`window.OVERHEAD_PAGE_DATE`).
 - **Every visible text goes through `T()`** (test boards and app): `T("English text", {vars})`, with `{name}`
   placeholders. Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row

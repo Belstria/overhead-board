@@ -3459,114 +3459,90 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.18.2", date: "2026-10-14", notes: [
+    "Settings: a short description for every control (hover, or press and hold on a phone).",
+    "Radar: labels no longer overlap or get cut off."]},
   {v: "1.18.1", date: "2026-10-14", notes: [
-    "The knobs feel stiffer: they resist, then snap into place, and their click is crisper (less hollow) and lands on the snap.",
-    "The flaps sound a touch higher and a little more like a board in a big hall."]},
+    "Stiffer knobs with a crisper click.",
+    "Flaps sound a little higher, with more echo."]},
   {v: "1.18", date: "2026-10-14", notes: [
-    "A cleaner look: a quiet \"Live\" instead of the long status line (the details show when something is wrong, and in Diagnostics), shorter lines under the titles, slightly brighter small print and bigger button labels, and the Fallblatt name in the footer.",
-    "Radar: plane labels make way for each other and stay inside the scope; the runway is drawn more quietly.",
-    "Settings: the plates are rebalanced (Display, and a new Flaps & sound plate) with shorter help text.",
-    "Phone app: icons on the tab buttons, the Save bar only appears once something has changed, and evener spacing."]},
+    "A cleaner look: a quieter status line, shorter texts, clearer radar labels.",
+    "Settings rearranged; icons on the phone app's tabs."]},
   {v: "1.17", date: "2026-10-14", notes: [
-    "New sounds, recorded from the real things: a split-flap module for the flaps, a rotary switch, a rocker switch, a thumbwheel and a push button for the controls. Several takes of each, so repeats don't sound copied.",
-    "Settings → Sounds: CLASSIC brings back the old synthesised sounds. The recordings are credited in About."]},
+    "Recorded sounds for the flaps and controls (Settings → Sounds: CLASSIC for the old ones)."]},
   {v: "1.16", date: "2026-10-13", notes: [
-    "The app is called Fallblatt now (Overhead and Airport stay the names of its two styles).",
-    "A guest's welcome flips in on split flaps: \"HI ALINA!\", the exclamation mark last, coasting to a stop.",
-    "After choosing their place, a guest picks the phone app or the full board; guests have their own settings on the board too.",
-    "Guests can sign out of a device (About), and a browser that opens a new link starts with a clean profile."]},
+    "New name: Fallblatt.",
+    "A split-flap welcome for guests, who choose the phone app or the full board.",
+    "Sign out of a device in About."]},
   {v: "1.15", date: "2026-10-13", notes: [
-    "Friends and family: Dave can send personal invite links. Opening one sets up that phone with its own profile: its own location, Spotted today and logbook. Guests start with a short welcome that asks where to watch the sky.",
-    "Settings of a guest are kept with their profile, so a new device picks them up."]},
+    "Invite friends and family with personal links, each with their own profile."]},
   {v: "1.14", date: "2026-10-12", notes: [
-    "Quick flaps (Settings → Display): every flap still turns through its letters, but as a blur, and lands on the new text in about 1.5 seconds.",
-    "Phone app on its side: the clock's last digit is no longer cut off at the screen's rounded corner."]},
+    "Quick flaps: new text lands in about 1.5 seconds."]},
   {v: "1.13.3.1", date: "2026-10-12", notes: [
-    "Android app: the screen stays on as long as the app is open, upright or on its side, charging or not (needs the new Android app)."]},
+    "Android: the screen stays on while the app is open."]},
   {v: "1.13.3", date: "2026-10-12", notes: [
-    "Phone app on its side: only the board, full screen and as big as the screen allows. The page buttons sit in the title strip, there are no tab buttons, and the status line only pops up when something is wrong.",
-    "Android app: on its side it fills the screen under the camera too, instead of leaving a dark band (needs the new Android app)."]},
+    "Phone on its side: the board alone, full screen."]},
   {v: "1.13.2", date: "2026-10-12", notes: [
-    "Phone app on its side: laid out like the board. The plane's flaps run across the top, and under them one page at a time on flaps too (Recent flights or Take-offs & landings, This aircraft), picked with lamp buttons and turning by itself."]},
+    "Phone on its side: laid out like the board, on flaps."]},
   {v: "1.13.1.2", date: "2026-10-12", notes: [
-    "Phone app: coming back to it after a while no longer leaves a black screen (needs the new Android app); the page also redraws itself when shown again."]},
+    "Phone app: no more black screen when coming back to it."]},
   {v: "1.13.1.1", date: "2026-10-12", notes: [
-    "Sounds on headphones: the clicks no longer have a dull, fake hum under them, start without a pop, sit in a small room instead of bone-dry, and can't distort when several play at once.",
-    "The hiss on top of the clicks is gone too (phone and TV speakers never played it), so they sound more like on a speaker."]},
+    "Sounds better on headphones."]},
   {v: "1.13.1", date: "2026-10-12", notes: [
-    "The title reads Overhead / Airport again, plainly: the style showing bright, the other dimmed, a slash between them."]},
+    "Simpler Overhead / Airport switch in the title."]},
   {v: "1.13", date: "2026-10-12", notes: [
-    "Phone on its side: the app has its own landscape layout (the plane's flaps on the left, the rest on the right, the buttons along the edge) instead of switching to the big board.",
-    "Overhead and Airport look like a switch now: the style showing sits on a lit plate.",
-    "Page buttons always work: a page with no plane to show opens empty and says so.",
-    "The knobs click a little higher."]},
+    "A landscape layout for the phone app.",
+    "Page buttons always work, even with nothing to show."]},
   {v: "1.12.2", date: "2026-10-12", notes: [
-    "Airport style: the status flap shows a plane taking off or landing in front of the word, instead of the sign in the header.",
-    "Take-off comes before Landing on the page buttons, as in Take-offs & landings.",
-    "The lamp buttons click when pressed.",
-    "Phone on its side: the board fills the width; tap for the title, the clock and the buttons.",
-    "Phone: the legend in About reads properly on small screens."]},
+    "Airport style: take-off and landing pictograms on the status flap.",
+    "Buttons click when pressed."]},
   {v: "1.12.1", date: "2026-10-12", notes: [
-    "Airport style: a lit sign in the header says whether the plane on top is TAKING OFF (amber) or LANDING (green).",
-    "The airport style keeps the pages layout; the screens layout and its setting are gone."]},
+    "Airport style: clearer take-off and landing status."]},
   {v: "1.12", date: "2026-10-12", notes: [
-    "Languages: English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). The German second line under every label is gone; everything is in the one language now, the status words on the flaps too."]},
+    "Five languages: English, German, French, Spanish and Dutch."]},
   {v: "1.11", date: "2026-10-12", notes: [
-    "Airport style, two layouts to compare (Settings → Airport layout): PAGES puts the plane landing or taking off now on top, like the overhead board, with pages below for the take-offs and landings, the landing plane and the departing plane. SCREENS keeps the full-screen lists and adds a Landing and a Take-off screen, each with the plane on top and its photo and details below."]},
+    "Airport style: the plane taking off or landing on top, lists below."]},
   {v: "1.10.1", date: "2026-10-12", notes: [
-    "Overhead and Airport sit side by side in the title: tap one to switch (it left Settings).",
-    "The legend moved from Spotted today to About.",
-    "Knobs and flip switches have their realistic sounds again."]},
+    "Overhead and Airport switch in the title.",
+    "The legend moved to About."]},
   {v: "1.10", date: "2026-10-12", notes: [
-    "Airport mode (Settings → Board): for watching from the airport, the planes taking off from the home airport on top and the ones coming in to land below, with their flight, destination or origin, aircraft, height and time (relay 18 for airports other than Vienna)."]},
+    "Airport style: take-offs and landings at your home airport."]},
   {v: "1.9", date: "2026-10-12", notes: [
-    "Phone on its side: the Android app shows the full board, full screen and with the app's settings, and keeps the screen on while charging. Upright again, the phone page is back.",
-    "In a phone's browser, turning the phone switches between the phone page and the board too."]},
+    "Phone on its side: the full board."]},
   {v: "1.8.1", date: "2026-10-12", notes: [
-    "Settings: the screen name and the Aircraft photo setting are gone; the photo always sits on its screen."]},
+    "Fewer settings: the photo always has its screen."]},
   {v: "1.8", date: "2026-10-12", notes: [
-    "About: patch notes, the keys and general information, behind a new About button in Settings.",
-    "Version numbers count features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1)."]},
+    "About: patch notes, keys and information."]},
   {v: "1.7.2", date: "2026-10-12", notes: [
-    "Settings shows the version and when it was published (relay 17)."]},
+    "Settings shows the version."]},
   {v: "1.7.1", date: "2026-10-12", notes: [
-    "Knobs and flip switches click like they used to."]},
+    "Knob and switch sounds restored."]},
   {v: "1.7", date: "2026-10-11", notes: [
-    "Settings → Use current location fills in where you are and offers the nearest airport as home airport (relay 16).",
-    "Every control in Settings sits in its own cell with its name above it.",
-    "Sounds for knobs, switches, thumbwheels and buttons; the flip switches are aircraft toggles now."]},
+    "Use current location, with the nearest airport.",
+    "Clearer Settings, with sounds for every control."]},
   {v: "1.6", date: "2026-10-11", notes: [
-    "The Fallblatt app for Android: the phone page as an app that finds the relay on the Wi-Fi by itself (relay 15)."]},
+    "An Android app."]},
   {v: "1.5.0.1", date: "2026-10-11", notes: [
-    "Phone: Save and Cancel in Settings work."]},
+    "Phone: Save and Cancel work."]},
   {v: "1.5", date: "2026-10-11", notes: [
-    "The phone page at /app/: the board laid out for a phone held upright (relay 13).",
-    "The main board gets real flight numbers and routes from Flightradar24."]},
+    "A phone app.",
+    "Real flight numbers and routes where available."]},
   {v: "1.4", date: "2026-10-10", notes: [
-    "Spotted today, Logbook, Radar and Settings open on the board itself, from a rail of lamp buttons.",
-    "The aircraft's photo on a small screen set into the board.",
-    "Planned and expected times from Vienna Airport, and an estimated arrival.",
-    "Special planes take over the board; lighter drawing for TVs (relay 11).",
-    "The relay lists the screens using it (relay 12)."]},
+    "Spotted today, Logbook, Radar and Settings on the board.",
+    "Aircraft photos and airport times."]},
   {v: "1.3", date: "2026-10-09", notes: [
-    "Real flight numbers and routes from Flightradar24 on the test-api board (relay 8).",
-    "The whole day's numbers, recent flights, logbook categories and most seen model, a legend for the remarks.",
-    "A limit for planes that hover around for a long time (relay 10)."]},
+    "Today's numbers, logbook categories and a legend."]},
   {v: "1.2.0.1", date: "2026-10-09", notes: [
-    "A route only shows when the plane is actually flying it."]},
+    "Routes only show when the plane is really flying them."]},
   {v: "1.2", date: "2026-10-09", notes: [
-    "Rotating pages, turned by one giant falling flap.",
-    "Special aircraft and favourites, Spotted today, a lifetime logbook and a radar.",
-    "Board styles and night mode.",
-    "The relay keeps the shared history (relay 5) and picks up a new board within a minute (relay 6)."]},
+    "Rotating pages, special planes, Spotted today, a logbook and a radar.",
+    "Board styles and night mode."]},
   {v: "1.1", date: "2026-10-09", notes: [
-    "A new look: a metal housing, more realistic flaps, sharper drawing up to 4K, and a flap speed setting."]},
+    "A new look: metal housing, more realistic flaps, sharper drawing."]},
   {v: "1.0.0.1", date: "2026-10-08", notes: [
-    "No more repeat sightings, and the board no longer flips the same plane again."]},
+    "No more repeated sightings."]},
   {v: "1.0", date: "2026-10-08", notes: [
-    "The board: the plane overhead on split flaps, with flight, airline, route, aircraft, altitude and speed.",
-    "Whether it will pass overhead, fly by or move away, and whether it climbs or descends.",
-    "Live positions through a relay at home, a connection log, metric units and flap sound."]}];
+    "The first board: the plane overhead on split flaps."]}];
 const VERSION = CHANGELOG[0].v;
 const fmtVerDate = d => new Date(d + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"});
 function publishedText(){
