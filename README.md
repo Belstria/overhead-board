@@ -208,6 +208,7 @@ The logbook and a Spotted today list shared by every screen need relay version 5
 ## Phone app
 
 `/app/` is the board laid out for a phone held upright, with the same flaps, metal, push buttons and engraving.
+It opens with the logo, whose plane takes off into the board (not again on a reload within a minute).
 
 **On Android**, install the Fallblatt app: on the phone, download
 [overhead.apk](https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk) and open it (Android
@@ -325,8 +326,9 @@ window and appear in the board's diagnostics panel.
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it sets up
 that phone or computer (it works once, on the first device that opens it, within two weeks; for another device press
-**New link**). They get a short welcome: a tap opens it (browsers only play sound after a tap) and their name flips
-in letter by letter, with sound. They then type in their place, airport and coordinates, or let **Use my location**
+**New link**). They get a short welcome: its flaps show Fallblatt until a tap opens it (browsers only play sound after a
+tap), then turn to their name letter by letter, with sound. They then type in their place, airport and coordinates
+(the fields show an example), or let **Use my location**
 fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
 settings follow them between the two and to other devices. About → **Sign out of this device** forgets a device again

@@ -3432,12 +3432,13 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["London", "London", "Londres", "Londres", "Londen"],
   ["A board for {name}", "Eine Tafel für {name}", "Un tableau pour {name}", "Un panel para {name}", "Een bord voor {name}"],
   ["Tap to open", "Zum Öffnen tippen", "Touchez pour ouvrir", "Toca para abrir", "Tik om te openen"],
   ["Where should it watch the sky? Use your location, or type it in.", "Wo soll es den Himmel beobachten? Nimm deinen Standort oder tippe ihn ein.", "Où doit-il observer le ciel ? Utilisez votre position ou saisissez-la.", "¿Dónde debe mirar el cielo? Usa tu ubicación o escríbela.", "Waar moet het naar de lucht kijken? Gebruik je locatie of typ hem in."],
   ["Continue", "Weiter", "Continuer", "Continuar", "Verder"],
   ["Check it, then Continue.", "Prüfe es, dann Weiter.", "Vérifiez, puis Continuer.", "Compruébalo y pulsa Continuar.", "Controleer het en druk op Verder."],
-  ["Latitude and longitude please, e.g. 48.2085 and 16.3731.", "Bitte Breiten- und Längengrad, z. B. 48.2085 und 16.3731.", "La latitude et la longitude, p. ex. 48.2085 et 16.3731.", "Latitud y longitud, p. ej. 48.2085 y 16.3731.", "Breedte- en lengtegraad graag, bv. 48.2085 en 16.3731."],
+  ["Latitude and longitude please, e.g. 51.5072 and -0.1276.", "Bitte Breiten- und Längengrad, z. B. 51.5072 und -0.1276.", "La latitude et la longitude, p. ex. 51.5072 et -0.1276.", "Latitud y longitud, p. ej. 51.5072 y -0.1276.", "Breedte- en lengtegraad graag, bv. 51.5072 en -0.1276."],
   ["Get notifications?", "Benachrichtigungen erhalten?", "Recevoir des notifications ?", "¿Recibir notificaciones?", "Meldingen ontvangen?"],
   ["Yes, turn them on", "Ja, einschalten", "Oui, activer", "Sí, activarlas", "Ja, aanzetten"],
   ["Not now", "Jetzt nicht", "Pas maintenant", "Ahora no", "Nu niet"],
@@ -4065,6 +4066,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.23.1", date: "2026-10-14", notes: [
+    "The app opens with the logo, and its plane takes off into the board.",
+    "The welcome shows Fallblatt on its flaps until it is opened, glides from step to step, and shows examples in the fields."]},
   {v: "1.23", date: "2026-10-14", notes: [
     "A new welcome: tap to open, the name flips in letter by letter with sound, the location by hand or automatically, and notifications to turn on.",
     "Turning on notifications works the first time."]},

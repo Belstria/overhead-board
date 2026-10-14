@@ -169,7 +169,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   board" choice; a board sends a guest without `located` to the app's welcome), per-guest storage keys
   (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
   (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
-  address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place.
+  address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place. The app opens with `#splash` (head.html; `splashGo()` once the board is ready).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only). `_push_watch`
