@@ -1380,7 +1380,8 @@ document.addEventListener("visibilitychange", () => {
   poll(true); if (relayV5()) syncSightings();
   if (tab === "logbook") fetchLogbook();
 });
-["pointerdown", "touchstart", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
+// iPhones allow sound only from a tap as the finger lifts (touchend, click), not as it lands.
+["pointerdown", "touchstart", "touchend", "click", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
