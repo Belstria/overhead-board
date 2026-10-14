@@ -687,9 +687,10 @@ function drawRadar(t){
   g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
   g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const ringTags = [];
   for (let r = 5; r <= range; r += 5) {
     g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + Math.sin(.42) * r * k + 4, cy - Math.cos(.42) * r * k + 11);
+    if (r * k < R - 6) ringTags.push({text: `${r} km`, x: cx + Math.sin(.42) * r * k + 4, y: cy - Math.cos(.42) * r * k + 11});
   }
   g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
@@ -698,8 +699,8 @@ function drawRadar(t){
     g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 2.2;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)";
-    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
+    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3; g.lineJoin = "round";
+    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.strokeText(S.home, ax + 10, ay + 16); g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
     g.lineCap = "butt";
   } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
@@ -719,7 +720,9 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
-  radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, radar.apBox ? [radar.apBox] : []);
+  const centre = {x: cx - 12, y: cy - 12, w: 24, h: 24}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
+    return {x: cx + Math.sin(a) * (R - 12) - 10, y: cy - Math.cos(a) * (R - 12) - 10, w: 20, h: 20}; });   // N E S W stay readable
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 10.5);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass

@@ -2947,7 +2947,7 @@ function renderLogbookBoard(){
    listed on flaps next to it. */
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
-const RADAR_GEO = {cx: M + 26 + 330, cy: 606, R: 330};
+const RADAR_GEO = {cx: M + 26 + 330, cy: 628, R: 304};     // its rim clear of the subtitle above and the rail below
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
   radar.planes = all; radar.at = now;
@@ -3019,6 +3019,7 @@ function radarColor(o){
 // plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
 function radarLabels(g, shown, cx, cy, R, f, taken = []){
   const boxes = [...taken], out = [];
+  let placed;
   const nameOf = o => { const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
     return (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase(); };
   for (const s of shown.filter(s => s.o.kind).sort((a, b) => a.o.dist - b.o.dist)) {
@@ -3033,10 +3034,22 @@ function radarLabels(g, shown, cx, cy, R, f, taken = []){
       break;
     }
   }
+  placed = boxes;
   g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.lineJoin = "round"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = Math.max(2.5, f.name * .22);   // a dark halo: legible over trails
   for (const {s, x, y, name, alt} of out) {
-    g.font = `700 ${f.name}px ${FONT}`; g.fillStyle = COL.ink; g.fillText(name, x, y + f.name - 1);
-    g.font = `500 ${f.alt}px ${FONT}`; g.fillStyle = s.col; g.fillText(alt, x, y + f.name + f.alt + 1);
+    g.font = `700 ${f.name}px ${FONT}`; g.strokeText(name, x, y + f.name - 1); g.fillStyle = COL.ink; g.fillText(name, x, y + f.name - 1);
+    g.font = `500 ${f.alt}px ${FONT}`; g.strokeText(alt, x, y + f.name + f.alt + 1); g.fillStyle = s.col; g.fillText(alt, x, y + f.name + f.alt + 1);
+  }
+  return placed;
+}
+// The ring distances ("10 km"), quietly, wherever no plane label is.
+function ringLabels(g, tags, boxes, size){
+  g.font = `600 ${size}px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = "rgba(255,255,255,.32)";
+  for (const t of tags) {
+    const w = g.measureText(t.text).width, b = {x: t.x - 2, y: t.y - size, w: w + 4, h: size + 4};
+    if (boxes.some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h)) continue;
+    g.fillText(t.text, t.x, t.y);
   }
 }
 function drawRadar(t){
@@ -3056,9 +3069,10 @@ function drawRadar(t){
   g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
   g.font = `600 16px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const ringTags = [];
   for (let r = 5; r <= range; r += 5) {
     g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.2; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    g.fillStyle = "rgba(255,255,255,.32)"; g.fillText(`${r} km`, cx + Math.sin(.42) * r * k + 6, cy - Math.cos(.42) * r * k + 16);
+    if (r * k < R - 6) ringTags.push({text: `${r} km`, x: cx + Math.sin(.42) * r * k + 6, y: cy - Math.cos(.42) * r * k + 16});
   }
   g.setLineDash([12, 9]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 2;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
@@ -3067,8 +3081,8 @@ function drawRadar(t){
     g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 3;
     for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 16px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)";
-    if (Math.hypot(ax - cx, ay - cy) < R - 40) { g.fillText(S.home, ax + 16, ay + 24); radar.apBox = {x: ax + 14, y: ay + 8, w: 46, h: 22}; } else radar.apBox = null;
+    g.font = `700 16px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3.5; g.lineJoin = "round";
+    if (Math.hypot(ax - cx, ay - cy) < R - 40) { g.strokeText(S.home, ax + 16, ay + 24); g.fillText(S.home, ax + 16, ay + 24); radar.apBox = {x: ax + 14, y: ay + 8, w: 46, h: 22}; } else radar.apBox = null;
     g.lineCap = "butt";
   } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
@@ -3088,7 +3102,9 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
-  radarLabels(g, shown, cx, cy, R, {name: 16, alt: 14, gap: 18}, radar.apBox ? [radar.apBox] : []);
+  const centre = {x: cx - 18, y: cy - 18, w: 36, h: 36}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
+    return {x: cx + Math.sin(a) * (R - 18) - 14, y: cy - Math.cos(a) * (R - 18) - 14, w: 28, h: 28}; });   // N E S W stay readable
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 16, alt: 14, gap: 18}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 16);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const glass = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
