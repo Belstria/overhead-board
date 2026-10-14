@@ -333,7 +333,7 @@ each with a profile of their own: their own location, settings, Spotted today an
 with an **Open Fallblatt** button, which sets up that phone or computer (it works once, on the first device that presses
 it, within two weeks; for another device press **New link**). Chat apps such as WhatsApp fetch the link for its preview;
 since relay 27 that no longer uses it up, and devices that were only a preview are dropped from the list. They get a short welcome: its flaps show Fallblatt until a tap opens it (browsers only play sound after a
-tap), then turn to their name letter by letter, with sound. They then type in their place, airport and coordinates
+tap), then turn to their name letter by letter, with sound, within about two seconds. The board stays hidden, and fetches nothing, until the welcome is done. They then type in their place, airport and coordinates
 (the fields show an example), or let **Use my location**
 fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their

@@ -693,8 +693,8 @@ function tierIcon(t){
   return tierIcons[t] = cv.toDataURL();
 }
 // The logbook is read now and then even with its tab closed: the tiers need it.
-setTimeout(() => fetchLogbook(), 4000);
-setInterval(() => { if (tab !== "logbook") fetchLogbook(); }, 5 * 60000);
+setTimeout(() => { if (booted) fetchLogbook(); }, 4000);
+setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
 /* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
 const RG = {S: 400, cx: 200, cy: 200, R: 172};
@@ -1211,23 +1211,31 @@ function greetFlaps(){
   setTimeout(() => { if (!greeted) rollTo(centred("FALLBLATT", n)); }, splashLeft() + 300);
 }
 let greeted = false;
-function rollTo(text){
-  const per = 62 * pace();
+// `dur` is the time of one flip (the board's 62 ms by default); the gaps between the letters scale with it, so the time
+// to land scales too. `dry` only works out when the last letter would land.
+const COAST = [3.4, 2.3, 1.6, 1.2];                   // the board's slow end: the last flips take this many times longer
+function rollTo(text, dur = 62, dry = false){
+  const k = dur / 62, per = Math.ceil(dur * pace() / 16.7) * 16.7;      // a flip lasts whole frames (60 a second)
   let land = 0;
+  if (!dry) fields.greet.dur = dur;
   fields.greet.cells.forEach((c, i) => {
     const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
-    c.slowEnd = bang;
-    if (ch === " ") return retarget(c, ch, 0);
+    if (ch === " ") return dry || retarget(c, ch, 0);
     if (!flips) return;
-    const run = flips * per * (bang ? 1.35 : 1);
-    land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
-    retarget(c, ch, Math.max(0, (land - run) / pace()));
+    const run = (flips + (bang ? COAST.slice(0, flips).reduce((a, m) => a + m - 1, 0) : 0)) * per;   // the "!" coasts its last flips
+    land = Math.max(land + (bang ? 520 : 170) * k, run + 150 * k);      // after the one before; never before it can
+    if (!dry) { c.slowEnd = bang; retarget(c, ch, Math.max(0, (land - run) / pace())); }
   });
   return land;
 }
+// The greeting lands within about two seconds of the tap: from FALLBLATT the flaps turn faster for a longer way round.
+const GREET_MS = 1700;                                 // plus the moment before it starts
 function greetRoll(){
   greeted = true;
-  const land = rollTo(centred(greetText(), greetW()));
+  const text = centred(greetText(), greetW());
+  let dur = 62;
+  while (dur > 17 && rollTo(text, dur, true) > GREET_MS) dur -= 3;       // the board's pace, or as much faster as it takes
+  const land = rollTo(text, dur);
   setTimeout(() => { soundForced = false; }, land + 1800);
 }
 // From one step of the welcome to the next: the box grows or shrinks to the new step's height, which fades in.
@@ -1301,7 +1309,7 @@ function welcome(){
   const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
   $("wApp").onclick = () => go(() => location.reload());                                 // start afresh around the new place
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
-  $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; showTab("settings"); };
+  $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; run(); showTab("settings"); };
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
@@ -1385,6 +1393,7 @@ addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeaco
 
 // A phone in a pocket doesn't need updates every ten seconds: back to full speed as soon as the app is looked at.
 document.addEventListener("visibilitychange", () => {
+  if (!booted) return;                    // still in the welcome
   sayHello();
   if (document.visibilityState !== "visible") return;
   // A phone may throw away a hidden page's canvas pictures (and the cached flap faces): draw everything afresh.
@@ -1428,7 +1437,15 @@ async function start(){
   applyTheme();
   showTab(location.hash.slice(1) || "now");
   if (window.splashGo) window.splashGo();          // the board is ready: the opening's plane takes off
-  if (!located()) welcome();
+  // A new guest first goes through the welcome: the board stays hidden and fetches nothing until it is done (the app
+  // reloads then) or put off ("Later", which starts it).
+  if (!located()) return welcome();
+  run();
+}
+let booted = false;
+function run(){
+  if (booted) return;
+  booted = true;
   if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
