@@ -693,7 +693,6 @@ function tierIcon(t){
   return tierIcons[t] = cv.toDataURL();
 }
 // The logbook is read now and then even with its tab closed: the tiers need it.
-setTimeout(() => { if (booted) fetchLogbook(); }, 4000);
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
 /* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
@@ -925,7 +924,7 @@ const nowPageList = () => !airportMode() ? ["lists", "ac"] : SIDEWAYS.matches ? 
 function appApPage(){ return !airportMode() ? "" : nowPage === "dep" ? "apdep" : nowPage === "land" ? "apland" : ""; }
 const pageHas = p => p === "lists" || (p === "ac" ? !!feat : !!apFocus(p === "dep" ? "dep" : "arr"));
 function buildNowPages(){
-  const pages = nowPageList(), name = p => p === "lists" ? (airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights") : PAGE_NAME[p];
+  const pages = nowPageList(), name = p => p === "lists" ? (airportMode() ? "Coming up" : "Recent<br>flights") : PAGE_NAME[p];
   const html = list => list.map(p => `<button class="cap" type="button" data-page="${p}">${T(name(p))}</button>`).join("");
   $("nowPages").innerHTML = html(pages);
   $("apPick").innerHTML = html(["dep", "land"]);
@@ -1316,14 +1315,14 @@ function welcome(){
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
-// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a knob.
+// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a cogwheel.
 const ICON = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const TAB_ICONS = {
   now: ICON('<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>'),
   today: ICON('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
   logbook: ICON('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
   radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
-  settings: ICON('<circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 12V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
+  settings: ICON('<path d="M18.97 9.84 21.66 10.34 21.66 13.66 18.97 14.16 18.46 15.41 20.00 17.66 17.66 20.00 15.41 18.46 14.16 18.97 13.66 21.66 10.34 21.66 9.84 18.97 8.59 18.46 6.34 20.00 4.00 17.66 5.54 15.41 5.03 14.16 2.34 13.66 2.34 10.34 5.03 9.84 5.54 8.59 4.00 6.34 6.34 4.00 8.59 5.54 9.84 5.03 10.34 2.34 13.66 2.34 14.16 5.03 15.41 5.54 17.66 4.00 20.00 6.34 18.46 8.59Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.9" fill="none"/>'),
 };
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
@@ -1401,8 +1400,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   // A phone may throw away a hidden page's canvas pictures (and the cached flap faces): draw everything afresh.
   clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize();
-  poll(true); if (relayV5()) syncSightings();
-  if (tab === "logbook") fetchLogbook();
+  poll(true); if (relayV5()) { syncSightings(); fetchLogbook(); }          // back: everything at once again
 });
 // iPhones allow sound only from a tap as the finger lifts (touchend, click), not as it lands.
 ["pointerdown", "touchstart", "touchend", "click", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
@@ -1429,7 +1427,7 @@ async function start(){
   try {
     await Promise.race([
       Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
-      new Promise(r => setTimeout(r, 2500))
+      new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
     ]);
   } catch {}
   pickLang();
@@ -1457,8 +1455,10 @@ function run(){
   renderFeatured(); renderLists(); updateFooter();
   if (relayV5()) syncSightings();
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
-  setTimeout(poll, 300);
-  setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
+  // Every data source at once, so the board fills as fast as it can (positions, today's list, the logbook the tiers
+  // need, the hello that tells the relay where this screen looks); then each on its usual timer.
+  poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();
+  setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);

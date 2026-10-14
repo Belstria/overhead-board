@@ -1722,7 +1722,18 @@ function routeFits(from, to, ac){
   }
   return true;
 }
+// Both route sources are asked at once (1.25.2; before, adsb.lol only after adsbdb, which could take its full 9 s
+// timeout): adsbdb's answer is preferred, but once adsb.lol has a route adsbdb gets 1.5 s more, not longer.
 async function routeLookup(cs, ac){
+  const db = routeDb(cs, ac), lol = routeLol(cs, ac);
+  const first = await Promise.race([db.then(r => ({r, db: true})), lol.then(r => ({r, db: false}))]);
+  let out = first.r;
+  if (first.db) out = out || await lol;
+  else out = out ? (await Promise.race([db, new Promise(ok => setTimeout(() => ok(null), 1500))]) || out) : await db;
+  if (!out) dlog("debug", `No route listed for ${cs}`);
+  return out;
+}
+async function routeDb(cs, ac){
   try {
     const j = await fetchJSON(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(cs)}`);
     const fr = j && j.response && j.response.flightroute;
@@ -1744,6 +1755,9 @@ async function routeLookup(cs, ac){
   } catch (e) {
     if (!/HTTP 404/.test(e.message)) dlog("warn", `adsbdb route lookup for ${cs} failed: ${netError(e, "adsbdb")}`);
   }
+  return null;
+}
+async function routeLol(cs, ac){
   try {
     const j = await fetchJSON(relay() ? `${relay()}/routeset` : "https://api.adsb.lol/api/0/routeset", {
       method: "POST", headers: {"Content-Type": "application/json"},
@@ -1757,7 +1771,6 @@ async function routeLookup(cs, ac){
       return {from: {code: a.iata || a.icao, city: a.location || a.name}, to: {code: b.iata || b.icao, city: b.location || b.name}};
     }
   } catch (e) { dlog("debug", `adsb.lol route lookup for ${cs} failed: ${netError(e, "adsb.lol")}`); }
-  dlog("debug", `No route listed for ${cs}`);
   return null;
 }
 async function aircraftLookup(hex){
@@ -1797,8 +1810,9 @@ function enrich(ac){
   const p = (async () => {
     if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); return info; }
     const jobs = [];
-    if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) Object.assign(info, r); }));
-    if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) info.type = t; }));
+    // each answer shows as soon as it comes (the route doesn't wait for the aircraft lookup, or the other way round)
+    if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
+    if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
     await Promise.all(jobs);
     if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
     return info;
@@ -3342,10 +3356,10 @@ function renderRadarList(){
 }
 
 /* ---------- the rail: push buttons along the bottom of the board ---------- */
-const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Take-offs &amp;<br>landings",
+const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Coming up",
   apland: "Landing", apdep: "Take-off"};
 // The same line icons as the phone app's tabs (tools/app/main.js TAB_ICONS), plus a clock, bars and the plane taking
-// off or landing for the pages that have no tab there.
+// off or landing (the airport statuses' pictogram) for the pages that have no tab there.
 const RAIL_SVG = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICO_PLANE = '<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>';
 const RAIL_ICONS = {
@@ -3353,11 +3367,11 @@ const RAIL_ICONS = {
   list: RAIL_SVG('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
   book: RAIL_SVG('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
   radar: RAIL_SVG('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
-  knob: RAIL_SVG('<circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 12V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
+  knob: RAIL_SVG('<path d="M18.97 9.84 21.66 10.34 21.66 13.66 18.97 14.16 18.46 15.41 20.00 17.66 17.66 20.00 15.41 18.46 14.16 18.97 13.66 21.66 10.34 21.66 9.84 18.97 8.59 18.46 6.34 20.00 4.00 17.66 5.54 15.41 5.03 14.16 2.34 13.66 2.34 10.34 5.03 9.84 5.54 8.59 4.00 6.34 6.34 4.00 8.59 5.54 9.84 5.03 10.34 2.34 13.66 2.34 14.16 5.03 15.41 5.54 17.66 4.00 20.00 6.34 18.46 8.59Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.9" fill="none"/>'),     // a cogwheel
   clock: RAIL_SVG('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7v5l3.5 2.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
   bars: RAIL_SVG('<path d="M6 19v-6M12 19V6M18 19v-9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>'),
-  up: RAIL_SVG('<g transform="rotate(30 12 12)">' + ICO_PLANE + '</g>'),
-  down: RAIL_SVG('<g transform="rotate(150 12 12)">' + ICO_PLANE + '</g>'),
+  up: RAIL_SVG('<g fill="currentColor"><g transform="translate(12 9.6) rotate(60) scale(.19) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g><rect x="3" y="18.6" width="18" height="1.9" rx=".95"/></g>'),                // as on the TAKE-OFF and CLIMBING flaps
+  down: RAIL_SVG('<g fill="currentColor"><g transform="translate(12 9.6) rotate(115) scale(.19) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g><rect x="3" y="18.6" width="18" height="1.9" rx=".95"/></g>'),              // as on APPROACH, FINAL and LANDED
 };
 const PAGE_ICON = {spotted: "clock", aircraft: "plane", stats: "bars", aplists: "list", apdep: "up", apland: "down"};
 const VIEW_ICON = {spotted: "list", logbook: "book", radar: "radar", settings: "knob"};
@@ -3836,6 +3850,7 @@ const I18N_ROWS = [
   ["Today in<br>numbers", "Heute in<br>Zahlen", "Aujourd'hui<br>en chiffres", "Hoy en<br>cifras", "Vandaag in<br>cijfers"],
   ["This<br>aircraft", "Dieses<br>Flugzeug", "Cet<br>avion", "Este<br>avión", "Dit<br>toestel"],
   ["Take-offs &amp;<br>landings", "Starts &amp;<br>Landungen", "Décollages &amp;<br>atterrissages", "Despegues y<br>aterrizajes", "Vertrek &amp;<br>landing"],
+  ["Coming up", "Demnächst", "À venir", "Próximamente", "Binnenkort"],
   ["Landing", "Landung", "Atterrissage", "Aterrizaje", "Landing"],
   ["Take-off", "Start", "Décollage", "Despegue", "Vertrek"],
   ["Passenger", "Passagiere", "Passagers", "Pasajeros", "Passagiers"],
@@ -4114,6 +4129,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.25.2", date: "2026-10-14", notes: [
+    "The Airport style's lists page is called Coming up; Take-off and Landing carry the take-off and landing pictograms.",
+    "About no longer has a cut-off Settings button under it; Settings has a cogwheel icon.",
+    "The board fills faster when it opens or comes back: every data source is asked at once.",
+    "A plane's route shows sooner: both route sources are asked at once."]},
   {v: "1.25.1", date: "2026-10-14", notes: [
     "The welcome greets you within about two seconds, and the board stays hidden until it is done."]},
   {v: "1.25.0.1", date: "2026-10-14", notes: [
@@ -4430,10 +4450,8 @@ function aboutOpen(){
       `<div class="log" id="abLog" tabindex="0">${changelogHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Keys")}</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(T(k))}</dt><dd>${escH(T(t))}</dd>`).join("")}</dl>` +
       `<p>${escH(T("Browsers only allow sound after a first click or key press."))}</p></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3>${aboutHtml()}<p class="ver">${escH(versionLine())}</p>` +
-      `<div class="acts"><button class="cap big" type="button" data-act="back">${T("Settings")}</button></div></div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3>${aboutHtml()}<p class="ver">${escH(versionLine())}</p></div>`;
   box.onclick = e => e.stopPropagation();
-  box.querySelector('[data-act="back"]').onclick = () => { ctlSound.press(); switchView("settings"); };
   for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => {
     ctlSound.press();
     const legend = b.dataset.ab === "legend";
@@ -4837,7 +4855,7 @@ async function start(){
   else if (airportMode()) switchView(null, {instant: true, page: "aplists"});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
-  setTimeout(poll, 500);
+  poll(); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos();   // everything at once on the first load, then the usual timers
 }
 start();
 })();
