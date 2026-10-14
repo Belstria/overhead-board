@@ -158,6 +158,16 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
+  Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
+  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week, and **17 trophies** (Century, Type
+  hunter, Odd couple: a 747 and a helicopter on the same day, Night owl, Bullseye ...) that are won once and kept for
+  good; nothing ever resets. An older logbook wins its trophies once from its saved days, on the day they were earned.
+- **Watchlist** (1.28, relay 29): the relay downloads [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db)
+  once a day, about 17,000 aircraft worth a look, and a plane on it says what it is in its status and the lists:
+  POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or
+  UNUSUAL (air forces stay MILITARY). The list is © its contributors, under the ODbL 1.0 / DbCL 1.0.
+- **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes, and its last
+  row shows the rarest plane of the day and the day's points.
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the twelve nearest planes on flaps beside it.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -254,6 +264,12 @@ Five buttons along the bottom:
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
   airline), and every plane spotted today, with the same filters and legend as the board.
 - **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+  At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
+  busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
+  logbook (CSV)**, every sighting as a spreadsheet. Further down the records, this week's bingo and the trophies.
+- **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
+  with north up. On https (the public address) **Use the compass** turns the dial with the phone, so the arrow points
+  at the plane; iPhones ask first.
 - **Radar**: the radar instrument and the nearest planes.
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
@@ -283,6 +299,7 @@ among its screens as the APP board. `?demo` shows sample flights.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
+- The watchlist: [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db) (ODbL 1.0 / DbCL 1.0).
 - Cloud base at the home airport: its METAR from [aviationweather.gov](https://aviationweather.gov), through the relay.
 - Planned and expected times : [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
@@ -357,6 +374,16 @@ its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day
 Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
+
+**Accounts (relay version 30, app 1.29).** An invite link makes a profile under the guest's name; an account is their
+own choice on top: at the end of the welcome, or in the app's About → Account, they pick a username and add a
+**passkey** (Face ID, a fingerprint or the phone's screen lock; passkeys sync through iCloud or Google, so a new phone
+often signs in with one tap) and, as a backup, a **password**. On a new phone or computer they open `<public
+address>/signin` (the "private" page links to it) and sign in with either: their place, logbook and settings are
+there. The relay keeps only each passkey's public key and a salted scrypt hash of the password; sign-in tries are
+rate-limited. Passkeys need the https address. The admin page shows who has an account and **Reset sign-in** removes
+someone's passkeys and password (they set new ones from a device that is still signed in, or come back through a
+new invite link).
 
 **Notifications (relay version 25).** Through the public https address, the phone app can send an evening summary
 (22:30: planes, points, the rarest and the lowest) and a "worth going to the window" nudge when something special, a

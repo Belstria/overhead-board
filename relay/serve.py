@@ -28,6 +28,7 @@ import csv
 import datetime
 import email.utils
 import hashlib
+import hmac
 import heapq
 import html
 import http.cookies
@@ -38,6 +39,7 @@ import json
 import math
 import os
 import queue
+import random
 import re
 import secrets
 import shutil
@@ -52,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 28
+RELAY_VERSION = 30
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -258,13 +260,16 @@ class Spot:
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
                                                                        "sightings": 0, "types": {}, "airlines": {}, "regs": {},
-                                                                       "gameV": GAME_V, "recordsV": 1}
+                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": 1}
             if self.logbook.get("gameV") != GAME_V:
                 self.ensure_day()
                 _rescore(self)
             if self.logbook.get("recordsV") != 1:
                 self.ensure_day()
                 _backfill_records(self)
+            if self.logbook.get("trophiesV") != 1:
+                self.ensure_day()
+                _backfill_trophies(self)
         return self.logbook
 
     def changed(self, *what):
@@ -448,6 +453,8 @@ def _record(self, planes, lat, lon):
                     moved = True
                 if moved and note_records(self.book(), e):
                     self.changed("book")
+                if moved:
+                    trophy_pass(self.book(), e)
                 em = _emergency(ac)
                 if em and em != e.get("emergency"):
                     e["emergency"], changed = em, True
@@ -462,6 +469,9 @@ def _record(self, planes, lat, lon):
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
                      "adsbCat": str(ac.get("category") or "")}
+                w = watch_of(hx)
+                if w:
+                    e["watch"], e["watchOp"] = w
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
                 self.entries.insert(0, e)
@@ -482,6 +492,11 @@ def _record(self, planes, lat, lon):
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
                 score(book, e, self.day)
                 note_records(book, e)
+                hrs = set(book.get("hours", []))
+                if _hour(e) not in hrs:
+                    book["hours"] = sorted(hrs | {_hour(e)})
+                for k in trophy_check(book, e, self.entries):
+                    event("info", f"Trophy won: {k}", echo=False)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -573,9 +588,7 @@ def _rescore(spot):
         event("info", f"Logbook scored again by fleet size: {n} sightings")
 
 
-def game_json(book, day):
-    days = book.get("days", {})
-    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+def _streak(book, day):
     rd, streak = set(book.get("rareDays", [])), 0
     d = datetime.date.fromisoformat(day)
     if day not in rd:
@@ -583,10 +596,245 @@ def game_json(book, day):
     while d.isoformat() in rd:
         streak += 1
         d -= datetime.timedelta(days=1)
+    return streak
+
+
+# Trophies (relay 29): won once and kept for good (nothing resets), each with the day it was won.
+TROPHY_IDS = ["century", "thousand", "busyday", "types50", "airlines25", "a320fam", "giants", "jumbochopper", "oldfriend",
+              "nightowl", "aroundclock", "lowpass", "bullseye", "specialday", "streak7", "bingo", "fullcard"]
+A320_FAMILY = ("A319", "A320", "A321")
+
+
+def _hour(e):
+    return time.localtime((e.get("ts") or 0) / 1000).tm_hour
+
+
+def trophy_check(book, e, day_entries, ctx=None):
+    """Win what this sighting (and its day so far) earns. ctx: the counts up to this sighting; by default the logbook's
+    own (live), or ones rebuilt day by day when an older logbook is counted again."""
+    got = book.setdefault("trophies", {})
+    ts = e.get("ts") or int(time.time() * 1000)
+    won = []
+    def win(k, ok):
+        if ok and k not in got:
+            got[k] = ts
+            won.append(k)
+    c = ctx or {"n": book.get("sightings", 0), "types": book.get("types", {}), "airlines": book.get("airlines", {}),
+                "regs": book.get("regs", {}), "hours": set(book.get("hours", []))}
+    types = c["types"]
+    win("century", c["n"] >= 100)
+    win("thousand", c["n"] >= 1000)
+    win("busyday", len(day_entries) >= 100)
+    win("types50", len(types) >= 50)
+    win("airlines25", len(c["airlines"]) >= 25)
+    win("a320fam", all(t in types for t in A320_FAMILY) and any(t in types for t in ("A20N", "A21N", "A19N")))
+    win("giants", "A388" in types and any(t.startswith("B74") for t in types))
+    r = c["regs"].get(e.get("reg") or "")
+    win("oldfriend", bool(r) and (r.get("count", 0) if isinstance(r, dict) else r) >= 25)
+    win("jumbochopper", any(str(x.get("typeCode") or "").startswith("B74") for x in day_entries)
+        and any(category_of(x) == "helicopter" for x in day_entries))
+    win("nightowl", 1 <= _hour(e) <= 3)
+    win("aroundclock", len(c["hours"]) >= 24)
+    win("specialday", sum(1 for x in day_entries if x.get("tier") == "legendary") >= 3)
+    trophy_pass(book, e, got, won)
+    return won
+
+
+def trophy_pass(book, e, got=None, won=None):
+    """The trophies of how close or low a pass came (they can still be won as the plane comes closer)."""
+    got = got if got is not None else book.setdefault("trophies", {})
+    ts = e.get("ts") or int(time.time() * 1000)
+    alt, d = e.get("altAtMin"), e.get("minDist")
+    for k, ok in (("lowpass", isinstance(alt, (int, float)) and 100 <= alt < 1500 and d is not None and d <= 2),
+                  ("bullseye", d is not None and d <= 0.3)):
+        if ok and k not in got:
+            got[k] = ts
+            if won is not None:
+                won.append(k)
+
+
+def _backfill_trophies(spot):
+    """An older logbook: win its trophies once from the saved days, on the day they were earned."""
+    b = spot.logbook
+    b["trophies"], hours = {}, set()
+    ctx = {"n": 0, "types": {}, "airlines": {}, "regs": collections.Counter(), "hours": hours}
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        entries = spot.entries if day == spot.day else _load(f, [])
+        so_far = []
+        for e in reversed(entries):
+            ctx["n"] += 1
+            if e.get("typeCode"):
+                ctx["types"][e["typeCode"]] = 1
+            m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+            if m:
+                ctx["airlines"][m.group(1)] = 1
+            if e.get("reg"):
+                ctx["regs"][e["reg"]] += 1
+            hours.add(_hour(e))
+            so_far.append(e)
+            trophy_check(b, e, so_far, ctx)
+    rd = sorted(b.get("rareDays", []))
+    run = 0
+    for i, d in enumerate(rd):
+        run = run + 1 if i and datetime.date.fromisoformat(d) - datetime.date.fromisoformat(rd[i - 1]) == datetime.timedelta(days=1) else 1
+        if run >= 7 and "streak7" not in b["trophies"]:
+            b["trophies"]["streak7"] = int(datetime.datetime.fromisoformat(d + "T20:00").timestamp() * 1000)
+    b["hours"] = sorted(hours)
+    b["trophiesV"] = 1
+    spot.changed("book")
+
+
+# The weekly bingo: nine things to see between Monday and Sunday, drawn afresh each week (the same card on every
+# screen of a spot); a line of three wins the Bingo trophy, all nine the Full card.
+LH_GROUP, GULF, LOW_COST = {"DLH", "AUA", "SWR", "EWG", "BEL", "CLH"}, {"UAE", "QTR", "ETD"}, {"RYR", "WZZ", "EZY", "EJU", "VLG", "PGT"}
+def _al(e):
+    m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+    return m.group(1) if m else ""
+def _tc(e):
+    return str(e.get("typeCode") or "").upper()
+BINGO = {
+    "heli": lambda e: category_of(e) == "helicopter",
+    "a380": lambda e: _tc(e) == "A388",
+    "b747": lambda e: _tc(e).startswith("B74"),
+    "b777": lambda e: _tc(e).startswith("B77"),
+    "b787": lambda e: _tc(e).startswith("B78"),
+    "a350": lambda e: _tc(e).startswith("A35"),
+    "a330": lambda e: _tc(e).startswith("A33"),
+    "embraer": lambda e: re.match(r"^E(1[79]|2[9]|75)", _tc(e)) is not None,
+    "turboprop": lambda e: re.match(r"^(AT[47]|DH8|SF34|JS41|D328|L410|B190|C208|PC12)", _tc(e)) is not None,
+    "cargo": lambda e: category_of(e) == "cargo",
+    "bizjet": lambda e: category_of(e) == "bizjet",
+    "private": lambda e: category_of(e) == "private",
+    "military": lambda e: category_of(e) == "military",
+    "watch": lambda e: bool(e.get("watch")),
+    "low": lambda e: isinstance(e.get("altAtMin"), (int, float)) and 100 <= e["altAtMin"] < 2500,
+    "close": lambda e: e.get("minDist") is not None and e["minDist"] <= 1,
+    "rare": lambda e: e.get("tier") in ("rare", "epic", "legendary"),
+    "night": lambda e: _hour(e) >= 23 or _hour(e) <= 4,
+    "early": lambda e: 5 <= _hour(e) <= 7,
+    "newtype": lambda e: bool(e.get("newType")),
+    "lhgroup": lambda e: _al(e) in LH_GROUP,
+    "gulf": lambda e: _al(e) in GULF,
+    "lowcost": lambda e: _al(e) in LOW_COST,
+    "turkish": lambda e: _al(e) == "THY",
+    "fast": lambda e: isinstance(e.get("maxSpeed"), (int, float)) and 520 <= e["maxSpeed"] <= 750,
+}
+BINGO_LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+
+def bingo_json(spot, day):
+    """This week's card: its nine goals, which are done (and when), and how many lines are complete."""
+    monday = datetime.date.fromisoformat(day) - datetime.timedelta(days=datetime.date.fromisoformat(day).weekday())
+    key = (monday.isoformat(), day, spot.rev)
+    cached = getattr(spot, "_bingo", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    card = random.Random("fallblatt-" + monday.isoformat()).sample(sorted(BINGO), 9)
+    done = {}
+    for i in range(7):
+        d = (monday + datetime.timedelta(days=i)).isoformat()
+        if d > day:
+            break
+        entries = spot.entries if d == spot.day else _load(spot.dir / f"sightings-{d}.json", [])
+        for e in reversed(entries):
+            for g in card:
+                if g not in done:
+                    try:
+                        if BINGO[g](e):
+                            done[g] = e.get("ts")
+                    except Exception:
+                        pass
+    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
+    book = spot.book()
+    got = book.setdefault("trophies", {})
+    now = int(time.time() * 1000)
+    for k, ok in (("bingo", lines >= 1), ("fullcard", len(done) == 9)):
+        if ok and k not in got:
+            got[k] = now
+            spot.changed("book")
+    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines}
+    spot._bingo = (key, out)
+    return out
+
+
+def game_json(book, day):
+    days = book.get("days", {})
+    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+    streak = _streak(book, day)
     have = book.get("types", {})
     return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
             "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
-            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS]}
+            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS],
+            "trophies": book.get("trophies", {})}
+
+
+# ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
+# governments, historic planes ...), keyed by Mode S address. A free list (ODbL 1.0 / DbCL 1.0, credited in the
+# README), downloaded once a day; its playful categories become plain remark words for the board.
+PLANE_ALERT_CSV = "https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main/plane-alert-db.csv"
+PLANE_ALERT_FILE = DATA_DIR / "plane-alert.json"
+WATCH_WORDS = {
+    "MILITARY": ["USAF", "Other Air Forces", "Toy Soldiers", "United States Navy", "GAF", "United States Marine Corps", "RAF",
+                 "Other Navies", "Special Forces", "Army Air Corps", "Royal Navy Fleet Air Arm", "Gunship", "Zoomies", "UAV",
+                 "Oxcart", "Hired Gun", "CAP"],
+    "POLICE": ["Police Forces", "UK National Police Air Service"],
+    "AMBULANCE": ["Flying Doctors"],
+    "RESCUE": ["Coastguard"],
+    "FIREFIGHTER": ["Aerial Firefighter", "Fire Fighting"],
+    "GOVERNMENT": ["Governments", "Quango", "Dictator Alert", "Head of State"],
+    "ROYAL": ["Royal Aircraft"],
+    "HISTORIC": ["Historic"],
+    "CELEBRITY": ["As Seen on TV", "Football", "Radiohead", "Don't you know who I am?"],
+    "VIP": ["Oligarch", "Jesus he Knows me", "Vanity Plate", "PIA", "Climate Crisis", "Bizjets"],
+    "SKYDIVING": ["Jump Johnny Jump", "Perfectly Serviceable Aircraft"],
+    "AEROBATIC": ["Aerobatic Teams", "Joe Cool"],
+    "SURVEY": ["Ptolemy would be proud", "Dogs with Jobs", "Watch Me Fly"],
+    "UNUSUAL": ["Distinctive", "You came here in that thing?", "Big Hello", "Gas Bags", "Ukraine", "Da Comrade", "Nuclear"],
+}
+WATCH_OF_CAT = {c: w for w, cats in WATCH_WORDS.items() for c in cats}
+_watch = {"rows": None, "fetched": 0.0}
+_watch_lock = threading.Lock()
+
+
+def _watch_load():
+    db = _load(PLANE_ALERT_FILE, None)
+    if db and time.time() - db.get("fetched", 0) < 86400:
+        _watch.update(rows=db["rows"], fetched=db["fetched"])
+        return
+    status, _, body, _ = fetch(PLANE_ALERT_CSV, timeout=60)
+    if status != 200:
+        _watch.update(rows=(db or {}).get("rows") or _watch["rows"] or {}, fetched=time.time() - 86400 + 3600)   # try again in an hour
+        event("warn", "Couldn't download the watchlist (plane-alert-db); trying again later", echo=False)
+        return
+    rows = {}
+    for r in csv.DictReader(io.StringIO(body.decode("utf-8", "replace"))):
+        hx = (r.get("$ICAO") or "").strip().lower()
+        w = WATCH_OF_CAT.get((r.get("Category") or "").strip())
+        if re.fullmatch(r"[0-9a-f]{6}", hx) and w:
+            rows[hx] = [w, (r.get("$Operator") or "").strip()[:60]]
+    _watch.update(rows=rows, fetched=time.time())
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        PLANE_ALERT_FILE.write_text(json.dumps({"fetched": _watch["fetched"], "rows": rows}, separators=(",", ":")), encoding="utf-8")
+    except OSError:
+        pass
+    event("info", f"Watchlist ready: {len(rows):,} aircraft (plane-alert-db)")
+
+
+def watch_of(hx):
+    """[remark word, operator] for an aircraft on the watchlist, or None. Loads (or refreshes) the list in the
+    background; until it is there, nothing is on it."""
+    if (_watch["rows"] is None or time.time() - _watch["fetched"] > 86400) and _watch_lock.acquire(blocking=False):
+        def load():
+            try:
+                _watch_load()
+            except Exception as e:
+                event("warn", f"Watchlist: {e}", echo=False)
+            finally:
+                _watch_lock.release()
+        threading.Thread(target=load, daemon=True).start()
+    return (_watch["rows"] or {}).get(str(hx or "").lower())
 
 
 # ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
@@ -766,7 +1014,10 @@ def _enricher():
             if route:
                 route.update(airline)
         info = _aircraft_for(hx) if hx else None
+        w = watch_of(hx) if hx else None
         with _data_lock:
+            if w and not e.get("watch"):              # the watchlist may have arrived after the sighting
+                e["watch"], e["watchOp"] = w
             if airline:
                 e.update(airline)
             if route:
@@ -1229,7 +1480,77 @@ def logbook_json(spot):
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
-                "game": game_json(b, spot.day or board_day()), "records": b.get("records", {})}
+                "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day())},
+                "records": b.get("records", {})}
+
+
+def _days_of(spot, prefix=""):
+    """(day, entries) for each saved day of a spot, oldest first, today's from memory."""
+    for f in sorted(spot.dir.glob(f"sightings-{prefix}*.json")):
+        day = f.stem[len("sightings-"):]
+        yield day, (spot.entries if day == spot.day else _load(f, []))
+
+
+def year_json(spot, year):
+    """A year in planes (relay 29), for the phone app's year card: totals, the busiest day, the most seen airframe,
+    the rarest plane, the year's records and its points."""
+    key = (year, spot.rev)
+    cached = getattr(spot, "_year", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    n, types, airlines, countries, regs, days, pts = 0, set(), set(), set(), collections.Counter(), {}, 0
+    rec, rarest = {}, None
+    order = {t: i for i, t in enumerate(TIERS)}
+    with _data_lock:
+        for day, entries in _days_of(spot, f"{year}-"):
+            days[day] = len(entries)
+            for e in entries:
+                n += 1
+                pts += TIER_POINTS.get(e.get("tier"), 0)
+                if e.get("typeCode"):
+                    types.add(e["typeCode"])
+                if _al(e):
+                    airlines.add(_al(e))
+                if e.get("ownerCountry"):
+                    countries.add(e["ownerCountry"])
+                if e.get("reg"):
+                    regs[e["reg"]] += 1
+                note_records(rec, e)
+                k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
+                if rarest is None or k > rarest[0]:
+                    rarest = (k, e)
+    top = regs.most_common(1)
+    busiest = max(days.items(), key=lambda kv: kv[1]) if days else None
+    who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "", "callsign": e.get("callsign") or "",
+                     "tier": e.get("tier") or "", "ts": e.get("ts")}
+    out = {"year": year, "planes": n, "types": len(types), "airlines": len(airlines), "countries": len(countries),
+           "airframes": len(regs), "days": len(days), "points": pts,
+           "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest else None,
+           "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
+           "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
+    spot._year = (key, out)
+    return out
+
+
+CSV_COLS = ["date", "time", "callsign", "flight", "registration", "type", "aircraft", "airline", "from", "to",
+            "closest_km", "altitude_ft", "max_speed_kt", "rarity", "category", "watchlist"]
+
+
+def logbook_csv(spot):
+    """Every saved sighting of a spot as a spreadsheet (relay 29), for moving the log into a spotting app."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(CSV_COLS)
+    with _data_lock:
+        for day, entries in _days_of(spot):
+            for e in reversed(entries):
+                p = lambda k: ((e.get(k) or {}).get("code") or "") if isinstance(e.get(k), dict) else ""
+                w.writerow([day, e.get("time") or "", e.get("callsign") or "", e.get("flightIata") or "", e.get("reg") or "",
+                            e.get("typeCode") or "", e.get("aircraftType") or e.get("desc") or "", e.get("airlineName") or "",
+                            p("from"), p("to"), e.get("minDist") if e.get("minDist") is not None else "",
+                            e.get("altAtMin") if isinstance(e.get("altAtMin"), (int, float)) else "", e.get("maxSpeed") or "",
+                            e.get("tier") or "", category_of(e), e.get("watch") or ""])
+    return buf.getvalue().encode("utf-8-sig")
 
 
 def seen_json(spot, reg):
@@ -1811,6 +2132,227 @@ def redeem(code, ua):
     return inv["profile"], token
 
 
+# ---------- accounts (relay 30): a guest's profile can get a username and a way to sign in on a new phone or computer
+# without a new invite link: passkeys first (Face ID, a fingerprint, the phone's screen lock; nothing secret is kept
+# here, only each passkey's public key), and a password as a backup (kept as a salted scrypt hash). An invite still
+# makes the profile; the account is the guest's own choice later, in the app's About or at the end of the welcome.
+ACCOUNT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{2,29}$")
+_challenges = {}             # challenge -> (purpose, profile id or "", expires)
+
+
+def _challenge(purpose, pid=""):
+    now = time.time()
+    with _lock:
+        for k in [k for k, v in _challenges.items() if v[2] < now]:
+            del _challenges[k]
+        c = _b64u(secrets.token_bytes(32))
+        _challenges[c] = (purpose, pid, now + 300)
+    return c
+
+
+def _take_challenge(c, purpose, pid=""):
+    with _lock:
+        v = _challenges.pop(str(c or ""), None)
+    return bool(v) and v[0] == purpose and v[1] == pid and v[2] > time.time()
+
+
+def _cbor(b, i=0):
+    """A small CBOR reader, enough for WebAuthn: (value, next index)."""
+    ib = b[i]; mt, ai = ib >> 5, ib & 31; i += 1
+    if ai < 24:
+        n = ai
+    elif ai in (24, 25, 26, 27):
+        k = 1 << (ai - 24)
+        n = int.from_bytes(b[i:i + k], "big"); i += k
+    else:
+        raise ValueError("indefinite CBOR")
+    if mt == 0:
+        return n, i
+    if mt == 1:
+        return -1 - n, i
+    if mt == 2:
+        return bytes(b[i:i + n]), i + n
+    if mt == 3:
+        return b[i:i + n].decode("utf-8"), i + n
+    if mt == 4:
+        out = []
+        for _ in range(n):
+            v, i = _cbor(b, i); out.append(v)
+        return out, i
+    if mt == 5:
+        out = {}
+        for _ in range(n):
+            k, i = _cbor(b, i); v, i = _cbor(b, i); out[k] = v
+        return out, i
+    if mt == 7:
+        return {20: False, 21: True, 22: None}.get(ai), i
+    raise ValueError("CBOR type")
+
+
+def _cose_to_spki(cose):
+    """A COSE public key (ES256 or RS256) as DER SubjectPublicKeyInfo, and its algorithm."""
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    alg = cose.get(3)
+    if cose.get(1) == 2 and alg == -7 and cose.get(-1) == 1:
+        pub = ec.EllipticCurvePublicNumbers(int.from_bytes(cose[-2], "big"), int.from_bytes(cose[-3], "big"), ec.SECP256R1()).public_key()
+    elif cose.get(1) == 3 and alg == -257:
+        pub = rsa.RSAPublicNumbers(int.from_bytes(cose[-2], "big"), int.from_bytes(cose[-1], "big")).public_key()
+    else:
+        raise ValueError("unsupported key")
+    return pub.public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo), alg
+
+
+def _client_data(raw, kind, origin):
+    cd = json.loads(raw)
+    if cd.get("type") != kind or cd.get("origin") != origin:
+        raise ValueError("wrong origin or type")
+    return cd.get("challenge")
+
+
+def _auth_data(ad, rp_id):
+    if len(ad) < 37 or not hmac.compare_digest(ad[:32], hashlib.sha256(rp_id.encode()).digest()):
+        raise ValueError("wrong relying party")
+    flags, count = ad[32], int.from_bytes(ad[33:37], "big")
+    if not flags & 1:
+        raise ValueError("user not present")
+    return flags, count
+
+
+def passkey_register(pid, rp_id, origin, j):
+    """Check a new passkey (navigator.credentials.create) and keep its public key. Attestation isn't checked: any
+    authenticator will do, it only has to prove the key is new and made for this site."""
+    raw = _ub64(str(j.get("clientDataJSON") or ""))
+    if not _take_challenge(_client_data(raw, "webauthn.create", origin), "reg", pid):
+        raise ValueError("challenge expired; try again")
+    att, _ = _cbor(_ub64(str(j.get("attestationObject") or "")))
+    ad = att["authData"]
+    flags, count = _auth_data(ad, rp_id)
+    if not flags & 0x40:
+        raise ValueError("no key in the answer")
+    n = int.from_bytes(ad[53:55], "big")
+    cred_id = ad[55:55 + n]
+    cose, _ = _cbor(ad, 55 + n)
+    spki, alg = _cose_to_spki(cose)
+    with _data_lock:
+        p = profiles()["profiles"].get(pid)
+        acc = p.setdefault("account", {})
+        keys = acc.setdefault("passkeys", [])
+        if any(k["id"] == _b64u(cred_id) for k in keys):
+            raise ValueError("this passkey is already added")
+        keys.append({"id": _b64u(cred_id), "pub": _b64u(spki), "alg": alg, "count": count,
+                     "name": str(j.get("name") or "")[:40] or "passkey", "added": time.time(), "used": 0})
+        del keys[:-10]
+        _dirty.add("profiles")
+        event("info", f"{p['name']} added a passkey ({str(j.get('name') or '')[:40]})")
+
+
+def passkey_signin(rp_id, origin, j):
+    """Check a passkey's signature (navigator.credentials.get); returns the profile id it belongs to."""
+    from cryptography.hazmat.primitives.asymmetric import padding
+    raw = _ub64(str(j.get("clientDataJSON") or ""))
+    if not _take_challenge(_client_data(raw, "webauthn.get", origin), "auth"):
+        raise ValueError("challenge expired; try again")
+    ad = _ub64(str(j.get("authenticatorData") or ""))
+    _, count = _auth_data(ad, rp_id)
+    cid = str(j.get("id") or "")
+    with _data_lock:
+        hit = next(((pid, k) for pid, p in profiles()["profiles"].items() for k in (p.get("account") or {}).get("passkeys", []) if k["id"] == cid), None)
+    if not hit:
+        raise ValueError("this passkey isn't known here (removed, or made for another board)")
+    pid, k = hit
+    pub = serialization.load_der_public_key(_ub64(k["pub"]))
+    msg, sig = ad + hashlib.sha256(raw).digest(), _ub64(str(j.get("signature") or ""))
+    if k["alg"] == -7:
+        pub.verify(sig, msg, ec.ECDSA(hashes.SHA256()))
+    else:
+        pub.verify(sig, msg, padding.PKCS1v15(), hashes.SHA256())
+    with _data_lock:
+        if count and k.get("count") and count <= k["count"]:
+            raise ValueError("this passkey looks copied")
+        k["count"], k["used"] = count, time.time()
+        _dirty.add("profiles")
+    return pid
+
+
+def _pw_hash(pw, salt=None):
+    salt = salt or secrets.token_bytes(16)
+    try:
+        h = hashlib.scrypt(pw.encode(), salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
+        alg = "scrypt"
+    except (AttributeError, ValueError):
+        h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, 400000)
+        alg = "pbkdf2"
+    return {"alg": alg, "salt": _b64u(salt), "hash": _b64u(h)}
+
+
+def _pw_ok(rec, pw):
+    if not rec:
+        return False
+    salt = _ub64(rec["salt"])
+    if rec.get("alg") == "pbkdf2":
+        h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, 400000)
+    else:
+        h = hashlib.scrypt(pw.encode(), salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
+    return hmac.compare_digest(h, _ub64(rec["hash"]))
+
+
+def account_of(user):
+    """The profile id with this username, or None."""
+    user = str(user or "").strip().lower()
+    with _data_lock:
+        return next((pid for pid, p in profiles()["profiles"].items() if (p.get("account") or {}).get("user") == user), None)
+
+
+def account_json(pid, https):
+    with _data_lock:
+        p = profiles()["profiles"].get(pid) or {}
+        a = p.get("account") or {}
+        return {"name": p.get("name", ""), "user": a.get("user") or "", "password": bool(a.get("pw")),
+                "passkeys": [{"id": k["id"][:12], "name": k.get("name", ""), "added": int(k.get("added", 0) * 1000),
+                              "used": int(k.get("used", 0) * 1000)} for k in a.get("passkeys", [])],
+                "passkeysOk": PUSH_OK and https}
+
+
+def add_device(pid, ua, how):
+    """A device signing in to an account: a new device of that profile. Returns the cookie value."""
+    token = secrets.token_urlsafe(32)
+    with _data_lock:
+        p = profiles()["profiles"][pid]
+        p["devices"].append({"token": _hash(token), "device": device_of(ua), "added": time.time(), "lastSeen": time.time(), "via": how})
+        del p["devices"][:-20]
+        p["lastSeen"] = time.time()
+        _dirty.add("profiles")
+    event("info", f"{p['name']} signed in with {how} on a {device_of(ua)}")
+    return token
+
+
+def signin_html():
+    return plain_page("Fallblatt: sign in", (
+        "<h1>Sign in</h1><p>With your Fallblatt account: your place, logbook and settings come with you to this phone or computer.</p>"
+        "<p><button class='go big' type=button id=pk>Sign in with a passkey</button></p>"
+        "<form id=pf><p><input type=text id=u autocomplete='username webauthn' placeholder='Username' required> "
+        "<input type=password id=pw autocomplete=current-password placeholder='Password' required "
+        "style='background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px'> "
+        "<button type=submit>Sign in</button></p></form><p id=msg class=muted></p>"
+        "<p class=muted>No account yet? Ask the person who runs this board for an invite link, then create one in the app's About.</p>"
+        "<script>" + SIGNIN_JS + "</script>"))
+
+
+SIGNIN_JS = (
+    "var b64u=function(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')};"
+    "var ub64=function(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)})};"
+    "var msg=document.getElementById('msg');"
+    "var post=function(u,o){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j})})};"
+    "var done=function(){msg.textContent='Signed in.';location.href='/app/'};"
+    "var pk=document.getElementById('pk');"
+    "if(!window.PublicKeyCredential||!window.isSecureContext){pk.disabled=true;pk.textContent='Passkeys need the https address'}"
+    "pk.onclick=function(){msg.textContent='';post('/signin/begin').then(function(o){return navigator.credentials.get({publicKey:{challenge:ub64(o.challenge),rpId:o.rpId,userVerification:'preferred',timeout:120000}})})"
+    ".then(function(a){return post('/signin/passkey',{id:a.id,clientDataJSON:b64u(a.response.clientDataJSON),authenticatorData:b64u(a.response.authenticatorData),signature:b64u(a.response.signature)})})"
+    ".then(done).catch(function(e){msg.textContent=e.name==='NotAllowedError'?'Cancelled.':(e.message||String(e))})};"
+    "document.getElementById('pf').onsubmit=function(ev){ev.preventDefault();msg.textContent='';post('/signin/password',{user:document.getElementById('u').value,password:document.getElementById('pw').value})"
+    ".then(done).catch(function(e){msg.textContent=e.message})};")
+
+
 def profile_for(token):
     """The profile a device's cookie belongs to: (id, profile) or (None, None)."""
     if not token:
@@ -1965,14 +2507,19 @@ def admin_html(host, made=None):
             st = p.get("settings") or {}
             where = esc(str(st.get("place") or "")) or ('location set' if st.get("lat") is not None else "no location yet")
             fr = "on" if p.get("fr24") else "off"
+            acc = p.get("account") or {}
+            acct = (f"account <b>{esc(acc['user'])}</b>: {len(acc.get('passkeys', []))} passkey{'s' if len(acc.get('passkeys', [])) != 1 else ''}"
+                    f"{', password' if acc.get('pw') else ''}" if acc.get("user") else "no account")
             rows.append(
-                f"<tr><td><b>{esc(p['name'])}</b><br><span class=muted>{where}</span></td>"
+                f"<tr><td><b>{esc(p['name'])}</b><br><span class=muted>{where}<br>{acct}</span></td>"
                 f"<td>{esc(devs)}<br><span class=muted>seen {_ago(p.get('lastSeen'))}"
                 f"{f' · {pending[pid]} unused link' if pending[pid] else ''}</span></td>"
                 f"<td><form method=post action='/admin/fr24'><input type=hidden name=pid value='{pid}'>"
                 f"<input type=hidden name=on value='{'0' if p.get('fr24') else '1'}'><button title='Flightradar24 flight numbers, "
                 f"at most {GUEST_FR24_DAY} lookups a day'>FR24 {fr}</button></form></td>"
                 f"<td><form method=post action='/admin/link'><input type=hidden name=pid value='{pid}'><button>New link</button></form> "
+                + (f"<form method=post action='/admin/resetaccount' onsubmit=\"return confirm({esc(json.dumps('Remove ' + p['name'] + chr(39) + 's passkeys and password? They can set them again from a signed-in device.'))})\">"
+                   f"<input type=hidden name=pid value='{pid}'><button>Reset sign-in</button></form> " if acc.get("user") else "") +
                 f"<form method=post action='/admin/remove' onsubmit=\"return confirm({esc(json.dumps('Remove ' + p['name'] + ' and their sightings?'))})\">"
                 f"<input type=hidden name=pid value='{pid}'><button>Remove</button></form></td></tr>")
     made_html = ""
@@ -2349,8 +2896,129 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", (
                 "<h1>This board is private</h1><p>Fallblatt shows the planes flying over your home on a split-flap board, for friends and family. "
                 "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
-                "<p class=muted>Already in, but on a new device? Ask for a new link.</p>")))
+                "<p><a href='/signin'>Sign in with your account</a></p>"
+                "<p class=muted>Already in, but on a new device without an account? Ask for a new link.</p>")))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
+
+    def secure(self):
+        """A page browsers treat as secure (passkeys need one): https, or this computer itself while testing."""
+        return self.https() or self.rp()[0] in ("localhost", "127.0.0.1")
+
+    def rp(self):
+        """This site for passkeys: its host name (the relying party) and its origin."""
+        host = self.headers.get("Host") or ""
+        return host.split(":")[0], ("https://" if self.https() else "http://") + host
+
+    def json_body(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > 16384:
+            return {}
+        try:
+            j = json.loads(self.rfile.read(length) or b"{}")
+            return j if isinstance(j, dict) else {}
+        except ValueError:
+            return {}
+
+    def jerr(self, status, msg):
+        return self.reply(status, "application/json", json.dumps({"error": msg}).encode())
+
+    def signed_in(self, pid, how):
+        token = add_device(pid, self.headers.get("User-Agent") or "", how)
+        body = b'{"ok":true}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Set-Cookie", f"{COOKIE}={token}; Path=/; Max-Age={400 * 86400}; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else ""))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def account_post(self, path):
+        """The account endpoints: /signin/* for anyone (rate-limited), /account/* for a guest's own device."""
+        if not self.same_origin():
+            return self.jerr(403, "Only from this site")
+        j, ip = self.json_body(), self.client_ip()
+        rp_id, origin = self.rp()
+        if path.startswith("/signin/"):
+            if not allow("signin:" + ip, 0.1, 8):
+                return self.jerr(429, "Too many tries; wait a minute")
+            if path == "/signin/begin":
+                return self.reply(200, "application/json", json.dumps({"challenge": _challenge("auth"), "rpId": rp_id}).encode())
+            if path == "/signin/passkey":
+                if not PUSH_OK:
+                    return self.jerr(501, "Passkeys aren't available on this relay")
+                try:
+                    pid = passkey_signin(rp_id, origin, j)
+                except Exception as e:
+                    event("warn", f"A passkey sign-in failed ({ip}): {e}", echo=False)
+                    return self.jerr(400, str(e) if isinstance(e, ValueError) else "That passkey didn't check out")
+                return self.signed_in(pid, "a passkey")
+            if path == "/signin/password":
+                user = str(j.get("user") or "").strip().lower()
+                if not allow("signinu:" + user, 0.05, 6):
+                    return self.jerr(429, "Too many tries; wait a minute")
+                pid = account_of(user)
+                with _data_lock:
+                    rec = ((profiles()["profiles"].get(pid) or {}).get("account") or {}).get("pw") if pid else None
+                if not pid or not _pw_ok(rec, str(j.get("password") or "")):
+                    event("warn", f"A password sign-in failed for {user or '?'} ({ip})", echo=False)
+                    return self.jerr(401, "Wrong username or password")
+                return self.signed_in(pid, "a password")
+            return self.jerr(404, "Not found")
+        if not self.guest:
+            return self.jerr(403, "Accounts are for invited guests")
+        pid, p = self.guest
+        if not allow("acct:" + pid, 0.5, 10):
+            return self.jerr(429, "Too many requests")
+        acc = p.get("account") or {}
+        if path == "/account/user":
+            user = str(j.get("user") or "").strip().lower()
+            if not ACCOUNT_RE.match(user):
+                return self.jerr(400, "3 to 30 letters, digits, dots, dashes or underscores")
+            other = account_of(user)
+            if other and other != pid:
+                return self.jerr(409, "That username is taken")
+            with _data_lock:
+                p.setdefault("account", {})["user"] = user
+                _dirty.add("profiles")
+            event("info", f"{p['name']} has the account {user}")
+        elif path == "/account/password":
+            pw = str(j.get("password") or "")
+            if not acc.get("user"):
+                return self.jerr(400, "Choose a username first")
+            if acc.get("pw") and not _pw_ok(acc["pw"], str(j.get("current") or "")):
+                return self.jerr(401, "The current password is wrong")
+            if len(pw) < 8:
+                return self.jerr(400, "At least 8 characters")
+            with _data_lock:
+                p["account"]["pw"] = _pw_hash(pw)
+                _dirty.add("profiles")
+        elif path == "/account/passkey/begin":
+            if not PUSH_OK:
+                return self.jerr(501, "Passkeys aren't available on this relay")
+            if not acc.get("user"):
+                return self.jerr(400, "Choose a username first")
+            return self.reply(200, "application/json", json.dumps({
+                "challenge": _challenge("reg", pid), "rp": {"id": rp_id, "name": "Fallblatt"},
+                "user": {"id": _b64u(("fallblatt:" + pid).encode()), "name": acc["user"], "displayName": p["name"]},
+                "pubKeyCredParams": [{"type": "public-key", "alg": -7}, {"type": "public-key", "alg": -257}],
+                "excludeCredentials": [{"type": "public-key", "id": k["id"]} for k in acc.get("passkeys", [])],
+                "authenticatorSelection": {"residentKey": "required", "requireResidentKey": True, "userVerification": "preferred"},
+                "timeout": 120000, "attestation": "none"}).encode())
+        elif path == "/account/passkey/finish":
+            try:
+                passkey_register(pid, rp_id, origin, j)
+            except Exception as e:
+                event("warn", f"Adding a passkey for {p['name']} failed: {e}", echo=False)
+                return self.jerr(400, str(e) if isinstance(e, ValueError) else "That passkey didn't check out")
+        elif path == "/account/passkey/remove":
+            with _data_lock:
+                keys = acc.get("passkeys", [])
+                keys[:] = [k for k in keys if not k["id"].startswith(str(j.get("id") or "-")[:12])]
+                _dirty.add("profiles")
+        else:
+            return self.jerr(404, "Not found")
+        return self.reply(200, "application/json", json.dumps(account_json(pid, self.secure())).encode())
 
     def join_page(self, code):
         """The invite link opened: a page with a button that takes the invite (a POST). Chat apps fetch the link for
@@ -2412,6 +3080,10 @@ class Handler(BaseHTTPRequestHandler):
         m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
         if m:
             return self.join_page(m.group(1))
+        if path == "/signin":
+            if not allow("stranger:" + self.client_ip(), 1, 20):
+                return self.reply(429, "text/plain", b"Too many requests")
+            return self.reply(200, "text/html; charset=utf-8", signin_html())
         if path == "/health" or BOARD_FILE.match(path):
             pass                                  # the app's icons and manifest (fetched without cookies) and the check
         elif self.stranger:
@@ -2430,12 +3102,16 @@ class Handler(BaseHTTPRequestHandler):
                 hit = _made.get((self.query().get("made") or [""])[0])
             made = hit[1] if hit and hit[0] > time.time() else None
             return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
+        if path == "/account":
+            if not self.guest:
+                return self.reply(200, "application/json", b'{"home":true}')
+            return self.reply(200, "application/json", json.dumps(account_json(self.guest[0], self.secure())).encode())
         if path == "/me":
             if not self.guest:
                 return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -2517,6 +3193,26 @@ class Handler(BaseHTTPRequestHandler):
             if not reg:
                 return self.reply(400, "text/plain", b"reg=... is required")
             return self.reply(200, "application/json", json.dumps(seen_json(self.spot, reg)).encode())
+        if path == "/watch":
+            hexes = [h for h in ((self.query().get("hex") or [""])[0]).lower().split(",") if re.fullmatch(r"[0-9a-f]{6}", h)][:80]
+            watch_of("")
+            if _watch["rows"] is None:                 # still downloading: the board asks again on its next update
+                return self.reply(503, "application/json", b'{"loading":true}')
+            out = {}
+            for h in hexes:
+                w = watch_of(h)
+                if w:
+                    out[h] = w
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/year":
+            try:
+                y = int((self.query().get("y") or [time.strftime("%Y")])[0])
+            except ValueError:
+                y = int(time.strftime("%Y"))
+            return self.reply(200, "application/json", json.dumps(year_json(self.spot, max(2000, min(2100, y)))).encode())
+        if path == "/logbook.csv":
+            name = "fallblatt-logbook-" + time.strftime("%Y-%m-%d") + ".csv"
+            return self.reply(200, "text/csv; charset=utf-8", logbook_csv(self.spot), {"Content-Disposition": f'attachment; filename="{name}"'})
         if path == "/sky":
             code = re.sub(r"[^A-Za-z]", "", (self.query().get("code") or [""])[0])[:3]
             if len(code) != 3:
@@ -2556,6 +3252,8 @@ class Handler(BaseHTTPRequestHandler):
         m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
         if m:
             return self.join(m.group(1))
+        if path.startswith("/signin/") or path.startswith("/account/"):
+            return self.account_post(path)
         if self.stranger:
             return self.refuse(path)
         if self.guest and not allow("guest:" + self.guest[0], 4, 60):
@@ -2576,6 +3274,12 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/admin/homeclear":
                 with _data_lock:
                     profiles().pop("home", None)
+                    _dirty.add("profiles")
+            elif path == "/admin/resetaccount" and f.get("pid") in profiles()["profiles"]:
+                with _data_lock:
+                    a = profiles()["profiles"][f["pid"]].get("account") or {}
+                    a.pop("pw", None)
+                    a["passkeys"] = []
                     _dirty.add("profiles")
             elif path == "/admin/remove" and f.get("pid"):
                 remove_profile(f["pid"])

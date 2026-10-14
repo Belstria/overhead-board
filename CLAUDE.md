@@ -116,6 +116,14 @@ plus the airport's elevation, from the airport list's v3) every ten minutes and 
 `records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
 ("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
 Flightradar24's credits this month and what it added (`fr24_admin_html`, `usage.found/wetLease/diverted`).
+More of the game (1.28, relay 29): the watchlist (`watch_of`, plane-alert-db downloaded daily to `data/plane-alert.json`,
+categories mapped to remark words by `WATCH_WORDS`; `/watch?hex=` (503 while loading) for the board's `watchAsk`/`watchOf`,
+`e.watch` on sightings; `badgeFor` shows it after the big specials); trophies (`TROPHY_IDS`, `trophy_check`/`trophy_pass`,
+`book.trophies`, backfilled once by `_backfill_trophies`, `trophiesV`) and the weekly bingo (`BINGO` goals, `bingo_json`
+in `/logbook`'s `game.bingo`), drawn by `recordsStatic` and the app's Logbook (`GOAL_TEXT`, `TROPHY_TEXT`, shared); the
+day in review (`reviewTime()`, Today in numbers after 21:00); `/year?y=` (`year_json`) for the app's year card and
+`/logbook.csv` (`logbook_csv`); the app's Where to look (`lookAt`, `drawLook`, `lookStart`: deviceorientation(absolute)
+or `webkitCompassHeading`, https only). `run_test_relay.py --hover` puts a real watchlisted police helicopter (OE-BXB) overhead.
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),
@@ -186,6 +194,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
   (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
   address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place. The app opens with `#splash` (head.html; `splashGo()` once the board is ready).
+- Accounts (relay 30, app 1.29): `p["account"]` = `user` (unique, lower case), `pw` (scrypt, `_pw_hash`/`_pw_ok`) and
+  `passkeys` (WebAuthn: id, public key as SPKI, alg ES256/RS256, sign count; registered by `passkey_register`, checked
+  by `passkey_signin`, a small CBOR reader `_cbor`, challenges in memory for 5 min). Guests use `/account` (GET) and
+  `/account/user|password|passkey/begin|finish|remove` (same-origin JSON POSTs); anyone can open `/signin` and POST
+  `/signin/begin|passkey|password` (rate-limited), which adds a device to that profile (`add_device`) and sets the
+  cookie. The relying party is the Host (fallblatt.app; localhost while testing, `secure()`). The app's `accountBox()`
+  serves About → Account and the welcome's `wAcct` step (after notifications; https only).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`

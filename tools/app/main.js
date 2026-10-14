@@ -644,6 +644,7 @@ async function fetchLogbook(){
 let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
+  fetchYear();
   $("lbSum").textContent = logbookSummary();
   const b = lbData() || {}, has = !!lbData();
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
@@ -652,7 +653,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -689,7 +690,21 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
   }
+  const bg = g0 && g0.bingo, won = (g0 && g0.trophies) || {};
+  if (bg && bg.card) {                                 // the weekly bingo and the trophies (relay 29)
+    const nd = Object.keys(bg.done || {}).length;
+    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
+      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
+    const cups = TROPHY_IDS.map(k => { const [nm, what] = trophyText(k), d = won[k];
+      return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
+    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))}</p><div class="bingo">${cells}</div>` +
+      `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p><ul class="ranks plain cups">${cups}</ul>`;
+    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
+    html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
+  }
+  html = yearHtml() + html;
   $("lbLists").innerHTML = html;
+  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
 const tierIcons = {};
@@ -703,6 +718,124 @@ function tierIcon(t){
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
 }
+// A trophy cup for the trophies list (gold when won, by CSS).
+const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
+// The year in planes (relay 29, /year): a card at the top of the Logbook with a Share button (a picture of the card)
+// and the logbook as a spreadsheet (/logbook.csv).
+let yearData = null, yearAt = 0;
+function fetchYear(){
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - yearAt < 5 * 60000) return;
+  yearAt = Date.now();
+  fetchJSON(`${relay()}/year?y=${new Date().getFullYear()}`, {}, 10000).then(j => { yearData = j; lbSig = ""; renderLogbook(); }).catch(() => { yearAt = 0; });
+}
+function yearFacts(y){
+  const r = y.rarest, m = y.mostSeen, b = y.busiest;
+  return [[T("Busiest day"), b ? `${fmtDay(Date.parse(b.day))} · ${nf.format(b.planes)}` : ""],
+    [T("Most seen aircraft"), m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    [T("Rarest"), r ? `${r.type || r.reg} · ${T(TIER_NAME[r.tier] || "")}` : ""]].filter(x => x[1]);
+}
+function yearHtml(){
+  const y = yearData;
+  if (!y || !y.planes) return "";
+  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
+  return `<div class="yearCard"><h3>${escH(T("{y} in planes", {y: y.year}))}</h3><div class="yNums">` +
+    nums.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div><dl class="yFacts">` +
+    yearFacts(y).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") +
+    `</dl><div class="yActs"><button class="cap small" type="button" id="yShare">${escH(T("Share"))}</button>` +
+    `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
+}
+// The year card as a picture to share (or save where sharing pictures isn't possible).
+function yearPicture(){
+  const y = yearData, cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350;
+  cv.width = W2; cv.height = H2;
+  g.fillStyle = "#0b0b0c"; g.fillRect(0, 0, W2, H2);
+  g.fillStyle = "#f0b429"; rr(g, 80, 80, 140, 140, 18); g.fill();
+  drawPlane(g, 150, 150, 120, "#0b0b0c");
+  g.fillStyle = "#f3f0e8"; g.font = `700 64px ${FONT}`; g.fillText("FALLBLATT", 260, 170);
+  g.fillStyle = "#f0b429"; g.font = `700 92px ${FONT}`; g.fillText(T("{y} in planes", {y: y.year}), 80, 360);
+  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
+  nums.forEach(([n, k], i) => {
+    const x = 80 + (i % 3) * 320, yy = 520 + Math.floor(i / 3) * 210;
+    g.fillStyle = "#f3f0e8"; g.font = `700 96px ${FONT}`; g.fillText(nf.format(n || 0), x, yy);
+    g.fillStyle = "#959aa3"; g.font = `600 36px ${FONT}`; g.fillText(T(k), x, yy + 52);
+  });
+  yearFacts(y).forEach(([k, v], i) => {
+    const yy = 1000 + i * 100;
+    g.fillStyle = "#f0b429"; g.font = `600 30px ${FONT}`; g.fillText(k.toUpperCase(), 80, yy);
+    g.fillStyle = "#f3f0e8"; g.font = `700 44px ${FONT}`; g.fillText(v, 80, yy + 50);
+  });
+  return new Promise(ok => cv.toBlob(ok, "image/png"));
+}
+async function shareYear(){
+  ctlSound.press();
+  const blob = await yearPicture(), name = `fallblatt-${yearData.year}.png`, file = new File([blob], name, {type: "image/png"});
+  try {
+    if (navigator.canShare && navigator.canShare({files: [file]})) return await navigator.share({files: [file], title: T("{y} in planes", {y: yearData.year})});
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
+
+// Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
+// north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
+// at the plane.
+let lookHeading = null, lookOn = false, lookRaf = 0;
+function lookAt(){
+  if (!feat || !feat.o || feat.o.ac.lat == null) return null;
+  const ac = feat.o.ac, kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx, y = (ac.lat - S.lat) * 110.57;
+  const km = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, alt = feat.o.alt;
+  if (alt == null || km > 80) return null;
+  const up = Math.round(Math.atan2(Math.max(0, alt) * .3048, Math.max(50, km * 1000)) * 180 / Math.PI);
+  return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
+}
+function drawLook(){
+  lookRaf = 0;
+  const box = $("look"), L = lookAt();
+  box.hidden = !L || SIDEWAYS.matches;
+  if (box.hidden) return;
+  $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
+  $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
+    (lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.") : lookOn ? T("North is up.") : T("North is up. Hold the phone flat and tap Use the compass to turn it with you."));
+  const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), sz = 96;
+  if (cv.width !== sz * px) { cv.width = cv.height = sz * px; }
+  const g = cv.getContext("2d"), turn = lookOn && lookHeading != null ? -lookHeading : 0;
+  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, sz, sz);
+  g.translate(sz / 2, sz / 2);
+  g.beginPath(); g.arc(0, 0, 44, 0, Math.PI * 2); g.fillStyle = "#0c0d0e"; g.fill(); g.strokeStyle = "rgba(255,255,255,.14)"; g.lineWidth = 1.5; g.stroke();
+  g.save(); g.rotate(turn * Math.PI / 180);
+  for (let i = 0; i < 8; i++) { g.save(); g.rotate(i * Math.PI / 4); g.fillStyle = "rgba(255,255,255,.25)"; g.fillRect(-1, -42, 2, i % 2 ? 4 : 7); g.restore(); }
+  g.fillStyle = "#e0372c"; g.font = `700 12px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("N", 0, -30);
+  g.rotate(L.brg * Math.PI / 180);
+  g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(0, -36); g.lineTo(9, -14); g.lineTo(3, -14); g.lineTo(3, 14); g.lineTo(-3, 14); g.lineTo(-3, -14); g.lineTo(-9, -14); g.closePath(); g.fill();
+  g.restore();
+  $("lookBtn").hidden = lookOn || !window.isSecureContext || typeof DeviceOrientationEvent === "undefined";
+}
+const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
+function lookHeadingFrom(e){
+  let h = null;
+  if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;           // iPhone: degrees from north
+  else if (e.absolute && typeof e.alpha === "number") h = (360 - e.alpha) % 360;         // Android: the alpha angle, absolute
+  if (h == null) return;
+  const so = (screen.orientation && screen.orientation.angle) || 0;
+  h = (h + so + 360) % 360;
+  if (lookHeading == null) lookHeading = h;
+  else { const d = ((h - lookHeading + 540) % 360) - 180; lookHeading = (lookHeading + d * .25 + 360) % 360; }   // smoothed: compasses wobble
+  lookSoon();
+}
+async function lookStart(){
+  ctlSound.press();
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
+    addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
+    lookOn = true;
+    setTimeout(() => { if (lookHeading == null) $("lookSub").textContent = T("The compass isn't available on this device."); }, 2500);
+  } catch { $("lookSub").textContent = T("The compass isn't available on this device."); }
+  lookSoon();
+}
+setInterval(() => { if (tab === "now" && document.visibilityState === "visible") lookSoon(); }, 1000);
+
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
@@ -1069,13 +1202,15 @@ function aboutOpen(){
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
+    (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
-    if (!confirm(T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
+    if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
+      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
     try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
     try { localStorage.removeItem(SKEY); } catch {}
     location.reload();
@@ -1084,7 +1219,69 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
   renderPush();
+  if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
+let hasAccount = false;
+/* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
+   The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
+   the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
+   relay's /signin page, linked from its "private" page. */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const ub64 = t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((t.length + 3) % 4)), c => c.charCodeAt(0));
+const accountsOk = () => !!GUEST && (window.OVERHEAD_RELAY_VERSION || 0) >= 30;
+const passkeysHere = () => window.isSecureContext && !!window.PublicKeyCredential;
+async function acctPost(path, body){
+  const r = await fetch(`${relay()}${path}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+const deviceName = () => { const u = navigator.userAgent;
+  return /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Macintosh/.test(u) ? "Mac" : /Windows/.test(u) ? "Windows" : "Device"; };
+async function passkeyAdd(){
+  const o = await acctPost("/account/passkey/begin");
+  const c = await navigator.credentials.create({publicKey: {...o, challenge: ub64(o.challenge), user: {...o.user, id: ub64(o.user.id)},
+    excludeCredentials: (o.excludeCredentials || []).map(x => ({...x, id: ub64(x.id)}))}});
+  return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
+    attestationObject: b64u(c.response.attestationObject), name: deviceName()});
+}
+// The account panel, in About and in the welcome: create (a username), then passkeys and a password.
+async function accountBox(el, onChange){
+  let a = null;
+  try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
+  if (!a || a.home) { el.innerHTML = ""; return; }
+  const draw = (note = "") => {
+    const has = a.passkeys.length || a.password, pk = passkeysHere() && a.passkeysOk, field = (id, ph, type = "password", ac = "new-password") =>
+      `<input class="acIn" id="${id}" type="${type}" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+    el.innerHTML = !a.user
+      ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
+        `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
+      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
+        (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
+        (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
+          : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<p><b>${escH(T("Password"))}</b></p>` + (a.password ? field("acCur", "Current password", "password", "current-password") : "") +
+        `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` + field("acPw", "New password") +
+        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
+        `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
+    el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
+    const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
+    const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
+    const q = id => el.querySelector("#" + id);
+    if (q("acUser")) {
+      q("acUser").value = String(GUEST.name || "").toLowerCase().replace(/[^a-z0-9._-]+/g, ".").replace(/^[._-]+|[._-]+$/g, "");
+      q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
+    }
+    if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); run(() => acctPost("/account/password", {password: q("acPw").value, current: q("acCur") ? q("acCur").value : ""}), "Saved."); };
+    for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
+  };
+  draw();
+  if (onChange) onChange(a);
+}
+
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
    Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
@@ -1300,7 +1497,7 @@ function welcome(){
     S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
     sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
-    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else pick();
+    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else acctStep();
   };
   $("wPushYes").onclick = async () => {
     ctlSound.press();
@@ -1308,11 +1505,18 @@ function welcome(){
     const err = await enablePush();
     if (err) { n.textContent = err; return; }
     n.textContent = T("Notifications are on.");
-    setTimeout(pick, 700);
+    setTimeout(acctStep, 700);
   };
-  $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
+  $("wPushNo").onclick = () => { ctlSound.press(); acctStep(); };
+  function acctStep(){              // an account, so the logbook comes along to a new phone (https only: passkeys)
+    if (!accountsOk() || !passkeysHere()) return pick();
+    wSwap([$("wStep1"), $("wPush")], $("wAcct"));
+    $("wAcctNo").textContent = T("Not now");
+    $("wAcctNo").onclick = () => { ctlSound.press(); pick(); };
+    accountBox($("wAcctBox"), a => { if (a && a.user && (a.passkeys.length || a.password)) $("wAcctNo").textContent = T("Continue"); });
+  }
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
-    wSwap([$("wStep1"), $("wPush")], $("wPick"));
+    wSwap([$("wStep1"), $("wPush"), $("wAcct")], $("wPick"));
     const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
     b.classList.add("go"); b.setAttribute("aria-pressed", "true");
   }

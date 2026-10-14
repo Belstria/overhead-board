@@ -80,6 +80,16 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #newVer[hidden]{display:none}
 .pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
 .pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
+/* the account panel (About, and the welcome) */
+.acIn{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+  background:#0f1012;color:var(--ink);font:600 15px var(--f-board)}
+#acctBox p.warn,#wAcctBox p.warn{color:#f6be35}
+#acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
+.acKeys li{align-items:center}
+.acKeys .cap{width:auto;padding:0 10px;height:30px}
+#acctBox .note,#wAcctBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
+#welcome #wAcctBox input{text-align:left;font-size:15px;margin:8px 0}
+#welcome #wAcctBox{text-align:left;max-height:52vh;overflow:auto}
 #pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
 .brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
@@ -170,6 +180,41 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .cats .tico{width:22px;height:22px;border-radius:5px;align-self:center;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 .cats .bar{grid-column:2/4;height:3px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden}
 .cats .bar i{display:block;height:100%;background:var(--lamp);opacity:.75}
+/* the weekly bingo and the trophies */
+.bingo{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 4px}
+.bingo .bc{position:relative;min-height:74px;padding:9px 9px 8px 24px;border-radius:7px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.06);
+  font:600 13px/1.2 var(--f-board);color:rgba(243,240,232,.55)}
+.bingo .bc i{position:absolute;left:9px;top:12px;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}
+.bingo .bc.on{background:rgba(240,180,41,.14);border-color:rgba(240,180,41,.7);color:var(--ink)}
+.bingo .bc.on i{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:11px}
+.ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
+.cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
+.cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}
+.cups li:not(.on) .name{color:rgba(243,240,232,.5)}
+.cups .name{white-space:normal}
+.cups .s{display:block;margin:2px 0 0}
+/* the year in planes */
+.yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
+.yearCard h3{margin-top:0}
+.yNums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin:8px 0 10px}
+.yNums b{display:block;font:700 24px/1 var(--f-board);color:var(--ink)}
+.yNums span{font:600 11px/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.yFacts{margin:0}
+.yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 14px/1.3 var(--f-board)}
+.yFacts dt{color:var(--amber);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.yFacts dd{margin:0;color:var(--ink);text-align:right}
+.yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
+/* where to look */
+.look{display:flex;gap:12px;align-items:center;margin:10px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
+.look canvas{width:96px;height:96px;flex:none}
+.lookTxt{min-width:0}
+.lookTxt small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.lookTxt b{display:block;font:700 19px/1.15 var(--f-board);color:var(--ink)}
+.lookTxt span{display:block;margin-top:4px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
+.lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
+@media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
 .model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
@@ -356,6 +401,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+      <div class="look" id="look" hidden>
+        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
+        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
+          <button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button></div>
+      </div>
     </div>
     <div class="rcol">
       <p class="pageEmpty" id="nowEmpty" hidden></p>
@@ -463,6 +513,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
     <button class="cap big go" type="button" id="wPushYes" data-t="Yes, turn them on">Yes, turn them on</button>
     <p class="note" id="wPushNote" aria-live="polite"></p>
     <button class="wlater" type="button" id="wPushNo" data-t="Not now">Not now</button>
+  </div>
+  <div id="wAcct" hidden>
+    <p><b data-t="Keep your logbook if you change phones?">Keep your logbook if you change phones?</b></p>
+    <div id="wAcctBox" class="acctBox"></div>
+    <button class="wlater" type="button" id="wAcctNo" data-t="Not now">Not now</button>
   </div>
   <div id="wPick" hidden>
     <p data-t="How do you want to watch?">How do you want to watch?</p>
