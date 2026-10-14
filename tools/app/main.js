@@ -983,6 +983,7 @@ function aboutOpen(){
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
@@ -996,6 +997,60 @@ function aboutOpen(){
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
+  renderPush();
+}
+/* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
+   Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
+const PUSH_PREFS = "od.push.prefs";
+async function pushSub(){
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.getRegistration("./");
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+async function renderPush(){
+  const box = $("pushBox");
+  if (!box) return;
+  const say = t => `<p>${escH(t)}</p>`;
+  if ((window.OVERHEAD_RELAY_VERSION || 0) < 25) { box.innerHTML = say(T("The relay doesn't offer notifications yet.")); return; }
+  if (!window.isSecureContext) { box.innerHTML = say(T("Notifications only work through the https address (the one in your invite link), not at home on the Wi-Fi address.")); return; }
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
+  }
+  if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
+  let prefs = {summary: true, window: true};
+  try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
+  const sub = await pushSub().catch(() => null);
+  const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
+  box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
+    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
+  for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
+    ctlSound.toggle(cb.checked);
+    prefs[cb.dataset.p] = cb.checked;
+    try { localStorage.setItem(PUSH_PREFS, JSON.stringify(prefs)); } catch {}
+    const cur = await pushSub().catch(() => null);
+    if (cur) sendSub(cur, prefs, "subscribe");
+  };
+  $("pushBtn").onclick = async () => {
+    ctlSound.press();
+    const note = $("pushNote");
+    try {
+      if (sub) { await sendSub(sub, prefs, "unsubscribe"); await sub.unsubscribe(); return renderPush(); }
+      note.textContent = T("Turning on …");
+      if (await Notification.requestPermission() !== "granted") return renderPush();
+      const reg = await navigator.serviceWorker.register("sw.js", {scope: "./"});
+      await navigator.serviceWorker.ready;
+      const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
+      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
+      const fresh = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw});
+      await sendSub(fresh, prefs, "subscribe");
+      renderPush();
+    } catch (e) { note.textContent = String(e && e.message || e); }
+  };
+}
+function sendSub(sub, prefs, what){
+  return fetch(`${relay()}/push/${what}`, {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({subscription: sub.toJSON ? sub.toJSON() : sub, prefs, lang: LANG})});
 }
 function renderAbout(){
   const el = $("aboutStatus");
@@ -1189,6 +1244,19 @@ addEventListener("resize", () => {
   resizeQ = requestAnimationFrame(() => { fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
 });
 
+// A newer version published: a banner above the tabs, tap to update.
+function watchVersion(show){             // as on the board: ask for this page now and then, nothing reloads by itself
+  const check = async () => {
+    try {
+      const r = await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"});
+      const m = /\{v: "(\d[\d.]*)"/.exec(await r.text());
+      if (m && m[1] !== VERSION) show(m[1]);
+    } catch {}
+  };
+  setTimeout(check, 60000);
+  setInterval(check, 10 * 60000);
+}
+watchVersion(v => { const b = $("newVer"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
 async function start(){
   try {
     await Promise.race([

@@ -232,6 +232,11 @@ h3 span{color:var(--label2);margin-left:.6em}
 .sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
 .status{display:none}
 body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
+#newVer{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));z-index:7;transform:translateX(-50%);padding:9px 16px;border:0;border-radius:20px;background:#f2c44e;color:#17140e;font:700 13px var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6);cursor:pointer}
+#newVer[hidden]{display:none}
+.pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
+.pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
+#pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
 .brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
 /* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
@@ -518,6 +523,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   <p class="brandline">Fallblatt</p>
 </main>
 <p id="sideAlert" role="status" hidden></p>
+<button id="newVer" type="button" hidden></button>
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wHi" hidden><div class="wbox">
   <div class="wmark" aria-hidden="true">&#9992;</div>
   <div class="panel" id="wHello" aria-hidden="true"></div>
@@ -703,6 +709,19 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["New version · tap to update", "Neue Version · zum Aktualisieren tippen", "Nouvelle version · touchez pour mettre à jour", "Nueva versión · toca para actualizar", "Nieuwe versie · tik om bij te werken"],
+  ["Notifications", "Benachrichtigungen", "Notifications", "Notificaciones", "Meldingen"],
+  ["Turn on notifications", "Benachrichtigungen einschalten", "Activer les notifications", "Activar notificaciones", "Meldingen aanzetten"],
+  ["Turn off", "Ausschalten", "Désactiver", "Desactivar", "Uitzetten"],
+  ["Evening summary", "Abendzusammenfassung", "Résumé du soir", "Resumen de la noche", "Avondoverzicht"],
+  ["Worth going to the window", "Blick aus dem Fenster", "Aller à la fenêtre", "Asomarse a la ventana", "Even naar het raam"],
+  ["Notifications are on for this device.", "Benachrichtigungen sind auf diesem Gerät an.", "Les notifications sont activées sur cet appareil.", "Las notificaciones están activadas en este dispositivo.", "Meldingen staan aan op dit apparaat."],
+  ["A summary of your day at 22:30, and a nudge when something special is about to pass over.", "Um 22:30 eine Zusammenfassung des Tages, und ein Hinweis, wenn gleich etwas Besonderes vorbeifliegt.", "Un résumé de votre journée à 22 h 30, et un signal quand quelque chose de spécial va passer.", "Un resumen del día a las 22:30, y un aviso cuando algo especial está a punto de pasar.", "Om 22:30 een overzicht van je dag, en een seintje als er iets bijzonders over gaat komen."],
+  ["Notifications only work through the https address (the one in your invite link), not at home on the Wi-Fi address.", "Benachrichtigungen funktionieren nur über die https-Adresse (die aus deinem Einladungslink), nicht zu Hause über die WLAN-Adresse.", "Les notifications ne fonctionnent que via l'adresse https (celle de votre lien d'invitation), pas à la maison sur l'adresse Wi-Fi.", "Las notificaciones solo funcionan a través de la dirección https (la de tu enlace de invitación), no en casa con la dirección del wifi.", "Meldingen werken alleen via het https-adres (dat uit je uitnodigingslink), niet thuis via het wifi-adres."],
+  ["This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.", "Dieser Browser kann keine Benachrichtigungen zeigen. Auf dem iPhone Fallblatt erst zum Home-Bildschirm hinzufügen und von dort öffnen.", "Ce navigateur ne peut pas afficher de notifications. Sur iPhone, ajoutez d'abord Fallblatt à l'écran d'accueil et ouvrez-le depuis là.", "Este navegador no puede mostrar notificaciones. En iPhone, añade primero Fallblatt a la pantalla de inicio y ábrelo desde allí.", "Deze browser kan geen meldingen tonen. Op een iPhone voeg je Fallblatt eerst toe aan het beginscherm en open je het van daaruit."],
+  ["Notifications are blocked for this site in the browser's settings.", "Benachrichtigungen sind für diese Seite in den Browsereinstellungen blockiert.", "Les notifications sont bloquées pour ce site dans les réglages du navigateur.", "Las notificaciones están bloqueadas para este sitio en los ajustes del navegador.", "Meldingen zijn voor deze site geblokkeerd in de browserinstellingen."],
+  ["The relay doesn't offer notifications yet.", "Das Relais bietet noch keine Benachrichtigungen an.", "Le relais ne propose pas encore de notifications.", "El relé aún no ofrece notificaciones.", "De relay biedt nog geen meldingen aan."],
+  ["Turning on …", "Wird eingeschaltet …", "Activation …", "Activando …", "Wordt aangezet …"],
   ["Collection", "Sammlung", "Collection", "Colección", "Verzameling"],
   ["Points", "Punkte", "Points", "Puntos", "Punten"],
   ["Best day", "Bester Tag", "Meilleur jour", "Mejor día", "Beste dag"],
@@ -3717,6 +3736,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.22", date: "2026-10-14", notes: [
+    "A lamp says when a new version is out: tap it to update.",
+    "Notifications: an evening summary, and a nudge when something special is about to pass over (phone app → About; through the https address).",
+    "Your own phone can be linked to Home, to use your place and logbook from anywhere."]},
   {v: "1.21", date: "2026-10-14", notes: [
     "Rarity: every plane is common, uncommon, rare, epic or legendary, shown in colour after its type.",
     "Points, streaks and a Collection of sets to complete (Logbook → Collection)."]},
@@ -3897,6 +3920,7 @@ function aboutOpen(){
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
@@ -3910,6 +3934,60 @@ function aboutOpen(){
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
+  renderPush();
+}
+/* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
+   Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
+const PUSH_PREFS = "od.push.prefs";
+async function pushSub(){
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.getRegistration("./");
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+async function renderPush(){
+  const box = $("pushBox");
+  if (!box) return;
+  const say = t => `<p>${escH(t)}</p>`;
+  if ((window.OVERHEAD_RELAY_VERSION || 0) < 25) { box.innerHTML = say(T("The relay doesn't offer notifications yet.")); return; }
+  if (!window.isSecureContext) { box.innerHTML = say(T("Notifications only work through the https address (the one in your invite link), not at home on the Wi-Fi address.")); return; }
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
+  }
+  if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
+  let prefs = {summary: true, window: true};
+  try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
+  const sub = await pushSub().catch(() => null);
+  const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
+  box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
+    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
+  for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
+    ctlSound.toggle(cb.checked);
+    prefs[cb.dataset.p] = cb.checked;
+    try { localStorage.setItem(PUSH_PREFS, JSON.stringify(prefs)); } catch {}
+    const cur = await pushSub().catch(() => null);
+    if (cur) sendSub(cur, prefs, "subscribe");
+  };
+  $("pushBtn").onclick = async () => {
+    ctlSound.press();
+    const note = $("pushNote");
+    try {
+      if (sub) { await sendSub(sub, prefs, "unsubscribe"); await sub.unsubscribe(); return renderPush(); }
+      note.textContent = T("Turning on …");
+      if (await Notification.requestPermission() !== "granted") return renderPush();
+      const reg = await navigator.serviceWorker.register("sw.js", {scope: "./"});
+      await navigator.serviceWorker.ready;
+      const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
+      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
+      const fresh = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw});
+      await sendSub(fresh, prefs, "subscribe");
+      renderPush();
+    } catch (e) { note.textContent = String(e && e.message || e); }
+  };
+}
+function sendSub(sub, prefs, what){
+  return fetch(`${relay()}/push/${what}`, {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({subscription: sub.toJSON ? sub.toJSON() : sub, prefs, lang: LANG})});
 }
 function renderAbout(){
   const el = $("aboutStatus");
@@ -4128,6 +4206,19 @@ addEventListener("resize", () => {
   resizeQ = requestAnimationFrame(() => { fitSideways(); clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize(); });
 });
 
+// A newer version published: a banner above the tabs, tap to update.
+function watchVersion(show){             // as on the board: ask for this page now and then, nothing reloads by itself
+  const check = async () => {
+    try {
+      const r = await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"});
+      const m = /\{v: "(\d[\d.]*)"/.exec(await r.text());
+      if (m && m[1] !== VERSION) show(m[1]);
+    } catch {}
+  };
+  setTimeout(check, 60000);
+  setInterval(check, 10 * 60000);
+}
+watchVersion(v => { const b = $("newVer"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
 async function start(){
   try {
     await Promise.race([

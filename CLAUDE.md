@@ -170,6 +170,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
   (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
   address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place.
+- Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
+  (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
+  `profiles["home"]`), from the app's About → Notifications (`renderPush`, `app/sw.js`; https only). `_push_watch`
+  runs `window_check` (passes within 5 km in 20–180 s: special, first-ever, favourite or below 3,000 ft) and
+  `summary_check` (once a day at `SUMMARY_AT`) every 30 s. "Link a device to Home" (`/admin/homelink`) makes an
+  invite for the pseudo-profile `home`: such a device is home from anywhere (`self.homelinked`), but `/admin` needs the
+  home network itself (`at_home()`).
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
   `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a

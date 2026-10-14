@@ -22,6 +22,7 @@ here too, because the weather service doesn't allow direct browser access either
 Standard library only: works with Python 3.8+ on Windows, macOS, Linux or in a container.
 """
 import argparse
+import base64
 import collections
 import csv
 import datetime
@@ -41,6 +42,7 @@ import re
 import secrets
 import shutil
 import socket
+import struct
 import sys
 import threading
 import time
@@ -50,7 +52,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 24
+RELAY_VERSION = 25
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -66,8 +68,8 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
-BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico))$")  # the phone app's icons
-FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon"}
+BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js))$")  # the phone app's icons, its service worker
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "public_url")
 DATA_DIR = Path(__file__).with_name("data")
@@ -1608,13 +1610,13 @@ def new_invite(name=None, pid=None):
                 pid = secrets.token_hex(4)
             P["profiles"][pid] = {"name": name, "created": time.time(), "lastSeen": 0, "fr24": False, "devices": [],
                                   "settings": None, "fr24Day": "", "fr24Count": 0}
-        elif pid not in P["profiles"]:
+        elif pid != "home" and pid not in P["profiles"]:
             return None
         now = time.time()
         P["invites"] = {h: i for h, i in P["invites"].items() if i["expires"] > now}
         P["invites"][_hash(code)] = {"profile": pid, "created": now, "expires": now + INVITE_DAYS * 86400}
         _dirty.add("profiles")
-        who = P["profiles"][pid]["name"]
+        who = "a home device" if pid == "home" else P["profiles"][pid]["name"]
     event("info", f"Invite link made for {who}")
     return code
 
@@ -1626,7 +1628,9 @@ def redeem(code, ua):
         inv = P["invites"].pop(_hash(code), None)
         if inv:
             _dirty.add("profiles")
-        p = P["profiles"].get(inv["profile"]) if inv and inv["expires"] > time.time() else None
+        p = None
+        if inv and inv["expires"] > time.time():
+            p = P.setdefault("home", {"name": "Home", "devices": [], "push": []}) if inv["profile"] == "home" else P["profiles"].get(inv["profile"])
         if not p:
             return None, None
         token = secrets.token_urlsafe(32)
@@ -1642,7 +1646,8 @@ def profile_for(token):
         return None, None
     h, now = _hash(token), time.time()
     with _data_lock:
-        for pid, p in profiles()["profiles"].items():
+        P = profiles()
+        for pid, p in ([("home", P["home"])] if P.get("home") else []) + list(P["profiles"].items()):
             for d in p["devices"]:
                 if secrets.compare_digest(d["token"], h):
                     if now - d.get("lastSeen", 0) > 60:     # keep "last seen" without writing on every request
@@ -1810,11 +1815,254 @@ def admin_html(host, made=None):
                           "Start it once with <code>--public-url https://overhead.example.com --save</code>.</p>")
     table = (f"<table><tr><th>Who</th><th>Devices</th><th></th><th></th></tr>{''.join(rows)}</table>" if rows
              else "<p>Nobody yet. Invite someone below.</p>")
+    home = profiles().get("home") or {}
+    hd = ", ".join(sorted({d.get("device") or "device" for d in home.get("devices", [])})) or "none yet"
+    home_html = (f"<h2>Your own devices</h2><p>Link a phone to Home to use your own place and logbook through the public "
+                 f"address, and get notifications. Linked: {html.escape(hd)}.</p><form method=post action='/admin/homelink'>"
+                 f"<button class=go>Link a device to Home</button></form> <form method=post action='/admin/homeclear' "
+                 f"onsubmit=\"return confirm('Unlink all home devices?')\"><button>Unlink all</button></form>")
     body = (f"<h1>Friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
             f"today and logbook. This page only opens at home.</p>{made_html}<h2>People</h2>{table}<h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
-            f"<button class=go>Make a link</button></form>")
+            f"<button class=go>Make a link</button></form>" + home_html)
     return plain_page("Fallblatt: friends & family", body)
+
+
+# ---------- push notifications (relay 25): the evening summary and "worth going to the window" ----------
+# Web Push to browsers (https only: through fallblatt.app), encrypted (RFC 8291) and signed (VAPID) with the relay's own
+# key in data/vapid.pem. Needs the cryptography package (Debian: python3-cryptography); without it there are no
+# notifications and everything else works as before. Subscriptions live with each profile (home: profiles["home"]).
+try:
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+    PUSH_OK = True
+except ImportError:
+    PUSH_OK = False
+VAPID_FILE = DATA_DIR / "vapid.pem"
+_vapid = None
+SUMMARY_AT = "22:30"
+_sent = {}                  # (subscription endpoint, plane hex) -> time: one window alert per plane
+
+
+def _b64u(b):
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+
+def _ub64(t):
+    return base64.urlsafe_b64decode(t + "=" * (-len(t) % 4))
+
+
+def vapid():
+    """The relay's signing key and its public half (base64url), made the first time."""
+    global _vapid
+    if _vapid or not PUSH_OK:
+        return _vapid
+    try:
+        key = serialization.load_pem_private_key(VAPID_FILE.read_bytes(), None)
+    except (OSError, ValueError):
+        key = ec.generate_private_key(ec.SECP256R1())
+        DATA_DIR.mkdir(exist_ok=True)
+        VAPID_FILE.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+        try:
+            os.chmod(VAPID_FILE, 0o600)
+        except OSError:
+            pass
+    pub = key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    _vapid = (key, _b64u(pub))
+    return _vapid
+
+
+def _hkdf(salt, info, ikm, n):
+    return HKDF(algorithm=hashes.SHA256(), length=n, salt=salt, info=info).derive(ikm)
+
+
+def push_send(sub, payload, urgent=False):
+    """Send one notification. Returns the HTTP status (404/410: the subscription is gone)."""
+    key, pub = vapid()
+    ua_pub, auth = _ub64(sub["keys"]["p256dh"]), _ub64(sub["keys"]["auth"])
+    eph = ec.generate_private_key(ec.SECP256R1())
+    as_pub = eph.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
+    shared = eph.exchange(ec.ECDH(), ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), ua_pub))
+    ikm = _hkdf(auth, b"WebPush: info\x00" + ua_pub + as_pub, shared, 32)
+    salt = secrets.token_bytes(16)
+    cek, nonce = _hkdf(salt, b"Content-Encoding: aes128gcm\x00", ikm, 16), _hkdf(salt, b"Content-Encoding: nonce\x00", ikm, 12)
+    body = salt + struct.pack(">I", 4096) + bytes([len(as_pub)]) + as_pub + AESGCM(cek).encrypt(nonce, json.dumps(payload).encode() + b"\x02", None)
+    u = urllib.parse.urlsplit(sub["endpoint"])
+    claims = {"aud": f"{u.scheme}://{u.netloc}", "exp": int(time.time()) + 12 * 3600, "sub": ARGS.public_url or "https://github.com/Belstria/overhead-board"}
+    head = _b64u(json.dumps({"typ": "JWT", "alg": "ES256"}).encode()) + "." + _b64u(json.dumps(claims).encode())
+    r, s_ = decode_dss_signature(key.sign(head.encode(), ec.ECDSA(hashes.SHA256())))
+    jwt = head + "." + _b64u(r.to_bytes(32, "big") + s_.to_bytes(32, "big"))
+    status, _, _, _ = fetch(sub["endpoint"], data=body, content_type="application/octet-stream", timeout=15, headers={
+        "Authorization": f"vapid t={jwt}, k={pub}", "Content-Encoding": "aes128gcm", "TTL": "3600", "Urgency": "high" if urgent else "normal"})
+    return status
+
+
+# What the notifications say, in the subscriber's language.
+PUSH_TEXT = {
+    "window": {"en": "Worth going to the window", "de": "Lohnt sich ein Blick aus dem Fenster", "fr": "Ça vaut le coup d'aller à la fenêtre",
+               "es": "Vale la pena asomarse a la ventana", "nl": "Even naar het raam"},
+    "over": {"en": "{what} passes in about {m} min · look {dir}, {alt}", "de": "{what} kommt in etwa {m} Min. vorbei · Blick nach {dir}, {alt}",
+             "fr": "{what} passe dans environ {m} min · regardez vers {dir}, {alt}", "es": "{what} pasa en unos {m} min · mira al {dir}, {alt}",
+             "nl": "{what} komt over ongeveer {m} min langs · kijk naar {dir}, {alt}"},
+    "overhead": {"en": "{what} passes right overhead in about {m} min, {alt}", "de": "{what} fliegt in etwa {m} Min. direkt drüber, {alt}",
+                 "fr": "{what} passe juste au-dessus dans environ {m} min, {alt}", "es": "{what} pasa justo encima en unos {m} min, {alt}",
+                 "nl": "{what} komt over ongeveer {m} min recht over, {alt}"},
+    "day": {"en": "Your day in planes", "de": "Dein Tag in Flugzeugen", "fr": "Votre journée en avions", "es": "Tu día en aviones", "nl": "Je dag in vliegtuigen"},
+    "sum": {"en": "{n} planes · {p} points{best}{rare}{low}", "de": "{n} Flugzeuge · {p} Punkte{best}{rare}{low}", "fr": "{n} avions · {p} points{best}{rare}{low}",
+            "es": "{n} aviones · {p} puntos{best}{rare}{low}", "nl": "{n} vliegtuigen · {p} punten{best}{rare}{low}"},
+    "rarest": {"en": " · rarest: {x}", "de": " · am seltensten: {x}", "fr": " · le plus rare : {x}", "es": " · el más raro: {x}", "nl": " · zeldzaamste: {x}"},
+    "lowest": {"en": " · lowest: {x}", "de": " · am tiefsten: {x}", "fr": " · le plus bas : {x}", "es": " · el más bajo: {x}", "nl": " · laagste: {x}"},
+    "record": {"en": " · a new best day!", "de": " · ein neuer Bestwert!", "fr": " · un nouveau record !", "es": " · ¡un nuevo récord!", "nl": " · een nieuw record!"},
+}
+DIRS = {"en": "N NE E SE S SW W NW", "de": "N NO O SO S SW W NW", "fr": "N NE E SE S SO O NO", "es": "N NE E SE S SO O NO", "nl": "N NO O ZO Z ZW W NW"}
+
+
+def ptext(key, lang, **kw):
+    t = PUSH_TEXT[key]
+    return (t.get(lang) or t["en"]).format(**kw)
+
+
+def push_targets():
+    """Who gets notifications: (who, subscriptions, centre, spot, settings) for home and each guest who has some."""
+    out = []
+    with _data_lock:
+        P = profiles()
+        home = P.get("home") or {}
+        if home.get("push") and ARGS.lat is not None:
+            out.append(("home", home["push"], (ARGS.lat, ARGS.lon), HOME, home.get("settings") or {}))
+        for pid, p in P["profiles"].items():
+            st = p.get("settings") or {}
+            if p.get("push") and st.get("lat") is not None:
+                try:
+                    out.append((pid, p["push"], (float(st["lat"]), float(st["lon"])), guest_spot(pid), st))
+                except (TypeError, ValueError):
+                    pass
+    return out
+
+
+def _deliver(subs, payload, urgent=False):
+    gone = []
+    for sub in list(subs):
+        try:
+            status = push_send(sub, payload, urgent)
+        except Exception as e:
+            event("warn", f"Couldn't send a notification: {e}", echo=False)
+            continue
+        if status in (404, 410):
+            gone.append(sub["endpoint"])
+        elif status >= 400:
+            event("warn", f"A push service answered HTTP {status}", echo=False)
+    if gone:
+        with _data_lock:
+            subs[:] = [s_ for s_ in subs if s_["endpoint"] not in gone]
+            _dirty.add("profiles")
+
+
+def _fav_tokens(st):
+    return [re.sub(r"[\s-]", "", t.strip().upper()) for t in re.split(r"[,;\n]+", str(st.get("favs") or "")) if t.strip()]
+
+
+def window_check(who, subs, centre, spot, st):
+    """Planes worth going to the window for: passing within 5 km in the next 3 minutes, and special, never seen here,
+    a favourite or very low."""
+    want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("window", True)]
+    if not want:
+        return
+    status, body, _, _ = aircraft(f"{centre[0]:.4f}", f"{centre[1]:.4f}", "25")
+    if status != 200:
+        return
+    try:
+        planes = json.loads(body).get("ac") or json.loads(body).get("aircraft") or []
+    except ValueError:
+        return
+    lat0, lon0 = centre
+    kx, ky = 111.32 * math.cos(math.radians(lat0)), 110.57
+    with _data_lock:
+        book = spot.book()
+        types, learning = book.get("types", {}), time.time() - book.get("startedTs", 0) < LEARN_S
+    favs = _fav_tokens(st)
+    now = time.time()
+    for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
+        del _sent[k]
+    for ac in planes:
+        if not isinstance(ac, dict) or ac.get("lat") is None or ac.get("alt_baro") == "ground" or not ac.get("gs") or ac.get("track") is None:
+            continue
+        x, y = (ac["lon"] - lon0) * kx, (ac["lat"] - lat0) * ky
+        v = ac["gs"] * 1.852 / 3600
+        vx, vy = v * math.sin(math.radians(ac["track"])), v * math.cos(math.radians(ac["track"]))
+        t = -(x * vx + y * vy) / (v * v) if v else -1                     # seconds to the closest point
+        if not 20 <= t <= 180:
+            continue
+        cx, cy = x + vx * t, y + vy * t
+        cpa = math.hypot(cx, cy)
+        alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
+        if cpa > 5 or (isinstance(alt, (int, float)) and alt > 20000):
+            continue
+        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        special = tc in LEGENDARY_TYPES or tc in MILITARY_TYPES or (ac.get("dbFlags") or 0) & 3 or _emergency(ac)
+        first = tc and tc not in types and not learning
+        fav = any(f in (tc, cs, reg.replace("-", ""), cs[:3]) for f in favs)
+        low = isinstance(alt, (int, float)) and alt < 3000 and cpa < 2
+        if not (special or first or fav or low):
+            continue
+        what = " ".join(x_ for x_ in [ac.get("desc") or tc, cs] if x_) or reg or ac.get("hex", "").upper()
+        for sub in want:
+            key = (sub["endpoint"], ac.get("hex"))
+            if key in _sent:
+                continue
+            _sent[key] = now
+            lang = sub.get("lang") or "en"
+            d = DIRS.get(lang, DIRS["en"]).split()[int(((math.degrees(math.atan2(cx, cy)) + 360) % 360 + 22.5) // 45) % 8]
+            altx = f"{round(alt * .3048 / 50) * 50:,} m" if isinstance(alt, (int, float)) else ""
+            m = max(1, round(t / 60))
+            text = ptext("overhead", lang, what=what, m=m, alt=altx) if cpa < 1.2 else ptext("over", lang, what=what, m=m, dir=d, alt=altx)
+            _deliver([sub], {"title": ptext("window", lang), "body": text,
+                             "tag": "window-" + str(ac.get("hex")), "url": "/app/"}, urgent=True)
+            event("info", f"Window alert for {who}: {what}")
+
+
+def summary_check(who, subs, spot, st):
+    """The evening summary, once a day at SUMMARY_AT (local time)."""
+    if time.strftime("%H:%M") < SUMMARY_AT:
+        return
+    with _data_lock:
+        spot.ensure_day()
+        day, entries = spot.day, list(spot.entries)
+        g = game_json(spot.book(), day)
+    want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("summary", True) and s_.get("summaryDay") != day]
+    if not want or not entries:
+        return
+    order = {t: i for i, t in enumerate(TIERS)}
+    rare = max(entries, key=lambda e: order.get(e.get("tier"), -1))
+    low = min((e for e in entries if isinstance(e.get("altAtMin"), (int, float)) and e["altAtMin"] > 0), key=lambda e: e["altAtMin"], default=None)
+    for sub in want:
+        lang = sub.get("lang") or "en"
+        name = lambda e: " ".join(x_ for x_ in [e.get("desc") or e.get("typeCode"), e.get("callsign")] if x_)
+        body = ptext("sum", lang, n=len(entries), p=g["today"],
+                     best=ptext("record", lang) if g["best"] and g["best"]["day"] == day and g["today"] > 0 else "",
+                     rare=ptext("rarest", lang, x=name(rare)) if order.get(rare.get("tier"), 0) >= order["rare"] else "",
+                     low=ptext("lowest", lang, x=f"{name(low)}, {round(low['altAtMin'] * .3048 / 10) * 10:,} m") if low else "")
+        sub["summaryDay"] = day
+        _deliver([sub], {"title": ptext("day", lang), "body": body, "tag": "summary", "url": "/app/#today"})
+    with _data_lock:
+        _dirty.add("profiles")
+    event("info", f"Evening summary sent to {who}")
+
+
+def _push_watch():
+    while True:
+        time.sleep(30)
+        if not PUSH_OK:
+            continue
+        for who, subs, centre, spot, st in push_targets():
+            try:
+                window_check(who, subs, centre, spot, st)
+                summary_check(who, subs, spot, st)
+            except Exception as e:
+                event("warn", f"Notification check failed for {who}: {e}", echo=False)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1866,8 +2114,11 @@ class Handler(BaseHTTPRequestHandler):
     def identify(self):
         """Who is asking: self.guest = (id, profile) for a guest's device, None at home; self.stranger for anyone else."""
         pid, p = profile_for(self.cookie_token())
+        self.homelinked = pid == "home"                  # a device linked to Home: home, from anywhere
+        if self.homelinked:
+            pid = p = None
         self.guest = (pid, p) if pid else None            # a guest's phone stays the guest, even on the home Wi-Fi
-        self.stranger = not self.guest and not self.at_home()
+        self.stranger = not self.guest and not self.homelinked and not self.at_home()
         self.spot = guest_spot(pid) if pid else HOME
 
     def cookie_token(self):
@@ -1942,6 +2193,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.refuse(path)
         elif self.guest and not allow("guest:" + self.guest[0], 4, 60):
             return self.reply(429, "text/plain", b"Too many requests")
+        if path == "/admin" and not self.at_home():
+            return self.reply(403, "text/plain", b"Only at home")
+        if path == "/push/key":
+            v = vapid()
+            return self.reply(200, "application/json", json.dumps({"key": v[1] if v else None}).encode())
         if path in ("/screens", "/status", "/admin") and self.guest:
             return self.reply(403, "text/plain", b"Only at home")
         if path == "/admin":
@@ -2067,7 +2323,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.guest and not allow("guest:" + self.guest[0], 4, 60):
             return self.reply(429, "text/plain", b"Too many requests")
         if path.startswith("/admin/"):
-            if self.guest or not self.same_origin():
+            if self.guest or not self.at_home() or not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from the admin page at home")
             f, made = self.form(), None
             if path == "/admin/invite" and (f.get("name") or "").strip():
@@ -2077,6 +2333,12 @@ class Handler(BaseHTTPRequestHandler):
                 code = new_invite(pid=f["pid"])
                 if code:
                     made = (profiles()["profiles"][f["pid"]]["name"], code)
+            elif path == "/admin/homelink":
+                made = ("Home", new_invite(pid="home"))
+            elif path == "/admin/homeclear":
+                with _data_lock:
+                    profiles().pop("home", None)
+                    _dirty.add("profiles")
             elif path == "/admin/remove" and f.get("pid"):
                 remove_profile(f["pid"])
             elif path == "/admin/fr24" and f.get("pid") in profiles()["profiles"]:
@@ -2099,6 +2361,29 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path in ("/push/subscribe", "/push/unsubscribe"):
+            length = int(self.headers.get("Content-Length") or 0)
+            if length > 4096 or not PUSH_OK:
+                return self.reply(400 if PUSH_OK else 501, "text/plain", b"No notifications here")
+            try:
+                j = json.loads(self.rfile.read(length) or b"{}")
+                sub = j["subscription"]
+                ep, keys = str(sub["endpoint"]), sub["keys"]
+                assert ep.startswith("https://") and keys.get("p256dh") and keys.get("auth")
+            except (ValueError, KeyError, TypeError, AssertionError):
+                return self.reply(400, "text/plain", b"subscription missing")
+            with _data_lock:
+                P = profiles()
+                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
+                subs = owner.setdefault("push", [])
+                subs[:] = [s_ for s_ in subs if s_["endpoint"] != ep]
+                if path == "/push/subscribe":
+                    prefs = j.get("prefs") or {}
+                    subs.append({"endpoint": ep, "keys": {"p256dh": keys["p256dh"], "auth": keys["auth"]}, "lang": str(j.get("lang") or "en")[:2],
+                                 "prefs": {"summary": prefs.get("summary") is not False, "window": prefs.get("window") is not False}, "added": time.time()})
+                    del subs[:-10]
+                _dirty.add("profiles")
+            return self.reply(204, "text/plain", b"")
         if path == "/me":               # a guest's settings, so their other devices (and the relay) know their place
             length = int(self.headers.get("Content-Length") or 0)
             if not self.guest:
@@ -2199,6 +2484,7 @@ def main():
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
     threading.Thread(target=_screen_watch, daemon=True).start()
+    threading.Thread(target=_push_watch, daemon=True).start()
     with _data_lock:
         HOME.ensure_day()
         HOME.book()
@@ -2217,6 +2503,7 @@ def main():
         print(f"Flightradar24 lookups are on for boards that use them (at most {_fr24_budget():,} credits a month).")
     print("Problems with the flight data sources and screens coming and going are printed below.")
     print(f"Friends and family: invite them at http://localhost:{ARGS.port}/admin (only opens at home).")
+    print("Notifications: " + ("on (through the public https address)" if PUSH_OK else "off: install the cryptography package (Debian: python3-cryptography)"))
     print(f"Press Enter for the screens using the relay (also at http://localhost:{ARGS.port}/screens). Press Ctrl+C to stop.", flush=True)
     threading.Thread(target=_console, daemon=True).start()
     try:
