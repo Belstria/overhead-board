@@ -149,7 +149,7 @@ class H(BaseHTTPRequestHandler):
         if os.environ.get("QUIET"):   # no special planes, so the pages rotate undisturbed
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
-            ac.append(plane("440bxb", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
+            ac.append(plane("44041d", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
         body = json.dumps({"ac": ac, "now": time.time()}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

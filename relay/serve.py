@@ -38,6 +38,7 @@ import json
 import math
 import os
 import queue
+import random
 import re
 import secrets
 import shutil
@@ -52,7 +53,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 28
+RELAY_VERSION = 29
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -258,13 +259,16 @@ class Spot:
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
                                                                        "sightings": 0, "types": {}, "airlines": {}, "regs": {},
-                                                                       "gameV": GAME_V, "recordsV": 1}
+                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": 1}
             if self.logbook.get("gameV") != GAME_V:
                 self.ensure_day()
                 _rescore(self)
             if self.logbook.get("recordsV") != 1:
                 self.ensure_day()
                 _backfill_records(self)
+            if self.logbook.get("trophiesV") != 1:
+                self.ensure_day()
+                _backfill_trophies(self)
         return self.logbook
 
     def changed(self, *what):
@@ -448,6 +452,8 @@ def _record(self, planes, lat, lon):
                     moved = True
                 if moved and note_records(self.book(), e):
                     self.changed("book")
+                if moved:
+                    trophy_pass(self.book(), e)
                 em = _emergency(ac)
                 if em and em != e.get("emergency"):
                     e["emergency"], changed = em, True
@@ -462,6 +468,9 @@ def _record(self, planes, lat, lon):
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
                      "adsbCat": str(ac.get("category") or "")}
+                w = watch_of(hx)
+                if w:
+                    e["watch"], e["watchOp"] = w
                 if e["emergency"]:
                     event("warn", f"Emergency code {e['emergency']} from {cs or hx}, {d:.1f} km away")
                 self.entries.insert(0, e)
@@ -482,6 +491,11 @@ def _record(self, planes, lat, lon):
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
                 score(book, e, self.day)
                 note_records(book, e)
+                hrs = set(book.get("hours", []))
+                if _hour(e) not in hrs:
+                    book["hours"] = sorted(hrs | {_hour(e)})
+                for k in trophy_check(book, e, self.entries):
+                    event("info", f"Trophy won: {k}", echo=False)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -573,9 +587,7 @@ def _rescore(spot):
         event("info", f"Logbook scored again by fleet size: {n} sightings")
 
 
-def game_json(book, day):
-    days = book.get("days", {})
-    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+def _streak(book, day):
     rd, streak = set(book.get("rareDays", [])), 0
     d = datetime.date.fromisoformat(day)
     if day not in rd:
@@ -583,10 +595,245 @@ def game_json(book, day):
     while d.isoformat() in rd:
         streak += 1
         d -= datetime.timedelta(days=1)
+    return streak
+
+
+# Trophies (relay 29): won once and kept for good (nothing resets), each with the day it was won.
+TROPHY_IDS = ["century", "thousand", "busyday", "types50", "airlines25", "a320fam", "giants", "jumbochopper", "oldfriend",
+              "nightowl", "aroundclock", "lowpass", "bullseye", "specialday", "streak7", "bingo", "fullcard"]
+A320_FAMILY = ("A319", "A320", "A321")
+
+
+def _hour(e):
+    return time.localtime((e.get("ts") or 0) / 1000).tm_hour
+
+
+def trophy_check(book, e, day_entries, ctx=None):
+    """Win what this sighting (and its day so far) earns. ctx: the counts up to this sighting; by default the logbook's
+    own (live), or ones rebuilt day by day when an older logbook is counted again."""
+    got = book.setdefault("trophies", {})
+    ts = e.get("ts") or int(time.time() * 1000)
+    won = []
+    def win(k, ok):
+        if ok and k not in got:
+            got[k] = ts
+            won.append(k)
+    c = ctx or {"n": book.get("sightings", 0), "types": book.get("types", {}), "airlines": book.get("airlines", {}),
+                "regs": book.get("regs", {}), "hours": set(book.get("hours", []))}
+    types = c["types"]
+    win("century", c["n"] >= 100)
+    win("thousand", c["n"] >= 1000)
+    win("busyday", len(day_entries) >= 100)
+    win("types50", len(types) >= 50)
+    win("airlines25", len(c["airlines"]) >= 25)
+    win("a320fam", all(t in types for t in A320_FAMILY) and any(t in types for t in ("A20N", "A21N", "A19N")))
+    win("giants", "A388" in types and any(t.startswith("B74") for t in types))
+    r = c["regs"].get(e.get("reg") or "")
+    win("oldfriend", bool(r) and (r.get("count", 0) if isinstance(r, dict) else r) >= 25)
+    win("jumbochopper", any(str(x.get("typeCode") or "").startswith("B74") for x in day_entries)
+        and any(category_of(x) == "helicopter" for x in day_entries))
+    win("nightowl", 1 <= _hour(e) <= 3)
+    win("aroundclock", len(c["hours"]) >= 24)
+    win("specialday", sum(1 for x in day_entries if x.get("tier") == "legendary") >= 3)
+    trophy_pass(book, e, got, won)
+    return won
+
+
+def trophy_pass(book, e, got=None, won=None):
+    """The trophies of how close or low a pass came (they can still be won as the plane comes closer)."""
+    got = got if got is not None else book.setdefault("trophies", {})
+    ts = e.get("ts") or int(time.time() * 1000)
+    alt, d = e.get("altAtMin"), e.get("minDist")
+    for k, ok in (("lowpass", isinstance(alt, (int, float)) and 100 <= alt < 1500 and d is not None and d <= 2),
+                  ("bullseye", d is not None and d <= 0.3)):
+        if ok and k not in got:
+            got[k] = ts
+            if won is not None:
+                won.append(k)
+
+
+def _backfill_trophies(spot):
+    """An older logbook: win its trophies once from the saved days, on the day they were earned."""
+    b = spot.logbook
+    b["trophies"], hours = {}, set()
+    ctx = {"n": 0, "types": {}, "airlines": {}, "regs": collections.Counter(), "hours": hours}
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        entries = spot.entries if day == spot.day else _load(f, [])
+        so_far = []
+        for e in reversed(entries):
+            ctx["n"] += 1
+            if e.get("typeCode"):
+                ctx["types"][e["typeCode"]] = 1
+            m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+            if m:
+                ctx["airlines"][m.group(1)] = 1
+            if e.get("reg"):
+                ctx["regs"][e["reg"]] += 1
+            hours.add(_hour(e))
+            so_far.append(e)
+            trophy_check(b, e, so_far, ctx)
+    rd = sorted(b.get("rareDays", []))
+    run = 0
+    for i, d in enumerate(rd):
+        run = run + 1 if i and datetime.date.fromisoformat(d) - datetime.date.fromisoformat(rd[i - 1]) == datetime.timedelta(days=1) else 1
+        if run >= 7 and "streak7" not in b["trophies"]:
+            b["trophies"]["streak7"] = int(datetime.datetime.fromisoformat(d + "T20:00").timestamp() * 1000)
+    b["hours"] = sorted(hours)
+    b["trophiesV"] = 1
+    spot.changed("book")
+
+
+# The weekly bingo: nine things to see between Monday and Sunday, drawn afresh each week (the same card on every
+# screen of a spot); a line of three wins the Bingo trophy, all nine the Full card.
+LH_GROUP, GULF, LOW_COST = {"DLH", "AUA", "SWR", "EWG", "BEL", "CLH"}, {"UAE", "QTR", "ETD"}, {"RYR", "WZZ", "EZY", "EJU", "VLG", "PGT"}
+def _al(e):
+    m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+    return m.group(1) if m else ""
+def _tc(e):
+    return str(e.get("typeCode") or "").upper()
+BINGO = {
+    "heli": lambda e: category_of(e) == "helicopter",
+    "a380": lambda e: _tc(e) == "A388",
+    "b747": lambda e: _tc(e).startswith("B74"),
+    "b777": lambda e: _tc(e).startswith("B77"),
+    "b787": lambda e: _tc(e).startswith("B78"),
+    "a350": lambda e: _tc(e).startswith("A35"),
+    "a330": lambda e: _tc(e).startswith("A33"),
+    "embraer": lambda e: re.match(r"^E(1[79]|2[9]|75)", _tc(e)) is not None,
+    "turboprop": lambda e: re.match(r"^(AT[47]|DH8|SF34|JS41|D328|L410|B190|C208|PC12)", _tc(e)) is not None,
+    "cargo": lambda e: category_of(e) == "cargo",
+    "bizjet": lambda e: category_of(e) == "bizjet",
+    "private": lambda e: category_of(e) == "private",
+    "military": lambda e: category_of(e) == "military",
+    "watch": lambda e: bool(e.get("watch")),
+    "low": lambda e: isinstance(e.get("altAtMin"), (int, float)) and 100 <= e["altAtMin"] < 2500,
+    "close": lambda e: e.get("minDist") is not None and e["minDist"] <= 1,
+    "rare": lambda e: e.get("tier") in ("rare", "epic", "legendary"),
+    "night": lambda e: _hour(e) >= 23 or _hour(e) <= 4,
+    "early": lambda e: 5 <= _hour(e) <= 7,
+    "newtype": lambda e: bool(e.get("newType")),
+    "lhgroup": lambda e: _al(e) in LH_GROUP,
+    "gulf": lambda e: _al(e) in GULF,
+    "lowcost": lambda e: _al(e) in LOW_COST,
+    "turkish": lambda e: _al(e) == "THY",
+    "fast": lambda e: isinstance(e.get("maxSpeed"), (int, float)) and 520 <= e["maxSpeed"] <= 750,
+}
+BINGO_LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+
+
+def bingo_json(spot, day):
+    """This week's card: its nine goals, which are done (and when), and how many lines are complete."""
+    monday = datetime.date.fromisoformat(day) - datetime.timedelta(days=datetime.date.fromisoformat(day).weekday())
+    key = (monday.isoformat(), day, spot.rev)
+    cached = getattr(spot, "_bingo", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    card = random.Random("fallblatt-" + monday.isoformat()).sample(sorted(BINGO), 9)
+    done = {}
+    for i in range(7):
+        d = (monday + datetime.timedelta(days=i)).isoformat()
+        if d > day:
+            break
+        entries = spot.entries if d == spot.day else _load(spot.dir / f"sightings-{d}.json", [])
+        for e in reversed(entries):
+            for g in card:
+                if g not in done:
+                    try:
+                        if BINGO[g](e):
+                            done[g] = e.get("ts")
+                    except Exception:
+                        pass
+    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
+    book = spot.book()
+    got = book.setdefault("trophies", {})
+    now = int(time.time() * 1000)
+    for k, ok in (("bingo", lines >= 1), ("fullcard", len(done) == 9)):
+        if ok and k not in got:
+            got[k] = now
+            spot.changed("book")
+    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines}
+    spot._bingo = (key, out)
+    return out
+
+
+def game_json(book, day):
+    days = book.get("days", {})
+    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+    streak = _streak(book, day)
     have = book.get("types", {})
     return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
             "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
-            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS]}
+            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS],
+            "trophies": book.get("trophies", {})}
+
+
+# ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
+# governments, historic planes ...), keyed by Mode S address. A free list (ODbL 1.0 / DbCL 1.0, credited in the
+# README), downloaded once a day; its playful categories become plain remark words for the board.
+PLANE_ALERT_CSV = "https://raw.githubusercontent.com/sdr-enthusiasts/plane-alert-db/main/plane-alert-db.csv"
+PLANE_ALERT_FILE = DATA_DIR / "plane-alert.json"
+WATCH_WORDS = {
+    "MILITARY": ["USAF", "Other Air Forces", "Toy Soldiers", "United States Navy", "GAF", "United States Marine Corps", "RAF",
+                 "Other Navies", "Special Forces", "Army Air Corps", "Royal Navy Fleet Air Arm", "Gunship", "Zoomies", "UAV",
+                 "Oxcart", "Hired Gun", "CAP"],
+    "POLICE": ["Police Forces", "UK National Police Air Service"],
+    "AMBULANCE": ["Flying Doctors"],
+    "RESCUE": ["Coastguard"],
+    "FIREFIGHTER": ["Aerial Firefighter", "Fire Fighting"],
+    "GOVERNMENT": ["Governments", "Quango", "Dictator Alert", "Head of State"],
+    "ROYAL": ["Royal Aircraft"],
+    "HISTORIC": ["Historic"],
+    "CELEBRITY": ["As Seen on TV", "Football", "Radiohead", "Don't you know who I am?"],
+    "VIP": ["Oligarch", "Jesus he Knows me", "Vanity Plate", "PIA", "Climate Crisis", "Bizjets"],
+    "SKYDIVING": ["Jump Johnny Jump", "Perfectly Serviceable Aircraft"],
+    "AEROBATIC": ["Aerobatic Teams", "Joe Cool"],
+    "SURVEY": ["Ptolemy would be proud", "Dogs with Jobs", "Watch Me Fly"],
+    "UNUSUAL": ["Distinctive", "You came here in that thing?", "Big Hello", "Gas Bags", "Ukraine", "Da Comrade", "Nuclear"],
+}
+WATCH_OF_CAT = {c: w for w, cats in WATCH_WORDS.items() for c in cats}
+_watch = {"rows": None, "fetched": 0.0}
+_watch_lock = threading.Lock()
+
+
+def _watch_load():
+    db = _load(PLANE_ALERT_FILE, None)
+    if db and time.time() - db.get("fetched", 0) < 86400:
+        _watch.update(rows=db["rows"], fetched=db["fetched"])
+        return
+    status, _, body, _ = fetch(PLANE_ALERT_CSV, timeout=60)
+    if status != 200:
+        _watch.update(rows=(db or {}).get("rows") or _watch["rows"] or {}, fetched=time.time() - 86400 + 3600)   # try again in an hour
+        event("warn", "Couldn't download the watchlist (plane-alert-db); trying again later", echo=False)
+        return
+    rows = {}
+    for r in csv.DictReader(io.StringIO(body.decode("utf-8", "replace"))):
+        hx = (r.get("$ICAO") or "").strip().lower()
+        w = WATCH_OF_CAT.get((r.get("Category") or "").strip())
+        if re.fullmatch(r"[0-9a-f]{6}", hx) and w:
+            rows[hx] = [w, (r.get("$Operator") or "").strip()[:60]]
+    _watch.update(rows=rows, fetched=time.time())
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        PLANE_ALERT_FILE.write_text(json.dumps({"fetched": _watch["fetched"], "rows": rows}, separators=(",", ":")), encoding="utf-8")
+    except OSError:
+        pass
+    event("info", f"Watchlist ready: {len(rows):,} aircraft (plane-alert-db)")
+
+
+def watch_of(hx):
+    """[remark word, operator] for an aircraft on the watchlist, or None. Loads (or refreshes) the list in the
+    background; until it is there, nothing is on it."""
+    if (_watch["rows"] is None or time.time() - _watch["fetched"] > 86400) and _watch_lock.acquire(blocking=False):
+        def load():
+            try:
+                _watch_load()
+            except Exception as e:
+                event("warn", f"Watchlist: {e}", echo=False)
+            finally:
+                _watch_lock.release()
+        threading.Thread(target=load, daemon=True).start()
+    return (_watch["rows"] or {}).get(str(hx or "").lower())
 
 
 # ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
@@ -766,7 +1013,10 @@ def _enricher():
             if route:
                 route.update(airline)
         info = _aircraft_for(hx) if hx else None
+        w = watch_of(hx) if hx else None
         with _data_lock:
+            if w and not e.get("watch"):              # the watchlist may have arrived after the sighting
+                e["watch"], e["watchOp"] = w
             if airline:
                 e.update(airline)
             if route:
@@ -1229,7 +1479,77 @@ def logbook_json(spot):
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
-                "game": game_json(b, spot.day or board_day()), "records": b.get("records", {})}
+                "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day())},
+                "records": b.get("records", {})}
+
+
+def _days_of(spot, prefix=""):
+    """(day, entries) for each saved day of a spot, oldest first, today's from memory."""
+    for f in sorted(spot.dir.glob(f"sightings-{prefix}*.json")):
+        day = f.stem[len("sightings-"):]
+        yield day, (spot.entries if day == spot.day else _load(f, []))
+
+
+def year_json(spot, year):
+    """A year in planes (relay 29), for the phone app's year card: totals, the busiest day, the most seen airframe,
+    the rarest plane, the year's records and its points."""
+    key = (year, spot.rev)
+    cached = getattr(spot, "_year", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    n, types, airlines, countries, regs, days, pts = 0, set(), set(), set(), collections.Counter(), {}, 0
+    rec, rarest = {}, None
+    order = {t: i for i, t in enumerate(TIERS)}
+    with _data_lock:
+        for day, entries in _days_of(spot, f"{year}-"):
+            days[day] = len(entries)
+            for e in entries:
+                n += 1
+                pts += TIER_POINTS.get(e.get("tier"), 0)
+                if e.get("typeCode"):
+                    types.add(e["typeCode"])
+                if _al(e):
+                    airlines.add(_al(e))
+                if e.get("ownerCountry"):
+                    countries.add(e["ownerCountry"])
+                if e.get("reg"):
+                    regs[e["reg"]] += 1
+                note_records(rec, e)
+                k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
+                if rarest is None or k > rarest[0]:
+                    rarest = (k, e)
+    top = regs.most_common(1)
+    busiest = max(days.items(), key=lambda kv: kv[1]) if days else None
+    who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "", "callsign": e.get("callsign") or "",
+                     "tier": e.get("tier") or "", "ts": e.get("ts")}
+    out = {"year": year, "planes": n, "types": len(types), "airlines": len(airlines), "countries": len(countries),
+           "airframes": len(regs), "days": len(days), "points": pts,
+           "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest else None,
+           "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
+           "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
+    spot._year = (key, out)
+    return out
+
+
+CSV_COLS = ["date", "time", "callsign", "flight", "registration", "type", "aircraft", "airline", "from", "to",
+            "closest_km", "altitude_ft", "max_speed_kt", "rarity", "category", "watchlist"]
+
+
+def logbook_csv(spot):
+    """Every saved sighting of a spot as a spreadsheet (relay 29), for moving the log into a spotting app."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(CSV_COLS)
+    with _data_lock:
+        for day, entries in _days_of(spot):
+            for e in reversed(entries):
+                p = lambda k: ((e.get(k) or {}).get("code") or "") if isinstance(e.get(k), dict) else ""
+                w.writerow([day, e.get("time") or "", e.get("callsign") or "", e.get("flightIata") or "", e.get("reg") or "",
+                            e.get("typeCode") or "", e.get("aircraftType") or e.get("desc") or "", e.get("airlineName") or "",
+                            p("from"), p("to"), e.get("minDist") if e.get("minDist") is not None else "",
+                            e.get("altAtMin") if isinstance(e.get("altAtMin"), (int, float)) else "", e.get("maxSpeed") or "",
+                            e.get("tier") or "", category_of(e), e.get("watch") or ""])
+    return buf.getvalue().encode("utf-8-sig")
 
 
 def seen_json(spot, reg):
@@ -2435,7 +2755,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -2517,6 +2837,26 @@ class Handler(BaseHTTPRequestHandler):
             if not reg:
                 return self.reply(400, "text/plain", b"reg=... is required")
             return self.reply(200, "application/json", json.dumps(seen_json(self.spot, reg)).encode())
+        if path == "/watch":
+            hexes = [h for h in ((self.query().get("hex") or [""])[0]).lower().split(",") if re.fullmatch(r"[0-9a-f]{6}", h)][:80]
+            watch_of("")
+            if _watch["rows"] is None:                 # still downloading: the board asks again on its next update
+                return self.reply(503, "application/json", b'{"loading":true}')
+            out = {}
+            for h in hexes:
+                w = watch_of(h)
+                if w:
+                    out[h] = w
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/year":
+            try:
+                y = int((self.query().get("y") or [time.strftime("%Y")])[0])
+            except ValueError:
+                y = int(time.strftime("%Y"))
+            return self.reply(200, "application/json", json.dumps(year_json(self.spot, max(2000, min(2100, y)))).encode())
+        if path == "/logbook.csv":
+            name = "fallblatt-logbook-" + time.strftime("%Y-%m-%d") + ".csv"
+            return self.reply(200, "text/csv; charset=utf-8", logbook_csv(self.spot), {"Content-Disposition": f'attachment; filename="{name}"'})
         if path == "/sky":
             code = re.sub(r"[^A-Za-z]", "", (self.query().get("code") or [""])[0])[:3]
             if len(code) != 3:

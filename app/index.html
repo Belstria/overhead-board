@@ -326,6 +326,41 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .cats .tico{width:22px;height:22px;border-radius:5px;align-self:center;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 .cats .bar{grid-column:2/4;height:3px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden}
 .cats .bar i{display:block;height:100%;background:var(--lamp);opacity:.75}
+/* the weekly bingo and the trophies */
+.bingo{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 4px}
+.bingo .bc{position:relative;min-height:74px;padding:9px 9px 8px 24px;border-radius:7px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.06);
+  font:600 13px/1.2 var(--f-board);color:rgba(243,240,232,.55)}
+.bingo .bc i{position:absolute;left:9px;top:12px;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}
+.bingo .bc.on{background:rgba(240,180,41,.14);border-color:rgba(240,180,41,.7);color:var(--ink)}
+.bingo .bc.on i{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:11px}
+.ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
+.cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
+.cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}
+.cups li:not(.on) .name{color:rgba(243,240,232,.5)}
+.cups .name{white-space:normal}
+.cups .s{display:block;margin:2px 0 0}
+/* the year in planes */
+.yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
+.yearCard h3{margin-top:0}
+.yNums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin:8px 0 10px}
+.yNums b{display:block;font:700 24px/1 var(--f-board);color:var(--ink)}
+.yNums span{font:600 11px/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.yFacts{margin:0}
+.yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 14px/1.3 var(--f-board)}
+.yFacts dt{color:var(--amber);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.yFacts dd{margin:0;color:var(--ink);text-align:right}
+.yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
+/* where to look */
+.look{display:flex;gap:12px;align-items:center;margin:10px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
+.look canvas{width:96px;height:96px;flex:none}
+.lookTxt{min-width:0}
+.lookTxt small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.lookTxt b{display:block;font:700 19px/1.15 var(--f-board);color:var(--ink)}
+.lookTxt span{display:block;margin-top:4px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
+.lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
+@media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
 .model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
@@ -511,6 +546,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+      <div class="look" id="look" hidden>
+        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
+        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
+          <button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button></div>
+      </div>
     </div>
     <div class="rcol">
       <p class="pageEmpty" id="nowEmpty" hidden></p>
@@ -668,7 +708,8 @@ const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
-  "ABOVE CLOUD"];
+  "ABOVE CLOUD", "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
+  "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL"];
 // The airport statuses show a plane taking off or landing in front of the word (tile).
 const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "arr"};
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
@@ -692,7 +733,13 @@ const REMARK_LOOK = {
   "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
   APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
   LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
-  "ABOVE CLOUD":{fill:["#8796a8","#6e7c8e"], fg:"#ffffff"}
+  "ABOVE CLOUD":{fill:["#8796a8","#6e7c8e"], fg:"#ffffff"},
+  POLICE:{fill:["#1f4e9c","#173d7c"], fg:"#ffffff"}, AMBULANCE:{fill:["#ecebe6","#d3d2cc"], fg:"#c4231b"},
+  RESCUE:{fill:["#e86a1f","#c4561a"], fg:"#ffffff"}, FIREFIGHTER:{fill:["#b5261d","#931e17"], fg:"#ffd84a"},
+  GOVERNMENT:{fill:["#23324f","#1a263d"], fg:"#e6c66e", tint:"#e6c66e"}, ROYAL:{fill:["#5b2a86","#47206a"], fg:"#f2d36b"},
+  HISTORIC:{fill:["#7a5b3a","#634a2f"], fg:"#f4e6c8"}, CELEBRITY:{fill:["#9b2f8f","#7d2573"], fg:"#ffffff"},
+  VIP:{fill:["#1d1d1f","#121214"], fg:"#e6c66e", tint:"#e6c66e"}, SKYDIVING:{fill:["#1f8a9b","#176f7d"], fg:"#ffffff"},
+  AEROBATIC:{fill:["#d8402f","#b53424"], fg:"#ffffff"}, SURVEY:{fill:["#5b6470","#4a525c"], fg:"#e8ebee"}, UNUSUAL:GOLD
 };
 
 /* ---------- settings: kept on this phone (and, for a guest, with their profile on the relay) ---------- */
@@ -790,6 +837,108 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["{y} in planes", "{y} in Flugzeugen", "{y} en avions", "{y} en aviones", "{y} in vliegtuigen"],
+  ["planes", "Flugzeuge", "avions", "aviones", "vliegtuigen"],
+  ["types", "Typen", "types", "tipos", "types"],
+  ["airlines", "Fluglinien", "compagnies", "aerolíneas", "maatschappijen"],
+  ["airframes", "Flugzeuge (Kennz.)", "appareils", "aparatos", "toestellen"],
+  ["countries", "Länder", "pays", "países", "landen"],
+  ["days", "Tage", "jours", "días", "dagen"],
+  ["Busiest day", "Vollster Tag", "Journée la plus chargée", "Día con más aviones", "Drukste dag"],
+  ["Rarest", "Am seltensten", "Le plus rare", "El más raro", "Zeldzaamste"],
+  ["Share", "Teilen", "Partager", "Compartir", "Delen"],
+  ["Download the logbook (CSV)", "Logbuch herunterladen (CSV)", "Télécharger le carnet (CSV)", "Descargar el registro (CSV)", "Logboek downloaden (CSV)"],
+  ["Every sighting as a spreadsheet, for a spotting app or Excel.", "Jede Sichtung als Tabelle, für eine Spotter-App oder Excel.", "Chaque observation en tableau, pour une appli de spotting ou Excel.", "Cada avistamiento en una hoja de cálculo, para una app de spotting o Excel.", "Elke waarneming als spreadsheet, voor een spotter-app of Excel."],
+  ["Where to look", "Wohin schauen", "Où regarder", "Dónde mirar", "Waar kijken"],
+  ["LOOK {d} · {e}° UP", "BLICK NACH {d} · {e}° HOCH", "REGARDEZ {d} · {e}° EN HAUT", "MIRA AL {d} · {e}° ARRIBA", "KIJK {d} · {e}° OMHOOG"],
+  ["Use the compass", "Kompass verwenden", "Utiliser la boussole", "Usar la brújula", "Kompas gebruiken"],
+  ["Turn until the arrow points up, then look that way.", "Dreh dich, bis der Pfeil nach oben zeigt, und schau in diese Richtung.", "Tournez jusqu'à ce que la flèche pointe vers le haut, puis regardez dans cette direction.", "Gira hasta que la flecha apunte hacia arriba y mira en esa dirección.", "Draai tot de pijl omhoog wijst en kijk die kant op."],
+  ["North is up. Hold the phone flat and tap Use the compass to turn it with you.", "Norden ist oben. Halte das Telefon flach und tippe auf Kompass verwenden, damit er sich mitdreht.", "Le nord est en haut. Tenez le téléphone à plat et touchez Utiliser la boussole pour qu'elle tourne avec vous.", "El norte está arriba. Sostén el teléfono plano y toca Usar la brújula para que gire contigo.", "Noord is boven. Houd de telefoon plat en tik op Kompas gebruiken om mee te draaien."],
+  ["North is up.", "Norden ist oben.", "Le nord est en haut.", "El norte está arriba.", "Noord is boven."],
+  ["The compass isn't available on this device.", "Der Kompass ist auf diesem Gerät nicht verfügbar.", "La boussole n'est pas disponible sur cet appareil.", "La brújula no está disponible en este dispositivo.", "Het kompas is niet beschikbaar op dit apparaat."],
+  ["{n} km away · {a}", "{n} km entfernt · {a}", "à {n} km · {a}", "a {n} km · {a}", "{n} km weg · {a}"],
+  ["POLICE", "POLIZEI", "POLICE", "POLICÍA", "POLITIE"],
+  ["AMBULANCE", "RETTUNG", "AMBULANCE", "AMBULANCIA", "AMBULANCE"],
+  ["RESCUE", "SEENOT", "SAUVETAGE", "RESCATE", "REDDING"],
+  ["FIREFIGHTER", "LÖSCHFLUG", "BOMBARDIER", "BOMBEROS", "BLUSVLIEGER"],
+  ["GOVERNMENT", "REGIERUNG", "GOUVERNEMENT", "GOBIERNO", "OVERHEID"],
+  ["ROYAL", "KÖNIGLICH", "ROYAL", "REAL", "KONINKLIJK"],
+  ["HISTORIC", "HISTORISCH", "HISTORIQUE", "HISTÓRICO", "HISTORISCH"],
+  ["CELEBRITY", "PROMI", "CÉLÉBRITÉ", "FAMOSO", "BEROEMDHEID"],
+  ["VIP", "VIP", "VIP", "VIP", "VIP"],
+  ["SKYDIVING", "FALLSCHIRM", "PARACHUTISME", "PARACAIDISMO", "PARACHUTE"],
+  ["AEROBATIC", "KUNSTFLUG", "VOLTIGE", "ACROBACIA", "KUNSTVLIEGEN"],
+  ["SURVEY", "VERMESSUNG", "LEVÉ AÉRIEN", "TOPOGRAFÍA", "LUCHTMETING"],
+  ["UNUSUAL", "UNGEWÖHNLICH", "INSOLITE", "INUSUAL", "BIJZONDER TOESTEL"],
+  ["On a watchlist (plane-alert-db): police, ambulance, government, royal, historic, celebrity and more", "Auf einer Beobachtungsliste (plane-alert-db): Polizei, Rettung, Regierung, Königshaus, historisch, Promis und mehr", "Sur une liste de surveillance (plane-alert-db) : police, ambulance, gouvernement, royal, historique, célébrités et plus", "En una lista de vigilancia (plane-alert-db): policía, ambulancia, gobierno, realeza, histórico, famosos y más", "Op een volglijst (plane-alert-db): politie, ambulance, overheid, koninklijk, historisch, beroemdheden en meer"],
+  ["This week's bingo", "Bingo dieser Woche", "Le bingo de la semaine", "El bingo de la semana", "Bingo van deze week"],
+  ["Trophies", "Trophäen", "Trophées", "Trofeos", "Trofeeën"],
+  ["{n} of 9 done · full lines: {l}", "{n} von 9 erledigt · volle Reihen: {l}", "{n} sur 9 faits · lignes complètes : {l}", "{n} de 9 hechos · líneas completas: {l}", "{n} van 9 gedaan · volle rijen: {l}"],
+  ["{n} of {t} won", "{n} von {t} gewonnen", "{n} sur {t} gagnés", "{n} de {t} ganados", "{n} van {t} gewonnen"],
+  ["The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.", "Die Rekorde des Logbuchs, die Bingokarte dieser Woche (jeden Montag eine neue) und die Trophäen, die für immer bleiben.", "Les records du carnet, la carte de bingo de la semaine (une nouvelle chaque lundi) et les trophées, gardés pour toujours.", "Los récords del registro, el cartón de bingo de la semana (uno nuevo cada lunes) y los trofeos, que se quedan para siempre.", "De records van het logboek, de bingokaart van deze week (elke maandag een nieuwe) en de trofeeën, die je altijd houdt."],
+  ["Your day in planes", "Dein Tag in Flugzeugen", "Votre journée en avions", "Tu día en aviones", "Je dag in vliegtuigen"],
+  ["Rarest today", "Heute am seltensten", "Le plus rare du jour", "El más raro de hoy", "Zeldzaamste vandaag"],
+  ["Points today", "Punkte heute", "Points du jour", "Puntos de hoy", "Punten vandaag"],
+  ["{n} POINTS · BEST {b}", "{n} PUNKTE · BESTWERT {b}", "{n} POINTS · RECORD {b}", "{n} PUNTOS · RÉCORD {b}", "{n} PUNTEN · RECORD {b}"],
+  ["{n} POINTS", "{n} PUNKTE", "{n} POINTS", "{n} PUNTOS", "{n} PUNTEN"],
+  ["A helicopter", "Ein Hubschrauber", "Un hélicoptère", "Un helicóptero", "Een helikopter"],
+  ["An A380", "Ein A380", "Un A380", "Un A380", "Een A380"],
+  ["A 747", "Eine 747", "Un 747", "Un 747", "Een 747"],
+  ["A 777", "Eine 777", "Un 777", "Un 777", "Een 777"],
+  ["A 787 Dreamliner", "Ein 787 Dreamliner", "Un 787 Dreamliner", "Un 787 Dreamliner", "Een 787 Dreamliner"],
+  ["An A350", "Ein A350", "Un A350", "Un A350", "Een A350"],
+  ["An A330", "Ein A330", "Un A330", "Un A330", "Een A330"],
+  ["An Embraer jet", "Ein Embraer-Jet", "Un jet Embraer", "Un jet Embraer", "Een Embraer-jet"],
+  ["A propeller plane", "Ein Propellerflugzeug", "Un avion à hélices", "Un avión de hélice", "Een propellervliegtuig"],
+  ["A cargo plane", "Ein Frachtflugzeug", "Un avion cargo", "Un avión de carga", "Een vrachtvliegtuig"],
+  ["A business jet", "Ein Businessjet", "Un jet d'affaires", "Un jet privado", "Een zakenjet"],
+  ["A private or light plane", "Ein Privat- oder Kleinflugzeug", "Un avion privé ou léger", "Una avioneta o avión privado", "Een privé- of sportvliegtuig"],
+  ["A military plane", "Ein Militärflugzeug", "Un avion militaire", "Un avión militar", "Een militair toestel"],
+  ["A watchlist plane", "Eines von der Beobachtungsliste", "Un avion de la liste", "Uno de la lista de vigilancia", "Een toestel van de volglijst"],
+  ["Lower than {a}", "Tiefer als {a}", "Plus bas que {a}", "Más bajo que {a}", "Lager dan {a}"],
+  ["Within 1 km", "Näher als 1 km", "À moins d'1 km", "A menos de 1 km", "Binnen 1 km"],
+  ["A rare one or better", "Ein seltenes oder besser", "Un rare ou mieux", "Uno raro o mejor", "Een zeldzame of beter"],
+  ["A plane after 23:00", "Ein Flugzeug nach 23 Uhr", "Un avion après 23 h", "Un avión después de las 23:00", "Een vliegtuig na 23:00"],
+  ["A plane from 05:00 to 08:00", "Ein Flugzeug von 5 bis 8 Uhr", "Un avion entre 5 h et 8 h", "Un avión de 5:00 a 8:00", "Een vliegtuig van 05:00 tot 08:00"],
+  ["A type new to the logbook", "Ein neuer Typ im Logbuch", "Un type nouveau au carnet", "Un tipo nuevo en el registro", "Een nieuw type in het logboek"],
+  ["Lufthansa Group", "Lufthansa-Gruppe", "Groupe Lufthansa", "Grupo Lufthansa", "Lufthansa Group"],
+  ["Emirates, Qatar or Etihad", "Emirates, Qatar oder Etihad", "Emirates, Qatar ou Etihad", "Emirates, Qatar o Etihad", "Emirates, Qatar of Etihad"],
+  ["A low-cost airline", "Eine Billigairline", "Une compagnie low cost", "Una aerolínea de bajo coste", "Een prijsvechter"],
+  ["Turkish Airlines", "Turkish Airlines", "Turkish Airlines", "Turkish Airlines", "Turkish Airlines"],
+  ["Faster than {s}", "Schneller als {s}", "Plus rapide que {s}", "Más rápido que {s}", "Sneller dan {s}"],
+  ["Century", "Hundert", "Centurion", "Centenario", "Honderdtal"],
+  ["100 planes in the logbook", "100 Flugzeuge im Logbuch", "100 avions au carnet", "100 aviones en el registro", "100 vliegtuigen in het logboek"],
+  ["Thousand", "Tausend", "Millier", "Millar", "Duizendtal"],
+  ["1,000 planes in the logbook", "1.000 Flugzeuge im Logbuch", "1 000 avions au carnet", "1.000 aviones en el registro", "1.000 vliegtuigen in het logboek"],
+  ["Busy sky", "Voller Himmel", "Ciel chargé", "Cielo lleno", "Druk luchtruim"],
+  ["100 planes in one day", "100 Flugzeuge an einem Tag", "100 avions en un jour", "100 aviones en un día", "100 vliegtuigen op één dag"],
+  ["Type hunter", "Typenjäger", "Chasseur de types", "Cazador de tipos", "Typejager"],
+  ["50 aircraft types", "50 Flugzeugtypen", "50 types d'avions", "50 tipos de avión", "50 vliegtuigtypes"],
+  ["Globetrotter", "Weltenbummler", "Globe-trotteur", "Trotamundos", "Globetrotter"],
+  ["25 airlines", "25 Fluglinien", "25 compagnies", "25 aerolíneas", "25 maatschappijen"],
+  ["Family album", "Familienalbum", "Album de famille", "Álbum familiar", "Familiealbum"],
+  ["A319, A320, A321 and a neo", "A319, A320, A321 und ein neo", "A319, A320, A321 et un neo", "A319, A320, A321 y un neo", "A319, A320, A321 en een neo"],
+  ["An A380 and a 747", "Ein A380 und eine 747", "Un A380 et un 747", "Un A380 y un 747", "Een A380 en een 747"],
+  ["Odd couple", "Ungleiches Paar", "Drôle de couple", "Pareja dispar", "Vreemd stel"],
+  ["A 747 and a helicopter on the same day", "Eine 747 und ein Hubschrauber am selben Tag", "Un 747 et un hélicoptère le même jour", "Un 747 y un helicóptero el mismo día", "Een 747 en een helikopter op één dag"],
+  ["Old friend", "Alter Bekannter", "Vieil ami", "Viejo amigo", "Oude bekende"],
+  ["The same aircraft 25 times", "Dasselbe Flugzeug 25-mal", "Le même avion 25 fois", "El mismo avión 25 veces", "Hetzelfde toestel 25 keer"],
+  ["Night owl", "Nachteule", "Oiseau de nuit", "Ave nocturna", "Nachtuil"],
+  ["A plane between 01:00 and 04:00", "Ein Flugzeug zwischen 1 und 4 Uhr", "Un avion entre 1 h et 4 h", "Un avión entre la 1:00 y las 4:00", "Een vliegtuig tussen 01:00 en 04:00"],
+  ["Around the clock", "Rund um die Uhr", "Jour et nuit", "Las 24 horas", "De klok rond"],
+  ["A plane in every hour of the day", "Ein Flugzeug in jeder Stunde des Tages", "Un avion à chaque heure du jour", "Un avión en cada hora del día", "Een vliegtuig in elk uur van de dag"],
+  ["Low pass", "Tiefflug", "Passage bas", "Pasada baja", "Lage passage"],
+  ["Lower than {a}, within 2 km", "Tiefer als {a}, näher als 2 km", "Plus bas que {a}, à moins de 2 km", "Más bajo que {a}, a menos de 2 km", "Lager dan {a}, binnen 2 km"],
+  ["Bullseye", "Volltreffer", "Dans le mille", "En el blanco", "Midden in de roos"],
+  ["Within 300 m of straight overhead", "Keine 300 m neben senkrecht drüber", "À moins de 300 m de la verticale", "A menos de 300 m de la vertical", "Binnen 300 m van recht boven"],
+  ["Special day", "Besonderer Tag", "Jour spécial", "Día especial", "Bijzondere dag"],
+  ["Three special planes in one day", "Drei besondere Flugzeuge an einem Tag", "Trois avions spéciaux en un jour", "Tres aviones especiales en un día", "Drie bijzondere toestellen op één dag"],
+  ["On a roll", "Glückssträhne", "Série en cours", "Racha", "Op dreef"],
+  ["Something rare seven days running", "Sieben Tage hintereinander etwas Seltenes", "Quelque chose de rare sept jours de suite", "Algo raro siete días seguidos", "Zeven dagen op rij iets zeldzaams"],
+  ["Bingo!", "Bingo!", "Bingo !", "¡Bingo!", "Bingo!"],
+  ["A line on the weekly bingo card", "Eine Reihe auf der Bingokarte der Woche", "Une ligne sur la carte de bingo", "Una línea en el cartón de bingo", "Een rij op de bingokaart van de week"],
+  ["Full card", "Volle Karte", "Carton plein", "Cartón lleno", "Volle kaart"],
+  ["All nine on the weekly bingo card", "Alle neun auf der Bingokarte der Woche", "Les neuf de la carte de bingo", "Los nueve del cartón de bingo", "Alle negen op de bingokaart van de week"],
   ["Seen here", "Hier gesehen", "Vu ici", "Visto aquí", "Hier gezien"],
   ["To go", "Noch", "Reste", "Faltan", "Nog"],
   ["FIRST TIME EVER", "ZUM ERSTEN MAL", "PREMIÈRE FOIS", "PRIMERA VEZ", "VOOR HET EERST"],
@@ -1019,7 +1168,7 @@ const I18N_ROWS = [
   ["Android app {v}", "Android-App {v}", "app Android {v}", "app Android {v}", "Android-app {v}"],
   ["shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport.", "zeigt das Flugzeug, das gerade über dich fliegt, auf einer Fallblattanzeige wie in Flughafenhallen, dazu was heute vorbeikam, ein Logbuch und ein Radar. In der Flughafen-Ansicht folgt sie den startenden und landenden Flugzeugen eines Flughafens.", "affiche l'avion qui passe au-dessus de vous sur un tableau à palettes comme dans les halls d'aéroport, avec ce qui est passé aujourd'hui, un carnet de bord et un radar. En vue Aéroport, il suit les avions qui décollent et atterrissent.", "muestra el avión que pasa ahora sobre ti en un panel de paletas como los de los aeropuertos, con lo que pasó hoy, un registro y un radar. En la vista Aeropuerto sigue los aviones que despegan y aterrizan.", "toont het vliegtuig dat nu boven je vliegt op een klapbord zoals in vertrekhallen, met wat vandaag langskwam, een logboek en een radar. In de luchthavenweergave volgt het de vliegtuigen die opstijgen en landen."],
   ["Made by Belstria, with Claude Code. Source and guide:", "Gemacht von Belstria, mit Claude Code. Quellcode und Anleitung:", "Réalisé par Belstria, avec Claude Code. Source et guide :", "Hecho por Belstria, con Claude Code. Código y guía:", "Gemaakt door Belstria, met Claude Code. Broncode en handleiding:"],
-  ["Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from airport-data.com, logos from Aviasales.", "Positionen von adsb.lol, adsb.fi und airplanes.live über das Relais zu Hause; Routen und Flugzeuge von adsbdb und adsb.lol, Flugnummern von Flightradar24, Zeiten vom Flughafen Wien, Flughäfen von OurAirports, Fotos von airport-data.com, Logos von Aviasales.", "Positions d'adsb.lol, adsb.fi et airplanes.live via le relais à la maison ; trajets et avions d'adsbdb et adsb.lol, numéros de vol de Flightradar24, horaires de l'aéroport de Vienne, aéroports d'OurAirports, photos d'airport-data.com, logos d'Aviasales.", "Posiciones de adsb.lol, adsb.fi y airplanes.live a través del relé de casa; rutas y aviones de adsbdb y adsb.lol, números de vuelo de Flightradar24, horarios del aeropuerto de Viena, aeropuertos de OurAirports, fotos de airport-data.com, logotipos de Aviasales.", "Posities van adsb.lol, adsb.fi en airplanes.live via het relais thuis; routes en toestellen van adsbdb en adsb.lol, vluchtnummers van Flightradar24, tijden van Vienna Airport, luchthavens van OurAirports, foto's van airport-data.com, logo's van Aviasales."],
+  ["Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.", "Positionen von adsb.lol, adsb.fi und airplanes.live über das Relais zu Hause; Routen und Flugzeuge von adsbdb und adsb.lol, Flugnummern von Flightradar24, Zeiten vom Flughafen Wien, Flughäfen von OurAirports, Fotos von airport-data.com, Logos von Aviasales.", "Positions d'adsb.lol, adsb.fi et airplanes.live via le relais à la maison ; trajets et avions d'adsbdb et adsb.lol, numéros de vol de Flightradar24, horaires de l'aéroport de Vienne, aéroports d'OurAirports, photos d'airport-data.com, logos d'Aviasales.", "Posiciones de adsb.lol, adsb.fi y airplanes.live a través del relé de casa; rutas y aviones de adsbdb y adsb.lol, números de vuelo de Flightradar24, horarios del aeropuerto de Viena, aeropuertos de OurAirports, fotos de airport-data.com, logotipos de Aviasales.", "Posities van adsb.lol, adsb.fi en airplanes.live via het relais thuis; routes en toestellen van adsbdb en adsb.lol, vluchtnummers van Flightradar24, tijden van Vienna Airport, luchthavens van OurAirports, foto's van airport-data.com, logo's van Aviasales."],
   ["ON", "EIN", "MARCHE", "SÍ", "AAN"],
   ["OFF", "AUS", "ARRÊT", "NO", "UIT"],
   ["Use current location", "Aktuellen Standort verwenden", "Utiliser ma position", "Usar ubicación actual", "Huidige locatie gebruiken"],
@@ -2361,7 +2510,7 @@ function fromRelay(r){
     airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
-    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier,
+    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier, watch: r.watch || "",
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
     fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
 }
@@ -2456,10 +2605,11 @@ function badgeFor(x){
   if (sp === "EMERGENCY") return sp;
   if (x.divertedTo) return "DIVERTED";                    // from Flightradar24
   if (SPECIAL_BIG.has(sp)) return sp;
+  if (x.watch && x.watch !== "MILITARY") return x.watch;      // POLICE, AMBULANCE, HISTORIC ... (more telling than SPECIAL)
   if (x.newType) return "NEW TYPE";
   if (x.newAirline) return "NEW AIRLINE";
   if (isFav(x)) return "FAVOURITE";
-  return sp || categoryBadge(x);
+  return sp || x.watch || categoryBadge(x);
 }
 // Flightradar24's flight categories: Passenger, Cargo, Business_jets, General_aviation, Military_and_government, Helicopters...
 function categoryBadge(x){
@@ -2467,11 +2617,26 @@ function categoryBadge(x){
   return /cargo/i.test(c) ? "CARGO" : /business/i.test(c) ? "BIZJET" : /general.aviation|private/i.test(c) ? "PRIVATE"
     : /military|government/i.test(c) ? "MILITARY" : /helicopter/i.test(c) ? "HELICOPTER" : "";
 }
+// The watchlist (relay 29, plane-alert-db): which of the planes around are on it, asked of the relay in one go for
+// the ones not asked yet; the answer is a remark word (POLICE, AMBULANCE, HISTORIC ...).
+const watchCache = new Map();
+let watchBusy = false;
+function watchAsk(list){
+  if (S.demo || watchBusy || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29) return;
+  const ask = [...new Set(list.map(a => String(a.hex || "").toLowerCase()))].filter(h => /^[0-9a-f]{6}$/.test(h) && !watchCache.has(h)).slice(0, 80);
+  if (!ask.length) return;
+  watchBusy = true;
+  fetchJSON(`${relay()}/watch?hex=${ask.join(",")}`, {}, 8000).then(j => {
+    for (const h of ask) watchCache.set(h, (j && j[h] || [])[0] || "");
+    while (watchCache.size > 4000) watchCache.delete(watchCache.keys().next().value);
+  }).catch(() => {}).finally(() => { watchBusy = false; });
+}
+const watchOf = hex => watchCache.get(String(hex || "").toLowerCase()) || "";
 function liveFacts(ac, info){
   info = info || enrich(ac).info;
   const e = spotted.find(x => x.hex === ac.hex);
   return {typeCode: String(ac.t || (e && e.typeCode) || "").toUpperCase(), military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2),
-    emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline),
+    emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline), watch: watchOf(ac.hex) || (e && e.watch) || "",
     category: info.category || (e && e.category) || "", divertedTo: info.divertedTo || (e && e.divertedTo) || null,
     airline: info.airline, airlineCode: airlineCodeOf(info), callsign: String(ac.flight || "").trim().toUpperCase(),
     flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
@@ -2731,6 +2896,53 @@ function renderTimes(){
 }
 
 /* ---------- what goes on the board ---------- */
+// Trophies and the weekly bingo's goals (relay 29), by the relay's ids: shared with the phone app.
+const TROPHY_IDS = ["century", "thousand", "busyday", "types50", "airlines25", "a320fam", "giants", "jumbochopper", "oldfriend",
+  "nightowl", "aroundclock", "lowpass", "bullseye", "specialday", "streak7", "bingo", "fullcard"];
+const TROPHY_TEXT = {century: ["Century", "100 planes in the logbook"],
+  thousand: ["Thousand", "1,000 planes in the logbook"],
+  busyday: ["Busy sky", "100 planes in one day"],
+  types50: ["Type hunter", "50 aircraft types"],
+  airlines25: ["Globetrotter", "25 airlines"],
+  a320fam: ["Family album", "A319, A320, A321 and a neo"],
+  giants: ["Giants", "An A380 and a 747"],
+  jumbochopper: ["Odd couple", "A 747 and a helicopter on the same day"],
+  oldfriend: ["Old friend", "The same aircraft 25 times"],
+  nightowl: ["Night owl", "A plane between 01:00 and 04:00"],
+  aroundclock: ["Around the clock", "A plane in every hour of the day"],
+  lowpass: ["Low pass", "Lower than {a}, within 2 km"],
+  bullseye: ["Bullseye", "Within 300 m of straight overhead"],
+  specialday: ["Special day", "Three special planes in one day"],
+  streak7: ["On a roll", "Something rare seven days running"],
+  bingo: ["Bingo!", "A line on the weekly bingo card"],
+  fullcard: ["Full card", "All nine on the weekly bingo card"]};
+const GOAL_TEXT = {heli: "A helicopter",
+  a380: "An A380",
+  b747: "A 747",
+  b777: "A 777",
+  b787: "A 787 Dreamliner",
+  a350: "An A350",
+  a330: "An A330",
+  embraer: "An Embraer jet",
+  turboprop: "A propeller plane",
+  cargo: "A cargo plane",
+  bizjet: "A business jet",
+  private: "A private or light plane",
+  military: "A military plane",
+  watch: "A watchlist plane",
+  low: "Lower than {a}",
+  close: "Within 1 km",
+  rare: "A rare one or better",
+  night: "A plane after 23:00",
+  early: "A plane from 05:00 to 08:00",
+  newtype: "A type new to the logbook",
+  lhgroup: "Lufthansa Group",
+  gulf: "Emirates, Qatar or Etihad",
+  lowcost: "A low-cost airline",
+  turkish: "Turkish Airlines",
+  fast: "Faster than {s}"};
+const goalText = k => T(GOAL_TEXT[k] || k, {a: altitudeStr(2500).toLowerCase(), s: speedStr(520).toLowerCase()});
+const trophyText = k => [T((TROPHY_TEXT[k] || [k])[0]), T((TROPHY_TEXT[k] || ["", ""])[1], {a: altitudeStr(1500).toLowerCase()})];
 // How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
 // MONTHS when it had been away for two months or more. The count is the times before this pass.
 const seenCache = new Map();
@@ -2868,6 +3080,7 @@ function legendGroups(){
       ["ANTONOV", T("Antonov An-124, An-225 or An-22")],
       ["CONCORDE", "Concorde"],
       ["SPECIAL", T("Rare, unusual or government aircraft")],
+      ["POLICE", T("On a watchlist (plane-alert-db): police, ambulance, government, royal, historic, celebrity and more")],
       ["NEW TYPE", T("First time this aircraft type is in the logbook")],
       ["NEW AIRLINE", T("First time this airline is in the logbook")],
       ["FAVOURITE", T("Matches one of your favourites in Settings")],
@@ -3197,6 +3410,7 @@ async function fetchLogbook(){
 let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
+  fetchYear();
   $("lbSum").textContent = logbookSummary();
   const b = lbData() || {}, has = !!lbData();
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
@@ -3205,7 +3419,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -3242,7 +3456,21 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
   }
+  const bg = g0 && g0.bingo, won = (g0 && g0.trophies) || {};
+  if (bg && bg.card) {                                 // the weekly bingo and the trophies (relay 29)
+    const nd = Object.keys(bg.done || {}).length;
+    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
+      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
+    const cups = TROPHY_IDS.map(k => { const [nm, what] = trophyText(k), d = won[k];
+      return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
+    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))}</p><div class="bingo">${cells}</div>` +
+      `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p><ul class="ranks plain cups">${cups}</ul>`;
+    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
+    html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
+  }
+  html = yearHtml() + html;
   $("lbLists").innerHTML = html;
+  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
 const tierIcons = {};
@@ -3256,6 +3484,124 @@ function tierIcon(t){
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
 }
+// A trophy cup for the trophies list (gold when won, by CSS).
+const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
+// The year in planes (relay 29, /year): a card at the top of the Logbook with a Share button (a picture of the card)
+// and the logbook as a spreadsheet (/logbook.csv).
+let yearData = null, yearAt = 0;
+function fetchYear(){
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - yearAt < 5 * 60000) return;
+  yearAt = Date.now();
+  fetchJSON(`${relay()}/year?y=${new Date().getFullYear()}`, {}, 10000).then(j => { yearData = j; lbSig = ""; renderLogbook(); }).catch(() => { yearAt = 0; });
+}
+function yearFacts(y){
+  const r = y.rarest, m = y.mostSeen, b = y.busiest;
+  return [[T("Busiest day"), b ? `${fmtDay(Date.parse(b.day))} · ${nf.format(b.planes)}` : ""],
+    [T("Most seen aircraft"), m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    [T("Rarest"), r ? `${r.type || r.reg} · ${T(TIER_NAME[r.tier] || "")}` : ""]].filter(x => x[1]);
+}
+function yearHtml(){
+  const y = yearData;
+  if (!y || !y.planes) return "";
+  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
+  return `<div class="yearCard"><h3>${escH(T("{y} in planes", {y: y.year}))}</h3><div class="yNums">` +
+    nums.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div><dl class="yFacts">` +
+    yearFacts(y).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") +
+    `</dl><div class="yActs"><button class="cap small" type="button" id="yShare">${escH(T("Share"))}</button>` +
+    `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
+}
+// The year card as a picture to share (or save where sharing pictures isn't possible).
+function yearPicture(){
+  const y = yearData, cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350;
+  cv.width = W2; cv.height = H2;
+  g.fillStyle = "#0b0b0c"; g.fillRect(0, 0, W2, H2);
+  g.fillStyle = "#f0b429"; rr(g, 80, 80, 140, 140, 18); g.fill();
+  drawPlane(g, 150, 150, 120, "#0b0b0c");
+  g.fillStyle = "#f3f0e8"; g.font = `700 64px ${FONT}`; g.fillText("FALLBLATT", 260, 170);
+  g.fillStyle = "#f0b429"; g.font = `700 92px ${FONT}`; g.fillText(T("{y} in planes", {y: y.year}), 80, 360);
+  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
+  nums.forEach(([n, k], i) => {
+    const x = 80 + (i % 3) * 320, yy = 520 + Math.floor(i / 3) * 210;
+    g.fillStyle = "#f3f0e8"; g.font = `700 96px ${FONT}`; g.fillText(nf.format(n || 0), x, yy);
+    g.fillStyle = "#959aa3"; g.font = `600 36px ${FONT}`; g.fillText(T(k), x, yy + 52);
+  });
+  yearFacts(y).forEach(([k, v], i) => {
+    const yy = 1000 + i * 100;
+    g.fillStyle = "#f0b429"; g.font = `600 30px ${FONT}`; g.fillText(k.toUpperCase(), 80, yy);
+    g.fillStyle = "#f3f0e8"; g.font = `700 44px ${FONT}`; g.fillText(v, 80, yy + 50);
+  });
+  return new Promise(ok => cv.toBlob(ok, "image/png"));
+}
+async function shareYear(){
+  ctlSound.press();
+  const blob = await yearPicture(), name = `fallblatt-${yearData.year}.png`, file = new File([blob], name, {type: "image/png"});
+  try {
+    if (navigator.canShare && navigator.canShare({files: [file]})) return await navigator.share({files: [file], title: T("{y} in planes", {y: yearData.year})});
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
+
+// Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
+// north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
+// at the plane.
+let lookHeading = null, lookOn = false, lookRaf = 0;
+function lookAt(){
+  if (!feat || !feat.o || feat.o.ac.lat == null) return null;
+  const ac = feat.o.ac, kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx, y = (ac.lat - S.lat) * 110.57;
+  const km = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, alt = feat.o.alt;
+  if (alt == null || km > 80) return null;
+  const up = Math.round(Math.atan2(Math.max(0, alt) * .3048, Math.max(50, km * 1000)) * 180 / Math.PI);
+  return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
+}
+function drawLook(){
+  lookRaf = 0;
+  const box = $("look"), L = lookAt();
+  box.hidden = !L || SIDEWAYS.matches;
+  if (box.hidden) return;
+  $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
+  $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
+    (lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.") : lookOn ? T("North is up.") : T("North is up. Hold the phone flat and tap Use the compass to turn it with you."));
+  const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), sz = 96;
+  if (cv.width !== sz * px) { cv.width = cv.height = sz * px; }
+  const g = cv.getContext("2d"), turn = lookOn && lookHeading != null ? -lookHeading : 0;
+  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, sz, sz);
+  g.translate(sz / 2, sz / 2);
+  g.beginPath(); g.arc(0, 0, 44, 0, Math.PI * 2); g.fillStyle = "#0c0d0e"; g.fill(); g.strokeStyle = "rgba(255,255,255,.14)"; g.lineWidth = 1.5; g.stroke();
+  g.save(); g.rotate(turn * Math.PI / 180);
+  for (let i = 0; i < 8; i++) { g.save(); g.rotate(i * Math.PI / 4); g.fillStyle = "rgba(255,255,255,.25)"; g.fillRect(-1, -42, 2, i % 2 ? 4 : 7); g.restore(); }
+  g.fillStyle = "#e0372c"; g.font = `700 12px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("N", 0, -30);
+  g.rotate(L.brg * Math.PI / 180);
+  g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(0, -36); g.lineTo(9, -14); g.lineTo(3, -14); g.lineTo(3, 14); g.lineTo(-3, 14); g.lineTo(-3, -14); g.lineTo(-9, -14); g.closePath(); g.fill();
+  g.restore();
+  $("lookBtn").hidden = lookOn || !window.isSecureContext || typeof DeviceOrientationEvent === "undefined";
+}
+const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
+function lookHeadingFrom(e){
+  let h = null;
+  if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;           // iPhone: degrees from north
+  else if (e.absolute && typeof e.alpha === "number") h = (360 - e.alpha) % 360;         // Android: the alpha angle, absolute
+  if (h == null) return;
+  const so = (screen.orientation && screen.orientation.angle) || 0;
+  h = (h + so + 360) % 360;
+  if (lookHeading == null) lookHeading = h;
+  else { const d = ((h - lookHeading + 540) % 360) - 180; lookHeading = (lookHeading + d * .25 + 360) % 360; }   // smoothed: compasses wobble
+  lookSoon();
+}
+async function lookStart(){
+  ctlSound.press();
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
+    addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
+    lookOn = true;
+    setTimeout(() => { if (lookHeading == null) $("lookSub").textContent = T("The compass isn't available on this device."); }, 2500);
+  } catch { $("lookSub").textContent = T("The compass isn't available on this device."); }
+  lookSoon();
+}
+setInterval(() => { if (tab === "now" && document.visibilityState === "visible") lookSoon(); }, 1000);
+
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
@@ -4037,6 +4383,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.28", date: "2026-10-15", notes: [
+    "Planes on a public watchlist say what they are: POLICE, AMBULANCE, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY and more.",
+    "Trophies, kept for good, and a weekly bingo card of planes to spot, under Records & trophies and in the app's Logbook.",
+    "From 21:00 Today in numbers becomes the day in review, with the rarest plane and the day's points.",
+    "The app has a year in planes to share, the logbook as a spreadsheet, and an arrow showing where to look for the plane overhead."]},
   {v: "1.27", date: "2026-10-15", notes: [
     "The plane on the board says how often it was seen here (first time ever, seen 4 times, back after 7 months) and how far it still has to go.",
     "ABOVE CLOUD in the status when a plane passes over the cloud base, from the airport's weather.",
@@ -4191,7 +4542,7 @@ function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE (Pixabay Content License)."))}</p>` +
-    `<p>${escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, photos from airport-data.com, logos from Aviasales."))}</p>`;
+    `<p>${escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales."))}</p>`;
 }
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
@@ -4598,7 +4949,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list); watchAsk(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
