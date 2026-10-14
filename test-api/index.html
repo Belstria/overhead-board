@@ -561,7 +561,7 @@ for (let i = 0; i < RV_ROWS; i++) {
 }
 // The Collection view (opened from the Logbook): points, the tiers seen, and sets of types to complete.
 const CV_SETS = 9, CV_TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
-const CV_TNAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary"};
+const CV_TNAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Very rare", legendary: "Special"};
 vdef("collection", "cvPoints", {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Points", ""]});
 vdef("collection", "cvToday",  {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Today", ""]});
 vdef("collection", "cvBest",   {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Best day", ""]});
@@ -735,10 +735,11 @@ function grain(){
   g.putImageData(d, 0, 0);
   return grainCv;
 }
-// The spotter's game (1.21): a plane's rarity tier, shown on a flap of its own after the aircraft type.
+// The spotter's game (1.21): a plane's rarity tier, shown on a flap of its own after the aircraft type. Since 1.25 the
+// tiers read common, uncommon, rare, very rare (key "epic") and special (key "legendary"); the keys stay, sightings carry them.
 const TIER_COL = {common: "#7d838c", uncommon: "#38a653", rare: "#3b7ddd", epic: "#9b55e0", legendary: "#e0aa1f"};
 const TIER_DRUM = ["", "common", "uncommon", "rare", "epic", "legendary"];
-const TIER_NAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary"};
+const TIER_NAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Very rare", legendary: "Special"};
 function drawTierIcon(g, cx, cy, s, tier, col){
   g.save(); g.translate(cx, cy); g.fillStyle = col; g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = s * .12; g.shadowOffsetY = s * .04;
   g.beginPath();
@@ -1956,21 +1957,21 @@ function emergencyOf(ac){
   if (["7500", "7600", "7700"].includes(sq)) return sq;
   return ac.emergency && ac.emergency !== "none" ? String(ac.emergency) : "";
 }
-// How rare a plane is: legendary for the special ones, epic for a type never seen here before, then by how often the
-// type is in the logbook. Planes already on today's list keep the tier the relay (24+) gave them.
+// How rare a plane is (1.25): special for the special ones (giants, military, emergencies), else by how many of its type
+// fly today (FLEET, the same table as the relay's): 1,000 or more common, 250 uncommon, 50 rare, fewer very rare; a type
+// missing from the table counts as uncommon. Planes already on today's list keep the tier the relay gave them.
 const LEGENDARY = new Set(Object.entries(SPECIAL_TYPES).filter(([, k]) => k !== "HELICOPTER").map(([t]) => t));
+const FLEET = Object.fromEntries("A318:40 A319:1100 A320:4100 A321:1700 A19N:40 A20N:1900 A21N:1500 BCS1:80 BCS3:380 A306:200 A30B:5 A310:30 A332:500 A333:650 A338:10 A339:120 A342:5 A343:50 A345:10 A346:30 A359:600 A35K:90 B712:100 B732:50 B733:100 B734:80 B735:50 B736:40 B737:1000 B738:4500 B739:480 B37M:5 B38M:1400 B39M:150 B752:500 B753:50 B762:30 B763:600 B764:35 B772:300 B77L:280 B77W:800 B778:2 B779:5 B788:400 B789:800 B78X:120 E135:100 E145:300 E170:150 E75L:600 E75S:50 E190:400 E195:130 E290:60 E295:80 CRJ1:50 CRJ2:350 CRJ7:250 CRJ9:400 CRJX:60 F50:30 F70:20 F100:60 B461:10 B462:20 B463:15 RJ85:25 RJ1H:15 SU95:140 AJ27:150 C919:15 T204:15 IL76:120 AN12:40 AN26:100 MD11:50 MD82:40 MD83:40 MD87:10 MD90:20 DC10:15 B703:5 AT43:150 AT45:120 AT72:150 AT75:250 AT76:700 DH8A:60 DH8B:50 DH8C:80 DH8D:450 SF34:150 JS41:30 D328:50 J328:30 L410:300 DHC6:300 B190:400 C208:2500 PC12:1800 TBM7:300 TBM8:300 TBM9:600 BE20:1500 BE9L:1200 B350:1100 C510:300 C525:350 C25A:400 C25B:500 C25C:400 C560:600 C56X:700 C680:450 C68A:450 C700:100 C750:280 CL30:400 CL35:450 CL60:1000 GLEX:900 GL5T:150 GL7T:200 GLF4:450 GLF5:500 GLF6:450 G280:250 GA5C:50 GA6C:100 F2TH:450 F900:400 FA7X:330 FA8X:100 FA50:200 E35L:150 E50P:350 E55P:650 E545:50 E550:100 LJ35:300 LJ45:400 LJ60:250 LJ75:150 PC24:250 HDJT:250 H25B:500 SF50:500 EA50:200 BE40:300 PRM1:50 C150:5000 C152:7000 C172:25000 C182:10000 C206:3000 C210:4000 P28A:15000 P28R:3000 PA34:2000 PA46:1500 PA18:3000 SR20:2000 SR22:7000 DA40:2500 DA42:1500 DA62:300 BE36:5000 BE58:2000 M20P:2000 EC35:900 EC45:1600 EC30:900 EC55:200 EC75:250 AS50:4000 AS55:400 AS65:700 AS32:200 A109:1000 A119:250 A139:1200 A169:200 A189:100 H160:40 B06:3000 B407:1500 B429:400 R22:3500 R44:6000 R66:1200 S76:300 S92:300 NH90:500".split(" ").map(p => p.split(":")).map(([t, n]) => [t, +n]));
+function fleetTier(t){
+  const n = FLEET[t];
+  return n == null ? "uncommon" : n >= 1000 ? "common" : n >= 250 ? "uncommon" : n >= 50 ? "rare" : "epic";
+}
 function tierOf(ac, info){
   const today = typeof spotted !== "undefined" && spotted.find(e => e.hex === ac.hex && e.tier);
   if (today) return today.tier;
   const t = String(ac.t || (info && info.typeCode) || "").toUpperCase();
   if (emergencyOf(ac) || (ac.dbFlags & 3) || LEGENDARY.has(t)) return "legendary";
-  const b = lbData();
-  if (!t || !b || !b.types) return "";
-  const n = (b.types[t] || {}).count || 0, learning = b.learningUntil && Date.now() < b.learningUntil;
-  if (!n) return learning ? "rare" : "epic";
-  if (n <= 3) return "rare";
-  if (n <= 12 || SPECIAL_TYPES[t] === "HELICOPTER") return "uncommon";
-  return "common";
+  return t ? fleetTier(t) : "";
 }
 function specialOf(x){
   if (x.emergency) return "EMERGENCY";
@@ -2788,7 +2789,7 @@ setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_I
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
   if (view === "logbook") return logbookSummary();
-  if (view === "collection") return T("Every sighting scores by rarity: common 1, uncommon 3, rare 10, epic (a first ever) 25, legendary (a special plane) 50. Types fill the collections.");
+  if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
   if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
   if (view === "about") return T("Version {v} · what changed in each version, the keys, and who made it", {v: VERSION});
@@ -3511,8 +3512,7 @@ const I18N_ROWS = [
   ["Common", "Gewöhnlich", "Commun", "Común", "Gewoon"],
   ["Uncommon", "Ungewöhnlich", "Peu commun", "Poco común", "Ongewoon"],
   ["Rare", "Selten", "Rare", "Raro", "Zeldzaam"],
-  ["Epic", "Episch", "Épique", "Épico", "Episch"],
-  ["Legendary", "Legendär", "Légendaire", "Legendario", "Legendarisch"],
+  ["Very rare", "Sehr selten", "Très rare", "Muy raro", "Zeer zeldzaam"],
   ["Collections", "Sammlungen", "Collections", "Colecciones", "Verzamelingen"],
   ["Airbus narrowbodies", "Airbus-Schmalrumpf", "Airbus monocouloirs", "Airbus de fuselaje estrecho", "Airbus smalrompen"],
   ["Airbus widebodies", "Airbus-Großraum", "Airbus gros-porteurs", "Airbus de fuselaje ancho", "Airbus widebodies"],
@@ -3525,7 +3525,7 @@ const I18N_ROWS = [
   ["best {n}", "Bestwert {n}", "record {n}", "récord {n}", "record {n}"],
   ["{n} points", "{n} Punkte", "{n} points", "{n} puntos", "{n} punten"],
   ["{n}-day streak", "{n} Tage in Folge", "série de {n} jours", "racha de {n} días", "reeks van {n} dagen"],
-  ["Every sighting scores by rarity: common 1, uncommon 3, rare 10, epic (a first ever) 25, legendary (a special plane) 50. Types fill the collections.", "Jede Sichtung zählt nach Seltenheit: gewöhnlich 1, ungewöhnlich 3, selten 10, episch (ein erstes Mal) 25, legendär (ein besonderes Flugzeug) 50. Typen füllen die Sammlungen.", "Chaque observation compte selon sa rareté : commun 1, peu commun 3, rare 10, épique (une première) 25, légendaire (un avion spécial) 50. Les types remplissent les collections.", "Cada avistamiento puntúa según su rareza: común 1, poco común 3, raro 10, épico (una primera vez) 25, legendario (un avión especial) 50. Los tipos llenan las colecciones.", "Elke waarneming scoort naar zeldzaamheid: gewoon 1, ongewoon 3, zeldzaam 10, episch (een eerste keer) 25, legendarisch (een bijzonder vliegtuig) 50. Typen vullen de verzamelingen."],
+  ["Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.", "Jede Sichtung zählt danach, wie selten ihr Typ ist, gemessen daran, wie viele heute fliegen: gewöhnlich 1, ungewöhnlich 3, selten 10, sehr selten 25, besonders 50. Typen füllen die Sammlungen.", "Chaque observation compte selon la rareté de son type, d'après le nombre en service : commun 1, peu commun 3, rare 10, très rare 25, spécial 50. Les types remplissent les collections.", "Cada avistamiento puntúa según lo raro que es su tipo, por cuántos vuelan hoy: común 1, poco común 3, raro 10, muy raro 25, especial 50. Los tipos llenan las colecciones.", "Elke waarneming scoort naar hoe zeldzaam het type is, naar hoeveel er vandaag vliegen: gewoon 1, ongewoon 3, zeldzaam 10, zeer zeldzaam 25, bijzonder 50. Typen vullen de verzamelingen."],
   ["Landing {r}", "Landung {r}", "Atterrissage {r}", "Aterrizaje {r}", "Landing {r}"],
   ["departing {r}", "Start {r}", "décollage {r}", "despegue {r}", "vertrek {r}"],
   ["RUNWAY {r}", "PISTE {r}", "PISTE {r}", "PISTA {r}", "BAAN {r}"],
@@ -4114,6 +4114,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.25", date: "2026-10-14", notes: [
+    "Rarity now goes by how many planes of a type fly today, not by how often it was seen here; the logbook is scored again that way.",
+    "Rarity names are plainer: common, uncommon, rare, very rare and special. The app's collection shows their icons."]},
   {v: "1.24.0.2", date: "2026-10-14", notes: [
     "Sound plays on iPhones, also with the silent switch on."]},
   {v: "1.24.0.1", date: "2026-10-14", notes: [

@@ -102,8 +102,12 @@ over a header sign, which was tried in 1.12.1).
 Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
 The game (1.21, relay 24): the relay scores each sighting when it is recorded (`tier_of`, `score`: `e.tier`,
 `book.points/days/tiers/rareDays`; `game_json` in `/logbook` with the `SETS`); the board's `tierOf()` gives the plane on
-top its tier (the relay's for planes on today's list, else from the logbook's type counts) on the `tier` flap
-(`TIER_COL`, `drawTierIcon`), and the `collection` view (from Logbook's view tools) shows `game`.
+top its tier (the relay's for planes on today's list, else `fleetTier`) on the `tier` flap
+(`TIER_COL`, `drawTierIcon`; the app's Collection list shows them via `tierIcon`), and the `collection` view (from Logbook's view tools) shows `game`.
+Since 1.25 (relay 26) the tier goes by fleet size: `FLEET` (types in service worldwide) is the same table in the relay and
+the board, keep them equal. The keys stay `common/uncommon/rare/epic/legendary` (stored in sightings); shown as Common,
+Uncommon, Rare, Very rare, Special. A logbook scored under an older rule (`gameV` < `GAME_V`) is scored again from its
+saved days when loaded (`_rescore`).
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),

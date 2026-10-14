@@ -173,11 +173,12 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
-- **Rarity and the Collection** (1.21, relay 24): every plane gets a tier, shown in colour with an icon on the flap after
-  its type: common (grey), uncommon (green), rare (blue: a type seen 3 times or fewer), epic (purple: a first ever
-  type or airline) and legendary (gold: the special planes). Sightings score 1, 3, 10, 25 and 50 points; Today in
+- **Rarity and the Collection** (1.21, relay 24; by fleet size since 1.25, relay 26): every plane gets a tier, shown in
+  colour with an icon on the flap after its type, from how many of its type fly today: common (grey: 1,000 or more),
+  uncommon (green: 250 or more, or a type the table doesn't know), rare (blue: 50 or more), very rare (purple: fewer)
+  and special (gold: the special planes, military and emergencies). Sightings score 1, 3, 10, 25 and 50 points; Today in
   numbers shows the day's points and the best day, the Logbook the total and the streak of days with something rare,
-  and Logbook → **Collection** shows the points, the tiers seen and nine sets of types to complete. Guests have their
+  and Logbook → **Collection** shows the points, the tiers seen (with their icons in the app) and nine sets of types to complete. Guests have their
   own.
 - **Runways in use** (Airport style, 1.20): worked out from the planes lined up with each runway; shown next to the
   lists' title ("Landing 29 · departing 16") and lit on the radar. The Take-off and Landing pages show the plane on a
