@@ -67,7 +67,8 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
   `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
   `paintCell()` draws a flap mid-flip. Sounds (1.17): recordings in `SOUND_DATA` (embedded, made by
   `tools/sounds/build_sounds.py`), decoded by `loadSounds()`, played by `sample()` from `clack()` and `ctlSound`; with
-  `S.soundSet === "classic"` or before decoding, the old synthesised sounds play. Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
+  `S.soundSet === "classic"` or before decoding, the old synthesised sounds play. The flaps always clack synthesised
+  (1.19.1, Dave's choice; the flap recording was dropped). The board's rail buttons carry the app's tab icons (`RAIL_ICONS`). Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
 - Top half: the plane overhead (`process()` picks it: alerts first, then overhead, inbound, flying by; airtime limit
   for hovering planes) rendered by `renderFeatured()` and `renderTimes()`.
 - Lower half: rotating pages (Recent flights, This aircraft, Today in numbers; `ROTATION`), turned by one giant

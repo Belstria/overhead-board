@@ -46,7 +46,7 @@ def whole(name, start_s=0.0, end_s=None, to=.7):
 
 def main():
     sets = {
-        "flap": best_clicks("174056__matucha__pragotron_split-flap-display.wav", 8, 25, 75, 18),
+        # the flaps clack synthesised (1.19.1: chosen over the Pragotron recording, 174056 by matucha)
         "knob": best_clicks("30827__shewbox__clicky-knob-turning.wav", 5, 40, 42, 14, hp=900),   # short and crisp: the detent, not the box
         "switch": whole("119415__joedeshon__rocker_switch.wav"),
         "wheel": whole("139061__joedeshon__push_button_switch_07.wav"),
