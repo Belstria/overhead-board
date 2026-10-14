@@ -238,6 +238,31 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #welcome .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:14px 0 6px;text-align:left}
 #welcome .wgrid .wlab span{display:block;margin-bottom:4px}
 #welcome .wgrid input{margin:0;font-size:15px;padding:9px 10px}
+#welcome input::placeholder{color:rgba(243,240,232,.26);font-weight:500}
+#welcome .wIn{animation:wIn .5s .1s cubic-bezier(.22,.8,.24,1) both}
+@keyframes wIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#welcome #wOpen.wGone{opacity:0;transform:scale(.96);transition:opacity .3s,transform .3s}
+/* the opening: the logo, the name, and the logo's plane taking off into the board (shown when the page loads afresh) */
+#splash{position:fixed;inset:0;z-index:60;display:grid;place-content:center;justify-items:center;gap:24px;background:var(--housing);
+  transition:opacity .2s}
+#splash.fly{animation:spOut .6s .6s ease forwards}
+#splash .sp-logo{position:relative;width:96px;height:96px;animation:spPop .55s cubic-bezier(.2,.9,.3,1.25) both}
+#splash .sp-sq{position:absolute;inset:0;border-radius:11.5px;background:var(--amber);box-shadow:0 12px 44px rgba(240,180,41,.2);
+}
+#splash.fly .sp-sq{animation:spSink .5s .4s ease-in forwards}
+#splash .sp-pl{position:absolute;inset:0;width:100%;height:100%;fill:var(--housing);overflow:visible;
+}
+#splash.fly .sp-pl{animation:spFly .85s cubic-bezier(.5,0,.8,.3) both}
+#splash.fly .sp-name{animation:spSink .5s .45s ease-in forwards}
+#splash .sp-name{display:flex;gap:.16em;font:700 30px var(--f-board);letter-spacing:.06em;color:var(--ink)}
+#splash .sp-name span{display:inline-block;animation:spUp .5s calc(.3s + var(--i) * 45ms) cubic-bezier(.2,.8,.3,1) both}
+@keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
+@keyframes spUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spFly{0%{transform:none;fill:var(--housing)}14%{transform:translate(-5px,5px);fill:var(--housing)}
+  40%{fill:var(--amber)}100%{transform:translate(80vmax,-80vmax) scale(1.6);fill:var(--amber)}}
+@keyframes spSink{to{opacity:0;transform:scale(.9)}}
+@keyframes spOut{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion: reduce){#splash *,#splash.fly *{animation:none!important}#splash.fly{animation:spOut .35s forwards}}
 #welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:14px;text-decoration:underline}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
@@ -282,6 +307,31 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <div class="sp-logo"><div class="sp-sq"></div>
+    <svg class="sp-pl" viewBox="0 0 100 100"><g transform="translate(50 50) rotate(45) scale(.847) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g></svg></div>
+  <div class="sp-name"><span style="--i:0">F</span><span style="--i:1">A</span><span style="--i:2">L</span><span style="--i:3">L</span><span style="--i:4">B</span><span style="--i:5">L</span><span style="--i:6">A</span><span style="--i:7">T</span><span style="--i:8">T</span></div>
+</div>
+<script>
+// The opening plays when the page loads afresh, not again on a reload within a minute (a change of settings, the welcome).
+// The logo and the name show while the app starts; once the board is ready under it (splashGo, from the app; at least
+// a second in), the plane takes off and the board shows through.
+(function(){ var sp = document.getElementById("splash"), now = Date.now(), last = 0, t0 = performance.now(), gone = false;
+  try { last = +sessionStorage.getItem("od.splash") || 0; sessionStorage.setItem("od.splash", now); } catch (e) {}
+  if (now - last < 60000) { sp.remove(); window.SPLASH_END = 0; return; }
+  window.SPLASH_END = t0 + 1e9;
+  window.splashGo = function(){
+    if (gone) return; gone = true;
+    var wait = Math.max(0, 1100 - (performance.now() - t0));
+    window.SPLASH_END = performance.now() + wait + 1100;
+    setTimeout(function(){
+      sp.classList.add("fly");
+      sp.addEventListener("animationend", function(e){ if (e.target === sp) sp.remove(); });
+      setTimeout(function(){ sp.remove(); }, 2500);
+    }, wait);
+  };
+  setTimeout(window.splashGo, 8000); })();
+</script>
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
@@ -388,8 +438,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
     <div class="wgrid">
       <label class="wlab"><span data-t="Place name">Place name</span><input id="wPlace" maxlength="30" autocomplete="off"></label>
       <label class="wlab"><span data-t="Home airport">Home airport</span><input id="wHome" maxlength="3" autocomplete="off" autocapitalize="characters"></label>
-      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off" placeholder="48.2085"></label>
-      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off" placeholder="16.3731"></label>
+      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off"></label>
+      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off"></label>
     </div>
     <button class="cap big go" type="button" id="wGo" data-t="Continue">Continue</button>
     <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>

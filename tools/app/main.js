@@ -1120,27 +1120,51 @@ function greetText(){
   if (!out.endsWith("!")) out += "!";
   return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
 }
-// The letters land in order, left to right: each flap starts so that it lands a beat after the one before it (a long
-// way round the drum starts earlier); the "!" last, coasting to a stop.
+// The row shows FALLBLATT until the welcome is opened, then turns to the greeting. The letters land in order, left to
+// right: each flap starts so that it lands a beat after the one before it (a long way round the drum starts earlier);
+// the "!" last, coasting to a stop. Blanks land whenever, they don't show.
+const greetW = () => Math.max(greetText().length, 9);
+const centred = (t, n) => (" ".repeat(Math.floor((n - t.length) / 2)) + t).padEnd(n);
+const splashLeft = () => Math.max(0, (window.SPLASH_END || 0) - performance.now());
 function greetFlaps(){
-  const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
+  const n = greetW(), step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
   $("wHello").style.width = `min(100%, ${n * 34}px)`;
   def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
   placeRow(["greet"], [], 11, step, 1.45, 8);
   requestAnimationFrame(() => showPanel(P));
+  setTimeout(() => { if (!greeted) rollTo(centred("FALLBLATT", n)); }, splashLeft() + 300);
 }
-function greetRoll(){
-  const text = greetText(), per = 62 * pace();
+let greeted = false;
+function rollTo(text){
+  const per = 62 * pace();
   let land = 0;
   fields.greet.cells.forEach((c, i) => {
     const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
+    c.slowEnd = bang;
+    if (ch === " ") return retarget(c, ch, 0);
     if (!flips) return;
     const run = flips * per * (bang ? 1.35 : 1);
     land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
-    if (bang) c.slowEnd = true;
     retarget(c, ch, Math.max(0, (land - run) / pace()));
   });
+  return land;
+}
+function greetRoll(){
+  greeted = true;
+  const land = rollTo(centred(greetText(), greetW()));
   setTimeout(() => { soundForced = false; }, land + 1800);
+}
+// From one step of the welcome to the next: the box grows or shrinks to the new step's height, which fades in.
+function wSwap(from, to){
+  const box = document.querySelector("#welcome .wbox"), h0 = box.offsetHeight;
+  for (const e of [].concat(from)) e.hidden = true;
+  to.hidden = false;
+  to.classList.remove("wIn"); void to.offsetWidth; to.classList.add("wIn");
+  const h1 = box.offsetHeight;
+  if (REDUCED || Math.abs(h1 - h0) < 2) return;
+  box.style.transition = "none"; box.style.height = h0 + "px"; box.style.overflow = "hidden"; void box.offsetHeight;
+  box.style.transition = "height .6s cubic-bezier(.22,.8,.24,1)"; box.style.height = h1 + "px";
+  setTimeout(() => { box.style.height = box.style.overflow = box.style.transition = ""; }, 650);
 }
 function welcome(){
   const box = $("welcome"), note = $("wNote"), first = String(GUEST.name || "").trim().split(/\s+/)[0] || GUEST.name;
@@ -1148,15 +1172,16 @@ function welcome(){
   $("wFor").textContent = T("A board for {name}", {name: first});
   box.hidden = false;
   try { greetFlaps(); } catch {}
+  $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
   for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
     if (GUEST.settings && GUEST.settings[k] != null) $(id).value = GUEST.settings[k];
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {
     soundForced = true; audioInit();
     try { if (actx) actx.resume(); } catch {}
-    $("wOpen").hidden = true;
+    $("wOpen").onclick = null; $("wOpen").classList.add("wGone");
     setTimeout(() => { try { greetRoll(); } catch {} }, 120);
-    setTimeout(() => { $("wStep1").hidden = false; }, 900);
+    setTimeout(() => wSwap($("wOpen"), $("wStep1")), 650);
   };
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
@@ -1169,20 +1194,19 @@ function welcome(){
       if (a) { $("wHome").value = a.code; if (!$("wPlace").value) $("wPlace").value = a.city || a.name || ""; }
       note.textContent = (a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.")) + " " + T("Check it, then Continue.");
     } catch (e) {
-      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 48.2085 and 16.3731.");
+      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 51.5072 and -0.1276.");
     } finally { $("wLoc").disabled = false; }
   };
   let sent = Promise.resolve();
   const num = v => parseFloat(String(v).replace(",", "."));
   $("wGo").onclick = () => {
     const lat = num($("wLat").value), lon = num($("wLon").value);
-    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 48.2085 and 16.3731."); $("wLat").focus(); return; }
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 51.5072 and -0.1276."); $("wLat").focus(); return; }
     ctlSound.press();
     S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
     sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
-    $("wStep1").hidden = true;
-    if (pushPossible()) $("wPush").hidden = false; else pick();
+    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else pick();
   };
   $("wPushYes").onclick = async () => {
     ctlSound.press();
@@ -1194,7 +1218,7 @@ function welcome(){
   };
   $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
-    $("wPush").hidden = true; $("wPick").hidden = false;
+    wSwap([$("wStep1"), $("wPush")], $("wPick"));
     const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
     b.classList.add("go"); b.setAttribute("aria-pressed", "true");
   }
@@ -1326,6 +1350,7 @@ async function start(){
   showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
+  if (window.splashGo) window.splashGo();          // the board is ready: the opening's plane takes off
   if (!located()) welcome();
   if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();

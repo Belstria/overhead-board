@@ -394,6 +394,31 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #welcome .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:14px 0 6px;text-align:left}
 #welcome .wgrid .wlab span{display:block;margin-bottom:4px}
 #welcome .wgrid input{margin:0;font-size:15px;padding:9px 10px}
+#welcome input::placeholder{color:rgba(243,240,232,.26);font-weight:500}
+#welcome .wIn{animation:wIn .5s .1s cubic-bezier(.22,.8,.24,1) both}
+@keyframes wIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#welcome #wOpen.wGone{opacity:0;transform:scale(.96);transition:opacity .3s,transform .3s}
+/* the opening: the logo, the name, and the logo's plane taking off into the board (shown when the page loads afresh) */
+#splash{position:fixed;inset:0;z-index:60;display:grid;place-content:center;justify-items:center;gap:24px;background:var(--housing);
+  transition:opacity .2s}
+#splash.fly{animation:spOut .6s .6s ease forwards}
+#splash .sp-logo{position:relative;width:96px;height:96px;animation:spPop .55s cubic-bezier(.2,.9,.3,1.25) both}
+#splash .sp-sq{position:absolute;inset:0;border-radius:11.5px;background:var(--amber);box-shadow:0 12px 44px rgba(240,180,41,.2);
+}
+#splash.fly .sp-sq{animation:spSink .5s .4s ease-in forwards}
+#splash .sp-pl{position:absolute;inset:0;width:100%;height:100%;fill:var(--housing);overflow:visible;
+}
+#splash.fly .sp-pl{animation:spFly .85s cubic-bezier(.5,0,.8,.3) both}
+#splash.fly .sp-name{animation:spSink .5s .45s ease-in forwards}
+#splash .sp-name{display:flex;gap:.16em;font:700 30px var(--f-board);letter-spacing:.06em;color:var(--ink)}
+#splash .sp-name span{display:inline-block;animation:spUp .5s calc(.3s + var(--i) * 45ms) cubic-bezier(.2,.8,.3,1) both}
+@keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
+@keyframes spUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spFly{0%{transform:none;fill:var(--housing)}14%{transform:translate(-5px,5px);fill:var(--housing)}
+  40%{fill:var(--amber)}100%{transform:translate(80vmax,-80vmax) scale(1.6);fill:var(--amber)}}
+@keyframes spSink{to{opacity:0;transform:scale(.9)}}
+@keyframes spOut{to{opacity:0;visibility:hidden}}
+@media (prefers-reduced-motion: reduce){#splash *,#splash.fly *{animation:none!important}#splash.fly{animation:spOut .35s forwards}}
 #welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:14px;text-decoration:underline}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
@@ -437,6 +462,31 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <div class="sp-logo"><div class="sp-sq"></div>
+    <svg class="sp-pl" viewBox="0 0 100 100"><g transform="translate(50 50) rotate(45) scale(.847) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g></svg></div>
+  <div class="sp-name"><span style="--i:0">F</span><span style="--i:1">A</span><span style="--i:2">L</span><span style="--i:3">L</span><span style="--i:4">B</span><span style="--i:5">L</span><span style="--i:6">A</span><span style="--i:7">T</span><span style="--i:8">T</span></div>
+</div>
+<script>
+// The opening plays when the page loads afresh, not again on a reload within a minute (a change of settings, the welcome).
+// The logo and the name show while the app starts; once the board is ready under it (splashGo, from the app; at least
+// a second in), the plane takes off and the board shows through.
+(function(){ var sp = document.getElementById("splash"), now = Date.now(), last = 0, t0 = performance.now(), gone = false;
+  try { last = +sessionStorage.getItem("od.splash") || 0; sessionStorage.setItem("od.splash", now); } catch (e) {}
+  if (now - last < 60000) { sp.remove(); window.SPLASH_END = 0; return; }
+  window.SPLASH_END = t0 + 1e9;
+  window.splashGo = function(){
+    if (gone) return; gone = true;
+    var wait = Math.max(0, 1100 - (performance.now() - t0));
+    window.SPLASH_END = performance.now() + wait + 1100;
+    setTimeout(function(){
+      sp.classList.add("fly");
+      sp.addEventListener("animationend", function(e){ if (e.target === sp) sp.remove(); });
+      setTimeout(function(){ sp.remove(); }, 2500);
+    }, wait);
+  };
+  setTimeout(window.splashGo, 8000); })();
+</script>
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
@@ -543,8 +593,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
     <div class="wgrid">
       <label class="wlab"><span data-t="Place name">Place name</span><input id="wPlace" maxlength="30" autocomplete="off"></label>
       <label class="wlab"><span data-t="Home airport">Home airport</span><input id="wHome" maxlength="3" autocomplete="off" autocapitalize="characters"></label>
-      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off" placeholder="48.2085"></label>
-      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off" placeholder="16.3731"></label>
+      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off"></label>
+      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off"></label>
     </div>
     <button class="cap big go" type="button" id="wGo" data-t="Continue">Continue</button>
     <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>
@@ -726,12 +776,13 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["London", "London", "Londres", "Londres", "Londen"],
   ["A board for {name}", "Eine Tafel für {name}", "Un tableau pour {name}", "Un panel para {name}", "Een bord voor {name}"],
   ["Tap to open", "Zum Öffnen tippen", "Touchez pour ouvrir", "Toca para abrir", "Tik om te openen"],
   ["Where should it watch the sky? Use your location, or type it in.", "Wo soll es den Himmel beobachten? Nimm deinen Standort oder tippe ihn ein.", "Où doit-il observer le ciel ? Utilisez votre position ou saisissez-la.", "¿Dónde debe mirar el cielo? Usa tu ubicación o escríbela.", "Waar moet het naar de lucht kijken? Gebruik je locatie of typ hem in."],
   ["Continue", "Weiter", "Continuer", "Continuar", "Verder"],
   ["Check it, then Continue.", "Prüfe es, dann Weiter.", "Vérifiez, puis Continuer.", "Compruébalo y pulsa Continuar.", "Controleer het en druk op Verder."],
-  ["Latitude and longitude please, e.g. 48.2085 and 16.3731.", "Bitte Breiten- und Längengrad, z. B. 48.2085 und 16.3731.", "La latitude et la longitude, p. ex. 48.2085 et 16.3731.", "Latitud y longitud, p. ej. 48.2085 y 16.3731.", "Breedte- en lengtegraad graag, bv. 48.2085 en 16.3731."],
+  ["Latitude and longitude please, e.g. 51.5072 and -0.1276.", "Bitte Breiten- und Längengrad, z. B. 51.5072 und -0.1276.", "La latitude et la longitude, p. ex. 51.5072 et -0.1276.", "Latitud y longitud, p. ej. 51.5072 y -0.1276.", "Breedte- en lengtegraad graag, bv. 51.5072 en -0.1276."],
   ["Get notifications?", "Benachrichtigungen erhalten?", "Recevoir des notifications ?", "¿Recibir notificaciones?", "Meldingen ontvangen?"],
   ["Yes, turn them on", "Ja, einschalten", "Oui, activer", "Sí, activarlas", "Ja, aanzetten"],
   ["Not now", "Jetzt nicht", "Pas maintenant", "Ahora no", "Nu niet"],
@@ -3763,6 +3814,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.23.1", date: "2026-10-14", notes: [
+    "The app opens with the logo, and its plane takes off into the board.",
+    "The welcome shows Fallblatt on its flaps until it is opened, glides from step to step, and shows examples in the fields."]},
   {v: "1.23", date: "2026-10-14", notes: [
     "A new welcome: tap to open, the name flips in letter by letter with sound, the location by hand or automatically, and notifications to turn on.",
     "Turning on notifications works the first time."]},
@@ -4087,27 +4141,51 @@ function greetText(){
   if (!out.endsWith("!")) out += "!";
   return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
 }
-// The letters land in order, left to right: each flap starts so that it lands a beat after the one before it (a long
-// way round the drum starts earlier); the "!" last, coasting to a stop.
+// The row shows FALLBLATT until the welcome is opened, then turns to the greeting. The letters land in order, left to
+// right: each flap starts so that it lands a beat after the one before it (a long way round the drum starts earlier);
+// the "!" last, coasting to a stop. Blanks land whenever, they don't show.
+const greetW = () => Math.max(greetText().length, 9);
+const centred = (t, n) => (" ".repeat(Math.floor((n - t.length) / 2)) + t).padEnd(n);
+const splashLeft = () => Math.max(0, (window.SPLASH_END || 0) - performance.now());
 function greetFlaps(){
-  const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
+  const n = greetW(), step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
   $("wHello").style.width = `min(100%, ${n * 34}px)`;
   def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
   placeRow(["greet"], [], 11, step, 1.45, 8);
   requestAnimationFrame(() => showPanel(P));
+  setTimeout(() => { if (!greeted) rollTo(centred("FALLBLATT", n)); }, splashLeft() + 300);
 }
-function greetRoll(){
-  const text = greetText(), per = 62 * pace();
+let greeted = false;
+function rollTo(text){
+  const per = 62 * pace();
   let land = 0;
   fields.greet.cells.forEach((c, i) => {
     const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
+    c.slowEnd = bang;
+    if (ch === " ") return retarget(c, ch, 0);
     if (!flips) return;
     const run = flips * per * (bang ? 1.35 : 1);
     land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
-    if (bang) c.slowEnd = true;
     retarget(c, ch, Math.max(0, (land - run) / pace()));
   });
+  return land;
+}
+function greetRoll(){
+  greeted = true;
+  const land = rollTo(centred(greetText(), greetW()));
   setTimeout(() => { soundForced = false; }, land + 1800);
+}
+// From one step of the welcome to the next: the box grows or shrinks to the new step's height, which fades in.
+function wSwap(from, to){
+  const box = document.querySelector("#welcome .wbox"), h0 = box.offsetHeight;
+  for (const e of [].concat(from)) e.hidden = true;
+  to.hidden = false;
+  to.classList.remove("wIn"); void to.offsetWidth; to.classList.add("wIn");
+  const h1 = box.offsetHeight;
+  if (REDUCED || Math.abs(h1 - h0) < 2) return;
+  box.style.transition = "none"; box.style.height = h0 + "px"; box.style.overflow = "hidden"; void box.offsetHeight;
+  box.style.transition = "height .6s cubic-bezier(.22,.8,.24,1)"; box.style.height = h1 + "px";
+  setTimeout(() => { box.style.height = box.style.overflow = box.style.transition = ""; }, 650);
 }
 function welcome(){
   const box = $("welcome"), note = $("wNote"), first = String(GUEST.name || "").trim().split(/\s+/)[0] || GUEST.name;
@@ -4115,15 +4193,16 @@ function welcome(){
   $("wFor").textContent = T("A board for {name}", {name: first});
   box.hidden = false;
   try { greetFlaps(); } catch {}
+  $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
   for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
     if (GUEST.settings && GUEST.settings[k] != null) $(id).value = GUEST.settings[k];
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {
     soundForced = true; audioInit();
     try { if (actx) actx.resume(); } catch {}
-    $("wOpen").hidden = true;
+    $("wOpen").onclick = null; $("wOpen").classList.add("wGone");
     setTimeout(() => { try { greetRoll(); } catch {} }, 120);
-    setTimeout(() => { $("wStep1").hidden = false; }, 900);
+    setTimeout(() => wSwap($("wOpen"), $("wStep1")), 650);
   };
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
@@ -4136,20 +4215,19 @@ function welcome(){
       if (a) { $("wHome").value = a.code; if (!$("wPlace").value) $("wPlace").value = a.city || a.name || ""; }
       note.textContent = (a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.")) + " " + T("Check it, then Continue.");
     } catch (e) {
-      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 48.2085 and 16.3731.");
+      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 51.5072 and -0.1276.");
     } finally { $("wLoc").disabled = false; }
   };
   let sent = Promise.resolve();
   const num = v => parseFloat(String(v).replace(",", "."));
   $("wGo").onclick = () => {
     const lat = num($("wLat").value), lon = num($("wLon").value);
-    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 48.2085 and 16.3731."); $("wLat").focus(); return; }
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 51.5072 and -0.1276."); $("wLat").focus(); return; }
     ctlSound.press();
     S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
     sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
-    $("wStep1").hidden = true;
-    if (pushPossible()) $("wPush").hidden = false; else pick();
+    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else pick();
   };
   $("wPushYes").onclick = async () => {
     ctlSound.press();
@@ -4161,7 +4239,7 @@ function welcome(){
   };
   $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
-    $("wPush").hidden = true; $("wPick").hidden = false;
+    wSwap([$("wStep1"), $("wPush")], $("wPick"));
     const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
     b.classList.add("go"); b.setAttribute("aria-pressed", "true");
   }
@@ -4318,6 +4396,7 @@ async function start(){
   showModes();
   applyTheme();
   showTab(location.hash.slice(1) || "now");
+  if (window.splashGo) window.splashGo();          // the board is ready: the opening's plane takes off
   if (!located()) welcome();
   if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
