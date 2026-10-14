@@ -1143,6 +1143,7 @@ const I18N_ROWS = [
   ["Today in<br>numbers", "Heute in<br>Zahlen", "Aujourd'hui<br>en chiffres", "Hoy en<br>cifras", "Vandaag in<br>cijfers"],
   ["This<br>aircraft", "Dieses<br>Flugzeug", "Cet<br>avion", "Este<br>avión", "Dit<br>toestel"],
   ["Take-offs &amp;<br>landings", "Starts &amp;<br>Landungen", "Décollages &amp;<br>atterrissages", "Despegues y<br>aterrizajes", "Vertrek &amp;<br>landing"],
+  ["Coming up", "Demnächst", "À venir", "Próximamente", "Binnenkort"],
   ["Landing", "Landung", "Atterrissage", "Aterrizaje", "Landing"],
   ["Take-off", "Start", "Décollage", "Despegue", "Vertrek"],
   ["Passenger", "Passagiere", "Passagers", "Pasajeros", "Passagiers"],
@@ -3152,7 +3153,6 @@ function tierIcon(t){
   return tierIcons[t] = cv.toDataURL();
 }
 // The logbook is read now and then even with its tab closed: the tiers need it.
-setTimeout(() => { if (booted) fetchLogbook(); }, 4000);
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
 /* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
@@ -3827,7 +3827,7 @@ const nowPageList = () => !airportMode() ? ["lists", "ac"] : SIDEWAYS.matches ? 
 function appApPage(){ return !airportMode() ? "" : nowPage === "dep" ? "apdep" : nowPage === "land" ? "apland" : ""; }
 const pageHas = p => p === "lists" || (p === "ac" ? !!feat : !!apFocus(p === "dep" ? "dep" : "arr"));
 function buildNowPages(){
-  const pages = nowPageList(), name = p => p === "lists" ? (airportMode() ? "Take-offs &amp;<br>landings" : "Recent<br>flights") : PAGE_NAME[p];
+  const pages = nowPageList(), name = p => p === "lists" ? (airportMode() ? "Coming up" : "Recent<br>flights") : PAGE_NAME[p];
   const html = list => list.map(p => `<button class="cap" type="button" data-page="${p}">${T(name(p))}</button>`).join("");
   $("nowPages").innerHTML = html(pages);
   $("apPick").innerHTML = html(["dep", "land"]);
@@ -3905,6 +3905,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.25.2", date: "2026-10-14", notes: [
+    "The Airport style's lists page is called Coming up; Take-off and Landing carry the take-off and landing pictograms.",
+    "About no longer has a cut-off Settings button under it.",
+    "The board fills faster when it opens or comes back: every data source is asked at once."]},
   {v: "1.25.1", date: "2026-10-14", notes: [
     "The welcome greets you within about two seconds, and the board stays hidden until it is done."]},
   {v: "1.25.0.1", date: "2026-10-14", notes: [
@@ -4477,8 +4481,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   // A phone may throw away a hidden page's canvas pictures (and the cached flap faces): draw everything afresh.
   clearTiles(); refreshPanels(true); drawMark(); if (tab === "radar") radarSize();
-  poll(true); if (relayV5()) syncSightings();
-  if (tab === "logbook") fetchLogbook();
+  poll(true); if (relayV5()) { syncSightings(); fetchLogbook(); }          // back: everything at once again
 });
 // iPhones allow sound only from a tap as the finger lifts (touchend, click), not as it lands.
 ["pointerdown", "touchstart", "touchend", "click", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
@@ -4505,7 +4508,7 @@ async function start(){
   try {
     await Promise.race([
       Promise.all(["700 40px", "600 20px", "400 40px"].map(s => document.fonts.load(`${s} ${(THEMES[S.theme] || THEMES.classic).font}`))),
-      new Promise(r => setTimeout(r, 2500))
+      new Promise(r => setTimeout(r, 1200))      // not long: the board shouldn't wait for a slow font
     ]);
   } catch {}
   pickLang();
@@ -4533,8 +4536,10 @@ function run(){
   renderFeatured(); renderLists(); updateFooter();
   if (relayV5()) syncSightings();
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
-  setTimeout(poll, 300);
-  setTimeout(sayHello, 2000); setInterval(sayHello, 60000);
+  // Every data source at once, so the board fills as fast as it can (positions, today's list, the logbook the tiers
+  // need, the hello that tells the relay where this screen looks); then each on its usual timer.
+  poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();
+  setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);

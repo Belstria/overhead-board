@@ -3296,10 +3296,10 @@ function renderRadarList(){
 }
 
 /* ---------- the rail: push buttons along the bottom of the board ---------- */
-const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Take-offs &amp;<br>landings",
+const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Coming up",
   apland: "Landing", apdep: "Take-off"};
 // The same line icons as the phone app's tabs (tools/app/main.js TAB_ICONS), plus a clock, bars and the plane taking
-// off or landing for the pages that have no tab there.
+// off or landing (the airport statuses' pictogram) for the pages that have no tab there.
 const RAIL_SVG = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const ICO_PLANE = '<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>';
 const RAIL_ICONS = {
@@ -3310,8 +3310,8 @@ const RAIL_ICONS = {
   knob: RAIL_SVG('<circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 12V6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'),
   clock: RAIL_SVG('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7v5l3.5 2.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'),
   bars: RAIL_SVG('<path d="M6 19v-6M12 19V6M18 19v-9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>'),
-  up: RAIL_SVG('<g transform="rotate(30 12 12)">' + ICO_PLANE + '</g>'),
-  down: RAIL_SVG('<g transform="rotate(150 12 12)">' + ICO_PLANE + '</g>'),
+  up: RAIL_SVG('<g fill="currentColor"><g transform="translate(12 9.6) rotate(60) scale(.19) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g><rect x="3" y="18.6" width="18" height="1.9" rx=".95"/></g>'),                // as on the TAKE-OFF and CLIMBING flaps
+  down: RAIL_SVG('<g fill="currentColor"><g transform="translate(12 9.6) rotate(115) scale(.19) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g><rect x="3" y="18.6" width="18" height="1.9" rx=".95"/></g>'),              // as on APPROACH, FINAL and LANDED
 };
 const PAGE_ICON = {spotted: "clock", aircraft: "plane", stats: "bars", aplists: "list", apdep: "up", apland: "down"};
 const VIEW_ICON = {spotted: "list", logbook: "book", radar: "radar", settings: "knob"};
@@ -3790,6 +3790,7 @@ const I18N_ROWS = [
   ["Today in<br>numbers", "Heute in<br>Zahlen", "Aujourd'hui<br>en chiffres", "Hoy en<br>cifras", "Vandaag in<br>cijfers"],
   ["This<br>aircraft", "Dieses<br>Flugzeug", "Cet<br>avion", "Este<br>avión", "Dit<br>toestel"],
   ["Take-offs &amp;<br>landings", "Starts &amp;<br>Landungen", "Décollages &amp;<br>atterrissages", "Despegues y<br>aterrizajes", "Vertrek &amp;<br>landing"],
+  ["Coming up", "Demnächst", "À venir", "Próximamente", "Binnenkort"],
   ["Landing", "Landung", "Atterrissage", "Aterrizaje", "Landing"],
   ["Take-off", "Start", "Décollage", "Despegue", "Vertrek"],
   ["Passenger", "Passagiere", "Passagers", "Pasajeros", "Passagiers"],
@@ -4068,6 +4069,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.25.2", date: "2026-10-14", notes: [
+    "The Airport style's lists page is called Coming up; Take-off and Landing carry the take-off and landing pictograms.",
+    "About no longer has a cut-off Settings button under it.",
+    "The board fills faster when it opens or comes back: every data source is asked at once."]},
   {v: "1.25.1", date: "2026-10-14", notes: [
     "The welcome greets you within about two seconds, and the board stays hidden until it is done."]},
   {v: "1.25.0.1", date: "2026-10-14", notes: [
@@ -4384,10 +4389,8 @@ function aboutOpen(){
       `<div class="log" id="abLog" tabindex="0">${changelogHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Keys")}</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(T(k))}</dt><dd>${escH(T(t))}</dd>`).join("")}</dl>` +
       `<p>${escH(T("Browsers only allow sound after a first click or key press."))}</p></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3>${aboutHtml()}<p class="ver">${escH(versionLine())}</p>` +
-      `<div class="acts"><button class="cap big" type="button" data-act="back">${T("Settings")}</button></div></div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3>${aboutHtml()}<p class="ver">${escH(versionLine())}</p></div>`;
   box.onclick = e => e.stopPropagation();
-  box.querySelector('[data-act="back"]').onclick = () => { ctlSound.press(); switchView("settings"); };
   for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => {
     ctlSound.press();
     const legend = b.dataset.ab === "legend";
@@ -4781,7 +4784,7 @@ async function start(){
   else if (airportMode()) switchView(null, {instant: true, page: "aplists"});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
-  setTimeout(poll, 500);
+  poll(); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos();   // everything at once on the first load, then the usual timers
 }
 start();
 })();
