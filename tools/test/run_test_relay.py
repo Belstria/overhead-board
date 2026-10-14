@@ -5,6 +5,7 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py            every kind of plane, including special ones and an emergency
     py tools/test/run_test_relay.py --quiet    no special planes, so the pages rotate undisturbed
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
+    py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake)
 
 Then open http://localhost:8096/ (or /test/, /test-api/, /app/, /screens). Ctrl+C stops both.
@@ -28,6 +29,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--quiet", action="store_true", help="no special planes")
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
+    p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     a = p.parse_args()
     tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
@@ -39,7 +41,7 @@ def main():
         src = src.replace(real, fake)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
     (tmp / "serve.py").write_text(src, encoding="utf-8")
-    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", PYTHONIOENCODING="utf-8")
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
     cmd = [sys.executable, "serve.py", "--port", "8096", "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
            "--home", "VIE", "--local-root", str(REPO), "--source", FAKE + "/ac/{lat}/{lon}/{nm}"]

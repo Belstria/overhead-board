@@ -836,6 +836,7 @@ const I18N_ROWS = [
   ["Landing {r}", "Landung {r}", "Atterrissage {r}", "Aterrizaje {r}", "Landing {r}"],
   ["departing {r}", "Start {r}", "décollage {r}", "despegue {r}", "vertrek {r}"],
   ["RUNWAY {r}", "PISTE {r}", "PISTE {r}", "PISTA {r}", "BAAN {r}"],
+  ["EXPECTED IN {n} MIN", "ERWARTET IN {n} MIN", "ATTENDU DANS {n} MIN", "LLEGA EN {n} MIN", "VERWACHT OVER {n} MIN"],
   ["{d} KM TO TOUCHDOWN", "NOCH {d} KM BIS ZUM AUFSETZEN", "{d} KM AVANT LE TOUCHER", "{d} KM PARA TOMAR TIERRA", "NOG {d} KM TOT DE LANDING"],
   ["ON THE GROUND", "AM BODEN", "AU SOL", "EN TIERRA", "AAN DE GROND"],
   ["ROLLING FOR TAKE-OFF", "STARTLAUF", "COURSE AU DÉCOLLAGE", "CARRERA DE DESPEGUE", "STARTROL"],
@@ -3006,7 +3007,8 @@ function paintRwy(){
   cv.width = Math.round(w * px); cv.height = Math.round(h * px);
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0);
-  try { paintRunwayScreen(g, w, h, e, photo); } catch (err) { scr.classList.remove("rwyOn"); }
+  try { if (paintRunwayScreen(g, w, h, e, photo)) requestAnimationFrame(() => { rwyKey = ""; paintRwy(); }); }   // the photo sliding
+  catch (err) { scr.classList.remove("rwyOn"); }
 }
 
 /* Spotted today */
@@ -3701,12 +3703,29 @@ function rwyLine(){
 }
 // The approach-control screen for the Landing and Take-off pages: the runways, the one in use lit, the plane on its way
 // down or up, a line saying how far, and the plane's photo as an inset.
+// The screen (1.26): far out (a landing before its final approach, a take-off climbing away) it shows the plane's photo
+// full size; close in (on final, on the runway, the first few km of the climb) the photo slides into the corner and the
+// radar shows the runways up close. rwyMix eases between the two (0 photo, 1 radar) and says whether it is still moving,
+// so the caller paints again on the next frame.
+const RWY_MIX = {hex: "", from: 1, to: 1, at: 0, corner: null}, RWY_MIX_MS = 900;
+const rwyClose = e => e.kind === "arr" ? e.st === "FINAL" || e.st === "LANDED" : e.st === "TAKE-OFF" || e.dist <= 6;
+function rwyMix(e, img){
+  const to = img ? (rwyClose(e) ? 1 : 0) : 1, now = performance.now();
+  if (RWY_MIX.hex !== e.hex) Object.assign(RWY_MIX, {hex: e.hex, from: to, to, at: 0, corner: null});
+  const p = REDUCED ? 1 : Math.min(1, (now - RWY_MIX.at) / RWY_MIX_MS), ease = p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+  const cur = RWY_MIX.from + (RWY_MIX.to - RWY_MIX.from) * ease;
+  if (to !== RWY_MIX.to) { Object.assign(RWY_MIX, {from: cur, to, at: now}); return {t: cur, moving: true}; }
+  return {t: cur, moving: p < 1};
+}
 function paintRunwayScreen(g, w, h, e, img){
   g.fillStyle = "#06090a"; g.fillRect(0, 0, w, h);
-  const G = rwyGeo(AP.lat, AP.lon), ac = e.ac, [px, py] = G.xy(ac.lat, ac.lon), u = rwyInUse();
+  const mix = rwyMix(e, img), t = mix.t;
+  const G = rwyGeo(AP.lat, AP.lon), ac = e.ac, [px0, py0] = G.xy(ac.lat, ac.lon), u = rwyInUse();
   let ext = 2.5;
   for (const r of AP.rwys) for (const p of [r.a, r.b]) { const [x, y] = G.xy(p.lat, p.lon); ext = Math.max(ext, Math.abs(x) + .8, Math.abs(y) + .8); }
-  const span = Math.min(Math.max(ext * 1.35, Math.hypot(px, py) * 1.18), 40), k = Math.min(w, h) / 2 / span;
+  // close in: the runways fill the screen, the plane fits up to 9 km out; further out it waits at the edge
+  const span = Math.max(ext * 1.35, Math.min(Math.hypot(px0, py0) * 1.18, 9)), k = Math.min(w, h) / 2 / span;
+  const far = Math.hypot(px0, py0), lim = span * .92, [px, py] = far > lim ? [px0 * lim / far, py0 * lim / far] : [px0, py0];
   const cx = w / 2, cy = h / 2, P = (x, y) => [cx + x * k, cy - y * k];
   g.strokeStyle = "rgba(90,210,150,.07)"; g.lineWidth = 1;                           // range rings every 5 km
   for (let r = 5; r * k < Math.max(w, h); r += 5) { g.beginPath(); g.arc(cx, cy, r * k, 0, Math.PI * 2); g.stroke(); }
@@ -3731,19 +3750,30 @@ function paintRunwayScreen(g, w, h, e, img){
   g.save(); g.translate(qx, qy); g.rotate(((ac.track || 0) - 45) * Math.PI / 180); drawPlane(g, 0, 0, 26, COL.amber); g.restore();
   g.textAlign = "left"; g.textBaseline = "alphabetic"; g.font = `700 15px ${FONT}`;
   if ("letterSpacing" in g) g.letterSpacing = "1.2px";
-  const kmTo = m && e.kind === "arr" ? Math.max(0, -m.along) : null;
-  const line = e.st === "LANDED" ? T("ON THE GROUND") : e.kind === "arr" && kmTo != null ? T("{d} KM TO TOUCHDOWN", {d: kmTo < 10 ? kmTo.toFixed(1) : Math.round(kmTo)})
+  const kmTo = m && e.kind === "arr" ? Math.max(0, -m.along) : null, mins = e.kind === "arr" && e.t ? Math.max(1, Math.ceil((e.t - Date.now()) / 60000)) : null;
+  const line = e.st === "LANDED" ? T("ON THE GROUND") : e.kind === "arr" && e.st !== "FINAL" && mins != null ? T("EXPECTED IN {n} MIN", {n: mins})
+    : e.kind === "arr" && kmTo != null ? T("{d} KM TO TOUCHDOWN", {d: kmTo < 10 ? kmTo.toFixed(1) : Math.round(kmTo)})
     : e.st === "TAKE-OFF" && e.ground ? T("ROLLING FOR TAKE-OFF") : e.alt != null ? T("CLIMBING THROUGH {a}", {a: altitudeStr(e.alt)}) : "";
+  if (img) {                        // the photo: the whole screen far out, shrinking into the corner as the plane comes close
+    const iw = Math.round(w * .34), ih = Math.round(iw * .56), L = (a, b) => a + (b - a) * t;
+    if (!RWY_MIX.corner) {          // the corner away from the plane (the words have the top left), kept while it lands
+      const opts = [[w - iw - 12, 12], [12, h - ih - 12], [w - iw - 12, h - ih - 12]];
+      RWY_MIX.corner = opts.reduce((a, c) => Math.hypot(c[0] + iw / 2 - qx, c[1] + ih / 2 - qy) > Math.hypot(a[0] + iw / 2 - qx, a[1] + ih / 2 - qy) ? c : a);
+    }
+    const [cx0, cy0] = RWY_MIX.corner, ix = L(0, cx0), iy = L(0, cy0), jw = L(w, iw), jh = L(h, ih), rad = L(0, 4);
+    g.save(); rr(g, ix, iy, jw, jh, rad); g.clip(); drawCover(g, img, ix, iy, jw, jh); g.restore();
+    if (t > .02) { g.strokeStyle = `rgba(255,255,255,${(.25 * t).toFixed(3)})`; g.lineWidth = 1; rr(g, ix + .5, iy + .5, jw - 1, jh - 1, rad); g.stroke(); }
+    if (t < .98) {                  // a shade at the top, so the words stand out on the photo
+      const sh = g.createLinearGradient(0, 0, 0, 70); sh.addColorStop(0, `rgba(0,0,0,${(.6 * (1 - t)).toFixed(3)})`); sh.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = sh; g.fillRect(0, 0, w, 70);
+    }
+  }
   g.fillStyle = COL.amber; if (m) g.fillText(T("RUNWAY {r}", {r: m.id}), 14, 24);
   g.fillStyle = "rgba(230,235,240,.85)"; g.fillText(line, 14, m ? 44 : 24);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
-  if (img) {                                                                          // the photo, inset
-    const iw = Math.round(w * .34), ih = Math.round(iw * .56), ix = w - iw - 12, iy = h - ih - 12;
-    g.save(); rr(g, ix, iy, iw, ih, 4); g.clip(); drawCover(g, img, ix, iy, iw, ih); g.restore();
-    g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 1; rr(g, ix + .5, iy + .5, iw - 1, ih - 1, 4); g.stroke();
-  }
   g.fillStyle = "rgba(0,0,0,.11)"; for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);   // the screen's lines
   if (typeof glass === "function") glass(g, w, h);
+  return mix.moving;
 }
 
 // The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
@@ -3919,6 +3949,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.26", date: "2026-10-14", notes: [
+    "Take-off and Landing show the plane's photo full size while it is far out, with a countdown for landings; close in, the photo slides into the corner and the radar shows the runways up close."]},
   {v: "1.25.2", date: "2026-10-14", notes: [
     "The Airport style's lists page is called Coming up; Take-off and Landing carry the take-off and landing pictograms.",
     "About no longer has a cut-off Settings button under it; Settings has a cogwheel icon.",

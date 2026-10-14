@@ -182,8 +182,10 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   own.
 - **Runways in use** (Airport style, 1.20): worked out from the planes lined up with each runway; shown next to the
   lists' title ("Landing 29 · departing 16") and lit on the radar. The Take-off and Landing pages show the plane on a
-  runway screen with how far it is to touchdown or how high it has climbed. Home airports other than Vienna need
-  relay 23.
+  runway screen with how far it is to touchdown or how high it has climbed. Far out (a landing before its final
+  approach, a take-off climbing away) the screen shows the plane's photo full size, with "Expected in … min" for a
+  landing; close in, the photo slides into a corner and the radar shows the runways up close (1.26). Home airports
+  other than Vienna need relay 23.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker

@@ -4,7 +4,7 @@ It stands in for the position source, adsbdb (routes and aircraft), Flightradar2
 flight lists. The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
-QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead.
+QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
 """
 import json, math, os, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -39,7 +39,9 @@ ROUTES = {"AUA411": ("OS411", "Austrian Airlines", "OS", "FRA", "Frankfurt am Ma
           "LDM5AB": ("OE215", "Lauda Europe", "OE", "VIE", "Vienna", "PMI", "Palma de Mallorca"),
           "SWR1514": ("LX1514", "Swiss", "LX", "ZRH", "Zurich", "VIE", "Vienna")}
 PHOTO = "http://127.0.0.1:8095/photo/{}.svg"
-AIRCRAFT = {"440a01": {"type": "A320 214", "icao_type": "A320", "manufacturer": "Airbus SAS", "registration": "OE-LBN",
+AIRCRAFT = {"440b11": {"type": "A320 271N", "icao_type": "A20N", "manufacturer": "Airbus SAS", "registration": "OE-LBW",
+                       "registered_owner": "Austrian Airlines", "registered_owner_country_name": "Austria", "url_photo": PHOTO.format("440b11")},
+            "440a01": {"type": "A320 214", "icao_type": "A320", "manufacturer": "Airbus SAS", "registration": "OE-LBN",
                        "registered_owner": "Austrian Airlines", "registered_owner_country_name": "Austria", "url_photo": PHOTO.format("440a01")},
             "896180": {"type": "A380 861", "icao_type": "A388", "manufacturer": "Airbus SAS", "registration": "A6-EVB",
                        "registered_owner": "Emirates", "registered_owner_country_name": "United Arab Emirates", "url_photo": PHOTO.format("896180")},
@@ -125,7 +127,8 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
         if not path.startswith("/ac/"):
             self.send_response(404); self.end_headers(); return
-        arr = along(VIE, 115, 9)
+        far = os.environ.get("FAR")      # the landing still far out: it reaches its final approach about 4 minutes later
+        arr = along(VIE, 115, 32 if far else 9)
         dep = along(VIE, 295, 4)
         ac = [
             plane("440a01", "AUA411", "A320", 0.6, -5.0, 0, 700, 2600, -300, r="OE-LBN"),       # inbound, then overhead
@@ -135,7 +138,7 @@ class H(BaseHTTPRequestHandler):
             plane("4ca7b4", "RYR22", "B738", -5.0, 6.0, 300, 800, 4000, 1500, r="EI-DCL", squawk="7700"),  # emergency
             plane("3c6744", "DLH1234", "A321", 8.0, -12.0, 0, 800, 9000, 0, r="D-AISN"),        # flying by
             plane("471f8d", "WZZ4307", "A21N", -9.0, -3.0, 45, 780, 7000, 1800, r="HA-LVF"),    # outbound-ish
-            plane("440b11", "AUA802", "A20N", arr[0], arr[1], 295, 300, 2600, -700, r="OE-LBW"),  # landing on 29
+            plane("440b11", "AUA802", "A20N", arr[0], arr[1], 295, 300, 9000 if far else 2600, -1400 if far else -700, r="OE-LBW"),  # landing on 29
             plane("440b12", "LDM5AB", "A320", dep[0], dep[1], 295, 380, 2500, 2200, r="OE-LMA"),  # taking off from 29
             plane("440c55", "AUA411X", "E195", along(VIE, 115, 1.2)[0], along(VIE, 115, 1.2)[1], 295, 220, 0, 0,
                   r="OE-LWA", alt_baro="ground"),                                              # take-off roll on 29
