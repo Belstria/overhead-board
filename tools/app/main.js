@@ -1307,7 +1307,10 @@ function welcome(){
     b.classList.add("go"); b.setAttribute("aria-pressed", "true");
   }
   const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
-  $("wApp").onclick = () => go(() => location.reload());                                 // start afresh around the new place
+  $("wApp").onclick = () => go(() => {                   // the board loads in around the new place, its flaps turning in
+    box.classList.add("wDone");
+    setTimeout(() => { box.hidden = true; box.classList.remove("wDone"); updateWhere(); run(); }, 380);
+  });
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
   $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; run(); showTab("settings"); };
 }
@@ -1437,8 +1440,8 @@ async function start(){
   applyTheme();
   showTab(location.hash.slice(1) || "now");
   if (window.splashGo) window.splashGo();          // the board is ready: the opening's plane takes off
-  // A new guest first goes through the welcome: the board stays hidden and fetches nothing until it is done (the app
-  // reloads then) or put off ("Later", which starts it).
+  // A new guest first goes through the welcome: the board stays hidden and starts (fetching, drawing) once the place is
+  // confirmed and the phone app picked, or the welcome put off ("Later").
   if (!located()) return welcome();
   run();
 }

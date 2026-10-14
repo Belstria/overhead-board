@@ -226,6 +226,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #t-now.ap #acTitle{display:none}
 /* a guest's first visit: where to watch the sky */
 #welcome{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:var(--housing)}   /* the board isn't shown behind it */
+#welcome.wDone{opacity:0;transition:opacity .35s}
 #welcome[hidden]{display:none}
 #welcome .wbox{width:min(420px,100%);padding:26px 22px 18px;border-radius:14px;text-align:center;background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 50px rgba(0,0,0,.7)}
