@@ -387,6 +387,13 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 17px var(--f-board);text-align:center}
 #welcome #wPick .cap{margin-top:6px}
 #welcome #wPick .sub{margin:6px 0 14px;font-size:13px}
+#welcome #wOpen{all:unset;cursor:pointer;display:block;margin:6px auto 4px;padding:14px 22px;border-radius:10px;border:1px dashed rgba(242,177,52,.55);
+  color:var(--ink);font:600 17px var(--f-board);animation:wPulse 2.2s ease-in-out infinite}
+#welcome #wOpen b{display:block;margin-top:4px;color:var(--amber);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+@keyframes wPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,177,52,0)}50%{box-shadow:0 0 0 6px rgba(242,177,52,.12)}}
+#welcome .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:14px 0 6px;text-align:left}
+#welcome .wgrid .wlab span{display:block;margin-bottom:4px}
+#welcome .wgrid input{margin:0;font-size:15px;padding:9px 10px}
 #welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:14px;text-decoration:underline}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
@@ -528,16 +535,26 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   <div class="wmark" aria-hidden="true">&#9992;</div>
   <div class="panel" id="wHello" aria-hidden="true"></div>
   <h2 id="wHi" class="vh"></h2>
-  <div id="wStep1">
-  <p data-t="Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?">Fallblatt shows the planes flying over your home on a split-flap board. Where should it watch the sky?</p>
-  <button class="cap big go" type="button" id="wLoc" data-t="Use my location">Use my location</button>
-  <p class="note" id="wNote" aria-live="polite"></p>
-  <div id="wMore" hidden>
-    <label class="wlab" for="wPlace" data-t="Place name">Place name</label>
-    <input id="wPlace" maxlength="30" autocomplete="off">
-    <button class="cap big go" type="button" id="wGo" data-t="Start">Start</button>
+  <button type="button" id="wOpen"><span id="wFor"></span><b data-t="Tap to open">Tap to open</b></button>
+  <div id="wStep1" hidden>
+    <p data-t="Where should it watch the sky? Use your location, or type it in.">Where should it watch the sky? Use your location, or type it in.</p>
+    <button class="cap big go" type="button" id="wLoc" data-t="Use my location">Use my location</button>
+    <p class="note" id="wNote" aria-live="polite"></p>
+    <div class="wgrid">
+      <label class="wlab"><span data-t="Place name">Place name</span><input id="wPlace" maxlength="30" autocomplete="off"></label>
+      <label class="wlab"><span data-t="Home airport">Home airport</span><input id="wHome" maxlength="3" autocomplete="off" autocapitalize="characters"></label>
+      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off" placeholder="48.2085"></label>
+      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off" placeholder="16.3731"></label>
+    </div>
+    <button class="cap big go" type="button" id="wGo" data-t="Continue">Continue</button>
+    <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>
   </div>
-  <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>
+  <div id="wPush" hidden>
+    <p><b data-t="Get notifications?">Get notifications?</b></p>
+    <p data-t="A summary of your day at 22:30, and a nudge when something special is about to pass over.">A summary of your day at 22:30, and a nudge when something special is about to pass over.</p>
+    <button class="cap big go" type="button" id="wPushYes" data-t="Yes, turn them on">Yes, turn them on</button>
+    <p class="note" id="wPushNote" aria-live="polite"></p>
+    <button class="wlater" type="button" id="wPushNo" data-t="Not now">Not now</button>
   </div>
   <div id="wPick" hidden>
     <p data-t="How do you want to watch?">How do you want to watch?</p>
@@ -709,6 +726,16 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["A board for {name}", "Eine Tafel für {name}", "Un tableau pour {name}", "Un panel para {name}", "Een bord voor {name}"],
+  ["Tap to open", "Zum Öffnen tippen", "Touchez pour ouvrir", "Toca para abrir", "Tik om te openen"],
+  ["Where should it watch the sky? Use your location, or type it in.", "Wo soll es den Himmel beobachten? Nimm deinen Standort oder tippe ihn ein.", "Où doit-il observer le ciel ? Utilisez votre position ou saisissez-la.", "¿Dónde debe mirar el cielo? Usa tu ubicación o escríbela.", "Waar moet het naar de lucht kijken? Gebruik je locatie of typ hem in."],
+  ["Continue", "Weiter", "Continuer", "Continuar", "Verder"],
+  ["Check it, then Continue.", "Prüfe es, dann Weiter.", "Vérifiez, puis Continuer.", "Compruébalo y pulsa Continuar.", "Controleer het en druk op Verder."],
+  ["Latitude and longitude please, e.g. 48.2085 and 16.3731.", "Bitte Breiten- und Längengrad, z. B. 48.2085 und 16.3731.", "La latitude et la longitude, p. ex. 48.2085 et 16.3731.", "Latitud y longitud, p. ej. 48.2085 y 16.3731.", "Breedte- en lengtegraad graag, bv. 48.2085 en 16.3731."],
+  ["Get notifications?", "Benachrichtigungen erhalten?", "Recevoir des notifications ?", "¿Recibir notificaciones?", "Meldingen ontvangen?"],
+  ["Yes, turn them on", "Ja, einschalten", "Oui, activer", "Sí, activarlas", "Ja, aanzetten"],
+  ["Not now", "Jetzt nicht", "Pas maintenant", "Ahora no", "Nu niet"],
+  ["Notifications are on.", "Benachrichtigungen sind an.", "Les notifications sont activées.", "Las notificaciones están activadas.", "Meldingen staan aan."],
   ["New version · tap to update", "Neue Version · zum Aktualisieren tippen", "Nouvelle version · touchez pour mettre à jour", "Nueva versión · toca para actualizar", "Nieuwe versie · tik om bij te werken"],
   ["Notifications", "Benachrichtigungen", "Notifications", "Notificaciones", "Meldingen"],
   ["Turn on notifications", "Benachrichtigungen einschalten", "Activer les notifications", "Activar notificaciones", "Meldingen aanzetten"],
@@ -1734,7 +1761,7 @@ function drawMark(){
 }
 /* ---------- sound: recorded flap clatter and controls (1.17), or the synthesised ones (Settings → Sounds: CLASSIC);
    only after a click or key press ---------- */
-let actx = null, noise = null, lastClack = 0;
+let actx = null, noise = null, lastClack = 0, soundForced = false;   // forced: the app's greeting, heard whatever the setting
 // @sounds-begin (made by tools/sounds/build_sounds.py from the recordings credited in About; don't edit by hand)
 const SOUND_DATA = {
   knob: ["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"],
@@ -1775,7 +1802,7 @@ function sample(k, t, gain, rate = 1, hall = 0){
   return true;
 }
 function audioInit(){
-  if (!S.sound && !S.chimes) return;
+  if (!S.sound && !S.chimes && !soundForced) return;
   try {
     if (!actx) {
       actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1823,7 +1850,7 @@ function sfxOut(){
   return sfxBus;
 }
 function clack(n){
-  if (!S.sound || nightOn || !actx || actx.state !== "running") return;
+  if ((!S.sound && !soundForced) || (nightOn && !soundForced) || !actx || actx.state !== "running") return;
   const t = actx.currentTime; if (t - lastClack < (S.quick ? .035 : .014)) return; lastClack = t;    // quick flaps whirr, not buzz
   // The flaps always clack synthesised (chosen over the recording); the recordings are for the controls.
   const src = actx.createBufferSource(); src.buffer = noise; src.playbackRate.value = .7 + Math.random() * .5;
@@ -3736,6 +3763,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.23", date: "2026-10-14", notes: [
+    "A new welcome: tap to open, the name flips in letter by letter with sound, the location by hand or automatically, and notifications to turn on.",
+    "Turning on notifications works the first time."]},
   {v: "1.22", date: "2026-10-14", notes: [
     "A lamp says when a new version is out: tap it to update.",
     "Notifications: an evening summary, and a nudge when something special is about to pass over (phone app → About; through the https address).",
@@ -3944,6 +3974,35 @@ async function pushSub(){
   const reg = await navigator.serviceWorker.getRegistration("./");
   return reg ? reg.pushManager.getSubscription() : null;
 }
+const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.isSecureContext && "serviceWorker" in navigator &&
+  "PushManager" in window && "Notification" in window && Notification.permission !== "denied";
+// The service worker is registered as the app opens, so it is running by the time notifications are turned on (the
+// first try used to fail while it was still starting, and the button had to be pressed twice).
+let swReady = null;
+function swRegister(){
+  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register("sw.js", {scope: "./"}).then(() => navigator.serviceWorker.ready).catch(() => null);
+  return swReady || Promise.resolve(null);
+}
+setTimeout(swRegister, 1500);
+// Turn notifications on: permission, the service worker, the subscription, the relay. Returns an error text, or "".
+async function enablePush(){
+  try {
+    if (await Notification.requestPermission() !== "granted") return T("Notifications are blocked for this site in the browser's settings.");
+    const reg = await swRegister();
+    if (!reg) return T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.");
+    const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
+    const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
+    let sub = null;
+    for (let i = 0; i < 3 && !sub; i++) {              // a worker that has only just become active can refuse once
+      try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
+      catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
+    }
+    let prefs = {summary: true, window: true};
+    try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
+    const r = await sendSub(sub, prefs, "subscribe");
+    return r.ok ? "" : `HTTP ${r.status}`;
+  } catch (e) { return String(e && e.message || e); }
+}
 async function renderPush(){
   const box = $("pushBox");
   if (!box) return;
@@ -3974,14 +4033,9 @@ async function renderPush(){
     try {
       if (sub) { await sendSub(sub, prefs, "unsubscribe"); await sub.unsubscribe(); return renderPush(); }
       note.textContent = T("Turning on …");
-      if (await Notification.requestPermission() !== "granted") return renderPush();
-      const reg = await navigator.serviceWorker.register("sw.js", {scope: "./"});
-      await navigator.serviceWorker.ready;
-      const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
-      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
-      const fresh = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw});
-      await sendSub(fresh, prefs, "subscribe");
-      renderPush();
+      const err = await enablePush();
+      await renderPush();                                  // shows "on" straight away
+      if (err && $("pushNote")) $("pushNote").textContent = err;
     } catch (e) { note.textContent = String(e && e.message || e); }
   };
 }
@@ -4033,25 +4087,44 @@ function greetText(){
   if (!out.endsWith("!")) out += "!";
   return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
 }
+// The letters land in order, left to right: each flap starts so that it lands a beat after the one before it (a long
+// way round the drum starts earlier); the "!" last, coasting to a stop.
 function greetFlaps(){
   const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
   $("wHello").style.width = `min(100%, ${n * 34}px)`;
   def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
   placeRow(["greet"], [], 11, step, 1.45, 8);
-  requestAnimationFrame(() => {
-    showPanel(P);
-    fields.greet.cells.forEach((c, i) => {
-      if (text[i] === "!") c.slowEnd = true;          // the longest run anyway: it starts early and still lands last
-      retarget(c, text[i], text[i] === "!" ? 400 : 250 + i * 70 + Math.random() * 60);
-    });
+  requestAnimationFrame(() => showPanel(P));
+}
+function greetRoll(){
+  const text = greetText(), per = 62 * pace();
+  let land = 0;
+  fields.greet.cells.forEach((c, i) => {
+    const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
+    if (!flips) return;
+    const run = flips * per * (bang ? 1.35 : 1);
+    land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
+    if (bang) c.slowEnd = true;
+    retarget(c, ch, Math.max(0, (land - run) / pace()));
   });
+  setTimeout(() => { soundForced = false; }, land + 1800);
 }
 function welcome(){
-  const box = $("welcome"), note = $("wNote");
+  const box = $("welcome"), note = $("wNote"), first = String(GUEST.name || "").trim().split(/\s+/)[0] || GUEST.name;
   $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
+  $("wFor").textContent = T("A board for {name}", {name: first});
   box.hidden = false;
   try { greetFlaps(); } catch {}
-  let found = null, sent = Promise.resolve();
+  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
+    if (GUEST.settings && GUEST.settings[k] != null) $(id).value = GUEST.settings[k];
+  // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
+  $("wOpen").onclick = () => {
+    soundForced = true; audioInit();
+    try { if (actx) actx.resume(); } catch {}
+    $("wOpen").hidden = true;
+    setTimeout(() => { try { greetRoll(); } catch {} }, 120);
+    setTimeout(() => { $("wStep1").hidden = false; }, 900);
+  };
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
     $("wLoc").disabled = true; note.textContent = T("Finding out where you are …");
@@ -4059,27 +4132,39 @@ function welcome(){
       const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
       let a = null;
       try { a = await nearestAirport(lat, lon); } catch {}
-      found = {lat, lon, home: a ? a.code : S.home};
-      $("wPlace").value = a ? (a.city || a.name || "") : "";
-      note.textContent = a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.");
-      $("wMore").hidden = false; $("wLoc").hidden = true;
-      $("wPlace").focus();
+      $("wLat").value = lat; $("wLon").value = lon;
+      if (a) { $("wHome").value = a.code; if (!$("wPlace").value) $("wPlace").value = a.city || a.name || ""; }
+      note.textContent = (a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.")) + " " + T("Check it, then Continue.");
     } catch (e) {
-      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("You can type it in Settings instead.");
+      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 48.2085 and 16.3731.");
     } finally { $("wLoc").disabled = false; }
   };
+  let sent = Promise.resolve();
+  const num = v => parseFloat(String(v).replace(",", "."));
   $("wGo").onclick = () => {
-    if (!found) return;
+    const lat = num($("wLat").value), lon = num($("wLon").value);
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 48.2085 and 16.3731."); $("wLat").focus(); return; }
     ctlSound.press();
-    S = {...S, ...found, place: $("wPlace").value.trim() || T("Home"), located: true};
+    S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
-    const changed = JSON.parse(localStorage.getItem(SKEY) || "{}");
-    sent = saveMe(changed, true);
-    // Then: the phone app or the full board. A phone is offered the app, a computer the board.
-    $("wStep1").hidden = true; $("wPick").hidden = false;
-    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, pick = $(phone ? "wApp" : "wBoard");
-    pick.classList.add("go"); pick.setAttribute("aria-pressed", "true");
+    sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
+    $("wStep1").hidden = true;
+    if (pushPossible()) $("wPush").hidden = false; else pick();
   };
+  $("wPushYes").onclick = async () => {
+    ctlSound.press();
+    const n = $("wPushNote"); n.textContent = T("Turning on …");
+    const err = await enablePush();
+    if (err) { n.textContent = err; return; }
+    n.textContent = T("Notifications are on.");
+    setTimeout(pick, 700);
+  };
+  $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
+  function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
+    $("wPush").hidden = true; $("wPick").hidden = false;
+    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
+    b.classList.add("go"); b.setAttribute("aria-pressed", "true");
+  }
   const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
   $("wApp").onclick = () => go(() => location.reload());                                 // start afresh around the new place
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
