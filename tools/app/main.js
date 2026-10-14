@@ -544,7 +544,8 @@ function paintRwy(){
   cv.width = Math.round(w * px); cv.height = Math.round(h * px);
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0);
-  try { paintRunwayScreen(g, w, h, e, photo); } catch (err) { scr.classList.remove("rwyOn"); }
+  try { if (paintRunwayScreen(g, w, h, e, photo)) requestAnimationFrame(() => { rwyKey = ""; paintRwy(); }); }   // the photo sliding
+  catch (err) { scr.classList.remove("rwyOn"); }
 }
 
 /* Spotted today */

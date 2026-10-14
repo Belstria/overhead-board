@@ -111,7 +111,10 @@ saved days when loaded (`_rescore`).
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),
-and the Take-off and Landing pages paint `paintRunwayScreen()` on the photo screen (the photo as an inset).
+and the Take-off and Landing pages paint `paintRunwayScreen()` on the photo screen (1.26: the photo full size far out, with
+`EXPECTED IN {n} MIN` for landings from `e.t`; close in, `rwyClose(e)`, it slides into the corner away from the plane and the
+radar zooms to the runways; `rwyMix` eases it and returns `moving`, so `placePhoto`/the app's `paintRwy` paint again next frame;
+`run_test_relay.py --far` starts the landing 32 km out).
 
 Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
 cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
