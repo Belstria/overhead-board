@@ -194,6 +194,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
   (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
   address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place. The app opens with `#splash` (head.html; `splashGo()` once the board is ready).
+- Accounts (relay 30, app 1.29): `p["account"]` = `user` (unique, lower case), `pw` (scrypt, `_pw_hash`/`_pw_ok`) and
+  `passkeys` (WebAuthn: id, public key as SPKI, alg ES256/RS256, sign count; registered by `passkey_register`, checked
+  by `passkey_signin`, a small CBOR reader `_cbor`, challenges in memory for 5 min). Guests use `/account` (GET) and
+  `/account/user|password|passkey/begin|finish|remove` (same-origin JSON POSTs); anyone can open `/signin` and POST
+  `/signin/begin|passkey|password` (rate-limited), which adds a device to that profile (`add_device`) and sets the
+  cookie. The relying party is the Host (fallblatt.app; localhost while testing, `secure()`). The app's `accountBox()`
+  serves About → Account and the welcome's `wAcct` step (after notifications; https only).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only). `_push_watch`

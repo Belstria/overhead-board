@@ -375,6 +375,16 @@ Screens at home are the home profile as always; anyone else without a profile on
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
 
+**Accounts (relay version 30, app 1.29).** An invite link makes a profile under the guest's name; an account is their
+own choice on top: at the end of the welcome, or in the app's About → Account, they pick a username and add a
+**passkey** (Face ID, a fingerprint or the phone's screen lock; passkeys sync through iCloud or Google, so a new phone
+often signs in with one tap) and, as a backup, a **password**. On a new phone or computer they open `<public
+address>/signin` (the "private" page links to it) and sign in with either: their place, logbook and settings are
+there. The relay keeps only each passkey's public key and a salted scrypt hash of the password; sign-in tries are
+rate-limited. Passkeys need the https address. The admin page shows who has an account and **Reset sign-in** removes
+someone's passkeys and password (they set new ones from a device that is still signed in, or come back through a
+new invite link).
+
 **Notifications (relay version 25).** Through the public https address, the phone app can send an evening summary
 (22:30: planes, points, the rarest and the lowest) and a "worth going to the window" nudge when something special, a
 first-ever type, a favourite or a very low plane will pass within about 5 km in the next three minutes; the relay

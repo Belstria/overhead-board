@@ -3659,6 +3659,27 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Account", "Konto", "Compte", "Cuenta", "Account"],
+  ["Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup.", "Leg ein Konto an, um dich auf einem neuen Telefon oder Computer anzumelden und dort deinen Ort, dein Logbuch und deine Einstellungen zu finden: mit einem Passkey (Face ID, Fingerabdruck oder Bildschirmsperre) und einem Passwort als Reserve.", "Créez un compte pour vous connecter sur un nouveau téléphone ou ordinateur et y retrouver votre lieu, votre carnet et vos réglages : avec une clé d'accès (Face ID, empreinte ou verrouillage d'écran) et un mot de passe en secours.", "Crea una cuenta para iniciar sesión en un teléfono u ordenador nuevo y encontrar allí tu lugar, tu registro y tus ajustes: con una llave de acceso (Face ID, huella o bloqueo de pantalla) y una contraseña de reserva.", "Maak een account om op een nieuwe telefoon of computer in te loggen en daar je plek, logboek en instellingen terug te vinden: met een passkey (Face ID, vingerafdruk of schermvergrendeling) en een wachtwoord als reserve."],
+  ["Username", "Benutzername", "Nom d'utilisateur", "Nombre de usuario", "Gebruikersnaam"],
+  ["Create account", "Konto anlegen", "Créer le compte", "Crear cuenta", "Account maken"],
+  ["Your account: {user}", "Dein Konto: {user}", "Votre compte : {user}", "Tu cuenta: {user}", "Je account: {user}"],
+  ["Add a passkey", "Passkey hinzufügen", "Ajouter une clé d'accès", "Añadir una llave de acceso", "Passkey toevoegen"],
+  ["Passkeys", "Passkeys", "Clés d'accès", "Llaves de acceso", "Passkeys"],
+  ["Remove", "Entfernen", "Retirer", "Quitar", "Verwijderen"],
+  ["Password", "Passwort", "Mot de passe", "Contraseña", "Wachtwoord"],
+  ["New password", "Neues Passwort", "Nouveau mot de passe", "Contraseña nueva", "Nieuw wachtwoord"],
+  ["Current password", "Aktuelles Passwort", "Mot de passe actuel", "Contraseña actual", "Huidig wachtwoord"],
+  ["Set a password", "Passwort festlegen", "Définir un mot de passe", "Poner una contraseña", "Wachtwoord instellen"],
+  ["Change password", "Passwort ändern", "Changer le mot de passe", "Cambiar la contraseña", "Wachtwoord wijzigen"],
+  ["Saved.", "Gespeichert.", "Enregistré.", "Guardado.", "Opgeslagen."],
+  ["Passkey added.", "Passkey hinzugefügt.", "Clé d'accès ajoutée.", "Llave de acceso añadida.", "Passkey toegevoegd."],
+  ["Cancelled.", "Abgebrochen.", "Annulé.", "Cancelado.", "Geannuleerd."],
+  ["Add a passkey or a password, or the account can't be used to sign in yet.", "Füge einen Passkey oder ein Passwort hinzu, sonst kann man sich mit dem Konto noch nicht anmelden.", "Ajoutez une clé d'accès ou un mot de passe, sinon le compte ne permet pas encore de se connecter.", "Añade una llave de acceso o una contraseña; si no, aún no se puede iniciar sesión con la cuenta.", "Voeg een passkey of wachtwoord toe, anders kun je met het account nog niet inloggen."],
+  ["On a new phone or computer, open {url} and sign in.", "Auf einem neuen Telefon oder Computer {url} öffnen und anmelden.", "Sur un nouveau téléphone ou ordinateur, ouvrez {url} et connectez-vous.", "En un teléfono u ordenador nuevo, abre {url} e inicia sesión.", "Open op een nieuwe telefoon of computer {url} en log in."],
+  ["Passkeys need the https address (the one in your invite link).", "Passkeys brauchen die https-Adresse (die aus deinem Einladungslink).", "Les clés d'accès ont besoin de l'adresse https (celle du lien d'invitation).", "Las llaves de acceso necesitan la dirección https (la de tu enlace de invitación).", "Passkeys hebben het https-adres nodig (dat uit je uitnodigingslink)."],
+  ["Keep your logbook if you change phones?", "Dein Logbuch behalten, wenn du das Telefon wechselst?", "Garder votre carnet si vous changez de téléphone ?", "¿Conservar tu registro si cambias de teléfono?", "Je logboek houden als je van telefoon wisselt?"],
+  ["Sign out of this device? Your profile stays; sign back in with your account.", "Auf diesem Gerät abmelden? Dein Profil bleibt; melde dich mit deinem Konto wieder an.", "Se déconnecter sur cet appareil ? Votre profil reste ; reconnectez-vous avec votre compte.", "¿Cerrar sesión en este dispositivo? Tu perfil se queda; vuelve a entrar con tu cuenta.", "Afmelden op dit apparaat? Je profiel blijft; log weer in met je account."],
   ["{y} in planes", "{y} in Flugzeugen", "{y} en avions", "{y} en aviones", "{y} in vliegtuigen"],
   ["planes", "Flugzeuge", "avions", "aviones", "vliegtuigen"],
   ["types", "Typen", "types", "tipos", "types"],
@@ -4440,6 +4461,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.29", date: "2026-10-15", notes: [
+    "Accounts: guests can sign in on a new phone or computer with a passkey or a password, and find their place, logbook and settings there."]},
   {v: "1.28", date: "2026-10-15", notes: [
     "Planes on a public watchlist say what they are: POLICE, AMBULANCE, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY and more.",
     "Trophies, kept for good, and a weekly bingo card of planes to spot, under Records & trophies and in the app's Logbook.",

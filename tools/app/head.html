@@ -80,6 +80,16 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #newVer[hidden]{display:none}
 .pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
 .pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
+/* the account panel (About, and the welcome) */
+.acIn{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
+  background:#0f1012;color:var(--ink);font:600 15px var(--f-board)}
+#acctBox p.warn,#wAcctBox p.warn{color:#f6be35}
+#acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
+.acKeys li{align-items:center}
+.acKeys .cap{width:auto;padding:0 10px;height:30px}
+#acctBox .note,#wAcctBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
+#welcome #wAcctBox input{text-align:left;font-size:15px;margin:8px 0}
+#welcome #wAcctBox{text-align:left;max-height:52vh;overflow:auto}
 #pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
 .brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
@@ -503,6 +513,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
     <button class="cap big go" type="button" id="wPushYes" data-t="Yes, turn them on">Yes, turn them on</button>
     <p class="note" id="wPushNote" aria-live="polite"></p>
     <button class="wlater" type="button" id="wPushNo" data-t="Not now">Not now</button>
+  </div>
+  <div id="wAcct" hidden>
+    <p><b data-t="Keep your logbook if you change phones?">Keep your logbook if you change phones?</b></p>
+    <div id="wAcctBox" class="acctBox"></div>
+    <button class="wlater" type="button" id="wAcctNo" data-t="Not now">Not now</button>
   </div>
   <div id="wPick" hidden>
     <p data-t="How do you want to watch?">How do you want to watch?</p>

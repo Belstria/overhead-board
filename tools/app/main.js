@@ -1202,13 +1202,15 @@ function aboutOpen(){
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
+    (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
-    if (!confirm(T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
+    if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
+      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
     try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
     try { localStorage.removeItem(SKEY); } catch {}
     location.reload();
@@ -1217,7 +1219,69 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
   renderPush();
+  if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
+let hasAccount = false;
+/* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
+   The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
+   the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
+   relay's /signin page, linked from its "private" page. */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const ub64 = t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((t.length + 3) % 4)), c => c.charCodeAt(0));
+const accountsOk = () => !!GUEST && (window.OVERHEAD_RELAY_VERSION || 0) >= 30;
+const passkeysHere = () => window.isSecureContext && !!window.PublicKeyCredential;
+async function acctPost(path, body){
+  const r = await fetch(`${relay()}${path}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+const deviceName = () => { const u = navigator.userAgent;
+  return /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Macintosh/.test(u) ? "Mac" : /Windows/.test(u) ? "Windows" : "Device"; };
+async function passkeyAdd(){
+  const o = await acctPost("/account/passkey/begin");
+  const c = await navigator.credentials.create({publicKey: {...o, challenge: ub64(o.challenge), user: {...o.user, id: ub64(o.user.id)},
+    excludeCredentials: (o.excludeCredentials || []).map(x => ({...x, id: ub64(x.id)}))}});
+  return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
+    attestationObject: b64u(c.response.attestationObject), name: deviceName()});
+}
+// The account panel, in About and in the welcome: create (a username), then passkeys and a password.
+async function accountBox(el, onChange){
+  let a = null;
+  try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
+  if (!a || a.home) { el.innerHTML = ""; return; }
+  const draw = (note = "") => {
+    const has = a.passkeys.length || a.password, pk = passkeysHere() && a.passkeysOk, field = (id, ph, type = "password", ac = "new-password") =>
+      `<input class="acIn" id="${id}" type="${type}" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+    el.innerHTML = !a.user
+      ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
+        `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
+      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
+        (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
+        (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
+          : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<p><b>${escH(T("Password"))}</b></p>` + (a.password ? field("acCur", "Current password", "password", "current-password") : "") +
+        `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` + field("acPw", "New password") +
+        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
+        `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
+    el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
+    const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
+    const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
+    const q = id => el.querySelector("#" + id);
+    if (q("acUser")) {
+      q("acUser").value = String(GUEST.name || "").toLowerCase().replace(/[^a-z0-9._-]+/g, ".").replace(/^[._-]+|[._-]+$/g, "");
+      q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
+    }
+    if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); run(() => acctPost("/account/password", {password: q("acPw").value, current: q("acCur") ? q("acCur").value : ""}), "Saved."); };
+    for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
+  };
+  draw();
+  if (onChange) onChange(a);
+}
+
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
    Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
@@ -1433,7 +1497,7 @@ function welcome(){
     S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
     sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
-    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else pick();
+    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else acctStep();
   };
   $("wPushYes").onclick = async () => {
     ctlSound.press();
@@ -1441,11 +1505,18 @@ function welcome(){
     const err = await enablePush();
     if (err) { n.textContent = err; return; }
     n.textContent = T("Notifications are on.");
-    setTimeout(pick, 700);
+    setTimeout(acctStep, 700);
   };
-  $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
+  $("wPushNo").onclick = () => { ctlSound.press(); acctStep(); };
+  function acctStep(){              // an account, so the logbook comes along to a new phone (https only: passkeys)
+    if (!accountsOk() || !passkeysHere()) return pick();
+    wSwap([$("wStep1"), $("wPush")], $("wAcct"));
+    $("wAcctNo").textContent = T("Not now");
+    $("wAcctNo").onclick = () => { ctlSound.press(); pick(); };
+    accountBox($("wAcctBox"), a => { if (a && a.user && (a.passkeys.length || a.password)) $("wAcctNo").textContent = T("Continue"); });
+  }
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
-    wSwap([$("wStep1"), $("wPush")], $("wPick"));
+    wSwap([$("wStep1"), $("wPush"), $("wAcct")], $("wPick"));
     const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
     b.classList.add("go"); b.setAttribute("aria-pressed", "true");
   }
