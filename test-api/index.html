@@ -4089,7 +4089,7 @@ function apFocus(which){
 }
 function apFeature(all){
   if (all) AP.all = all;
-  const pg = typeof page === "string" ? page : "";          // the app has no pages
+  const pg = typeof page === "string" ? page : typeof appApPage === "function" ? appApPage() : "";   // the app: its own pages
   const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
   const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
   if (o) { setFeat(o, "ap"); feat.apSt = e.st; feat.apE = e; }
@@ -4112,6 +4112,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.24", date: "2026-10-14", notes: [
+    "The phone app has Take-off and Landing pages, like the board, with the runway screen.",
+    "On its side, the app fills wider screens: fewer list rows, bigger flaps.",
+    "The app's flap sound is on from the start."]},
   {v: "1.23.1", date: "2026-10-14", notes: [
     "The app opens with the logo, and its plane takes off into the board.",
     "The welcome shows Fallblatt on its flaps until it is opened, glides from step to step, and shows examples in the fields."]},

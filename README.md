@@ -218,12 +218,15 @@ picks another one later. The app shows `/app/` from the relay full screen, so it
 APK is only needed when the app itself changes (see [android/](android/)). Chrome can't install `/app/` itself as an
 app, because it installs web apps only from https addresses and the relay is plain http.
 
-**On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen.
+**On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen. Opened from the
+home screen it has no browser bars, so on its side the board gets the whole height.
 
 **On its side** (on a charging stand on the desk, say), the app is only the board, full screen and as big as the
 screen allows: the plane's flaps across the top, and under them one page at a time, on flaps like the board's lower
-half: Recent flights (or Take-offs & landings) and This aircraft. Lamp buttons in the title strip pick the page; it
-turns by itself every 20 seconds, and a page you pick stays a minute. There are no tab buttons (Today, Logbook, Radar
+half: Recent flights and This aircraft, or in the Airport style the board's Take-offs & landings, Take-off and
+Landing (the last two put that plane on top, with the runway screen). Lamp buttons in the title strip pick the page; it
+turns by itself every 20 seconds, and a page you pick stays a minute. On a screen that is short for its width (a
+browser's bars, a wide phone) the lists show fewer rows (at least four), so the flaps fill the width. There are no tab buttons (Today, Logbook, Radar
 and Settings are for upright; the one you had open comes back when you turn the phone upright again), and the status
 line only pops up when something is wrong. The Android app goes full screen, draws under the camera (1.13.3 or newer)
 and keeps the screen on as long as it is open (1.13.3.1 or newer). Auto-rotate has to be on.
@@ -232,12 +235,13 @@ Five buttons along the bottom:
 
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival and flight time), its photo on a small screen with its registration details, and the
-  latest planes spotted.
+  latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
+  itself every 20 seconds), with the runway screen in place of the photo, and the take-offs and landings below.
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
   airline), and every plane spotted today, with the same filters and legend as the board.
 - **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
 - **Radar**: the radar instrument and the nearest planes.
-- **Settings**: the cockpit plates, kept on the phone only. Flap sound starts off; chimes play for special planes and
+- **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
 
