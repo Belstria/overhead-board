@@ -116,6 +116,14 @@ plus the airport's elevation, from the airport list's v3) every ten minutes and 
 `records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
 ("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
 Flightradar24's credits this month and what it added (`fr24_admin_html`, `usage.found/wetLease/diverted`).
+More of the game (1.28, relay 29): the watchlist (`watch_of`, plane-alert-db downloaded daily to `data/plane-alert.json`,
+categories mapped to remark words by `WATCH_WORDS`; `/watch?hex=` (503 while loading) for the board's `watchAsk`/`watchOf`,
+`e.watch` on sightings; `badgeFor` shows it after the big specials); trophies (`TROPHY_IDS`, `trophy_check`/`trophy_pass`,
+`book.trophies`, backfilled once by `_backfill_trophies`, `trophiesV`) and the weekly bingo (`BINGO` goals, `bingo_json`
+in `/logbook`'s `game.bingo`), drawn by `recordsStatic` and the app's Logbook (`GOAL_TEXT`, `TROPHY_TEXT`, shared); the
+day in review (`reviewTime()`, Today in numbers after 21:00); `/year?y=` (`year_json`) for the app's year card and
+`/logbook.csv` (`logbook_csv`); the app's Where to look (`lookAt`, `drawLook`, `lookStart`: deviceorientation(absolute)
+or `webkitCompassHeading`, https only). `run_test_relay.py --hover` puts a real watchlisted police helicopter (OE-BXB) overhead.
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),
