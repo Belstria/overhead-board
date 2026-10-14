@@ -52,7 +52,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 26
+RELAY_VERSION = 27
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1624,11 +1624,37 @@ def _hash(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+# Apps that fetch a link to show its preview in a chat (relay 27: before, opening an invite link claimed it, so WhatsApp
+# took the link before the person it was sent to). They get the invite page, never a device.
+PREVIEW_BOT = re.compile(r"WhatsApp|facebookexternalhit|Facebot|TelegramBot|Twitterbot|Slackbot|Discordbot|SkypeUriPreview|"
+                         r"LinkedInBot|Googlebot|bingbot|Applebot|redditbot|Embedly|vkShare|Iframely|Pinterestbot|"
+                         r"Mattermost|Bluesky|Mastodon|crawler|spider|\bbot\b", re.I)
+
+
+
 def profiles():
     global _profiles
     if _profiles is None:
         _profiles = _load(PROFILES_FILE, None) or {"profiles": {}, "invites": {}}
+        for p in [_profiles.get("home") or {}, *_profiles["profiles"].values()]:     # devices that were only a chat's preview
+            keep = [d for d in p.get("devices", []) if not PREVIEW_BOT.search(d.get("device") or "")]
+            if len(keep) != len(p.get("devices", [])):
+                p["devices"] = keep
+                _dirty.add("profiles")
     return _profiles
+
+
+def peek_invite(code):
+    """Whom a still valid invite link is for, without using it up: the profile's name, or None."""
+    with _data_lock:
+        P = profiles()
+        inv = P["invites"].get(_hash(code))
+        if not inv or inv["expires"] <= time.time():
+            return None
+        if inv["profile"] == "home":
+            return "Home"
+        p = P["profiles"].get(inv["profile"])
+        return p["name"] if p else None
 
 
 def new_invite(name=None, pid=None):
@@ -1786,7 +1812,7 @@ color:#f4efe2;font:700 26px/1 "Arial Narrow",Arial,sans-serif;transform-origin:5
 td,th{padding:8px 6px;border-bottom:1px solid #26272b;text-align:left;vertical-align:top}th{color:#8d887b;font-weight:600}
 input[type=text]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px}
 button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
-button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}form{display:inline}
+button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}button.big{margin:8px 0 14px;padding:14px 22px;font-size:18px;border-radius:10px}form{display:inline}
 .link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;user-select:all;-webkit-user-select:all;
 font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
 
@@ -2188,15 +2214,42 @@ class Handler(BaseHTTPRequestHandler):
                 "<p class=muted>Already in, but on a new device? Ask for a new link.</p>")))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
 
+    def join_page(self, code):
+        """The invite link opened: a page with a button that takes the invite (a POST). Chat apps fetch the link for
+        its preview; they see this page and the link stays unused."""
+        if not allow("join:" + self.client_ip(), 0.2, 10):
+            return self.reply(429, "text/plain", b"Too many requests")
+        name = peek_invite(code)
+        if name is None:
+            return self.join_gone()
+        host = self.headers.get("Host") or ""
+        icon = f"{'https' if self.https() else 'http'}://{host}/app/icon-512.png"
+        desc = "The planes flying over, on a split-flap board. Open the link to set up this phone or computer."
+        page = plain_page("Fallblatt", (
+            f"<h1>A board for {html.escape(name)}</h1><p>Fallblatt shows the planes flying over on a split-flap board. "
+            "This link sets up this phone or computer, once.</p>"
+            f'<form method="post" action="/join/{code}"><button class="go big" type="submit">Open Fallblatt</button></form>'
+            "<p class=muted>Not your phone or computer? Leave this page and open the link on yours.</p>")).decode("utf-8")
+        meta = (f'<meta property="og:title" content="Fallblatt for {html.escape(name, quote=True)}">'
+                f'<meta property="og:description" content="{desc}"><meta property="og:image" content="{html.escape(icon, quote=True)}">'
+                '<meta property="og:type" content="website"><meta name="robots" content="noindex">')
+        return self.reply(200, "text/html; charset=utf-8", page.replace("</head>", meta + "</head>", 1).encode("utf-8"))
+
+    def join_gone(self):
+        return self.reply(410, "text/html; charset=utf-8", plain_page("Fallblatt", (
+            "<h1>This link has been used</h1><p>Each invite link works once, on the first phone or computer that "
+            "opens it, for two weeks. Ask the person who sent it for a new one.</p>")))
+
     def join(self, code):
         if not allow("join:" + self.client_ip(), 0.2, 10):
             return self.reply(429, "text/plain", b"Too many requests")
-        pid, token = redeem(code, self.headers.get("User-Agent") or "")
+        ua = self.headers.get("User-Agent") or ""
+        if PREVIEW_BOT.search(ua) or not self.same_origin():
+            return self.join_page(code)
+        pid, token = redeem(code, ua)
         if not pid:
             event("warn", f"An invite link was used that has expired or been used before ({self.client_ip()})")
-            return self.reply(410, "text/html; charset=utf-8", plain_page("Fallblatt", (
-                "<h1>This link has been used</h1><p>Each invite link works once, on the first phone or computer that "
-                "opens it, for two weeks. Ask the person who sent it for a new one.</p>")))
+            return self.join_gone()
         cookie = f"{COOKIE}={token}; Path=/; Max-Age={400 * 86400}; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else "")
         self.send_response(303)
         self.send_header("Location", "/app/")
@@ -2220,7 +2273,7 @@ class Handler(BaseHTTPRequestHandler):
         self.identify()
         m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
         if m:
-            return self.join(m.group(1))
+            return self.join_page(m.group(1))
         if path == "/health" or BOARD_FILE.match(path):
             pass                                  # the app's icons and manifest (fetched without cookies) and the check
         elif self.stranger:
@@ -2352,6 +2405,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = self.path.split("?", 1)[0]
         self.identify()
+        m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
+        if m:
+            return self.join(m.group(1))
         if self.stranger:
             return self.refuse(path)
         if self.guest and not allow("guest:" + self.guest[0], 4, 60):

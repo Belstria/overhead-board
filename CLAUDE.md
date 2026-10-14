@@ -164,7 +164,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `RELAY_VERSION` with every relay change and gate board features that need the new version on
   `OVERHEAD_RELAY_VERSION`.
 - Friends and family (relay 19, app 1.15): every visitor is home (a direct connection from a private address, no
-  `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link, `/join/<code>`; profiles, invite and
+  `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link: GET `/join/<code>` shows a page, its button POSTs to take it
+  (relay 27: chat apps' link previews used links up; `PREVIEW_BOT`); profiles, invite and
   cookie hashes in `data/profiles.json`) or a stranger (only the "private" page, `/health`, the app's icons and
   manifest). Each profile has a `Spot` (sightings and logbook; home in `data/`, guests in `data/profiles/<id>/`), and
   a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get
