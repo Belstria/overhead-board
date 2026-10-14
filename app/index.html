@@ -4150,14 +4150,14 @@ const splashLeft = () => Math.max(0, (window.SPLASH_END || 0) - performance.now(
 function greetFlaps(){
   const n = greetW(), step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
   $("wHello").style.width = `min(100%, ${n * 34}px)`;
-  def(P, "greet", {kind: "chars", n, dur: 42, drum: GREET_DRUM, loud: .6});   // a real unit's pace, ~20 flaps a second
+  def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
   placeRow(["greet"], [], 11, step, 1.45, 8);
   requestAnimationFrame(() => showPanel(P));
   setTimeout(() => { if (!greeted) rollTo(centred("FALLBLATT", n)); }, splashLeft() + 300);
 }
 let greeted = false;
 function rollTo(text){
-  const per = 42 * pace();
+  const per = 62 * pace();
   let land = 0;
   fields.greet.cells.forEach((c, i) => {
     const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
@@ -4165,7 +4165,7 @@ function rollTo(text){
     if (ch === " ") return retarget(c, ch, 0);
     if (!flips) return;
     const run = flips * per * (bang ? 1.35 : 1);
-    land = Math.max(land + (bang ? 480 : 140), run + 120);              // after the one before; never before it can
+    land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
     retarget(c, ch, Math.max(0, (land - run) / pace()));
   });
   return land;
