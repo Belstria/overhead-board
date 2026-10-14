@@ -1288,8 +1288,9 @@ function tile(f, value, variant = 0){
   let ax = 0, aw = w, fg = look.fg || (f.style === "amber" ? COL.amber : COL.ink);
   // "-" means the flight has no airline code (private, military, unlisted): show a plain aircraft mark.
   // A known airline without a logo shows its two-letter code instead.
+  let badge = null;                          // the bright logo, painted again above the realistic layers
   if (isLogo) {
-    if (logoOk) drawLogo(g, L, w * .1, h * .14, w * .8, h * .72);
+    if (logoOk) { drawLogo(g, L, w * .1, h * .14, w * .8, h * .72); badge = () => drawLogo(g, L, w * .1, h * .14, w * .8, h * .72); }
     else if (code === "-") drawPlane(g, w / 2, h / 2, h * .72, COL.muted);
     else if (code) { text = code; fg = COL.amber; }
   }
@@ -1299,7 +1300,10 @@ function tile(f, value, variant = 0){
     if (logoOk) { bg2.addColorStop(0, IVORY[0]); bg2.addColorStop(1, IVORY[3]); }
     else { bg2.addColorStop(0, "#34363a"); bg2.addColorStop(1, "#2a2b2f"); }
     g.fillStyle = bg2; rr(g, bx, by, bw, bh, bh * .12); g.fill();
-    if (logoOk) drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76);
+    if (logoOk) {
+      drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76);
+      badge = () => { g.fillStyle = bg2; rr(g, bx, by, bw, bh, bh * .12); g.fill(); drawLogo(g, L, bx + bw * .08, by + bh * .12, bw * .84, bh * .76); };
+    }
     else if (code === "-") drawPlane(g, bx + bw / 2, by + bh / 2, bh * .9, COL.muted);
     else {
       g.save(); g.font = `700 ${Math.round(bh * .62)}px ${FONT}`; g.fillStyle = COL.amber; g.textAlign = "center"; g.textBaseline = "middle";
@@ -1368,6 +1372,11 @@ function tile(f, value, variant = 0){
     tilt.addColorStop(0, "rgba(0,0,0,.07)"); tilt.addColorStop(1, "rgba(0,0,0,.12)");
     g.fillStyle = tilt; g.fillRect(0, mid + hinge, w, h - mid - hinge);
     g.restore();
+  }
+  if (REAL() && badge) {                     // a printed logo card: bright, with only the gap of the flap across it
+    if (isLogo) { g.fillStyle = IVORY[0]; g.save(); rr(g, 0, 0, w, h, r); g.clip(); g.globalAlpha = .55; g.fillRect(0, 0, w, h); g.restore(); }
+    g.save(); g.filter = "brightness(1.08) contrast(1.06)"; badge(); g.restore();
+    g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(0, mid - Math.floor(hinge / 2), w, hinge);
   }
   g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = Math.max(1, h * .012); rr(g, .5, .5, w - 1, h - 1, r); g.stroke();
   tiles.set(key, cv); tileBytes += w * h * 4;
@@ -3525,6 +3534,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.19.1.1", date: "2026-10-14", notes: [
+    "The page turn stays sharp all the way down.", "Brighter airline logos in the realistic look."]},
   {v: "1.19.1", date: "2026-10-14", notes: [
     "Softer lighting in the realistic look.", "Icons on the board's page and view buttons, as in the phone app.",
     "The flaps clack as before; the controls keep their recorded sounds.",
