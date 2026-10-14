@@ -1,6 +1,7 @@
 # The board's sounds
 
-Since 1.17 the flaps and the Settings controls play short recordings, embedded in the boards (the `@sounds-begin` /
+Since 1.17 the Settings controls play short recordings (the flaps did too until 1.19.1, when their synthesised clack
+came back), embedded in the boards (the `@sounds-begin` /
 `@sounds-end` block) and copied into the phone app. Settings → Sounds → CLASSIC plays the earlier synthesised sounds
 instead (they stay in the code as the fallback, also while the recordings are still being decoded).
 
@@ -8,13 +9,12 @@ instead (they stay in the code as the fallback, also while the recordings are st
 
 | Sound | Recording | Author | License |
 |-------|-----------|--------|---------|
-| Flaps | [pragotron_split-flap-display.wav](https://freesound.org/people/matucha/sounds/174056/) | matucha | CC BY-NC 4.0 |
 | Flip switches | [rocker_switch.wav](https://freesound.org/people/joedeshon/sounds/119415/) | joedeshon | CC BY 4.0 |
 | Rotary knobs | [Clicky Knob Turning.wav](https://freesound.org/people/shewbox/sounds/30827/) | shewbox | CC BY 3.0 |
 | Thumbwheels | [push_button_switch_07.wav](https://freesound.org/people/joedeshon/sounds/139061/) | joedeshon | CC BY 4.0 |
 | Page and view buttons | [Switching button 2](https://pixabay.com/sound-effects/switching-button-2-461629/) | EAGLAXLE | Pixabay Content License |
 
-All are credited in About. The split-flap recording is non-commercial only (CC BY-NC); Fallblatt is non-commercial.
+All are credited in About.
 
 ## Rebuilding them
 

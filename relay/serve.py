@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 21
+RELAY_VERSION = 22
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1471,6 +1471,7 @@ INVITE_DAYS = 14
 GUEST_FR24_DAY = 150        # most Flightradar24 lookups a day for a guest it has been turned on for
 _profiles = None            # {"profiles": {id: {...}}, "invites": {hash: {...}}}
 _buckets = {}
+_made = {}                  # one-off key -> (expires, (name, invite code)): the admin page's last new link
 
 
 def _hash(text):
@@ -1832,7 +1833,10 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/screens", "/status", "/admin") and self.guest:
             return self.reply(403, "text/plain", b"Only at home")
         if path == "/admin":
-            return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or ""))
+            with _lock:
+                hit = _made.get((self.query().get("made") or [""])[0])
+            made = hit[1] if hit and hit[0] > time.time() else None
+            return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
         if path == "/me":
             if not self.guest:
                 return self.reply(200, "application/json", b'{"home":true}')
@@ -1967,7 +1971,22 @@ class Handler(BaseHTTPRequestHandler):
                 with _data_lock:
                     profiles()["profiles"][f["pid"]]["fr24"] = f.get("on") == "1"
                     _dirty.add("profiles")
-            return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
+            # Post/Redirect/Get: a refresh reloads the page instead of sending the form again (which made a new invite
+            # each time). A new link is kept a few minutes under a one-off key so the page after the redirect can show it.
+            loc = "/admin"
+            if made:
+                key = secrets.token_urlsafe(9)
+                with _lock:
+                    now = time.time()
+                    for k in [k for k, v in _made.items() if v[0] < now]:
+                        del _made[k]
+                    _made[key] = (now + 600, made)
+                loc += "?made=" + key
+            self.send_response(303)
+            self.send_header("Location", loc)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if path == "/me":               # a guest's settings, so their other devices (and the relay) know their place
             length = int(self.headers.get("Content-Length") or 0)
             if not self.guest:

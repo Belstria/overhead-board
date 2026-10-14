@@ -175,8 +175,8 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   on the TVs; in the Android app it asks for the phone's location.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
-- **Sounds** (1.17): the flaps and the Settings controls play short recordings of the real things: a Pragotron
-  split-flap module, a rotary switch, a rocker switch, a thumbwheel and a push button (credited in About; see
+- **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
+  switch, a thumbwheel and a push button; the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). Settings → Sounds → CLASSIC brings back the earlier synthesised sounds.
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
