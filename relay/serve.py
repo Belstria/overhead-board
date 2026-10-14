@@ -52,7 +52,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 26
+RELAY_VERSION = 27
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -257,7 +257,11 @@ class Spot:
     def book(self):
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
-                                                                       "sightings": 0, "types": {}, "airlines": {}, "regs": {}}
+                                                                       "sightings": 0, "types": {}, "airlines": {}, "regs": {},
+                                                                       "gameV": GAME_V}
+            if self.logbook.get("gameV") != GAME_V:
+                self.ensure_day()
+                _rescore(self)
         return self.logbook
 
     def changed(self, *what):
@@ -426,11 +430,15 @@ Spot.record = _record
 
 
 # ---------- the spotter's game (relay 24): every sighting gets a rarity tier and points ----------
-# Common (grey), uncommon (green), rare (blue), epic (purple: a first ever type or airline) and legendary (gold: the
-# special planes). Points go to the day and the logbook; collections are sets of types to complete.
+# Common (grey), uncommon (green), rare (blue), very rare (purple, key "epic") and special (gold, key "legendary": the
+# special planes). Since relay 26 the tier goes by how many of the type fly today (FLEET, the same table as the board's),
+# not by how often it was seen here. Points go to the day and the logbook; collections are sets of types to complete.
 TIER_POINTS = {"common": 1, "uncommon": 3, "rare": 10, "epic": 25, "legendary": 50}
 TIERS = list(TIER_POINTS)
+GAME_V = 2                  # the scoring rule; a logbook scored by an older one is scored again from its saved days
 LEGENDARY_TYPES = {"A388", "B741", "B742", "B743", "B744", "B748", "B74S", "B74R", "A3ST", "A337", "A124", "A225", "AN22", "CONC"}
+# Roughly how many of each type fly today (in service, worldwide, 2025; rounded).
+FLEET = {t: int(n) for t, n in (p.split(":") for p in "A318:40 A319:1100 A320:4100 A321:1700 A19N:40 A20N:1900 A21N:1500 BCS1:80 BCS3:380 A306:200 A30B:5 A310:30 A332:500 A333:650 A338:10 A339:120 A342:5 A343:50 A345:10 A346:30 A359:600 A35K:90 B712:100 B732:50 B733:100 B734:80 B735:50 B736:40 B737:1000 B738:4500 B739:480 B37M:5 B38M:1400 B39M:150 B752:500 B753:50 B762:30 B763:600 B764:35 B772:300 B77L:280 B77W:800 B778:2 B779:5 B788:400 B789:800 B78X:120 E135:100 E145:300 E170:150 E75L:600 E75S:50 E190:400 E195:130 E290:60 E295:80 CRJ1:50 CRJ2:350 CRJ7:250 CRJ9:400 CRJX:60 F50:30 F70:20 F100:60 B461:10 B462:20 B463:15 RJ85:25 RJ1H:15 SU95:140 AJ27:150 C919:15 T204:15 IL76:120 AN12:40 AN26:100 MD11:50 MD82:40 MD83:40 MD87:10 MD90:20 DC10:15 B703:5 AT43:150 AT45:120 AT72:150 AT75:250 AT76:700 DH8A:60 DH8B:50 DH8C:80 DH8D:450 SF34:150 JS41:30 D328:50 J328:30 L410:300 DHC6:300 B190:400 C208:2500 PC12:1800 TBM7:300 TBM8:300 TBM9:600 BE20:1500 BE9L:1200 B350:1100 C510:300 C525:350 C25A:400 C25B:500 C25C:400 C560:600 C56X:700 C680:450 C68A:450 C700:100 C750:280 CL30:400 CL35:450 CL60:1000 GLEX:900 GL5T:150 GL7T:200 GLF4:450 GLF5:500 GLF6:450 G280:250 GA5C:50 GA6C:100 F2TH:450 F900:400 FA7X:330 FA8X:100 FA50:200 E35L:150 E50P:350 E55P:650 E545:50 E550:100 LJ35:300 LJ45:400 LJ60:250 LJ75:150 PC24:250 HDJT:250 H25B:500 SF50:500 EA50:200 BE40:300 PRM1:50 C150:5000 C152:7000 C172:25000 C182:10000 C206:3000 C210:4000 P28A:15000 P28R:3000 PA34:2000 PA46:1500 PA18:3000 SR20:2000 SR22:7000 DA40:2500 DA42:1500 DA62:300 BE36:5000 BE58:2000 M20P:2000 EC35:900 EC45:1600 EC30:900 EC55:200 EC75:250 AS50:4000 AS55:400 AS65:700 AS32:200 A109:1000 A119:250 A139:1200 A169:200 A189:100 H160:40 B06:3000 B407:1500 B429:400 R22:3500 R44:6000 R66:1200 S76:300 S92:300 NH90:500".split())}
 SETS = [
     ["Airbus narrowbodies", ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N", "BCS1", "BCS3"]],
     ["Airbus widebodies", ["A332", "A333", "A338", "A339", "A343", "A346", "A359", "A35K", "A388"]],
@@ -448,14 +456,10 @@ def tier_of(book, e):
     t = e.get("typeCode") or ""
     if e.get("emergency") or e.get("military") or e.get("interesting") or t in LEGENDARY_TYPES or t in MILITARY_TYPES:
         return "legendary"
-    if e.get("newType") or e.get("newAirline"):
-        return "epic"
-    n = (book.get("types", {}).get(t) or {}).get("count") if t else None
-    if n is not None and n <= 3:
-        return "rare"
-    if (n is not None and n <= 12) or category_of(e) in ("helicopter", "bizjet", "private"):
+    n = FLEET.get(t)
+    if n is None:
         return "uncommon"
-    return "common"
+    return "common" if n >= 1000 else "uncommon" if n >= 250 else "rare" if n >= 50 else "epic"
 
 
 def score(book, e, day):
@@ -475,6 +479,34 @@ def score(book, e, day):
         if day not in rd:
             rd.append(day)
             del rd[:-400]
+
+
+def _rescore(spot):
+    """Score a logbook again from its saved days under today's rule (GAME_V): points, days, tiers and each sighting's tier."""
+    b = spot.logbook
+    for k in ("points", "days", "tiers", "rareDays"):
+        b.pop(k, None)
+    n = 0
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        today = day == spot.day
+        entries = spot.entries if today else _load(f, [])
+        for e in reversed(entries):                        # oldest first, as they were recorded
+            score(b, e, day)
+            n += 1
+        if today:
+            spot.changed("day")
+        else:
+            try:
+                tmp = f.with_suffix(".tmp")
+                tmp.write_text(json.dumps(entries, separators=(",", ":")), encoding="utf-8")
+                os.replace(tmp, f)
+            except OSError as e:
+                event("warn", f"Couldn't save {f.name}: {e}")
+    b["gameV"] = GAME_V
+    spot.changed("book")
+    if n:
+        event("info", f"Logbook scored again by fleet size: {n} sightings")
 
 
 def game_json(book, day):
@@ -1592,7 +1624,7 @@ def _hash(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-# Apps that fetch a link to show its preview in a chat (relay 26: before, opening an invite link claimed it, so WhatsApp
+# Apps that fetch a link to show its preview in a chat (relay 27: before, opening an invite link claimed it, so WhatsApp
 # took the link before the person it was sent to). They get the invite page, never a device.
 PREVIEW_BOT = re.compile(r"WhatsApp|facebookexternalhit|Facebot|TelegramBot|Twitterbot|Slackbot|Discordbot|SkypeUriPreview|"
                          r"LinkedInBot|Googlebot|bingbot|Applebot|redditbot|Embedly|vkShare|Iframely|Pinterestbot|"
@@ -1731,6 +1763,8 @@ def guest_spot(pid):
         sp = _guest_spots.get(pid)
         if sp is None:
             sp = _guest_spots[pid] = Spot(DATA_DIR / "profiles" / pid, _guest_center(pid), _guest_radius(pid))
+            sp.ensure_day()
+            sp.book()                       # scored again now if an older rule scored it, not in the middle of a sighting
         return sp
 
 

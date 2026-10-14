@@ -671,14 +671,26 @@ function renderLogbook(){
   if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
   const g0 = b.game;
   if (g0) {                                          // the game: points, tiers and the collections
-    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><i class="lamp"></i><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
     const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
       `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
     html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
       (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
-      `<ul class="ranks cats">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
+      `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
   }
   $("lbLists").innerHTML = html;
+}
+// Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
+const tierIcons = {};
+function tierIcon(t){
+  if (tierIcons[t]) return tierIcons[t];
+  const n = 48, cv = document.createElement("canvas"), g = cv.getContext("2d");
+  cv.width = cv.height = n;
+  const gr = g.createLinearGradient(0, 0, 0, n);
+  gr.addColorStop(0, shade(TIER_COL[t], .05)); gr.addColorStop(1, shade(TIER_COL[t], -.28));
+  g.fillStyle = gr; g.beginPath(); g.roundRect ? g.roundRect(0, 0, n, n, 9) : g.rect(0, 0, n, n); g.fill();
+  drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
+  return tierIcons[t] = cv.toDataURL();
 }
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setTimeout(() => fetchLogbook(), 4000);
@@ -1380,7 +1392,8 @@ document.addEventListener("visibilitychange", () => {
   poll(true); if (relayV5()) syncSightings();
   if (tab === "logbook") fetchLogbook();
 });
-["pointerdown", "touchstart", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
+// iPhones allow sound only from a tap as the finger lifts (touchend, click), not as it lands.
+["pointerdown", "touchstart", "touchend", "click", "keydown"].forEach(ev => addEventListener(ev, () => audioInit(), {passive: true, capture: true}));
 let resizeQ = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(resizeQ);
