@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 22
+RELAY_VERSION = 24
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -82,6 +82,7 @@ FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
 FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
 AIRPORTS_FILE = DATA_DIR / "airports.json"
+RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
 CITY_FIX = {"SAW": "Istanbul", "NCL": "Newcastle", "STN": "London", "LGW": "London", "LTN": "London", "BVA": "Paris",
             "CRL": "Brussels", "NYO": "Stockholm", "BGY": "Milan", "MXP": "Milan", "LIN": "Milan", "CIA": "Rome", "FCO": "Rome"}
 ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "LOWS", "INN": "LOWI", "KLU": "LOWK",
@@ -410,6 +411,7 @@ def _record(self, planes, lat, lon):
                 m = re.match(r"^([A-Z]{3})\d", cs)
                 if m:
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
+                score(book, e, self.day)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -419,6 +421,74 @@ def _record(self, planes, lat, lon):
 
 
 Spot.record = _record
+
+
+# ---------- the spotter's game (relay 24): every sighting gets a rarity tier and points ----------
+# Common (grey), uncommon (green), rare (blue), epic (purple: a first ever type or airline) and legendary (gold: the
+# special planes). Points go to the day and the logbook; collections are sets of types to complete.
+TIER_POINTS = {"common": 1, "uncommon": 3, "rare": 10, "epic": 25, "legendary": 50}
+TIERS = list(TIER_POINTS)
+LEGENDARY_TYPES = {"A388", "B741", "B742", "B743", "B744", "B748", "B74S", "B74R", "A3ST", "A337", "A124", "A225", "AN22", "CONC"}
+SETS = [
+    ["Airbus narrowbodies", ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N", "BCS1", "BCS3"]],
+    ["Airbus widebodies", ["A332", "A333", "A338", "A339", "A343", "A346", "A359", "A35K", "A388"]],
+    ["Boeing narrowbodies", ["B736", "B737", "B738", "B739", "B37M", "B38M", "B39M", "B752", "B753"]],
+    ["Boeing widebodies", ["B762", "B763", "B764", "B772", "B77L", "B77W", "B788", "B789", "B78X", "B744", "B748"]],
+    ["Regional jets", ["E170", "E175", "E75L", "E190", "E195", "E290", "E295", "CRJ7", "CRJ9", "CRJX"]],
+    ["Turboprops", ["AT43", "AT45", "AT72", "AT75", "AT76", "DH8A", "DH8C", "DH8D", "SF34", "JS41"]],
+    ["Giants", ["A388", "B744", "B748", "A3ST", "A337", "A124", "A225", "C17", "C5M", "A400"]],
+    ["Helicopters", ["EC35", "EC45", "EC30", "EC55", "EC75", "AS50", "AS65", "A139", "A169", "H160", "B06", "B407", "R44", "S76", "NH90"]],
+    ["Business jets", ["C25A", "C25B", "C560", "C56X", "C680", "C68A", "C750", "CL35", "CL60", "GLF5", "GLF6", "GLEX", "F2TH", "FA7X", "E55P", "LJ45", "PC24"]],
+]
+
+
+def tier_of(book, e):
+    t = e.get("typeCode") or ""
+    if e.get("emergency") or e.get("military") or e.get("interesting") or t in LEGENDARY_TYPES or t in MILITARY_TYPES:
+        return "legendary"
+    if e.get("newType") or e.get("newAirline"):
+        return "epic"
+    n = (book.get("types", {}).get(t) or {}).get("count") if t else None
+    if n is not None and n <= 3:
+        return "rare"
+    if (n is not None and n <= 12) or category_of(e) in ("helicopter", "bizjet", "private"):
+        return "uncommon"
+    return "common"
+
+
+def score(book, e, day):
+    """Give a new sighting its tier and add its points to the day and the logbook."""
+    tier = tier_of(book, e)
+    e["tier"] = tier
+    pts = TIER_POINTS[tier]
+    book["points"] = book.get("points", 0) + pts
+    days = book.setdefault("days", {})
+    days[day] = days.get(day, 0) + pts
+    for k in sorted(days)[:-400]:
+        del days[k]
+    tiers = book.setdefault("tiers", {})
+    tiers[tier] = tiers.get(tier, 0) + 1
+    if TIERS.index(tier) >= TIERS.index("rare"):
+        rd = book.setdefault("rareDays", [])
+        if day not in rd:
+            rd.append(day)
+            del rd[:-400]
+
+
+def game_json(book, day):
+    days = book.get("days", {})
+    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+    rd, streak = set(book.get("rareDays", [])), 0
+    d = datetime.date.fromisoformat(day)
+    if day not in rd:
+        d -= datetime.timedelta(days=1)                       # today doesn't break the streak until it's over
+    while d.isoformat() in rd:
+        streak += 1
+        d -= datetime.timedelta(days=1)
+    have = book.get("types", {})
+    return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
+            "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
+            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS]}
 
 
 # ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
@@ -799,15 +869,55 @@ def airports_near(lat, lon, n=3):
     return {"status": "ok", "airports": [{"code": code, "icao": r[3], "name": r[4], "city": r[0], "km": round(d, 1)} for d, code, r in best]}
 
 
+_runways = {}                # ICAO -> [[ident, lat, lon, ident, lat, lon], ...] (hard-surfaced, open), fetched on demand
+
+
+def runways_of(icao):
+    """An airport's runways, ends with their position, from OurAirports (cached in data/runways-<icao>.json)."""
+    icao = (icao or "").upper()
+    if not icao:
+        return []
+    if icao in _runways:
+        return _runways[icao]
+    f = DATA_DIR / f"runways-{re.sub(r'[^A-Z0-9]', '', icao)}.json"
+    cached = _load(f, None)
+    if cached is not None:
+        _runways[icao] = cached
+        return cached
+    status, _, body, _ = fetch(RUNWAYS_CSV, timeout=60)
+    if status != 200:
+        return []
+    out = []
+    for r in csv.DictReader(io.StringIO(body.decode("utf-8", "replace"))):
+        if (r.get("airport_ident") or "").upper() != icao or r.get("closed") == "1":
+            continue
+        try:
+            ends = [r["le_ident"], round(float(r["le_latitude_deg"]), 5), round(float(r["le_longitude_deg"]), 5),
+                    r["he_ident"], round(float(r["he_latitude_deg"]), 5), round(float(r["he_longitude_deg"]), 5)]
+        except (KeyError, ValueError):
+            continue
+        if not re.match(r"^(ASP|CON|ASPH|CONC|PEM|BIT)", (r.get("surface") or "").upper()) and r.get("lighted") != "1":
+            continue
+        out.append(ends)
+    _runways[icao] = out
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        f.write_text(json.dumps(out), encoding="utf-8")
+    except OSError:
+        pass
+    return out
+
+
 def airport_info(code):
-    """One airport by its IATA code, for the board's airport mode (the home airport's position)."""
+    """One airport by its IATA code, for the board's airport mode: its position and (relay 23+) its runways."""
     db = _airports_ready()
     if db is None:
         return {"status": "loading"}
     r = (db.get("iata") or {}).get(code.upper())
     if not r:
         return {"status": "none"}
-    return {"status": "ok", "code": code.upper(), "icao": r[3], "name": r[4] if len(r) > 4 else "", "city": r[0], "lat": r[1], "lon": r[2]}
+    return {"status": "ok", "code": code.upper(), "icao": r[3], "name": r[4] if len(r) > 4 else "", "city": r[0], "lat": r[1], "lon": r[2],
+            "runways": runways_of(r[3])}
 
 
 def _fr24_lookup(cs, hx):
@@ -983,6 +1093,7 @@ def day_stats(entries, over_km):
             "lowest": slim(low), "highest": slim(high), "fastest": slim(fast), "first": slim(first),
             "topAirline": {"code": top[0][0], "name": names.get(top[0][0], ""), "count": top[0][1]} if top else None,
             "newTypes": sum(1 for e in entries if e.get("newType")),
+            "points": sum(TIER_POINTS.get(e.get("tier"), 0) for e in entries),
             "newAirlines": sum(1 for e in entries if e.get("newAirline")),
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
@@ -1007,7 +1118,8 @@ def logbook_json(spot):
                 "learningUntil": int((b.get("startedTs", 0) + LEARN_S) * 1000), "categories": b.get("categories", {}),
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
-                "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]]}
+                "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
+                "game": game_json(b, spot.day or board_day())}
 
 
 def metar(ids):

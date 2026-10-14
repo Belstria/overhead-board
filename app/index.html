@@ -570,7 +570,7 @@ const SPECIAL_TYPES = {A388:"SUPERJUMBO", B741:"JUMBO", B742:"JUMBO", B743:"JUMB
   S76:"HELICOPTER", NH90:"HELICOPTER", UH1:"HELICOPTER", H60:"HELICOPTER", AS32:"HELICOPTER"};
 // Home airports the board knows runways for (true track of each runway direction).
 const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rwys:[[116,"11"],[296,"29"],[164,"16"],[344,"34"]],
-  strips:[[48.1228, 16.5334, 48.1090, 16.5756], [48.1198, 16.5782, 48.0886, 16.5913]]}};   // runway ends (OurAirports), for the radar
+  runways:[["11", 48.1228, 16.5334, "29", 48.1090, 16.5756], ["16", 48.1198, 16.5782, "34", 48.0886, 16.5913]]}};   // runway ends (OurAirports)
 
 /* Drums: the order a real flap module turns through. */
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
@@ -703,6 +703,36 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Collection", "Sammlung", "Collection", "Colección", "Verzameling"],
+  ["Points", "Punkte", "Points", "Puntos", "Punten"],
+  ["Best day", "Bester Tag", "Meilleur jour", "Mejor día", "Beste dag"],
+  ["Streak, days", "Serie, Tage", "Série, jours", "Racha, días", "Reeks, dagen"],
+  ["Common", "Gewöhnlich", "Commun", "Común", "Gewoon"],
+  ["Uncommon", "Ungewöhnlich", "Peu commun", "Poco común", "Ongewoon"],
+  ["Rare", "Selten", "Rare", "Raro", "Zeldzaam"],
+  ["Epic", "Episch", "Épique", "Épico", "Episch"],
+  ["Legendary", "Legendär", "Légendaire", "Legendario", "Legendarisch"],
+  ["Collections", "Sammlungen", "Collections", "Colecciones", "Verzamelingen"],
+  ["Airbus narrowbodies", "Airbus-Schmalrumpf", "Airbus monocouloirs", "Airbus de fuselaje estrecho", "Airbus smalrompen"],
+  ["Airbus widebodies", "Airbus-Großraum", "Airbus gros-porteurs", "Airbus de fuselaje ancho", "Airbus widebodies"],
+  ["Boeing narrowbodies", "Boeing-Schmalrumpf", "Boeing monocouloirs", "Boeing de fuselaje estrecho", "Boeing smalrompen"],
+  ["Boeing widebodies", "Boeing-Großraum", "Boeing gros-porteurs", "Boeing de fuselaje ancho", "Boeing widebodies"],
+  ["Regional jets", "Regionaljets", "Jets régionaux", "Reactores regionales", "Regionale jets"],
+  ["Turboprops", "Turboprops", "Turbopropulseurs", "Turbohélices", "Turboprops"],
+  ["Giants", "Giganten", "Géants", "Gigantes", "Reuzen"],
+  ["{n} points today", "{n} Punkte heute", "{n} points aujourd'hui", "{n} puntos hoy", "{n} punten vandaag"],
+  ["best {n}", "Bestwert {n}", "record {n}", "récord {n}", "record {n}"],
+  ["{n} points", "{n} Punkte", "{n} points", "{n} puntos", "{n} punten"],
+  ["{n}-day streak", "{n} Tage in Folge", "série de {n} jours", "racha de {n} días", "reeks van {n} dagen"],
+  ["Every sighting scores by rarity: common 1, uncommon 3, rare 10, epic (a first ever) 25, legendary (a special plane) 50. Types fill the collections.", "Jede Sichtung zählt nach Seltenheit: gewöhnlich 1, ungewöhnlich 3, selten 10, episch (ein erstes Mal) 25, legendär (ein besonderes Flugzeug) 50. Typen füllen die Sammlungen.", "Chaque observation compte selon sa rareté : commun 1, peu commun 3, rare 10, épique (une première) 25, légendaire (un avion spécial) 50. Les types remplissent les collections.", "Cada avistamiento puntúa según su rareza: común 1, poco común 3, raro 10, épico (una primera vez) 25, legendario (un avión especial) 50. Los tipos llenan las colecciones.", "Elke waarneming scoort naar zeldzaamheid: gewoon 1, ongewoon 3, zeldzaam 10, episch (een eerste keer) 25, legendarisch (een bijzonder vliegtuig) 50. Typen vullen de verzamelingen."],
+  ["Landing {r}", "Landung {r}", "Atterrissage {r}", "Aterrizaje {r}", "Landing {r}"],
+  ["departing {r}", "Start {r}", "décollage {r}", "despegue {r}", "vertrek {r}"],
+  ["RUNWAY {r}", "PISTE {r}", "PISTE {r}", "PISTA {r}", "BAAN {r}"],
+  ["{d} KM TO TOUCHDOWN", "NOCH {d} KM BIS ZUM AUFSETZEN", "{d} KM AVANT LE TOUCHER", "{d} KM PARA TOMAR TIERRA", "NOG {d} KM TOT DE LANDING"],
+  ["ON THE GROUND", "AM BODEN", "AU SOL", "EN TIERRA", "AAN DE GROND"],
+  ["ROLLING FOR TAKE-OFF", "STARTLAUF", "COURSE AU DÉCOLLAGE", "CARRERA DE DESPEGUE", "STARTROL"],
+  ["CLIMBING THROUGH {a}", "STEIGT DURCH {a}", "MONTE À TRAVERS {a}", "SUBIENDO POR {a}", "KLIMT DOOR {a}"],
+  ["runways in use", "Pisten in Betrieb", "pistes en service", "pistas en uso", "banen in gebruik"],
   ["Realistic look", "Realistische Optik", "Aspect réaliste", "Aspecto realista", "Realistisch uiterlijk"],
   ["Printed flaps, glass and brushed metal, like a real board.", "Bedruckte Klappen, Glas und gebürstetes Metall, wie bei einer echten Tafel.", "Palettes imprimées, verre et métal brossé, comme un vrai tableau.", "Paletas impresas, cristal y metal cepillado, como un panel de verdad.", "Bedrukte kleppen, glas en geborsteld metaal, zoals een echt bord."],
   ["The name shown under the title.", "Der Name unter dem Titel.", "Le nom affiché sous le titre.", "El nombre que aparece bajo el título.", "De naam onder de titel."],
@@ -1111,7 +1141,8 @@ def(HERO, "fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","V
 def(HERO, "fromCity",{kind:"chars", n:10, dur:82, loud:1});
 def(HERO, "toCode",  {kind:"chars", n:3, dur:82, style:"amber", label:["To","Nach"], loud:1});
 def(HERO, "toCity",  {kind:"chars", n:10, dur:82, loud:1});
-def(HERO, "type",    {kind:"chars", n:17, dur:66, label:["Aircraft","Flugzeug"]});
+def(HERO, "type",    {kind:"chars", n:16, dur:66, label:["Aircraft","Flugzeug"]});
+def(HERO, "tier",    {kind:"word",  n:1, dur:110, words:"tier"});
 def(HERO, "reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
 def(HERO, "alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
 def(HERO, "trend",   {kind:"word",  n:2, dur:110, words:"trend"});
@@ -1127,7 +1158,7 @@ function heroLayout(){
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
-    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type"], [.4, 1, .4, 1], 66, 18, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type", "tier"], [.4, 1, .4, 1, .15], 66, 18, 1.45, UM);
     placeRow(["alt", "trend", "speed", "pos", "depTime", "arrTime", "airTime"], [.3, .8, .8, 1, .8, .8], 114, 18, 1.45, UM);
     return;
   }
@@ -1135,7 +1166,7 @@ function heroLayout(){
   placeRow(["airline"], [], 71, 26, 1.45, UM);
   placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
   placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
-  placeRow(["type"], [], 232, 21.4, 1.45, UM);
+  placeRow(["type", "tier"], [.15], 232, 21.4, 1.45, UM);
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
@@ -1252,14 +1283,34 @@ function grain(){
   g.putImageData(d, 0, 0);
   return grainCv;
 }
+// The spotter's game (1.21): a plane's rarity tier, shown on a flap of its own after the aircraft type.
+const TIER_COL = {common: "#7d838c", uncommon: "#38a653", rare: "#3b7ddd", epic: "#9b55e0", legendary: "#e0aa1f"};
+const TIER_DRUM = ["", "common", "uncommon", "rare", "epic", "legendary"];
+const TIER_NAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary"};
+function drawTierIcon(g, cx, cy, s, tier, col){
+  g.save(); g.translate(cx, cy); g.fillStyle = col; g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = s * .12; g.shadowOffsetY = s * .04;
+  g.beginPath();
+  if (tier === "common") g.arc(0, 0, s * .2, 0, Math.PI * 2);                                   // a dot
+  else if (tier === "uncommon") { g.moveTo(0, -s * .36); g.lineTo(s * .27, 0); g.lineTo(0, s * .36); g.lineTo(-s * .27, 0); }   // a gem
+  else if (tier === "rare") for (let i = 0; i < 8; i++) {                                        // a four-point star
+    const r = i % 2 ? s * .13 : s * .4, a = i * Math.PI / 4 - Math.PI / 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  else if (tier === "epic") { const w = s * .36, b = s * .22, t = -s * .3;                         // a crown
+    g.moveTo(-w, b); g.lineTo(-w, t * .4); g.lineTo(-w * .5, t * .05); g.lineTo(0, t); g.lineTo(w * .5, t * .05); g.lineTo(w, t * .4); g.lineTo(w, b); }
+  else for (let i = 0; i < 10; i++) {                                                            // a five-point star
+    const r = i % 2 ? s * .17 : s * .4, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  g.closePath(); g.fill(); g.restore();
+}
 function tile(f, value, variant = 0){
   const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
   let code = "", text = value;
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
-  if (f.words === "lamp") text = "";
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]}
+    : f.words === "tier" && TIER_COL[value] ? {fill: [shade(TIER_COL[value], .05), shade(TIER_COL[value], -.28)]} : {};
+  if (f.words === "lamp" || f.words === "tier") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}|${REAL() ? 1 : 0}`;
   let cv = tiles.get(key);
@@ -1315,6 +1366,7 @@ function tile(f, value, variant = 0){
     g.fillStyle = fg; g.fillRect(cx - sz * .6, h * .76, sz * 1.2, Math.max(1.5, h * .05));     // the runway
     ax = h * 1.2; aw = w - ax - h * .2;
   }
+  if (f.words === "tier" && TIER_COL[value]) drawTierIcon(g, w / 2, h / 2, Math.min(w, h * 1.1), value, "#fbf8f0");
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
     if (value) {
@@ -1484,6 +1536,7 @@ function retarget(c, value, delay){
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
   else if (c.f.words === "lamp") q = [value];
+  else if (c.f.words === "tier") q = path(TIER_DRUM, base, value);
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -2145,7 +2198,7 @@ function fromRelay(r){
     airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
-    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg,
+    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier,
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
     fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
 }
@@ -2196,6 +2249,22 @@ function emergencyOf(ac){
   const sq = String(ac.squawk || "");
   if (["7500", "7600", "7700"].includes(sq)) return sq;
   return ac.emergency && ac.emergency !== "none" ? String(ac.emergency) : "";
+}
+// How rare a plane is: legendary for the special ones, epic for a type never seen here before, then by how often the
+// type is in the logbook. Planes already on today's list keep the tier the relay (24+) gave them.
+const LEGENDARY = new Set(Object.entries(SPECIAL_TYPES).filter(([, k]) => k !== "HELICOPTER").map(([t]) => t));
+function tierOf(ac, info){
+  const today = typeof spotted !== "undefined" && spotted.find(e => e.hex === ac.hex && e.tier);
+  if (today) return today.tier;
+  const t = String(ac.t || (info && info.typeCode) || "").toUpperCase();
+  if (emergencyOf(ac) || (ac.dbFlags & 3) || LEGENDARY.has(t)) return "legendary";
+  const b = lbData();
+  if (!t || !b || !b.types) return "";
+  const n = (b.types[t] || {}).count || 0, learning = b.learningUntil && Date.now() < b.learningUntil;
+  if (!n) return learning ? "rare" : "epic";
+  if (n <= 3) return "rare";
+  if (n <= 12 || SPECIAL_TYPES[t] === "HELICOPTER") return "uncommon";
+  return "common";
 }
 function specialOf(x){
   if (x.emergency) return "EMERGENCY";
@@ -2505,7 +2574,7 @@ function renderFeatured(){
   if (!feat) {
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
-    setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
+    setWord("airline", ""); setWord("trend", ""); setWord("tier", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     renderTimes();
     return;
   }
@@ -2516,7 +2585,7 @@ function renderFeatured(){
   setWord("remarks", featRemark());
   setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
   setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
-  setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
+  setChars("type", info.type || "", 300); setWord("tier", tierOf(ac, info), 330); setChars("reg", info.reg || "", 340);
   const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
@@ -2619,7 +2688,8 @@ function logbookSummary(){
   const learning = b.learningUntil && Date.now() < b.learningUntil;
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
-    (b.categories ? "" : " · " + T("categories are counted from relay version 10 on"));
+    (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
+    (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
@@ -2879,6 +2949,7 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
   }
+  if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
   renderLogbook();
 }
 let lbSig = "";
@@ -2892,7 +2963,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -2911,8 +2982,20 @@ function renderLogbook(){
   if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
   if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
   if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+  const g0 = b.game;
+  if (g0) {                                          // the game: points, tiers and the collections
+    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><i class="lamp"></i><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+    const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+      `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+    html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
+      (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
+      `<ul class="ranks cats">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
+  }
   $("lbLists").innerHTML = html;
 }
+// The logbook is read now and then even with its tab closed: the tiers need it.
+setTimeout(() => fetchLogbook(), 4000);
+setInterval(() => { if (tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
 /* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
 const RG = {S: 400, cx: 200, cy: 200, R: 172};
@@ -2973,10 +3056,16 @@ function drawRadar(t){
   }
   g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
-  const ap = AIRPORTS[S.home];
-  if (ap && ap.strips) {
-    g.strokeStyle = "rgba(255,255,255,.28)"; g.lineCap = "round"; g.lineWidth = 2.2;
-    for (const [la1, lo1, la2, lo2] of ap.strips) { const [x1, y1] = toXY(la1, lo1), [x2, y2] = toXY(la2, lo2); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  airportPos();
+  const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
+  if (ap) {
+    const u = rwyInUse();
+    g.lineCap = "round"; g.lineWidth = 2.2;
+    for (const r of ap.rwys) {
+      const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
+      g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
+      const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    }
     const [ax, ay] = toXY(ap.lat, ap.lon);
     g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3; g.lineJoin = "round";
     if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.strokeText(S.home, ax + 10, ay + 16); g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
@@ -3305,18 +3394,18 @@ function wireLocate(box){
    rolls out on the ground. The board shows the two lists in place of the plane overhead (Settings → Board). */
 const airportMode = () => S.mode === "airport";
 const AP_ROWS = 5;
-const AP = {code: "", lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()};
+const AP = {code: "", lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map(), rwys: []};
 // The home airport's position: from the board's own table (Vienna), otherwise asked of the relay (18 or newer).
 function airportPos(){
   const code = clean(S.home).slice(0, 3);
-  if (AP.code !== code) Object.assign(AP, {code, lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map()});
+  if (AP.code !== code) { Object.assign(AP, {code, lat: null, lon: null, name: "", city: "", asked: "", deps: [], arrs: [], seen: new Map(), rwys: []}); RWY_USED.arr.clear(); RWY_USED.dep.clear(); }
   const known = AIRPORTS[code];
-  if (known && AP.lat == null) Object.assign(AP, {lat: known.lat, lon: known.lon, city: known.name});
+  if (known && AP.lat == null) Object.assign(AP, {lat: known.lat, lon: known.lon, city: known.name, rwys: rwyFrom(known.runways)});
   if (AP.lat == null && code.length === 3 && AP.asked !== code && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
     AP.asked = code;
     fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000).then(j => {
       if (AP.code !== code) return;
-      if (j.status === "ok") { Object.assign(AP, {lat: j.lat, lon: j.lon, name: j.name || "", city: j.city || ""}); airportChanged(); }
+      if (j.status === "ok") { Object.assign(AP, {lat: j.lat, lon: j.lon, name: j.name || "", city: j.city || "", rwys: rwyFrom(j.runways)}); airportChanged(); }
       else if (j.status === "loading") setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 3000);
     }).catch(() => setTimeout(() => { if (AP.asked === code) AP.asked = ""; }, 10000));
   }
@@ -3380,9 +3469,111 @@ function airportProcess(list){
   // Take-offs: the ones on the runway first, then the most recent. Landings: next one down first, the landed ones after.
   deps.sort((a, b) => (a.st === "TAKE-OFF" ? 0 : 1) - (b.st === "TAKE-OFF" ? 0 : 1) || b.t - a.t);
   arrs.sort((a, b) => (a.st === "LANDED" ? 1 : 0) - (b.st === "LANDED" ? 1 : 0) || (a.st === "LANDED" ? b.t - a.t : a.t - b.t));
+  rwyTrack([...deps, ...arrs], now);
   AP.deps = deps.slice(0, AP_ROWS); AP.arrs = arrs.slice(0, AP_ROWS);
+  const line = rwyLine();
+  if (line !== AP.rwyLine) { AP.rwyLine = line; if (typeof rwyChanged === "function") rwyChanged(); }
   renderAirport();
 }
+/* ---------- runways in use ----------
+   Each plane taking off or landing is matched with the runway it is lined up with (its track along the runway, close
+   to the centreline). Runways used in the last 15 minutes are "in use"; the Landing and Take-off pages draw them on the
+   screen with the plane. Runway ends come from the board's table (Vienna) or the relay (23+, from OurAirports). */
+function rwyFrom(list){       // [[ident, lat, lon, ident, lat, lon], ...] -> [{a: {id, lat, lon}, b: {...}}]
+  return (list || []).map(r => ({a: {id: r[0], lat: r[1], lon: r[2]}, b: {id: r[3], lat: r[4], lon: r[5]}}));
+}
+const RWY_USED = {arr: new Map(), dep: new Map()};
+function rwyGeo(alat, alon){
+  const kx = 111.32 * Math.cos(alat * Math.PI / 180), ky = 110.57;
+  return {kx, ky, xy: (lat, lon) => [(lon - alon) * kx, (lat - alat) * ky]};
+}
+// The runway end a plane is using: its threshold `from` and the far end `to`, or null.
+function rwyMatch(e, G){
+  const ac = e.ac;
+  if (ac.track == null || ac.lat == null) return null;
+  const [px, py] = G.xy(ac.lat, ac.lon);
+  let best = null;
+  for (const r of AP.rwys) for (const [s, o] of [[r.a, r.b], [r.b, r.a]]) {
+    const [sx, sy] = G.xy(s.lat, s.lon), [ox, oy] = G.xy(o.lat, o.lon), len = Math.hypot(ox - sx, oy - sy);
+    if (len < .3) continue;
+    const ux = (ox - sx) / len, uy = (oy - sy) / len, hdg = (Math.atan2(ux, uy) * 180 / Math.PI + 360) % 360;
+    const off = Math.abs(((ac.track - hdg) % 360 + 540) % 360 - 180);
+    if (off > 22) continue;
+    const along = (px - sx) * ux + (py - sy) * uy, cross = Math.abs((px - sx) * uy - (py - sy) * ux);
+    const ok = e.kind === "arr" ? along > -25 && along < len + 1 && cross < 2 + Math.max(0, -along) * .08
+                                : along > -1 && along < len + 25 && cross < 2.5 + Math.max(0, along - len) * .1;
+    if (ok && (!best || cross + off / 20 < best.score)) best = {id: s.id, from: s, to: o, along, len, score: cross + off / 20};
+  }
+  return best;
+}
+function rwyTrack(entries, now){
+  if (!AP.rwys || !AP.rwys.length || AP.lat == null) return;
+  const G = rwyGeo(AP.lat, AP.lon);
+  for (const e of entries) {
+    const m = rwyMatch(e, G);
+    e.rwy = m;
+    if (m && (e.kind === "arr" ? e.st === "FINAL" || e.st === "LANDED" : e.st === "TAKE-OFF" || (e.alt != null && e.alt < 5000))) RWY_USED[e.kind].set(m.id, now);
+  }
+  for (const k of ["arr", "dep"]) for (const [id, t] of RWY_USED[k]) if (now - t > 15 * 60000) RWY_USED[k].delete(id);
+}
+// The runways in use, most recently used first: {arr: ["29"], dep: ["16"]}.
+function rwyInUse(){
+  const pick = m => [...m.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  return {arr: pick(RWY_USED.arr), dep: pick(RWY_USED.dep)};
+}
+function rwyLine(){
+  const u = rwyInUse(), parts = [];
+  if (u.arr.length) parts.push(T("Landing {r}", {r: u.arr.join(", ")}));
+  if (u.dep.length) parts.push(T("departing {r}", {r: u.dep.join(", ")}));
+  return parts.join(" · ");
+}
+// The approach-control screen for the Landing and Take-off pages: the runways, the one in use lit, the plane on its way
+// down or up, a line saying how far, and the plane's photo as an inset.
+function paintRunwayScreen(g, w, h, e, img){
+  g.fillStyle = "#06090a"; g.fillRect(0, 0, w, h);
+  const G = rwyGeo(AP.lat, AP.lon), ac = e.ac, [px, py] = G.xy(ac.lat, ac.lon), u = rwyInUse();
+  let ext = 2.5;
+  for (const r of AP.rwys) for (const p of [r.a, r.b]) { const [x, y] = G.xy(p.lat, p.lon); ext = Math.max(ext, Math.abs(x) + .8, Math.abs(y) + .8); }
+  const span = Math.min(Math.max(ext * 1.35, Math.hypot(px, py) * 1.18), 40), k = Math.min(w, h) / 2 / span;
+  const cx = w / 2, cy = h / 2, P = (x, y) => [cx + x * k, cy - y * k];
+  g.strokeStyle = "rgba(90,210,150,.07)"; g.lineWidth = 1;                           // range rings every 5 km
+  for (let r = 5; r * k < Math.max(w, h); r += 5) { g.beginPath(); g.arc(cx, cy, r * k, 0, Math.PI * 2); g.stroke(); }
+  const m = e.rwy;
+  if (m) {                                                                            // the plane's line to or from the runway
+    const [sx, sy] = G.xy(m.from.lat, m.from.lon), [ox, oy] = G.xy(m.to.lat, m.to.lon), len = Math.hypot(ox - sx, oy - sy);
+    const ux = (ox - sx) / len, uy = (oy - sy) / len, L = 40;
+    const [a1, b1] = e.kind === "arr" ? P(sx - ux * L, sy - uy * L) : P(ox, oy), [a2, b2] = e.kind === "arr" ? P(sx, sy) : P(ox + ux * L, oy + uy * L);
+    g.setLineDash([6, 6]); g.strokeStyle = rgba(COL.amber, .45); g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(a1, b1); g.lineTo(a2, b2); g.stroke(); g.setLineDash([]);
+  }
+  for (const r of AP.rwys) {
+    const [x1, y1] = P(...G.xy(r.a.lat, r.a.lon)), [x2, y2] = P(...G.xy(r.b.lat, r.b.lon));
+    const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id)), mine = m && (m.id === r.a.id || m.id === r.b.id);
+    g.lineCap = "butt"; g.strokeStyle = mine ? COL.amber : used ? "rgba(240,180,41,.55)" : "rgba(200,205,210,.35)"; g.lineWidth = Math.max(4, k * .06);
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    g.font = `700 13px ${FONT}`; g.fillStyle = "rgba(220,225,230,.75)"; g.textAlign = "center"; g.textBaseline = "middle";
+    const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, ox = dx / d * 14, oy = dy / d * 14;
+    g.fillText(r.a.id, x1 - ox, y1 - oy); g.fillText(r.b.id, x2 + ox, y2 + oy);
+  }
+  const [qx, qy] = P(px, py);
+  g.save(); g.translate(qx, qy); g.rotate(((ac.track || 0) - 45) * Math.PI / 180); drawPlane(g, 0, 0, 26, COL.amber); g.restore();
+  g.textAlign = "left"; g.textBaseline = "alphabetic"; g.font = `700 15px ${FONT}`;
+  if ("letterSpacing" in g) g.letterSpacing = "1.2px";
+  const kmTo = m && e.kind === "arr" ? Math.max(0, -m.along) : null;
+  const line = e.st === "LANDED" ? T("ON THE GROUND") : e.kind === "arr" && kmTo != null ? T("{d} KM TO TOUCHDOWN", {d: kmTo < 10 ? kmTo.toFixed(1) : Math.round(kmTo)})
+    : e.st === "TAKE-OFF" && e.ground ? T("ROLLING FOR TAKE-OFF") : e.alt != null ? T("CLIMBING THROUGH {a}", {a: altitudeStr(e.alt)}) : "";
+  g.fillStyle = COL.amber; if (m) g.fillText(T("RUNWAY {r}", {r: m.id}), 14, 24);
+  g.fillStyle = "rgba(230,235,240,.85)"; g.fillText(line, 14, m ? 44 : 24);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  if (img) {                                                                          // the photo, inset
+    const iw = Math.round(w * .34), ih = Math.round(iw * .56), ix = w - iw - 12, iy = h - ih - 12;
+    g.save(); rr(g, ix, iy, iw, ih, 4); g.clip(); drawCover(g, img, ix, iy, iw, ih); g.restore();
+    g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 1; rr(g, ix + .5, iy + .5, iw - 1, ih - 1, 4); g.stroke();
+  }
+  g.fillStyle = "rgba(0,0,0,.11)"; for (let y = 0; y < h; y += 3) g.fillRect(0, y, w, 1);   // the screen's lines
+  if (typeof glass === "function") glass(g, w, h);
+}
+
 // The plane for the top half: the one taking off or landing right now. On the Landing and Take-off pages, that one.
 function apFocus(which){
   const coming = AP.arrs.find(e => e.st !== "LANDED"), going = AP.deps[0];
@@ -3395,7 +3586,7 @@ function apFeature(all){
   const pg = typeof page === "string" ? page : "";          // the app has no pages
   const e = apFocus(pg === "apland" ? "arr" : pg === "apdep" ? "dep" : null);
   const o = e && (AP.all || []).find(x => x.ac.hex === e.hex);
-  if (o) { setFeat(o, "ap"); feat.apSt = e.st; }
+  if (o) { setFeat(o, "ap"); feat.apSt = e.st; feat.apE = e; }
   else feat = null;
   renderFeatured();
   if (feat) lookupDetails(feat.hex);
@@ -3422,7 +3613,8 @@ let apSig = "";
 function renderAirport(){
   if (tab !== "now" || !airportMode()) return;
   const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
-    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()});
+    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()}) +
+    (AP.rwyLine ? " " + AP.rwyLine + "." : "");
   const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">${escH(T("No take-offs right now."))}</li>`;
   const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">${escH(T("No landings coming up right now."))}</li>`;
   const sig = sub + deps + arrs + S.units;
@@ -3525,6 +3717,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.21", date: "2026-10-14", notes: [
+    "Rarity: every plane is common, uncommon, rare, epic or legendary, shown in colour after its type.",
+    "Points, streaks and a Collection of sets to complete (Logbook → Collection)."]},
+  {v: "1.20", date: "2026-10-14", notes: [
+    "Airport style shows the runways in use, lit on the radar too.",
+    "The Take-off and Landing pages show the plane on a runway screen, with how far it is to touchdown."]},
   {v: "1.19.1", date: "2026-10-14", notes: [
     "Softer lighting in the realistic look.", "Icons on the board's page and view buttons, as in the phone app.",
     "The flaps clack as before; the controls keep their recorded sounds.",
