@@ -667,7 +667,8 @@ const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
-  "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED"];
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
+  "ABOVE CLOUD"];
 // The airport statuses show a plane taking off or landing in front of the word (tile).
 const AP_ICON = {"TAKE-OFF": "dep", CLIMBING: "dep", APPROACH: "arr", FINAL: "arr", LANDED: "arr"};
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
@@ -690,7 +691,8 @@ const REMARK_LOOK = {
   BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"},
   "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
   APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
-  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"}
+  LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
+  "ABOVE CLOUD":{fill:["#8796a8","#6e7c8e"], fg:"#ffffff"}
 };
 
 /* ---------- settings: kept on this phone (and, for a guest, with their profile on the relay) ---------- */
@@ -788,6 +790,22 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Seen here", "Hier gesehen", "Vu ici", "Visto aquí", "Hier gezien"],
+  ["To go", "Noch", "Reste", "Faltan", "Nog"],
+  ["FIRST TIME EVER", "ZUM ERSTEN MAL", "PREMIÈRE FOIS", "PRIMERA VEZ", "VOOR HET EERST"],
+  ["SEEN {n} TIMES", "{n} MAL GESEHEN", "VU {n} FOIS", "VISTO {n} VECES", "{n} KEER GEZIEN"],
+  ["SEEN ONCE", "EINMAL GESEHEN", "VU UNE FOIS", "VISTO UNA VEZ", "EEN KEER GEZIEN"],
+  ["BACK AFTER {n} MONTHS", "ZURÜCK NACH {n} MON.", "REVU APRÈS {n} MOIS", "VUELVE TRAS {n} MESES", "TERUG NA {n} MAANDEN"],
+  ["{op} · PAINTED AS {a}", "{op} · IN {a}-FARBEN", "{op} · COULEURS {a}", "{op} · COLORES DE {a}", "{op} · IN {a}-KLEUREN"],
+  ["ABOVE CLOUD", "ÜBER DEN WOLKEN", "AU-DESSUS DES NUAGES", "SOBRE LAS NUBES", "BOVEN DE WOLKEN"],
+  ["Above the cloud base at {home}: you'll hear it rather than see it", "Über der Wolkenuntergrenze in {home}: eher zu hören als zu sehen", "Au-dessus de la base des nuages à {home} : on l'entend plus qu'on ne le voit", "Por encima de la base de nubes en {home}: se oye más que se ve", "Boven de wolkenbasis bij {home}: eerder te horen dan te zien"],
+  ["Records & trophies", "Rekorde & Trophäen", "Records et trophées", "Récords y trofeos", "Records en trofeeën"],
+  ["Records", "Rekorde", "Records", "Récords", "Records"],
+  ["Closest ever", "Am nächsten", "Le plus proche", "El más cercano", "Dichtstbij ooit"],
+  ["Lowest ever", "Am tiefsten", "Le plus bas", "El más bajo", "Laagste ooit"],
+  ["Fastest ever", "Am schnellsten", "Le plus rapide", "El más rápido", "Snelste ooit"],
+  ["Farthest route", "Weiteste Strecke", "Route la plus lointaine", "Ruta más lejana", "Verste route"],
+  ["The logbook's records since {d}: the closest, lowest and fastest pass, and the route from farthest away.", "Die Rekorde des Logbuchs seit {d}: der nächste, tiefste und schnellste Überflug und die Strecke von am weitesten weg.", "Les records du carnet depuis le {d} : le passage le plus proche, le plus bas et le plus rapide, et la route venue de plus loin.", "Los récords del registro desde el {d}: el paso más cercano, el más bajo y el más rápido, y la ruta desde más lejos.", "De records van het logboek sinds {d}: de dichtstbijzijnde, laagste en snelste passage, en de route van het verst weg."],
   ["London", "London", "Londres", "Londres", "Londen"],
   ["A board for {name}", "Eine Tafel für {name}", "Un tableau pour {name}", "Un panel para {name}", "Een bord voor {name}"],
   ["Tap to open", "Zum Öffnen tippen", "Touchez pour ouvrir", "Toca para abrir", "Tik om te openen"],
@@ -2228,6 +2246,14 @@ function apiLookup(cs, hex, info, tries = 0){
     infoChanged(info);
   }).catch(() => {});
 }
+// Flightradar24's painted_as and operated_as (airline ICAO codes): a plane flown by one airline in another's colours
+// (a wet lease, or a group airline in the parent's livery) says so on the Operator line.
+function liveryLine(info){
+  const lv = String(info.livery || "").toUpperCase(), op = String(info.operator || "").toUpperCase();
+  if (!lv || !op || lv === op) return "";
+  const nm = c => shortAirline((AIRLINES[c] || [])[1] || c);
+  return T("{op} · PAINTED AS {a}", {op: nm(op), a: nm(lv)});
+}
 function infoChanged(info){
   if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }
 }
@@ -2705,12 +2731,60 @@ function renderTimes(){
 }
 
 /* ---------- what goes on the board ---------- */
+// How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
+// MONTHS when it had been away for two months or more. The count is the times before this pass.
+const seenCache = new Map();
+function seenText(reg){
+  reg = clean(reg).replace(/\s/g, "");
+  if (!reg || S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 28) return "";
+  let c = seenCache.get(reg);
+  if (!c || (!c.busy && Date.now() - c.t > 120000)) {
+    c = {t: Date.now(), busy: true, d: c && c.d};
+    seenCache.set(reg, c);
+    if (seenCache.size > 200) seenCache.delete(seenCache.keys().next().value);
+    fetchJSON(`${relay()}/seen?reg=${encodeURIComponent(reg)}`, {}, 8000).then(d => {
+      c.d = d; c.t = Date.now(); c.busy = false;
+      if (feat && clean((feat.info || {}).reg || feat.o.ac.r || "").replace(/\s/g, "") === reg) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
+    }).catch(() => { c.busy = false; });
+  }
+  const d = c.d;
+  if (!d) return "";
+  const now = Date.now(), thisPass = d.last && now - d.last < SAME_PASS_MS;
+  const before = Math.max(0, (d.count || 0) - (thisPass ? 1 : 0)), last = thisPass ? d.prev : d.last;
+  if (!before) return T("FIRST TIME EVER");
+  const months = last ? Math.floor((now - last) / (30.44 * 86400e3)) : 0;
+  if (months >= 2) return T("BACK AFTER {n} MONTHS", {n: months});
+  return before === 1 ? T("SEEN ONCE") : T("SEEN {n} TIMES", {n: nf.format(before)});
+}
+// How far the plane still has to fly, by great circle to its destination (only routes with the airport's position).
+function toGoText(info, o){
+  const to = info && info.to;
+  if (!to || to.lat == null || to.lon == null || !o || o.ac.lat == null) return "";
+  const km = gcKm(o.ac.lat, o.ac.lon, +to.lat, +to.lon);
+  return km >= 20 ? nf.format(Math.round(km / 10) * 10) + " KM" : "";
+}
+// The cloud base at the home airport (relay 28, /sky, from its METAR), read every ten minutes: a plane above it is
+// heard rather than seen, and the status says ABOVE CLOUD in turn with the rest.
+let sky = null, skyAt = 0;
+function skyCheck(){
+  const code = clean(S.home).slice(0, 3);
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 28 || code.length !== 3) return;
+  if (sky && sky.code === code && Date.now() - skyAt < 10 * 60000) return;
+  if (Date.now() - skyAt < 60000) return;
+  skyAt = Date.now();
+  fetchJSON(`${relay()}/sky?code=${code}`, {}, 8000).then(j => {
+    sky = j && j.status === "ok" ? {...j, code} : {code};
+    if (sky.ceiling != null) dlog("debug", `Cloud base at ${j.icao}: ${nf.format(sky.ceiling)} ft above sea level`);
+  }).catch(() => {});
+}
+const aboveCloud = alt => !!(sky && sky.ceiling != null && alt != null && alt > sky.ceiling + 200);
 const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
+    if (fields.seen) { setChars("seen", ""); setChars("toGo", ""); }
     setWord("airline", ""); setWord("trend", ""); setWord("tier", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     renderTimes();
     return;
@@ -2730,6 +2804,7 @@ function renderFeatured(){
       feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
+  if (fields.seen) { setChars("seen", seenText(info.reg || ac.r || ""), 520); setChars("toGo", toGoText(info, o), 510); }
   setChars("alt", feat.live[0], 380);
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
@@ -2738,7 +2813,9 @@ function renderFeatured(){
 }
 // Like a real board, the status flap alternates with the remark: OVERHEAD, then SUPERJUMBO, and so on.
 function featRemark(){
-  const mode = feat.apSt || MODE_REMARK[feat.mode], badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  const mode = feat.apSt || MODE_REMARK[feat.mode];
+  let badge = feat.o ? badgeFor(liveFacts(feat.o.ac, feat.info)) : "";
+  if (!badge && !feat.apSt && (feat.mode === "over" || feat.mode === "soon") && aboveCloud(feat.o && feat.o.alt)) badge = "ABOVE CLOUD";
   return badge && (badge === "EMERGENCY" || Math.floor(Date.now() / 6000) % 2) ? badge : mode;
 }
 const acDetails = new Map();   // hex -> details, or null while looking up / not found
@@ -2770,6 +2847,7 @@ function legendGroups(){
       ["OUTBOUND", T("Moving away")],
       ["PASSED", T("Just passed overhead")],
       ["NO TRAFFIC", T("No planes around right now")],
+      ["ABOVE CLOUD", T("Above the cloud base at {home}: you'll hear it rather than see it", {home})],
       ["OFFLINE", T("No flight data for over a minute")]]],
     [T("Route"), [
       ["ARRIVING", T("Flying to {home}", {home})],
@@ -2974,12 +3052,13 @@ function renderAircraftInfo(){
   setChars("naHex", feat.hex.toUpperCase(), 60);
   setChars("naFlight", info.flightNo || "", 120);
   setChars("naType", d.type || info.type || "", 180);
-  setChars("naOwner", d.owner || info.airline || "", 240);
+  setChars("naOwner", liveryLine(info) || d.owner || info.airline || "", 240);
   setChars("naCountry", d.country || "", 300);
   setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
   const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
-    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", d.owner || info.airline, true],
-    ["Registered in", "Land", d.country], ["Route", "", route]].filter(f => f[2]);
+    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
+    ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
+    ["Seen here", "", seenText(info.reg || d.reg || feat.o.ac.r || ""), true]].filter(f => f[2]);
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
@@ -3126,7 +3205,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -3153,6 +3232,15 @@ function renderLogbook(){
     html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
       (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
       `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
+  }
+  const r = b.records;
+  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
+    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+    const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
+      ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
+    const rec = `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, v]) => li(T(en), v(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
+    html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
   }
   $("lbLists").innerHTML = html;
 }
@@ -3949,6 +4037,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.27", date: "2026-10-15", notes: [
+    "The plane on the board says how often it was seen here (first time ever, seen 4 times, back after 7 months) and how far it still has to go.",
+    "ABOVE CLOUD in the status when a plane passes over the cloud base, from the airport's weather.",
+    "This aircraft says when a plane flies in another airline's colours.",
+    "Records & trophies, from the Logbook: the closest, lowest and fastest pass ever, and the route from farthest away."]},
   {v: "1.26.0.1", date: "2026-10-14", notes: [
     "Notifications show the plane in the phone's status bar, not a white square."]},
   {v: "1.26", date: "2026-10-14", notes: [
@@ -4507,7 +4600,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; process(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});

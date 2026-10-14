@@ -104,6 +104,14 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
   take-off time, and with it the flight time, for any flight. When there is no arrival time but the destination is
   known, the board estimates one from the distance still to fly and the plane's speed, plus a few minutes to land.
+  Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
+  often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
+  been away for two months or more. The phone app shows both under This aircraft.
+- **ABOVE CLOUD** (1.27, relay 28): the relay reads the home airport's weather report (METAR) every ten minutes; a
+  plane passing over or coming in above the cloud base (the lowest broken or overcast layer) says ABOVE CLOUD in turn
+  with its status, since you'll hear it rather than see it.
+- **Painted as** (test API board, 1.27): when Flightradar24 says a plane flies in another airline's colours (a wet
+  lease, or a group airline in the parent's livery), This aircraft's Operator line says so, e.g. "LAUDA · PAINTED AS RYANAIR".
   Overflights without a known route show what is known, often nothing.
 - **Special planes take the board**: when a plane rings the bell (an emergency, a special or military aircraft, a
   favourite), it goes straight onto the top half and the lower half turns to **This aircraft**, and both stay with it
@@ -147,6 +155,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
   relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
   marked NEW TYPE or NEW AIRLINE on the board.
+- **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
+  lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
+  them once from the saved days of an older logbook. The phone app shows them in its Logbook.
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the twelve nearest planes on flaps beside it.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -272,6 +283,7 @@ among its screens as the APP board. `?demo` shows sample flights.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
+- Cloud base at the home airport: its METAR from [aviationweather.gov](https://aviationweather.gov), through the relay.
 - Planned and expected times : [Vienna Airport](https://www.viennaairport.com/en/passengers/arrival__departure)'s
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its

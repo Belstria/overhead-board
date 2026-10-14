@@ -52,7 +52,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 27
+RELAY_VERSION = 28
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -258,10 +258,13 @@ class Spot:
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
                                                                        "sightings": 0, "types": {}, "airlines": {}, "regs": {},
-                                                                       "gameV": GAME_V}
+                                                                       "gameV": GAME_V, "recordsV": 1}
             if self.logbook.get("gameV") != GAME_V:
                 self.ensure_day()
                 _rescore(self)
+            if self.logbook.get("recordsV") != 1:
+                self.ensure_day()
+                _backfill_records(self)
         return self.logbook
 
     def changed(self, *what):
@@ -351,9 +354,64 @@ def _note_first(book, key, name, e, flag, learning=False):
         if not learning:  # during the first day everything is new, so nothing is marked
             e[flag] = True
     item["count"] += 1
+    if item.get("last"):
+        item["prev"] = item["last"]          # the sighting before this one (relay 28: "back after 7 months")
     item["last"] = e["ts"]
     if name and not item.get("name"):
         item["name"] = name
+
+
+# Lifetime records (relay 28): the closest, lowest and fastest pass and the farthest route, kept in the logbook as
+# sightings come in; an older logbook counts them once from its saved days.
+def _rec_entry(e, v):
+    return {"v": v, "ts": e.get("ts"), "reg": e.get("reg") or "", "type": e.get("typeCode") or "", "callsign": e.get("callsign") or "",
+            "flight": e.get("flightIata") or e.get("callsign") or "", "desc": e.get("aircraftType") or e.get("desc") or ""}
+
+
+def note_records(book, e, center=None):
+    r = book.setdefault("records", {})
+    def better(k, v, lower):
+        cur = r.get(k)
+        if v is not None and (cur is None or (v < cur["v"] if lower else v > cur["v"])):
+            r[k] = _rec_entry(e, v)
+            return True
+        return False
+    hit = better("closest", e.get("minDist"), True)
+    alt = e.get("altAtMin")
+    if isinstance(alt, (int, float)) and alt >= 100:           # 0 and below: a glitch or the ground, not a pass
+        hit |= better("lowest", alt, True)
+    gs = e.get("maxSpeed")
+    if isinstance(gs, (int, float)) and 0 < gs <= 750:         # faster than that is a bad reading
+        hit |= better("fastest", gs, False)
+    if center:
+        far = None
+        for k in ("from", "to"):
+            p = e.get(k) or {}
+            if p.get("lat") is not None and p.get("lon") is not None:
+                d = _gc_km(center, (float(p["lat"]), float(p["lon"])))
+                if far is None or d > far[0]:
+                    far = (d, p)
+        if far and better("farthest", round(far[0]), False):
+            r["farthest"]["place"] = {"code": far[1].get("code") or "", "city": far[1].get("city") or ""}
+            hit = True
+    return hit
+
+
+def _gc_km(a, b):
+    p1, p2 = math.radians(a[0]), math.radians(b[0])
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[1] - a[1]) / 2) ** 2
+    return 12742 * math.asin(min(1, math.sqrt(h)))
+
+
+def _backfill_records(spot):
+    b = spot.logbook
+    b["records"] = {}
+    c = spot.center() if spot.center else None
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        for e in (spot.entries if f.stem[len("sightings-"):] == spot.day else _load(f, [])):
+            note_records(b, e, c)
+    b["recordsV"] = 1
+    spot.changed("book")
 
 
 def _record(self, planes, lat, lon):
@@ -380,11 +438,16 @@ def _record(self, planes, lat, lon):
                 e = None
             if e:
                 e["lastSeen"] = now
+                moved = False
                 if d < e["minDist"] - 0.05:
                     e["minDist"], e["altAtMin"], changed = round(d, 2), alt, True
+                    moved = True
                 gs = ac.get("gs")
                 if isinstance(gs, (int, float)) and gs > e.get("maxSpeed", 0) + 1:
                     e["maxSpeed"], changed = round(gs), True
+                    moved = True
+                if moved and note_records(self.book(), e):
+                    self.changed("book")
                 em = _emergency(ac)
                 if em and em != e.get("emergency"):
                     e["emergency"], changed = em, True
@@ -418,6 +481,7 @@ def _record(self, planes, lat, lon):
                 if m:
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
                 score(book, e, self.day)
+                note_records(book, e)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -714,6 +778,8 @@ def _enricher():
                 if not e.get("typeCode") and info.get("icaoType"):
                     e["typeCode"] = info["icaoType"]
             book = spot.book()
+            if route:
+                note_records(book, e, spot.center() if spot.center else None)
             t = book["types"].get(e.get("typeCode") or "")
             if t is not None and not t.get("name") and info:
                 t["name"] = " ".join(x for x in (info.get("manufacturer", "").split(" ")[0], info.get("aircraftType")) if x)
@@ -843,7 +909,7 @@ def _load_airports():
     """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
     global _airports
     db = _load(AIRPORTS_FILE, None)
-    if db and db.get("v") == 2 and time.time() - db.get("fetched", 0) < 60 * 86400:
+    if db and db.get("v") == 3 and time.time() - db.get("fetched", 0) < 60 * 86400:
         _airports = db
         return
     status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
@@ -863,10 +929,14 @@ def _load_airports():
         city = CITY_FIX.get(code) or (r.get("municipality") or r.get("name") or "").split(",")[0].strip()
         ic = (r.get("icao_code") or r.get("gps_code") or r.get("ident") or "").strip().upper()
         if code not in iata or r.get("type") == "large_airport":
-            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0]
+            try:
+                elev = int(float(r.get("elevation_ft") or 0))
+            except ValueError:
+                elev = 0
+            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev]
         if ic:
             icao[ic] = code
-    _airports = {"v": 2, "fetched": time.time(), "iata": iata, "icao": icao}
+    _airports = {"v": 3, "fetched": time.time(), "iata": iata, "icao": icao}
     try:
         DATA_DIR.mkdir(exist_ok=True)
         AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
@@ -1026,6 +1096,12 @@ def _fr24_worker():
                     usage["lookupsToday"] = usage.get("lookupsToday", 0) + 1
                 if info:
                     _fr24_data()["flights"][key] = info
+                    if not info.get("none"):
+                        usage["found"] = usage.get("found", 0) + 1
+                        if info.get("divertedTo"):
+                            usage["diverted"] = usage.get("diverted", 0) + 1
+                        if info.get("livery") and info.get("operator") and info["livery"] != info["operator"]:
+                            usage["wetLease"] = usage.get("wetLease", 0) + 1
                 _dirty.add("fr24")
             if status in (401, 403):
                 _fr24_state.update(state="refused", error=f"key refused (HTTP {status})", refusedAt=time.time())
@@ -1153,13 +1229,50 @@ def logbook_json(spot):
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
-                "game": game_json(b, spot.day or board_day())}
+                "game": game_json(b, spot.day or board_day()), "records": b.get("records", {})}
+
+
+def seen_json(spot, reg):
+    """What the logbook knows of one airframe (relay 28): how often it was seen here, first, last and the one before."""
+    with _data_lock:
+        it = spot.book().get("regs", {}).get(reg)
+        if not it:
+            return {"reg": reg, "count": 0}
+        return {"reg": reg, "count": it.get("count", 0), "first": it.get("first"), "last": it.get("last"), "prev": it.get("prev")}
 
 
 def metar(ids):
     status, _, body, _ = cached("metar:" + ids, 600, lambda: fetch(
         f"https://aviationweather.gov/api/data/metar?ids={ids}&format=raw&taf=false", timeout=10))
     return status, body
+
+
+def sky_json(code):
+    """The home airport's weather for "above the cloud" (relay 28): the lowest broken or overcast layer, in feet
+    above sea level (the METAR gives it above the airport, so the airport's elevation is added), and the visibility."""
+    db = _airports_ready() or {}
+    r = (db.get("iata") or {}).get(code.upper())
+    if not r or not r[3]:
+        return {"status": "none"}
+    icao, elev = r[3], (r[6] if len(r) > 6 and r[6] is not None else 0)
+    status, body = metar(icao)
+    raw = (body or b"").decode("utf-8", "replace").strip().splitlines()
+    raw = raw[0] if raw else ""
+    if status != 200 or not raw:
+        return {"status": "none", "icao": icao}
+    ceiling, layers = None, []
+    for cov, h in re.findall(r"\b(FEW|SCT|BKN|OVC|VV)(\d{3})", raw):
+        ft = int(h) * 100 + int(elev)
+        layers.append([cov, ft])
+        if cov in ("BKN", "OVC", "VV") and (ceiling is None or ft < ceiling):
+            ceiling = ft
+    vis = 10000 if re.search(r"\bCAVOK\b", raw) else None
+    m = re.search(r"\s(\d{4})(?:NDV)?\s", " " + raw + " ")
+    if vis is None and m:
+        vis = int(m.group(1))
+    clear = ceiling is None and bool(re.search(r"\b(CAVOK|NSC|SKC|CLR|NCD)\b", raw) or not layers)
+    return {"status": "ok", "icao": icao, "elevation": elev, "ceiling": ceiling, "layers": layers, "visibility": vis,
+            "clear": clear, "raw": raw}
 
 
 # ---------- Vienna Airport's arrivals and departures: planned and expected times, so the board can show delays.
@@ -1884,8 +1997,33 @@ def admin_html(host, made=None):
     body = (f"<h1>Friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
             f"today and logbook. This page only opens at home.</p>{made_html}<h2>People</h2>{table}<h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
-            f"<button class=go>Make a link</button></form>" + home_html)
+            f"<button class=go>Make a link</button></form>" + home_html + fr24_admin_html())
     return plain_page("Fallblatt: friends & family", body)
+
+
+def fr24_admin_html():
+    """Flightradar24 this month (relay 28): credits used against the budget, where the month is heading, and what the
+    lookups added, to help decide whether the subscription is worth renewing."""
+    if not fr24_key():
+        return "<h2>Flightradar24</h2><p class=muted>No key: the boards use the free sources only.</p>"
+    with _data_lock:
+        u = dict(_fr24_usage())
+    budget, used, today = _fr24_budget(), u.get("credits", 0), u.get("creditsToday", 0)
+    now = datetime.date.today()
+    days = ((now.replace(day=28) + datetime.timedelta(days=4)).replace(day=1) - datetime.timedelta(days=1)).day
+    t = time.localtime()
+    done = max(.25, now.day - 1 + (t.tm_hour * 3600 + t.tm_min * 60) / 86400)        # days of the month gone so far
+    pace = round(used / done * days)
+    pct = min(100, round(used / max(1, budget) * 100))
+    col = "#3c3" if pace <= budget else "#f2b134" if pace <= budget * 1.1 else "#e0372c"
+    st = fr24_status()
+    return (f"<h2>Flightradar24</h2><p><b>{used:,}</b> of {budget:,} credits this month · {today:,} today · "
+            f"on pace for <b style='color:{col}'>{pace:,}</b></p>"
+            f"<div style='height:10px;border-radius:5px;background:#16171a;border:1px solid #34363b;overflow:hidden'>"
+            f"<div style='height:100%;width:{pct}%;background:{col}'></div></div>"
+            f"<p class=muted>{u.get('lookups', 0):,} lookups · {u.get('found', 0):,} flights found · "
+            f"{u.get('wetLease', 0):,} in another airline's livery · {u.get('diverted', 0):,} diverted · "
+            f"state: {html.escape(str(st.get('state', '')))}</p>")
 
 
 # ---------- push notifications (relay 25): the evening summary and "worth going to the window" ----------
@@ -2297,7 +2435,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -2374,6 +2512,16 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
         if path == "/logbook":
             return self.reply(200, "application/json", json.dumps(logbook_json(self.spot)).encode())
+        if path == "/seen":
+            reg = re.sub(r"[^A-Z0-9-]", "", ((self.query().get("reg") or [""])[0]).upper())[:10]
+            if not reg:
+                return self.reply(400, "text/plain", b"reg=... is required")
+            return self.reply(200, "application/json", json.dumps(seen_json(self.spot, reg)).encode())
+        if path == "/sky":
+            code = re.sub(r"[^A-Za-z]", "", (self.query().get("code") or [""])[0])[:3]
+            if len(code) != 3:
+                return self.reply(400, "text/plain", b"code=XXX (an IATA airport code) is required")
+            return self.reply(200, "application/json", json.dumps(sky_json(code)).encode())
         if path == "/metar":
             q = self.path.split("?", 1)[1] if "?" in self.path else ""
             ids = (re.search(r"ids=([A-Za-z]{4})", q) or [None, ""])[1].upper()
