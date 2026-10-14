@@ -1007,6 +1007,35 @@ async function pushSub(){
   const reg = await navigator.serviceWorker.getRegistration("./");
   return reg ? reg.pushManager.getSubscription() : null;
 }
+const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.isSecureContext && "serviceWorker" in navigator &&
+  "PushManager" in window && "Notification" in window && Notification.permission !== "denied";
+// The service worker is registered as the app opens, so it is running by the time notifications are turned on (the
+// first try used to fail while it was still starting, and the button had to be pressed twice).
+let swReady = null;
+function swRegister(){
+  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register("sw.js", {scope: "./"}).then(() => navigator.serviceWorker.ready).catch(() => null);
+  return swReady || Promise.resolve(null);
+}
+setTimeout(swRegister, 1500);
+// Turn notifications on: permission, the service worker, the subscription, the relay. Returns an error text, or "".
+async function enablePush(){
+  try {
+    if (await Notification.requestPermission() !== "granted") return T("Notifications are blocked for this site in the browser's settings.");
+    const reg = await swRegister();
+    if (!reg) return T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.");
+    const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
+    const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
+    let sub = null;
+    for (let i = 0; i < 3 && !sub; i++) {              // a worker that has only just become active can refuse once
+      try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
+      catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
+    }
+    let prefs = {summary: true, window: true};
+    try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
+    const r = await sendSub(sub, prefs, "subscribe");
+    return r.ok ? "" : `HTTP ${r.status}`;
+  } catch (e) { return String(e && e.message || e); }
+}
 async function renderPush(){
   const box = $("pushBox");
   if (!box) return;
@@ -1037,14 +1066,9 @@ async function renderPush(){
     try {
       if (sub) { await sendSub(sub, prefs, "unsubscribe"); await sub.unsubscribe(); return renderPush(); }
       note.textContent = T("Turning on …");
-      if (await Notification.requestPermission() !== "granted") return renderPush();
-      const reg = await navigator.serviceWorker.register("sw.js", {scope: "./"});
-      await navigator.serviceWorker.ready;
-      const {key} = await fetchJSON(`${relay()}/push/key`, {}, 8000);
-      const raw = Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), c => c.charCodeAt(0));
-      const fresh = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw});
-      await sendSub(fresh, prefs, "subscribe");
-      renderPush();
+      const err = await enablePush();
+      await renderPush();                                  // shows "on" straight away
+      if (err && $("pushNote")) $("pushNote").textContent = err;
     } catch (e) { note.textContent = String(e && e.message || e); }
   };
 }
@@ -1096,25 +1120,44 @@ function greetText(){
   if (!out.endsWith("!")) out += "!";
   return out.length > 16 ? out.slice(0, 15).trim() + "!" : out;
 }
+// The letters land in order, left to right: each flap starts so that it lands a beat after the one before it (a long
+// way round the drum starts earlier); the "!" last, coasting to a stop.
 function greetFlaps(){
   const text = greetText(), n = text.length, step = 30, P = makePanel($("wHello"), n * step + 2 * 8, 62, 0);
   $("wHello").style.width = `min(100%, ${n * 34}px)`;
   def(P, "greet", {kind: "chars", n, dur: 62, drum: GREET_DRUM, loud: .6});
   placeRow(["greet"], [], 11, step, 1.45, 8);
-  requestAnimationFrame(() => {
-    showPanel(P);
-    fields.greet.cells.forEach((c, i) => {
-      if (text[i] === "!") c.slowEnd = true;          // the longest run anyway: it starts early and still lands last
-      retarget(c, text[i], text[i] === "!" ? 400 : 250 + i * 70 + Math.random() * 60);
-    });
+  requestAnimationFrame(() => showPanel(P));
+}
+function greetRoll(){
+  const text = greetText(), per = 62 * pace();
+  let land = 0;
+  fields.greet.cells.forEach((c, i) => {
+    const ch = text[i], flips = path(GREET_DRUM, c.cur, ch).length, bang = ch === "!";
+    if (!flips) return;
+    const run = flips * per * (bang ? 1.35 : 1);
+    land = Math.max(land + (bang ? 520 : 170), run + 150);              // after the one before; never before it can
+    if (bang) c.slowEnd = true;
+    retarget(c, ch, Math.max(0, (land - run) / pace()));
   });
+  setTimeout(() => { soundForced = false; }, land + 1800);
 }
 function welcome(){
-  const box = $("welcome"), note = $("wNote");
+  const box = $("welcome"), note = $("wNote"), first = String(GUEST.name || "").trim().split(/\s+/)[0] || GUEST.name;
   $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
+  $("wFor").textContent = T("A board for {name}", {name: first});
   box.hidden = false;
   try { greetFlaps(); } catch {}
-  let found = null, sent = Promise.resolve();
+  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
+    if (GUEST.settings && GUEST.settings[k] != null) $(id).value = GUEST.settings[k];
+  // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
+  $("wOpen").onclick = () => {
+    soundForced = true; audioInit();
+    try { if (actx) actx.resume(); } catch {}
+    $("wOpen").hidden = true;
+    setTimeout(() => { try { greetRoll(); } catch {} }, 120);
+    setTimeout(() => { $("wStep1").hidden = false; }, 900);
+  };
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
     $("wLoc").disabled = true; note.textContent = T("Finding out where you are …");
@@ -1122,27 +1165,39 @@ function welcome(){
       const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
       let a = null;
       try { a = await nearestAirport(lat, lon); } catch {}
-      found = {lat, lon, home: a ? a.code : S.home};
-      $("wPlace").value = a ? (a.city || a.name || "") : "";
-      note.textContent = a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.");
-      $("wMore").hidden = false; $("wLoc").hidden = true;
-      $("wPlace").focus();
+      $("wLat").value = lat; $("wLon").value = lon;
+      if (a) { $("wHome").value = a.code; if (!$("wPlace").value) $("wPlace").value = a.city || a.name || ""; }
+      note.textContent = (a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.")) + " " + T("Check it, then Continue.");
     } catch (e) {
-      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("You can type it in Settings instead.");
+      note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 48.2085 and 16.3731.");
     } finally { $("wLoc").disabled = false; }
   };
+  let sent = Promise.resolve();
+  const num = v => parseFloat(String(v).replace(",", "."));
   $("wGo").onclick = () => {
-    if (!found) return;
+    const lat = num($("wLat").value), lon = num($("wLon").value);
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 48.2085 and 16.3731."); $("wLat").focus(); return; }
     ctlSound.press();
-    S = {...S, ...found, place: $("wPlace").value.trim() || T("Home"), located: true};
+    S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
     saveSettings();
-    const changed = JSON.parse(localStorage.getItem(SKEY) || "{}");
-    sent = saveMe(changed, true);
-    // Then: the phone app or the full board. A phone is offered the app, a computer the board.
-    $("wStep1").hidden = true; $("wPick").hidden = false;
-    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, pick = $(phone ? "wApp" : "wBoard");
-    pick.classList.add("go"); pick.setAttribute("aria-pressed", "true");
+    sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
+    $("wStep1").hidden = true;
+    if (pushPossible()) $("wPush").hidden = false; else pick();
   };
+  $("wPushYes").onclick = async () => {
+    ctlSound.press();
+    const n = $("wPushNote"); n.textContent = T("Turning on …");
+    const err = await enablePush();
+    if (err) { n.textContent = err; return; }
+    n.textContent = T("Notifications are on.");
+    setTimeout(pick, 700);
+  };
+  $("wPushNo").onclick = () => { ctlSound.press(); pick(); };
+  function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
+    $("wPush").hidden = true; $("wPick").hidden = false;
+    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
+    b.classList.add("go"); b.setAttribute("aria-pressed", "true");
+  }
   const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
   $("wApp").onclick = () => go(() => location.reload());                                 // start afresh around the new place
   $("wBoard").onclick = () => go(() => { location.href = "/"; });

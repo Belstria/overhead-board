@@ -325,7 +325,9 @@ window and appear in the board's diagnostics panel.
 each with a profile of their own: their own location, settings, Spotted today and lifetime logbook. Open
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it sets up
 that phone or computer (it works once, on the first device that opens it, within two weeks; for another device press
-**New link**). They get a short welcome that asks for their location and then whether they want the **phone app**
+**New link**). They get a short welcome: a tap opens it (browsers only play sound after a tap) and their name flips
+in letter by letter, with sound. They then type in their place, airport and coordinates, or let **Use my location**
+fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
 settings follow them between the two and to other devices. About → **Sign out of this device** forgets a device again
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
