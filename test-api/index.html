@@ -1722,7 +1722,18 @@ function routeFits(from, to, ac){
   }
   return true;
 }
+// Both route sources are asked at once (1.25.2; before, adsb.lol only after adsbdb, which could take its full 9 s
+// timeout): adsbdb's answer is preferred, but once adsb.lol has a route adsbdb gets 1.5 s more, not longer.
 async function routeLookup(cs, ac){
+  const db = routeDb(cs, ac), lol = routeLol(cs, ac);
+  const first = await Promise.race([db.then(r => ({r, db: true})), lol.then(r => ({r, db: false}))]);
+  let out = first.r;
+  if (first.db) out = out || await lol;
+  else out = out ? (await Promise.race([db, new Promise(ok => setTimeout(() => ok(null), 1500))]) || out) : await db;
+  if (!out) dlog("debug", `No route listed for ${cs}`);
+  return out;
+}
+async function routeDb(cs, ac){
   try {
     const j = await fetchJSON(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(cs)}`);
     const fr = j && j.response && j.response.flightroute;
@@ -1744,6 +1755,9 @@ async function routeLookup(cs, ac){
   } catch (e) {
     if (!/HTTP 404/.test(e.message)) dlog("warn", `adsbdb route lookup for ${cs} failed: ${netError(e, "adsbdb")}`);
   }
+  return null;
+}
+async function routeLol(cs, ac){
   try {
     const j = await fetchJSON(relay() ? `${relay()}/routeset` : "https://api.adsb.lol/api/0/routeset", {
       method: "POST", headers: {"Content-Type": "application/json"},
@@ -1757,7 +1771,6 @@ async function routeLookup(cs, ac){
       return {from: {code: a.iata || a.icao, city: a.location || a.name}, to: {code: b.iata || b.icao, city: b.location || b.name}};
     }
   } catch (e) { dlog("debug", `adsb.lol route lookup for ${cs} failed: ${netError(e, "adsb.lol")}`); }
-  dlog("debug", `No route listed for ${cs}`);
   return null;
 }
 async function aircraftLookup(hex){
@@ -1797,8 +1810,9 @@ function enrich(ac){
   const p = (async () => {
     if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); return info; }
     const jobs = [];
-    if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) Object.assign(info, r); }));
-    if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) info.type = t; }));
+    // each answer shows as soon as it comes (the route doesn't wait for the aircraft lookup, or the other way round)
+    if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
+    if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
     await Promise.all(jobs);
     if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
     return info;
@@ -4118,7 +4132,8 @@ const CHANGELOG = [
   {v: "1.25.2", date: "2026-10-14", notes: [
     "The Airport style's lists page is called Coming up; Take-off and Landing carry the take-off and landing pictograms.",
     "About no longer has a cut-off Settings button under it; Settings has a cogwheel icon.",
-    "The board fills faster when it opens or comes back: every data source is asked at once."]},
+    "The board fills faster when it opens or comes back: every data source is asked at once.",
+    "A plane's route shows sooner: both route sources are asked at once."]},
   {v: "1.25.1", date: "2026-10-14", notes: [
     "The welcome greets you within about two seconds, and the board stays hidden until it is done."]},
   {v: "1.25.0.1", date: "2026-10-14", notes: [
