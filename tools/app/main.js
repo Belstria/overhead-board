@@ -114,7 +114,8 @@ def(HERO, "fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","V
 def(HERO, "fromCity",{kind:"chars", n:10, dur:82, loud:1});
 def(HERO, "toCode",  {kind:"chars", n:3, dur:82, style:"amber", label:["To","Nach"], loud:1});
 def(HERO, "toCity",  {kind:"chars", n:10, dur:82, loud:1});
-def(HERO, "type",    {kind:"chars", n:17, dur:66, label:["Aircraft","Flugzeug"]});
+def(HERO, "type",    {kind:"chars", n:16, dur:66, label:["Aircraft","Flugzeug"]});
+def(HERO, "tier",    {kind:"word",  n:1, dur:110, words:"tier"});
 def(HERO, "reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
 def(HERO, "alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
 def(HERO, "trend",   {kind:"word",  n:2, dur:110, words:"trend"});
@@ -130,7 +131,7 @@ function heroLayout(){
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
-    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type"], [.4, 1, .4, 1], 66, 18, 1.45, UM);
+    placeRow(["fromCode", "fromCity", "toCode", "toCity", "type", "tier"], [.4, 1, .4, 1, .15], 66, 18, 1.45, UM);
     placeRow(["alt", "trend", "speed", "pos", "depTime", "arrTime", "airTime"], [.3, .8, .8, 1, .8, .8], 114, 18, 1.45, UM);
     return;
   }
@@ -138,7 +139,7 @@ function heroLayout(){
   placeRow(["airline"], [], 71, 26, 1.45, UM);
   placeRow(["fromCode", "fromCity"], [.4], 124, 27, 1.45, UM);
   placeRow(["toCode", "toCity"], [.4], 178, 27, 1.45, UM);
-  placeRow(["type"], [], 232, 21.4, 1.45, UM);
+  placeRow(["type", "tier"], [.15], 232, 21.4, 1.45, UM);
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
@@ -601,6 +602,7 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
   }
+  if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
   renderLogbook();
 }
 let lbSig = "";
@@ -614,7 +616,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent]);
+  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -633,8 +635,20 @@ function renderLogbook(){
   if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
   if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
   if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+  const g0 = b.game;
+  if (g0) {                                          // the game: points, tiers and the collections
+    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><i class="lamp"></i><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+    const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+      `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+    html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
+      (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
+      `<ul class="ranks cats">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
+  }
   $("lbLists").innerHTML = html;
 }
+// The logbook is read now and then even with its tab closed: the tiers need it.
+setTimeout(() => fetchLogbook(), 4000);
+setInterval(() => { if (tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
 /* Radar: the board's instrument, sized to the phone. North up; the nearest planes listed below it. */
 const RG = {S: 400, cx: 200, cy: 200, R: 172};

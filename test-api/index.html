@@ -475,7 +475,8 @@ def("fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","Von"], 
 def("fromCity",{kind:"chars", n:11, dur:82, loud:1});
 def("toCode",  {kind:"chars", n:3, dur:82, style:"amber", label:["To","Nach"], loud:1});
 def("toCity",  {kind:"chars", n:11, dur:82, loud:1});
-def("type",    {kind:"chars", n:18, dur:66, label:["Aircraft","Flugzeug"]});
+def("type",    {kind:"chars", n:17, dur:66, label:["Aircraft","Flugzeug"]});
+def("tier",    {kind:"word",  n:1, dur:110, words:"tier"});
 def("reg",     {kind:"chars", n:7, dur:66, label:["Reg.","Kennz."]});
 def("alt",     {kind:"chars", n:9, dur:66, drum:DRUM_ALT, align:"right", label:["Altitude","Höhe"]});
 def("trend",   {kind:"word",  n:2, dur:110, words:"trend"});
@@ -518,9 +519,9 @@ pdef("aircraft", "acOwner",   {kind:"chars", n:26, dur:70, label:["Operator","Be
 pdef("aircraft", "acCountry", {kind:"chars", n:14, dur:70, label:["Registered in","Registriert in"]});
 pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:["Route","Route"]});
 // The top half's fields, shown whenever no view is open.
-const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
+const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], radar: [], settings: [], about: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], radar: [], settings: [], about: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -555,6 +556,21 @@ for (let i = 0; i < RV_ROWS; i++) {
   vdef("radar", `rv${i}dir`,    {kind:"chars", n:2, dur:55, loud:.4});
   vdef("radar", `rv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
   vdef("radar", `rv${i}st`,     {kind:"word",  n:9, dur:90, words:"remarks", small:true, loud:.4, label:lab("Status","")});
+}
+// The Collection view (opened from the Logbook): points, the tiers seen, and sets of types to complete.
+const CV_SETS = 9, CV_TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
+const CV_TNAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary"};
+vdef("collection", "cvPoints", {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Points", ""]});
+vdef("collection", "cvToday",  {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Today", ""]});
+vdef("collection", "cvBest",   {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Best day", ""]});
+vdef("collection", "cvStreak", {kind:"chars", n:3, drum:DRUM_ALT, align:"right", dur:70, label:["Streak, days", ""]});
+for (const t of CV_TIERS) {
+  vdef("collection", `cvl_${t}`, {kind:"word", n:1, dur:90, words:"tier", loud:.3, label:[CV_TNAME[t], ""]});
+  vdef("collection", `cvn_${t}`, {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70, loud:.5});
+}
+for (let i = 0; i < CV_SETS; i++) {
+  vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Collections", ""] : null});
+  vdef("collection", `cs${i}n`,    {kind:"chars", n:7, dur:55, loud:.4});
 }
 // The airport style's lists page (pages layout): take-offs on the left, landings on the right, under the plane on top.
 for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
@@ -591,7 +607,7 @@ const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHe
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
-  placeRow(["type","reg","alt","trend","speed","pos"], [.8, .8, .3, .8, .8], Y.row2, MID, 1.45);
+  placeRow(["type","tier","reg","alt","trend","speed","pos"], [.15, .65, .8, .3, .8, .8], Y.row2, MID, 1.45);
   placeRow(["depTime","arrTime","airTime"], [2.6, 2.6], Y.row3, MID, 1.45);
   const lg = !!S.logos, LIST = IW / (lg ? 69.5 : 66);
   for (let i = 0; i < LIST_ROWS; i++) {
@@ -620,6 +636,10 @@ function layout(){
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
+  // the collection view
+  placeRow(["cvPoints", "cvToday", "cvBest", "cvStreak"], [3, 3, 3], 300, IW / 40, 1.45);
+  placeRow(CV_TIERS.flatMap(t => [`cvl_${t}`, `cvn_${t}`]), CV_TIERS.slice(1).flatMap(() => [.3, 2.4]).concat([.3]), 412, IW / 50, 1.45);
+  for (let i = 0; i < CV_SETS; i++) placeRow([`cs${i}name`, `cs${i}n`], [.6], 500 + i * 44, IW / 67, 1.45);
   const als = IW / 66;
   for (let i = 0; i < 5; i++) for (const [k, x0] of [["d", M], ["a", M + 34 * als]])
     placeRow(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), [.6, .6, .6], Y.list0 + i * 44, als, 1.45, x0);
@@ -713,14 +733,34 @@ function grain(){
   g.putImageData(d, 0, 0);
   return grainCv;
 }
+// The spotter's game (1.21): a plane's rarity tier, shown on a flap of its own after the aircraft type.
+const TIER_COL = {common: "#7d838c", uncommon: "#38a653", rare: "#3b7ddd", epic: "#9b55e0", legendary: "#e0aa1f"};
+const TIER_DRUM = ["", "common", "uncommon", "rare", "epic", "legendary"];
+const TIER_NAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary"};
+function drawTierIcon(g, cx, cy, s, tier, col){
+  g.save(); g.translate(cx, cy); g.fillStyle = col; g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = s * .12; g.shadowOffsetY = s * .04;
+  g.beginPath();
+  if (tier === "common") g.arc(0, 0, s * .2, 0, Math.PI * 2);                                   // a dot
+  else if (tier === "uncommon") { g.moveTo(0, -s * .36); g.lineTo(s * .27, 0); g.lineTo(0, s * .36); g.lineTo(-s * .27, 0); }   // a gem
+  else if (tier === "rare") for (let i = 0; i < 8; i++) {                                        // a four-point star
+    const r = i % 2 ? s * .13 : s * .4, a = i * Math.PI / 4 - Math.PI / 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  else if (tier === "epic") { const w = s * .36, b = s * .22, t = -s * .3;                         // a crown
+    g.moveTo(-w, b); g.lineTo(-w, t * .4); g.lineTo(-w * .5, t * .05); g.lineTo(0, t); g.lineTo(w * .5, t * .05); g.lineTo(w, t * .4); g.lineTo(w, b); }
+  else for (let i = 0; i < 10; i++) {                                                            // a five-point star
+    const r = i % 2 ? s * .17 : s * .4, a = i * Math.PI / 5 - Math.PI / 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  g.closePath(); g.fill(); g.restore();
+}
 function tile(f, value, variant = 0){
   const isLogo = f.kind === "logo", isAirline = f.kind === "word" && f.words === "airline";
   let code = "", text = value;
   if (isLogo) { code = value; text = ""; }
   if (isAirline) { const k = value.indexOf("|"); if (k >= 0) { code = value.slice(0, k); text = value.slice(k + 1); } }
   const L = code && code !== "-" ? logo(code) : null, logoOk = !!(L && L.state === "ok");
-  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]} : {};
-  if (f.words === "lamp") text = "";
+  const look = f.kind === "word" && f.words === "remarks" ? (REMARK_LOOK[value] || {}) : f.words === "lamp" && value ? {fill: [value, shade(value, -.2)]}
+    : f.words === "tier" && TIER_COL[value] ? {fill: [shade(TIER_COL[value], .05), shade(TIER_COL[value], -.28)]} : {};
+  if (f.words === "lamp" || f.words === "tier") text = "";
   if (f.words === "remarks" && text) text = T(text);                 // the word in this language; the English one stays the key
   const key = `${f.kind}|${f.words || ""}|${f.style}|${f.small ? 1 : 0}|${f.pw}x${f.ph}|${value}|${logoOk ? 1 : 0}|${variant}|${LANG}|${REAL() ? 1 : 0}`;
   let cv = tiles.get(key);
@@ -776,6 +816,7 @@ function tile(f, value, variant = 0){
     g.fillStyle = fg; g.fillRect(cx - sz * .6, h * .76, sz * 1.2, Math.max(1.5, h * .05));     // the runway
     ax = h * 1.2; aw = w - ax - h * .2;
   }
+  if (f.words === "tier" && TIER_COL[value]) drawTierIcon(g, w / 2, h / 2, Math.min(w, h * 1.1), value, "#fbf8f0");
   if (f.words === "trend") {                 // climbing, level or descending arrow
     text = "";
     if (value) {
@@ -942,6 +983,7 @@ function retarget(c, value, delay){
   else if (c.f.words === "remarks") q = path(REMARKS, base, value);
   else if (c.f.words === "trend") q = path(TRENDS, base, value);
   else if (c.f.words === "lamp") q = [value];
+  else if (c.f.words === "tier") q = path(TIER_DRUM, base, value);
   else if (c.f.kind === "logo") {           // turn past a few logos already on hand, then land
     const pool = [...logos.entries()].filter(([k, L]) => L.state === "ok" && k !== value).map(([k]) => k);
     q = [];
@@ -1166,6 +1208,12 @@ function drawStatic(){
   if (view) return;
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(T(pageTitle(page)[0]), M, Y.listHead);
   if (page === "aplists") g.fillText(T("Landings"), M + 34 * IW / 66, Y.listHead);     // the right-hand list's own title
+  const g0 = game();
+  if (page === "stats" && g0 && !shownEmpty) {
+    g.font = `700 30px ${FONT}`; const tw = g.measureText(T(pageTitle(page)[0])).width;
+    g.font = `600 19px ${FONT}`; g.fillStyle = COL.amber;
+    g.fillText((T("{n} points today", {n: nf.format(g0.today)}) + (g0.best ? " · " + T("best {n}", {n: nf.format(g0.best.points)}) : "")).toUpperCase(), M + tw + 26, Y.listHead - 2);
+  }
   if (airportMode() && !isAc(page) && AP.rwyLine) {                                    // the runways in use
     g.font = `700 30px ${FONT}`; const tw = g.measureText(T(pageTitle(page)[0])).width;
     g.font = `600 19px ${FONT}`; g.fillStyle = COL.amber; g.fillText(AP.rwyLine.toUpperCase(), M + tw + 26, Y.listHead - 2);
@@ -1844,7 +1892,7 @@ function fromRelay(r){
     airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
-    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg,
+    newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier,
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
     fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
 }
@@ -1903,6 +1951,22 @@ function emergencyOf(ac){
   const sq = String(ac.squawk || "");
   if (["7500", "7600", "7700"].includes(sq)) return sq;
   return ac.emergency && ac.emergency !== "none" ? String(ac.emergency) : "";
+}
+// How rare a plane is: legendary for the special ones, epic for a type never seen here before, then by how often the
+// type is in the logbook. Planes already on today's list keep the tier the relay (24+) gave them.
+const LEGENDARY = new Set(Object.entries(SPECIAL_TYPES).filter(([, k]) => k !== "HELICOPTER").map(([t]) => t));
+function tierOf(ac, info){
+  const today = typeof spotted !== "undefined" && spotted.find(e => e.hex === ac.hex && e.tier);
+  if (today) return today.tier;
+  const t = String(ac.t || (info && info.typeCode) || "").toUpperCase();
+  if (emergencyOf(ac) || (ac.dbFlags & 3) || LEGENDARY.has(t)) return "legendary";
+  const b = lbData();
+  if (!t || !b || !b.types) return "";
+  const n = (b.types[t] || {}).count || 0, learning = b.learningUntil && Date.now() < b.learningUntil;
+  if (!n) return learning ? "rare" : "epic";
+  if (n <= 3) return "rare";
+  if (n <= 12 || SPECIAL_TYPES[t] === "HELICOPTER") return "uncommon";
+  return "common";
 }
 function specialOf(x){
   if (x.emergency) return "EMERGENCY";
@@ -2250,7 +2314,7 @@ function renderFeatured(){
   if (!feat) {
     const offline = isOffline();
     ids.forEach(id => setChars(id, ""));
-    setWord("airline", ""); setWord("trend", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
+    setWord("airline", ""); setWord("trend", ""); setWord("tier", ""); setWord("remarks", offline ? "OFFLINE" : lastOk || S.demo ? "NO TRAFFIC" : "");
     renderTimes();
     return;
   }
@@ -2261,7 +2325,7 @@ function renderFeatured(){
   setWord("remarks", featRemark());
   setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
   setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
-  setChars("type", info.type || "", 300); setChars("reg", info.reg || "", 340);
+  setChars("type", info.type || "", 300); setWord("tier", tierOf(ac, info), 330); setChars("reg", info.reg || "", 340);
   const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
@@ -2651,7 +2715,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -2697,7 +2761,7 @@ function switchView(next, opts = {}){
   try { history.replaceState(null, "", location.pathname + location.search + (view ? "#" + view : "")); } catch {}
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
-  else if (view === "logbook") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
+  else if (view === "logbook" || view === "collection") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
   viewLanded();
   placePhoto();
   dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
@@ -2712,6 +2776,7 @@ function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").
 function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
+  else if (view === "collection") renderCollection();
   else if (view === "radar") renderRadarList();
 }
 setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
@@ -2719,6 +2784,7 @@ setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_I
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
   if (view === "logbook") return logbookSummary();
+  if (view === "collection") return T("Every sighting scores by rarity: common 1, uncommon 3, rare 10, epic (a first ever) 25, legendary (a special plane) 50. Types fill the collections.");
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
   if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
   if (view === "about") return T("Version {v} · what changed in each version, the keys, and who made it", {v: VERSION});
@@ -2733,6 +2799,7 @@ function viewStatic(g){
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
   if (view === "spotted") svLegend ? drawLegend(g) : drawSpottedTable(g);
   if (view === "radar") radarStatic(g);
+  if (view === "collection") collectionStatic(g);
 }
 
 function renderAirport(){ if (!view && page === "aplists") renderApLists(); }
@@ -2932,6 +2999,13 @@ function drawLegend(g){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
+  if (view === "logbook" || view === "collection") {
+    const to = view === "logbook" ? "collection" : "logbook";
+    box.innerHTML = `<button class="cap small" type="button">${T(to === "collection" ? "Collection" : "Logbook")}</button>`;
+    box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(to); };
+    box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
+    return true;
+  }
   if (view !== "spotted") { box.innerHTML = ""; return false; }
   if (!box.children.length) {
     box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
@@ -2960,6 +3034,45 @@ function updateViewTools(){
   }
 }
 
+
+/* ---------- the Collection view ---------- */
+const game = () => (lbData() || {}).game || null;
+const SET_NAMES = ["Airbus narrowbodies", "Airbus widebodies", "Boeing narrowbodies", "Boeing widebodies", "Regional jets", "Turboprops", "Giants", "Helicopters", "Business jets"];
+let cvSig = "";
+function renderCollection(){
+  if (view !== "collection") return;
+  const g0 = game(), sig = JSON.stringify(g0 && g0.sets);
+  if (!snapping && sig !== cvSig) { cvSig = sig; drawStatic(); }
+  setChars("cvPoints", g0 ? nf.format(g0.points) : "");
+  setChars("cvToday", g0 ? nf.format(g0.today) : "", 60);
+  setChars("cvBest", g0 && g0.best ? nf.format(g0.best.points) : "", 120);
+  setChars("cvStreak", g0 ? String(g0.streak) : "", 180);
+  TIER_DRUM.slice(1).forEach((t, i) => { setWord(`cvl_${t}`, g0 ? t : "", 240 + i * 40); setChars(`cvn_${t}`, g0 ? nf.format(g0.tiers[t] || 0) : "", 240 + i * 40); });
+  for (let i = 0; i < CV_SETS; i++) {
+    const s = g0 && g0.sets[i], d = 400 + i * 60;
+    setChars(`cs${i}name`, s ? T(s.name) : "", d);
+    setChars(`cs${i}n`, s ? `${s.have.length} / ${s.total}` : "", d + 30);
+  }
+}
+// The progress bar of each set, engraved next to its flaps; a gold rim when it is complete.
+function collectionStatic(g){
+  const g0 = game();
+  if (!g0) return;
+  const ls = IW / 67, x0 = M + 31 * ls, w = W - M - x0;
+  g0.sets.forEach((s, i) => {
+    if (i >= CV_SETS) return;
+    const y = 500 + i * 44 + 8, h = 16, p = s.total ? s.have.length / s.total : 0, done = p >= 1;
+    g.fillStyle = "rgba(0,0,0,.55)"; rr(g, x0, y, w, h, 4); g.fill();
+    g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1; rr(g, x0 + .5, y + .5, w - 1, h - 1, 4); g.stroke();
+    if (p > 0) {
+      const gr = g.createLinearGradient(0, y, 0, y + h);
+      gr.addColorStop(0, done ? "#f2c44e" : "#d5a03a"); gr.addColorStop(1, done ? "#b8861a" : "#8a6a24");
+      g.fillStyle = gr; rr(g, x0 + 2, y + 2, Math.max(6, (w - 4) * p), h - 4, 3); g.fill();
+    }
+    if (done) { g.strokeStyle = TIER_COL.legendary; g.lineWidth = 2; rr(g, x0 - 1, y - 1, w + 2, h + 2, 5); g.stroke(); }
+  });
+}
+
 /* The logbook on the board: totals, categories, and the top of each list on flaps. */
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short"}) : "";
 const typeLabel = (code, name) => TYPES[code] || typeName(code, name).name || code;
@@ -2982,8 +3095,15 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
   }
-  renderLogbookBoard();
+  renderLogbookBoard(); renderCollection();
+  if (feat && !view) setWord("tier", tierOf(feat.o.ac, feat.info));      // the tier needs the logbook
+  const g0 = game(), gs = g0 ? `${g0.today}|${g0.best && g0.best.points}` : "";
+  if (gs !== gameSig) { gameSig = gs; if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic(); }
 }
+let gameSig = "";
+// The logbook is read now and then even with its view closed: the tiers need it.
+setTimeout(() => fetchLogbook(), 4000);
+setInterval(() => { if (view !== "logbook" && view !== "collection") fetchLogbook(); }, 5 * 60000);
 function logbookSummary(){
   if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
   const b = lbData();
@@ -2992,7 +3112,8 @@ function logbookSummary(){
   const learning = b.learningUntil && Date.now() < b.learningUntil;
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
-    (b.categories ? "" : " · " + T("categories are counted from relay version 10 on"));
+    (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
+    (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 function renderLogbookBoard(){
   if (view !== "logbook") return;
@@ -3341,6 +3462,28 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Collection", "Sammlung", "Collection", "Colección", "Verzameling"],
+  ["Points", "Punkte", "Points", "Puntos", "Punten"],
+  ["Best day", "Bester Tag", "Meilleur jour", "Mejor día", "Beste dag"],
+  ["Streak, days", "Serie, Tage", "Série, jours", "Racha, días", "Reeks, dagen"],
+  ["Common", "Gewöhnlich", "Commun", "Común", "Gewoon"],
+  ["Uncommon", "Ungewöhnlich", "Peu commun", "Poco común", "Ongewoon"],
+  ["Rare", "Selten", "Rare", "Raro", "Zeldzaam"],
+  ["Epic", "Episch", "Épique", "Épico", "Episch"],
+  ["Legendary", "Legendär", "Légendaire", "Legendario", "Legendarisch"],
+  ["Collections", "Sammlungen", "Collections", "Colecciones", "Verzamelingen"],
+  ["Airbus narrowbodies", "Airbus-Schmalrumpf", "Airbus monocouloirs", "Airbus de fuselaje estrecho", "Airbus smalrompen"],
+  ["Airbus widebodies", "Airbus-Großraum", "Airbus gros-porteurs", "Airbus de fuselaje ancho", "Airbus widebodies"],
+  ["Boeing narrowbodies", "Boeing-Schmalrumpf", "Boeing monocouloirs", "Boeing de fuselaje estrecho", "Boeing smalrompen"],
+  ["Boeing widebodies", "Boeing-Großraum", "Boeing gros-porteurs", "Boeing de fuselaje ancho", "Boeing widebodies"],
+  ["Regional jets", "Regionaljets", "Jets régionaux", "Reactores regionales", "Regionale jets"],
+  ["Turboprops", "Turboprops", "Turbopropulseurs", "Turbohélices", "Turboprops"],
+  ["Giants", "Giganten", "Géants", "Gigantes", "Reuzen"],
+  ["{n} points today", "{n} Punkte heute", "{n} points aujourd'hui", "{n} puntos hoy", "{n} punten vandaag"],
+  ["best {n}", "Bestwert {n}", "record {n}", "récord {n}", "record {n}"],
+  ["{n} points", "{n} Punkte", "{n} points", "{n} puntos", "{n} punten"],
+  ["{n}-day streak", "{n} Tage in Folge", "série de {n} jours", "racha de {n} días", "reeks van {n} dagen"],
+  ["Every sighting scores by rarity: common 1, uncommon 3, rare 10, epic (a first ever) 25, legendary (a special plane) 50. Types fill the collections.", "Jede Sichtung zählt nach Seltenheit: gewöhnlich 1, ungewöhnlich 3, selten 10, episch (ein erstes Mal) 25, legendär (ein besonderes Flugzeug) 50. Typen füllen die Sammlungen.", "Chaque observation compte selon sa rareté : commun 1, peu commun 3, rare 10, épique (une première) 25, légendaire (un avion spécial) 50. Les types remplissent les collections.", "Cada avistamiento puntúa según su rareza: común 1, poco común 3, raro 10, épico (una primera vez) 25, legendario (un avión especial) 50. Los tipos llenan las colecciones.", "Elke waarneming scoort naar zeldzaamheid: gewoon 1, ongewoon 3, zeldzaam 10, episch (een eerste keer) 25, legendarisch (een bijzonder vliegtuig) 50. Typen vullen de verzamelingen."],
   ["Landing {r}", "Landung {r}", "Atterrissage {r}", "Aterrizaje {r}", "Landing {r}"],
   ["departing {r}", "Start {r}", "décollage {r}", "despegue {r}", "vertrek {r}"],
   ["RUNWAY {r}", "PISTE {r}", "PISTE {r}", "PISTA {r}", "BAAN {r}"],
@@ -3929,6 +4072,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.21", date: "2026-10-14", notes: [
+    "Rarity: every plane is common, uncommon, rare, epic or legendary, shown in colour after its type.",
+    "Points, streaks and a Collection of sets to complete (Logbook → Collection)."]},
   {v: "1.20", date: "2026-10-14", notes: [
     "Airport style shows the runways in use, lit on the radar too.",
     "The Take-off and Landing pages show the plane on a runway screen, with how far it is to touchdown."]},

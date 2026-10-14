@@ -50,7 +50,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 23
+RELAY_VERSION = 24
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -411,6 +411,7 @@ def _record(self, planes, lat, lon):
                 m = re.match(r"^([A-Z]{3})\d", cs)
                 if m:
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
+                score(book, e, self.day)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -420,6 +421,74 @@ def _record(self, planes, lat, lon):
 
 
 Spot.record = _record
+
+
+# ---------- the spotter's game (relay 24): every sighting gets a rarity tier and points ----------
+# Common (grey), uncommon (green), rare (blue), epic (purple: a first ever type or airline) and legendary (gold: the
+# special planes). Points go to the day and the logbook; collections are sets of types to complete.
+TIER_POINTS = {"common": 1, "uncommon": 3, "rare": 10, "epic": 25, "legendary": 50}
+TIERS = list(TIER_POINTS)
+LEGENDARY_TYPES = {"A388", "B741", "B742", "B743", "B744", "B748", "B74S", "B74R", "A3ST", "A337", "A124", "A225", "AN22", "CONC"}
+SETS = [
+    ["Airbus narrowbodies", ["A318", "A319", "A320", "A321", "A19N", "A20N", "A21N", "BCS1", "BCS3"]],
+    ["Airbus widebodies", ["A332", "A333", "A338", "A339", "A343", "A346", "A359", "A35K", "A388"]],
+    ["Boeing narrowbodies", ["B736", "B737", "B738", "B739", "B37M", "B38M", "B39M", "B752", "B753"]],
+    ["Boeing widebodies", ["B762", "B763", "B764", "B772", "B77L", "B77W", "B788", "B789", "B78X", "B744", "B748"]],
+    ["Regional jets", ["E170", "E175", "E75L", "E190", "E195", "E290", "E295", "CRJ7", "CRJ9", "CRJX"]],
+    ["Turboprops", ["AT43", "AT45", "AT72", "AT75", "AT76", "DH8A", "DH8C", "DH8D", "SF34", "JS41"]],
+    ["Giants", ["A388", "B744", "B748", "A3ST", "A337", "A124", "A225", "C17", "C5M", "A400"]],
+    ["Helicopters", ["EC35", "EC45", "EC30", "EC55", "EC75", "AS50", "AS65", "A139", "A169", "H160", "B06", "B407", "R44", "S76", "NH90"]],
+    ["Business jets", ["C25A", "C25B", "C560", "C56X", "C680", "C68A", "C750", "CL35", "CL60", "GLF5", "GLF6", "GLEX", "F2TH", "FA7X", "E55P", "LJ45", "PC24"]],
+]
+
+
+def tier_of(book, e):
+    t = e.get("typeCode") or ""
+    if e.get("emergency") or e.get("military") or e.get("interesting") or t in LEGENDARY_TYPES or t in MILITARY_TYPES:
+        return "legendary"
+    if e.get("newType") or e.get("newAirline"):
+        return "epic"
+    n = (book.get("types", {}).get(t) or {}).get("count") if t else None
+    if n is not None and n <= 3:
+        return "rare"
+    if (n is not None and n <= 12) or category_of(e) in ("helicopter", "bizjet", "private"):
+        return "uncommon"
+    return "common"
+
+
+def score(book, e, day):
+    """Give a new sighting its tier and add its points to the day and the logbook."""
+    tier = tier_of(book, e)
+    e["tier"] = tier
+    pts = TIER_POINTS[tier]
+    book["points"] = book.get("points", 0) + pts
+    days = book.setdefault("days", {})
+    days[day] = days.get(day, 0) + pts
+    for k in sorted(days)[:-400]:
+        del days[k]
+    tiers = book.setdefault("tiers", {})
+    tiers[tier] = tiers.get(tier, 0) + 1
+    if TIERS.index(tier) >= TIERS.index("rare"):
+        rd = book.setdefault("rareDays", [])
+        if day not in rd:
+            rd.append(day)
+            del rd[:-400]
+
+
+def game_json(book, day):
+    days = book.get("days", {})
+    best = max(days.items(), key=lambda kv: kv[1]) if days else None
+    rd, streak = set(book.get("rareDays", [])), 0
+    d = datetime.date.fromisoformat(day)
+    if day not in rd:
+        d -= datetime.timedelta(days=1)                       # today doesn't break the streak until it's over
+    while d.isoformat() in rd:
+        streak += 1
+        d -= datetime.timedelta(days=1)
+    have = book.get("types", {})
+    return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
+            "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
+            "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS]}
 
 
 # ---------- what kind of flight a sighting is, from free data only (the logbook stays the same with or without
@@ -1024,6 +1093,7 @@ def day_stats(entries, over_km):
             "lowest": slim(low), "highest": slim(high), "fastest": slim(fast), "first": slim(first),
             "topAirline": {"code": top[0][0], "name": names.get(top[0][0], ""), "count": top[0][1]} if top else None,
             "newTypes": sum(1 for e in entries if e.get("newType")),
+            "points": sum(TIER_POINTS.get(e.get("tier"), 0) for e in entries),
             "newAirlines": sum(1 for e in entries if e.get("newAirline")),
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
@@ -1048,7 +1118,8 @@ def logbook_json(spot):
                 "learningUntil": int((b.get("startedTs", 0) + LEARN_S) * 1000), "categories": b.get("categories", {}),
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
-                "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]]}
+                "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
+                "game": game_json(b, spot.day or board_day())}
 
 
 def metar(ids):
