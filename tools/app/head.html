@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Fallblatt</title>
 <meta name="theme-color" content="#141517">
 <meta name="mobile-web-app-capable" content="yes">
@@ -44,7 +44,8 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(ellipse 90% 70% at 50% 42%,rgba(0,0,0,0) 55%,rgba(0,0,0,.42))}
 .wrap{position:relative;max-width:560px;margin:0 auto;padding:0 var(--gut)}
 /* the header plate: logo, title and the clock on flaps; it stays at the top while the page scrolls */
-#top{position:sticky;top:0;z-index:5;padding-top:env(safe-area-inset-top);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+html{touch-action:manipulation}            /* no zooming in on a double tap (1.34) */
+#top{position:sticky;top:0;z-index:5;padding-top:calc(env(safe-area-inset-top) + 8px);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.7),0 8px 18px rgba(0,0,0,.38)}
 #top .wrap{display:flex;align-items:center;gap:11px;padding-top:10px;padding-bottom:11px}
 #mark{width:40px;height:40px;flex:none}
@@ -244,6 +245,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .favAdd input{flex:1;min-width:160px}
 .favAdd .cap{width:auto;padding:0 14px}
 .pushKinds{margin:6px 0 0 4px}
+.acts a.cap{text-decoration:none;display:grid;place-items:center}
 /* the radar: a tapped plane's card */
 #lookCv{cursor:pointer}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
@@ -418,7 +420,6 @@ body.arOpen{overflow:hidden}
 </style>
 </head>
 <body>
-<div id="sheet" hidden></div>
 <div id="arView" hidden>
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
@@ -534,7 +535,7 @@ body.arOpen{overflow:hidden}
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
-      <div class="rvCard" id="rvCard" hidden></div>
+      <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>
     </div>
     <div class="rcol">
@@ -551,6 +552,7 @@ body.arOpen{overflow:hidden}
     <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save.">Turn the knobs and flip the switches, then press Save.</p>
     <div id="cockpit" style="margin-top:14px"></div>
     <div id="favBox" hidden></div>
+    <div id="setExtra"></div>
     <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
   <p class="brandline">Fallblatt</p>
