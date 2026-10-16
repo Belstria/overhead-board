@@ -218,8 +218,10 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
 /* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
-.fl .more{all:unset;position:absolute;right:2px;bottom:4px;padding:2px 8px;border-radius:6px;font:700 18px/1 var(--f-board);color:var(--muted);cursor:pointer}
-.fl .more:active{background:rgba(255,255,255,.08)}
+.fl[data-more]{cursor:pointer}
+.fl[data-more]:active{background:rgba(255,255,255,.06)}
+.fl .more{position:absolute;left:8px;bottom:7px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
+  font:700 13px/18px var(--f-board);color:var(--muted)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
@@ -242,6 +244,19 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .favAdd input{flex:1;min-width:160px}
 .favAdd .cap{width:auto;padding:0 14px}
 .pushKinds{margin:6px 0 0 4px}
+/* the radar: a tapped plane's card */
+#lookCv{cursor:pointer}
+.rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
+.rvCard .rcX{all:unset;position:absolute;right:8px;top:6px;width:28px;height:28px;text-align:center;font:600 22px/28px var(--f-board);color:var(--muted);cursor:pointer}
+.rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
+.rcHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:28px}
+.rcHead strong{font:700 20px var(--f-board);color:var(--ink)}
+.rcHead span{color:var(--muted);font:600 14px var(--f-board)}
+.rcRoute{margin:6px 0 2px;font:600 14px var(--f-board);color:var(--amber)}
+.rvCard .acts{margin-top:8px}
+.rvCard .acts .cap{width:auto;padding:0 12px}
+.flights .rv{cursor:pointer}
+.flights .rv.sel{background:rgba(255,255,255,.07)}
 /* Sky view: the camera, full screen, with the labels drawn over it */
 #arView{position:fixed;inset:0;z-index:70;background:#000;overflow:hidden;touch-action:none}
 #arView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -464,7 +479,7 @@ body.arOpen{overflow:hidden}
         <div class="look" id="look" hidden>
         <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
         <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
-          <span class="lookActs"><button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button>
+          <span class="lookActs">
           <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
       </div>
         <dl class="facts" id="acFacts"></dl>
@@ -518,6 +533,8 @@ body.arOpen{overflow:hidden}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+      <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
+      <div class="rvCard" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>
     </div>
     <div class="rcol">

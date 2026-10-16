@@ -136,7 +136,7 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
-- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the **⋯** on any row of the lists, or
+- **Favourites and hidden planes** (1.31, relay 31): in the phone app, tapping any row of the lists (the **⋯**), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
@@ -179,7 +179,11 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes, and its last
   row shows the rarest plane of the day and the day's points.
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
-  the spotting radius and the airport's runways, and the twelve nearest planes on flaps beside it.
+  the spotting radius and the airport's runways, and the planes within the spotting radius on flaps beside it. In the
+  Airport style (1.33) it is centred on the home airport, with the spotting radius around the airport and the logo
+  marking your place, and the list gives distances from the airport and the airport statuses (TAKE-OFF, FINAL ...).
+  Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
+  pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
   painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test-api
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
@@ -221,7 +225,7 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   (Settings, or `?theme=frankfurt` / `?theme=blue`).
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
   switch, a thumbwheel and a push button; the flaps keep their synthesised clack (credited in About; see
-  [tools/sounds/](tools/sounds/README.md)). Settings → Sounds → CLASSIC brings back the earlier synthesised sounds.
+  [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
 - **Worn hardware**: modules sit very slightly out of line and the odd flap hesitates or catches, and the panel has
@@ -278,15 +282,17 @@ Five buttons along the bottom:
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Further down the records, this week's bingo and the trophies.
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
-  with north up. On https (the public address) **Use the compass** turns the dial with the phone, so the arrow points
-  at the plane; iPhones ask first.
+  with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
+  points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
 - **Sky view** (Now → Where to look → Sky view, 1.30; https only): the camera full screen, with a label on every plane
   within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
   The phone asks for the camera and the motion sensors the first time.
-- **Radar**: the radar instrument and the nearest planes.
+- **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
+  for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
+  Hide… (1.33).
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
