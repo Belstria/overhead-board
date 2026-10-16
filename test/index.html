@@ -5043,6 +5043,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.36", date: "2026-10-17", notes: [
+    "In the app's Airport style the take-offs and landings are split-flap rows like the board; tap a row for the plane, its place for the airport.",
+    "The Take-off / Landing switch stays when there is no plane on that side.",
+    "The details list under the photo is gone in the Airport style too."]},
   {v: "1.35.2", date: "2026-10-17", notes: [
     "One test board with every feature; the old second test address leads to it."]},
   {v: "1.35.1", date: "2026-10-17", notes: [

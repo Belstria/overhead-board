@@ -193,7 +193,17 @@ placeRow(["naReg", "naHex", "naFlight"], [1.5, 1.5], 18, 20.4, 1.45, UM);
 placeRow(["naType"], [], 64, 20.4, 1.45, UM);
 placeRow(["naOwner"], [], 110, 20.4, 1.45, UM);
 placeRow(["naCountry", "naRoute"], [2], 156, 20.4, 1.45, UM);
-RECENTP.off = APP.off = ACP.off = true;
+// Upright, the take-offs and the landings are two flap panels of their own (the board's rows, a phone's width).
+const APDP = makePanel($("apDP"), 390, 166), APAP = makePanel($("apAP"), 390, 166);
+for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) for (let i = 0; i < 5; i++) {     // AP_ROWS (defined further down)
+  const dep = k === "d", lab = en => i === 0 ? [en, ""] : null, s = 13, id = c => `nu${k}${i}${c}`;
+  def(P, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
+  def(P, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
+  def(P, id("city"),   {kind:"chars", n:7, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
+  def(P, id("st"),     {kind:"word",  n:7, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  placeRow(["time", "flight", "city", "st"].map(id), [.4, .4, .4], 18 + i * 30, s, 1.45, UM);
+}
+RECENTP.off = APP.off = ACP.off = APDP.off = APAP.off = true;
 const CLOCK = makePanel($("clockP"), 112, 34);
 def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
 placeRow(["clock"], [], 4, 22.4, 1.25, 1);
@@ -490,7 +500,7 @@ function renderRecent(){
     setWord(id("remarks"), e ? remarkFor(e) : "", d + 300);
   }
 }
-let shownPhoto = null, factsSig = "";
+let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
   nowEmptyNote(); nowPanels();
@@ -513,7 +523,6 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   paintRwy();
-  const route = info.from && info.to ? `${code3(info.from) || info.from.code} → ${code3(info.to) || info.to.code}` : "";
   setChars("naReg", info.reg || d.reg || "");
   setChars("naHex", feat.hex.toUpperCase(), 60);
   setChars("naFlight", info.flightNo || "", 120);
@@ -521,15 +530,6 @@ function renderAircraftInfo(){
   setChars("naOwner", liveryLine(info) || d.owner || info.airline || "", 240);
   setChars("naCountry", d.country || "", 300);
   setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
-  const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
-    ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
-    ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
-    ["Remarks", "", remarkLines(feat.o.ac, info).join(" · "), true]].filter(f => f[2]);
-  $("acFacts").style.display = airportMode() ? "" : "none";
-  const sig = JSON.stringify(facts);
-  if (sig === factsSig) return;
-  factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd${en === "Aircraft" ? " data-ty" : ""}>${escH(v)}</dd></div>`).join("");
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -1192,26 +1192,23 @@ const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E32
 /* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,
    then the take-offs and the landings as lists (in place of Recent flights). */
-function apRowHtml(e){
-  const info = e.info || baseInfo(e.ac), place = e.kind === "dep" ? info.to : info.from;
-  const route = place ? (e.kind === "dep" ? `<i>→</i>${placeHtml(place)}` : `${placeHtml(place)}<i>→</i>`) : "";
-  const meta = [info.type || e.ac.t, e.ac.r].filter(Boolean).map(escH).join(" · ");
-  return `<li class="fl"><time>${e.t ? hhmm(new Date(e.t)) : ""}</time>` +
-    `<div class="who"><strong>${escH(apFlight(e))}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}</div>${chip(e.st)}` +
-    `${route ? `<div class="rt">${route}</div>` : ""}<div class="meta"><span>${meta}</span><span>${e.alt != null ? altText(e.alt) : e.ground ? T("on the ground") : ""}</span></div></li>`;
-}
 let apSig = "";
 function renderAirport(){
   if (tab !== "now" || !airportMode()) return;
   const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
-    T("Planes taking off from and landing at {where}. Times: when they took off, and when they're expected on the ground.", {where: apName()}) +
-    (AP.rwyLine ? " " + AP.rwyLine + "." : "");
-  const deps = AP.deps.map(apRowHtml).join("") || `<li class="empty">${escH(T("No take-offs right now."))}</li>`;
-  const arrs = AP.arrs.map(apRowHtml).join("") || `<li class="empty">${escH(T("No landings coming up right now."))}</li>`;
-  const sig = sub + deps + arrs + S.units;
+    AP.rwyLine ? AP.rwyLine + "." : "";
+  const row = e => [e.t, apFlight(e), apPlace(e), e.st].join("|");
+  const sig = [sub, AP.lat != null, AP.deps.map(row).join("~"), AP.arrs.map(row).join("~")].join("#");
   if (sig === apSig) return;
   apSig = sig;
-  $("apSub").textContent = sub; $("apDeps").innerHTML = deps; $("apArrs").innerHTML = arrs;
+  $("apSub").textContent = sub; $("apSub").hidden = !sub;
+  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < AP_ROWS; i++) {   // upright
+    const e = list[i], id = c => `nu${k}${i}${c}`, d = i * 60;
+    setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
+    setChars(id("flight"), e ? apFlight(e) : "", d + 20);
+    setChars(id("city"), e ? apPlace(e) : "", d + 60);
+    setWord(id("st"), e ? e.st : i === 0 && AP.lat != null ? "NO TRAFFIC" : "", d + 100);
+  }
   for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < NOW_ROWS; i++) {   // on flaps, on its side
     const e = list[i], id = c => `na${k}${i}${c}`, d = i * 60;
     setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
@@ -1306,7 +1303,8 @@ function sideways(){
 function nowPanels(){
   const on = tab === "now" && SIDEWAYS.matches, ap = airportMode(), lists = on && nowPage === "lists";
   let changed = false;
-  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat]])
+  const up = tab === "now" && !SIDEWAYS.matches && ap;
+  for (const [P, show] of [[RECENTP, lists && !ap], [APP, lists && ap], [ACP, on && isAcPage(nowPage) && !!feat], [APDP, up], [APAP, up]])
     if (P.off === show) { P.off = !show; changed = true; }
   if (changed) refreshPanels(true);
 }
@@ -1423,9 +1421,6 @@ function settingsExtra(){
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
-$("acFacts").addEventListener("click", e => {
-  if (feat && feat.o && e.target.closest("[data-ty]")) typeCard({typeCode: feat.o.ac.t, type: (feat.info || baseInfo(feat.o.ac)).type});
-});
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
@@ -1441,6 +1436,14 @@ $("hero").addEventListener("click", e => {
   else if (id === "toCode" || id === "toCity") placeCard(info.to);
   else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type});
   else planeCard(feat.o);
+});
+for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", e => {
+  const r = P.el.getBoundingClientRect(), y = (e.clientY - r.top) * P.h / r.height, x = (e.clientX - r.left) * P.w / r.width;
+  const i = Math.floor((y - 12) / 30), row = (k === "d" ? AP.deps : AP.arrs)[i];
+  if (!row || i < 0) return;
+  const city = fields[`nu${k}${i}city`], info = row.info || baseInfo(row.ac);
+  if (x >= city.x && x <= city.x + city.n * city.step) return placeCard(k === "d" ? info.to : info.from);
+  planeCard({ac: row.ac, alt: row.alt});
 });
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
@@ -1671,7 +1674,7 @@ function applySettings(n){
     if (relayV5()) syncSightings();
   }
   applyTheme(); updateWhere();
-  recentSig = svSig = lbSig = factsSig = ""; shownPhoto = null;
+  recentSig = svSig = lbSig = ""; shownPhoto = null;
   if (tab === "now") applyMode();
   renderLists(); renderFeatured(); renderAircraftInfo(); updateFooter(); poll(true); sayHello();
 }
