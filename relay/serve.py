@@ -54,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 31
+RELAY_VERSION = 32
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -70,8 +70,8 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
-BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js))$")  # the phone app's icons, its service worker
-FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript"}
+BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript", "wav": "audio/wav"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "public_url")
 DATA_DIR = Path(__file__).with_name("data")
@@ -2854,7 +2854,8 @@ def window_check(who, subs, centre, spot, st):
             k, x = mine[0]
             why = ptext("why_" + k, lang, x=x.title() if k == "watch" else x)
             text = ptext("overhead", lang, what=what, m=m, alt=altx) if cpa < 1.2 else ptext("over", lang, what=what, m=m, dir=d, alt=altx)
-            _deliver([sub], {"title": why, "body": text, "tag": "window-" + str(ac.get("hex")), "url": "/app/"}, urgent=True)
+            bell = "emergency" if k == "emergency" else "fav" if k == "fav" else "special"
+            _deliver([sub], {"title": why, "body": text, "tag": "window-" + str(ac.get("hex")), "kind": bell, "url": "/app/"}, urgent=True)
             event("info", f"Window alert for {who}: {what} ({k})")
 
 

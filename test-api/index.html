@@ -382,7 +382,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
   theme:"classic", rotateS:30, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
 // A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
 // profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
@@ -1514,11 +1514,31 @@ function clack(n){
 }
 
 // A soft station chime: two falling notes for special aircraft, three rising ones for favourites.
-function chime(kind){
-  if (!S.chimes || nightOn || !actx || actx.state !== "running") return;
-  const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
+// The airport bell (1.32): three soft notes rising, like the chime before an announcement in a terminal. Each is a
+// vibraphone-like bar (its fundamental with the 4th and 10th partials, a slow tremolo, a long ring) struck by a soft
+// mallet; the last rings longest. tools/sounds/make_bell.py renders the same into app/airport-bell.wav.
+const BELL_NOTES = [[392.00, 0, 2.6], [523.25, .55, 2.6], [659.25, 1.1, 4.0]];
+function airportBell(out, t0){
+  for (const [f, dt, len] of BELL_NOTES) {
+    const t = t0 + dt, bus = actx.createGain(), trem = actx.createOscillator(), depth = actx.createGain();
+    bus.gain.value = .84; trem.frequency.value = 4.6; depth.gain.value = .16;
+    trem.connect(depth).connect(bus.gain); bus.connect(out); trem.start(t); trem.stop(t + len + .1);
+    for (const [mult, amp, dec] of [[1, .30, len], [4, .055, len * .3], [10, .012, len * .1]]) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = "sine"; o.frequency.value = f * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .006); g.gain.exponentialRampToValueAtTime(amp * .004, t + dec);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + dec + .05);
+    }
+  }
+}
+// The chime for a kind of plane; `opts.force` plays it even with chimes off or at night (a preview), `opts.set` picks
+// the bell (Settings → Special bell) before it is saved.
+function chime(kind, opts = {}){
+  if ((!opts.force && (!S.chimes || nightOn)) || !actx || actx.state !== "running") return;
   const t0 = actx.currentTime + .03, out = actx.createGain();
   out.gain.value = .55; out.connect(sfxOut());
+  if (kind === "special" && (opts.set || S.bell || "airport") === "airport") return airportBell(out, t0);
+  const notes = kind === "fav" ? [[523.25, 0], [659.25, .17], [783.99, .34]] : kind === "emergency" ? [[587.33, 0], [440, .32], [587.33, .64], [440, .96]] : [[659.25, 0], [523.25, .55]];
   for (const [freq, dt] of notes) {
     for (const [mult, amp] of [[1, .26], [2.01, .07], [3.02, .035], [4.2, .015]]) {
       const o = actx.createOscillator(), g = actx.createGain(), t = t0 + dt;
@@ -3752,6 +3772,11 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Special bell", "Glocke für Besonderes", "Carillon spécial", "Campana especial", "Speciale bel"],
+  ["AIRPORT", "FLUGHAFEN", "AÉROPORT", "AEROPUERTO", "LUCHTHAVEN"],
+  ["The sound for special planes: an AIRPORT announcement bell, or the CLASSIC two-note chime. Plays when you switch.", "Der Klang für besondere Flugzeuge: eine FLUGHAFEN-Durchsageglocke oder der KLASSISCHE Zweiklang. Spielt beim Umschalten.", "Le son des avions spéciaux : un carillon d'annonce d'AÉROPORT, ou le CLASSIQUE à deux notes. Joué quand vous changez.", "El sonido de los aviones especiales: una campana de aviso de AEROPUERTO o el CLÁSICO de dos notas. Suena al cambiar.", "Het geluid voor bijzondere toestellen: een LUCHTHAVEN-omroepbel of de KLASSIEKE tweetoon. Speelt bij het omschakelen."],
+  ["With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → fallblatt.app → Sound and pick it.", "Bei offener App spielt eine Benachrichtigung die Glocke. Um sie auch bei geschlossener App zu hören (Android): Glocke speichern, dann in den Android-Einstellungen Benachrichtigungen → Chrome → fallblatt.app → Ton öffnen und sie wählen.", "Application ouverte, une notification joue le carillon. Pour l'entendre application fermée (Android) : enregistrez le carillon, puis dans les réglages d'Android ouvrez Notifications → Chrome → fallblatt.app → Son et choisissez-le.", "Con la app abierta, una notificación suena con la campana. Para oírla con la app cerrada (Android): guarda la campana y en los ajustes de Android abre Notificaciones → Chrome → fallblatt.app → Sonido y elígela.", "Met de app open speelt een melding de bel. Om hem ook met de app dicht te horen (Android): bewaar de bel en kies hem in de Android-instellingen bij Meldingen → Chrome → fallblatt.app → Geluid."],
+  ["Save the bell", "Glocke speichern", "Enregistrer le carillon", "Guardar la campana", "Bel bewaren"],
   ["Favourites", "Favoriten", "Favoris", "Favoritos", "Favorieten"],
   ["Hidden", "Ausgeblendet", "Masqués", "Ocultos", "Verborgen"],
   ["Favourites & hidden", "Favoriten & ausgeblendet", "Favoris et masqués", "Favoritos y ocultos", "Favorieten en verborgen"],
@@ -4585,6 +4610,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.32", date: "2026-10-17", notes: [
+    "A new bell for special planes, like the chime before an airport announcement; Settings switches between it and the old chime and plays it.",
+    "App notifications play the bell while the app is open, and only one shows at a time."]},
   {v: "1.31", date: "2026-10-16", notes: [
     "Hide a plane, or make it a favourite, straight from the lists or This aircraft in the app; hidden planes stay off the board and out of notifications.",
     "A favourites manager in the app's Settings: airlines, aircraft types, registrations and flights, picked from a list.",
@@ -4792,7 +4820,8 @@ const COCKPIT = [
     {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
-    {k: "chimes", type: "switch", label: "Chimes"}]},
+    {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]},
   {title: ["Control", "Steuerung"], actions: true},
   {title: ["Night", "Nacht"], cols: 4, items: [
     {k: "night", type: "switch", label: "Night mode"},
@@ -4836,6 +4865,7 @@ const HINTS = {
   sound: "The clatter of the flaps.",
   soundSet: "RECORDED real switches and knobs, or CLASSIC synthesised sounds.",
   chimes: "A chime for special planes and favourites.",
+  bell: "The sound for special planes: an AIRPORT announcement bell, or the CLASSIC two-note chime. Plays when you switch.",
   night: "Dims and quiets the board at night.",
   nightFrom: "When night mode starts.",
   nightTo: "When night mode ends.",
@@ -4899,6 +4929,7 @@ function cockpitOpen(){
       el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
     } else if (el.classList.contains("toggle")) el.onclick = () => {
       draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
+      if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
     };
     else if (el.classList.contains("wheel")) {
       const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
