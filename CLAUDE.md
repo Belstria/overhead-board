@@ -218,6 +218,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `radarTrack` in both styles; `radarCentre()` is the home airport in the Airport style and `radarRows()` gives the list
   beside the radar (spotting radius around the centre, airport statuses); the app's radar ringing a tapped plane
   (`radar.sel`, `radar.hits`) and showing `renderRadarCard()`; Today rows are tappable (`data-more` on the `li`).
+- Cards (1.34, shared: the board's "cards" block before the airport mode, copied by the app; styles at the end of the
+  board's `<style>`, scoped to `#cardBox` and `.cardish`): `cardOpen`/`cardClose`, `airlineCard`, `placeCard` (relay
+  `/airport`), `planeBody`/`planeCard`, `listSheet`, `favManager`/`favCard`, `listsSave` (calls each side's
+  `listsChanged`), Wikipedia summaries (`wikiPage`, `wikiFind`, English pages) and model pictures (`modelPic`,
+  `isModelPic`; `featPhoto` on the board). The board maps a click to its own units (`fieldAt`, `boardTap`; a double
+  tap is `toggleFullscreen`), the app its hero panel. `remarkLines()` fills the Remarks flap (`seen` field) and facts.
+  `keys/index.html` is the remote key test.
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`

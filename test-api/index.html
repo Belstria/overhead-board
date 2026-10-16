@@ -28,6 +28,7 @@ html,body{height:100%;margin:0}
 body{background:var(--wall);color:var(--ink);font:15px/1.45 var(--f-board);overflow:hidden;-webkit-user-select:none;user-select:none}
 body.idle{cursor:none}
 #stage{position:absolute;background:var(--housing);overflow:hidden}
+html{touch-action:manipulation}
 #stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #fx{cursor:pointer}
 
@@ -41,6 +42,8 @@ footer{
 body.idle footer{opacity:0;pointer-events:none}
 footer{background:linear-gradient(transparent,rgba(0,0,0,.6));padding-top:calc(6px*var(--k));padding-bottom:calc(10px*var(--k));z-index:4;pointer-events:none}
 footer #status,footer .actions{pointer-events:auto}
+body.tiny footer{font-size:max(7px,calc(17px*var(--k)))}
+body.tiny #btnDiag{display:none}
 #btnNew{color:#17140e;background:#f2c44e;border:0;border-radius:calc(4px*var(--k));padding:calc(4px*var(--k)) calc(10px*var(--k));margin-right:calc(16px*var(--k));font-weight:700;cursor:pointer;animation:lampOn .55s linear}
 .pip{position:absolute;left:calc(20px*var(--k));bottom:calc(18px*var(--k));width:max(6px,calc(9px*var(--k)));height:max(6px,calc(9px*var(--k)));
   border-radius:50%;opacity:0;transition:opacity .6s;pointer-events:none}
@@ -172,8 +175,8 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:1;transform:translate(-50%,0);transition-delay:.35s}
 @media (pointer:coarse){   /* a phone: inside the control's own cell (plates clip what sticks out), after a tap */
   .inst[data-hint]::after{left:calc(6px*var(--k));right:calc(6px*var(--k));bottom:calc(6px*var(--k));width:auto;max-width:none;transform:none;text-align:center}
-  .inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:0}
-  .inst[data-hint].hinting::after{opacity:1;transition-delay:0s}
+  .inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:0;transform:none}
+  .inst[data-hint].hinting::after{opacity:1;transform:none;transition-delay:0s}
   .inst[data-hint]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 }
 .inst>span{order:-1;align-self:stretch;padding:0 calc(2px*var(--k)) calc(5px*var(--k));border-bottom:1px solid rgba(214,208,194,.16);
@@ -269,6 +272,48 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate dl.keys dd{margin:0;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
 .plate p b{color:#e8e3d6}
 .plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
+
+/* Cards (1.34): a plane, an airline or a place, the favourite/hide sheet and the favourites manager; over the board or
+   the phone app, sized in screen pixels (not with the board) so they read the same everywhere. */
+#cardBox{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);font-family:var(--f-board)}
+#cardBox[hidden]{display:none}
+@media (min-width:700px){#cardBox{align-items:center}}
+#cardBox .cardIn{position:relative;width:100%;max-width:560px;max-height:88vh;overflow:auto;box-sizing:border-box;padding:18px 18px calc(env(safe-area-inset-bottom) + 16px);
+  border-radius:16px 16px 0 0;background:linear-gradient(#1b1c1f,#111214);border:1px solid rgba(255,255,255,.08);color:#f3f0e8;font-size:15px;line-height:1.4;text-align:left}
+@media (min-width:700px){#cardBox .cardIn{border-radius:16px}}
+#cardBox .cardX{all:unset;position:absolute;right:10px;top:8px;width:34px;height:34px;text-align:center;font:600 26px/34px var(--f-board);color:#959aa3;cursor:pointer}
+#cardBox h3{margin:0;font:700 22px/1.2 var(--f-board);color:#f3f0e8;padding-right:34px}
+#cardBox .cHead,.cardish .cHead{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+#cardBox .cHead span,.cardish .cHead span{color:#959aa3;font:600 12px var(--f-board);letter-spacing:.12em;text-transform:uppercase}
+#cardBox .cLogo,.cardish .cLogo{height:38px;max-width:120px;object-fit:contain;background:#f3f0e8;border-radius:6px;padding:4px 6px}
+#cardBox .cPic,.cardish .cPic{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 4px}
+#cardBox .cCredit,.cardish .cCredit{margin:0 0 10px;color:#959aa3;font-size:11px}
+#cardBox .cFacts,.cardish .cFacts{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:10px 0}
+#cardBox .cFacts div.w,.cardish .cFacts div.w{grid-column:1/3}
+#cardBox .cFacts dt,.cardish .cFacts dt{color:#f0b429;font:600 11px var(--f-board);letter-spacing:.12em;text-transform:uppercase}
+#cardBox .cFacts dd,.cardish .cFacts dd{margin:2px 0 0;font:600 15px var(--f-board);color:#f3f0e8}
+#cardBox .cRoute,.cardish .cRoute{margin:4px 0 8px;font:600 15px var(--f-board);color:#f0b429}
+#cardBox .cWiki,.cardish .cWiki{margin:8px 0;color:#c9c4b6;font-size:14px}
+#cardBox .cWiki a,.cardish .cWiki a{color:#f0b429}
+#cardBox .cChip,.cardish .cChip{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:5px;font:700 12px var(--f-board);letter-spacing:.06em;vertical-align:middle}
+#cardBox .cLink,.cardish .cLink{all:unset;cursor:pointer;color:#f0b429;text-decoration:underline;text-decoration-color:rgba(240,180,41,.4);text-underline-offset:3px}
+#cardBox .cBtns,.cardish .cBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:42px;padding:8px 14px;border-radius:8px;background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
+  font:700 13px/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 2px 0 #000,0 0 0 2px #050505}
+#cardBox .cBtn.on,.cardish .cBtn.on{outline:3px solid #f0b429;outline-offset:1px}
+#cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
+#cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+#cardBox .shH,.cardish .shH{margin:14px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
+#cardBox .shRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#cardBox .shRow .cBtn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:7px 8px;font-size:12px}
+#cardBox .note,.cardish .note{min-height:1.2em;color:#959aa3;font-size:13px;margin:8px 0 0}
+#cardBox .chips,.cardish .chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+#cardBox .chips li,.cardish .chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board)}
+#cardBox .chips small,.cardish .chips small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#959aa3}
+#cardBox .chips button,.cardish .chips button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;color:#959aa3}
+#cardBox .favAdd,.cardish .favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+#cardBox .favAdd select,#cardBox .favAdd input,.cardish .favAdd select,.cardish .favAdd input{background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
+#cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:160px}
 </style>
 </head>
 <body>
@@ -497,7 +542,7 @@ def("depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","
 def("arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def("airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
 def("toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
-def("seen",    {kind:"chars", n:20, dur:60, style:"amber", label:["Seen here",""]});
+def("seen",    {kind:"chars", n:20, dur:60, style:"amber", label:["Remarks",""]});
 for (let i = 0; i < LIST_ROWS; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null;
   def(`l${i}time`,   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab("Time","Zeit")});
@@ -689,6 +734,7 @@ function resize(){
   const cssW = W * K, cssH = H * K;
   Object.assign(stage.style, {width: cssW + "px", height: cssH + "px", left: (vw - cssW) / 2 + "px", top: (vh - cssH) / 2 + "px"});
   document.documentElement.style.setProperty("--k", K);
+  document.body.classList.toggle("tiny", K < .5);
   for (const cv of [bg, fx]) { cv.width = Math.round(W * PX); cv.height = Math.round(H * PX); }
   clearTiles(); geometry(); drawStatic(); redrawAll(); placePhoto(); placeRail();
   if (view === "radar") resizeRadar();
@@ -1273,10 +1319,17 @@ function photoBox(){              // where the picture itself goes, in board uni
   if (st === "engraved") return {x: x + 18, y: y + 18, w: w - 36, h: h - 36};
   return {x, y, w, h};
 }
-function photoReady(){
-  const d = feat && detailsOf(feat.hex), img = $("photoImg");
-  return d && d.photo && img.getAttribute("src") === d.photo && img.complete && img.naturalWidth ? img : null;
+// The plane on top's photo: its own (adsbdb), or else its model's (Wikipedia) once found.
+function featPhoto(){
+  if (!feat || !feat.o) return "";
+  const d = detailsOf(feat.hex) || {}, info = feat.info || baseInfo(feat.o.ac);
+  return d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => { preloadPhoto(); if (isAc(page)) renderAircraft(); });
 }
+function photoReady(){
+  const src = featPhoto(), img = $("photoImg");
+  return src && img.getAttribute("src") === src && img.complete && img.naturalWidth ? img : null;
+}
+const photoCredit = () => isModelPic($("photoImg").getAttribute("src")) ? T("MODEL") + "  WIKIMEDIA COMMONS" : T("PHOTO") + "  AIRPORT-DATA.COM";
 function drawCover(g, img, x, y, w, h){
   const sc = Math.max(w / img.naturalWidth, h / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
   g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
@@ -1346,7 +1399,7 @@ function paintScreen(g, w, h, img){
   g.font = `600 13px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
   if ("letterSpacing" in g) g.letterSpacing = "1.5px";
   g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 3 * PX;
-  g.fillStyle = "rgba(235,240,245,.62)"; g.fillText(T("PHOTO") + "  AIRPORT-DATA.COM", w - 12, h - 11);
+  g.fillStyle = "rgba(235,240,245,.62)"; g.fillText(photoCredit(), w - 12, h - 11);
   g.shadowColor = "transparent"; g.shadowBlur = 0;
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   g.textAlign = "left";
@@ -1369,8 +1422,8 @@ function drawPlaque(g){
   }
   g.font = `600 12px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
   if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  g.fillStyle = "rgba(0,0,0,.6)"; g.fillText(T("PHOTO") + "  AIRPORT-DATA.COM", x + w - 16, y + h - 13);
-  g.fillStyle = "rgba(255,255,255,.2)"; g.fillText(T("PHOTO") + "  AIRPORT-DATA.COM", x + w - 16, y + h - 12);
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillText(photoCredit(), x + w - 16, y + h - 13);
+  g.fillStyle = "rgba(255,255,255,.2)"; g.fillText(photoCredit(), x + w - 16, y + h - 12);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   g.textAlign = "left";
   const img = photoReady();
@@ -1845,6 +1898,10 @@ function liveryLine(info){
   const nm = c => shortAirline((AIRLINES[c] || [])[1] || c);
   return T("{op} · PAINTED AS {a}", {op: nm(op), a: nm(lv)});
 }
+function liveryShort(info){
+  const lv = String(info.livery || "").toUpperCase(), op = String(info.operator || "").toUpperCase();
+  return lv && op && lv !== op ? T("IN {a} COLOURS", {a: shortAirline((AIRLINES[lv] || [])[1] || lv)}).slice(0, 20) : "";
+}
 const infoCache = new Map();
 // A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
 function infoChanged(info){
@@ -2104,11 +2161,12 @@ function watchAsk(list){
   if (!ask.length) return;
   watchBusy = true;
   fetchJSON(`${relay()}/watch?hex=${ask.join(",")}`, {}, 8000).then(j => {
-    for (const h of ask) watchCache.set(h, (j && j[h] || [])[0] || "");
+    for (const h of ask) watchCache.set(h, (j && j[h]) || ["", ""]);
     while (watchCache.size > 4000) watchCache.delete(watchCache.keys().next().value);
   }).catch(() => {}).finally(() => { watchBusy = false; });
 }
-const watchOf = hex => watchCache.get(String(hex || "").toLowerCase()) || "";
+const watchOf = hex => (watchCache.get(String(hex || "").toLowerCase()) || [])[0] || "";
+const watchOpOf = hex => (watchCache.get(String(hex || "").toLowerCase()) || [])[1] || "";
 function liveFacts(ac, info){
   info = info || enrich(ac).info;
   const e = spotted.find(x => x.hex === ac.hex);
@@ -2483,6 +2541,19 @@ function seenText(reg){
   if (months >= 2) return T("BACK AFTER {n} MONTHS", {n: months});
   return before === 1 ? T("SEEN ONCE") : T("SEEN {n} TIMES", {n: nf.format(before)});
 }
+// The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
+// airline's colours (Flightradar24), who flies it when it is on the watchlist, and how few of its type there are.
+function remarkLines(ac, info){
+  info = info || {};
+  const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
+  if (seen) out.push(seen);
+  if (typeof liveryShort === "function") { const l = liveryShort(info); if (l) out.push(l); }
+  const op = watchOpOf(ac.hex);
+  if (op) out.push(clean(op).slice(0, 20));
+  const n = FLEET[t];
+  if (n != null && n < 250 && !LEGENDARY.has(t)) out.push(T("ONLY ~{n} IN SERVICE", {n: nf.format(n)}));
+  return out;
+}
 // How far the plane still has to fly, by great circle to its destination (only routes with the airport's position).
 function toGoText(info, o){
   const to = info && info.to;
@@ -2531,7 +2602,7 @@ function renderFeatured(){
       feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
-  if (fields.seen) { setChars("seen", seenText(info.reg || ac.r || ""), 520); setChars("toGo", toGoText(info, o), 510); }
+  if (fields.seen) { const rl = remarkLines(ac, info); setChars("seen", rl.length ? rl[Math.floor(now / 6000) % rl.length] : "", 520); setChars("toGo", toGoText(info, o), 510); }
   setChars("alt", feat.live[0], 380);
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
@@ -2664,7 +2735,14 @@ function capturePanel(arriving = false, R = PANEL){
   const img = photoReady(), st = photoStyle();
   // The photo is a separate element, so paint it in. An engraved one is already part of the panel, and a
   // screen arriving with a new page is still switched off: it comes on once the page has landed.
-  if (!view && isAc(page) && img && st !== "engraved" && !(arriving && st === "screen")) {
+  const fr = $("photoFrame"), pcv = $("photoCv");
+  if (!view && isAc(page) && !arriving && !fr.hidden && pcv.width && st !== "engraved") {     // what the screen shows (photo or runway view)
+    const b = photoBox();
+    g.setTransform(FP, 0, 0, FP, (b.x - R.x) * FP, (b.y - R.y) * FP);
+    g.save(); rr(g, 0, 0, b.w, b.h, st === "screen" ? 5 : 6); g.clip();
+    try { g.drawImage(pcv, 0, 0, b.w, b.h); } catch {}
+    g.restore();
+  } else if (!view && isAc(page) && img && st !== "engraved" && !(arriving && st === "screen")) {
     const b = photoBox();
     g.setTransform(FP, 0, 0, FP, (b.x - R.x) * FP, (b.y - R.y) * FP);
     g.save(); rr(g, 0, 0, b.w, b.h, st === "screen" ? 5 : 6); g.clip();
@@ -2881,8 +2959,8 @@ function lookupDetails(hex){
 }
 // Load the photo of the plane on the board ahead of time, so it is ready when its page falls into place.
 function preloadPhoto(){
-  const d = feat && detailsOf(feat.hex), img = $("photoImg");
-  if (d && d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
+  const src = featPhoto(), img = $("photoImg");
+  if (src && img.getAttribute("src") !== src) img.src = src;
 }
 function placePhoto(){
   const fr = $("photoFrame"), st = photoStyle(), img = photoReady(), here = isAc(page) && !switching && !view;
@@ -2922,7 +3000,8 @@ function renderAircraft(){
   setChars("acCountry", d.country || "", 300);
   setChars("acRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
   const img = $("photoImg");
-  if (d.photo && img.getAttribute("src") !== d.photo) img.src = d.photo;
+  const src = featPhoto();
+  if (src && img.getAttribute("src") !== src) img.src = src;
   placePhoto();
 }
 
@@ -3631,6 +3710,7 @@ function drawRadar(t){
     g.restore();
     shown.push({o, x, y, col});
   }
+  radar.hits = shown.map(s_ => ({o: s_.o, x: s_.x, y: s_.y}));              // for a tap on a plane
   const centre = {x: cx - 18, y: cy - 18, w: 36, h: 36}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
     return {x: cx + Math.sin(a) * (R - 18) - 14, y: cy - Math.cos(a) * (R - 18) - 14, w: 28, h: 28}; });   // N E S W stay readable
   ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 16, alt: 14, gap: 18}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 16);
@@ -3800,6 +3880,25 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Once since {d}", "Einmal seit {d}", "Une fois depuis le {d}", "Una vez desde el {d}", "Eén keer sinds {d}"],
+  ["1 plane", "1 Flugzeug", "1 avion", "1 avión", "1 vliegtuig"],
+  ["1 flight to or from here", "1 Flug von oder nach hier", "1 vol depuis ou vers ici", "1 vuelo desde o hacia aquí", "1 vlucht van of naar hier"],
+  ["Full screen (or double-click the board)", "Vollbild (oder Doppelklick auf die Tafel)", "Plein écran (ou double-clic sur le tableau)", "Pantalla completa (o doble clic en el panel)", "Volledig scherm (of dubbelklik op het bord)"],
+  ["Click a row, a logo, a place or a plane on the radar for more", "Klick auf eine Zeile, ein Logo, einen Ort oder ein Flugzeug im Radar für mehr", "Cliquez sur une ligne, un logo, un lieu ou un avion du radar pour en savoir plus", "Haz clic en una fila, un logo, un lugar o un avión del radar para ver más", "Klik op een rij, logo, plek of vliegtuig op de radar voor meer"],
+  ["MODEL", "MODELL", "MODÈLE", "MODELO", "MODEL"],
+  ["ONLY ~{n} IN SERVICE", "NUR ~{n} IM DIENST", "SEULEMENT ~{n} EN SERVICE", "SOLO ~{n} EN SERVICIO", "SLECHTS ~{n} IN DIENST"],
+  ["IN {a} COLOURS", "IN {a}-FARBEN", "AUX COULEURS {a}", "CON COLORES DE {a}", "IN {a}-KLEUREN"],
+  ["Codes", "Codes", "Codes", "Códigos", "Codes"],
+  ["{n} times since {d}", "{n}-mal seit {d}", "{n} fois depuis le {d}", "{n} veces desde el {d}", "{n} keer sinds {d}"],
+  ["{n} flights to or from here", "{n} Flüge von oder nach hier", "{n} vols depuis ou vers ici", "{n} vuelos desde o hacia aquí", "{n} vluchten van of naar hier"],
+  ["City", "Stadt", "Ville", "Ciudad", "Stad"],
+  ["Runways", "Pisten", "Pistes", "Pistas", "Banen"],
+  ["More on Wikipedia", "Mehr auf Wikipedia", "Plus sur Wikipédia", "Más en Wikipedia", "Meer op Wikipedia"],
+  ["Photo of this model (Wikimedia Commons)", "Foto dieses Modells (Wikimedia Commons)", "Photo de ce modèle (Wikimedia Commons)", "Foto de este modelo (Wikimedia Commons)", "Foto van dit model (Wikimedia Commons)"],
+  ["Hide", "Ausblenden", "Masquer", "Ocultar", "Verbergen"],
+  ["Airlines, types, aircraft and flights to light up or leave out.", "Fluglinien, Typen, Flugzeuge und Flüge, die aufleuchten oder wegbleiben.", "Compagnies, types, avions et vols à mettre en avant ou à masquer.", "Aerolíneas, tipos, aviones y vuelos que destacar u ocultar.", "Maatschappijen, types, toestellen en vluchten om uit te lichten of weg te laten."],
+  ["Tap a row, a logo or a place for more. Double-tap for full screen.", "Tippe auf eine Zeile, ein Logo oder einen Ort für mehr. Doppelt tippen für Vollbild.", "Touchez une ligne, un logo ou un lieu pour en savoir plus. Touchez deux fois pour le plein écran.", "Toca una fila, un logo o un lugar para ver más. Doble toque para pantalla completa.", "Tik op een rij, logo of plek voor meer. Dubbeltik voor volledig scherm."],
+  ["Device", "Gerät", "Appareil", "Dispositivo", "Apparaat"],
   ["Centred on {ap} · rings every 5 km · dashed: {n} km around the airport · the logo: your place", "Mitte: {ap} · Ringe alle 5 km · gestrichelt: {n} km um den Flughafen · das Logo: dein Ort", "Centré sur {ap} · cercles tous les 5 km · pointillés : {n} km autour de l'aéroport · le logo : votre lieu", "Centrado en {ap} · anillos cada 5 km · discontinuo: {n} km alrededor del aeropuerto · el logo: tu lugar", "Midden: {ap} · ringen elke 5 km · gestippeld: {n} km rond de luchthaven · het logo: jouw plek"],
   ["Tap the compass to let it turn with your phone.", "Tippe auf den Kompass, damit er sich mit dem Telefon dreht.", "Touchez la boussole pour qu'elle tourne avec le téléphone.", "Toca la brújula para que gire con el teléfono.", "Tik op het kompas zodat het met je telefoon meedraait."],
   ["Tap a plane on the radar for more.", "Tippe auf ein Flugzeug im Radar für mehr.", "Touchez un avion sur le radar pour en savoir plus.", "Toca un avión en el radar para ver más.", "Tik op een vliegtuig op de radar voor meer."],
@@ -4395,6 +4494,259 @@ const I18N = (() => {
   return d;
 })();
 
+/* ---------- cards (1.34): a plane, an airline or a place, and the favourite/hide sheet ----------
+   One overlay (#cardBox) for the boards (a tap or a click) and the phone app. The facts come from what the board knows,
+   the logbook and the relay's airport list; a short description and pictures from Wikipedia (Wikimedia Commons). */
+const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
+let cardTok = 0;
+function cardOpen(html, wire){
+  let box = $("cardBox");
+  if (!box) {
+    box = document.createElement("div"); box.id = "cardBox"; document.body.appendChild(box);
+    box.addEventListener("click", e => { if (e.target === box) cardClose(); });
+    box.addEventListener("click", cardToggle);
+  }
+  box.innerHTML = `<div class="cardIn" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
+  box.hidden = false;
+  box.querySelector(".cardX").onclick = () => { ctlSound.press(); cardClose(); };
+  if (wire) wire(box.querySelector(".cardIn"));
+  return ++cardTok;
+}
+function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; }
+const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden; };
+addEventListener("keydown", e => {
+  if (cardOpenNow() && (e.key === "Escape" || e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461)) { e.preventDefault(); e.stopPropagation(); cardClose(); }
+}, true);
+const factsHtml = facts => `<dl class="cFacts">${facts.filter(f => f[1]).map(([k, v, w]) => `<div${w ? ' class="w"' : ""}><dt>${escH(T(k))}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
+const wikiHtml = w => w ? `<p class="cWiki">${escH(w.text.length > 420 ? w.text.slice(0, 400).replace(/\s+\S*$/, "") + " …" : w.text)}` +
+  (w.url ? ` <a href="${escH(w.url)}" target="_blank" rel="noopener">${escH(T("More on Wikipedia"))}</a>` : "") + `</p>` : "";
+function chipHtml(r){
+  const L = REMARK_LOOK[r] || {}, fill = L.fill ? L.fill[0] : "#2f3135";
+  return r ? `<span class="cChip" style="background:${fill};color:${L.fg || "#e8ebee"}">${escH(T(r))}</span>` : "";
+}
+
+// Wikipedia's summary of a page (its first paragraph and picture), in English: the titles are matched in English.
+const wikiCache = new Map();
+function wikiPage(title){
+  const k = String(title || "");
+  if (!k) return Promise.resolve(null);
+  if (!wikiCache.has(k)) wikiCache.set(k, fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(k.replace(/ /g, "_"))}`)
+    .then(r => r.ok ? r.json() : null).then(j => j && j.type !== "disambiguation" && j.extract ? {title: j.title, desc: j.description || "", text: j.extract,
+      img: j.thumbnail ? j.thumbnail.source : "", url: j.content_urls && j.content_urls.desktop ? j.content_urls.desktop.page : ""} : null).catch(() => null));
+  return wikiCache.get(k);
+}
+// The first of these pages that is about the right kind of thing (its description says so).
+async function wikiFind(titles, like){
+  for (const t of [...new Set(titles.filter(Boolean))]) {
+    const p = await wikiPage(t);
+    if (p && (!like || like.test(p.desc + " " + p.text.slice(0, 160)))) return p;
+  }
+  return null;
+}
+const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
+// A picture of the aircraft model, for planes with no photo of their own (1.34): the model's Wikipedia picture.
+const modelPics = new Map();
+function modelPic(name, onReady){
+  name = String(name || "").trim();
+  if (!name || S.demo) return "";
+  const k = name.toLowerCase();
+  if (modelPics.has(k)) return modelPics.get(k);
+  modelPics.set(k, "");
+  wikiFind([name, name.replace(/neo$/i, "neo family"), name.replace(/-\d+.*$/, "")], /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i)
+    .then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 800)); if (onReady) onReady(); } });
+  return "";
+}
+const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || ""));
+
+// Favourites and hidden planes (lists on the relay): the sheet for one plane, the toggles on the cards, the manager.
+const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
+async function listsSave(next){
+  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
+  if (typeof listsChanged === "function") listsChanged();
+}
+// The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
+function listChoices(x){
+  const cs = clean(x.callsign || ""), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  return [["reg", x.reg, x.reg], ["type", x.typeCode, x.type || TYPES[x.typeCode] || x.typeCode],
+    ["airline", al, x.airline || (AIRLINES[al] || [])[1] || al], ["flight", cs, x.flight || cs]].filter(c => c[1]).map(([k, v, n]) => ({k, v: clean(v), n: String(n || v)}));
+}
+const sameItem = (i, c) => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === clean(c.v).replace(/[\s-]/g, "");
+const inList = (L, c) => L.some(i => sameItem(i, c));
+async function listFlip(which, c){
+  const on = inList(userLists[which], c), next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+  ctlSound.toggle(!on);
+  next[which] = on ? next[which].filter(i => !sameItem(i, c)) : next[which].concat([c]);
+  if (!on) { const o = which === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !sameItem(i, c)); }   // not both at once
+  await listsSave(next);
+}
+// Toggle buttons for some choices: data-tog = "fav|hide", the choice in data-k/v/n; cardToggle handles every card.
+const togBtn = (which, c, label) => `<button class="cBtn${inList(userLists[which], c) ? " on" : ""}" type="button" data-tog="${which}" ` +
+  `data-k="${c.k}" data-v="${escH(c.v)}" data-n="${escH(c.n)}"><small>${escH(T(KIND_NAME[c.k]))}</small>${label || escH(c.n)}</button>`;
+async function cardToggle(e){
+  const b = e.target.closest && e.target.closest("[data-tog]");
+  if (!b) return;
+  const c = {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n};
+  try { await listFlip(b.dataset.tog, c); } catch (err) { const n = $("cardBox").querySelector(".note"); if (n) n.textContent = err.message; return; }
+  for (const o of $("cardBox").querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v}));
+}
+function listSheet(x){
+  if (!listsOk() || !x) return;
+  ctlSound.press();
+  const ch = listChoices(x), row = w => `<div class="shRow">${ch.map(c => togBtn(w, c)).join("")}</div>`;
+  cardOpen(`<h3>${escH(x.flight || x.reg || x.callsign || "")}</h3><p class="note">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
+    `<p class="shH">★ ${escH(T("Make a favourite"))}</p>${row("fav")}<p class="shH">⊘ ${escH(T("Hide from now on"))}</p>${row("hide")}` +
+    `<p class="note"></p><div class="cBtns"><button class="cBtn go" type="button" data-done>${T("Done")}</button></div>`,
+    el => { el.querySelector("[data-done]").onclick = () => { ctlSound.press(); cardClose(); }; });
+}
+// The favourites manager: both lists, each entry with a ×, and a field to add one (airlines and types to pick from).
+function favManager(el){
+  const chips = w => userLists[w].length ? `<ul class="chips">${userLists[w].map((i, n) => `<li><small>${escH(T(KIND_NAME[i.k] || ""))}</small>${escH(i.n || i.v)}` +
+    `<button type="button" data-rm="${w}:${n}" aria-label="${escH(T("Remove"))}">×</button></li>`).join("")}</ul>` : `<p class="note">${escH(T("None yet."))}</p>`;
+  el.innerHTML = `<p>${escH(T("Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook)."))}</p>` +
+    `<p class="shH">★ ${escH(T("Favourites"))}</p>${chips("fav")}<p class="shH">⊘ ${escH(T("Hidden"))}</p>${chips("hide")}` +
+    `<div class="favAdd"><select data-fw><option value="fav">★ ${escH(T("Favourites"))}</option><option value="hide">⊘ ${escH(T("Hidden"))}</option></select>` +
+    `<input data-fi list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
+    `<button class="cBtn" type="button" data-fa>${T("Add")}</button></div><p class="note" data-fn></p>` +
+    `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
+    `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
+  const note = t => { el.querySelector("[data-fn]").textContent = t; };
+  for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
+    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
+    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+  };
+  el.querySelector("[data-fa]").onclick = () => {
+    ctlSound.press();
+    const c = parseListEntry(el.querySelector("[data-fi]").value), w = el.querySelector("[data-fw]").value;
+    if (!c) return note(T("Code or name, e.g. Austrian, A380, OE-LBN"));
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+    if (!inList(next[w], c)) next[w].push(c);
+    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+  };
+}
+function favCard(){
+  if (!listsOk()) return;
+  ctlSound.press();
+  cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => favManager(el.querySelector("[data-fm]")));
+}
+// What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
+function parseListEntry(t){
+  t = String(t || "").trim();
+  if (!t) return null;
+  const m = t.match(/\(([A-Z0-9]{2,4})\)\s*$/i), code = clean(m ? m[1] : t).replace(/\s/g, ""), name = m ? t.replace(/\s*\([^)]*\)\s*$/, "") : "";
+  if (AIRLINES[code]) return {k: "airline", v: code, n: name || AIRLINES[code][1]};
+  if (TYPES[code]) return {k: "type", v: code, n: name || TYPES[code]};
+  const byName = Object.entries(AIRLINES).find(([, a]) => clean(a[1]) === clean(t));
+  if (byName) return {k: "airline", v: byName[0], n: byName[1][1]};
+  const tName = Object.entries(TYPES).find(([, n]) => clean(n) === clean(t));
+  if (tName) return {k: "type", v: tName[0], n: tName[1]};
+  const tWord = Object.entries(TYPES).find(([, n]) => (" " + clean(n) + " ").includes(" " + code + " "));   // A380, 787 ...
+  if (tWord && !/^[A-Z]{3}\d/.test(code)) return {k: "type", v: tWord[0], n: tWord[1]};
+  if (/^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$/i.test(t) || /^N\d{1,5}[A-Z]{0,2}$/i.test(t)) return {k: "reg", v: clean(t), n: clean(t)};
+  if (/^[A-Z]{3}\d[A-Z0-9]{0,4}$/i.test(code) || /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/i.test(code)) return {k: "flight", v: code, n: code};
+  if (/^[A-Z][A-Z0-9]{2,3}$/i.test(code)) return {k: "type", v: code, n: code};
+  return null;
+}
+// The old Favourites text moves into the lists once (relay 31).
+async function listsMigrate(){
+  if (!listsOk() || !String(S.favs || "").trim()) return;
+  await listsLoad(true);
+  const add = String(S.favs).split(/[,;\n]+/).map(parseListEntry).filter(Boolean).filter(c => !inList(userLists.fav, c));
+  try {
+    if (add.length) await listsSave({fav: userLists.fav.concat(add), hide: userLists.hide});
+    S = {...S, favs: ""}; saveSettings();
+  } catch {}
+}
+
+// The airline of a plane or a row: its ICAO code (from the callsign), IATA code and name.
+function airlineOf(x){
+  const cs = clean(x.callsign || ""), icao = (cs.match(/^([A-Z]{3})\d/) || [])[1] || x.airlineIcao || "";
+  const a = AIRLINES[icao] || [];
+  return {icao, iata: x.airlineCode || a[0] || "", name: x.airline || a[1] || icao || x.airlineCode || ""};
+}
+async function airlineCard(x){
+  const a = airlineOf(x || {});
+  if (!a.name) return;
+  ctlSound.press();
+  const b = lbData() || {}, lb = a.icao && b.airlines ? b.airlines[a.icao] : null;
+  const today = a.icao ? dayList().filter(e => airlineOf(e).icao === a.icao).length : 0;
+  const L = a.iata ? logo(a.iata) : null, src = L && L.state === "ok" ? L.img.src : "";
+  const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
+  const draw = w => cardOpen(`<div class="cHead">${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
+    factsHtml([["Codes", escH([a.iata, a.icao].filter(Boolean).join(" · "))], ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
+      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
+    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+  const tok = draw(null);
+  const w = await wikiFind([a.name + " (airline)", a.name, a.name + " Airlines", a.name + " Air Lines"], /airline|carrier/i);
+  if (w && tok === cardTok) draw(w);
+}
+// A place a plane comes from or flies to: its airport (the relay's list: name, codes, runways), the distance from
+// here and Wikipedia's words about the airport.
+async function placeCard(p){
+  if (!p || !(p.code || p.city)) return;
+  ctlSound.press();
+  const code = clean(code3(p) || p.code || ""), DIR8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const today = code ? dayList().filter(e => code3(e.from) === code || code3(e.to) === code).length : 0;
+  let ap = null, w = null;
+  const draw = () => {
+    const lat = ap && ap.lat != null ? ap.lat : p.lat != null ? +p.lat : null, lon = ap && ap.lon != null ? ap.lon : p.lon != null ? +p.lon : null;
+    let dist = "";
+    if (lat != null && lon != null) {
+      const km = gcKm(S.lat, S.lon, lat, lon), brg = (Math.atan2((lon - S.lon) * Math.cos(S.lat * Math.PI / 180), lat - S.lat) * 180 / Math.PI + 360) % 360;
+      dist = `${nf.format(Math.round(km))} km ${DIR8[Math.round(brg / 45) % 8]}`;
+    }
+    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 800))}" alt="" referrerpolicy="no-referrer">` : ""}` +
+      `<div class="cHead"><div><h3>${escH(ap && ap.name || (w && w.title) || p.city || code)}</h3><span>${escH(T("Airport"))}</span></div></div>` +
+      factsHtml([["City", escH(ap && ap.city || p.city || "")], ["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Distance", escH(dist)],
+        ["Runways", ap && ap.runways && ap.runways.length ? String(ap.runways.length) : ""], ["Today", today ? escH(today === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: today})) : "", true]]) + wikiHtml(w));
+  };
+  let tok = draw();
+  if (code.length === 3 && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
+    try { const j = await fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000); if (j.status === "ok") ap = j; } catch {}
+    if (tok !== cardTok) return;
+    tok = draw();
+  }
+  w = await wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"], /airport|aerodrome|airfield/i);
+  if (w && tok === cardTok) draw();
+}
+// A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
+// with the airline and places to tap and Favourite / Hide.
+function planeBody(o){
+  const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
+  lookupDetails(ac.hex);
+  const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
+  const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
+  const pic = d.photo || modelPic(type, () => { if (typeof planeAgain === "function") planeAgain(); });
+  const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
+  const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}">${escH(code3(p) || p.code || "")} ${escH(p.city || "")}</button>` : "";
+  const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
+    `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
+    (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
+    factsHtml([["Aircraft", escH(type)], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
+      ["Altitude", o.alt != null ? escH(altitudeStr(o.alt).toLowerCase()) : ""], ["Speed", ac.gs ? escH(speedStr(ac.gs).toLowerCase()) : ""],
+      ["Distance", o.dist != null ? escH(`${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}`) : ""],
+      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
+    (listsOk() ? `<div class="cBtns"><button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button></div>` : "");
+  const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
+  const wire = el => {
+    const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
+    for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
+    const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
+  };
+  return {html, wire};
+}
+let planeShown = null;
+function planeCard(o){
+  if (!o || !o.ac) return;
+  ctlSound.press();
+  planeShown = o;
+  const b = planeBody(o);
+  cardOpen(b.html, b.wire);
+}
+
 /* ---------- airport mode ----------
    For someone at an airport, looking out of the window: the planes taking off from the home airport and the ones
    coming in to land there, worked out from the positions around it. A plane is taking off when it rolls fast along
@@ -4648,6 +5000,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.34", date: "2026-10-17", notes: [
+    "Tap an airline's logo or name for a card about the airline, and a place for a card about its airport; on the full board too.",
+    "The full board does what the app does with a tap: rows to favourite or hide, planes on the radar, airlines and places; a double tap is full screen.",
+    "Remarks (was Seen here) shows in turn how often the plane was seen here, another airline's colours, who flies it and how rare its type is.",
+    "A plane without a photo of its own shows a picture of its model.",
+    "The Take-off and Landing pages keep their picture or runway view while the page turns.",
+    "In the app, Account, Notifications and this device's buttons are in Settings; no more zooming on a double tap; the favourite/hide choices sit in one row."]},
   {v: "1.33", date: "2026-10-17", notes: [
     "Tap a plane on the app's radar to see what it is, with a picture.",
     "Planes on the runway screen glide like on the radar, and a late update no longer pulls them back.",
@@ -4848,7 +5207,7 @@ const COCKPIT = [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
     {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]]},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
-    {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
+    {k: "favs", type: "favs", label: "Favourites", wide: true}]},
   {title: ["Display", "Anzeige"], cols: 4, items: [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
@@ -4939,6 +5298,8 @@ function itemHtml(it){
   }
   if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
+  if (it.type === "favs") return cell("loc wide", `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
+    `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
   if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
     `<p class="note">${escH(T("Fills in latitude and longitude, then finds the nearest airport."))}</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
@@ -4983,6 +5344,8 @@ function cockpitOpen(){
     }
   }
   wireLocate(box);
+  const fb = box.querySelector("[data-favs]");
+  if (fb) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(); };
   for (const b of box.querySelectorAll("[data-act]")) b.onclick = () => {
     ctlSound.press();
     if (b.dataset.act === "save") { applySettings(draft); switchView(null); }
@@ -4994,7 +5357,7 @@ function cockpitOpen(){
 /* About: the patch notes on a tall plate, the keys, and who made it, with a way back to Settings. */
 const KEYS = [["1 – 3", "The pages of the lower half"], ["← →", "Turn the page (in Spotted today: its pages)"],
   ["T", "Spotted today"], ["L", "Logbook"], ["R", "Radar"], ["S", "Settings"], ["A", "About"], ["D", "Connection log"],
-  ["F", "Full screen (or click the board)"], ["Esc", "Back to the board"]];
+  ["F", "Full screen (or double-click the board)"], ["", "Click a row, a logo, a place or a plane on the radar for more"], ["Esc", "Back to the board"]];
 function aboutOpen(){
   const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
@@ -5354,7 +5717,79 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 function toggleFullscreen(){
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch {}
 }
-fx.addEventListener("click", () => { audioInit(); keepAwake(); toggleFullscreen(); });
+// A tap (or a click) opens what is under it; a double tap goes full screen (1.34; one tap used to).
+let tapAt = 0, tapTimer = 0;
+fx.addEventListener("click", e => {
+  audioInit(); keepAwake();
+  const now = Date.now(), r = stage.getBoundingClientRect(), x = (e.clientX - r.left) / K, y = (e.clientY - r.top) / K;
+  clearTimeout(tapTimer);
+  if (now - tapAt < 330) { tapAt = 0; toggleFullscreen(); return; }
+  tapAt = now;
+  tapTimer = setTimeout(() => { try { boardTap(x, y); } catch (err) { dlog("debug", `Tap: ${err.message}`); } }, 330);
+});
+// The field under a point of the board (board units), among these ids.
+function fieldAt(ids, x, y){
+  for (const id of ids) {
+    const f = fields[id];
+    if (!f || f.hidden || f.x == null) continue;
+    const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
+    if (x >= f.x - 4 && x <= f.x + w + 4 && y >= f.y - 4 && y <= f.y + f.ch + 4) return id;
+  }
+  return null;
+}
+const radarObj = ac => radar.planes.find(p => p.ac.hex === ac.hex) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
+function boardTap(x, y){
+  if (bigFlap.on || switching || cardOpenNow()) return;
+  if (view === "radar") {
+    const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 36 && (!a || d < a.d) ? {o: h.o, d} : a; }, null);
+    if (hit) planeCard(hit.o);
+    return;
+  }
+  if (view === "spotted" && !svLegend) {
+    const {part} = svPart(), i = Math.floor((y - 305) / 36), e = part[i];
+    if (i < 0 || !e || x < M - 10 || x > W - M + 10) return;
+    if (x >= SV_X.airline && x < SV_X.from) return airlineCard(e);
+    if (x >= SV_X.from && x < SV_X.to) return placeCard(e.from);
+    if (x >= SV_X.to && x < SV_X.type) return placeCard(e.to);
+    return listSheet(e);
+  }
+  if (view) return;
+  const top = fieldAt(TOP_IDS, x, y);
+  if (top && feat && feat.o) {
+    const info = feat.info || baseInfo(feat.o.ac);
+    if (top === "airline") return airlineCard(liveFacts(feat.o.ac, info));
+    if (top === "fromCode" || top === "fromCity") return placeCard(info.from);
+    if (top === "toCode" || top === "toCity") return placeCard(info.to);
+    return planeCard(feat.o);
+  }
+  if (page === "spotted") {
+    for (let i = 0; i < LIST_ROWS; i++) {
+      const id = fieldAt([`l${i}time`, `l${i}logo`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`], x, y), e = recentShown()[i];
+      if (!id || !e) continue;
+      if (id.endsWith("logo")) return airlineCard(e);
+      if (id.endsWith("from")) return placeCard(e.from);
+      if (id.endsWith("to")) return placeCard(e.to);
+      return listSheet(e);
+    }
+  }
+  if (page === "aplists") {
+    for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < 5; i++) {
+      const id = fieldAt(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), x, y), e = list[i];
+      if (!id || !e) continue;
+      if (id.endsWith("city")) return placeCard(e.info && (k === "d" ? e.info.to : e.info.from));
+      return planeCard(radarObj(e.ac));
+    }
+  }
+  if (isAc(page) && feat && feat.o) {
+    const id = fieldAt(["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"], x, y), info = feat.info || baseInfo(feat.o.ac);
+    if (id === "acOwner") return airlineCard(liveFacts(feat.o.ac, info));
+    if (id === "acRoute") return placeCard(x < fields.acRoute.x + fields.acRoute.n * fields.acRoute.step / 2 ? info.from : info.to);
+    if (id) return planeCard(feat.o);
+  }
+}
+// The lists changed (a favourite, a hidden plane): draw what depends on them.
+function listsChanged(){ if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }
+function planeAgain(){ if (planeShown && cardOpenNow()) { const b = planeBody(planeShown); const el = $("cardBox").querySelector(".cardIn"); if (el) { el.innerHTML = `<button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; el.querySelector(".cardX").onclick = cardClose; b.wire(el); } } }
 ["pointerdown", "keydown", "touchstart", "touchend"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
 function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 4000); }
@@ -5411,6 +5846,7 @@ async function start(){
   else if (airportMode()) switchView(null, {instant: true, page: "aplists"});
   dlog("info", `Board started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
   if (/(^|[?&])debug\b/.test(location.search)) openDiag();
+  listsLoad(true).then(() => listsMigrate());
   poll(); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos();   // everything at once on the first load, then the usual timers
 }
 start();

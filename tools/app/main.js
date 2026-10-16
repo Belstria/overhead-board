@@ -460,8 +460,8 @@ function rowHtml(e){
   const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
-    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${placeHtml(e.from)}<i>→</i>${placeHtml(e.to)}</div>` : ""}` +
+    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
     (listsOk() ? `<span class="more" aria-hidden="true">⋯</span>` : "") + `</li>`;
 }
@@ -492,7 +492,8 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || "";
+  const src = d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => renderAircraftInfo());
+  $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
   if (src !== shownPhoto) {
     shownPhoto = src;
     const scr = $("screen"), img = $("photo");
@@ -519,7 +520,7 @@ function renderAircraftInfo(){
   const facts = [["Registration", "Kennzeichen", info.reg || d.reg], ["Mode S", "", feat.hex.toUpperCase()],
     ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
     ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
-    ["Seen here", "", seenText(info.reg || d.reg || feat.o.ac.r || ""), true]].filter(f => f[2]);
+    ["Remarks", "", remarkLines(feat.o.ac, info).join(" · "), true]].filter(f => f[2]);
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
@@ -1014,23 +1015,11 @@ function renderRadarCard(){
   const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
   if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
   $("rvHint").hidden = true;
-  const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
-  lookupDetails(ac.hex);
-  const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
-  const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
-  const route = info.from && info.to ? `${code3(info.from) || info.from.code} ${info.from.city || ""} → ${code3(info.to) || info.to.code} ${info.to.city || ""}` : "";
-  const facts = [["Aircraft", d.type || info.type || ac.t], ["Registration", info.reg || d.reg || ac.r], ["Operator", d.owner || info.airline],
-    ["Altitude", o.alt != null ? altText(o.alt) : ""], ["Speed", ac.gs ? speedStr(ac.gs).toLowerCase() : ""], ["Distance", `${distText(o.dist)} ${o.dir}`]].filter(x => x[1]);
-  const html = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` +
-    (d.photo ? `<img class="rcPic" src="${escH(d.photo)}" alt="" referrerpolicy="no-referrer">` : "") +
-    `<div class="rcHead"><strong>${escH(name)}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}${badge ? chip(badge) : ""}</div>` +
-    (route ? `<p class="rcRoute">${escH(route)}</p>` : "") +
-    `<dl class="facts">${facts.map(([k, v]) => `<div><dt>${escH(T(k))}</dt><dd>${escH(v)}</dd></div>`).join("")}</dl>` +
-    (listsOk() ? `<div class="acts"><button class="cap small" type="button" data-more-hex="${escH(ac.hex)}">${T("Favourite…")}</button><button class="cap small" type="button" data-more-hex="${escH(ac.hex)}">${T("Hide…")}</button></div>` : "");
+  const b = planeBody(o), html = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html;
   if (html === rcardSig) return;
   rcardSig = html; box.innerHTML = html; box.hidden = false;
+  b.wire(box);
   box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
-  for (const b of box.querySelectorAll("[data-more-hex]")) b.onclick = () => listSheet({...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign});
 }
 setInterval(() => { if (tab === "radar") renderRadarCard(); }, 1000);
 
@@ -1395,18 +1384,29 @@ function aboutOpen(){
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
         `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
-        `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>` +
-        `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
-    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p><div class="acts"><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+        `<p>${escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL), routes and aircraft from adsbdb, photos from airport-data.com."))}</p>`
+    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>`
       : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
     `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
     aboutHtml() + `</div>` +
-    (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
+  $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
+  renderAbout();
+}
+let hasAccount = false;
+// Under Settings' plates: the account, notifications and this device (the full board, signing out, the relay).
+function settingsExtra(){
+  const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
+  if (!box) return;
+  const dev = GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
+    : ANDROID ? `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
+    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`;
+  box.innerHTML = (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -1416,13 +1416,25 @@ function aboutOpen(){
     location.reload();
   };
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
-  renderAbout();
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
-let hasAccount = false;
 $("acFav").onclick = () => listSheet(featFacts());
+$("hero").addEventListener("click", e => {
+  if (!feat || !feat.o) return;
+  const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
+  const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks"].find(k => {
+    const f = fields[k]; if (!f || f.x == null) return false;
+    const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
+    return x >= f.x - 3 && x <= f.x + w + 3 && y >= f.y - 3 && y <= f.y + f.ch + 3;
+  });
+  if (!id) return;
+  const info = feat.info || baseInfo(feat.o.ac);
+  if (id === "airline") airlineCard(liveFacts(feat.o.ac, info));
+  else if (id === "fromCode" || id === "fromCity") placeCard(info.from);
+  else if (id === "toCode" || id === "toCity") placeCard(info.to);
+  else planeCard(feat.o);
+});
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 $("acHide").onclick = () => listSheet(featFacts());
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
@@ -1436,122 +1448,37 @@ addEventListener("pointerup", function lookFirst(){ removeEventListener("pointer
    The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
    to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and
    This aircraft), and the manager in Settings. */
-const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
 const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
-const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
-async function listsSave(next){
-  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json();
-  userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
-  svSig = recentSig = ""; renderLists(); renderFeatured(); renderFavBox();
-}
-// The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
-function listChoices(x){
-  const cs = clean(x.callsign || ""), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
-  return [["reg", x.reg, x.reg], ["type", x.typeCode, x.type || TYPES[x.typeCode] || x.typeCode],
-    ["airline", al, x.airline || (AIRLINES[al] || [])[1] || al], ["flight", cs, x.flight || cs]].filter(c => c[1]).map(([k, v, n]) => ({k, v: clean(v), n: String(n || v)}));
-}
-const inList = (L, c) => L.some(i => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""));
-function listSheet(x){
-  if (!listsOk() || !x) return;
-  ctlSound.press();
-  const box = $("sheet"), ch = listChoices(x);
-  const draw = () => {
-    const btns = which => ch.map((c, i) => `<button class="cap${inList(userLists[which], c) ? " on" : ""}" type="button" data-w="${which}" data-i="${i}">` +
-      `<small>${escH(T(KIND_NAME[c.k]))}</small>${escH(c.n)}</button>`).join("");
-    box.innerHTML = `<div class="shBox" role="dialog" aria-modal="true"><h3>${escH(x.flight || x.reg || x.callsign || "")}</h3>` +
-      `<p class="sum">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
-      `<p class="shH">★ ${escH(T("Make a favourite"))}</p><div class="shRow">${btns("fav")}</div>` +
-      `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p><div class="shRow">${btns("hide")}</div>` +
-      `<p class="note" id="shNote"></p><div class="acts"><button class="cap big go" type="button" id="shDone">${T("Done")}</button></div></div>`;
-    for (const b of box.querySelectorAll("[data-w]")) b.onclick = async () => {
-      const w = b.dataset.w, c = ch[+b.dataset.i], on = inList(userLists[w], c);
-      ctlSound.toggle(!on);
-      const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
-      next[w] = on ? next[w].filter(i => !(i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""))) : next[w].concat([c]);
-      if (!on) { const o = w === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !(i.k === c.k && clean(i.v) === c.v)); }   // not both at once
-      try { await listsSave(next); draw(); } catch (e) { $("shNote").textContent = e.message; }
-    };
-    $("shDone").onclick = () => { ctlSound.press(); box.hidden = true; };
-  };
-  draw(); box.hidden = false;
-  box.onclick = e => { if (e.target === box) box.hidden = true; };
-}
-// The ⋯ on the lists' rows, and This aircraft's buttons.
+// A row of the lists: its airline and places open their cards, the rest the favourite/hide sheet.
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-more]");
   if (!b) return;
   e.stopPropagation();
   const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
-  if (x) listSheet(x);
+  if (!x) return;
+  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]");
+  if (al) return airlineCard(x);
+  if (pl) return placeCard(x[pl.dataset.pl]);
+  listSheet(x);
 }, true);
+function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
+function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
 function featFacts(){
   if (!feat || !feat.o) return null;
   const f = liveFacts(feat.o.ac, feat.info), d = detailsOf(feat.hex) || {};
   return {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
 }
-// Settings → Favourites & hidden: the two lists, each entry with its kind and a ×, and a field to add one, with
-// airlines and aircraft types to pick from.
+// Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
   const box = $("favBox");
   if (!box) return;
   if (!listsOk()) { box.hidden = true; return; }
   box.hidden = false;
-  const chips = (w) => userLists[w].length ? `<ul class="chips">${userLists[w].map((i, n) => `<li><small>${escH(T(KIND_NAME[i.k] || ""))}</small>${escH(i.n || i.v)}` +
-    `<button type="button" data-rm="${w}:${n}" aria-label="${escH(T("Remove"))}">×</button></li>`).join("")}</ul>` : `<p class="sum">${escH(T("None yet."))}</p>`;
-  box.innerHTML = `<div class="plate" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3>` +
-    `<p>${escH(T("Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook)."))}</p>` +
-    `<p class="shH">★ ${escH(T("Favourites"))}</p>${chips("fav")}<p class="shH">⊘ ${escH(T("Hidden"))}</p>${chips("hide")}` +
-    `<div class="favAdd"><select id="favWhich"><option value="fav">★ ${escH(T("Favourites"))}</option><option value="hide">⊘ ${escH(T("Hidden"))}</option></select>` +
-    `<input id="favIn" list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
-    `<button class="cap" type="button" id="favAddBtn">${T("Add")}</button></div><p class="note" id="favNote"></p>` +
-    `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
-    `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist></div>`;
-  for (const b of box.querySelectorAll("[data-rm]")) b.onclick = () => {
-    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
-    listsSave(next).catch(e => { $("favNote").textContent = e.message; });
-  };
-  $("favAddBtn").onclick = () => {
-    ctlSound.press();
-    const c = parseListEntry($("favIn").value), w = $("favWhich").value;
-    if (!c) { $("favNote").textContent = T("Code or name, e.g. Austrian, A380, OE-LBN"); return; }
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
-    if (!inList(next[w], c)) next[w].push(c);
-    listsSave(next).then(() => { $("favIn").value = ""; }).catch(e => { $("favNote").textContent = e.message; });
-  };
-}
-// What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
-function parseListEntry(t){
-  t = String(t || "").trim();
-  if (!t) return null;
-  const m = t.match(/\(([A-Z0-9]{2,4})\)\s*$/i), code = clean(m ? m[1] : t).replace(/\s/g, ""), name = m ? t.replace(/\s*\([^)]*\)\s*$/, "") : "";
-  if (AIRLINES[code]) return {k: "airline", v: code, n: name || AIRLINES[code][1]};
-  if (TYPES[code]) return {k: "type", v: code, n: name || TYPES[code]};
-  const byName = Object.entries(AIRLINES).find(([, a]) => clean(a[1]) === clean(t));
-  if (byName) return {k: "airline", v: byName[0], n: byName[1][1]};
-  const tName = Object.entries(TYPES).find(([, n]) => clean(n) === clean(t));
-  if (tName) return {k: "type", v: tName[0], n: tName[1]};
-  const tWord = Object.entries(TYPES).find(([, n]) => (" " + clean(n) + " ").includes(" " + code + " "));   // A380, 787 ...
-  if (tWord && !/^[A-Z]{3}\d/.test(code)) return {k: "type", v: tWord[0], n: tWord[1]};
-  if (/^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$/i.test(t) || /^N\d{1,5}[A-Z]{0,2}$/i.test(t)) return {k: "reg", v: clean(t), n: clean(t)};
-  if (/^[A-Z]{3}\d[A-Z0-9]{0,4}$/i.test(code) || /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/i.test(code)) return {k: "flight", v: code, n: code};
-  if (/^[A-Z][A-Z0-9]{2,3}$/i.test(code)) return {k: "type", v: code, n: code};
-  return null;
-}
-// The old Favourites text moves into the lists once (relay 31).
-async function listsMigrate(){
-  if (!listsOk() || !String(S.favs || "").trim()) return;
-  await listsLoad(true);
-  const add = String(S.favs).split(/[,;\n]+/).map(parseListEntry).filter(Boolean).filter(c => !inList(userLists.fav, c));
-  try {
-    if (add.length) await listsSave({fav: userLists.fav.concat(add), hide: userLists.hide});
-    S = {...S, favs: ""}; saveSettings();
-  } catch {}
+  box.innerHTML = `<div class="plate cardish" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3><div data-fm></div></div>`;
+  favManager(box.querySelector("[data-fm]"));
 }
 
 /* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
@@ -1898,7 +1825,7 @@ function showTab(t){
   else if (t === "today") { svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
-  else if (t === "settings") cockpitOpen();
+  else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
   else if (t === "about") aboutOpen();
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);

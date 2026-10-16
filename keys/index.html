@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fallblatt: remote key test</title>
+<style>
+  /* A check for the TVs: which remote buttons reach a web page. Open http://<relay>:8080/keys/ on each TV and press
+     the arrows, OK, Back and the colour buttons; every key that arrives lights up and is listed. */
+  body{margin:0;min-height:100vh;background:#0b0b0c;color:#f3f0e8;font:24px/1.4 system-ui,"Segoe UI",sans-serif;padding:40px 60px;box-sizing:border-box}
+  h1{margin:0 0 6px;font-size:40px;color:#f0b429}
+  p{margin:0 0 24px;color:#b9b3a3}
+  .pad{display:grid;grid-template-columns:repeat(3,120px);grid-template-rows:repeat(3,90px);gap:12px;margin:0 0 26px}
+  .k{display:grid;place-items:center;border-radius:14px;background:#1b1c1f;border:2px solid #34363b;font-weight:700;transition:background .2s}
+  .k.on{background:#27a85e;border-color:#45d483;color:#fff}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 26px}
+  .row .k{padding:16px 22px}
+  #log{font:18px/1.5 ui-monospace,Consolas,monospace;color:#d6d2c6;max-height:40vh;overflow:hidden}
+  #log b{color:#f0b429}
+  #note{color:#e0372c}
+</style>
+</head>
+<body>
+<h1>Remote key test</h1>
+<p>Press the arrows, OK, Back and the colour buttons on the remote. A button that lights up reaches the page; if the
+arrows move a mouse pointer instead and nothing lights up, this TV's browser keeps them for itself. Tell Claude what you see.</p>
+<div class="pad">
+  <span></span><span class="k" id="ArrowUp">▲</span><span></span>
+  <span class="k" id="ArrowLeft">◀</span><span class="k" id="Enter">OK</span><span class="k" id="ArrowRight">▶</span>
+  <span></span><span class="k" id="ArrowDown">▼</span><span></span>
+</div>
+<div class="row"><span class="k" id="Back">Back</span><span class="k" id="Red">Red</span><span class="k" id="Green">Green</span>
+  <span class="k" id="Yellow">Yellow</span><span class="k" id="Blue">Blue</span><span class="k" id="Play">Play / pause</span></div>
+<p id="note"></p>
+<div id="log"></div>
+<script>
+// Remotes name their keys differently: arrows and OK are standard, Back is Escape/Backspace or a TV code (Samsung
+// 10009, LG 461), the colour keys are ColorF0Red... or codes 403-406.
+var map = {38: "ArrowUp", 40: "ArrowDown", 37: "ArrowLeft", 39: "ArrowRight", 13: "Enter", 27: "Back", 8: "Back", 10009: "Back", 461: "Back",
+  403: "Red", 404: "Green", 405: "Yellow", 406: "Blue", 415: "Play", 19: "Play", 10252: "Play", 179: "Play"};
+var byKey = {ArrowUp: "ArrowUp", ArrowDown: "ArrowDown", ArrowLeft: "ArrowLeft", ArrowRight: "ArrowRight", Enter: "Enter", Escape: "Back",
+  GoBack: "Back", BrowserBack: "Back", Backspace: "Back", ColorF0Red: "Red", ColorF1Green: "Green", ColorF2Yellow: "Yellow", ColorF3Blue: "Blue",
+  MediaPlayPause: "Play", MediaPlay: "Play", MediaPause: "Play"};
+var lines = [];
+function show(e, kind){
+  var id = byKey[e.key] || map[e.keyCode];
+  if (id) { var el = document.getElementById(id); el.classList.add("on"); setTimeout(function(){ el.classList.remove("on"); }, 600); }
+  lines.unshift("<b>" + kind + "</b> key=" + e.key + " code=" + (e.code || "-") + " keyCode=" + e.keyCode + (id ? "  → " + id : ""));
+  lines.length = Math.min(lines.length, 14);
+  document.getElementById("log").innerHTML = lines.join("<br>");
+  if (id && id !== "Enter") e.preventDefault();              // so Back doesn't leave the page and the arrows don't scroll
+}
+addEventListener("keydown", function(e){ show(e, "down"); });
+// Samsung TVs only send some keys (colours, media) after the page asks for them.
+try { if (window.tizen && tizen.tvinputdevice) ["ColorF0Red", "ColorF1Green", "ColorF2Yellow", "ColorF3Blue", "MediaPlayPause"].forEach(function(k){ try { tizen.tvinputdevice.registerKey(k); } catch (x) {} }); } catch (x) {}
+document.getElementById("note").textContent = navigator.userAgent;
+</script>
+</body>
+</html>

@@ -136,6 +136,17 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
+- **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
+  today's planes, a few words from Wikipedia, Favourite / Hide), a place (From, To) for its airport (name, codes,
+  distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
+  Remarks). In the phone app and on the full board alike: on the board a tap on a row of Recent flights or Spotted today
+  opens the favourite/hide sheet, a plane on the radar its card, the airline field the airline; a **double tap** goes full
+  screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
+- **Remarks** (top half, last row; 1.34, was Seen here): the interesting things about the plane in turn: how often it
+  was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
+  SERVICE" for rare types.
+- **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
+  Commons), credited as such.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, tapping any row of the lists (the **⋯**), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
@@ -290,6 +301,8 @@ Five buttons along the bottom:
   and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
   The phone asks for the camera and the motion sensors the first time.
+- **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
+  the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33).
@@ -300,6 +313,10 @@ Five buttons along the bottom:
 The flight data comes through the relay (version 13 or newer serves its icons), so the phone needs the home Wi-Fi.
 It checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
 among its screens as the APP board. `?demo` shows sample flights.
+
+**Remote key test**: `http://<relay>:8080/keys/` lights up each remote button that reaches a web page (arrows, OK,
+Back, colour keys), to see whether a TV's browser passes them on (the first step towards navigating the board with
+the remote).
 
 ## Controls
 
