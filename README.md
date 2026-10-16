@@ -285,9 +285,10 @@ Five buttons along the bottom:
 
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
-  under it only in the Airport style; tap the flaps for cards and Favourite / Hide), and the
+  under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
   latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
-  itself every 20 seconds), with the runway screen in place of the photo, and the take-offs and landings below.
+  itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
+  take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
   airline), and every plane spotted today, with the same filters and legend as the board.
 - **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.

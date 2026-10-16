@@ -220,7 +220,6 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .fl[data-more]{cursor:pointer}
-#acFacts dd[data-ty]{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:3px}
 .fl[data-more]:active{background:rgba(255,255,255,.06)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
@@ -321,6 +320,8 @@ body.arOpen{overflow:hidden}
 .apPick{display:none;gap:12px;margin:2px 0 14px}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
 #t-now.ap .apPick{display:flex}
+#t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
+#t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
 /* a guest's first visit: where to watch the sky */
 #welcome{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:var(--housing)}   /* the board isn't shown behind it */
@@ -395,7 +396,7 @@ body.arOpen{overflow:hidden}
   #t-now .rcol .groove,#t-now #acSec h2,#t-now #recentSec h2,#t-now .status{display:none}
   /* the pages are flaps, like the board's lower half: the text lists and facts are for upright */
   #t-now .lsOnly{display:block}
-  #t-now #recent,#t-now #apSub,#t-now #apDeps,#t-now #apArrs,#t-now #acFacts{display:none}
+  #t-now #recent,#t-now #apSub,#t-now .ptOnly{display:none}
   #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:18px;font-weight:600}
   #t-now .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
   #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
@@ -463,11 +464,11 @@ body.arOpen{overflow:hidden}
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
     </div>
     <div class="rcol">
+      <div class="apPick" id="apPick"></div>
       <p class="pageEmpty" id="nowEmpty" hidden></p>
       <div id="acSec" hidden>
         <div class="groove"></div>
         <h2 id="acTitle" data-t="This aircraft">This aircraft</h2>
-        <div class="apPick" id="apPick"></div>
         <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
           <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
@@ -478,7 +479,6 @@ body.arOpen{overflow:hidden}
           <span class="lookActs">
           <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
       </div>
-        <dl class="facts" id="acFacts"></dl>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
       <div id="recentSec">
@@ -491,10 +491,10 @@ body.arOpen{overflow:hidden}
         <div class="groove"></div>
         <h2 data-t="Take-offs">Take-offs</h2>
         <p class="sum" id="apSub"></p>
-        <ol class="flights" id="apDeps"></ol>
+        <div class="panel ptOnly" id="apDP" role="img" aria-label="Take-offs"></div>
         <div class="groove"></div>
         <h2 data-t="Landings">Landings</h2>
-        <ol class="flights" id="apArrs"></ol>
+        <div class="panel ptOnly" id="apAP" role="img" aria-label="Landings"></div>
         <div class="panel lsOnly" id="apP" role="img" aria-label="Take-offs and landings"></div>
       </div>
       <p class="status statusText"></p>
