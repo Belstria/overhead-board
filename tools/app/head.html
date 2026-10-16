@@ -216,6 +216,32 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
+/* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
+.fl{position:relative}
+.fl .more{all:unset;position:absolute;right:2px;bottom:4px;padding:2px 8px;border-radius:6px;font:700 18px/1 var(--f-board);color:var(--muted);cursor:pointer}
+.fl .more:active{background:rgba(255,255,255,.08)}
+#sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
+#sheet[hidden]{display:none}
+#sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
+  background:linear-gradient(#1a1b1e,#111214);border-top:1px solid rgba(255,255,255,.08)}
+#sheet h3{margin:0 0 4px;font:700 20px var(--f-board);color:var(--ink)}
+.shH{margin:12px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.shRow{display:flex;flex-wrap:wrap;gap:8px}
+.shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:13px}
+.shRow .cap small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.shRow .cap.on{outline:2px solid var(--amber);outline-offset:1px}
+.acActs{display:flex;gap:8px;margin:10px 0 0}
+.acActs .cap{width:auto;padding:0 12px}
+#favBox{margin-top:14px}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board);color:var(--ink)}
+.chips small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;color:var(--muted)}
+.favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.favAdd select,.favAdd input{background:#0f1012;color:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
+.favAdd input{flex:1;min-width:160px}
+.favAdd .cap{width:auto;padding:0 14px}
+.pushKinds{margin:6px 0 0 4px}
 /* Sky view: the camera, full screen, with the labels drawn over it */
 #arView{position:fixed;inset:0;z-index:70;background:#000;overflow:hidden;touch-action:none}
 #arView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -377,6 +403,7 @@ body.arOpen{overflow:hidden}
 </style>
 </head>
 <body>
+<div id="sheet" hidden></div>
 <div id="arView" hidden>
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
@@ -421,12 +448,6 @@ body.arOpen{overflow:hidden}
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="look" id="look" hidden>
-        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
-        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
-          <span class="lookActs"><button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button>
-          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
-      </div>
     </div>
     <div class="rcol">
       <p class="pageEmpty" id="nowEmpty" hidden></p>
@@ -438,6 +459,14 @@ body.arOpen{overflow:hidden}
           <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
         </div>
+        <div class="acActs" id="acActs" hidden><button class="cap small" type="button" id="acFav" data-t="Favourite…">Favourite…</button>
+          <button class="cap small" type="button" id="acHide" data-t="Hide…">Hide…</button></div>
+        <div class="look" id="look" hidden>
+        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
+        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
+          <span class="lookActs"><button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button>
+          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
+      </div>
         <dl class="facts" id="acFacts"></dl>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
@@ -504,6 +533,7 @@ body.arOpen{overflow:hidden}
     <h2 data-t="Settings">Settings</h2>
     <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save.">Turn the knobs and flip the switches, then press Save.</p>
     <div id="cockpit" style="margin-top:14px"></div>
+    <div id="favBox" hidden></div>
     <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
   <p class="brandline">Fallblatt</p>

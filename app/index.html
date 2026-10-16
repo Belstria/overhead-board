@@ -372,6 +372,32 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
+/* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
+.fl{position:relative}
+.fl .more{all:unset;position:absolute;right:2px;bottom:4px;padding:2px 8px;border-radius:6px;font:700 18px/1 var(--f-board);color:var(--muted);cursor:pointer}
+.fl .more:active{background:rgba(255,255,255,.08)}
+#sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
+#sheet[hidden]{display:none}
+#sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
+  background:linear-gradient(#1a1b1e,#111214);border-top:1px solid rgba(255,255,255,.08)}
+#sheet h3{margin:0 0 4px;font:700 20px var(--f-board);color:var(--ink)}
+.shH{margin:12px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.shRow{display:flex;flex-wrap:wrap;gap:8px}
+.shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:13px}
+.shRow .cap small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.shRow .cap.on{outline:2px solid var(--amber);outline-offset:1px}
+.acActs{display:flex;gap:8px;margin:10px 0 0}
+.acActs .cap{width:auto;padding:0 12px}
+#favBox{margin-top:14px}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board);color:var(--ink)}
+.chips small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;color:var(--muted)}
+.favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.favAdd select,.favAdd input{background:#0f1012;color:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
+.favAdd input{flex:1;min-width:160px}
+.favAdd .cap{width:auto;padding:0 14px}
+.pushKinds{margin:6px 0 0 4px}
 /* Sky view: the camera, full screen, with the labels drawn over it */
 #arView{position:fixed;inset:0;z-index:70;background:#000;overflow:hidden;touch-action:none}
 #arView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -532,6 +558,7 @@ body.arOpen{overflow:hidden}
 </style>
 </head>
 <body>
+<div id="sheet" hidden></div>
 <div id="arView" hidden>
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
@@ -576,12 +603,6 @@ body.arOpen{overflow:hidden}
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="look" id="look" hidden>
-        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
-        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
-          <span class="lookActs"><button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button>
-          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
-      </div>
     </div>
     <div class="rcol">
       <p class="pageEmpty" id="nowEmpty" hidden></p>
@@ -593,6 +614,14 @@ body.arOpen{overflow:hidden}
           <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
         </div>
+        <div class="acActs" id="acActs" hidden><button class="cap small" type="button" id="acFav" data-t="Favourite…">Favourite…</button>
+          <button class="cap small" type="button" id="acHide" data-t="Hide…">Hide…</button></div>
+        <div class="look" id="look" hidden>
+        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
+        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
+          <span class="lookActs"><button class="cap small" type="button" id="lookBtn" data-t="Use the compass" hidden>Use the compass</button>
+          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
+      </div>
         <dl class="facts" id="acFacts"></dl>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
@@ -659,6 +688,7 @@ body.arOpen{overflow:hidden}
     <h2 data-t="Settings">Settings</h2>
     <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save.">Turn the knobs and flip the switches, then press Save.</p>
     <div id="cockpit" style="margin-top:14px"></div>
+    <div id="favBox" hidden></div>
     <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
   </section>
   <p class="brandline">Fallblatt</p>
@@ -782,7 +812,7 @@ const REMARK_LOOK = {
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:5,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
@@ -873,6 +903,29 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Favourites", "Favoriten", "Favoris", "Favoritos", "Favorieten"],
+  ["Hidden", "Ausgeblendet", "Masqués", "Ocultos", "Verborgen"],
+  ["Favourites & hidden", "Favoriten & ausgeblendet", "Favoris et masqués", "Favoritos y ocultos", "Favorieten en verborgen"],
+  ["Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook).", "Favoriten leuchten auf und bekommen einen Gong und eine Benachrichtigung. Ausgeblendete Flugzeuge erscheinen nicht auf der Tafel, in den Listen und Benachrichtigungen (im Logbuch bleiben sie).", "Les favoris s'allument et ont un carillon et une notification. Les avions masqués n'apparaissent plus sur le tableau, dans les listes ni les notifications (ils restent dans le carnet).", "Los favoritos se iluminan y tienen campanilla y notificación. Los aviones ocultos no salen en el panel, las listas ni las notificaciones (siguen en el registro).", "Favorieten lichten op en krijgen een gong en een melding. Verborgen toestellen blijven van het bord, de lijsten en de meldingen (in het logboek staan ze nog)."],
+  ["Add", "Hinzufügen", "Ajouter", "Añadir", "Toevoegen"],
+  ["None yet.", "Noch keine.", "Aucun pour l'instant.", "Ninguno todavía.", "Nog geen."],
+  ["Favourite…", "Favorit…", "Favori…", "Favorito…", "Favoriet…"],
+  ["Hide…", "Ausblenden…", "Masquer…", "Ocultar…", "Verbergen…"],
+  ["Make a favourite", "Als Favorit", "Mettre en favori", "Marcar como favorito", "Als favoriet"],
+  ["Hide from now on", "Ab jetzt ausblenden", "Masquer désormais", "Ocultar a partir de ahora", "Voortaan verbergen"],
+  ["Tap to switch on or off. Saved for all your devices and boards.", "Tippen zum Ein- oder Ausschalten. Gilt für alle deine Geräte und Tafeln.", "Touchez pour activer ou désactiver. Valable sur tous vos appareils et tableaux.", "Toca para activar o desactivar. Vale para todos tus dispositivos y paneles.", "Tik om aan of uit te zetten. Geldt voor al je apparaten en borden."],
+  ["Done", "Fertig", "Terminé", "Listo", "Klaar"],
+  ["More for this plane", "Mehr zu diesem Flugzeug", "Plus pour cet avion", "Más sobre este avión", "Meer voor dit toestel"],
+  ["Code or name, e.g. Austrian, A380, OE-LBN", "Code oder Name, z. B. Austrian, A380, OE-LBN", "Code ou nom, p. ex. Austrian, A380, OE-LBN", "Código o nombre, p. ej. Austrian, A380, OE-LBN", "Code of naam, bv. Austrian, A380, OE-LBN"],
+  ["Which notifications", "Welche Benachrichtigungen", "Quelles notifications", "Qué notificaciones", "Welke meldingen"],
+  ["Special planes (A380, 747, Beluga, Antonov, emergencies)", "Besondere Flugzeuge (A380, 747, Beluga, Antonov, Notfälle)", "Avions spéciaux (A380, 747, Beluga, Antonov, urgences)", "Aviones especiales (A380, 747, Beluga, Antonov, emergencias)", "Bijzondere toestellen (A380, 747, Beluga, Antonov, noodgevallen)"],
+  ["Watchlist (police, ambulance, government, historic …)", "Beobachtungsliste (Polizei, Rettung, Regierung, historisch …)", "Liste de surveillance (police, ambulance, gouvernement, historique …)", "Lista de vigilancia (policía, ambulancia, gobierno, histórico …)", "Volglijst (politie, ambulance, overheid, historisch …)"],
+  ["Military planes", "Militärflugzeuge", "Avions militaires", "Aviones militares", "Militaire toestellen"],
+  ["Your favourites", "Deine Favoriten", "Vos favoris", "Tus favoritos", "Je favorieten"],
+  ["Types never seen here", "Hier nie gesehene Typen", "Types jamais vus ici", "Tipos nunca vistos aquí", "Types die hier nooit gezien zijn"],
+  ["Very low passes", "Sehr tiefe Überflüge", "Passages très bas", "Pasos muy bajos", "Heel lage passages"],
+  ["Quiet at night (22:00–07:00), except emergencies and special planes", "Nachts still (22–7 Uhr), außer Notfälle und besondere Flugzeuge", "Silence la nuit (22 h–7 h), sauf urgences et avions spéciaux", "Silencio de noche (22:00–07:00), salvo emergencias y aviones especiales", "Stil 's nachts (22:00–07:00), behalve noodgevallen en bijzondere toestellen"],
+  ["At most one every 15 minutes, except emergencies and special planes.", "Höchstens eine alle 15 Minuten, außer Notfälle und besondere Flugzeuge.", "Au plus une toutes les 15 minutes, sauf urgences et avions spéciaux.", "Como mucho una cada 15 minutos, salvo emergencias y aviones especiales.", "Hoogstens één per 15 minuten, behalve noodgevallen en bijzondere toestellen."],
   ["Sky view", "Himmelsansicht", "Vue du ciel", "Vista del cielo", "Luchtzicht"],
   ["Close", "Schließen", "Fermer", "Cerrar", "Sluiten"],
   ["Reset", "Zurücksetzen", "Réinitialiser", "Restablecer", "Herstellen"],
@@ -2468,10 +2521,11 @@ function liveryLine(info){
   const nm = c => shortAirline((AIRLINES[c] || [])[1] || c);
   return T("{op} · PAINTED AS {a}", {op: nm(op), a: nm(lv)});
 }
+const infoCache = new Map();
+// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
 function infoChanged(info){
   if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }
 }
-const infoCache = new Map();
 function enrich(ac){
   const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
   if (infoCache.has(key)) return infoCache.get(key);
@@ -2616,9 +2670,10 @@ async function loadFullDay(){
   finally { fullDay.busy = false; }
 }
 function dayList(){
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return spotted;
+  const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
-  return spotted.concat(fullDay.list.filter(e => !ids.has(e.id)));
+  return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
 }
 /* ---------- special aircraft and favourites ---------- */
 const SPECIAL_BIG = new Set(["EMERGENCY", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "SPECIAL"]);
@@ -2651,11 +2706,31 @@ function specialOf(x){
   if (t === "MILITARY" || x.military) return "MILITARY";
   return t || "";
 }
+// Favourites and hidden planes (1.31, relay 31): lists of {k: reg|type|airline|flight, v, n} kept on the relay per
+// profile, set in the phone app (Settings, This aircraft, the lists) and read here every few minutes; the old
+// Favourites text in Settings still counts too.
+let userLists = {fav: [], hide: [], at: 0, v: 0};
+function listsLoad(force){
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 31 || (!force && Date.now() - userLists.at < 5 * 60000)) return Promise.resolve();
+  userLists.at = Date.now();
+  return fetchJSON(`${relay()}/lists`, {}, 8000).then(j => { userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1}; }).catch(() => {});
+}
 let favCache = {src: null, list: []};
 function favList(){
-  if (favCache.src !== S.favs) favCache = {src: S.favs, list: String(S.favs || "").split(/[,;\n]+/).map(clean).filter(Boolean)};
+  const src = `${S.favs}|${userLists.v}`;
+  if (favCache.src !== src) favCache = {src, list: String(S.favs || "").split(/[,;\n]+/).map(clean).concat(userLists.fav.map(i => clean(i.v))).filter(Boolean)};
   return favCache.list;
 }
+// Does a plane match a list entry? x: a sighting or liveFacts-like object (reg, typeCode, callsign, flight).
+function listHit(items, x){
+  if (!items.length || !x) return false;
+  const sq = v => clean(v).replace(/[\s-]/g, ""), cs = sq(x.callsign), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  return items.some(i => { const v = sq(i.v);
+    return i.k === "reg" ? v === sq(x.reg) : i.k === "type" ? v === sq(x.typeCode) : i.k === "airline" ? v === al || v === sq(x.airlineCode)
+      : v === cs || v === sq(x.flight); });
+}
+const isHidden = x => listHit(userLists.hide, x);
+const hiddenAc = ac => userLists.hide.length > 0 && isHidden({reg: ac.r, typeCode: ac.t, callsign: ac.flight});
 function isFav(x){
   const toks = favList();
   if (!toks.length) return false;
@@ -2718,7 +2793,7 @@ function checkChimes(ok, R){
   for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
   let kind = null;
   for (const o of ok) {
-    if (o.dist > R || chimed.has(o.ac.hex)) continue;
+    if (o.dist > R || chimed.has(o.ac.hex) || hiddenAc(o.ac)) continue;
     const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
     let k = sp === "EMERGENCY" ? "emergency" : SPECIAL_BIG.has(sp) || sp === "MILITARY" ? "special" : null;
     const x = k || favList().length ? liveFacts(ac) : null;   // favourites need the airline, so only look it up when there are any
@@ -2858,7 +2933,7 @@ function process(list){
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
-  const rest = restingPlanes(ok, R, now), cand = rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok;
+  const rest = restingPlanes(ok, R, now), cand = (rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok).filter(o => !hiddenAc(o.ac));
   const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
   const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
@@ -3185,10 +3260,11 @@ function logbookSummary(){
     (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
-const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
+const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map()};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
+  all = all.filter(o => !hiddenAc(o.ac));                      // hidden planes stay off the radar too
   radar.planes = all; radar.at = now;
   for (const o of all) {
     let tr = radar.trails.get(o.ac.hex);
@@ -3198,6 +3274,22 @@ function radarTrack(all, now){
     while (tr.length && (tr.length > 36 || now - tr[0].t > 4 * 60000)) tr.shift();
   }
   for (const [k, tr] of radar.trails) if (!tr.length || now - tr[tr.length - 1].t > 90000) radar.trails.delete(k);
+  const here = new Set(all.map(o => o.ac.hex));
+  for (const k of radar.disp.keys()) if (!here.has(k)) radar.disp.delete(k);
+}
+// Where to draw a plane (1.31): moved on along its track from its last reported position (and that report's age);
+// when a new report disagrees with where it was drawn, the difference is made up over about a second instead of a
+// jump (a big one, a few km, still jumps).
+function radarPos(o, now, kx, ky){
+  const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600, th = (ac.track || 0) * Math.PI / 180;
+  const age = Math.min(30, (now - radar.at) / 1000 + (ac.seen_pos || 0));
+  const tLat = ac.lat + v * age * Math.cos(th) / ky, tLon = ac.lon + v * age * Math.sin(th) / kx;
+  let d = radar.disp.get(ac.hex);
+  if (!d || Math.hypot((tLat - d.lat) * ky, (tLon - d.lon) * kx) > 3) { radar.disp.set(ac.hex, d = {lat: tLat, lon: tLon, t: now}); return d; }
+  const step = Math.min(1, (now - d.t) / 1000), a = 1 - Math.exp(-(now - d.t) / 900);
+  d.lat += v * step * Math.cos(th) / ky; d.lon += v * step * Math.sin(th) / kx;      // it keeps flying
+  d.lat += (tLat - d.lat) * a; d.lon += (tLon - d.lon) * a; d.t = now;              // and closes the gap
+  return d;
 }
 const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
 function altShort(ft){
@@ -3280,7 +3372,8 @@ function rowHtml(e){
   return `<li class="fl${col ? " sp" : ""}"${style}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${placeHtml(e.from)}<i>→</i>${placeHtml(e.to)}</div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
+    (listsOk() ? `<button class="more" type="button" data-more="${escH(e.id || e.hex || "")}" aria-label="${escH(T("More for this plane"))}">⋯</button>` : "") + `</li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -3341,6 +3434,7 @@ function renderAircraftInfo(){
   if (sig === factsSig) return;
   factsSig = sig;
   $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acActs").hidden = !listsOk();
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -3656,8 +3750,8 @@ function lookHeadingFrom(e){
   else { const d = ((h - lookHeading + 540) % 360) - 180; lookHeading = (lookHeading + d * .25 + 360) % 360; }   // smoothed: compasses wobble
   lookSoon();
 }
-async function lookStart(){
-  ctlSound.press();
+async function lookStart(quiet){
+  if (!quiet) ctlSound.press();
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
@@ -3893,9 +3987,8 @@ function drawRadar(t){
   } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
-    const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
-    const lat = ac.lat + v * Math.cos(th) / ky, lon = ac.lon + v * Math.sin(th) / kx;
-    const [x, y] = toXY(lat, lon);
+    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
+    const [x, y] = toXY(pos.lat, pos.lon);
     if (Math.hypot(x - cx, y - cy) > R + 8) continue;
     const col = radarColor(o), tr = radar.trails.get(ac.hex);
     if (tr && tr.length > 1) {
@@ -3954,7 +4047,7 @@ const COCKPIT = [
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
-    {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
+]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
@@ -4595,6 +4688,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.31", date: "2026-10-16", notes: [
+    "Hide a plane, or make it a favourite, straight from the lists or This aircraft in the app; hidden planes stay off the board and out of notifications.",
+    "A favourites manager in the app's Settings: airlines, aircraft types, registrations and flights, picked from a list.",
+    "Notifications say why a plane is worth a look, come less often, and you choose which kinds you get.",
+    "The app updates every 5 seconds, and planes on the radar glide instead of jumping.",
+    "The compass sits under This aircraft's picture and turns with the phone.",
+    "The test board without Flightradar24 shows routes again as soon as they come in."]},
   {v: "1.30", date: "2026-10-15", notes: [
     "Sky view in the phone app: hold up the camera and every plane around gets a label (flight, type, height, distance)."]},
   {v: "1.29", date: "2026-10-15", notes: [
@@ -4843,6 +4943,135 @@ function aboutOpen(){
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
 let hasAccount = false;
+$("acFav").onclick = () => listSheet(featFacts());
+$("acHide").onclick = () => listSheet(featFacts());
+// The compass turns with the phone by itself where no permission is asked (Android): it starts on the first tap.
+addEventListener("pointerup", function lookAuto(){
+  removeEventListener("pointerup", lookAuto);
+  if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined" && !/iPhone|iPad|Macintosh/.test(navigator.userAgent)) lookStart(true);
+});
+/* ---------- favourites and hidden planes (1.31, relay 31) ----------
+   The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
+   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and
+   This aircraft), and the manager in Settings. */
+const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
+const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
+  ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
+  ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
+const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
+const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
+async function listsSave(next){
+  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
+  svSig = recentSig = ""; renderLists(); renderFeatured(); renderFavBox();
+}
+// The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
+function listChoices(x){
+  const cs = clean(x.callsign || ""), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  return [["reg", x.reg, x.reg], ["type", x.typeCode, x.type || TYPES[x.typeCode] || x.typeCode],
+    ["airline", al, x.airline || (AIRLINES[al] || [])[1] || al], ["flight", cs, x.flight || cs]].filter(c => c[1]).map(([k, v, n]) => ({k, v: clean(v), n: String(n || v)}));
+}
+const inList = (L, c) => L.some(i => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""));
+function listSheet(x){
+  if (!listsOk() || !x) return;
+  ctlSound.press();
+  const box = $("sheet"), ch = listChoices(x);
+  const draw = () => {
+    const btns = which => ch.map((c, i) => `<button class="cap${inList(userLists[which], c) ? " on" : ""}" type="button" data-w="${which}" data-i="${i}">` +
+      `<small>${escH(T(KIND_NAME[c.k]))}</small>${escH(c.n)}</button>`).join("");
+    box.innerHTML = `<div class="shBox" role="dialog" aria-modal="true"><h3>${escH(x.flight || x.reg || x.callsign || "")}</h3>` +
+      `<p class="sum">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
+      `<p class="shH">★ ${escH(T("Make a favourite"))}</p><div class="shRow">${btns("fav")}</div>` +
+      `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p><div class="shRow">${btns("hide")}</div>` +
+      `<p class="note" id="shNote"></p><div class="acts"><button class="cap big go" type="button" id="shDone">${T("Done")}</button></div></div>`;
+    for (const b of box.querySelectorAll("[data-w]")) b.onclick = async () => {
+      const w = b.dataset.w, c = ch[+b.dataset.i], on = inList(userLists[w], c);
+      ctlSound.toggle(!on);
+      const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+      next[w] = on ? next[w].filter(i => !(i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""))) : next[w].concat([c]);
+      if (!on) { const o = w === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !(i.k === c.k && clean(i.v) === c.v)); }   // not both at once
+      try { await listsSave(next); draw(); } catch (e) { $("shNote").textContent = e.message; }
+    };
+    $("shDone").onclick = () => { ctlSound.press(); box.hidden = true; };
+  };
+  draw(); box.hidden = false;
+  box.onclick = e => { if (e.target === box) box.hidden = true; };
+}
+// The ⋯ on the lists' rows, and This aircraft's buttons.
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-more]");
+  if (!b) return;
+  e.stopPropagation();
+  const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
+  if (x) listSheet(x);
+}, true);
+function featFacts(){
+  if (!feat || !feat.o) return null;
+  const f = liveFacts(feat.o.ac, feat.info), d = detailsOf(feat.hex) || {};
+  return {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
+}
+// Settings → Favourites & hidden: the two lists, each entry with its kind and a ×, and a field to add one, with
+// airlines and aircraft types to pick from.
+function renderFavBox(){
+  const box = $("favBox");
+  if (!box) return;
+  if (!listsOk()) { box.hidden = true; return; }
+  box.hidden = false;
+  const chips = (w) => userLists[w].length ? `<ul class="chips">${userLists[w].map((i, n) => `<li><small>${escH(T(KIND_NAME[i.k] || ""))}</small>${escH(i.n || i.v)}` +
+    `<button type="button" data-rm="${w}:${n}" aria-label="${escH(T("Remove"))}">×</button></li>`).join("")}</ul>` : `<p class="sum">${escH(T("None yet."))}</p>`;
+  box.innerHTML = `<div class="plate" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3>` +
+    `<p>${escH(T("Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook)."))}</p>` +
+    `<p class="shH">★ ${escH(T("Favourites"))}</p>${chips("fav")}<p class="shH">⊘ ${escH(T("Hidden"))}</p>${chips("hide")}` +
+    `<div class="favAdd"><select id="favWhich"><option value="fav">★ ${escH(T("Favourites"))}</option><option value="hide">⊘ ${escH(T("Hidden"))}</option></select>` +
+    `<input id="favIn" list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
+    `<button class="cap" type="button" id="favAddBtn">${T("Add")}</button></div><p class="note" id="favNote"></p>` +
+    `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
+    `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist></div>`;
+  for (const b of box.querySelectorAll("[data-rm]")) b.onclick = () => {
+    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
+    listsSave(next).catch(e => { $("favNote").textContent = e.message; });
+  };
+  $("favAddBtn").onclick = () => {
+    ctlSound.press();
+    const c = parseListEntry($("favIn").value), w = $("favWhich").value;
+    if (!c) { $("favNote").textContent = T("Code or name, e.g. Austrian, A380, OE-LBN"); return; }
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+    if (!inList(next[w], c)) next[w].push(c);
+    listsSave(next).then(() => { $("favIn").value = ""; }).catch(e => { $("favNote").textContent = e.message; });
+  };
+}
+// What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
+function parseListEntry(t){
+  t = String(t || "").trim();
+  if (!t) return null;
+  const m = t.match(/\(([A-Z0-9]{2,4})\)\s*$/i), code = clean(m ? m[1] : t).replace(/\s/g, ""), name = m ? t.replace(/\s*\([^)]*\)\s*$/, "") : "";
+  if (AIRLINES[code]) return {k: "airline", v: code, n: name || AIRLINES[code][1]};
+  if (TYPES[code]) return {k: "type", v: code, n: name || TYPES[code]};
+  const byName = Object.entries(AIRLINES).find(([, a]) => clean(a[1]) === clean(t));
+  if (byName) return {k: "airline", v: byName[0], n: byName[1][1]};
+  const tName = Object.entries(TYPES).find(([, n]) => clean(n) === clean(t));
+  if (tName) return {k: "type", v: tName[0], n: tName[1]};
+  const tWord = Object.entries(TYPES).find(([, n]) => (" " + clean(n) + " ").includes(" " + code + " "));   // A380, 787 ...
+  if (tWord && !/^[A-Z]{3}\d/.test(code)) return {k: "type", v: tWord[0], n: tWord[1]};
+  if (/^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$/i.test(t) || /^N\d{1,5}[A-Z]{0,2}$/i.test(t)) return {k: "reg", v: clean(t), n: clean(t)};
+  if (/^[A-Z]{3}\d[A-Z0-9]{0,4}$/i.test(code) || /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/i.test(code)) return {k: "flight", v: code, n: code};
+  if (/^[A-Z][A-Z0-9]{2,3}$/i.test(code)) return {k: "type", v: code, n: code};
+  return null;
+}
+// The old Favourites text moves into the lists once (relay 31).
+async function listsMigrate(){
+  if (!listsOk() || !String(S.favs || "").trim()) return;
+  await listsLoad(true);
+  const add = String(S.favs).split(/[,;\n]+/).map(parseListEntry).filter(Boolean).filter(c => !inList(userLists.fav, c));
+  try {
+    if (add.length) await listsSave({fav: userLists.fav.concat(add), hide: userLists.hide});
+    S = {...S, favs: ""}; saveSettings();
+  } catch {}
+}
+
 /* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
    The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
    the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
@@ -4934,7 +5163,7 @@ async function enablePush(){
       try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
       catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
     }
-    let prefs = {summary: true, window: true};
+    let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
     try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
     const r = await sendSub(sub, prefs, "subscribe");
     return r.ok ? "" : `HTTP ${r.status}`;
@@ -4950,16 +5179,19 @@ async function renderPush(){
     box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
   }
   if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
-  let prefs = {summary: true, window: true};
+  let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
+      PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
     `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
   for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
     ctlSound.toggle(cb.checked);
     prefs[cb.dataset.p] = cb.checked;
+    if (cb.dataset.p === "window") { const pk = box.querySelector(".pushKinds"); if (pk) pk.hidden = !cb.checked; }
     try { localStorage.setItem(PUSH_PREFS, JSON.stringify(prefs)); } catch {}
     const cur = await pushSub().catch(() => null);
     if (cur) sendSub(cur, prefs, "subscribe");
@@ -5238,7 +5470,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
@@ -5250,7 +5482,8 @@ async function poll(force){
   } finally {
     if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
     busy = false; updateFooter(); scheduleDiag();
-    timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 : failures >= 3 ? POLL_MS * 2 : POLL_MS);
+    const every = Math.min(60, Math.max(3, +S.refreshS || 10)) * 1000;          // Settings → Update every (the app: 5 s)
+    timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 : failures >= 3 ? every * 2 : every);
   }
 }
 
@@ -5319,6 +5552,7 @@ function run(){
   // Every data source at once, so the board fills as fast as it can (positions, today's list, the logbook the tiers
   // need, the hello that tells the relay where this screen looks); then each on its usual timer.
   poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();
+  listsLoad(true).then(() => { listsMigrate(); renderFavBox(); svSig = recentSig = ""; renderLists(); });
   setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };
