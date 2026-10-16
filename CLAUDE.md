@@ -217,7 +217,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
   runs `window_check` (passes within 5 km in 20–180 s: special, first-ever, favourite or below 3,000 ft) and
-  `summary_check` (once a day at `SUMMARY_AT`) every 30 s. "Link a device to Home" (`/admin/homelink`) makes an
+  `summary_check` (once a day at `SUMMARY_AT`) every 30 s. Since 1.32 (relay 32) `sw.js` shows one notification at a
+  time (tag `fallblatt`, older ones closed: Android's group summary showed its own icon) and, with the app in front,
+  stays silent and posts `{type: "bell", kind}` (the alert's `kind` from the relay) so the page plays `chime()`;
+  `app/airport-bell.wav` (from `tools/sounds/make_bell.py`, same notes as `BELL_NOTES`/`airportBell()`; served as a
+  board file, `wav` in `BOARD_FILE`) can be set as the Android notification sound. `S.bell` airport|classic picks the
+  special chime; toggling it in Settings plays it (`chime(kind, {force, set})`). "Link a device to Home" (`/admin/homelink`) makes an
   invite for the pseudo-profile `home`: such a device is home from anywhere (`self.homelinked`), but `/admin` needs the
   home network itself (`at_home()`).
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container

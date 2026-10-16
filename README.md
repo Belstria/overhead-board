@@ -147,6 +147,9 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   moved on along its track, and a new position is blended in over a second instead of a jump.
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
+  The chime for special planes is the **airport bell** by default (1.32): three soft notes rising, like the chime before
+  an announcement in a terminal. Settings → Flaps & sound → **Special bell** switches between AIRPORT and the old
+  CLASSIC chime, and plays the one you switch to.
 - **The day runs from 03:00 to 03:00**, so late-evening flights count to the evening they belong to.
 - **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
   most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
@@ -409,6 +412,10 @@ Since relay 31 each alert says why (a special plane, on the watchlist: police, a
 favourites, a type never seen here, passing very low), and About → Notifications chooses which kinds you get (special
 planes, the watchlist, military and favourites are on; new types and very low passes off). At most one every 15
 minutes and none from 22:00 to 07:00, except emergencies and special planes; hidden planes never notify.
+Since 1.32 only one notification shows at a time (a new one replaces the last), so Android never stacks them into a
+group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; to hear the
+bell with the app closed on Android, About → Notifications → **Save the bell**, then pick it as the sound for
+fallblatt.app under Android's settings → Notifications → Chrome (iPhones always play their own sound).
 
 **New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
 update. Nothing reloads by itself.
