@@ -459,11 +459,11 @@ function rowHtml(e){
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
   const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  return `<li class="fl${col ? " sp" : ""}"${style}><time>${escH(e.time || "")}</time>` +
+  return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${placeHtml(e.from)}<i>→</i>${placeHtml(e.to)}</div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<button class="more" type="button" data-more="${escH(e.id || e.hex || "")}" aria-label="${escH(T("More for this plane"))}">⋯</button>` : "") + `</li>`;
+    (listsOk() ? `<span class="more" aria-hidden="true">⋯</span>` : "") + `</li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -548,7 +548,7 @@ function paintRwy(){
   cv.width = Math.round(w * px); cv.height = Math.round(h * px);
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0);
-  try { if (paintRunwayScreen(g, w, h, e, photo)) requestAnimationFrame(() => { rwyKey = ""; paintRwy(); }); }   // the photo sliding
+  try { if (paintRunwayScreen(g, w, h, e, photo)) rwyAgain(() => { rwyKey = ""; paintRwy(); }); }   // the photo sliding, the plane moving
   catch (err) { scr.classList.remove("rwyOn"); }
 }
 
@@ -800,7 +800,8 @@ function drawLook(){
   if (box.hidden) return;
   $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
   $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
-    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.") : lookOn ? T("North is up.") : T("North is up. Hold the phone flat and tap Use the compass to turn it with you."));
+    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.")
+      : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the compass to let it turn with your phone.") : T("North is up."));
   const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), sz = 96;
   if (cv.width !== sz * px) { cv.width = cv.height = sz * px; }
   const g = cv.getContext("2d"), turn = lookOn && lookHeading != null ? -lookHeading : 0;
@@ -813,7 +814,7 @@ function drawLook(){
   g.rotate(L.brg * Math.PI / 180);
   g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(0, -36); g.lineTo(9, -14); g.lineTo(3, -14); g.lineTo(3, 14); g.lineTo(-3, 14); g.lineTo(-3, -14); g.lineTo(-9, -14); g.closePath(); g.fill();
   g.restore();
-  $("lookBtn").hidden = lookOn || !window.isSecureContext || typeof DeviceOrientationEvent === "undefined";
+
   $("arBtn").hidden = !arPossible();
 }
 const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
@@ -834,8 +835,8 @@ async function lookStart(quiet){
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
     lookOn = true;
-    setTimeout(() => { if (lookHeading == null) $("lookSub").textContent = T("The compass isn't available on this device."); }, 2500);
-  } catch { $("lookSub").textContent = T("The compass isn't available on this device."); }
+    setTimeout(() => { if (lookHeading == null && !quiet) $("lookSub").textContent = T("The compass isn't available on this device."); }, 2500);
+  } catch { if (!quiet) $("lookSub").textContent = T("The compass isn't available on this device."); }
   lookSoon();
 }
 setInterval(() => { if (tab === "now" && document.visibilityState === "visible") lookSoon(); }, 1000);
@@ -993,6 +994,46 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
   if (d.type === "bell") { audioInit(); chime(d.kind === "emergency" ? "emergency" : d.kind === "fav" ? "fav" : "special", {force: true}); }
 });
 
+// Tap a plane on the radar (or a row of Nearest): it is ringed, and a card under the scope says what it is, with its
+// picture, route, height, speed and where it is; ★/⊘ as in the lists.
+$("radarCv").addEventListener("click", e => {
+  const cv = $("radarCv"), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * RG.S / r.width, y = (e.clientY - r.top) * RG.S / r.height;
+  const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 26 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
+  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
+});
+$("rvList").addEventListener("click", e => {
+  const li = e.target.closest && e.target.closest("[data-hex]");
+  if (!li) return;
+  radar.sel = radar.sel === li.dataset.hex ? "" : li.dataset.hex;
+  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
+  if (radar.sel) $("scope").scrollIntoView({behavior: "smooth", block: "start"});
+});
+let rcardSig = "";
+function renderRadarCard(){
+  const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
+  if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
+  $("rvHint").hidden = true;
+  const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
+  lookupDetails(ac.hex);
+  const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
+  const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
+  const route = info.from && info.to ? `${code3(info.from) || info.from.code} ${info.from.city || ""} → ${code3(info.to) || info.to.code} ${info.to.city || ""}` : "";
+  const facts = [["Aircraft", d.type || info.type || ac.t], ["Registration", info.reg || d.reg || ac.r], ["Operator", d.owner || info.airline],
+    ["Altitude", o.alt != null ? altText(o.alt) : ""], ["Speed", ac.gs ? speedStr(ac.gs).toLowerCase() : ""], ["Distance", `${distText(o.dist)} ${o.dir}`]].filter(x => x[1]);
+  const html = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` +
+    (d.photo ? `<img class="rcPic" src="${escH(d.photo)}" alt="" referrerpolicy="no-referrer">` : "") +
+    `<div class="rcHead"><strong>${escH(name)}</strong>${info.airline ? `<span>${escH(info.airline)}</span>` : ""}${badge ? chip(badge) : ""}</div>` +
+    (route ? `<p class="rcRoute">${escH(route)}</p>` : "") +
+    `<dl class="facts">${facts.map(([k, v]) => `<div><dt>${escH(T(k))}</dt><dd>${escH(v)}</dd></div>`).join("")}</dl>` +
+    (listsOk() ? `<div class="acts"><button class="cap small" type="button" data-more-hex="${escH(ac.hex)}">${T("Favourite…")}</button><button class="cap small" type="button" data-more-hex="${escH(ac.hex)}">${T("Hide…")}</button></div>` : "");
+  if (html === rcardSig) return;
+  rcardSig = html; box.innerHTML = html; box.hidden = false;
+  box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
+  for (const b of box.querySelectorAll("[data-more-hex]")) b.onclick = () => listSheet({...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign});
+}
+setInterval(() => { if (tab === "radar") renderRadarCard(); }, 1000);
+
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
 
@@ -1036,15 +1077,15 @@ function stopRadar(){ cancelAnimationFrame(radar.raf); }
 function drawRadar(t){
   const g = $("radarCv").getContext("2d"), now = Date.now(), {cx, cy, R} = RG, range = radarRange(), k = R / range, TAU = Math.PI * 2;
   g.setTransform(radar.px, 0, 0, radar.px, 0, 0); g.clearRect(0, 0, RG.S, RG.S);
-  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), ky = 110.57;
-  const toXY = (lat, lon) => [cx + (lon - S.lon) * kx * k, cy - (lat - S.lat) * ky * k];
+  const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
+  const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
   const a0 = (t / 7000) * TAU;                                  // slow sweep
   for (let i = 0; i < 28; i++) {
     g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
     g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
   }
-  g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill();
+  if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
   g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
   g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
@@ -1084,10 +1125,12 @@ function drawRadar(t){
     g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
     drawPlane(g, 0, 0, o.kind ? 19 : 14, col);
     g.restore();
+    if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 17, 0, Math.PI * 2); g.stroke(); }
     shown.push({o, x, y, col});
   }
   const centre = {x: cx - 12, y: cy - 12, w: 24, h: 24}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
     return {x: cx + Math.sin(a) * (R - 12) - 10, y: cy - Math.cos(a) * (R - 12) - 10, w: 20, h: 20}; });   // N E S W stay readable
+  radar.hits = shown.map(s_ => ({hex: s_.o.ac.hex, x: s_.x, y: s_.y}));
   ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 10.5);
   g.restore();
   g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
@@ -1096,7 +1139,8 @@ function drawRadar(t){
   g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
   g.font = `700 13px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
   [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 12), cy - Math.cos(a) * (R - 12)); });
-  pictogram(g, cx - 8, cy - 8, 16);
+  { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
+    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - 8, hy - 8, 16); }
   g.textAlign = "left"; g.textBaseline = "alphabetic";
 }
 function buildRadarLegend(){
@@ -1106,13 +1150,12 @@ function buildRadarLegend(){
 let rvSig = "";
 function renderRadarList(){
   if (tab !== "radar") return;
-  const range = radarRange(), list = radar.planes.filter(o => o.kind && o.dist <= range).sort((a, b) => a.dist - b.dist).slice(0, 12);
-  const rows = list.map(o => {
+  const range = +S.radiusKm || 15;
+  const rows = radarRows(12).map(({o, dist, dir, st}) => {
     const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
     const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    const st = MODE_REMARK[o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.kind === "by" ? "by" : "away"];
-    return `<li class="rv" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
-      `<span class="num">${distText(o.dist)} ${o.dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
+      `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
   });
   const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
@@ -1145,7 +1188,6 @@ const COCKPIT = [
     {k: "quick", type: "switch", label: "Quick flaps"},
     {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "sound", type: "switch", label: "Flap sound"},
-    {k: "soundSet", type: "switch", label: "Sounds", on: "recorded", off: "classic", upText: "RECORDED", downText: "CLASSIC"},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]}];
 let draft = null;
@@ -1381,12 +1423,15 @@ function aboutOpen(){
 }
 let hasAccount = false;
 $("acFav").onclick = () => listSheet(featFacts());
+$("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 $("acHide").onclick = () => listSheet(featFacts());
-// The compass turns with the phone by itself where no permission is asked (Android): it starts on the first tap.
-addEventListener("pointerup", function lookAuto(){
-  removeEventListener("pointerup", lookAuto);
+// The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
+// first tap where the browser wants one; on an iPhone, tapping the dial asks.
+function lookAuto(){
   if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined" && !/iPhone|iPad|Macintosh/.test(navigator.userAgent)) lookStart(true);
-});
+}
+lookAuto();
+addEventListener("pointerup", function lookFirst(){ removeEventListener("pointerup", lookFirst); lookAuto(); });
 /* ---------- favourites and hidden planes (1.31, relay 31) ----------
    The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
    to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and

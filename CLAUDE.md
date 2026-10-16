@@ -212,7 +212,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `listSheet()` (rows' ⋯, This aircraft), `renderFavBox()` (Settings), `listsMigrate()` (the old `S.favs` text). Window
   alerts (`window_check`) pick their reason (`why_*` texts), honour per-device `_push_prefs` kinds and quiet hours, and
   `WINDOW_GAP_S` (15 min) for anything but emergencies and special planes. The radar draws `radarPos()` (dead
-  reckoning with the report's age, gaps closed over ~1 s); positions every 5 s in the app (`refreshS`), relay `FRESH_S` 4.
+  reckoning from when each position was reported, `radar.rep`, so a repeated stale update doesn't pull planes back; gaps
+  closed over ~1 s), also for the runway screen's plane (`paintRunwayScreen` keeps repainting through `rwyAgain`);
+  positions every 5 s in the app (`refreshS`), relay `FRESH_S` 4. Since 1.33 every plane's `kind` is set before
+  `radarTrack` in both styles; `radarCentre()` is the home airport in the Airport style and `radarRows()` gives the list
+  beside the radar (spotting radius around the centre, airport statuses); the app's radar ringing a tapped plane
+  (`radar.sel`, `radar.hits`) and showing `renderRadarCard()`; Today rows are tappable (`data-more` on the `li`).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
