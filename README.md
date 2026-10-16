@@ -136,8 +136,15 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
-- **Favourites**: airlines, aircraft types or registrations listed in Settings (for example
-  `Austrian, Emirates, A380, 747, OE-LBN`) are marked FAVOURITE.
+- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the **⋯** on any row of the lists, or
+  **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
+  hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
+  types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
+  follow them. Favourites are marked FAVOURITE, chime and can notify; hidden planes stay off the board's top half,
+  the lists, the radar and the notifications (still counted in the logbook). The board's old Favourites text in
+  Settings still works and moves into the list the first time the app opens.
+- **Updates every 5 seconds in the app** (boards: 10, Settings → Update every), and planes on the radar glide: each is
+  moved on along its track, and a new position is blended in over a second instead of a jump.
 - **Chimes**: a two-note chime when a special aircraft enters the spotting radius, three rising notes for a
   favourite, and a separate alert for emergencies. Needs a first click or key press, like the flap sound.
 - **The day runs from 03:00 to 03:00**, so late-evening flights count to the evening they belong to.
@@ -398,6 +405,10 @@ watches for these even when no screen is open. Turn them on in the app under Abo
 and computers; on an iPhone after adding Fallblatt to the home screen). The relay needs the `cryptography` package for
 this (`install.sh` installs `python3-cryptography`). To get them for your own home and logbook, use **Link a device to
 Home** on the admin page: that phone then opens the public address as home, from anywhere.
+Since relay 31 each alert says why (a special plane, on the watchlist: police, a military plane, one of your
+favourites, a type never seen here, passing very low), and About → Notifications chooses which kinds you get (special
+planes, the watchlist, military and favourites are on; new types and very low passes off). At most one every 15
+minutes and none from 22:00 to 07:00, except emergencies and special planes; hidden planes never notify.
 
 **New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
 update. Nothing reloads by itself.

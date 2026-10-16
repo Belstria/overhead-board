@@ -54,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 30
+RELAY_VERSION = 31
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -64,7 +64,7 @@ SOURCES = [
 ]
 ROUTESET = "https://api.adsb.lol/api/0/routeset"
 USER_AGENT = "overhead-board home relay (github.com/Belstria/overhead-board)"
-FRESH_S = 9      # screens poll every 10 s; within this window they all share one upstream request
+FRESH_S = 4      # the app polls every 5 s, boards every 10 s; within this window they all share one upstream request
 STALE_S = 120    # if every source fails, keep serving the last good answer this long
 NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
@@ -2655,6 +2655,13 @@ PUSH_TEXT = {
     "overhead": {"en": "{what} passes right overhead in about {m} min, {alt}", "de": "{what} fliegt in etwa {m} Min. direkt drüber, {alt}",
                  "fr": "{what} passe juste au-dessus dans environ {m} min, {alt}", "es": "{what} pasa justo encima en unos {m} min, {alt}",
                  "nl": "{what} komt over ongeveer {m} min recht over, {alt}"},
+    "why_emergency": {"en": "Emergency: squawking {x}", "de": "Notfall: Squawk {x}", "fr": "Urgence : transpondeur {x}", "es": "Emergencia: squawk {x}", "nl": "Noodgeval: squawk {x}"},
+    "why_special": {"en": "A special plane is coming", "de": "Ein besonderes Flugzeug kommt", "fr": "Un avion spécial arrive", "es": "Llega un avión especial", "nl": "Er komt een bijzonder toestel"},
+    "why_watch": {"en": "On the watchlist: {x}", "de": "Auf der Beobachtungsliste: {x}", "fr": "Sur la liste : {x}", "es": "En la lista de vigilancia: {x}", "nl": "Op de volglijst: {x}"},
+    "why_military": {"en": "A military plane is coming", "de": "Ein Militärflugzeug kommt", "fr": "Un avion militaire arrive", "es": "Llega un avión militar", "nl": "Er komt een militair toestel"},
+    "why_fav": {"en": "One of your favourites", "de": "Einer deiner Favoriten", "fr": "Un de vos favoris", "es": "Uno de tus favoritos", "nl": "Een van je favorieten"},
+    "why_newtype": {"en": "A type never seen here", "de": "Ein hier nie gesehener Typ", "fr": "Un type jamais vu ici", "es": "Un tipo nunca visto aquí", "nl": "Een type dat hier nooit gezien is"},
+    "why_low": {"en": "Passing very low", "de": "Kommt sehr tief vorbei", "fr": "Passe très bas", "es": "Pasa muy bajo", "nl": "Komt heel laag over"},
     "day": {"en": "Your day in planes", "de": "Dein Tag in Flugzeugen", "fr": "Votre journée en avions", "es": "Tu día en aviones", "nl": "Je dag in vliegtuigen"},
     "sum": {"en": "{n} planes · {p} points{best}{rare}{low}", "de": "{n} Flugzeuge · {p} Punkte{best}{rare}{low}", "fr": "{n} avions · {p} points{best}{rare}{low}",
             "es": "{n} aviones · {p} puntos{best}{rare}{low}", "nl": "{n} vliegtuigen · {p} punten{best}{rare}{low}"},
@@ -2710,9 +2717,61 @@ def _fav_tokens(st):
     return [re.sub(r"[\s-]", "", t.strip().upper()) for t in re.split(r"[,;\n]+", str(st.get("favs") or "")) if t.strip()]
 
 
+# Favourites and hidden planes (relay 31), per profile (home: profiles["home"]): lists of {k: reg|type|airline|flight,
+# v: the code, n: a name to show}, set by the phone app and read by the boards and the notifications.
+LIST_KINDS = ("reg", "type", "airline", "flight")
+
+
+def _clean_list(items):
+    out, seen = [], set()
+    for it in (items if isinstance(items, list) else [])[:200]:
+        if not isinstance(it, dict):
+            continue
+        k, v = str(it.get("k") or ""), re.sub(r"[^A-Z0-9 -]", "", str(it.get("v") or "").upper())[:12].strip()
+        if k in LIST_KINDS and v and (k, v) not in seen:
+            seen.add((k, v))
+            out.append({"k": k, "v": v, "n": re.sub(r"[\x00-\x1f<>]", "", str(it.get("n") or ""))[:40]})
+    return out
+
+
+def lists_of(pid):
+    """(favourites, hidden) of a profile; pid None is home."""
+    with _data_lock:
+        P = profiles()
+        p = (P.get("home") or {}) if pid is None else (P["profiles"].get(pid) or {})
+        L = p.get("lists") or {}
+        return list(L.get("fav") or []), list(L.get("hide") or [])
+
+
+def _list_hit(items, tc, cs, reg, al):
+    reg = reg.replace("-", "")
+    for it in items:
+        v = it["v"].replace("-", "").replace(" ", "")
+        if (it["k"] == "reg" and v == reg) or (it["k"] == "type" and v == tc) or (it["k"] == "airline" and v == al) \
+                or (it["k"] == "flight" and v == cs.replace(" ", "")):
+            return True
+    return False
+
+
+# Notifications (relay 31): which kinds a subscription wants, and how often. The interesting kinds are on by default,
+# the rest off; at most one alert every WINDOW_GAP_S per device except emergencies and special planes, and none in
+# the quiet hours (22:00-07:00, emergencies excepted) unless turned off.
+PUSH_KINDS = {"special": True, "watch": True, "military": True, "fav": True, "newtype": False, "low": False}
+WINDOW_GAP_S = 15 * 60
+_last_window = {}            # subscription endpoint -> time of its last window alert
+
+
+def _push_prefs(p):
+    p = p if isinstance(p, dict) else {}
+    out = {"summary": p.get("summary") is not False, "window": p.get("window") is not False, "quiet": p.get("quiet") is not False}
+    for k, d in PUSH_KINDS.items():
+        out[k] = bool(p[k]) if k in p else d
+    return out
+
+
 def window_check(who, subs, centre, spot, st):
-    """Planes worth going to the window for: passing within 5 km in the next 3 minutes, and special, never seen here,
-    a favourite or very low."""
+    """Planes worth going to the window for: passing within 5 km in the next 3 minutes, and of a kind the device asked
+    for (special, watchlist, military, favourite, a new type, very low); the alert says why."""
     want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("window", True)]
     if not want:
         return
@@ -2729,6 +2788,8 @@ def window_check(who, subs, centre, spot, st):
         book = spot.book()
         types, learning = book.get("types", {}), time.time() - book.get("startedTs", 0) < LEARN_S
     favs = _fav_tokens(st)
+    fav_list, hide_list = lists_of(None if who == "home" else who)
+    hour = time.localtime().tm_hour
     now = time.time()
     for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
         del _sent[k]
@@ -2747,26 +2808,54 @@ def window_check(who, subs, centre, spot, st):
         if cpa > 5 or (isinstance(alt, (int, float)) and alt > 20000):
             continue
         tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
-        special = tc in LEGENDARY_TYPES or tc in MILITARY_TYPES or (ac.get("dbFlags") or 0) & 3 or _emergency(ac)
-        first = tc and tc not in types and not learning
-        fav = any(f in (tc, cs, reg.replace("-", ""), cs[:3]) for f in favs)
-        low = isinstance(alt, (int, float)) and alt < 3000 and cpa < 2
-        if not (special or first or fav or low):
+        m_ = re.match(r"^([A-Z]{3})\d", cs)
+        al = m_.group(1) if m_ else ""
+        if _list_hit(hide_list, tc, cs, reg, al):
+            continue
+        em, w = _emergency(ac), watch_of(ac.get("hex"))
+        kinds = []                         # why it's worth a look, most telling first
+        if em:
+            kinds.append(("emergency", em))
+        if tc in LEGENDARY_TYPES or (ac.get("dbFlags") or 0) & 2:
+            kinds.append(("special", ""))
+        if w and w[0] != "MILITARY":
+            kinds.append(("watch", w[0]))
+        if tc in MILITARY_TYPES or (ac.get("dbFlags") or 0) & 1 or (w and w[0] == "MILITARY"):
+            kinds.append(("military", ""))
+        if any(f in (tc, cs, reg.replace("-", ""), cs[:3]) for f in favs) or _list_hit(fav_list, tc, cs, reg, al):
+            kinds.append(("fav", ""))
+        if tc and tc not in types and not learning:
+            kinds.append(("newtype", ""))
+        if isinstance(alt, (int, float)) and alt < 3000 and cpa < 2:
+            kinds.append(("low", ""))
+        if not kinds:
             continue
         what = " ".join(x_ for x_ in [ac.get("desc") or tc, cs] if x_) or reg or ac.get("hex", "").upper()
         for sub in want:
             key = (sub["endpoint"], ac.get("hex"))
             if key in _sent:
                 continue
+            pr = _push_prefs(sub.get("prefs"))
+            mine = [k for k in kinds if k[0] == "emergency" or pr.get(k[0])]
+            if not mine:
+                continue
+            urgent = mine[0][0] in ("emergency", "special")
+            if not urgent and pr["quiet"] and (hour >= 22 or hour < 7):
+                continue
+            if not urgent and now - _last_window.get(sub["endpoint"], 0) < WINDOW_GAP_S:
+                continue
             _sent[key] = now
+            if not urgent:                           # emergencies and special planes don't use up the 15 minutes
+                _last_window[sub["endpoint"]] = now
             lang = sub.get("lang") or "en"
             d = DIRS.get(lang, DIRS["en"]).split()[int(((math.degrees(math.atan2(cx, cy)) + 360) % 360 + 22.5) // 45) % 8]
             altx = f"{round(alt * .3048 / 50) * 50:,} m" if isinstance(alt, (int, float)) else ""
             m = max(1, round(t / 60))
+            k, x = mine[0]
+            why = ptext("why_" + k, lang, x=x.title() if k == "watch" else x)
             text = ptext("overhead", lang, what=what, m=m, alt=altx) if cpa < 1.2 else ptext("over", lang, what=what, m=m, dir=d, alt=altx)
-            _deliver([sub], {"title": ptext("window", lang), "body": text,
-                             "tag": "window-" + str(ac.get("hex")), "url": "/app/"}, urgent=True)
-            event("info", f"Window alert for {who}: {what}")
+            _deliver([sub], {"title": why, "body": text, "tag": "window-" + str(ac.get("hex")), "url": "/app/"}, urgent=True)
+            event("info", f"Window alert for {who}: {what} ({k})")
 
 
 def summary_check(who, subs, spot, st):
@@ -3102,6 +3191,9 @@ class Handler(BaseHTTPRequestHandler):
                 hit = _made.get((self.query().get("made") or [""])[0])
             made = hit[1] if hit and hit[0] > time.time() else None
             return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
+        if path == "/lists":
+            fav, hide = lists_of(self.guest[0] if self.guest else None)
+            return self.reply(200, "application/json", json.dumps({"fav": fav, "hide": hide}).encode())
         if path == "/account":
             if not self.guest:
                 return self.reply(200, "application/json", b'{"home":true}')
@@ -3111,7 +3203,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -3303,6 +3395,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/lists":                # favourites and hidden planes, from the phone app
+            if not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from this site")
+            j = self.json_body()
+            with _data_lock:
+                P = profiles()
+                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
+                L = owner.setdefault("lists", {})
+                for k in ("fav", "hide"):
+                    if k in j:
+                        L[k] = _clean_list(j[k])
+                _dirty.add("profiles")
+                out = {"fav": L.get("fav", []), "hide": L.get("hide", [])}
+            return self.reply(200, "application/json", json.dumps(out).encode())
         if path in ("/push/subscribe", "/push/unsubscribe"):
             length = int(self.headers.get("Content-Length") or 0)
             if length > 4096 or not PUSH_OK:
@@ -3322,7 +3428,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path == "/push/subscribe":
                     prefs = j.get("prefs") or {}
                     subs.append({"endpoint": ep, "keys": {"p256dh": keys["p256dh"], "auth": keys["auth"]}, "lang": str(j.get("lang") or "en")[:2],
-                                 "prefs": {"summary": prefs.get("summary") is not False, "window": prefs.get("window") is not False}, "added": time.time()})
+                                 "prefs": _push_prefs(prefs), "added": time.time()})
                     del subs[:-10]
                 _dirty.add("profiles")
             return self.reply(204, "text/plain", b"")

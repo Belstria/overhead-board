@@ -8,7 +8,7 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
 const GUEST = window.OVERHEAD_GUEST || null;
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:10,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", real:true, speedPct:85, quick:false, refreshS:5,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
 function loadSettings(){
@@ -404,9 +404,10 @@ async function loadFullDay(){
   finally { fullDay.busy = false; }
 }
 function dayList(){
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return spotted;
+  const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
-  return spotted.concat(fullDay.list.filter(e => !ids.has(e.id)));
+  return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
 }
 //@E16
 //@E17
@@ -461,7 +462,8 @@ function rowHtml(e){
   return `<li class="fl${col ? " sp" : ""}"${style}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${placeHtml(e.from)}<i>→</i>${placeHtml(e.to)}</div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
+    (listsOk() ? `<button class="more" type="button" data-more="${escH(e.id || e.hex || "")}" aria-label="${escH(T("More for this plane"))}">⋯</button>` : "") + `</li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -522,6 +524,7 @@ function renderAircraftInfo(){
   if (sig === factsSig) return;
   factsSig = sig;
   $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acActs").hidden = !listsOk();
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -825,8 +828,8 @@ function lookHeadingFrom(e){
   else { const d = ((h - lookHeading + 540) % 360) - 180; lookHeading = (lookHeading + d * .25 + 360) % 360; }   // smoothed: compasses wobble
   lookSoon();
 }
-async function lookStart(){
-  ctlSound.press();
+async function lookStart(quiet){
+  if (!quiet) ctlSound.press();
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
@@ -1062,9 +1065,8 @@ function drawRadar(t){
   } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
-    const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
-    const lat = ac.lat + v * Math.cos(th) / ky, lon = ac.lon + v * Math.sin(th) / kx;
-    const [x, y] = toXY(lat, lon);
+    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
+    const [x, y] = toXY(pos.lat, pos.lon);
     if (Math.hypot(x - cx, y - cy) > R + 8) continue;
     const col = radarColor(o), tr = radar.trails.get(ac.hex);
     if (tr && tr.length > 1) {
@@ -1123,7 +1125,7 @@ const COCKPIT = [
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
-    {k: "favs", type: "lcd", label: "Favourites: airlines, aircraft types or registrations, separated by commas", wide: true, max: 300}]},
+]},
   {title: ["Display", "Anzeige"], cols: 2, items: [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
@@ -1369,6 +1371,135 @@ function aboutOpen(){
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
 let hasAccount = false;
+$("acFav").onclick = () => listSheet(featFacts());
+$("acHide").onclick = () => listSheet(featFacts());
+// The compass turns with the phone by itself where no permission is asked (Android): it starts on the first tap.
+addEventListener("pointerup", function lookAuto(){
+  removeEventListener("pointerup", lookAuto);
+  if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined" && !/iPhone|iPad|Macintosh/.test(navigator.userAgent)) lookStart(true);
+});
+/* ---------- favourites and hidden planes (1.31, relay 31) ----------
+   The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
+   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and
+   This aircraft), and the manager in Settings. */
+const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
+const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
+  ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
+  ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
+const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
+const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
+async function listsSave(next){
+  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
+  svSig = recentSig = ""; renderLists(); renderFeatured(); renderFavBox();
+}
+// The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
+function listChoices(x){
+  const cs = clean(x.callsign || ""), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  return [["reg", x.reg, x.reg], ["type", x.typeCode, x.type || TYPES[x.typeCode] || x.typeCode],
+    ["airline", al, x.airline || (AIRLINES[al] || [])[1] || al], ["flight", cs, x.flight || cs]].filter(c => c[1]).map(([k, v, n]) => ({k, v: clean(v), n: String(n || v)}));
+}
+const inList = (L, c) => L.some(i => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""));
+function listSheet(x){
+  if (!listsOk() || !x) return;
+  ctlSound.press();
+  const box = $("sheet"), ch = listChoices(x);
+  const draw = () => {
+    const btns = which => ch.map((c, i) => `<button class="cap${inList(userLists[which], c) ? " on" : ""}" type="button" data-w="${which}" data-i="${i}">` +
+      `<small>${escH(T(KIND_NAME[c.k]))}</small>${escH(c.n)}</button>`).join("");
+    box.innerHTML = `<div class="shBox" role="dialog" aria-modal="true"><h3>${escH(x.flight || x.reg || x.callsign || "")}</h3>` +
+      `<p class="sum">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
+      `<p class="shH">★ ${escH(T("Make a favourite"))}</p><div class="shRow">${btns("fav")}</div>` +
+      `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p><div class="shRow">${btns("hide")}</div>` +
+      `<p class="note" id="shNote"></p><div class="acts"><button class="cap big go" type="button" id="shDone">${T("Done")}</button></div></div>`;
+    for (const b of box.querySelectorAll("[data-w]")) b.onclick = async () => {
+      const w = b.dataset.w, c = ch[+b.dataset.i], on = inList(userLists[w], c);
+      ctlSound.toggle(!on);
+      const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+      next[w] = on ? next[w].filter(i => !(i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === c.v.replace(/[\s-]/g, ""))) : next[w].concat([c]);
+      if (!on) { const o = w === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !(i.k === c.k && clean(i.v) === c.v)); }   // not both at once
+      try { await listsSave(next); draw(); } catch (e) { $("shNote").textContent = e.message; }
+    };
+    $("shDone").onclick = () => { ctlSound.press(); box.hidden = true; };
+  };
+  draw(); box.hidden = false;
+  box.onclick = e => { if (e.target === box) box.hidden = true; };
+}
+// The ⋯ on the lists' rows, and This aircraft's buttons.
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-more]");
+  if (!b) return;
+  e.stopPropagation();
+  const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
+  if (x) listSheet(x);
+}, true);
+function featFacts(){
+  if (!feat || !feat.o) return null;
+  const f = liveFacts(feat.o.ac, feat.info), d = detailsOf(feat.hex) || {};
+  return {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
+}
+// Settings → Favourites & hidden: the two lists, each entry with its kind and a ×, and a field to add one, with
+// airlines and aircraft types to pick from.
+function renderFavBox(){
+  const box = $("favBox");
+  if (!box) return;
+  if (!listsOk()) { box.hidden = true; return; }
+  box.hidden = false;
+  const chips = (w) => userLists[w].length ? `<ul class="chips">${userLists[w].map((i, n) => `<li><small>${escH(T(KIND_NAME[i.k] || ""))}</small>${escH(i.n || i.v)}` +
+    `<button type="button" data-rm="${w}:${n}" aria-label="${escH(T("Remove"))}">×</button></li>`).join("")}</ul>` : `<p class="sum">${escH(T("None yet."))}</p>`;
+  box.innerHTML = `<div class="plate" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3>` +
+    `<p>${escH(T("Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook)."))}</p>` +
+    `<p class="shH">★ ${escH(T("Favourites"))}</p>${chips("fav")}<p class="shH">⊘ ${escH(T("Hidden"))}</p>${chips("hide")}` +
+    `<div class="favAdd"><select id="favWhich"><option value="fav">★ ${escH(T("Favourites"))}</option><option value="hide">⊘ ${escH(T("Hidden"))}</option></select>` +
+    `<input id="favIn" list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
+    `<button class="cap" type="button" id="favAddBtn">${T("Add")}</button></div><p class="note" id="favNote"></p>` +
+    `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
+    `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist></div>`;
+  for (const b of box.querySelectorAll("[data-rm]")) b.onclick = () => {
+    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
+    listsSave(next).catch(e => { $("favNote").textContent = e.message; });
+  };
+  $("favAddBtn").onclick = () => {
+    ctlSound.press();
+    const c = parseListEntry($("favIn").value), w = $("favWhich").value;
+    if (!c) { $("favNote").textContent = T("Code or name, e.g. Austrian, A380, OE-LBN"); return; }
+    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+    if (!inList(next[w], c)) next[w].push(c);
+    listsSave(next).then(() => { $("favIn").value = ""; }).catch(e => { $("favNote").textContent = e.message; });
+  };
+}
+// What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
+function parseListEntry(t){
+  t = String(t || "").trim();
+  if (!t) return null;
+  const m = t.match(/\(([A-Z0-9]{2,4})\)\s*$/i), code = clean(m ? m[1] : t).replace(/\s/g, ""), name = m ? t.replace(/\s*\([^)]*\)\s*$/, "") : "";
+  if (AIRLINES[code]) return {k: "airline", v: code, n: name || AIRLINES[code][1]};
+  if (TYPES[code]) return {k: "type", v: code, n: name || TYPES[code]};
+  const byName = Object.entries(AIRLINES).find(([, a]) => clean(a[1]) === clean(t));
+  if (byName) return {k: "airline", v: byName[0], n: byName[1][1]};
+  const tName = Object.entries(TYPES).find(([, n]) => clean(n) === clean(t));
+  if (tName) return {k: "type", v: tName[0], n: tName[1]};
+  const tWord = Object.entries(TYPES).find(([, n]) => (" " + clean(n) + " ").includes(" " + code + " "));   // A380, 787 ...
+  if (tWord && !/^[A-Z]{3}\d/.test(code)) return {k: "type", v: tWord[0], n: tWord[1]};
+  if (/^[A-Z0-9]{1,2}-[A-Z0-9]{2,5}$/i.test(t) || /^N\d{1,5}[A-Z]{0,2}$/i.test(t)) return {k: "reg", v: clean(t), n: clean(t)};
+  if (/^[A-Z]{3}\d[A-Z0-9]{0,4}$/i.test(code) || /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/i.test(code)) return {k: "flight", v: code, n: code};
+  if (/^[A-Z][A-Z0-9]{2,3}$/i.test(code)) return {k: "type", v: code, n: code};
+  return null;
+}
+// The old Favourites text moves into the lists once (relay 31).
+async function listsMigrate(){
+  if (!listsOk() || !String(S.favs || "").trim()) return;
+  await listsLoad(true);
+  const add = String(S.favs).split(/[,;\n]+/).map(parseListEntry).filter(Boolean).filter(c => !inList(userLists.fav, c));
+  try {
+    if (add.length) await listsSave({fav: userLists.fav.concat(add), hide: userLists.hide});
+    S = {...S, favs: ""}; saveSettings();
+  } catch {}
+}
+
 /* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
    The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
    the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
@@ -1460,7 +1591,7 @@ async function enablePush(){
       try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
       catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
     }
-    let prefs = {summary: true, window: true};
+    let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
     try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
     const r = await sendSub(sub, prefs, "subscribe");
     return r.ok ? "" : `HTTP ${r.status}`;
@@ -1476,16 +1607,19 @@ async function renderPush(){
     box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
   }
   if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
-  let prefs = {summary: true, window: true};
+  let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
+      PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
     `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
   for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
     ctlSound.toggle(cb.checked);
     prefs[cb.dataset.p] = cb.checked;
+    if (cb.dataset.p === "window") { const pk = box.querySelector(".pushKinds"); if (pk) pk.hidden = !cb.checked; }
     try { localStorage.setItem(PUSH_PREFS, JSON.stringify(prefs)); } catch {}
     const cur = await pushSub().catch(() => null);
     if (cur) sendSub(cur, prefs, "subscribe");
@@ -1820,6 +1954,7 @@ function run(){
   // Every data source at once, so the board fills as fast as it can (positions, today's list, the logbook the tiers
   // need, the hello that tells the relay where this screen looks); then each on its usual timer.
   poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();
+  listsLoad(true).then(() => { listsMigrate(); renderFavBox(); svSig = recentSig = ""; renderLists(); });
   setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };

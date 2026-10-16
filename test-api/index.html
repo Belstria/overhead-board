@@ -1825,10 +1825,11 @@ function liveryLine(info){
   const nm = c => shortAirline((AIRLINES[c] || [])[1] || c);
   return T("{op} · PAINTED AS {a}", {op: nm(op), a: nm(lv)});
 }
+const infoCache = new Map();
+// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
 function infoChanged(info){
   if (feat && feat.info === info) { renderFeatured(); if (isAc(page)) renderAircraft(); }
 }
-const infoCache = new Map();
 function enrich(ac){
   const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
   if (infoCache.has(key)) return infoCache.get(key);
@@ -1985,9 +1986,10 @@ async function loadFullDay(){
 }
 // The newest sightings from the regular sync, then the rest of the day from the last full copy.
 function dayList(){
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return spotted;
+  const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
-  return spotted.concat(fullDay.list.filter(e => !ids.has(e.id)));
+  return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
 }
 
 /* ---------- special aircraft and favourites ---------- */
@@ -2021,11 +2023,31 @@ function specialOf(x){
   if (t === "MILITARY" || x.military) return "MILITARY";
   return t || "";
 }
+// Favourites and hidden planes (1.31, relay 31): lists of {k: reg|type|airline|flight, v, n} kept on the relay per
+// profile, set in the phone app (Settings, This aircraft, the lists) and read here every few minutes; the old
+// Favourites text in Settings still counts too.
+let userLists = {fav: [], hide: [], at: 0, v: 0};
+function listsLoad(force){
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 31 || (!force && Date.now() - userLists.at < 5 * 60000)) return Promise.resolve();
+  userLists.at = Date.now();
+  return fetchJSON(`${relay()}/lists`, {}, 8000).then(j => { userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1}; }).catch(() => {});
+}
 let favCache = {src: null, list: []};
 function favList(){
-  if (favCache.src !== S.favs) favCache = {src: S.favs, list: String(S.favs || "").split(/[,;\n]+/).map(clean).filter(Boolean)};
+  const src = `${S.favs}|${userLists.v}`;
+  if (favCache.src !== src) favCache = {src, list: String(S.favs || "").split(/[,;\n]+/).map(clean).concat(userLists.fav.map(i => clean(i.v))).filter(Boolean)};
   return favCache.list;
 }
+// Does a plane match a list entry? x: a sighting or liveFacts-like object (reg, typeCode, callsign, flight).
+function listHit(items, x){
+  if (!items.length || !x) return false;
+  const sq = v => clean(v).replace(/[\s-]/g, ""), cs = sq(x.callsign), al = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  return items.some(i => { const v = sq(i.v);
+    return i.k === "reg" ? v === sq(x.reg) : i.k === "type" ? v === sq(x.typeCode) : i.k === "airline" ? v === al || v === sq(x.airlineCode)
+      : v === cs || v === sq(x.flight); });
+}
+const isHidden = x => listHit(userLists.hide, x);
+const hiddenAc = ac => userLists.hide.length > 0 && isHidden({reg: ac.r, typeCode: ac.t, callsign: ac.flight});
 function isFav(x){
   const toks = favList();
   if (!toks.length) return false;
@@ -2088,7 +2110,7 @@ function checkChimes(ok, R){
   for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
   let kind = null;
   for (const o of ok) {
-    if (o.dist > R || chimed.has(o.ac.hex)) continue;
+    if (o.dist > R || chimed.has(o.ac.hex) || hiddenAc(o.ac)) continue;
     const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
     let k = sp === "EMERGENCY" ? "emergency" : SPECIAL_BIG.has(sp) || sp === "MILITARY" ? "special" : null;
     const x = k || favList().length ? liveFacts(ac) : null;   // favourites need the airline, so only look it up when there are any
@@ -2264,7 +2286,7 @@ function process(list){
   // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
   const OVK = overKm();
   for (const o of ok) o.kind = o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
-  const rest = restingPlanes(ok, R, now), cand = rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok;
+  const rest = restingPlanes(ok, R, now), cand = (rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok).filter(o => !hiddenAc(o.ac));
   const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
   const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
@@ -2534,9 +2556,10 @@ function withShared(r){
   return s ? {...r, newType: s.newType, newAirline: s.newAirline, emergency: r.emergency || s.emergency,
     minDist: Math.min(r.minDist ?? 999, s.minDist ?? 999)} : r;
 }
+const recentShown = () => userLists.hide.length ? recentFlights.filter(e => !isHidden(e)) : recentFlights;
 function renderSpotted(){
   for (let i = 0; i < LIST_ROWS; i++) {
-    const e = recentFlights[i] ? withShared(recentFlights[i]) : null, d = i * 150;
+    const e = recentShown()[i] ? withShared(recentShown()[i]) : null, d = i * 150;
     setChars(`l${i}time`, e ? e.time : "", d);
     setWord(`l${i}logo`, e ? airlineCodeOf(e) || "-" : "", d + 30);
     setChars(`l${i}flight`, e ? e.flight : "", d + 60);
@@ -3382,11 +3405,12 @@ function renderLogbookBoard(){
 
 /* Radar: a plan view of everything around, north up, in an instrument set into the board. The nearest planes are
    listed on flaps next to it. */
-const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1};
+const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map()};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
 const RADAR_GEO = {cx: M + 26 + 330, cy: 628, R: 304};     // its rim clear of the subtitle above and the rail below
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
+  all = all.filter(o => !hiddenAc(o.ac));                      // hidden planes stay off the radar too
   radar.planes = all; radar.at = now;
   for (const o of all) {
     let tr = radar.trails.get(o.ac.hex);
@@ -3396,6 +3420,22 @@ function radarTrack(all, now){
     while (tr.length && (tr.length > 36 || now - tr[0].t > 4 * 60000)) tr.shift();
   }
   for (const [k, tr] of radar.trails) if (!tr.length || now - tr[tr.length - 1].t > 90000) radar.trails.delete(k);
+  const here = new Set(all.map(o => o.ac.hex));
+  for (const k of radar.disp.keys()) if (!here.has(k)) radar.disp.delete(k);
+}
+// Where to draw a plane (1.31): moved on along its track from its last reported position (and that report's age);
+// when a new report disagrees with where it was drawn, the difference is made up over about a second instead of a
+// jump (a big one, a few km, still jumps).
+function radarPos(o, now, kx, ky){
+  const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600, th = (ac.track || 0) * Math.PI / 180;
+  const age = Math.min(30, (now - radar.at) / 1000 + (ac.seen_pos || 0));
+  const tLat = ac.lat + v * age * Math.cos(th) / ky, tLon = ac.lon + v * age * Math.sin(th) / kx;
+  let d = radar.disp.get(ac.hex);
+  if (!d || Math.hypot((tLat - d.lat) * ky, (tLon - d.lon) * kx) > 3) { radar.disp.set(ac.hex, d = {lat: tLat, lon: tLon, t: now}); return d; }
+  const step = Math.min(1, (now - d.t) / 1000), a = 1 - Math.exp(-(now - d.t) / 900);
+  d.lat += v * step * Math.cos(th) / ky; d.lon += v * step * Math.sin(th) / kx;      // it keeps flying
+  d.lat += (tLat - d.lat) * a; d.lon += (tLon - d.lon) * a; d.t = now;              // and closes the gap
+  return d;
 }
 const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
 function radarBox(){ const {cx, cy, R} = RADAR_GEO, m = 36; return {x: cx - R - m, y: cy - R - m, w: 2 * (R + m), h: 2 * (R + m)}; }
@@ -3530,9 +3570,8 @@ function drawRadar(t){
   } else radar.apBox = null;
   const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
   for (const o of radar.planes) {
-    const ac = o.ac, v = (ac.gs || 0) * 1.852 / 3600 * dt, th = (ac.track || 0) * Math.PI / 180;
-    const lat = ac.lat + v * Math.cos(th) / ky, lon = ac.lon + v * Math.sin(th) / kx;
-    const [x, y] = toXY(lat, lon);
+    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
+    const [x, y] = toXY(pos.lat, pos.lon);
     if (Math.hypot(x - cx, y - cy) > R + 10) continue;
     const col = radarColor(o), tr = radar.trails.get(ac.hex);
     if (tr && tr.length > 1) {
@@ -3713,6 +3752,29 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Favourites", "Favoriten", "Favoris", "Favoritos", "Favorieten"],
+  ["Hidden", "Ausgeblendet", "Masqués", "Ocultos", "Verborgen"],
+  ["Favourites & hidden", "Favoriten & ausgeblendet", "Favoris et masqués", "Favoritos y ocultos", "Favorieten en verborgen"],
+  ["Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook).", "Favoriten leuchten auf und bekommen einen Gong und eine Benachrichtigung. Ausgeblendete Flugzeuge erscheinen nicht auf der Tafel, in den Listen und Benachrichtigungen (im Logbuch bleiben sie).", "Les favoris s'allument et ont un carillon et une notification. Les avions masqués n'apparaissent plus sur le tableau, dans les listes ni les notifications (ils restent dans le carnet).", "Los favoritos se iluminan y tienen campanilla y notificación. Los aviones ocultos no salen en el panel, las listas ni las notificaciones (siguen en el registro).", "Favorieten lichten op en krijgen een gong en een melding. Verborgen toestellen blijven van het bord, de lijsten en de meldingen (in het logboek staan ze nog)."],
+  ["Add", "Hinzufügen", "Ajouter", "Añadir", "Toevoegen"],
+  ["None yet.", "Noch keine.", "Aucun pour l'instant.", "Ninguno todavía.", "Nog geen."],
+  ["Favourite…", "Favorit…", "Favori…", "Favorito…", "Favoriet…"],
+  ["Hide…", "Ausblenden…", "Masquer…", "Ocultar…", "Verbergen…"],
+  ["Make a favourite", "Als Favorit", "Mettre en favori", "Marcar como favorito", "Als favoriet"],
+  ["Hide from now on", "Ab jetzt ausblenden", "Masquer désormais", "Ocultar a partir de ahora", "Voortaan verbergen"],
+  ["Tap to switch on or off. Saved for all your devices and boards.", "Tippen zum Ein- oder Ausschalten. Gilt für alle deine Geräte und Tafeln.", "Touchez pour activer ou désactiver. Valable sur tous vos appareils et tableaux.", "Toca para activar o desactivar. Vale para todos tus dispositivos y paneles.", "Tik om aan of uit te zetten. Geldt voor al je apparaten en borden."],
+  ["Done", "Fertig", "Terminé", "Listo", "Klaar"],
+  ["More for this plane", "Mehr zu diesem Flugzeug", "Plus pour cet avion", "Más sobre este avión", "Meer voor dit toestel"],
+  ["Code or name, e.g. Austrian, A380, OE-LBN", "Code oder Name, z. B. Austrian, A380, OE-LBN", "Code ou nom, p. ex. Austrian, A380, OE-LBN", "Código o nombre, p. ej. Austrian, A380, OE-LBN", "Code of naam, bv. Austrian, A380, OE-LBN"],
+  ["Which notifications", "Welche Benachrichtigungen", "Quelles notifications", "Qué notificaciones", "Welke meldingen"],
+  ["Special planes (A380, 747, Beluga, Antonov, emergencies)", "Besondere Flugzeuge (A380, 747, Beluga, Antonov, Notfälle)", "Avions spéciaux (A380, 747, Beluga, Antonov, urgences)", "Aviones especiales (A380, 747, Beluga, Antonov, emergencias)", "Bijzondere toestellen (A380, 747, Beluga, Antonov, noodgevallen)"],
+  ["Watchlist (police, ambulance, government, historic …)", "Beobachtungsliste (Polizei, Rettung, Regierung, historisch …)", "Liste de surveillance (police, ambulance, gouvernement, historique …)", "Lista de vigilancia (policía, ambulancia, gobierno, histórico …)", "Volglijst (politie, ambulance, overheid, historisch …)"],
+  ["Military planes", "Militärflugzeuge", "Avions militaires", "Aviones militares", "Militaire toestellen"],
+  ["Your favourites", "Deine Favoriten", "Vos favoris", "Tus favoritos", "Je favorieten"],
+  ["Types never seen here", "Hier nie gesehene Typen", "Types jamais vus ici", "Tipos nunca vistos aquí", "Types die hier nooit gezien zijn"],
+  ["Very low passes", "Sehr tiefe Überflüge", "Passages très bas", "Pasos muy bajos", "Heel lage passages"],
+  ["Quiet at night (22:00–07:00), except emergencies and special planes", "Nachts still (22–7 Uhr), außer Notfälle und besondere Flugzeuge", "Silence la nuit (22 h–7 h), sauf urgences et avions spéciaux", "Silencio de noche (22:00–07:00), salvo emergencias y aviones especiales", "Stil 's nachts (22:00–07:00), behalve noodgevallen en bijzondere toestellen"],
+  ["At most one every 15 minutes, except emergencies and special planes.", "Höchstens eine alle 15 Minuten, außer Notfälle und besondere Flugzeuge.", "Au plus une toutes les 15 minutes, sauf urgences et avions spéciaux.", "Como mucho una cada 15 minutos, salvo emergencias y aviones especiales.", "Hoogstens één per 15 minuten, behalve noodgevallen en bijzondere toestellen."],
   ["Sky view", "Himmelsansicht", "Vue du ciel", "Vista del cielo", "Luchtzicht"],
   ["Close", "Schließen", "Fermer", "Cerrar", "Sluiten"],
   ["Reset", "Zurücksetzen", "Réinitialiser", "Restablecer", "Herstellen"],
@@ -4523,6 +4585,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.31", date: "2026-10-16", notes: [
+    "Hide a plane, or make it a favourite, straight from the lists or This aircraft in the app; hidden planes stay off the board and out of notifications.",
+    "A favourites manager in the app's Settings: airlines, aircraft types, registrations and flights, picked from a list.",
+    "Notifications say why a plane is worth a look, come less often, and you choose which kinds you get.",
+    "The app updates every 5 seconds, and planes on the radar glide instead of jumping.",
+    "The compass sits under This aircraft's picture and turns with the phone.",
+    "The test board without Flightradar24 shows routes again as soon as they come in."]},
   {v: "1.30", date: "2026-10-15", notes: [
     "Sky view in the phone app: hold up the camera and every plane around gets a label (flight, type, height, distance)."]},
   {v: "1.29", date: "2026-10-15", notes: [
@@ -5116,7 +5185,7 @@ function diagRows(){
     ["On the board", feat ? `${planeName(feat)} · ${MODE_REMARK[feat.mode] || feat.mode}` : "nothing"],
     ["Spotted today", `${spotted.filter(e => !e.sample).length} (a plane is added when it comes within ${R} km)`],
     ["Flight numbers", apiOn() ? "Flightradar24 through the home relay; free sources as fallback" : USE_API && relayV5() ? "free sources (the relay has no Flightradar24 key)" : "free sources (adsbdb, adsb.lol)"],
-    ["Watching", `${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} · updates every ${POLL_MS / 1000} s`]
+    ["Watching", `${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} · updates every ${+S.refreshS || 10} s`]
   ];
 }
 function mergedLog(){
@@ -5229,7 +5298,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
@@ -5241,7 +5310,8 @@ async function poll(force){
   } finally {
     if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
     busy = false; updateFooter(); scheduleDiag();
-    timer = setTimeout(poll, S.demo ? 2000 : failures >= 3 ? POLL_MS * 2 : POLL_MS);
+    const every = Math.min(60, Math.max(3, +S.refreshS || 10)) * 1000;          // Settings → Update every (the app: 5 s)
+    timer = setTimeout(poll, S.demo ? 2000 : failures >= 3 ? every * 2 : every);
   }
 }
 
