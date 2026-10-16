@@ -123,10 +123,14 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
+def(HERO, "seen",    {kind:"chars", n:17, dur:60, style:"amber", label:["Remarks",""]});
+def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
+fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
 function heroLayout(){
   const wide = SIDEWAYS.matches;
-  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 404;
+  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 448;
+  fields.seen.hidden = wide;                    // on its side the three rows are full
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
@@ -142,6 +146,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+  placeRow(["seen"], [], 411, 19.36, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -457,13 +462,12 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
+  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || "")].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<span class="more" aria-hidden="true">⋯</span>` : "") + `</li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -492,7 +496,7 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => renderAircraftInfo());
+  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
   $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
   if (src !== shownPhoto) {
     shownPhoto = src;
@@ -521,11 +525,11 @@ function renderAircraftInfo(){
     ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
     ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
     ["Remarks", "", remarkLines(feat.o.ac, info).join(" · "), true]].filter(f => f[2]);
+  $("acFacts").style.display = airportMode() ? "" : "none";
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
-  $("acActs").hidden = !listsOk();
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd${en === "Aircraft" ? " data-ty" : ""}>${escH(v)}</dd></div>`).join("");
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -1419,12 +1423,14 @@ function settingsExtra(){
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
-$("acFav").onclick = () => listSheet(featFacts());
+$("acFacts").addEventListener("click", e => {
+  if (feat && feat.o && e.target.closest("[data-ty]")) typeCard({typeCode: feat.o.ac.t, type: (feat.info || baseInfo(feat.o.ac)).type});
+});
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
-  const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks"].find(k => {
-    const f = fields[k]; if (!f || f.x == null) return false;
+  const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
+    const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
     const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
     return x >= f.x - 3 && x <= f.x + w + 3 && y >= f.y - 3 && y <= f.y + f.ch + 3;
   });
@@ -1433,10 +1439,10 @@ $("hero").addEventListener("click", e => {
   if (id === "airline") airlineCard(liveFacts(feat.o.ac, info));
   else if (id === "fromCode" || id === "fromCity") placeCard(info.from);
   else if (id === "toCode" || id === "toCity") placeCard(info.to);
+  else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type});
   else planeCard(feat.o);
 });
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
-$("acHide").onclick = () => listSheet(featFacts());
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
 function lookAuto(){
@@ -1459,18 +1465,14 @@ document.addEventListener("click", e => {
   e.stopPropagation();
   const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
   if (!x) return;
-  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]");
+  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
+  if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
   listSheet(x);
 }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
-function featFacts(){
-  if (!feat || !feat.o) return null;
-  const f = liveFacts(feat.o.ac, feat.info), d = detailsOf(feat.hex) || {};
-  return {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
-}
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
   const box = $("favBox");
@@ -1504,6 +1506,25 @@ async function passkeyAdd(){
   return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
     attestationObject: b64u(c.response.attestationObject), name: deviceName()});
 }
+// Set or change the password in a window of its own: the current one (if there is one) and the new one twice.
+function pwCard(a, done){
+  const field = (id, ph, ac = "new-password") => `<input class="acIn" id="${id}" type="password" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+  cardOpen(`<h3>${escH(T(a.password ? "Change password" : "Set a password"))}</h3><form data-pw>` +
+    `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` +
+    (a.password ? field("pwCur", "Current password", "current-password") : "") + field("pwNew", "New password") + field("pwNew2", "Repeat the new password") +
+    `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
+    `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
+    const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.onsubmit = async ev => {
+      ev.preventDefault(); ctlSound.press();
+      if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
+      try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
+      catch (e) { say((e && e.message) || String(e)); }
+    };
+    setTimeout(() => { const i = f.querySelector("input:not([hidden])"); if (i) i.focus(); }, 50);
+  });
+}
 // The account panel, in About and in the welcome: create (a username), then passkeys and a password.
 async function accountBox(el, onChange){
   let a = null;
@@ -1521,8 +1542,7 @@ async function accountBox(el, onChange){
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<p><b>${escH(T("Password"))}</b></p>` + (a.password ? field("acCur", "Current password", "password", "current-password") : "") +
-        `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` + field("acPw", "New password") +
+        `<p><b>${escH(T("Password"))}</b></p>` +
         `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
         `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
@@ -1534,7 +1554,7 @@ async function accountBox(el, onChange){
       q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
     }
     if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
-    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); run(() => acctPost("/account/password", {password: q("acPw").value, current: q("acCur") ? q("acCur").value : ""}), "Saved."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); pwCard(a, next => { a = next; draw(T("Password saved.")); if (onChange) onChange(a); }); };
     for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
   };
   draw();

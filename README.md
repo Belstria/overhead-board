@@ -99,10 +99,11 @@ py serve.py --fr24-key YOUR_KEY --save
 The main board has everything below. New features are tried on `/test/` (and `/test-api/` for the ones that need
 Flightradar24) first; open them through the relay at `http://<computer-name>:8080/test/`.
 
-- **Flight times** in a fourth row of the top half: departure, arrival and flight time so far. Vienna Airport
+- **Flight times** in a fourth row of the top half: departure, arrival and the flight time (1.35.1: the whole
+  flight, departure to arrival, once both are known; before, the time since take-off). Vienna Airport
   publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
   them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
-  take-off time, and with it the flight time, for any flight. When there is no arrival time but the destination is
+  take-off time for any flight. When there is no arrival time but the destination is
   known, the board estimates one from the distance still to fly and the plane's speed, plus a few minutes to land.
   Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
   often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
@@ -142,6 +143,10 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   Remarks). In the phone app and on the full board alike: on the board a tap on a row of Recent flights or Spotted today
   opens the favourite/hide sheet, a plane on the radar its card, the airline field the airline; a **double tap** goes full
   screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
+- **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
+  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've seen
+  it and today's count, with Favourite / Hide for the type. In the app, Settings → Account → Change password opens a
+  window with the new password twice.
 - **Remarks** (top half, last row; 1.34, was Seen here): the interesting things about the plane in turn: how often it
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
@@ -283,7 +288,8 @@ and keeps the screen on as long as it is open (1.13.3.1 or newer). Auto-rotate h
 Five buttons along the bottom:
 
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
-  position, departure, arrival and flight time), its photo on a small screen with its registration details, and the
+  position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
+  under it only in the Airport style; tap the flaps for cards and Favourite / Hide), and the
   latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds), with the runway screen in place of the photo, and the take-offs and landings below.
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen

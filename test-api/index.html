@@ -1323,7 +1323,7 @@ function photoBox(){              // where the picture itself goes, in board uni
 function featPhoto(){
   if (!feat || !feat.o) return "";
   const d = detailsOf(feat.hex) || {}, info = feat.info || baseInfo(feat.o.ac);
-  return d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => { preloadPhoto(); if (isAc(page)) renderAircraft(); });
+  return d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => { preloadPhoto(); if (isAc(page)) renderAircraft(); });
 }
 function photoReady(){
   const src = featPhoto(), img = $("photoImg");
@@ -2464,7 +2464,7 @@ function renderTimes(){
   if (!arr) arr = estArrival(info, feat.o);
   setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
   setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
-  const mins = dep ? Math.floor((now - dep) / 60000) : -1;
+  const mins = dep && arr ? Math.round((arr - dep) / 60000) : -1;    // the whole flight, departure to (expected) arrival
   setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
 }
 
@@ -4203,6 +4203,15 @@ const I18N_ROWS = [
   ["Airport (board style)", "Flughafen", "Aéroport", "Aeropuerto", "Luchthaven"],
   ["RADIUS {n} KM", "RADIUS {n} KM", "RAYON {n} KM", "RADIO {n} KM", "STRAAL {n} KM"],
   ["Landings", "Landungen", "Atterrissages", "Aterrizajes", "Landingen"],
+  ["Aircraft model", "Flugzeugmuster", "Modèle d'avion", "Modelo de avión", "Vliegtuigtype"],
+  ["Code", "Code", "Code", "Código", "Code"],
+  ["In service", "Im Einsatz", "En service", "En servicio", "In gebruik"],
+  ["About {n} worldwide", "Etwa {n} weltweit", "Environ {n} dans le monde", "Unos {n} en el mundo", "Ongeveer {n} wereldwijd"],
+  ["Rarity", "Seltenheit", "Rareté", "Rareza", "Zeldzaamheid"],
+  ["Repeat the new password", "Neues Passwort wiederholen", "Répéter le nouveau mot de passe", "Repetir la nueva contraseña", "Nieuw wachtwoord herhalen"],
+  ["The two new passwords don't match.", "Die beiden neuen Passwörter stimmen nicht überein.", "Les deux nouveaux mots de passe ne correspondent pas.", "Las dos contraseñas nuevas no coinciden.", "De twee nieuwe wachtwoorden komen niet overeen."],
+  ["Password saved.", "Passwort gespeichert.", "Mot de passe enregistré.", "Contraseña guardada.", "Wachtwoord opgeslagen."],
+  ["Apply", "Übernehmen", "Appliquer", "Aplicar", "Toepassen"],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -4546,14 +4555,23 @@ async function wikiFind(titles, like){
 const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
 // A picture of the aircraft model, for planes with no photo of their own (1.34): the model's Wikipedia picture.
 const modelPics = new Map();
-function modelPic(name, onReady){
-  name = String(name || "").trim();
-  if (!name || S.demo) return "";
-  const k = name.toLowerCase();
+// The names to try for a model: as given, "747 8F" as "747-8F", without a freighter/variant letter, the family.
+function modelTitles(names){
+  const out = [];
+  for (const n0 of [].concat(names)) {
+    const n = String(n0 || "").trim().replace(/(\d)\s+(\d)/, "$1-$2");
+    if (n) out.push(n, n.replace(/neo$/i, "neo family"), n.replace(/(\d)[A-Z]{1,3}$/, "$1"), n.replace(/-\d+\w*$/, ""));
+  }
+  return out;
+}
+const modelWiki = names => wikiFind(modelTitles(names), /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i);
+function modelPic(names, onReady){
+  names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean);
+  if (!names.length || S.demo) return "";
+  const k = names.join("|").toLowerCase();
   if (modelPics.has(k)) return modelPics.get(k);
   modelPics.set(k, "");
-  wikiFind([name, name.replace(/neo$/i, "neo family"), name.replace(/-\d+.*$/, "")], /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i)
-    .then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 800)); if (onReady) onReady(); } });
+  modelWiki(names).then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 500)); if (onReady) onReady(); } });
   return "";
 }
 const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || ""));
@@ -4698,7 +4716,7 @@ async function placeCard(p){
       const km = gcKm(S.lat, S.lon, lat, lon), brg = (Math.atan2((lon - S.lon) * Math.cos(S.lat * Math.PI / 180), lat - S.lat) * 180 / Math.PI + 360) % 360;
       dist = `${nf.format(Math.round(km))} km ${DIR8[Math.round(brg / 45) % 8]}`;
     }
-    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 800))}" alt="" referrerpolicy="no-referrer">` : ""}` +
+    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer">` : ""}` +
       `<div class="cHead"><div><h3>${escH(ap && ap.name || (w && w.title) || p.city || code)}</h3><span>${escH(T("Airport"))}</span></div></div>` +
       factsHtml([["City", escH(ap && ap.city || p.city || "")], ["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Distance", escH(dist)],
         ["Runways", ap && ap.runways && ap.runways.length ? String(ap.runways.length) : ""], ["Today", today ? escH(today === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: today})) : "", true]]) + wikiHtml(w));
@@ -4719,13 +4737,13 @@ function planeBody(o){
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
-  const pic = d.photo || modelPic(type, () => { if (typeof planeAgain === "function") planeAgain(); });
+  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (typeof planeAgain === "function") planeAgain(); });
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}">${escH(code3(p) || p.code || "")} ${escH(p.city || "")}</button>` : "";
   const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
-    factsHtml([["Aircraft", escH(type)], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
+    factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", o.alt != null ? escH(altitudeStr(o.alt).toLowerCase()) : ""], ["Speed", ac.gs ? escH(speedStr(ac.gs).toLowerCase()) : ""],
       ["Distance", o.dist != null ? escH(`${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}`) : ""],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
@@ -4733,10 +4751,35 @@ function planeBody(o){
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
   const wire = el => {
     const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
+    const ty = el.querySelector("[data-ty]"); if (ty) ty.onclick = () => typeCard({typeCode: ac.t, type});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
     const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
   };
   return {html, wire};
+}
+// An aircraft model (x: a row or {typeCode, type}): its picture and Wikipedia's words, how many fly, how rare, how
+// often seen here and today, and Favourite / Hide for the type.
+function typeOf(x){
+  const code = String(x.typeCode || (x.ac && x.ac.t) || "").toUpperCase();
+  return {code, name: TYPES[code] || x.type || code};
+}
+async function typeCard(x){
+  const t = typeOf(x || {});
+  if (!t.name) return;
+  ctlSound.press();
+  const b = lbData() || {}, lb = t.code && b.types ? b.types[t.code] : null, n = FLEET[t.code];
+  const tier = LEGENDARY.has(t.code) ? "legendary" : n != null ? fleetTier(t.code) : "";
+  const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
+  const c = t.code ? {k: "type", v: t.code, n: t.name} : null;
+  const draw = w => cardOpen((w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+    `<div class="cHead"><div><h3>${escH(t.name)}</h3><span>${escH(T("Aircraft model"))}</span></div></div>` +
+    factsHtml([["Code", escH(t.code)], ["In service", n ? escH(T("About {n} worldwide", {n: nf.format(n)})) : ""], ["Rarity", tier ? escH(T(TIER_NAME[tier])) : ""],
+      ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
+      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
+    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+  const tok = draw(null);
+  const w = await modelWiki([t.name, x.type]);
+  if (w && tok === cardTok) draw(w);
 }
 let planeShown = null;
 function planeCard(o){
@@ -5000,6 +5043,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.35.1", date: "2026-10-17", notes: [
+    "Flight time is the whole flight, from departure to arrival, instead of the time since take-off.",
+    "The app's flaps show Remarks too; the app's details list under the photo and its Favourite/Hide buttons are gone (tap the board instead)."]},
+  {v: "1.35", date: "2026-10-17", notes: [
+    "Tap an aircraft type for a card about the model: its picture, how many fly, how rare it is and how often you've seen it.",
+    "Model pictures show again, also for models with a variant name (such as freighters).",
+    "Changing the password opens its own window with the new password twice.",
+    "The lists' rows lost their ⋯: a tap on the row does the same."]},
   {v: "1.34", date: "2026-10-17", notes: [
     "Tap an airline's logo or name for a card about the airline, and a place for a card about its airport; on the full board too.",
     "The full board does what the app does with a tap: rows to favourite or hide, planes on the radar, airlines and places; a double tap is full screen.",
@@ -5751,6 +5802,7 @@ function boardTap(x, y){
     if (x >= SV_X.airline && x < SV_X.from) return airlineCard(e);
     if (x >= SV_X.from && x < SV_X.to) return placeCard(e.from);
     if (x >= SV_X.to && x < SV_X.type) return placeCard(e.to);
+    if (x >= SV_X.type && x < SV_X.dist) return typeCard(e);
     return listSheet(e);
   }
   if (view) return;
@@ -5760,6 +5812,7 @@ function boardTap(x, y){
     if (top === "airline") return airlineCard(liveFacts(feat.o.ac, info));
     if (top === "fromCode" || top === "fromCity") return placeCard(info.from);
     if (top === "toCode" || top === "toCity") return placeCard(info.to);
+    if (top === "type") return typeCard({typeCode: feat.o.ac.t, type: info.type});
     return planeCard(feat.o);
   }
   if (page === "spotted") {
@@ -5769,6 +5822,7 @@ function boardTap(x, y){
       if (id.endsWith("logo")) return airlineCard(e);
       if (id.endsWith("from")) return placeCard(e.from);
       if (id.endsWith("to")) return placeCard(e.to);
+      if (id.endsWith("type")) return typeCard(e);
       return listSheet(e);
     }
   }
@@ -5783,6 +5837,7 @@ function boardTap(x, y){
   if (isAc(page) && feat && feat.o) {
     const id = fieldAt(["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"], x, y), info = feat.info || baseInfo(feat.o.ac);
     if (id === "acOwner") return airlineCard(liveFacts(feat.o.ac, info));
+    if (id === "acType") return typeCard({typeCode: feat.o.ac.t, type: info.type});
     if (id === "acRoute") return placeCard(x < fields.acRoute.x + fields.acRoute.n * fields.acRoute.step / 2 ? info.from : info.to);
     if (id) return planeCard(feat.o);
   }
