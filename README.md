@@ -270,6 +270,12 @@ Five buttons along the bottom:
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up. On https (the public address) **Use the compass** turns the dial with the phone, so the arrow points
   at the plane; iPhones ask first.
+- **Sky view** (Now → Where to look → Sky view, 1.30; https only): the camera full screen, with a label on every plane
+  within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
+  edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
+  and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
+  degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
+  The phone asks for the camera and the motion sensors the first time.
 - **Radar**: the radar instrument and the nearest planes.
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
