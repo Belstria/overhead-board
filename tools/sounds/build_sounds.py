@@ -14,7 +14,7 @@ import audio  # noqa: E402
 
 SRC = Path("sounds-src")
 OUT = SRC / "out"
-BOARDS = [Path("test-api/index.html"), Path("test/index.html")]   # the main board gets them with the next copy
+BOARDS = [Path("test/index.html")]   # the main board gets them with the next copy
 
 
 def best_clicks(name, count, gap_ms, length_ms, fade_ms, hp=None):

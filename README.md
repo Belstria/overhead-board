@@ -59,20 +59,17 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
 
 | Address | What it is |
 |---------|------------|
-| `/` | **Main board**: the version for everyday use, with Flightradar24 when the relay has a key (a copy of the test API board). |
-| `/test/` | **Test board**: where changes are tried before they go to the main board. Free data sources only. |
-| `/test-api/` | **Test API board**: the test board plus features that need the paid Flightradar24 API. |
+| `/` | **Main board**: the version for everyday use, with Flightradar24 when the relay has a key (a copy of the test board). |
+| `/test/` | **Test board**: where changes are tried before they go to the main board, Flightradar24 features included. (Since 1.35.2 the only test board: `/test-api/` forwards here.) |
 | `/app/` | **Phone app**: the board laid out for a phone, to add to the home screen (see below). |
 
-Changes are tried on a test board first and copied to the main board when they're ready. Features that need the
-API are only ever built on `/test-api/`, so `/test/` always holds a complete version that works without it. If the
-subscription ends, the main board keeps working: it falls back to the free sources by itself (and `/test/` can be
-copied over it to remove the API features completely).
+Changes are tried on the test board first and copied to the main board when they're ready. If the Flightradar24
+subscription ends, the boards keep working: they fall back to the free sources by themselves.
 
-### Flightradar24 on the main board and the test API board
+### Flightradar24 on the main board and the test board
 
 With a [Flightradar24 API](https://fr24api.flightradar24.com) key on the relay (version 8 or newer), the main board,
-`/test-api/` and the phone app show the real flight number and route for airline flights: RYR3EG becomes FR 1234 Vienna to London instead of a
+`/test/` and the phone app show the real flight number and route for airline flights: RYR3EG becomes FR 1234 Vienna to London instead of a
 guess from a callsign database. Add the key once on the relay computer (it is saved in `overhead.json` there and
 never leaves that computer):
 
@@ -96,8 +93,7 @@ py serve.py --fr24-key YOUR_KEY --save
 
 ## Board features
 
-The main board has everything below. New features are tried on `/test/` (and `/test-api/` for the ones that need
-Flightradar24) first; open them through the relay at `http://<computer-name>:8080/test/`.
+The main board has everything below. New features are tried on `/test/` first; open them through the relay at `http://<computer-name>:8080/test/`.
 
 - **Flight times** in a fourth row of the top half: departure, arrival and the flight time (1.35.1: the whole
   flight, departure to arrival, once both are known; before, the time since take-off). Vienna Airport
@@ -201,7 +197,7 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
-  painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test-api
+  painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
   tick, push buttons a thock) when the flap sound or the chimes are on.
@@ -473,5 +469,5 @@ copy of this repository, `--source URL` to read positions from your own receiver
 
 `CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
 `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/`;
-`tools/test/shoot.py` takes screenshots of it. The phone app is built from the test-api board's code with
+`tools/test/shoot.py` takes screenshots of it. The phone app is built from the test board's code with
 `py tools/app/build.py`, so it gets new features together with that board.

@@ -27,7 +27,7 @@ py tools/sounds/build_sounds.py
 
 It finds the single clicks in the long recordings (the cleanest: loud, quiet just before, not overlapping the next),
 cuts them with short fades, evens out their level, halves the sample rate (22 kHz mono is plenty: everything above
-6.5 kHz is filtered on playback anyway) and writes them into `test-api/` and `test/`, plus listening copies in
+6.5 kHz is filtered on playback anyway) and writes them into `test/`, plus listening copies in
 `sounds-src/out/`. The Pixabay file is an MP3: decode it to `sounds-src/eaglaxle-switching-button-2.wav` first (the
 script `audio.py` has no MP3 decoder; Chromium's `decodeAudioData` was used). Then rebuild the app
 (`py tools/app/build.py`).

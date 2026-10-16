@@ -1,8 +1,8 @@
 """Build app/index.html: the phone layout (head.html, main.js) around the board's own flap engine and data code,
-copied from the test-api board (test-api/index.html) by the marker strings below. The app follows the test-api board,
+copied from the test board (test/index.html) by the marker strings below. The app follows the test board,
 so new features reach the phone together with that board, before the main board.
 
-    py tools/app/build.py                      # test-api/index.html -> app/index.html
+    py tools/app/build.py                      # test/index.html -> app/index.html
     py tools/app/build.py BOARD.html OUT.html
 
 Don't edit app/index.html by hand: change head.html or main.js here (or the board), then build again. If a marker
@@ -13,7 +13,7 @@ from pathlib import Path
 
 SP = Path(__file__).parent
 REPO = SP.parent.parent
-board = Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "test-api" / "index.html").read_text(encoding="utf-8")
+board = Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "test" / "index.html").read_text(encoding="utf-8")
 out = Path(sys.argv[2] if len(sys.argv) > 2 else REPO / "app" / "index.html")
 
 
