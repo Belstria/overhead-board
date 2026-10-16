@@ -222,7 +222,9 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   board's `<style>`, scoped to `#cardBox` and `.cardish`): `cardOpen`/`cardClose`, `airlineCard`, `placeCard` (relay
   `/airport`), `planeBody`/`planeCard`, `listSheet`, `favManager`/`favCard`, `listsSave` (calls each side's
   `listsChanged`), Wikipedia summaries (`wikiPage`, `wikiFind`, English pages) and model pictures (`modelPic`,
-  `isModelPic`; `featPhoto` on the board). The board maps a click to its own units (`fieldAt`, `boardTap`; a double
+  `isModelPic`; `featPhoto` on the board; 1.35: `modelTitles`/`modelWiki` try several spellings, and pictures are asked
+  at 500 px: Wikimedia only serves standard thumbnail widths and answers 400 to others such as 800), `typeCard` (the
+  model). The app's `pwCard` sets or changes the password. The board maps a click to its own units (`fieldAt`, `boardTap`; a double
   tap is `toggleFullscreen`), the app its hero panel. `remarkLines()` fills the Remarks flap (`seen` field) and facts.
   `keys/index.html` is the remote key test.
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291

@@ -418,9 +418,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .fl[data-more]{cursor:pointer}
+#acFacts dd[data-ty]{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:3px}
 .fl[data-more]:active{background:rgba(255,255,255,.06)}
-.fl .more{position:absolute;left:8px;bottom:7px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
-  font:700 13px/18px var(--f-board);color:var(--muted)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
@@ -1287,6 +1286,15 @@ const I18N_ROWS = [
   ["Airport (board style)", "Flughafen", "Aéroport", "Aeropuerto", "Luchthaven"],
   ["RADIUS {n} KM", "RADIUS {n} KM", "RAYON {n} KM", "RADIO {n} KM", "STRAAL {n} KM"],
   ["Landings", "Landungen", "Atterrissages", "Aterrizajes", "Landingen"],
+  ["Aircraft model", "Flugzeugmuster", "Modèle d'avion", "Modelo de avión", "Vliegtuigtype"],
+  ["Code", "Code", "Code", "Código", "Code"],
+  ["In service", "Im Einsatz", "En service", "En servicio", "In gebruik"],
+  ["About {n} worldwide", "Etwa {n} weltweit", "Environ {n} dans le monde", "Unos {n} en el mundo", "Ongeveer {n} wereldwijd"],
+  ["Rarity", "Seltenheit", "Rareté", "Rareza", "Zeldzaamheid"],
+  ["Repeat the new password", "Neues Passwort wiederholen", "Répéter le nouveau mot de passe", "Repetir la nueva contraseña", "Nieuw wachtwoord herhalen"],
+  ["The two new passwords don't match.", "Die beiden neuen Passwörter stimmen nicht überein.", "Les deux nouveaux mots de passe ne correspondent pas.", "Las dos contraseñas nuevas no coinciden.", "De twee nieuwe wachtwoorden komen niet overeen."],
+  ["Password saved.", "Passwort gespeichert.", "Mot de passe enregistré.", "Contraseña guardada.", "Wachtwoord opgeslagen."],
+  ["Apply", "Übernehmen", "Appliquer", "Aplicar", "Toepassen"],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -1630,14 +1638,23 @@ async function wikiFind(titles, like){
 const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
 // A picture of the aircraft model, for planes with no photo of their own (1.34): the model's Wikipedia picture.
 const modelPics = new Map();
-function modelPic(name, onReady){
-  name = String(name || "").trim();
-  if (!name || S.demo) return "";
-  const k = name.toLowerCase();
+// The names to try for a model: as given, "747 8F" as "747-8F", without a freighter/variant letter, the family.
+function modelTitles(names){
+  const out = [];
+  for (const n0 of [].concat(names)) {
+    const n = String(n0 || "").trim().replace(/(\d)\s+(\d)/, "$1-$2");
+    if (n) out.push(n, n.replace(/neo$/i, "neo family"), n.replace(/(\d)[A-Z]{1,3}$/, "$1"), n.replace(/-\d+\w*$/, ""));
+  }
+  return out;
+}
+const modelWiki = names => wikiFind(modelTitles(names), /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i);
+function modelPic(names, onReady){
+  names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean);
+  if (!names.length || S.demo) return "";
+  const k = names.join("|").toLowerCase();
   if (modelPics.has(k)) return modelPics.get(k);
   modelPics.set(k, "");
-  wikiFind([name, name.replace(/neo$/i, "neo family"), name.replace(/-\d+.*$/, "")], /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i)
-    .then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 800)); if (onReady) onReady(); } });
+  modelWiki(names).then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 500)); if (onReady) onReady(); } });
   return "";
 }
 const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || ""));
@@ -1782,7 +1799,7 @@ async function placeCard(p){
       const km = gcKm(S.lat, S.lon, lat, lon), brg = (Math.atan2((lon - S.lon) * Math.cos(S.lat * Math.PI / 180), lat - S.lat) * 180 / Math.PI + 360) % 360;
       dist = `${nf.format(Math.round(km))} km ${DIR8[Math.round(brg / 45) % 8]}`;
     }
-    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 800))}" alt="" referrerpolicy="no-referrer">` : ""}` +
+    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer">` : ""}` +
       `<div class="cHead"><div><h3>${escH(ap && ap.name || (w && w.title) || p.city || code)}</h3><span>${escH(T("Airport"))}</span></div></div>` +
       factsHtml([["City", escH(ap && ap.city || p.city || "")], ["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Distance", escH(dist)],
         ["Runways", ap && ap.runways && ap.runways.length ? String(ap.runways.length) : ""], ["Today", today ? escH(today === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: today})) : "", true]]) + wikiHtml(w));
@@ -1803,13 +1820,13 @@ function planeBody(o){
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
-  const pic = d.photo || modelPic(type, () => { if (typeof planeAgain === "function") planeAgain(); });
+  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (typeof planeAgain === "function") planeAgain(); });
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}">${escH(code3(p) || p.code || "")} ${escH(p.city || "")}</button>` : "";
   const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
-    factsHtml([["Aircraft", escH(type)], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
+    factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", o.alt != null ? escH(altitudeStr(o.alt).toLowerCase()) : ""], ["Speed", ac.gs ? escH(speedStr(ac.gs).toLowerCase()) : ""],
       ["Distance", o.dist != null ? escH(`${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}`) : ""],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
@@ -1817,10 +1834,35 @@ function planeBody(o){
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
   const wire = el => {
     const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
+    const ty = el.querySelector("[data-ty]"); if (ty) ty.onclick = () => typeCard({typeCode: ac.t, type});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
     const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
   };
   return {html, wire};
+}
+// An aircraft model (x: a row or {typeCode, type}): its picture and Wikipedia's words, how many fly, how rare, how
+// often seen here and today, and Favourite / Hide for the type.
+function typeOf(x){
+  const code = String(x.typeCode || (x.ac && x.ac.t) || "").toUpperCase();
+  return {code, name: TYPES[code] || x.type || code};
+}
+async function typeCard(x){
+  const t = typeOf(x || {});
+  if (!t.name) return;
+  ctlSound.press();
+  const b = lbData() || {}, lb = t.code && b.types ? b.types[t.code] : null, n = FLEET[t.code];
+  const tier = LEGENDARY.has(t.code) ? "legendary" : n != null ? fleetTier(t.code) : "";
+  const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
+  const c = t.code ? {k: "type", v: t.code, n: t.name} : null;
+  const draw = w => cardOpen((w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+    `<div class="cHead"><div><h3>${escH(t.name)}</h3><span>${escH(T("Aircraft model"))}</span></div></div>` +
+    factsHtml([["Code", escH(t.code)], ["In service", n ? escH(T("About {n} worldwide", {n: nf.format(n)})) : ""], ["Rarity", tier ? escH(T(TIER_NAME[tier])) : ""],
+      ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
+      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
+    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+  const tok = draw(null);
+  const w = await modelWiki([t.name, x.type]);
+  if (w && tok === cardTok) draw(w);
 }
 let planeShown = null;
 function planeCard(o){
@@ -3773,13 +3815,12 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
+  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || "")].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<span class="more" aria-hidden="true">⋯</span>` : "") + `</li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -3808,7 +3849,7 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => renderAircraftInfo());
+  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
   $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
   if (src !== shownPhoto) {
     shownPhoto = src;
@@ -3840,7 +3881,7 @@ function renderAircraftInfo(){
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd${en === "Aircraft" ? " data-ty" : ""}>${escH(v)}</dd></div>`).join("");
   $("acActs").hidden = !listsOk();
 }
 
@@ -5142,6 +5183,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.35", date: "2026-10-17", notes: [
+    "Tap an aircraft type for a card about the model: its picture, how many fly, how rare it is and how often you've seen it.",
+    "Model pictures show again, also for models with a variant name (such as freighters).",
+    "Changing the password opens its own window with the new password twice.",
+    "The lists' rows lost their ⋯: a tap on the row does the same."]},
   {v: "1.34", date: "2026-10-17", notes: [
     "Tap an airline's logo or name for a card about the airline, and a place for a card about its airport; on the full board too.",
     "The full board does what the app does with a tap: rows to favourite or hide, planes on the radar, airlines and places; a double tap is full screen.",
@@ -5423,6 +5469,9 @@ function settingsExtra(){
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
 $("acFav").onclick = () => listSheet(featFacts());
+$("acFacts").addEventListener("click", e => {
+  if (feat && feat.o && e.target.closest("[data-ty]")) typeCard({typeCode: feat.o.ac.t, type: (feat.info || baseInfo(feat.o.ac)).type});
+});
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
@@ -5436,6 +5485,7 @@ $("hero").addEventListener("click", e => {
   if (id === "airline") airlineCard(liveFacts(feat.o.ac, info));
   else if (id === "fromCode" || id === "fromCity") placeCard(info.from);
   else if (id === "toCode" || id === "toCity") placeCard(info.to);
+  else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type});
   else planeCard(feat.o);
 });
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
@@ -5462,8 +5512,9 @@ document.addEventListener("click", e => {
   e.stopPropagation();
   const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
   if (!x) return;
-  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]");
+  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
+  if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
   listSheet(x);
 }, true);
@@ -5507,6 +5558,25 @@ async function passkeyAdd(){
   return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
     attestationObject: b64u(c.response.attestationObject), name: deviceName()});
 }
+// Set or change the password in a window of its own: the current one (if there is one) and the new one twice.
+function pwCard(a, done){
+  const field = (id, ph, ac = "new-password") => `<input class="acIn" id="${id}" type="password" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+  cardOpen(`<h3>${escH(T(a.password ? "Change password" : "Set a password"))}</h3><form data-pw>` +
+    `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` +
+    (a.password ? field("pwCur", "Current password", "current-password") : "") + field("pwNew", "New password") + field("pwNew2", "Repeat the new password") +
+    `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
+    `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
+    const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.onsubmit = async ev => {
+      ev.preventDefault(); ctlSound.press();
+      if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
+      try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
+      catch (e) { say((e && e.message) || String(e)); }
+    };
+    setTimeout(() => { const i = f.querySelector("input:not([hidden])"); if (i) i.focus(); }, 50);
+  });
+}
 // The account panel, in About and in the welcome: create (a username), then passkeys and a password.
 async function accountBox(el, onChange){
   let a = null;
@@ -5524,8 +5594,7 @@ async function accountBox(el, onChange){
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<p><b>${escH(T("Password"))}</b></p>` + (a.password ? field("acCur", "Current password", "password", "current-password") : "") +
-        `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` + field("acPw", "New password") +
+        `<p><b>${escH(T("Password"))}</b></p>` +
         `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
         `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
@@ -5537,7 +5606,7 @@ async function accountBox(el, onChange){
       q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
     }
     if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
-    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); run(() => acctPost("/account/password", {password: q("acPw").value, current: q("acCur") ? q("acCur").value : ""}), "Saved."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); pwCard(a, next => { a = next; draw(T("Password saved.")); if (onChange) onChange(a); }); };
     for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
   };
   draw();

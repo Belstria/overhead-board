@@ -457,13 +457,12 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type, e.reg].filter(Boolean).map(escH).join(" · ");
+  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || "")].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<span class="more" aria-hidden="true">⋯</span>` : "") + `</li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -492,7 +491,7 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || modelPic(d.type || info.type || TYPES[String(feat.o.ac.t || "").toUpperCase()] || "", () => renderAircraftInfo());
+  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
   $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
   if (src !== shownPhoto) {
     shownPhoto = src;
@@ -524,7 +523,7 @@ function renderAircraftInfo(){
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
-  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+  $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd${en === "Aircraft" ? " data-ty" : ""}>${escH(v)}</dd></div>`).join("");
   $("acActs").hidden = !listsOk();
 }
 
@@ -1420,6 +1419,9 @@ function settingsExtra(){
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
 $("acFav").onclick = () => listSheet(featFacts());
+$("acFacts").addEventListener("click", e => {
+  if (feat && feat.o && e.target.closest("[data-ty]")) typeCard({typeCode: feat.o.ac.t, type: (feat.info || baseInfo(feat.o.ac)).type});
+});
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
@@ -1433,6 +1435,7 @@ $("hero").addEventListener("click", e => {
   if (id === "airline") airlineCard(liveFacts(feat.o.ac, info));
   else if (id === "fromCode" || id === "fromCity") placeCard(info.from);
   else if (id === "toCode" || id === "toCity") placeCard(info.to);
+  else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type});
   else planeCard(feat.o);
 });
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
@@ -1459,8 +1462,9 @@ document.addEventListener("click", e => {
   e.stopPropagation();
   const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
   if (!x) return;
-  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]");
+  const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
+  if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
   listSheet(x);
 }, true);
@@ -1504,6 +1508,25 @@ async function passkeyAdd(){
   return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
     attestationObject: b64u(c.response.attestationObject), name: deviceName()});
 }
+// Set or change the password in a window of its own: the current one (if there is one) and the new one twice.
+function pwCard(a, done){
+  const field = (id, ph, ac = "new-password") => `<input class="acIn" id="${id}" type="password" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+  cardOpen(`<h3>${escH(T(a.password ? "Change password" : "Set a password"))}</h3><form data-pw>` +
+    `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` +
+    (a.password ? field("pwCur", "Current password", "current-password") : "") + field("pwNew", "New password") + field("pwNew2", "Repeat the new password") +
+    `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
+    `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
+    const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.onsubmit = async ev => {
+      ev.preventDefault(); ctlSound.press();
+      if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
+      try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
+      catch (e) { say((e && e.message) || String(e)); }
+    };
+    setTimeout(() => { const i = f.querySelector("input:not([hidden])"); if (i) i.focus(); }, 50);
+  });
+}
 // The account panel, in About and in the welcome: create (a username), then passkeys and a password.
 async function accountBox(el, onChange){
   let a = null;
@@ -1521,8 +1544,7 @@ async function accountBox(el, onChange){
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<p><b>${escH(T("Password"))}</b></p>` + (a.password ? field("acCur", "Current password", "password", "current-password") : "") +
-        `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` + field("acPw", "New password") +
+        `<p><b>${escH(T("Password"))}</b></p>` +
         `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
         `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
@@ -1534,7 +1556,7 @@ async function accountBox(el, onChange){
       q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
     }
     if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
-    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); run(() => acctPost("/account/password", {password: q("acPw").value, current: q("acCur") ? q("acCur").value : ""}), "Saved."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); pwCard(a, next => { a = next; draw(T("Password saved.")); if (onChange) onChange(a); }); };
     for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
   };
   draw();

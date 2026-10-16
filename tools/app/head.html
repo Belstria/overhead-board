@@ -220,9 +220,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .fl[data-more]{cursor:pointer}
+#acFacts dd[data-ty]{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:3px}
 .fl[data-more]:active{background:rgba(255,255,255,.06)}
-.fl .more{position:absolute;left:8px;bottom:7px;padding:0 7px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
-  font:700 13px/18px var(--f-board);color:var(--muted)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;

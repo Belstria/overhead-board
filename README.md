@@ -142,6 +142,10 @@ Flightradar24) first; open them through the relay at `http://<computer-name>:808
   Remarks). In the phone app and on the full board alike: on the board a tap on a row of Recent flights or Spotted today
   opens the favourite/hide sheet, a plane on the radar its card, the airline field the airline; a **double tap** goes full
   screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
+- **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
+  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've seen
+  it and today's count, with Favourite / Hide for the type. In the app, Settings → Account → Change password opens a
+  window with the new password twice.
 - **Remarks** (top half, last row; 1.34, was Seen here): the interesting things about the plane in turn: how often it
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
