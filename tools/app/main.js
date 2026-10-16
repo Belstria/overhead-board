@@ -123,10 +123,14 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
+def(HERO, "seen",    {kind:"chars", n:17, dur:60, style:"amber", label:["Remarks",""]});
+def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
+fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
 function heroLayout(){
   const wide = SIDEWAYS.matches;
-  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 404;
+  HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 448;
+  fields.seen.hidden = wide;                    // on its side the three rows are full
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
@@ -142,6 +146,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
+  placeRow(["seen"], [], 411, 19.36, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -520,11 +525,11 @@ function renderAircraftInfo(){
     ["Aircraft", "Flugzeug", d.type || info.type, true], ["Operator", "Betreiber", liveryLine(info) || d.owner || info.airline, true],
     ["Registered in", "Land", d.country], ["Route", "", route], ["To go", "", toGoText(info, feat.o)],
     ["Remarks", "", remarkLines(feat.o.ac, info).join(" · "), true]].filter(f => f[2]);
+  $("acFacts").style.display = airportMode() ? "" : "none";
   const sig = JSON.stringify(facts);
   if (sig === factsSig) return;
   factsSig = sig;
   $("acFacts").innerHTML = facts.map(([en, de, v, wide]) => `<div${wide ? ' class="wide"' : ""}><dt>${escH(T(en))}</dt><dd${en === "Aircraft" ? " data-ty" : ""}>${escH(v)}</dd></div>`).join("");
-  $("acActs").hidden = !listsOk();
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -1418,15 +1423,14 @@ function settingsExtra(){
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
-$("acFav").onclick = () => listSheet(featFacts());
 $("acFacts").addEventListener("click", e => {
   if (feat && feat.o && e.target.closest("[data-ty]")) typeCard({typeCode: feat.o.ac.t, type: (feat.info || baseInfo(feat.o.ac)).type});
 });
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
-  const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks"].find(k => {
-    const f = fields[k]; if (!f || f.x == null) return false;
+  const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
+    const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
     const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
     return x >= f.x - 3 && x <= f.x + w + 3 && y >= f.y - 3 && y <= f.y + f.ch + 3;
   });
@@ -1439,7 +1443,6 @@ $("hero").addEventListener("click", e => {
   else planeCard(feat.o);
 });
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
-$("acHide").onclick = () => listSheet(featFacts());
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
 function lookAuto(){
@@ -1470,11 +1473,6 @@ document.addEventListener("click", e => {
 }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
-function featFacts(){
-  if (!feat || !feat.o) return null;
-  const f = liveFacts(feat.o.ac, feat.info), d = detailsOf(feat.hex) || {};
-  return {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
-}
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
   const box = $("favBox");

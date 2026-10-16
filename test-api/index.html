@@ -2464,7 +2464,7 @@ function renderTimes(){
   if (!arr) arr = estArrival(info, feat.o);
   setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
   setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
-  const mins = dep ? Math.floor((now - dep) / 60000) : -1;
+  const mins = dep && arr ? Math.round((arr - dep) / 60000) : -1;    // the whole flight, departure to (expected) arrival
   setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
 }
 
@@ -5043,6 +5043,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.35.1", date: "2026-10-17", notes: [
+    "Flight time is the whole flight, from departure to arrival, instead of the time since take-off.",
+    "The app's flaps show Remarks too; the app's details list under the photo and its Favourite/Hide buttons are gone (tap the board instead)."]},
   {v: "1.35", date: "2026-10-17", notes: [
     "Tap an aircraft type for a card about the model: its picture, how many fly, how rare it is and how often you've seen it.",
     "Model pictures show again, also for models with a variant name (such as freighters).",

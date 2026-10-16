@@ -232,8 +232,6 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:13px}
 .shRow .cap small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
 .shRow .cap.on{outline:2px solid var(--amber);outline-offset:1px}
-.acActs{display:flex;gap:8px;margin:10px 0 0}
-.acActs .cap{width:auto;padding:0 12px}
 #favBox{margin-top:14px}
 .chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board);color:var(--ink)}
@@ -474,8 +472,6 @@ body.arOpen{overflow:hidden}
           <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
         </div>
-        <div class="acActs" id="acActs" hidden><button class="cap small" type="button" id="acFav" data-t="Favourite…">Favourite…</button>
-          <button class="cap small" type="button" id="acHide" data-t="Hide…">Hide…</button></div>
         <div class="look" id="look" hidden>
         <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
         <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
