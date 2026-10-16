@@ -391,7 +391,7 @@ const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
 const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
-  "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
+  "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
   "ABOVE CLOUD", "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
   "SKYDIVING", "AEROBATIC", "SURVEY", "UNUSUAL"];
 // The airport statuses show a plane taking off or landing in front of the word (tile).
@@ -412,6 +412,8 @@ const REMARK_LOOK = {
   SUPERJUMBO:GOLD, JUMBO:GOLD, BELUGA:GOLD, ANTONOV:GOLD, CONCORDE:GOLD, SPECIAL:GOLD,
   MILITARY:{fill:["#66743f","#525e31"], fg:"#f1f0de"}, HELICOPTER:{fill:["#22908f","#187473"], fg:"#ffffff"},
   EMERGENCY:{fill:["#e0372c","#bb2a20"], fg:"#ffffff"},
+  DIVERTED:{fill:["#ef8a2b","#d0701a"], fg:"#1a1206"}, CARGO:{fill:["#8a5a2b","#714820"], fg:"#fbe9d2"},
+  BIZJET:{fill:["#2d3a55","#232e45"], fg:"#e6c66e", tint:"#e6c66e"}, PRIVATE:{fill:["#4b5560","#3c454e"], fg:"#e8ebee"},
   "TAKE-OFF":{fill:["#f6be35","#dc9f1d"], fg:"#17140d"}, CLIMBING:{fill:["#3d3f44","#303237"], fg:"#f6be35"},
   APPROACH:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"}, FINAL:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
   LANDED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
@@ -1729,6 +1731,11 @@ const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 // Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
 const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
+// This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
+// relay (version 8 or newer, with an API key). Without that, everything falls back to the free sources.
+const USE_API = true;
+let apiLive = true;     // turns off when the relay says Flightradar24 isn't available (key refused, budget used up)
+const apiOn = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true && apiLive;
 const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
@@ -1867,6 +1874,34 @@ async function aircraftLookup(hex){
     return [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" ");
   } catch { return null; }
 }
+/* Flightradar24 through the relay: the relay queues the lookup (10 a minute at most) and answers from its cache. */
+function apiLookup(cs, hex, info, tries = 0){
+  if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return;
+  fetchJSON(`${relay()}/flightinfo?cs=${encodeURIComponent(cs)}&hex=${encodeURIComponent(hex)}`, {}, 6000).then(d => {
+    if (d.status === "off") { if (apiLive) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); apiLive = false; updateFooter(); return; }
+    if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); return; }
+    if (d.status !== "ok") return;
+    const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
+    if (d.flight) Object.assign(info, {flightNo: fmtFlight(d.flight)}, marketedBy(d.flight));
+    if (d.from && d.to) { info.from = d.from; info.to = d.to; }
+    Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator, takeoff: d.takeoff || ""});
+    const after = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
+    dlog("debug", `Flightradar24: ${cs} is ${info.flightNo}, ${d.from ? d.from.code : "?"} → ${d.to ? d.to.code : "?"}${before !== after ? ` (free sources said ${before})` : ""}`);
+    infoChanged(info);
+  }).catch(() => {});
+}
+// Flightradar24's painted_as and operated_as (airline ICAO codes): a plane flown by one airline in another's colours
+// (a wet lease, or a group airline in the parent's livery) says so on the Operator line.
+function liveryLine(info){
+  const lv = String(info.livery || "").toUpperCase(), op = String(info.operator || "").toUpperCase();
+  if (!lv || !op || lv === op) return "";
+  const nm = c => shortAirline((AIRLINES[c] || [])[1] || c);
+  return T("{op} · PAINTED AS {a}", {op: nm(op), a: nm(lv)});
+}
+function liveryShort(info){
+  const lv = String(info.livery || "").toUpperCase(), op = String(info.operator || "").toUpperCase();
+  return lv && op && lv !== op ? T("IN {a} COLOURS", {a: shortAirline((AIRLINES[lv] || [])[1] || lv)}).slice(0, 20) : "";
+}
 const infoCache = new Map();
 // A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
 function infoChanged(info){
@@ -1883,6 +1918,7 @@ function enrich(ac){
     if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
     if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
     await Promise.all(jobs);
+    if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
     return info;
   })();
   p.info = info;
@@ -1980,13 +2016,22 @@ function fromRelay(r){
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
     newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier, watch: r.watch || "",
-    photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer};
+    photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
+    fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
+}
+// Flightradar24 gives the flight number the flight is sold under; show that airline (Lauda flies many Ryanair flights).
+function marketedBy(flight){
+  const m = /^([A-Z0-9]{2})\d/.exec(flight || "");
+  if (!m) return {};
+  const known = Object.values(AIRLINES).find(a => a[0] === m[1]);
+  return known ? {airlineCode: m[1], airline: known[1]} : {airlineCode: m[1]};
 }
 async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 8000);
+    if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
     const first = sightRev === null, known = new Set(spotted.map(e => e.id));
     spotted = (j.entries || []).map(fromRelay);
     relayStats = j.stats || null;
@@ -2009,7 +2054,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
     if (j.stats) relayStats = j.stats;
     renderSpottedBoard(); updateFooter();
@@ -2091,12 +2136,20 @@ function isFav(x){
 // The most interesting thing about a plane, if anything: shown in the remarks instead of the route type.
 function badgeFor(x){
   const sp = specialOf(x);
+  if (sp === "EMERGENCY") return sp;
+  if (x.divertedTo) return "DIVERTED";                    // from Flightradar24
   if (SPECIAL_BIG.has(sp)) return sp;
   if (x.watch && x.watch !== "MILITARY") return x.watch;      // POLICE, AMBULANCE, HISTORIC ... (more telling than SPECIAL)
   if (x.newType) return "NEW TYPE";
   if (x.newAirline) return "NEW AIRLINE";
   if (isFav(x)) return "FAVOURITE";
-  return sp || x.watch;
+  return sp || x.watch || categoryBadge(x);
+}
+// Flightradar24's flight categories: Passenger, Cargo, Business_jets, General_aviation, Military_and_government, Helicopters...
+function categoryBadge(x){
+  const c = String(x.category || "");
+  return /cargo/i.test(c) ? "CARGO" : /business/i.test(c) ? "BIZJET" : /general.aviation|private/i.test(c) ? "PRIVATE"
+    : /military|government/i.test(c) ? "MILITARY" : /helicopter/i.test(c) ? "HELICOPTER" : "";
 }
 // The watchlist (relay 29, plane-alert-db): which of the planes around are on it, asked of the relay in one go for
 // the ones not asked yet; the answer is a remark word (POLICE, AMBULANCE, HISTORIC ...).
@@ -2119,6 +2172,7 @@ function liveFacts(ac, info){
   const e = spotted.find(x => x.hex === ac.hex);
   return {typeCode: String(ac.t || (e && e.typeCode) || "").toUpperCase(), military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2),
     emergency: emergencyOf(ac), newType: !!(e && e.newType), newAirline: !!(e && e.newAirline), watch: watchOf(ac.hex) || (e && e.watch) || "",
+    category: info.category || (e && e.category) || "", divertedTo: info.divertedTo || (e && e.divertedTo) || null,
     airline: info.airline, airlineCode: airlineCodeOf(info), callsign: String(ac.flight || "").trim().toUpperCase(),
     flight: info.flightNo, reg: info.reg || ac.r || "", type: info.type};
 }
@@ -2347,7 +2401,8 @@ function process(list){
 
 /* ---------- flight times and delays ----------
    Vienna Airport publishes its arrivals and departures with planned and expected times; the home relay (version
-   11 or newer) reads them, so flights to and from Vienna show their times. Other flights show what is known, often nothing. */
+   11 or newer) reads them, so flights to and from Vienna show their times. Flightradar24 adds the take-off time
+   of any flight on this board. Other flights show what is known, often nothing. */
 const timesCache = new Map();          // flight number -> {t, d}: the relay's answer, asked again after two minutes
 function timesFor(info){
   const fn = info && info.flightNo;
@@ -2941,7 +2996,7 @@ function renderAircraft(){
   setChars("acHex", feat.hex.toUpperCase(), 60);
   setChars("acFlight", info.flightNo, 120);
   setChars("acType", d.type || info.type || "", 180);
-  setChars("acOwner", d.owner || info.airline || "", 240);
+  setChars("acOwner", liveryLine(info) || d.owner || info.airline || "", 240);
   setChars("acCountry", d.country || "", 300);
   setChars("acRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
   const img = $("photoImg");
@@ -2950,7 +3005,7 @@ function renderAircraft(){
   placePhoto();
 }
 
-const API_NOTE = () => "";
+const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flightradar24") : "";
 /* ---------- views: Spotted today, Logbook, Radar and Settings ----------
    A button on the rail turns the whole board below the header over, like the lower half between pages, and shows
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
@@ -4988,6 +5043,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.35.2", date: "2026-10-17", notes: [
+    "One test board with every feature; the old second test address leads to it."]},
   {v: "1.35.1", date: "2026-10-17", notes: [
     "Flight time is the whole flight, from departure to arrival, instead of the time since take-off.",
     "The app's flaps show Remarks too; the app's details list under the photo and its Favourite/Hide buttons are gone (tap the board instead)."]},
@@ -5031,6 +5088,7 @@ const CHANGELOG = [
   {v: "1.27", date: "2026-10-15", notes: [
     "The plane on the board says how often it was seen here (first time ever, seen 4 times, back after 7 months) and how far it still has to go.",
     "ABOVE CLOUD in the status when a plane passes over the cloud base, from the airport's weather.",
+    "This aircraft says when a plane flies in another airline's colours.",
     "Records & trophies, from the Logbook: the closest, lowest and fastest pass ever, and the route from farthest away."]},
   {v: "1.26.0.1", date: "2026-10-14", notes: [
     "Notifications show the plane in the phone's status bar, not a white square."]},
@@ -5616,6 +5674,7 @@ function diagRows(){
     ["Closest", closest],
     ["On the board", feat ? `${planeName(feat)} · ${MODE_REMARK[feat.mode] || feat.mode}` : "nothing"],
     ["Spotted today", `${spotted.filter(e => !e.sample).length} (a plane is added when it comes within ${R} km)`],
+    ["Flight numbers", apiOn() ? "Flightradar24 through the home relay; free sources as fallback" : USE_API && relayV5() ? "free sources (the relay has no Flightradar24 key)" : "free sources (adsbdb, adsb.lol)"],
     ["Watching", `${S.lat.toFixed(4)}, ${S.lon.toFixed(4)} · updates every ${+S.refreshS || 10} s`]
   ];
 }
@@ -5639,6 +5698,15 @@ function renderDiag(){
     }).join("") + "</tbody></table>" + (st.screens && st.screens.length ? `<h3>Screens using the relay · ${st.screens.length}</h3><table class="dsrc"><tbody>` +
       st.screens.map(x => `<tr><td>${escH(x.name || x.device)}${x.sid === SID ? " <b>(this screen)</b>" : ""}</td><td>${escH(x.ip + (x.host ? " · " + x.host : ""))}</td>` +
         `<td>${escH([x.board, x.size].filter(Boolean).join(" · "))}</td><td>on for ${escH(forText(x.on_s))}</td></tr>`).join("") + "</tbody></table>" : "");
+  const f = st && st.fr24;
+  if (f && f.state && f.state !== "off") {
+    const say = {ok: "Working", ready: "Ready, no lookups yet", budget: "Monthly budget used up, using the free sources",
+      refused: "Key refused, using the free sources", error: "Problem: " + (f.error || "unknown"),
+      paced: "Today's share of the monthly budget is used; the free sources fill in until tomorrow"}[f.state] || f.state;
+    $("diagSources").insertAdjacentHTML("beforeend", `<h3>Flightradar24</h3><p class="${f.state === "ok" || f.state === "ready" ? "good" : "meh"}">${escH(say)} · ` +
+      `${nf.format(f.credits)} of ${nf.format(f.budget)} credits used this month · ${nf.format(f.lookupsToday)} lookups today (${nf.format(f.creditsToday)} credits)` +
+      `${f.queue ? ` · ${f.queue} waiting` : ""}${f.airports ? "" : " · airport names not loaded yet"}</p>`);
+  }
   const lines = mergedLog();
   $("diagLog").innerHTML = lines.length ? lines.map(e => `<li class="lv-${e.level}"><time>${clockStr(e.t)}</time><span class="tag">${e.src}</span><span>${escH(e.msg)}</span></li>`).join("")
     : `<li class="lv-debug"><time></time><span class="tag"></span><span>Nothing logged yet.</span></li>`;

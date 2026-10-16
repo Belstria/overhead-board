@@ -1381,7 +1381,7 @@ function buildSaveBar(){
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
-/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test-api). */
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =

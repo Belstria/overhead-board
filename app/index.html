@@ -2759,7 +2759,7 @@ const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 // Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
 const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
-// This copy of the board (test-api) also gets real flight numbers and routes from Flightradar24, through the home
+// This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
 // relay (version 8 or newer, with an API key). Without that, everything falls back to the free sources.
 const USE_API = true;
 let apiLive = true;     // turns off when the relay says Flightradar24 isn't available (key refused, budget used up)
@@ -5184,6 +5184,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.35.2", date: "2026-10-17", notes: [
+    "One test board with every feature; the old second test address leads to it."]},
   {v: "1.35.1", date: "2026-10-17", notes: [
     "Flight time is the whole flight, from departure to arrival, instead of the time since take-off.",
     "The app's flaps show Remarks too; the app's details list under the photo and its Favourite/Hide buttons are gone (tap the board instead)."]},
@@ -5430,7 +5432,7 @@ function buildSaveBar(){
   };
   $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
 }
-/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test-api). */
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =

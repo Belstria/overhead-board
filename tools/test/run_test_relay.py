@@ -1,5 +1,5 @@
 """Run the boards against made-up flights: a fake flight data source on port 8095 and a test relay on port 8096 that
-serves this repository's boards (/, /test/, /test-api/, /app/) with it. Your real relay, its settings and its data
+serves this repository's boards (/, /test/, /app/) with it. Your real relay, its settings and its data
 are not touched: the test relay runs from a temporary folder.
 
     py tools/test/run_test_relay.py            every kind of plane, including special ones and an emergency
@@ -8,7 +8,7 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake)
 
-Then open http://localhost:8096/ (or /test/, /test-api/, /app/, /screens). Ctrl+C stops both.
+Then open http://localhost:8096/ (or /test/, /app/, /screens). Ctrl+C stops both.
 """
 import argparse
 import os

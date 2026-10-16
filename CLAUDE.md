@@ -12,19 +12,20 @@ someone would notice.
 
 ## Rules Dave set (keep to them)
 
-- **Test first.** Visual and feature changes go to the test boards first. Copy to the main board (`index.html`) only
+- **Test first.** Visual and feature changes go to the test board first. Copy to the main board (`index.html`) only
   when Dave says so.
-- **Two test boards.** Changes that don't need the paid API go to both `test/` and `test-api/` ("both TEST").
-  Features that need Flightradar24 only ever go into `test-api/`, so `test/` always works without the API.
-- **The phone app** (`app/`) is built from the test-api board's code (since 11 Oct 2026, so new features reach the
-  phone together with test-api; see below); rebuild it when shared code changes.
+- **One test board.** `test/` is the test board, Flightradar24 features included (since 17 Oct 2026, 1.35.2, Dave's
+  choice: the free-only test board was dropped and the API board took its place; `test-api/index.html` is only a page
+  forwarding to `/test/`). Without a key the board falls back to the free sources by itself.
+- **The phone app** (`app/`) is built from the test board's code (so new features reach the phone together with
+  `test/`; see below); rebuild it when shared code changes.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
   "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
   short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
   versions (guests read them too; the history was rewritten that way on 14 Oct 2026). Settings → About shows them; the relay (17+) adds the publish time
   (`window.OVERHEAD_PAGE_DATE`).
-- **Every visible text goes through `T()`** (test boards and app): `T("English text", {vars})`, with `{name}`
+- **Every visible text goes through `T()`** (test board and app): `T("English text", {vars})`, with `{name}`
   placeholders. Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row
   shows English. Flap status words stay English inside (the key for colours and drum order) and are translated when
   drawn. No more German second lines under labels (removed in 1.12); a second label word is only kept for units.
@@ -42,9 +43,10 @@ someone would notice.
 
 | Path | What it is |
 |------|------------|
-| `index.html` | Main board (PROD). Since 12 Oct 2026 (1.13) a copy of `test-api/index.html` (only the title and one comment differ). |
-| `test/index.html` | Test board, free data sources only. |
-| `test-api/index.html` | Test board plus Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
+| `index.html` | Main board (PROD). A copy of `test/index.html` (only the title and one comment differ), made when Dave says "push to main". |
+| `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
+| `test-api/index.html` | Forwards to `/test/` (the old API test board's address). |
+| `keys/index.html` | Remote key test for the TVs. |
 | `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
 | `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
@@ -53,13 +55,10 @@ someone would notice.
 | `tools/sounds/` | `build_sounds.py` cuts the recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block; credits and licenses in its README. |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
 
-The three boards are full copies of one single-file app. `test/` is test-api without the Flightradar24 part: to see
-that delta, `git diff --no-index test-api/index.html test/index.html`. Work in test-api, then rebuild `test/` by applying
-that delta (saved as a patch before the change) to the new test-api, and check the result differs from test-api by
-exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everything from 1.7 and 1.8. A hunk that touches the
-`REMARKS`/`REMARK_LOOK` tables needs fixing by hand: `test/` has no DIVERTED, CARGO, BIZJET, PRIVATE (API remarks).
+The main board and the test board are full copies of one single-file app: work in `test/`, copy to `index.html`
+when Dave says so (keep its title "Fallblatt").
 
-## How the board works (index.html and the test boards)
+## How the board works (index.html and the test board)
 
 - Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,
   engraved labels; `drawStatic()`) and `fx` (the flaps).
@@ -89,7 +88,7 @@ exactly the delta again. Done this way on 12 Oct 2026, when `test/` got everythi
 ## The phone app
 
 `app/index.html` is generated: `py tools/app/build.py` copies the flap engine, reference tables, network, tracking,
-times, specials, logbook, radar and Settings control code out of `test-api/index.html` by marker strings and wraps them in the phone layout
+times, specials, logbook, radar and Settings control code out of `test/index.html` by marker strings and wraps them in the phone layout
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
@@ -112,7 +111,7 @@ Spotter facts (1.27, relay 28): `seenText()` (relay `/seen?reg=`, from the logbo
 the sighting before the last) and `toGoText()` fill the top half's `seen` and `toGo` flaps (row 3; in `TOP_IDS`) and
 the app's This aircraft facts; `skyCheck()` reads `/sky?code=` (the home airport's METAR: the lowest BKN/OVC/VV layer
 plus the airport's elevation, from the airport list's v3) every ten minutes and `featRemark` shows ABOVE CLOUD;
-`liveryLine()` (test-api only) puts Flightradar24's `painted_as` on the Operator line; the relay keeps lifetime
+`liveryLine()` (Flightradar24) puts Flightradar24's `painted_as` on the Operator line; the relay keeps lifetime
 `records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
 ("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
 Flightradar24's credits this month and what it added (`fr24_admin_html`, `usage.found/wetLease/diverted`).
@@ -137,7 +136,7 @@ and the Take-off and Landing pages paint `paintRunwayScreen()` on the photo scre
 radar zooms to the runways; `rwyMix` eases it and returns `moving`, so `placePhoto`/the app's `paintRwy` paint again next frame;
 `run_test_relay.py --far` starts the landing 32 km out).
 
-Settings cockpit (shared by test-api and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
+Settings cockpit (shared by the boards and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
 cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
 `ctlSound.rotary(steps)/toggle(on)/wheel()/press()` (they play when `S.sound || S.chimes`). "Use current location"
 (`wireLocate`, `hereNow`, `nearestAirport`) uses `navigator.geolocation` (secure contexts only, so not on the TVs) or the
@@ -249,9 +248,9 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## Testing a change
 
-1. `py tools/test/run_test_relay.py` (add `--fr24` for the API boards, `--quiet` without special planes,
+1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
    `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights
-   and serves this checkout at `http://localhost:8096/` (`/test/`, `/test-api/`, `/app/`). Dave's real relay and
+   and serves this checkout at `http://localhost:8096/` (`/test/`, `/app/`). Dave's real relay and
    data are untouched.
 2. Look at it: in a browser, or `py tools/test/shoot.py URL OUT steps...` for screenshots (set `PHONE=390x844` for
    the app). Check the page errors it prints and look at the screenshots, not just the exit code.
@@ -268,5 +267,4 @@ Art Mode at night (Samsung's local TV API); a spotter's
 collection page and weekly bingo of rare planes; rarity marks ("first time ever", "seen 4 times"); worth going to
 the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; a Hue
 light pulse for special planes (local Hue Bridge API), phone push via ntfy; a Vestaboard-style 6x22 view; a report of
-what Flightradar24 added, to decide on renewing; merging the two test boards into one file with the API switched on
-by address.
+what Flightradar24 added, to decide on renewing.
