@@ -123,7 +123,12 @@ categories mapped to remark words by `WATCH_WORDS`; `/watch?hex=` (503 while loa
 in `/logbook`'s `game.bingo`), drawn by `recordsStatic` and the app's Logbook (`GOAL_TEXT`, `TROPHY_TEXT`, shared); the
 day in review (`reviewTime()`, Today in numbers after 21:00); `/year?y=` (`year_json`) for the app's year card and
 `/logbook.csv` (`logbook_csv`); the app's Where to look (`lookAt`, `drawLook`, `lookStart`: deviceorientation(absolute)
-or `webkitCompassHeading`, https only). `run_test_relay.py --hover` puts a real watchlisted police helicopter (OE-BXB) overhead.
+or `webkitCompassHeading`, https only). Sky view (1.30, app only): `arOpen` (camera via getUserMedia, motion permission,
+`watchPosition`), `arOrient` (absolute alpha, or 360 - `webkitCompassHeading` on iPhones; smoothed), `arMatrix` (W3C
+Z-X'-Y'' rotation), `arProject` (east-north-up to the screen, the camera along -z, `AR_VFOV` 64°, drag offsets `arOff` in
+`od.ar.off`), `arLoop` draws the labels; the planes come from `arFeed(list)` in the board's `poll`. Test it headless with
+`--use-fake-device-for-media-stream` and synthetic `deviceorientationabsolute` events (grant camera, accelerometer,
+gyroscope, magnetometer). `run_test_relay.py --hover` puts a real watchlisted police helicopter (OE-BXB) overhead.
 Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
 runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
 `rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),

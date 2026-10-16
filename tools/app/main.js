@@ -781,7 +781,7 @@ document.addEventListener("click", e => { if (e.target && e.target.id === "yShar
 // Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
 // north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
 // at the plane.
-let lookHeading = null, lookOn = false, lookRaf = 0;
+let lookHeading = null, lookOn = false, lookRaf = 0, lookErr = "", lookErrAt = 0;
 function lookAt(){
   if (!feat || !feat.o || feat.o.ac.lat == null) return null;
   const ac = feat.o.ac, kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx, y = (ac.lat - S.lat) * 110.57;
@@ -797,7 +797,7 @@ function drawLook(){
   if (box.hidden) return;
   $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
   $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
-    (lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.") : lookOn ? T("North is up.") : T("North is up. Hold the phone flat and tap Use the compass to turn it with you."));
+    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.") : lookOn ? T("North is up.") : T("North is up. Hold the phone flat and tap Use the compass to turn it with you."));
   const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), sz = 96;
   if (cv.width !== sz * px) { cv.width = cv.height = sz * px; }
   const g = cv.getContext("2d"), turn = lookOn && lookHeading != null ? -lookHeading : 0;
@@ -811,6 +811,7 @@ function drawLook(){
   g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(0, -36); g.lineTo(9, -14); g.lineTo(3, -14); g.lineTo(3, 14); g.lineTo(-3, 14); g.lineTo(-3, -14); g.lineTo(-9, -14); g.closePath(); g.fill();
   g.restore();
   $("lookBtn").hidden = lookOn || !window.isSecureContext || typeof DeviceOrientationEvent === "undefined";
+  $("arBtn").hidden = !arPossible();
 }
 const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
 function lookHeadingFrom(e){
@@ -835,6 +836,152 @@ async function lookStart(){
   lookSoon();
 }
 setInterval(() => { if (tab === "now" && document.visibilityState === "visible") lookSoon(); }, 1000);
+
+/* ---------- Sky view (1.30): the camera, with a label on each plane ----------
+   Each plane's direction from where the phone is (its own location, or the place in Settings) and its height, turned
+   into the camera's picture with the phone's orientation: the W3C rotation (alpha, beta, gamma; the compass heading
+   on iPhones), the back camera looking along the phone's -z. Positions are moved on to now with each plane's speed and
+   track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device). */
+const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
+let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null;
+let arOff = {h: 0, p: 0};
+const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
+function arFeed(list){ arList = list || []; arListAt = Date.now(); }
+const arEvent = () => "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+function arOrient(e){
+  let a = e.alpha;
+  if (typeof e.webkitCompassHeading === "number") a = 360 - e.webkitCompassHeading;       // iPhone: north from the compass
+  else if (!e.absolute && e.type !== "deviceorientationabsolute") return;
+  if (a == null || e.beta == null || e.gamma == null) return;
+  if (!arAng) arAng = {a, b: e.beta, g: e.gamma};
+  else {                                             // smoothed: compasses wobble
+    const d = ((a - arAng.a + 540) % 360) - 180;
+    arAng = {a: (arAng.a + d * .3 + 360) % 360, b: arAng.b + (e.beta - arAng.b) * .3, g: arAng.g + (e.gamma - arAng.g) * .3};
+  }
+}
+async function arOpen(){
+  ctlSound.press();
+  const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon(); };
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") return fail();
+    arStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}, height: {ideal: 1280}}, audio: false});
+  } catch { return fail(); }
+  try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
+  const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
+  $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arAng = null;
+  $("arHint").textContent = T("Hold the phone up and look around. If the labels sit beside the planes, drag them into place.");
+  addEventListener(arEvent(), arOrient);
+  if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
+  setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
+  arLoop();
+}
+function arClose(){
+  if (!arOn) return;
+  arOn = false; ctlSound.press();
+  if (arStream) arStream.getTracks().forEach(t => t.stop());
+  arStream = null; $("arVid").srcObject = null;
+  removeEventListener(arEvent(), arOrient);
+  if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
+  arWatch = null; cancelAnimationFrame(arRaf);
+  $("arView").hidden = true; document.body.classList.remove("arOpen");
+}
+// The rotation from the phone's axes to east-north-up (W3C DeviceOrientation, Z-X'-Y'' with alpha, beta, gamma).
+function arMatrix(a, b, g){
+  const r = Math.PI / 180, cA = Math.cos(a * r), sA = Math.sin(a * r), cB = Math.cos(b * r), sB = Math.sin(b * r), cG = Math.cos(g * r), sG = Math.sin(g * r);
+  return [[cA * cG - sA * sB * sG, -cB * sA, cA * sG + cG * sA * sB],
+          [cG * sA + cA * sB * sG, cA * cB, sA * sG - cA * cG * sB],
+          [-cB * sG, sB, cB * cG]];
+}
+// Where a point (east, north, up in metres from the phone) falls on the screen: [x, y] or, behind the phone, the
+// direction to turn ({edge: [dx, dy]}).
+function arProject(e, n, u, R, W, H){
+  const hh = arOff.h * Math.PI / 180, ce = Math.cos(hh), se = Math.sin(hh);
+  const E = e * ce - n * se, N = e * se + n * ce, L = Math.hypot(E, N, u) || 1, p = [E / L, N / L, u / L];
+  let vx = R[0][0] * p[0] + R[1][0] * p[1] + R[2][0] * p[2], vy = R[0][1] * p[0] + R[1][1] * p[1] + R[2][1] * p[2];
+  const vz = R[0][2] * p[0] + R[1][2] * p[1] + R[2][2] * p[2];
+  const so = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+  if (so) { const x = vx * Math.cos(so) + vy * Math.sin(so), y = -vx * Math.sin(so) + vy * Math.cos(so); vx = x; vy = y; }
+  const f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180), shift = f * Math.tan(arOff.p * Math.PI / 180);
+  if (vz > -.08) return {edge: [vx, -vy]};
+  const x = W / 2 + f * vx / -vz, y = H / 2 - f * vy / -vz + shift;
+  return x < -40 || x > W + 40 || y < -40 || y > H + 40 ? {edge: [x - W / 2, y - H / 2], x, y} : {x, y};
+}
+function arLoop(){
+  if (!arOn) return;
+  arRaf = requestAnimationFrame(arLoop);
+  const cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, px = Math.min(2, devicePixelRatio || 1);
+  if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
+  const g = cv.getContext("2d");
+  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
+  if (!arAng) return;
+  const R = arMatrix(arAng.a, arAng.b, arAng.g), here = arHere || {lat: S.lat, lon: S.lon};
+  const kx = 111320 * Math.cos(here.lat * Math.PI / 180), dt = (Date.now() - arListAt) / 1000, ground = sky && sky.elevation ? sky.elevation * .3048 : 0;
+  const shown = [];
+  for (const ac of arList) {
+    if (ac.lat == null || ac.lon == null) continue;
+    const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
+    if (alt == null || alt < 0) continue;
+    let e = (ac.lon - here.lon) * kx, n = (ac.lat - here.lat) * 110570;
+    if (ac.gs && ac.track != null) {                     // on to now along its track
+      const m = ac.gs * .5144 * Math.min(60, dt + (ac.seen_pos || 0)), t = ac.track * Math.PI / 180;
+      e += m * Math.sin(t); n += m * Math.cos(t);
+    }
+    const d = Math.hypot(e, n);
+    if (d > 60000) continue;
+    const u = alt * .3048 - ground - d * d / (2 * 6371000) * .87;  // the earth's curve (with the usual refraction)
+    const pr = arProject(e, n, u, R, W, H), isFeat = feat && feat.hex === ac.hex;
+    if (pr.edge && !isFeat) continue;
+    const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
+    shown.push({ac, d, pr, isFeat, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
+      sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
+  }
+  shown.sort((a, b) => a.d - b.d);
+  const boxes = [];
+  g.textBaseline = "alphabetic";
+  for (const s of shown.slice(0, 14)) {
+    if (s.pr.edge) { arEdge(g, s, W, H); continue; }
+    const {x, y} = s.pr;
+    g.font = `700 15px ${FONT}`; const w1 = g.measureText(s.name).width; g.font = `500 12px ${FONT}`; const w2 = g.measureText(s.sub).width;
+    const bw = Math.max(w1, w2) + 18, bh = 40;
+    let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
+    for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
+    boxes.push([bx, by, bw, bh]);
+    const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
+    g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
+    g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
+    g.fillStyle = s.isFeat ? "#111" : "#f3f0e8"; g.font = `700 15px ${FONT}`; g.fillText(s.name, bx + 9, by + 18);
+    g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
+  }
+  $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
+}
+// The plane on top, out of the picture: an arrow at the edge pointing the way to turn.
+function arEdge(g, s, W, H){
+  const [dx, dy] = s.pr.edge, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const t = Math.min((W / 2 - 34) / Math.abs(ux || 1e-6), (H / 2 - 60) / Math.abs(uy || 1e-6)), x = W / 2 + ux * t, y = H / 2 + uy * t;
+  g.save(); g.translate(x, y); g.rotate(Math.atan2(uy, ux));
+  g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(18, 0); g.lineTo(-10, -12); g.lineTo(-4, 0); g.lineTo(-10, 12); g.closePath(); g.fill();
+  g.restore();
+  g.font = `700 13px ${FONT}`; g.fillStyle = "#f0b429"; g.textAlign = ux > .5 ? "right" : ux < -.5 ? "left" : "center";
+  g.fillText(s.name, x - ux * 26, y - uy * 26 + 4); g.textAlign = "left";
+}
+const shortType = t => String(t || "").replace(/^(Airbus|Boeing|Embraer|Bombardier|De Havilland Canada|ATR) /i, "");
+// Dragging the picture lines the labels up with the planes: sideways turns them, up and down lifts them.
+function arDragStart(e){ arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
+function arDragMove(e){
+  if (!arDrag) return;
+  const H = $("arCv").clientHeight, f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180);
+  arOff.h = arDrag.h - Math.atan((e.clientX - arDrag.x) / f) * 180 / Math.PI;
+  arOff.p = arDrag.p + Math.atan((e.clientY - arDrag.y) / f) * 180 / Math.PI;
+}
+function arDragEnd(){ if (!arDrag) return; arDrag = null; try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {} }
+$("arBtn").onclick = arOpen;
+$("arClose").onclick = arClose;
+$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
+{ const cv = $("arCv");
+  cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
+  cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "visible") arClose(); });
 
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);

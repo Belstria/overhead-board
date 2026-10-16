@@ -3713,6 +3713,14 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Sky view", "Himmelsansicht", "Vue du ciel", "Vista del cielo", "Luchtzicht"],
+  ["Close", "Schließen", "Fermer", "Cerrar", "Sluiten"],
+  ["Reset", "Zurücksetzen", "Réinitialiser", "Restablecer", "Herstellen"],
+  ["Hold the phone up and look around. If the labels sit beside the planes, drag them into place.", "Halte das Telefon hoch und schau dich um. Liegen die Schilder neben den Flugzeugen, zieh sie an ihren Platz.", "Levez le téléphone et regardez autour de vous. Si les étiquettes sont à côté des avions, faites-les glisser en place.", "Levanta el teléfono y mira alrededor. Si las etiquetas quedan junto a los aviones, arrástralas a su sitio.", "Houd de telefoon omhoog en kijk rond. Staan de labels naast de vliegtuigen, sleep ze dan op hun plek."],
+  ["Sky view needs the camera and the motion sensors, on the https address.", "Die Himmelsansicht braucht Kamera und Bewegungssensoren, über die https-Adresse.", "La vue du ciel a besoin de la caméra et des capteurs de mouvement, sur l'adresse https.", "La vista del cielo necesita la cámara y los sensores de movimiento, en la dirección https.", "Luchtzicht heeft de camera en de bewegingssensoren nodig, via het https-adres."],
+  ["No compass reading yet: move the phone in a figure of eight.", "Noch kein Kompasswert: beweg das Telefon in einer Acht.", "Pas encore de cap : faites un huit avec le téléphone.", "Aún no hay brújula: mueve el teléfono haciendo un ocho.", "Nog geen kompas: beweeg de telefoon in een achtje."],
+  ["No planes nearby right now.", "Gerade keine Flugzeuge in der Nähe.", "Aucun avion à proximité pour l'instant.", "Ahora no hay aviones cerca.", "Nu geen vliegtuigen in de buurt."],
+  ["{n} planes around", "{n} Flugzeuge in der Nähe", "{n} avions autour", "{n} aviones alrededor", "{n} vliegtuigen in de buurt"],
   ["Account", "Konto", "Compte", "Cuenta", "Account"],
   ["Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup.", "Leg ein Konto an, um dich auf einem neuen Telefon oder Computer anzumelden und dort deinen Ort, dein Logbuch und deine Einstellungen zu finden: mit einem Passkey (Face ID, Fingerabdruck oder Bildschirmsperre) und einem Passwort als Reserve.", "Créez un compte pour vous connecter sur un nouveau téléphone ou ordinateur et y retrouver votre lieu, votre carnet et vos réglages : avec une clé d'accès (Face ID, empreinte ou verrouillage d'écran) et un mot de passe en secours.", "Crea una cuenta para iniciar sesión en un teléfono u ordenador nuevo y encontrar allí tu lugar, tu registro y tus ajustes: con una llave de acceso (Face ID, huella o bloqueo de pantalla) y una contraseña de reserva.", "Maak een account om op een nieuwe telefoon of computer in te loggen en daar je plek, logboek en instellingen terug te vinden: met een passkey (Face ID, vingerafdruk of schermvergrendeling) en een wachtwoord als reserve."],
   ["Username", "Benutzername", "Nom d'utilisateur", "Nombre de usuario", "Gebruikersnaam"],
@@ -4515,6 +4523,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.30", date: "2026-10-15", notes: [
+    "Sky view in the phone app: hold up the camera and every plane around gets a label (flight, type, height, distance)."]},
   {v: "1.29", date: "2026-10-15", notes: [
     "Accounts: guests can sign in on a new phone or computer with a passkey or a password, and find their place, logbook and settings there."]},
   {v: "1.28", date: "2026-10-15", notes: [
@@ -5219,7 +5229,7 @@ async function poll(force){
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list); watchAsk(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
   } catch (e) {
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
