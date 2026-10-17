@@ -216,6 +216,21 @@ The main board has everything below. New features are tried on `/test/` first; o
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
   skips it). The two styles sit in the title as a switch: tap the other one to change. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
+- **Places** (1.37, relay 33; Settings → Location → **Places & live location**, or tap the place under the title in
+  the app): save places such as Home or Work (from an address search, or where the board looks now) and switch between
+  them with a tap. Places are kept on the relay, so all of a person's devices (or all screens at home) share them; each
+  device watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and
+  records count them all), and **Spotted today shows the place being watched**, so the TVs keep showing the sky over
+  home while a phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today
+  has a switch to show every place at once, with each plane's place. Sightings carry their place in the logbook's CSV.
+- **Live location** (1.37; the app through the https address, or the Android app): **Follow this phone's location** in
+  the Places card makes the board watch where the phone is while the app is open; it names the town (OpenStreetMap)
+  and picks the nearest airport as it moves, and its planes count as "On the go". The title shows ◉ while it follows.
+  Turning it off goes back to the place before. The TVs can't follow (browsers only share their location with https
+  pages).
+- **Find an address** (1.37, relay 33; Settings → Location): type an address or a place and pick it from the list:
+  the place name, latitude and longitude are filled in, and the nearest airport becomes the home airport. The search
+  is OpenStreetMap's (Nominatim), through the relay, so no key is needed.
 - **Use current location** (Settings → Location; boards and phone app): fills in latitude and longitude and
   offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
@@ -417,6 +432,17 @@ Screens at home are the home profile as always; anyone else without a profile on
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
 
+**Names the relay answers to (relay 33).** So that no other website can talk to the relay through a browser at home
+(by pointing its own name at the relay's address, "DNS rebinding"), the relay only answers requests made to one of its
+own names: an IP address, `localhost`, a name without a dot (`overhead-relay`), a home-network name (`.local`, `.lan`,
+`.home.arpa`, `.fritz.box` …), the public address, and whatever comes through the tunnel. A screen that opens it under
+another name gets "This relay doesn't answer to that name" and the relay's status shows a warning naming it; let it in
+with `py serve.py --allow-host that.name --save` (several names separated by commas). Also since relay 33: password
+sign-in waits after five wrong passwords in a row (1 minute, then doubling up to an hour) and takes as long for an
+unknown username as for a wrong password, notifications are only sent to the browsers' push services, a failed
+download from GitHub isn't retried on every page load, and the positions it keeps for places nobody watches are
+dropped after two minutes.
+
 **Accounts (relay version 30, app 1.29).** An invite link makes a profile under the guest's name; an account is their
 own choice on top: at the end of the welcome, or in the app's About → Account, they pick a username and add a
 **passkey** (Face ID, a fingerprint or the phone's screen lock; passkeys sync through iCloud or Google, so a new phone
@@ -441,7 +467,7 @@ minutes and none from 22:00 to 07:00, except emergencies and special planes; hid
 Since 1.32 only one notification shows at a time (a new one replaces the last), so Android never stacks them into a
 group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; to hear the
 bell with the app closed on Android, About → Notifications → **Save the bell**, then pick it as the sound for
-fallblatt.app under Android's settings → Notifications → Chrome (iPhones always play their own sound).
+your public address under Android's settings → Notifications → Chrome (iPhones always play their own sound).
 
 **New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
 update. Nothing reloads by itself.
@@ -470,5 +496,7 @@ copy of this repository, `--source URL` to read positions from your own receiver
 
 `CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
 `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/`;
-`tools/test/shoot.py` takes screenshots of it. The phone app is built from the test board's code with
+`tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
+a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
+and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
 `py tools/app/build.py`, so it gets new features together with that board.

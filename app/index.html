@@ -214,6 +214,18 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .favAdd,.cardish .favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 #cardBox .favAdd select,#cardBox .favAdd input,.cardish .favAdd select,.cardish .favAdd input{background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
 #cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:160px}
+#cardBox .plRow{display:flex;gap:8px;margin:8px 0}
+#cardBox .plGo{flex:1;display:flex;flex-direction:column;gap:2px}
+#cardBox .plGo small,#cardBox .plRes small{font-weight:500;opacity:.7;letter-spacing:0}
+#cardBox .plRm{flex:none;width:46px;text-align:center}
+#cardBox .plRes{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+#cardBox .plRes .cBtn{display:flex;flex-direction:column;gap:2px}
+#cardBox [data-here]{margin-top:4px}
+.geoQ{display:flex;gap:8px;align-items:center}
+.geoQ input{flex:1;min-width:0;box-sizing:border-box;background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:7px 9px;font:600 14px var(--f-board)}
+.geoRes{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.geoRes button{all:unset;box-sizing:border-box;cursor:pointer;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.06);font:13px/1.35 system-ui,sans-serif;color:#cfc9bb}
+.geoRes button b{color:#f3f0e8}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -518,6 +530,8 @@ body.arOpen{overflow:hidden}
 .apPick{display:none;gap:12px;margin:2px 0 14px}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
 #t-now.ap .apPick{display:flex}
+.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svPlaces{margin:0 0 10px;width:auto!important;padding:0 14px}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -581,7 +595,7 @@ body.arOpen{overflow:hidden}
   #mark{width:28px;height:28px}
   .title{flex:0 1 auto}
   .title h1{font-size:18px}
-  .title p{margin-top:3px;font-size:9.5px}
+  .title p,.title .where{margin-top:3px;font-size:9.5px}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
   #top .pages .cap{width:104px;height:30px;margin:0;font-size:9.5px;letter-spacing:.05em}
   #clockP{width:84px}
@@ -650,7 +664,7 @@ body.arOpen{overflow:hidden}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><p id="where"></p></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
@@ -707,6 +721,7 @@ body.arOpen{overflow:hidden}
       <div class="groove"></div>
       <div class="tools" id="svTools"></div>
       <p class="sum" id="svSum"></p>
+      <button class="cap small svPlaces" type="button" id="svPlaces" hidden></button>
       <ol class="flights" id="svList"></ol>
       <p class="status statusText"></p>
     </div>
@@ -881,6 +896,8 @@ function loadSettings(){
 let meQ = 0;
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
+  const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
+  changed = rest;
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
   const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
   clearTimeout(meQ);
@@ -985,7 +1002,7 @@ const I18N_ROWS = [
   ["Special bell", "Glocke für Besonderes", "Carillon spécial", "Campana especial", "Speciale bel"],
   ["AIRPORT", "FLUGHAFEN", "AÉROPORT", "AEROPUERTO", "LUCHTHAVEN"],
   ["The sound for special planes: an AIRPORT announcement bell, or the CLASSIC two-note chime. Plays when you switch.", "Der Klang für besondere Flugzeuge: eine FLUGHAFEN-Durchsageglocke oder der KLASSISCHE Zweiklang. Spielt beim Umschalten.", "Le son des avions spéciaux : un carillon d'annonce d'AÉROPORT, ou le CLASSIQUE à deux notes. Joué quand vous changez.", "El sonido de los aviones especiales: una campana de aviso de AEROPUERTO o el CLÁSICO de dos notas. Suena al cambiar.", "Het geluid voor bijzondere toestellen: een LUCHTHAVEN-omroepbel of de KLASSIEKE tweetoon. Speelt bij het omschakelen."],
-  ["With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → fallblatt.app → Sound and pick it.", "Bei offener App spielt eine Benachrichtigung die Glocke. Um sie auch bei geschlossener App zu hören (Android): Glocke speichern, dann in den Android-Einstellungen Benachrichtigungen → Chrome → fallblatt.app → Ton öffnen und sie wählen.", "Application ouverte, une notification joue le carillon. Pour l'entendre application fermée (Android) : enregistrez le carillon, puis dans les réglages d'Android ouvrez Notifications → Chrome → fallblatt.app → Son et choisissez-le.", "Con la app abierta, una notificación suena con la campana. Para oírla con la app cerrada (Android): guarda la campana y en los ajustes de Android abre Notificaciones → Chrome → fallblatt.app → Sonido y elígela.", "Met de app open speelt een melding de bel. Om hem ook met de app dicht te horen (Android): bewaar de bel en kies hem in de Android-instellingen bij Meldingen → Chrome → fallblatt.app → Geluid."],
+  ["With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", "Bei offener App spielt eine Benachrichtigung die Glocke. Um sie auch bei geschlossener App zu hören (Android): Glocke speichern, dann in den Android-Einstellungen Benachrichtigungen → Chrome → {host} → Ton öffnen und sie wählen.", "Application ouverte, une notification joue le carillon. Pour l'entendre application fermée (Android) : enregistrez le carillon, puis dans les réglages d'Android ouvrez Notifications → Chrome → {host} → Son et choisissez-le.", "Con la app abierta, una notificación suena con la campana. Para oírla con la app cerrada (Android): guarda la campana y en los ajustes de Android abre Notificaciones → Chrome → {host} → Sonido y elígela.", "Met de app open speelt een melding de bel. Om hem ook met de app dicht te horen (Android): bewaar de bel en kies hem in de Android-instellingen bij Meldingen → Chrome → {host} → Geluid."],
   ["Save the bell", "Glocke speichern", "Enregistrer le carillon", "Guardar la campana", "Bel bewaren"],
   ["Favourites", "Favoriten", "Favoris", "Favoritos", "Favorieten"],
   ["Hidden", "Ausgeblendet", "Masqués", "Ocultos", "Verborgen"],
@@ -1291,6 +1308,39 @@ const I18N_ROWS = [
   ["The two new passwords don't match.", "Die beiden neuen Passwörter stimmen nicht überein.", "Les deux nouveaux mots de passe ne correspondent pas.", "Las dos contraseñas nuevas no coinciden.", "De twee nieuwe wachtwoorden komen niet overeen."],
   ["Password saved.", "Passwort gespeichert.", "Mot de passe enregistré.", "Contraseña guardada.", "Wachtwoord opgeslagen."],
   ["Apply", "Übernehmen", "Appliquer", "Aplicar", "Toepassen"],
+  ["Home", "Zuhause", "Domicile", "Casa", "Thuis"],
+  ["On the go", "Unterwegs", "En route", "De camino", "Onderweg"],
+  ["Places", "Orte", "Lieux", "Lugares", "Plaatsen"],
+  ["All places", "Alle Orte", "Tous les lieux", "Todos los lugares", "Alle plaatsen"],
+  ["Places & live location", "Orte & Live-Standort", "Lieux et position en direct", "Lugares y ubicación en vivo", "Plaatsen & live locatie"],
+  ["Switch between saved places, or follow this phone's location.", "Zwischen gespeicherten Orten wechseln oder dem Standort dieses Handys folgen.", "Passer d'un lieu enregistré à l'autre, ou suivre la position de ce téléphone.", "Cambia entre lugares guardados o sigue la ubicación de este teléfono.", "Wissel tussen bewaarde plaatsen of volg de locatie van deze telefoon."],
+  ["The board watches one place at a time. Every place's planes go into the same logbook; Spotted today shows the place you're watching.", "Die Tafel beobachtet jeweils einen Ort. Die Flugzeuge aller Orte kommen ins selbe Logbuch; Heute gesichtet zeigt den Ort, den du gerade beobachtest.", "Le tableau surveille un lieu à la fois. Les avions de tous les lieux vont dans le même carnet ; Vus aujourd'hui montre le lieu surveillé.", "El panel vigila un lugar a la vez. Los aviones de todos los lugares van al mismo cuaderno; Vistos hoy muestra el lugar que vigilas.", "Het bord kijkt naar één plaats tegelijk. De vliegtuigen van alle plaatsen gaan in hetzelfde logboek; Vandaag gezien toont de plaats waar je nu naar kijkt."],
+  ["Live location", "Live-Standort", "Position en direct", "Ubicación en vivo", "Live locatie"],
+  ["Follow this phone's location", "Dem Standort dieses Handys folgen", "Suivre la position de ce téléphone", "Seguir la ubicación de este teléfono", "Locatie van deze telefoon volgen"],
+  ["Following this phone's location", "Folgt dem Standort dieses Handys", "Suit la position de ce téléphone", "Siguiendo la ubicación de este teléfono", "Volgt de locatie van deze telefoon"],
+  ["While the app is open, the board watches where you are and names the town; planes seen on the way count as \"On the go\".", "Solange die App offen ist, beobachtet die Tafel, wo du bist, und nennt den Ort; unterwegs gesehene Flugzeuge zählen als „Unterwegs“.", "Tant que l'application est ouverte, le tableau surveille l'endroit où vous êtes et nomme la ville ; les avions vus en route comptent comme « En route ».", "Mientras la app está abierta, el panel vigila dónde estás y nombra el lugar; los aviones vistos por el camino cuentan como «De camino».", "Zolang de app open is, kijkt het bord waar je bent en noemt het de plaats; onderweg geziene vliegtuigen tellen als ‘Onderweg’."],
+  ["Following your location needs the https address or the Fallblatt Android app.", "Dem Standort folgen geht über die https-Adresse oder die Fallblatt-Android-App.", "Suivre votre position demande l'adresse https ou l'application Android Fallblatt.", "Seguir tu ubicación necesita la dirección https o la app de Android de Fallblatt.", "Je locatie volgen kan via het https-adres of de Fallblatt Android-app."],
+  ["Add a place", "Ort hinzufügen", "Ajouter un lieu", "Añadir un lugar", "Plaats toevoegen"],
+  ["Address or place, e.g. Stephansplatz, Vienna", "Adresse oder Ort, z. B. Stephansplatz, Wien", "Adresse ou lieu, p. ex. Stephansplatz, Vienne", "Dirección o lugar, p. ej. Stephansplatz, Viena", "Adres of plaats, bv. Stephansplatz, Wenen"],
+  ["Address or place", "Adresse oder Ort", "Adresse ou lieu", "Dirección o lugar", "Adres of plaats"],
+  ["Search", "Suchen", "Chercher", "Buscar", "Zoeken"],
+  ["Searching …", "Suche …", "Recherche …", "Buscando …", "Zoeken …"],
+  ["Pick one:", "Eins auswählen:", "Choisissez :", "Elige uno:", "Kies er een:"],
+  ["Nothing found. Try a street and town, or a landmark.", "Nichts gefunden. Versuch Straße und Ort oder ein Wahrzeichen.", "Rien trouvé. Essayez une rue et une ville, ou un monument.", "No se encontró nada. Prueba una calle y ciudad, o un lugar conocido.", "Niets gevonden. Probeer een straat en plaats, of een bezienswaardigheid."],
+  ["Use where the board looks now", "Den aktuellen Ort der Tafel nehmen", "Utiliser l'endroit que surveille le tableau", "Usar el lugar que vigila el panel", "Gebruik waar het bord nu naar kijkt"],
+  ["Name, e.g. Work", "Name, z. B. Arbeit", "Nom, p. ex. Travail", "Nombre, p. ej. Trabajo", "Naam, bv. Werk"],
+  ["Save and watch", "Speichern und beobachten", "Enregistrer et surveiller", "Guardar y vigilar", "Bewaren en bekijken"],
+  ["Selected: {name}", "Ausgewählt: {name}", "Sélectionné : {name}", "Seleccionado: {name}", "Gekozen: {name}"],
+  ["Give the place a name.", "Gib dem Ort einen Namen.", "Donnez un nom au lieu.", "Ponle un nombre al lugar.", "Geef de plaats een naam."],
+  ["That name is taken; pick another.", "Diesen Namen gibt es schon; nimm einen anderen.", "Ce nom est déjà pris ; choisissez-en un autre.", "Ese nombre ya existe; elige otro.", "Die naam bestaat al; kies een andere."],
+  ["Saving …", "Speichern …", "Enregistrement …", "Guardando …", "Opslaan …"],
+  ["Loading …", "Laden …", "Chargement …", "Cargando …", "Laden …"],
+  ["Find an address", "Adresse suchen", "Trouver une adresse", "Buscar una dirección", "Adres zoeken"],
+  ["Type an address or a place and pick it: fills in the place name, latitude and longitude.", "Adresse oder Ort eingeben und auswählen: füllt Ortsname, Breite und Länge aus.", "Tapez une adresse ou un lieu et choisissez-le : remplit le nom du lieu, la latitude et la longitude.", "Escribe una dirección o un lugar y elígelo: rellena el nombre, la latitud y la longitud.", "Typ een adres of plaats en kies hem: vult plaatsnaam, breedte- en lengtegraad in."],
+  ["The address search needs a newer relay.", "Die Adresssuche braucht ein neueres Relais.", "La recherche d'adresse demande un relais plus récent.", "La búsqueda de direcciones necesita un relé más nuevo.", "Adres zoeken heeft een nieuwere relay nodig."],
+  ["The address search isn't available right now.", "Die Adresssuche ist gerade nicht verfügbar.", "La recherche d'adresse n'est pas disponible pour le moment.", "La búsqueda de direcciones no está disponible ahora.", "Adres zoeken is nu niet beschikbaar."],
+  ["Place set. Looking for the nearest airport …", "Ort gesetzt. Suche den nächsten Flughafen …", "Lieu défini. Recherche de l'aéroport le plus proche …", "Lugar fijado. Buscando el aeropuerto más cercano …", "Plaats ingesteld. Dichtstbijzijnde luchthaven zoeken …"],
+  ["Place set; the nearest airport is {name} ({code}). Press Save to watch it.", "Ort gesetzt; der nächste Flughafen ist {name} ({code}). Speichern, um ihn zu beobachten.", "Lieu défini ; l'aéroport le plus proche est {name} ({code}). Enregistrez pour le surveiller.", "Lugar fijado; el aeropuerto más cercano es {name} ({code}). Pulsa Guardar para vigilarlo.", "Plaats ingesteld; de dichtstbijzijnde luchthaven is {name} ({code}). Druk op Bewaren om hem te bekijken."],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -1818,13 +1868,15 @@ function planeBody(o){
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
   const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (typeof planeAgain === "function") planeAgain(); });
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
+  const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
+    dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}">${escH(code3(p) || p.code || "")} ${escH(p.city || "")}</button>` : "";
   const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
-      ["Altitude", o.alt != null ? escH(altitudeStr(o.alt).toLowerCase()) : ""], ["Speed", ac.gs ? escH(speedStr(ac.gs).toLowerCase()) : ""],
-      ["Distance", o.dist != null ? escH(`${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}`) : ""],
+      ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
+      ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
     (listsOk() ? `<div class="cBtns"><button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button></div>` : "");
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
@@ -1834,7 +1886,8 @@ function planeBody(o){
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
     const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
   };
-  return {html, wire};
+  // the card without its changing numbers: the same signature means only those need updating (the radar's card)
+  return {html, wire, dyn, sig: html.replace(/<span data-dyn="\w+">[^<]*<\/span>/g, "")};
 }
 // An aircraft model (x: a row or {typeCode, type}): its picture and Wikipedia's words, how many fly, how rare, how
 // often seen here and today, and Favourite / Hide for the type.
@@ -1867,6 +1920,190 @@ function planeCard(o){
   planeShown = o;
   const b = planeBody(o);
   cardOpen(b.html, b.wire);
+}
+
+/* ---------- places (relay 33) ----------
+   A profile's saved places ("Home", "Work" …, kept on the relay for all its devices) and "live", a phone following its
+   owner. A screen tells the relay which place it watches with each position request, its sightings carry that place,
+   and its Spotted today shows that place only; the logbook counts them all, and a plane seen from two places in the
+   same pass is one sighting. */
+const placesRelay = () => !!relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 33;
+let places = {list: [], at: 0};
+let allPlaces = false;                       // the app's Today: every place instead of this one
+const placeKeyNow = () => S.live ? "live" : (S.placeKey || "home");
+const placeName = k => k === "home" ? T("Home") : k === "live" ? T("On the go") : k;
+// What a position request adds: the place, its centre and radius (the home place needs nothing: the relay knows it).
+function placeQs(){
+  const k = placeKeyNow();
+  return placesRelay() && k !== "home" ? `?pl=${encodeURIComponent(k)}&pc=${(+S.lat).toFixed(4)},${(+S.lon).toFixed(4)}&pr=${+S.radiusKm || 15}` : "";
+}
+const sightPlaceQ = every => placesRelay() && !every ? `&place=${encodeURIComponent(placeKeyNow())}` : "";
+async function placesLoad(){
+  if (!placesRelay()) return places;
+  try { const j = await fetchJSON(`${relay()}/places`, {}, 8000); places = {list: j.places || [], at: Date.now()}; } catch {}
+  return places;
+}
+async function placesSave(list){
+  const r = await fetch(`${relay()}/places`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({places: list})});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  places = {list: (await r.json()).places || [], at: Date.now()};
+}
+// Home: the saved one, or (at home) the relay's own place.
+function homePlace(){
+  const h = places.list.find(p => p.k === "home");
+  if (h) return h;
+  return GUEST ? null : {k: "home", n: DEFAULTS.place, lat: DEFAULTS.lat, lon: DEFAULTS.lon, home: DEFAULTS.home, r: DEFAULTS.radiusKm};
+}
+const placeOfS = k => ({k, n: S.place, lat: +(+S.lat).toFixed(5), lon: +(+S.lon).toFixed(5), home: clean(S.home).slice(0, 3), r: +S.radiusKm || 15});
+// Before leaving home for another place the first time, home is saved, so there is a way back.
+async function ensureHome(){
+  if (placeKeyNow() === "home" && !places.list.some(p => p.k === "home")) await placesSave([placeOfS("home"), ...places.list]).catch(() => {});
+}
+// Settings changed the place being watched: its saved entry follows (not for "live").
+function placeSync(){
+  const k = placeKeyNow();
+  if (!placesRelay() || k === "live") return;
+  const i = places.list.findIndex(p => p.k === k), now = placeOfS(k);
+  if (i < 0 ? k === "home" && GUEST : JSON.stringify(places.list[i]) !== JSON.stringify(now))
+    placesSave(i < 0 ? [now, ...places.list] : places.list.map((p, j) => j === i ? now : p)).catch(() => {});
+}
+// Watch another place: the board turns to it, and Spotted today with it.
+function placeAfter(){
+  sightRev = null; fullDay = {at: 0, rev: null, date: null, list: null}; spotted = [];
+  if (relayV5()) syncSightings();
+}
+function usePlace(p){
+  if (!p) return;
+  liveHalt();
+  applySettings({...S, live: false, placeKey: p.k, lat: p.lat, lon: p.lon, place: p.n || placeName(p.k), home: p.home || S.home, radiusKm: p.r || S.radiusKm});
+  placeAfter();
+}
+/* Live location: the phone's position drives the board while the page is open (https, or the Android app). Small moves
+   only move the point; a new town gets its name (OpenStreetMap, through the relay) and a new nearest airport. */
+const liveOk = () => !!(window.OverheadAndroid && window.OverheadAndroid.locate) || (window.isSecureContext && !!navigator.geolocation);
+let liveWatch = null, liveTimer = null, liveNamed = null, liveAir = null, liveSaved = 0, liveFirst = true;
+function liveHalt(){
+  if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
+  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true;
+}
+function liveRun(){
+  liveHalt();
+  if (window.OverheadAndroid && window.OverheadAndroid.locate) {
+    const tick = () => hereNow().then(liveFix).catch(() => {});
+    tick(); liveTimer = setInterval(tick, 60000);
+  } else liveWatch = navigator.geolocation.watchPosition(p => liveFix({lat: p.coords.latitude, lon: p.coords.longitude}), () => {},
+    {enableHighAccuracy: false, maximumAge: 30000, timeout: 60000});
+}
+async function liveStart(){
+  if (!liveOk()) return;
+  await ensureHome();
+  S.livePrev = placeKeyNow() === "live" ? S.livePrev : placeKeyNow();
+  S.live = true; saveSettings();
+  liveRun(); placeAfter();
+}
+function liveStop(){
+  liveHalt();
+  const prev = places.list.find(p => p.k === S.livePrev) || homePlace();
+  S.live = false;
+  if (prev) usePlace(prev); else { saveSettings(); placeAfter(); }
+}
+async function geoReverse(lat, lon){
+  try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? j.name : ""; }
+  catch { return ""; }
+}
+async function liveFix(p){
+  if (!S.live) return;
+  const lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4), moved = gcKm(S.lat, S.lon, lat, lon);
+  const first = liveFirst;
+  liveFirst = false;
+  if (first || moved > 0.3) { S.lat = lat; S.lon = lon; }
+  const extra = {};
+  if (!liveNamed || gcKm(liveNamed[0], liveNamed[1], lat, lon) > 2) {
+    liveNamed = [lat, lon];
+    const n = await geoReverse(lat, lon);
+    if (n && n !== S.place) extra.place = n;
+  }
+  if (!liveAir || gcKm(liveAir[0], liveAir[1], lat, lon) > 15) {
+    liveAir = [lat, lon];
+    try { const a = await nearestAirport(lat, lon); if (a && a.code !== clean(S.home)) extra.home = a.code; } catch {}
+  }
+  if (!S.live) return;
+  if (first || Object.keys(extra).length) applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon});
+  else if (moved > 0.3 && Date.now() - liveSaved > 60000) { liveSaved = Date.now(); saveSettings(); }
+}
+setTimeout(() => { placesLoad(); if (S.live) { if (liveOk()) liveRun(); else { S.live = false; saveSettings(); } } }, 1500);
+// The address search: OpenStreetMap, through the relay.
+async function geoSearch(q){
+  const j = await fetchJSON(`${relay()}/geo/search?q=${encodeURIComponent(q)}&lang=${LANG}`, {}, 20000);
+  if (j.status !== "ok") throw new Error(T("The address search isn't available right now."));
+  return j.results || [];
+}
+// The places card: pick one, follow this phone, add one (from an address, or where the board looks now).
+async function placesCard(){
+  if (!placesRelay()) return;
+  ctlSound.press();
+  let pending = null, busy = false;
+  const draw = note => {
+    const list = [homePlace(), ...places.list.filter(p => p.k !== "home")].filter(Boolean), cur = placeKeyNow();
+    const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(placeName(p.k))}</b>` +
+      `<small>${escH([p.n, `${p.r || 15} km`].filter(Boolean).join(" · "))}</small></button>` +
+      (p.k !== "home" ? `<button class="cBtn plRm" type="button" data-rm="${escH(p.k)}" aria-label="${escH(T("Remove"))}">×</button>` : "") + `</div>`;
+    return cardOpen(`<h3>${escH(T("Places"))}</h3><p class="note">${escH(T("The board watches one place at a time. Every place's planes go into the same logbook; Spotted today shows the place you're watching."))}</p>` +
+      list.map(row).join("") +
+      `<p class="shH">◉ ${escH(T("Live location"))}</p>` +
+      (liveOk() ? `<button class="cBtn${S.live ? " on" : ""}" type="button" data-live>${escH(T(S.live ? "Following this phone's location" : "Follow this phone's location"))}</button>` +
+        `<p class="note">${escH(T("While the app is open, the board watches where you are and names the town; planes seen on the way count as \"On the go\"."))}</p>`
+        : `<p class="note">${escH(T("Following your location needs the https address or the Fallblatt Android app."))}</p>`) +
+      `<p class="shH">＋ ${escH(T("Add a place"))}</p>` +
+      `<div class="favAdd"><input data-q autocomplete="off" maxlength="120" placeholder="${escH(T("Address or place, e.g. Stephansplatz, Vienna"))}"><button class="cBtn" type="button" data-s>${escH(T("Search"))}</button></div>` +
+      `<div class="plRes" data-res></div>` +
+      `<button class="cBtn" type="button" data-here>${escH(T("Use where the board looks now"))}</button>` +
+      `<div class="favAdd" data-nm${pending ? "" : " hidden"}><input data-l maxlength="24" autocomplete="off" placeholder="${escH(T("Name, e.g. Work"))}" value="${escH(pending ? pending.label : "")}">` +
+      `<button class="cBtn go" type="button" data-add>${escH(T("Save and watch"))}</button></div>` +
+      `<p class="note" data-n aria-live="polite">${escH(note || (pending ? T("Selected: {name}", {name: pending.n}) : ""))}</p>`, el => {
+      const say = t => { el.querySelector("[data-n]").textContent = t; };
+      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = list[+b.dataset.go]; cardClose(); if (S.live) liveHalt(); usePlace(p); };
+      for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
+        ctlSound.press();
+        placesSave(places.list.filter(p => p.k !== b.dataset.rm)).then(() => { if (placeKeyNow() === b.dataset.rm) usePlace(homePlace()); draw(); }).catch(e => say(e.message));
+      };
+      const lv = el.querySelector("[data-live]");
+      if (lv) lv.onclick = async () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else await liveStart(); draw(); };
+      const q = el.querySelector("[data-q]"), res = el.querySelector("[data-res]");
+      const search = async () => {
+        if (busy || q.value.trim().length < 2) return;
+        busy = true; ctlSound.press(); say(T("Searching …"));
+        try {
+          const hits = await geoSearch(q.value.trim());
+          res.innerHTML = hits.length ? hits.map((h, i) => `<button class="cBtn" type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b><small>${escH(h.name)}</small></button>`).join("") : "";
+          say(hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark."));
+          for (const b of res.querySelectorAll("[data-hit]")) b.onclick = () => {
+            const h = hits[+b.dataset.hit]; ctlSound.press();
+            pending = {lat: h.lat, lon: h.lon, n: h.short || h.name.split(",")[0], label: (h.short || "").slice(0, 24)};
+            draw();
+          };
+        } catch (e) { say(e.message); } finally { busy = false; }
+      };
+      el.querySelector("[data-s]").onclick = search;
+      q.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); search(); } };
+      el.querySelector("[data-here]").onclick = () => { ctlSound.press(); pending = {lat: +S.lat, lon: +S.lon, n: S.place, label: "", home: S.home}; draw(); };
+      const add = el.querySelector("[data-add]");
+      if (add) add.onclick = async () => {
+        const label = el.querySelector("[data-l]").value.trim();
+        if (!label) return say(T("Give the place a name."));
+        if (/^(home|live)$/i.test(label) || places.list.some(p => p.k.toLowerCase() === label.toLowerCase())) return say(T("That name is taken; pick another."));
+        ctlSound.press(); say(T("Saving …"));
+        let home = pending.home || "";
+        if (!home) { try { const a = await nearestAirport(pending.lat, pending.lon); home = a ? a.code : clean(S.home); } catch { home = clean(S.home); } }
+        const p = {k: label, n: pending.n || label, lat: +(+pending.lat).toFixed(5), lon: +(+pending.lon).toFixed(5), home, r: +S.radiusKm || 15};
+        try { await ensureHome(); await placesSave([...places.list, p]); } catch (e) { return say(e.message); }
+        cardClose(); usePlace(p);
+      };
+    });
+  };
+  draw(T("Loading …"));
+  await placesLoad();
+  if (cardOpenNow()) draw();
 }
 
 /* ---------- split-flap panels ----------
@@ -2785,7 +3022,7 @@ async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
     let res;
-    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}`); }
+    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}${placeQs()}`); }
     catch (e) { throw new Error(netError(e, "relay")); }
     if (res.status === 404) {
       relayLegacy = true;
@@ -3063,7 +3300,7 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
     if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
@@ -3081,7 +3318,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
     if (j.stats) relayStats = j.stats;
     renderToday();
@@ -3826,7 +4063,7 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || "")].filter(Boolean).join(" · ");
+  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
@@ -3992,7 +4229,13 @@ function renderToday(){
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
   $("svSum").textContent = spottedSummary();
-  const sig = svFilter + S.units + d.rows.map(rowSig).join("~");
+  const ap = $("svPlaces");
+  if (ap) {
+    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
+    ap.textContent = allPlaces ? T("All places") : placeName(placeKeyNow());
+    ap.setAttribute("aria-pressed", String(allPlaces));
+  }
+  const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
   $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
@@ -4385,9 +4628,12 @@ function renderRadarCard(){
   const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
   if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
   $("rvHint").hidden = true;
-  const b = planeBody(o), html = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html;
-  if (html === rcardSig) return;
-  rcardSig = html; box.innerHTML = html; box.hidden = false;
+  const b = planeBody(o);
+  if (b.sig === rcardSig && !box.hidden) {                 // the same plane and facts: only the numbers move
+    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+    return;
+  }
+  rcardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
   b.wire(box);
   box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
 }
@@ -4530,7 +4776,9 @@ const COCKPIT = [
     {k: "lon", type: "lcd", label: "Longitude", max: 12},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "locate", label: "Current location", span: 2}]},
+    {type: "locate", label: "Current location", span: 2},
+    {type: "places", label: "Places", span: 2},
+    {type: "search", label: "Find an address", span: 2}]},
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
@@ -4622,6 +4870,11 @@ function itemHtml(it){
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
   if (it.type === "favs") return cell("loc wide", `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
     `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
+  if (it.type === "places") return cell("loc", `<button class="cap small" type="button" data-places>${T("Places & live location")}</button>` +
+    `<p class="note">${escH(T("Switch between saved places, or follow this phone's location."))}</p>`);
+  if (it.type === "search") return cell("loc", `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T(it.label))}" ` +
+    `placeholder="${escH(T("Address or place"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div>` +
+    `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the place name, latitude and longitude."))}</p>`);
   if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
     `<p class="note">${escH(T("Fills in latitude and longitude, then finds the nearest airport."))}</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
@@ -4789,6 +5042,36 @@ function wireLocate(box){
       b.disabled = false;
     }
   };
+}
+// Settings → Find an address: OpenStreetMap through the relay (33+); a pick fills in the place, latitude and longitude,
+// and the nearest airport when it isn't the home airport already.
+function wireSearch(box){
+  const q = box.querySelector("[data-gq]");
+  if (!q) return;
+  const res = box.querySelector("[data-gr]"), note = box.querySelector("[data-gn]");
+  const put = (k, v) => { draft[k] = v; const el = box.querySelector(`.lcd[data-k="${k}"]`); if (el) el.value = v; };
+  if (!placesRelay()) { q.disabled = true; box.querySelector("[data-gs]").disabled = true; note.textContent = T("The address search needs a newer relay."); return; }
+  let busy = false;
+  const go = async () => {
+    if (busy || q.value.trim().length < 2) return;
+    busy = true; ctlSound.press(); note.textContent = T("Searching …");
+    try {
+      const hits = await geoSearch(q.value.trim());
+      res.innerHTML = hits.map((h, i) => `<button type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b> ${escH(h.name)}</button>`).join("");
+      note.textContent = hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark.");
+      for (const b of res.querySelectorAll("[data-hit]")) b.onclick = async () => {
+        const h = hits[+b.dataset.hit]; ctlSound.press(); res.innerHTML = "";
+        put("lat", +(+h.lat).toFixed(4)); put("lon", +(+h.lon).toFixed(4)); put("place", String(h.short || h.name.split(",")[0]).slice(0, 24)); cockpitDirty();
+        note.textContent = T("Place set. Looking for the nearest airport …");
+        let a = null;
+        try { a = await nearestAirport(+h.lat, +h.lon); } catch {}
+        if (a && a.code !== clean(draft.home)) { put("home", a.code); cockpitDirty(); }
+        note.textContent = a ? T("Place set; the nearest airport is {name} ({code}). Press Save to watch it.", {name: a.city || a.name, code: a.code}) : T("Press Save to watch this spot.");
+      };
+    } catch (e) { note.textContent = e.message; } finally { busy = false; }
+  };
+  box.querySelector("[data-gs]").onclick = go;
+  q.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
 }
 /* ---------- airport mode ----------
    For someone at an airport, looking out of the window: the planes taking off from the home airport and the ones
@@ -5182,6 +5465,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.37", date: "2026-10-17", notes: [
+    "Places: save places like Home or Work and switch between them; every place's planes go into one logbook, and Spotted today shows the place you're watching.",
+    "Live location: the app can follow your phone while it's open and names the town you're in.",
+    "Find an address: type a street or a place instead of latitude and longitude.",
+    "The radar's plane card no longer flickers, and switching styles no longer doubles the updates.",
+    "Safer sign-in and connections."]},
   {v: "1.36", date: "2026-10-17", notes: [
     "In the app's Airport style the take-offs and landings are split-flap rows like the board; tap a row for the plane, its place for the airport.",
     "The Take-off / Landing switch stays when there is no plane on that side.",
@@ -5413,7 +5702,9 @@ function cockpitOpen(){
       el.querySelector(".dec").onclick = () => roll(-1);
     }
   }
-  wireLocate(box);
+  wireLocate(box); wireSearch(box);
+  const pb = box.querySelector("[data-places]");
+  if (pb) { pb.disabled = !placesRelay(); pb.onclick = () => placesCard(); }
   cockpitShow();
   renderAbout();
 }
@@ -5427,7 +5718,7 @@ let savedTimer = 0;
 function buildSaveBar(){
   $("saveBtn").onclick = () => {
     ctlSound.press();
-    applySettings(draft); cockpitOpen();
+    applySettings(draft); placeSync(); cockpitOpen();
     const b = $("saveBtn");
     b.textContent = T("Saved"); clearTimeout(savedTimer);
     savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
@@ -5500,6 +5791,8 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
   if (x >= city.x && x <= city.x + city.n * city.step) return placeCard(k === "d" ? info.to : info.from);
   planeCard({ac: row.ac, alt: row.alt});
 });
+$("where").onclick = () => { if (placesRelay()) placesCard(); };
+$("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
@@ -5620,7 +5913,7 @@ async function accountBox(el, onChange){
 }
 
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
-   Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
+   Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
@@ -5670,7 +5963,7 @@ async function renderPush(){
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
-  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → fallblatt.app → Sound and pick it."))} ` +
+  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
     `<a href="airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
@@ -5933,7 +6226,7 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
+function updateWhere(){ $("where").textContent = `${S.live ? "◉ " : ""}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());
@@ -5950,17 +6243,25 @@ function sayHello(){
 addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeacon) navigator.sendBeacon(tagged(`${relay()}/bye`)); } catch {} });
 /* ---------- main loop ---------- */
 let timer = null, busy = false;
+// Each update is numbered: when a forced one starts while another is on its way (a new place, a new style), only the
+// newest answer counts, and only one timer stays running. A bug while drawing isn't a failed update (it used to count
+// as one, and three in a row showed OFFLINE).
+let pollSeq = 0;
 async function poll(force){
   if (busy && !force) return;
   clearTimeout(timer); busy = true;
+  const seq = ++pollSeq;
+  let list = null;
   try {
-    const list = S.demo ? demoAircraft() : await getAircraft();
+    list = S.demo ? demoAircraft() : await getAircraft();
+    if (seq !== pollSeq) { list = null; return; }
     if (S.demo) DIAG.polls.push({t: Date.now(), ok: true, ms: 0, n: list.length});
     if (!lastOk && !S.demo) dlog("info", `First position data from ${feedName}: ${list.length} aircraft within ${QUERY_KM} km`);
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
-    failures = 0; lastOk = Date.now(); wasOffline = false; skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list);
+    failures = 0; lastOk = Date.now(); wasOffline = false;
   } catch (e) {
+    if (seq !== pollSeq) return;
     failures++;
     DIAG.polls.push({t: Date.now(), ok: false, err: e.message});
     dlog(failures >= 3 ? "error" : "warn", `Position update failed: ${e.message || e}`);
@@ -5969,11 +6270,17 @@ async function poll(force){
       wasOffline = true; feat = null; renderFeatured();
     }
   } finally {
-    if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
-    busy = false; updateFooter(); scheduleDiag();
-    const every = Math.min(60, Math.max(3, +S.refreshS || 10)) * 1000;          // Settings → Update every (the app: 5 s)
-    timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 : failures >= 3 ? every * 2 : every);
+    if (seq === pollSeq) {
+      if (DIAG.polls.length > 60) DIAG.polls.splice(0, DIAG.polls.length - 60);
+      busy = false; updateFooter(); scheduleDiag();
+      const every = Math.min(60, Math.max(3, +S.refreshS || 10)) * 1000;          // Settings → Update every (the app: 5 s)
+      clearTimeout(timer);
+      timer = setTimeout(poll, document.hidden ? 60000 : S.demo ? 2000 : failures >= 3 ? every * 2 : every);
+    }
   }
+  if (!list) return;
+  try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); }
+  catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }
 }
 
 // A phone in a pocket doesn't need updates every ten seconds: back to full speed as soon as the app is looked at.

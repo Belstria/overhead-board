@@ -54,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 32
+RELAY_VERSION = 33
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -73,7 +73,7 @@ PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the 
 BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
 FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript", "wav": "audio/wav"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
-SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "public_url")
+SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "public_url", "allow_host")
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
@@ -128,17 +128,42 @@ def fetch(url, data=None, content_type=None, timeout=10, headers=None):
         return 502, "text/plain", f"unreachable: {getattr(e, 'reason', e)}".encode(), {}
 
 
-def cached(key, ttl, load):
+def cached(key, ttl, load, fail_ttl=0):
+    """`load()` at most every `ttl` seconds; with `fail_ttl`, a failure is remembered that long too (relay 33: while
+    GitHub was unreachable every page load waited for it again)."""
     now = time.time()
     with _lock:
         hit = _cache.get(key)
-        if hit and now - hit[0] < ttl:
+        if hit and now - hit[0] < (ttl if 200 <= hit[1][0] < 300 else fail_ttl):
             return hit[1]
     result = load()
-    if 200 <= result[0] < 300:
-        with _lock:
+    with _lock:
+        if 200 <= result[0] < 300:
             _cache[key] = (now, result)
+        elif fail_ttl:
+            _cache[key] = (now, result) if not hit or not 200 <= hit[1][0] < 300 else hit
+            if hit and 200 <= hit[1][0] < 300:
+                _fail_until[key] = now + fail_ttl
+        if len(_cache) > 300:                       # forget what nobody asked for in two hours
+            for k in [k for k, v in _cache.items() if now - v[0] > 7200]:
+                del _cache[k]
     return result
+
+
+_fail_until = {}             # key -> until when a failed refresh isn't tried again (the last good copy is used)
+
+
+def cached_or_stale(key, ttl, load, fail_ttl=60):
+    """Like cached(), but a failed refresh keeps handing out the last good answer for `fail_ttl` seconds before
+    trying again, instead of trying (and waiting) on every request."""
+    now = time.time()
+    with _lock:
+        hit = _cache.get(key)
+        if hit and 200 <= hit[1][0] < 300 and (now - hit[0] < ttl or _fail_until.get(key, 0) > now):
+            return hit[1]
+        if hit and not 200 <= hit[1][0] < 300 and now - hit[0] < fail_ttl:
+            return hit[1]
+    return cached(key, 0, load, fail_ttl)
 
 
 def rest_for(status, strikes, retry_after):
@@ -189,6 +214,9 @@ def aircraft(lat, lon, nm):
                 was_failing = st["strikes"] > 0
                 st.update(ok=st["ok"] + 1, strikes=0, last_status=status, last_ok=time.time(), last_error="")
                 _positions[key] = (time.time(), body, src["name"])
+                if len(_positions) > 40:          # places nobody watches any more (relay 33: it only ever grew)
+                    for k in [k for k, v in _positions.items() if time.time() - v[0] > STALE_S]:
+                        del _positions[k]
                 if was_failing:
                     event("info", f"{src['name']} answering again")
                 event("debug", f"{src['name']}: {count} aircraft in {ms} ms", echo=False)
@@ -286,23 +314,26 @@ class Spot:
             out.append((self.dir / "logbook.json", json.dumps(self.logbook, separators=(",", ":"))))
         return out
 
-    def take(self, body, lat, lon, nm):
-        """A screen of this spot got positions around (lat, lon): record them if they cover the spot."""
-        if body is self.last_body:          # the same answer again (several screens, one upstream request)
+    def take(self, body, lat, lon, nm, place=None):
+        """A screen of this spot got positions around (lat, lon): record them if they cover the spot. Since relay 33 a
+        screen can say which of the profile's places it watches (`place`: (key, (lat, lon), radius km); a saved place
+        or "live", a phone following its owner); without one it is the profile's own place, "home"."""
+        key = place[0] if place else "home"
+        if (body, key) == self.last_body:   # the same answer again (several screens, one upstream request)
             return
-        self.last_body = body
+        self.last_body = (body, key)
         lat, lon = float(lat), float(lon)
-        c = self.center()
+        c, radius = (place[1], place[2]) if place else (self.center(), self.radius())
         if c is None:
             if not self.legacy:
                 return
             c = (lat, lon)
-        elif _dist_km(lat, lon, c[0], c[1]) + self.radius() > int(nm) * 1.852 + 1:
+        elif _dist_km(lat, lon, c[0], c[1]) + radius > int(nm) * 1.852 + 1:
             return                          # looking somewhere else: nothing to count for this spot
         data = json.loads(body)
         planes = data.get("ac", data.get("aircraft"))
         if isinstance(planes, list):
-            self.record(planes, c[0], c[1])
+            self.record(planes, c[0], c[1], key, radius)
 
 
 def _home_center():
@@ -419,9 +450,11 @@ def _backfill_records(spot):
     spot.changed("book")
 
 
-def _record(self, planes, lat, lon):
-    """Called with every fresh position update: log planes that enter the spotting radius."""
-    radius = self.radius()
+def _record(self, planes, lat, lon, key="home", radius=None):
+    """Called with every fresh position update: log planes that enter the spotting radius. `key` is the place the
+    screen watches; a plane already logged today from another of the profile's places (within the same pass) stays
+    one sighting, so two devices never count it twice."""
+    radius = radius or self.radius()
     now = time.time()
     try:
         lat, lon = float(lat), float(lon)
@@ -441,6 +474,9 @@ def _record(self, planes, lat, lon):
             e = self.by_hex.get(hx)
             if e and now - e.get("lastSeen", 0) > SAME_PASS_S:
                 e = None
+            if e and (e.get("place") or "home") != key:
+                e["lastSeen"] = now                 # the same pass, seen from another place: one sighting
+                continue
             if e:
                 e["lastSeen"] = now
                 moved = False
@@ -469,6 +505,8 @@ def _record(self, planes, lat, lon):
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
                      "adsbCat": str(ac.get("category") or "")}
+                if key != "home":
+                    e["place"] = key
                 w = watch_of(hx)
                 if w:
                     e["watch"], e["watchOp"] = w
@@ -1459,10 +1497,11 @@ def day_stats(entries, over_km):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
-def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False):
+def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=None):
+    """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33)."""
     with _data_lock:
         spot.ensure_day()
-        everything = list(spot.entries)
+        everything = [e for e in spot.entries if place is None or (e.get("place") or "home") == place]
         day, rev = spot.day, spot.rev
     if api:
         everything = fr24_overlay(everything)
@@ -1532,8 +1571,13 @@ def year_json(spot, year):
     return out
 
 
-CSV_COLS = ["date", "time", "callsign", "flight", "registration", "type", "aircraft", "airline", "from", "to",
+CSV_COLS = ["date", "time", "place", "callsign", "flight", "registration", "type", "aircraft", "airline", "from", "to",
             "closest_km", "altitude_ft", "max_speed_kt", "rarity", "category", "watchlist"]
+
+
+def _csv_safe(v):
+    """A text that a spreadsheet would run as a formula (=, +, -, @ first) gets an apostrophe in front."""
+    return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v
 
 
 def logbook_csv(spot):
@@ -1545,11 +1589,11 @@ def logbook_csv(spot):
         for day, entries in _days_of(spot):
             for e in reversed(entries):
                 p = lambda k: ((e.get(k) or {}).get("code") or "") if isinstance(e.get(k), dict) else ""
-                w.writerow([day, e.get("time") or "", e.get("callsign") or "", e.get("flightIata") or "", e.get("reg") or "",
+                w.writerow([_csv_safe(v) for v in [day, e.get("time") or "", e.get("place") or "home", e.get("callsign") or "", e.get("flightIata") or "", e.get("reg") or "",
                             e.get("typeCode") or "", e.get("aircraftType") or e.get("desc") or "", e.get("airlineName") or "",
                             p("from"), p("to"), e.get("minDist") if e.get("minDist") is not None else "",
                             e.get("altAtMin") if isinstance(e.get("altAtMin"), (int, float)) else "", e.get("maxSpeed") or "",
-                            e.get("tier") or "", category_of(e), e.get("watch") or ""])
+                            e.get("tier") or "", category_of(e), e.get("watch") or ""]])
     return buf.getvalue().encode("utf-8-sig")
 
 
@@ -1973,7 +2017,7 @@ def board_file(sub, name, ext):
         f = Path(ARGS.local_root) / rel
         return (200, f.read_bytes()) if f.is_file() else (404, b"Not found")
     copy = DATA_DIR / "board-files" / rel.replace("/", "--")
-    status, _, body, _ = cached("file:" + rel, PAGE_TTL * 10, lambda: fetch(f"{BOARD_URL}{rel}?v={int(time.time()) // 600}", timeout=15))
+    status, _, body, _ = cached_or_stale("file:" + rel, PAGE_TTL * 10, lambda: fetch(f"{BOARD_URL}{rel}?v={int(time.time()) // 600}", timeout=15))
     if status == 200:
         try:
             copy.parent.mkdir(parents=True, exist_ok=True)
@@ -2003,7 +2047,7 @@ def board_html(sub="", guest=None):
     else:
         url = BOARD_URL + (sub + "/" if sub else "")
         # GitHub's servers keep a page for up to ten minutes; asking for a fresh address each time skips that wait.
-        status, _, body, headers = cached("page:" + sub, PAGE_TTL, lambda: fetch(f"{url}?v={int(time.time())}", timeout=15))
+        status, _, body, headers = cached_or_stale("page:" + sub, PAGE_TTL, lambda: fetch(f"{url}?v={int(time.time())}", timeout=15))
         if status == 200:
             html = body.decode("utf-8")
             try:
@@ -2308,7 +2352,7 @@ def account_json(pid, https):
         p = profiles()["profiles"].get(pid) or {}
         a = p.get("account") or {}
         return {"name": p.get("name", ""), "user": a.get("user") or "", "password": bool(a.get("pw")),
-                "passkeys": [{"id": k["id"][:12], "name": k.get("name", ""), "added": int(k.get("added", 0) * 1000),
+                "passkeys": [{"id": k["id"], "name": k.get("name", ""), "added": int(k.get("added", 0) * 1000),
                               "used": int(k.get("used", 0) * 1000)} for k in a.get("passkeys", [])],
                 "passkeysOk": PUSH_OK and https}
 
@@ -2442,9 +2486,33 @@ def allow(key, rate, burst):
         tokens = min(burst, tokens + (now - t) * rate)
         ok = tokens >= 1
         _buckets[key] = (tokens - 1 if ok else tokens, now)
-        if len(_buckets) > 5000:
-            _buckets.clear()
+        if len(_buckets) > 5000:               # drop the quietest half, not everyone's limits at once
+            for k in sorted(_buckets, key=lambda k: _buckets[k][1])[:2500]:
+                del _buckets[k]
         return ok
+
+
+_pw_fails = {}               # username -> (failures in a row, not before) (relay 33)
+_DUMMY_PW = None
+
+
+def pw_wait(user):
+    """Seconds until this account may try a password again (0: now)."""
+    with _lock:
+        n, until = _pw_fails.get(user, (0, 0))
+    return max(0, int(until - time.time()))
+
+
+def pw_failed(user, ok):
+    """Five wrong passwords in a row, then a wait that doubles with each one more (1 min, 2, 4 … up to an hour)."""
+    with _lock:
+        if ok:
+            _pw_fails.pop(user, None)
+            return
+        n = _pw_fails.get(user, (0, 0))[0] + 1
+        _pw_fails[user] = (n, time.time() + (min(3600, 60 * 2 ** (n - 5)) if n >= 5 else 0))
+        if len(_pw_fails) > 2000:
+            _pw_fails.clear()
 
 
 def _ago(t):
@@ -2574,7 +2642,7 @@ def fr24_admin_html():
 
 
 # ---------- push notifications (relay 25): the evening summary and "worth going to the window" ----------
-# Web Push to browsers (https only: through fallblatt.app), encrypted (RFC 8291) and signed (VAPID) with the relay's own
+# Web Push to browsers (https only: through the public address), encrypted (RFC 8291) and signed (VAPID) with the relay's own
 # key in data/vapid.pem. Needs the cryptography package (Debian: python3-cryptography); without it there are no
 # notifications and everything else works as before. Subscriptions live with each profile (home: profiles["home"]).
 try:
@@ -2695,6 +2763,18 @@ def push_targets():
     return out
 
 
+PUSH_HOSTS = ("fcm.googleapis.com", ".push.apple.com", "updates.push.services.mozilla.com", ".notify.windows.com",
+              "push.services.mozilla.com")
+
+
+def push_endpoint_ok(ep):
+    """A browser's push address: https at one of the push services (relay 33: any https address used to do, so the
+    relay could be made to send requests anywhere)."""
+    u = urllib.parse.urlsplit(ep)
+    h = (u.hostname or "").lower()
+    return u.scheme == "https" and any(h == p or (p.startswith(".") and h.endswith(p)) for p in PUSH_HOSTS)
+
+
 def _deliver(subs, payload, urgent=False):
     gone = []
     for sub in list(subs):
@@ -2732,6 +2812,118 @@ def _clean_list(items):
             seen.add((k, v))
             out.append({"k": k, "v": v, "n": re.sub(r"[\x00-\x1f<>]", "", str(it.get("n") or ""))[:40]})
     return out
+
+
+# Places (relay 33): a profile's saved places ({k: "home" or the label, n: the name shown under the title, lat, lon,
+# home: airport code, r: radius km}), shared by its devices; "live" is a phone following its owner. A screen says which
+# place it watches with each position request (?pl=key&pc=lat,lon&pr=km), and its sightings carry that key.
+PLACE_KEY = re.compile(r"^[^<>\x00-\x1f\"&]{1,24}$")
+
+
+def place_key(k):
+    k = str(k or "").strip()
+    return k if PLACE_KEY.match(k) else None
+
+
+def screen_place(q):
+    """(key, (lat, lon), radius km) of the place a screen watches, from its position request; None: the profile's own."""
+    k = place_key((q.get("pl") or [""])[0])
+    if not k:
+        return None
+    try:
+        lat, lon = (float(x) for x in (q.get("pc") or [""])[0].split(","))
+        r = min(20.0, max(1.0, float((q.get("pr") or ["15"])[0])))
+        assert abs(lat) <= 90 and abs(lon) <= 180
+    except (ValueError, AssertionError):
+        return None
+    return k, (lat, lon), r
+
+
+def _clean_places(items):
+    out, seen = [], set()
+    for it in (items if isinstance(items, list) else [])[:20]:
+        if not isinstance(it, dict):
+            continue
+        k = place_key(it.get("k"))
+        try:
+            lat, lon, r = float(it.get("lat")), float(it.get("lon")), min(20.0, max(1.0, float(it.get("r") or 15)))
+            assert abs(lat) <= 90 and abs(lon) <= 180
+        except (TypeError, ValueError, AssertionError):
+            continue
+        if not k or k.lower() in seen or k.lower() == "live":
+            continue
+        seen.add(k.lower())
+        out.append({"k": k, "n": re.sub(r"[\x00-\x1f<>]", "", str(it.get("n") or ""))[:24], "lat": round(lat, 5), "lon": round(lon, 5),
+                    "home": re.sub(r"[^A-Z]", "", str(it.get("home") or "").upper())[:3], "r": r})
+    return out
+
+
+def places_of(pid):
+    with _data_lock:
+        P = profiles()
+        owner = (P["profiles"].get(pid) if pid else P.get("home")) or {}
+        return list(owner.get("places") or [])
+
+
+# The address search (relay 33): OpenStreetMap's Nominatim, through here so its rules are kept in one place: at most one
+# request a second, a User-Agent that says who asks, answers kept a day.
+NOMINATIM = "https://nominatim.openstreetmap.org"
+_geo_lock = threading.Lock()
+_geo_last = [0.0]
+_geo_cache = {}
+
+
+def _geo_get(url):
+    now = time.time()
+    with _lock:
+        hit = _geo_cache.get(url)
+        if hit and now - hit[0] < 86400:
+            return hit[1]
+    with _geo_lock:                           # one request a second, as Nominatim asks
+        wait = _geo_last[0] + 1.1 - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        status, _, body, _ = fetch(url, timeout=10)
+        _geo_last[0] = time.time()
+    try:
+        out = json.loads(body) if status == 200 else None
+    except ValueError:
+        out = None
+    if out is not None:
+        with _lock:
+            _geo_cache[url] = (now, out)
+            if len(_geo_cache) > 1000:
+                _geo_cache.clear()
+    return out
+
+
+def _geo_name(a, fallback=""):
+    a = a or {}
+    return (a.get("city") or a.get("town") or a.get("village") or a.get("municipality") or a.get("suburb")
+            or a.get("county") or a.get("state") or fallback or "")
+
+
+def geo_search(text, lang="en"):
+    j = _geo_get(f"{NOMINATIM}/search?format=jsonv2&addressdetails=1&limit=6&accept-language={urllib.parse.quote(lang)}&q={urllib.parse.quote(text)}")
+    if j is None:
+        return {"status": "error"}
+    out = []
+    for r in j if isinstance(j, list) else []:
+        try:
+            town, own = _geo_name(r.get("address")), str(r.get("name") or "")
+            short = ", ".join(x for x in dict.fromkeys([own, town]) if x) or town
+            out.append({"name": str(r.get("display_name") or "")[:160], "short": short[:60],
+                        "lat": round(float(r["lat"]), 5), "lon": round(float(r["lon"]), 5)})
+        except (KeyError, TypeError, ValueError):
+            pass
+    return {"status": "ok", "results": out}
+
+
+def geo_reverse(lat, lon, lang="en"):
+    j = _geo_get(f"{NOMINATIM}/reverse?format=jsonv2&zoom=12&accept-language={urllib.parse.quote(lang)}&lat={lat:.3f}&lon={lon:.3f}")
+    if not isinstance(j, dict):
+        return {"status": "error"}
+    return {"status": "ok", "name": _geo_name(j.get("address"), j.get("name") or "")}
 
 
 def lists_of(pid):
@@ -2965,7 +3157,37 @@ class Handler(BaseHTTPRequestHandler):
         return jar[COOKIE].value if COOKIE in jar else ""
 
     def https(self):
+        """Through the tunnel (a proxy on this computer) the proxy says whether the visitor used https; anyone else's
+        word for it doesn't count (relay 33)."""
+        if self.client_address[0] not in ("127.0.0.1", "::1", "::ffff:127.0.0.1"):
+            return False
         return (self.headers.get("X-Forwarded-Proto") or "").lower() == "https" or '"https"' in (self.headers.get("Cf-Visitor") or "")
+
+    def host_ok(self):
+        """Only the names this relay goes by (relay 33). Another site can't point its own name at the relay's address
+        and have a browser at home talk to it as that site ("DNS rebinding"): such a request carries the other site's
+        name. Allowed: an IP address, localhost, a name without a dot or ending in a home-network suffix, the public
+        address, anything named with --allow-host, and whatever comes through a proxy on this computer (the tunnel)."""
+        if self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1"):
+            return True
+        host = (self.headers.get("Host") or "").strip().lower()
+        if not host:
+            return True
+        name = host[1:].split("]")[0] if host.startswith("[") else host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+        try:
+            ipaddress.ip_address(name)
+            return True
+        except ValueError:
+            pass
+        if "." not in name or name.endswith((".local", ".lan", ".home", ".home.arpa", ".internal", ".localdomain", ".localhost", ".fritz.box")):
+            return True
+        pub = urllib.parse.urlsplit(ARGS.public_url or "").hostname or ""
+        extra = {h.strip().lower() for h in str(ARGS.allow_host or "").split(",") if h.strip()}
+        if name == pub.lower() or name in extra:
+            return True
+        if allow("hostwarn:" + name, 1 / 600, 1):        # say so now and then, so a screen with an unusual name can be let in
+            event("warn", f"Refused a request for {name[:60]} from {self.client_ip()}: not one of this relay's names (start it once with --allow-host {name[:60]} --save if that's one of your screens)")
+        return False
 
     def same_origin(self):
         """A form on the admin page, not another site posting to it."""
@@ -3044,13 +3266,22 @@ class Handler(BaseHTTPRequestHandler):
                     return self.jerr(400, str(e) if isinstance(e, ValueError) else "That passkey didn't check out")
                 return self.signed_in(pid, "a passkey")
             if path == "/signin/password":
-                user = str(j.get("user") or "").strip().lower()
+                global _DUMMY_PW
+                user = str(j.get("user") or "").strip().lower()[:30]
                 if not allow("signinu:" + user, 0.05, 6):
                     return self.jerr(429, "Too many tries; wait a minute")
+                wait = pw_wait(user)
+                if wait:
+                    return self.jerr(429, f"Too many wrong passwords; try again in {max(1, wait // 60)} min")
                 pid = account_of(user)
                 with _data_lock:
                     rec = ((profiles()["profiles"].get(pid) or {}).get("account") or {}).get("pw") if pid else None
-                if not pid or not _pw_ok(rec, str(j.get("password") or "")):
+                if rec is None:                     # check a dummy, so a missing account takes as long as a wrong password
+                    _DUMMY_PW = _DUMMY_PW or _pw_hash(secrets.token_hex(8))
+                    _pw_ok(_DUMMY_PW, str(j.get("password") or ""))
+                ok = bool(rec) and _pw_ok(rec, str(j.get("password") or ""))
+                pw_failed(user, ok)
+                if not ok:
                     event("warn", f"A password sign-in failed for {user or '?'} ({ip})", echo=False)
                     return self.jerr(401, "Wrong username or password")
                 return self.signed_in(pid, "a password")
@@ -3104,7 +3335,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/account/passkey/remove":
             with _data_lock:
                 keys = acc.get("passkeys", [])
-                keys[:] = [k for k in keys if not k["id"].startswith(str(j.get("id") or "-")[:12])]
+                keys[:] = [k for k in keys if k["id"] != str(j.get("id") or "")]
                 _dirty.add("profiles")
         else:
             return self.jerr(404, "Not found")
@@ -3166,6 +3397,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
+        if not self.host_ok():
+            return self.reply(421, "text/plain", b"This relay doesn't answer to that name (see --allow-host)")
         self.identify()
         m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
         if m:
@@ -3195,6 +3428,23 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/lists":
             fav, hide = lists_of(self.guest[0] if self.guest else None)
             return self.reply(200, "application/json", json.dumps({"fav": fav, "hide": hide}).encode())
+        if path == "/places":
+            return self.reply(200, "application/json", json.dumps({"places": places_of(self.guest[0] if self.guest else None)}).encode())
+        if path in ("/geo/search", "/geo/reverse"):
+            q = self.query()
+            if path == "/geo/search":
+                text = re.sub(r"[\x00-\x1f]", " ", (q.get("q") or [""])[0]).strip()[:120]
+                if len(text) < 2:
+                    return self.reply(400, "text/plain", b"q=... is required")
+                body = geo_search(text, (q.get("lang") or ["en"])[0][:2])
+            else:
+                try:
+                    lat, lon = float((q.get("lat") or [""])[0]), float((q.get("lon") or [""])[0])
+                    assert abs(lat) <= 90 and abs(lon) <= 180
+                except (ValueError, AssertionError):
+                    return self.reply(400, "text/plain", b"lat and lon are required")
+                body = geo_reverse(lat, lon, (q.get("lang") or ["en"])[0][:2])
+            return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/account":
             if not self.guest:
                 return self.reply(200, "application/json", b'{"home":true}')
@@ -3204,7 +3454,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists", "/places"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -3237,7 +3487,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 over = 3.0
             api = (q.get("api") or [""])[0] == "1" and (not self.guest or bool(self.guest[1].get("fr24")))
-            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1")
+            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]))
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())
@@ -3327,11 +3577,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(400, "text/plain", b"Out of range")
             if self.guest and not allow("pos:" + self.guest[0], 0.6, 12):   # a few phones polling every 10 s fit easily
                 return self.reply(429, "text/plain", b"Too many requests")
+            lat, lon = f"{float(lat):.2f}", f"{float(lon):.2f}"      # within a kilometre is the same question (relay 33)
             status, body, source, freshness = aircraft(lat, lon, nm)
             if status == 200:
                 try:
                     with _data_lock:
-                        self.spot.take(body, lat, lon, nm)
+                        self.spot.take(body, lat, lon, nm, screen_place(self.query()))
                 except Exception as e:  # never let history problems break the live board
                     event("warn", f"Couldn't record sightings: {e}")
             return self.reply(status, "application/json", body, {"X-Relay-Source": source, "X-Relay-Data": freshness, "X-Sightings-Rev": str(self.spot.rev)})
@@ -3341,6 +3592,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        if not self.host_ok():
+            return self.reply(421, "text/plain", b"This relay doesn't answer to that name (see --allow-host)")
         self.identify()
         m = re.fullmatch(r"/join/([A-Za-z0-9_-]{16,64})", path)
         if m:
@@ -3358,7 +3611,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/admin/invite" and (f.get("name") or "").strip():
                 name = re.sub(r"[\x00-\x1f<>]", "", f["name"]).strip()[:40]
                 made = (name, new_invite(name=name))
-            elif path == "/admin/link" and f.get("pid"):
+            elif path == "/admin/link" and f.get("pid") in profiles()["profiles"]:
                 code = new_invite(pid=f["pid"])
                 if code:
                     made = (profiles()["profiles"][f["pid"]]["name"], code)
@@ -3396,6 +3649,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        if path == "/places":               # the profile's saved places (relay 33)
+            if not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from this site")
+            j = self.json_body()
+            with _data_lock:
+                P = profiles()
+                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
+                owner["places"] = _clean_places(j.get("places"))
+                _dirty.add("profiles")
+                out = list(owner["places"])
+            return self.reply(200, "application/json", json.dumps({"places": out}).encode())
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
@@ -3414,12 +3678,15 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length") or 0)
             if length > 4096 or not PUSH_OK:
                 return self.reply(400 if PUSH_OK else 501, "text/plain", b"No notifications here")
+            if not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from this site")
             try:
                 j = json.loads(self.rfile.read(length) or b"{}")
                 sub = j["subscription"]
                 ep, keys = str(sub["endpoint"]), sub["keys"]
-                assert ep.startswith("https://") and keys.get("p256dh") and keys.get("auth")
-            except (ValueError, KeyError, TypeError, AssertionError):
+                assert push_endpoint_ok(ep) and isinstance(keys.get("p256dh"), str) and isinstance(keys.get("auth"), str)
+                assert len(keys["p256dh"]) < 200 and len(keys["auth"]) < 100
+            except (ValueError, KeyError, TypeError, AttributeError, AssertionError):
                 return self.reply(400, "text/plain", b"subscription missing")
             with _data_lock:
                 P = profiles()
@@ -3502,6 +3769,7 @@ def main():
     p.add_argument("--fr24-budget", type=int, help=f"most Flightradar24 credits to spend a month (default {FR24_BUDGET:,})")
     p.add_argument("--source", help="use this position source instead of the public ones: a URL with {lat} {lon} {nm} placeholders, or a local receiver's aircraft.json")
     p.add_argument("--public-url", help="the address friends and family reach the relay at (https://overhead.example.com), for invite links")
+    p.add_argument("--allow-host", help="other names screens use to reach the relay, comma-separated (IP addresses, names without a dot and .local/.lan names always work)")
     p.add_argument("--verbose", action="store_true", help="log every request and every successful update")
     ARGS = p.parse_args()
 
