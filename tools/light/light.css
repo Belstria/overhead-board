@@ -1,0 +1,179 @@
+/* ---------- the light version (tools/light): the app's colours and fonts as a plain, modern display ----------
+   Over the app's styles: no metal, screws, glass or lamps; cards with a thin edge, flat buttons, the fields as text
+   with an amber label above (a new value slides in), status words as pills, Settings as segmented switches. */
+:root{--card:#131417;--card2:#1a1c20;--edge:rgba(255,255,255,.075);--well:#0c0d0f}
+body{background:var(--housing);background-image:none}
+body::before{display:none}
+#top,#tabs{background:rgba(11,11,12,.88);background-image:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#top{box-shadow:0 1px 0 var(--edge)}
+#tabs{box-shadow:0 -1px 0 var(--edge)}
+h2,h3,.title h1,.facts dd{text-shadow:none}
+.groove{height:1px;margin-top:22px;background:var(--edge)}
+.brandline{letter-spacing:.24em}
+/* the fields */
+.lp{position:relative}
+.lrow{display:flex;gap:14px;align-items:flex-end}
+.lrow+.lrow{margin-top:12px}
+.lf{flex:var(--n) 1 0;min-width:0}
+.lf[hidden]{display:none}
+.lf .ll{display:block;margin:0 0 5px;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf .lv{display:block;min-height:1.25em;font:600 18px/1.25 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.lf.nil .lv::before{content:"–";color:rgba(255,255,255,.16)}
+.lf.amb .lv{color:var(--amber)}
+.lf.r{text-align:right}
+#hero .lf.r{text-align:left}
+.lf.w-remarks,.lf.w-tier,.lf.w-trend{flex:0 0 auto}
+.lf.w-remarks.nil .lv::before,.lf.w-tier.nil .lv::before,.lf.w-trend.nil .lv::before{content:""}
+.lf .chip{vertical-align:middle}
+.trend{display:inline-block;font:700 20px/1 var(--f-board);color:var(--muted)}
+.trend.t-up{color:#5fd08a}.trend.t-down{color:#f08a5d}
+.tierP{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 3px;border-radius:12px;background:color-mix(in srgb,var(--c) 20%,transparent);
+  color:var(--ink);font:700 12px/1 var(--f-board);letter-spacing:.04em}
+.tierP img{width:18px;height:18px;border-radius:9px}
+.lf.w-airline .lv{display:flex;align-items:center;gap:10px}
+.lf.w-airline .lv span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.alogo{flex:none;height:28px;max-width:96px;object-fit:contain;padding:3px 6px;border-radius:7px;background:#f3f0e8}
+/* the plane overhead: one card */
+#hero.lp{padding:16px 16px 18px;border-radius:18px;background:var(--card);border:1px solid var(--edge);cursor:pointer}
+#hero .lf[data-f=flight] .lv{font-size:36px;font-weight:700;line-height:1.05;letter-spacing:.01em}
+#hero .lf.w-remarks .chip{height:28px;min-width:0;padding:0 12px;font-size:12px}
+#hero .lf[data-f=airline] .lv{font-size:21px}
+#hero .lf[data-f=fromCode],#hero .lf[data-f=toCode]{flex:0 0 3.3em}
+#hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:28px;font-weight:700;line-height:1.05}
+#hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:23px;line-height:1.1}
+#hero .lrow[data-r=toCode]{margin-top:8px}
+#hero .lf[data-f=seen] .lv{font-size:15px;white-space:normal}
+#hero .lrow[data-r=seen]{padding-top:12px;border-top:1px solid var(--edge)}
+.lf[data-f=trend] .lv{min-height:0}
+/* the clock */
+#clockP.lp{width:auto;min-width:64px}
+#clockP .lv{font:700 24px/1 var(--f-board);letter-spacing:.02em;text-align:right}
+#clockP .lf.nil .lv::before{content:""}
+/* the photo, plainly */
+.bezel{padding:0;background:none;box-shadow:none}
+.bezel>i,.led,.screen::before,.screen::after,.screen .glass{display:none}
+.screen{border-radius:16px;box-shadow:none;background:var(--card);border:1px solid var(--edge)}
+.screen img{filter:none}
+.screen.on{animation:lfFade .5s ease-out both}
+@keyframes lfFade{from{opacity:0}to{opacity:1}}
+/* the numbers of Spotted today and the Logbook: tiles */
+#todayP .lrow,#lbP .lrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;align-items:stretch}
+#lbP .lrow+.lrow{margin-top:8px}
+#todayP .lf,#lbP .lf{padding:11px 12px 12px;border-radius:14px;background:var(--card);border:1px solid var(--edge);text-align:left}
+#todayP .lf .lv,#lbP .lf .lv{font-size:28px;font-weight:700;line-height:1.05}
+#todayP{margin-top:6px}
+/* lists drawn as fields: take-offs and landings (upright), and the pages on its side */
+#apDP.lp,#apAP.lp,#recentP.lp,#apP.lp,#acP.lp{padding:12px 14px;border-radius:16px;background:var(--card);border:1px solid var(--edge)}
+#apDP .lrow,#apAP .lrow,#recentP .lrow,#apP .lrow{gap:10px;align-items:center}
+#apDP .lrow+.lrow,#apAP .lrow+.lrow,#recentP .lrow+.lrow,#apP .lrow+.lrow{margin-top:0;padding-top:9px;padding-bottom:9px;border-top:1px solid var(--edge)}
+#apDP .lrow:first-child,#apAP .lrow:first-child,#recentP .lrow:first-child,#apP .lrow:first-child{padding-bottom:9px}
+#apDP .lrow:first-child,#apAP .lrow:first-child,#recentP .lrow:first-child{align-items:flex-end}
+#apDP .lf .lv,#apAP .lf .lv,#recentP .lf .lv,#apP .lf .lv{font-size:16px}
+#apDP .lf.w-remarks,#apAP .lf.w-remarks,#recentP .lf.w-remarks,#apP .lf.w-remarks{flex:0 0 112px;text-align:right}
+#apDP .chip,#apAP .chip,#recentP .chip,#apP .chip{min-width:0;height:22px;font-size:10.5px;letter-spacing:.06em;padding:0 9px}
+#apDP,#apAP{cursor:pointer}
+.lrow:not(:has(.lf:not([hidden]))){display:none}
+.lrow:not(:first-child):not(:has(.lf:not(.nil):not([hidden]))){display:none}   /* no empty rows in the lists */
+#apDP .lf[data-f$=city],#apAP .lf[data-f$=city]{flex-grow:13}
+#t-now.ap .apPick{margin-top:14px}
+#apDP .lf[data-f$=city] .lv,#apAP .lf[data-f$=city] .lv{text-decoration:underline dotted rgba(255,255,255,.35);text-underline-offset:3px}
+#apDP .lf.nil .lv::before,#apAP .lf.nil .lv::before,#recentP .lf.nil .lv::before,#apP .lf.nil .lv::before{content:""}
+/* pills for the status words */
+.chip{border-radius:999px;box-shadow:none;letter-spacing:.08em}
+.chip::after{display:none}
+.flights li{border-bottom:1px solid var(--edge);box-shadow:none}
+.ranks li,.yFacts div{border-bottom-color:var(--edge);box-shadow:none}
+.fl .flAdd{background:var(--card2);border-color:var(--edge)}
+.look,.yearCard,.rvCard{background:var(--card);border-color:var(--edge)}
+.yearCard{border-color:rgba(240,180,41,.35)}
+/* buttons: flat */
+.cap{width:auto;min-width:0;height:auto;min-height:40px;margin:0;padding:8px 14px;border:1px solid var(--edge);border-radius:11px;
+  background:var(--card2);color:var(--ink);box-shadow:none;text-shadow:none;transform:none!important;animation:none!important;filter:none!important;
+  font:600 13px/1.15 var(--f-board);letter-spacing:.04em;text-transform:none;transition:background .15s,border-color .15s,color .15s}
+.cap:active:not(:disabled){background:#24262b}
+.cap[aria-current=page],.cap[aria-pressed=true]{color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5);box-shadow:none}
+.cap.go,.cap.go[aria-pressed=true]{color:#17140e;background:var(--amber);border-color:transparent;box-shadow:none}
+.cap:disabled{opacity:.45}
+.cap.small{min-height:34px;padding:6px 12px;font-size:12.5px}
+.cap.big{min-height:46px;padding:10px 18px;font-size:14.5px}
+.tools{gap:8px}
+#tabs .wrap{gap:4px}
+#tabs .cap{height:54px;border:0;background:none;color:var(--muted);font-size:11px;letter-spacing:.03em;text-transform:none}
+#tabs .cap .ico{opacity:1}
+#tabs .cap[aria-current=page]{color:var(--amber);background:rgba(240,180,41,.09)}
+#tabs .cap.long{font-size:10px}
+.cap.ping::after{content:"";position:absolute;right:10px;top:6px;width:9px;height:9px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #0b0b0c;animation:ping 1.2s ease-in-out infinite!important}
+.apPick{gap:8px}
+.apPick .cap{height:auto;font-size:13px}
+/* Settings and About: cards; knobs and flip switches become segmented switches, thumbwheels steppers */
+.plate,body.real .plate{background:var(--card);background-image:none;border:1px solid var(--edge);border-radius:16px;box-shadow:none}
+.plate>i{display:none}
+.plate h3{letter-spacing:.16em;color:var(--amber);text-shadow:none}
+.plate h3::before,.plate h3::after{display:none}
+.inst,body.real .inst{padding:0;background:none;box-shadow:none;align-items:stretch;gap:6px}
+.inst>span{padding:0;border:0;text-align:left;color:var(--muted);font:600 11px/1.2 var(--f-board);letter-spacing:.1em;text-shadow:none}
+.inst.loc p{text-align:left}
+.inst.loc .cap{align-self:flex-start}
+.lcd,body.real .lcd{padding:10px 12px;border:1px solid var(--edge);border-radius:10px;background:var(--well);background-image:none;box-shadow:none;color:var(--ink);text-shadow:none;
+  font:600 16px/1.2 var(--f-board);letter-spacing:.02em;text-transform:none}
+.lcd:focus{border-color:var(--amber);box-shadow:none}
+.rotary,.toggle{display:flex;flex-direction:row;align-items:stretch;width:100%;height:auto;padding:3px;gap:2px;border:1px solid var(--edge);border-radius:11px;background:var(--well)}
+.rotary .knob,.toggle .sw{display:none}
+.rotary b{position:static;flex:1 1 0;min-width:0;transform:none;padding:9px 2px;border-radius:8px;text-align:center;font:600 12px/1 var(--f-board);letter-spacing:.04em;
+  color:var(--muted);text-shadow:none;overflow:hidden;text-overflow:ellipsis}
+.rotary b.on{background:#2a2c31;color:var(--ink);text-shadow:none}
+.rotary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.toggle .up,.toggle .down{flex:1 1 0;min-width:0;padding:9px 2px;border-radius:8px;text-align:center;font:600 12px/1 var(--f-board);letter-spacing:.04em;color:var(--muted);text-shadow:none!important}
+.toggle .up{order:2}
+.toggle[aria-pressed=true] .up{background:var(--amber);color:#17140e}
+.toggle[aria-pressed=false] .down{background:#2a2c31;color:var(--ink)}
+.toggle.guard[aria-pressed=true] .up{background:#d2493d;color:#fff}
+.toggle:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wheel{flex-direction:row;align-items:stretch;gap:3px;width:100%;padding:3px;border:1px solid var(--edge);border-radius:11px;background:var(--well)}
+.wheel button{width:44px;height:auto;border-radius:8px;background:#2a2c31;box-shadow:none;font-size:0;color:var(--ink)}
+.wheel button::before{font:600 20px/1 var(--f-board)}
+.wheel .inc::before{content:"+"}.wheel .dec::before{content:"−"}
+.wheel .dec{order:-1}.wheel .inc{order:1}
+#todayP .lf .ll,#lbP .lf .ll{letter-spacing:.08em}
+#favBox .cap,#cardBox .cap{background:var(--card2);color:var(--ink);border:1px solid var(--edge);box-shadow:none}
+#favBox .cap.go,#cardBox .cap.go{background:var(--amber);color:#17140e}
+.wheel .win{flex:1;width:auto;height:38px;margin:0;background:none;box-shadow:none;font:700 20px/1 var(--f-board)}
+.wheel .win::after{display:none}
+#cockpit .plate{padding:14px 14px 16px;gap:14px 12px}
+.savebar{background:rgba(11,11,12,.9);border:1px solid var(--edge)}
+.plate .vers h4,.plate p.ver,.plate .vers li.now h4 b{text-shadow:none}
+.plate .chip{border-radius:999px;box-shadow:none}
+/* the welcome */
+#welcome .wbox{background:var(--card);background-image:none;border:1px solid var(--edge);box-shadow:0 18px 50px rgba(0,0,0,.6)}
+#wHello.lgreet{display:flex;justify-content:center;min-height:46px;font:700 34px/46px var(--f-board);letter-spacing:.06em;color:var(--ink);aspect-ratio:auto}
+#wHello.lgreet span{display:inline-block;animation:lgIn .45s cubic-bezier(.2,.8,.25,1) both}
+@keyframes lgIn{from{opacity:0;transform:translateY(40%);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+@media (prefers-reduced-motion: reduce){#wHello.lgreet span{animation:none}}
+/* on its side: the plane's card across the top, the page under it */
+@media (orientation:landscape) and (max-height:600px){
+  #t-now #hero,#t-now .rcol{width:auto}
+  #hero.lp{padding:10px 14px 12px;border-radius:14px}
+  #hero .lrow+.lrow{margin-top:8px}
+  #hero .lf .lv{font-size:16px}
+  #hero .lf[data-f=flight] .lv{font-size:24px}
+  #hero .lf[data-f=airline] .lv{font-size:17px}
+  #hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:20px}
+  #hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:17px}
+  #hero .lf[data-f=fromCode],#hero .lf[data-f=toCode]{flex:0 0 2.8em}
+  #hero .lrow[data-r=toCode]{margin-top:0}
+  .alogo{height:22px}
+  #clockP .lv{font-size:20px}
+  #t-now #acSec:not([hidden]){grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+  #t-now #acP{width:auto}
+  #t-now #bezel{height:auto}
+  #t-now #bezel .screen{aspect-ratio:568/268;height:auto}
+  #recentP .lf .lv,#apP .lf .lv,#acP .lf .lv{font-size:15px}
+  #apP.lp{display:grid;grid-template-rows:repeat(6,auto);grid-auto-flow:column;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
+  #apP .lrow+.lrow{margin-top:0}
+  #recentP .lrow+.lrow,#apP .lrow+.lrow{padding-top:6px;padding-bottom:6px}
+  #top .pages .cap{width:auto;height:auto;min-height:30px;padding:4px 12px;font-size:11px}
+}
+/* the cards' buttons, flat */
+#cardBox .cBtn,.cardish .cBtn{background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:11px;box-shadow:none;text-shadow:none}
+#cardBox .cBtn.go,.cardish .cBtn.go{background:var(--amber);color:#17140e;border-color:transparent}
+#cardBox .cBtn.on,.cardish .cBtn.on{outline:0;color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5)}

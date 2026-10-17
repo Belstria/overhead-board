@@ -3938,6 +3938,17 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Switch to the light version", "Zur leichten Version wechseln", "Passer à la version légère", "Cambiar a la versión ligera", "Naar de lichte versie"],
+  ["Back to the full app", "Zurück zur vollen App", "Retour à l'appli complète", "Volver a la app completa", "Terug naar de volledige app"],
+  ["The same planes, lists and cards in a plain, modern display without split flaps.", "Dieselben Flugzeuge, Listen und Karten in einer schlichten, modernen Anzeige ohne Fallblätter.", "Les mêmes avions, listes et fiches dans un affichage sobre et moderne, sans palettes.", "Los mismos aviones, listas y fichas en una pantalla sencilla y moderna, sin paletas.", "Dezelfde vliegtuigen, lijsten en kaarten in een eenvoudige, moderne weergave zonder klappen."],
+  ["The full app shows the plane on split flaps, like the board.", "Die volle App zeigt das Flugzeug auf Fallblättern, wie die Tafel.", "L'appli complète affiche l'avion sur des palettes, comme le tableau.", "La app completa muestra el avión en paletas, como el panel.", "De volledige app toont het vliegtuig op klappen, zoals het bord."],
+  ["Change the settings, then press Save.", "Einstellungen ändern, dann Speichern drücken.", "Modifiez les réglages, puis appuyez sur Enregistrer.", "Cambia los ajustes y pulsa Guardar.", "Wijzig de instellingen en druk op Opslaan."],
+  ["Change the settings, then press Save. Settings are kept with your profile, on every device you use.", "Einstellungen ändern, dann Speichern drücken. Sie bleiben in deinem Profil, auf jedem Gerät, das du nutzt.", "Modifiez les réglages, puis appuyez sur Enregistrer. Ils sont gardés avec votre profil, sur chaque appareil que vous utilisez.", "Cambia los ajustes y pulsa Guardar. Se guardan con tu perfil, en cada dispositivo que uses.", "Wijzig de instellingen en druk op Opslaan. Ze blijven bij je profiel, op elk apparaat dat je gebruikt."],
+  ["Button sounds", "Tastenklänge", "Sons des boutons", "Sonidos de botones", "Knopgeluiden"],
+  ["Clicks when you press buttons and switches.", "Klicks beim Drücken von Tasten und Schaltern.", "Des clics quand on appuie sur les boutons et interrupteurs.", "Clics al pulsar botones e interruptores.", "Klikken bij het indrukken van knoppen en schakelaars."],
+  ["Climbing", "Steigt", "En montée", "Subiendo", "Klimt"],
+  ["Descending", "Sinkt", "En descente", "Descendiendo", "Daalt"],
+  ["Level", "Gleichbleibend", "En palier", "Nivelado", "Op hoogte"],
   ["Elsewhere", "Anderswo", "Ailleurs", "En otro lugar", "Elders"],
   ["Update", "Aktualisieren", "Mettre à jour", "Actualizar", "Bijwerken"],
   ["Watching now: {name}", "Gerade beobachtet: {name}", "Surveillé maintenant : {name}", "Vigilando ahora: {name}", "Nu bekeken: {name}"],
@@ -5434,6 +5445,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.39", date: "2026-10-18", notes: [
+    "A light version of the phone app: the same planes, lists, cards and Settings in a plain, modern display without split flaps. Switch to it in Settings → Device, and back the same way."]},
   {v: "1.38", date: "2026-10-17", notes: [
     "Places are simpler: save where the board is watching under a name, tap a saved place to watch it, update or delete any of them, Home included.",
     "Tap the status dot by the clock in the app to see the connection: the data source, the last update and Flightradar24.",

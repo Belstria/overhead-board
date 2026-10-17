@@ -1,6 +1,6 @@
 name: Check
 
-# Every pull request: the relay compiles, the phone app is up to date with the board, the pages' scripts parse, and
+# Every pull request: the relay compiles, the phone app and its light version are up to date with the board, the pages' scripts parse, and
 # the boards and the app load against made-up flights without a page error (tools/test/smoke.py).
 on:
   pull_request:
@@ -28,6 +28,10 @@ jobs:
         run: |
           python tools/app/build.py
           git diff --exit-code app/index.html || (echo "app/index.html is out of date: run py tools/app/build.py" && exit 1)
+      - name: The light version is built from the app
+        run: |
+          python tools/light/build.py
+          git diff --exit-code light/index.html || (echo "light/index.html is out of date: run py tools/light/build.py" && exit 1)
       - name: The scripts parse
         run: python tools/test/smoke.py --syntax
       - name: The pages load without errors

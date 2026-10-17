@@ -1,5 +1,6 @@
 // Fallblatt's service worker: shows the relay's push notifications (the evening summary and "worth going to the
-// window") and opens the app when one is tapped. It caches nothing: the app always comes fresh from the relay.
+// window") and opens the app when one is tapped; the light version (/light/) uses it too. It caches nothing: the app
+// always comes fresh from the relay.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 
@@ -12,7 +13,7 @@ self.addEventListener("push", e => {
   try { d = e.data ? e.data.json() : {}; } catch { d = {body: e.data ? e.data.text() : ""}; }
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({type: "window", includeUncontrolled: true});
-    const front = d.kind ? wins.find(w => w.visibilityState === "visible" && w.url.includes("/app/")) : null;
+    const front = d.kind ? wins.find(w => w.visibilityState === "visible" && /\/(app|light)\//.test(w.url)) : null;
     if (front) front.postMessage({type: "bell", kind: d.kind});
     for (const n of await self.registration.getNotifications()) n.close();
     await self.registration.showNotification(d.title || "Fallblatt", {
@@ -27,7 +28,7 @@ self.addEventListener("notificationclick", e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || "/app/";
   e.waitUntil(self.clients.matchAll({type: "window", includeUncontrolled: true}).then(list => {
-    for (const w of list) if (w.url.includes("/app/") && "focus" in w) { if ("navigate" in w) w.navigate(url); return w.focus(); }
+    for (const w of list) if (/\/(app|light)\//.test(w.url) && "focus" in w) { if ("navigate" in w) w.navigate(url); return w.focus(); }
     return self.clients.openWindow(url);
   }));
 });
