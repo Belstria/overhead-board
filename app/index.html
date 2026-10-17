@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Fallblatt">
 <link rel="manifest" href="manifest.webmanifest">
+<script>/*@ui*/ // switched to the light version (Settings → Device): open that instead, keeping the tab
+try { if (localStorage.getItem("od.ui") === "light") location.replace("../light/" + location.search + location.hash); } catch (e) {}
+</script>
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -900,14 +903,17 @@ const REMARK_LOOK = {
 /* ---------- settings: kept on this phone (and, for a guest, with their profile on the relay) ---------- */
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
+const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
-const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
+const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
+// The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
+const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved};
+  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
@@ -916,6 +922,7 @@ function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
   changed = rest;
+  if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
   const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
   clearTimeout(meQ);
@@ -994,6 +1001,17 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Switch to the light version", "Zur leichten Version wechseln", "Passer à la version légère", "Cambiar a la versión ligera", "Naar de lichte versie"],
+  ["Back to the full app", "Zurück zur vollen App", "Retour à l'appli complète", "Volver a la app completa", "Terug naar de volledige app"],
+  ["The same planes, lists and cards in a plain, modern display without split flaps.", "Dieselben Flugzeuge, Listen und Karten in einer schlichten, modernen Anzeige ohne Fallblätter.", "Les mêmes avions, listes et fiches dans un affichage sobre et moderne, sans palettes.", "Los mismos aviones, listas y fichas en una pantalla sencilla y moderna, sin paletas.", "Dezelfde vliegtuigen, lijsten en kaarten in een eenvoudige, moderne weergave zonder klappen."],
+  ["The full app shows the plane on split flaps, like the board.", "Die volle App zeigt das Flugzeug auf Fallblättern, wie die Tafel.", "L'appli complète affiche l'avion sur des palettes, comme le tableau.", "La app completa muestra el avión en paletas, como el panel.", "De volledige app toont het vliegtuig op klappen, zoals het bord."],
+  ["Change the settings, then press Save.", "Einstellungen ändern, dann Speichern drücken.", "Modifiez les réglages, puis appuyez sur Enregistrer.", "Cambia los ajustes y pulsa Guardar.", "Wijzig de instellingen en druk op Opslaan."],
+  ["Change the settings, then press Save. Settings are kept with your profile, on every device you use.", "Einstellungen ändern, dann Speichern drücken. Sie bleiben in deinem Profil, auf jedem Gerät, das du nutzt.", "Modifiez les réglages, puis appuyez sur Enregistrer. Ils sont gardés avec votre profil, sur chaque appareil que vous utilisez.", "Cambia los ajustes y pulsa Guardar. Se guardan con tu perfil, en cada dispositivo que uses.", "Wijzig de instellingen en druk op Opslaan. Ze blijven bij je profiel, op elk apparaat dat je gebruikt."],
+  ["Button sounds", "Tastenklänge", "Sons des boutons", "Sonidos de botones", "Knopgeluiden"],
+  ["Clicks when you press buttons and switches.", "Klicks beim Drücken von Tasten und Schaltern.", "Des clics quand on appuie sur les boutons et interrupteurs.", "Clics al pulsar botones e interruptores.", "Klikken bij het indrukken van knoppen en schakelaars."],
+  ["Climbing", "Steigt", "En montée", "Subiendo", "Klimt"],
+  ["Descending", "Sinkt", "En descente", "Descendiendo", "Daalt"],
+  ["Level", "Gleichbleibend", "En palier", "Nivelado", "Op hoogte"],
   ["Elsewhere", "Anderswo", "Ailleurs", "En otro lugar", "Elders"],
   ["Update", "Aktualisieren", "Mettre à jour", "Actualizar", "Bijwerken"],
   ["Watching now: {name}", "Gerade beobachtet: {name}", "Surveillé maintenant : {name}", "Vigilando ahora: {name}", "Nu bekeken: {name}"],
@@ -5599,6 +5617,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.39", date: "2026-10-18", notes: [
+    "A light version of the phone app: the same planes, lists, cards and Settings in a plain, modern display without split flaps. Switch to it in Settings → Device, and back the same way."]},
   {v: "1.38", date: "2026-10-17", notes: [
     "Places are simpler: save where the board is watching under a name, tap a saved place to watch it, update or delete any of them, Home included.",
     "Tap the status dot by the clock in the app to see the connection: the data source, the last update and Flightradar24.",
@@ -5892,9 +5912,12 @@ let hasAccount = false;
 function settingsExtra(){
   const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
   if (!box) return;
-  const dev = GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
+  // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
+  const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
+    `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
+  const dev = ui + (GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
     : ANDROID ? `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
-    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`;
+    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`);
   box.innerHTML = (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
@@ -5906,6 +5929,7 @@ function settingsExtra(){
     try { localStorage.removeItem(SKEY); } catch {}
     location.reload();
   };
+  $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
@@ -6060,9 +6084,10 @@ async function accountBox(el, onChange){
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
+const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-  const reg = await navigator.serviceWorker.getRegistration("./");
+  const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
   return reg ? reg.pushManager.getSubscription() : null;
 }
 const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.isSecureContext && "serviceWorker" in navigator &&
@@ -6071,7 +6096,7 @@ const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.
 // first try used to fail while it was still starting, and the button had to be pressed twice).
 let swReady = null;
 function swRegister(){
-  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register("sw.js", {scope: "./"}).then(() => navigator.serviceWorker.ready).catch(() => null);
+  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).then(() => navigator.serviceWorker.ready).catch(() => null);
   return swReady || Promise.resolve(null);
 }
 setTimeout(swRegister, 1500);
@@ -6109,7 +6134,7 @@ async function renderPush(){
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
-    `<a href="airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
+    `<a href="${SW_DIR}airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
@@ -6509,7 +6534,8 @@ let booted = false;
 function run(){
   if (booted) return;
   booted = true;
-  if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
+  if (GUEST) $("setSum").textContent = T(LIGHT ? "Change the settings, then press Save. Settings are kept with your profile, on every device you use."
+    : "Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];

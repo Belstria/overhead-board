@@ -7,14 +7,19 @@ const escH = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt
 /* ---------- settings: kept on this phone (and, for a guest, with their profile on the relay) ---------- */
 // A guest (friends and family, let in with a personal invite link; relay 19+) gets their name and saved settings
 // from the relay instead of the home location, and their settings go back to it, so their other devices know them.
+//@L:flag
+const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
+//@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
   logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
-const SKEY = GUEST ? "od.app.settings.g." + GUEST.id : "od.app.settings";   // each guest's own, in a shared browser
+const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
+// The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
+const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved};
+  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
@@ -23,6 +28,7 @@ function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
   changed = rest;
+  if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
   const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
   clearTimeout(meQ);
@@ -71,6 +77,7 @@ let nightOn = false;          // the board's night mode; a phone doesn't need it
 /* ---------- split-flap panels ----------
    The flaps are drawn exactly as on the board, on canvases set into the page: the plane overhead, the clock, and the
    counters on Spotted today and the Logbook. Each panel is laid out in its own units and scaled to its width. */
+//@L:engine1
 const LITE = () => false;
 const fields = {}, allCells = [], panels = [];
 function makePanel(el, w, h, lab = 11){
@@ -104,6 +111,7 @@ function placeRow(ids, gaps, y, step, ratio, x0){
     x += f.n * step + (gaps[i] || 0) * step;
   });
 }
+//@L:end
 // The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
 // across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
@@ -224,6 +232,7 @@ def(LBP, "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70,
 def(LBP, "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines",""]});
 placeRow(["lvSight", "lvRegs"], [1.5], 18, 22, 1.3, UM);
 placeRow(["lvTypes", "lvAirlines"], [4.5], 69, 22, 1.3, UM);
+//@L:engine2
 //@E3
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
 function drawCell(c, p){
@@ -271,8 +280,10 @@ function refreshPanels(force){
   if (force) for (const P of panels) P.cssW = 0;
   for (const P of panels) showPanel(P);
 }
+//@L:end
 //@E6
 //@E8
+//@L:static
 // The panel itself: a recessed channel for each row of flaps, each module casting a shadow, and the engraved labels.
 function drawPanelStatic(P){
   const g = P.bgx;
@@ -312,7 +323,9 @@ function label(g, f, main, second, size, max = Infinity){
   g.restore();
   if ("letterSpacing" in g) g.letterSpacing = "0px";
 }
+//@L:end
 //@E9
+//@L:metal
 /* ---------- the metal: brushed, a little worn, as a tile the page is painted with ---------- */
 let metalUrl = "";
 function metalTile(){
@@ -350,6 +363,7 @@ function metalTile(){
     document.documentElement.style.setProperty("--metal-img", `url(${metalUrl})`);
   });
 }
+//@L:end
 function drawMark(){
   const cv = $("mark"), d = window.devicePixelRatio || 1, s = 40;
   cv.width = cv.height = Math.round(s * d);
@@ -1053,6 +1067,7 @@ function radarSize(){
   for (const cv of [$("radarBg"), $("radarCv")]) cv.width = cv.height = Math.round(RG.S * radar.px);
   radarStatic();
 }
+//@L:radar
 function radarStatic(){
   const g = $("radarBg").getContext("2d"), {cx, cy, R} = RG, TAU = Math.PI * 2;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height);
@@ -1070,6 +1085,7 @@ function radarStatic(){
   g.fillStyle = scope; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
   for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + Math.PI / 8; screw(g, cx + Math.cos(a) * (R + 12), cy + Math.sin(a) * (R + 12), 3.2); }
 }
+//@L:end
 function startRadar(){
   radarSize();
   const loop = t => {
@@ -1169,6 +1185,7 @@ function renderRadarList(){
 }
 
 /* ---------- settings: the cockpit plates, stacked for a phone ---------- */
+//@L:cockpit
 // Two cells to a row on a phone (three for the switches); `span: 2` or `wide` takes the whole row.
 const COCKPIT = [
   {title: ["Location", "Standort"], cols: 2, items: [
@@ -1199,6 +1216,7 @@ const COCKPIT = [
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]}];
+//@L:end
 let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
@@ -1421,9 +1439,12 @@ let hasAccount = false;
 function settingsExtra(){
   const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
   if (!box) return;
-  const dev = GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
+  // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
+  const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
+    `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
+  const dev = ui + (GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
     : ANDROID ? `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
-    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`;
+    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`);
   box.innerHTML = (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
@@ -1435,10 +1456,12 @@ function settingsExtra(){
     try { localStorage.removeItem(SKEY); } catch {}
     location.reload();
   };
+  $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
 }
+//@L:taps
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
@@ -1463,6 +1486,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
   if (x >= city.x && x <= city.x + city.n * city.step) return placeCard(k === "d" ? info.to : info.from);
   planeCard({ac: row.ac, alt: row.alt});
 });
+//@L:end
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
@@ -1589,9 +1613,10 @@ async function accountBox(el, onChange){
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
+const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-  const reg = await navigator.serviceWorker.getRegistration("./");
+  const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
   return reg ? reg.pushManager.getSubscription() : null;
 }
 const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.isSecureContext && "serviceWorker" in navigator &&
@@ -1600,7 +1625,7 @@ const pushPossible = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 25 && window.
 // first try used to fail while it was still starting, and the button had to be pressed twice).
 let swReady = null;
 function swRegister(){
-  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register("sw.js", {scope: "./"}).then(() => navigator.serviceWorker.ready).catch(() => null);
+  if (!swReady && pushPossible()) swReady = navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).then(() => navigator.serviceWorker.ready).catch(() => null);
   return swReady || Promise.resolve(null);
 }
 setTimeout(swRegister, 1500);
@@ -1638,7 +1663,7 @@ async function renderPush(){
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
-    `<a href="airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
+    `<a href="${SW_DIR}airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
@@ -1702,6 +1727,7 @@ function applySettings(n){
 }
 
 /* ---------- a guest's first visit: where to watch the sky ---------- */
+//@L:greet
 // The greeting flips in on a row of flaps of its own: a drum with "!" just after Z, so the "!" (which also starts
 // last) has the longest way to go, and its last few flips slow down (slowEnd) like a drum coasting to a stop.
 const GREET_DRUM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ!0123456789,.'-";
@@ -1754,6 +1780,7 @@ function greetRoll(){
   const land = rollTo(text, dur);
   setTimeout(() => { soundForced = false; }, land + 1800);
 }
+//@L:end
 // From one step of the welcome to the next: the box grows or shrinks to the new step's height, which fades in.
 function wSwap(from, to){
   const box = document.querySelector("#welcome .wbox"), h0 = box.offsetHeight;
@@ -1998,7 +2025,8 @@ let booted = false;
 function run(){
   if (booted) return;
   booted = true;
-  if (GUEST) $("setSum").textContent = T("Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
+  if (GUEST) $("setSum").textContent = T(LIGHT ? "Change the settings, then press Save. Settings are kept with your profile, on every device you use."
+    : "Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];

@@ -1,8 +1,8 @@
 """A quick check that a change didn't break the pages: run by GitHub Actions on every pull request (.github/workflows/
 check.yml), and handy before a commit.
 
-    py tools/test/smoke.py --syntax    the inline scripts of the boards and the app parse (needs Node)
-    py tools/test/smoke.py             the test relay with made-up flights, then /, /test/, /app/ and /test-api/ in a
+    py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps parse (needs Node)
+    py tools/test/smoke.py             the test relay with made-up flights, then /, /test/, /app/, /light/ and /test-api/ in a
                                        headless browser (needs Playwright); fails on any page error
 
 The test relay is the one from run_test_relay.py, started here and stopped at the end.
@@ -17,7 +17,7 @@ import urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
-PAGES = ["index.html", "test/index.html", "app/index.html"]
+PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html"]
 
 
 def syntax():
@@ -71,7 +71,8 @@ def pages():
         with sync_playwright() as p:
             b = p.chromium.launch()
             for url, size in [("http://localhost:8096/", (1920, 1080)), ("http://localhost:8096/test/", (1920, 1080)), ("http://localhost:8096/app/", (390, 844)),
-                              ("http://localhost:8096/app/", (844, 390)), ("http://localhost:8096/test-api/", (1280, 720))]:
+                              ("http://localhost:8096/app/", (844, 390)),
+                              ("http://localhost:8096/light/", (390, 844)), ("http://localhost:8096/light/", (844, 390)), ("http://localhost:8096/test-api/", (1280, 720))]:
                 pg = b.new_page(viewport={"width": size[0], "height": size[1]})
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))
                 pg.goto(url)

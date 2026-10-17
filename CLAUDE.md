@@ -18,7 +18,7 @@ someone would notice.
   choice: the free-only test board was dropped and the API board took its place; `test-api/index.html` is only a page
   forwarding to `/test/`). Without a key the board falls back to the free sources by itself.
 - **The phone app** (`app/`) is built from the test board's code (so new features reach the phone together with
-  `test/`; see below); rebuild it when shared code changes.
+  `test/`; see below); rebuild it when shared code changes, and its light version (`light/`, `py tools/light/build.py`) with it.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
   "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
@@ -52,6 +52,7 @@ someone would notice.
 | `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service on Linux (the homelab). |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
+| `light/`, `tools/light/` | The light version of the app (`light/index.html`, generated): `build.py`, `light.js` (its code for main.js's `//@L` regions), `light.css`. |
 | `tools/sounds/` | `build_sounds.py` cuts the recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block; credits and licenses in its README. |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
 
@@ -92,6 +93,19 @@ times, specials, logbook, radar and Settings control code out of `test/index.htm
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
 (or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
 The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
+
+The light version (1.39, `/light/`, Dave's wish: the phone app without split flaps, same content, colours and fonts,
+plain and modern; phone only for now): `py tools/light/build.py` builds `light/index.html` from the app's own
+head.html/main.js and the board's code (`extract`/`assemble` in `tools/app/build.py`), replacing the regions main.js
+marks `//@L:name` ... `//@L:end` with `tools/light/light.js` (the app build keeps them): `flag` (`LIGHT`), `engine1`/
+`engine2` (makePanel/def/placeRow/setChars/setWord as DOM fields: label above value, `lfPaint` slides a new value in;
+words: `chip()`, trend arrows, tier pill, airline logo; E4/E5 left out), `static`, `metal`, `radar` (flat scope),
+`cockpit` (no flap settings; Sounds: Button sounds = `S.sound`, Chimes, Bell), `taps` (cards by `data-f`), `greet`
+(welcome text slides in). `tools/light/light.css` comes after the app's styles. Settings under `od.light.settings`
+(`.g.<id>` per guest); `LIGHT_FIXED` (real, imperfect, quick, theme, soundSet) and `sound` stay out of `/me`. It uses
+the app's manifest, icons and service worker (`SW_DIR` = `../app/`; `sw.js` matches `/light/` too). Settings → Device
+switches (`#uiBtn`, `localStorage` `od.ui`); `/app/`'s head script then opens `/light/`. A new region in main.js needs
+one in light.js, or the light build stops.
 
 Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in the title; the "airport mode" block,
 copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on

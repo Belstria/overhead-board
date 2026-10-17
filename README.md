@@ -62,6 +62,7 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
 | `/` | **Main board**: the version for everyday use, with Flightradar24 when the relay has a key (a copy of the test board). |
 | `/test/` | **Test board**: where changes are tried before they go to the main board, Flightradar24 features included. (Since 1.35.2 the only test board: `/test-api/` forwards here.) |
 | `/app/` | **Phone app**: the board laid out for a phone, to add to the home screen (see below). |
+| `/light/` | **Light version** of the phone app (1.39): the same, without split flaps (see below). |
 
 Changes are tried on the test board first and copied to the main board when they're ready. If the Flightradar24
 subscription ends, the boards keep working: they fall back to the free sources by themselves.
@@ -347,6 +348,21 @@ The flight data comes through the relay (version 13 or newer serves its icons), 
 It checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
 among its screens as the APP board. `?demo` shows sample flights.
 
+### Light version
+
+`/light/` (1.39) is the phone app without split flaps: the same tabs, plane, lists, cards, places, notifications and
+Settings, in the app's colours and fonts but as a plain, modern display. The plane overhead is a card of labelled
+fields (the label in amber, the value under it); a new value slides in with a quick fade instead of flapping. Status
+words are coloured pills, the airline shows its logo, the tier its sign. No metal, screws, glass or lamps: flat
+cards, flat buttons, and Settings as segmented switches and steppers. Its Settings leave out everything about the
+flaps (speed, quick flaps, worn hardware, realistic look, board style); Sounds keeps Button sounds, Chimes and the
+Special bell. It keeps its own settings on the device, but a guest's place still goes to their profile as in the
+app. On its side it is laid out like the app's, with the fields in place of the flaps.
+
+Switch to it in Settings → Device → **Switch to the light version**, and back with **Back to the full app**. The
+choice stays on the device: `/app/` (and so the Android app and a phone's home-screen icon) then opens the light
+version. Notifications are shared with the app.
+
 **Remote key test**: `http://<relay>:8080/keys/` lights up each remote button that reaches a web page (arrows, OK,
 Back, colour keys), to see whether a TV's browser passes them on (the first step towards navigating the board with
 the remote).
@@ -514,4 +530,5 @@ copy of this repository, `--source URL` to read positions from your own receiver
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
-`py tools/app/build.py`, so it gets new features together with that board.
+`py tools/app/build.py`, so it gets new features together with that board; its light version from the app with
+`py tools/light/build.py`.
