@@ -54,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 33
+RELAY_VERSION = 34
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -65,6 +65,7 @@ SOURCES = [
 ROUTESET = "https://api.adsb.lol/api/0/routeset"
 USER_AGENT = "overhead-board home relay (github.com/Belstria/overhead-board)"
 FRESH_S = 4      # the app polls every 5 s, boards every 10 s; within this window they all share one upstream request
+SOURCE_GAP_S = 1.1  # at least this long between two calls to one source (relay 34: adsb.fi answers 429 to a second call within a second)
 STALE_S = 120    # if every source fails, keep serving the last good answer this long
 NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
@@ -95,7 +96,7 @@ ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "
 ARGS = None
 STARTED = time.time()
 STATE = {s["key"]: {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None,
-                    "last_error": "", "last_ok": 0.0} for s in SOURCES}
+                    "last_error": "", "last_ok": 0.0, "last_call": 0.0} for s in SOURCES}
 EVENTS = collections.deque(maxlen=200)
 _event_id = 0
 _positions = {}            # key -> (time, body, source name)
@@ -193,8 +194,12 @@ def aircraft(lat, lon, nm):
             if now < st["cooldown_until"]:
                 tried.append(f"{src['name']} resting {int(st['cooldown_until'] - now)} s")
                 continue
+            wait = st["last_call"] + SOURCE_GAP_S - time.time()
+            if wait > 0:                          # another place was just asked for; space the calls out
+                time.sleep(wait)
             t0 = time.time()
             status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=nm))
+            st["last_call"] = time.time()
             ms = int((time.time() - t0) * 1000)
             count, problem = None, ""
             if 200 <= status < 300:
@@ -2967,7 +2972,8 @@ def window_check(who, subs, centre, spot, st):
     want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("window", True)]
     if not want:
         return
-    status, body, _, _ = aircraft(f"{centre[0]:.4f}", f"{centre[1]:.4f}", "25")
+    # rounded like the screens' requests (relay 34), so the alerts share their answer instead of asking again
+    status, body, _, _ = aircraft(f"{centre[0]:.2f}", f"{centre[1]:.2f}", "25")
     if status != 200:
         return
     try:
