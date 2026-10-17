@@ -226,15 +226,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   model). The app's `pwCard` sets or changes the password. The board maps a click to its own units (`fieldAt`, `boardTap`; a double
   tap is `toggleFullscreen`), the app its hero panel. `remarkLines()` fills the Remarks flap (`seen` field) and facts.
   `keys/index.html` is the remote key test.
-- Places (relay 33, app 1.37; shared "places" block before the airport mode, copied by the app): `places` per profile
-  (`/places` GET/POST, `_clean_places`: `{k: "home" or the label, n, lat, lon, home, r}`; home's in `profiles["home"]`),
-  `placesLoad`/`placesSave`, `homePlace()` (the saved Home, or at home the relay's defaults), `ensureHome()` before
-  leaving home, `usePlace()` (applySettings + `placeAfter()`, which resets Spotted today), `placeSync()` after a Settings
-  save. A screen names its place on each position request (`placeQs()`: `?pl=key&pc=lat,lon&pr=km`, nothing for home;
+- Places (relay 33, app 1.37, simplified in 1.38 on Dave's word; shared "places" block before the airport mode, copied
+  by the app): `places` per profile (`/places` GET/POST, `_clean_places`: `{k: label, n, lat, lon, home, r}`, any label
+  but "live"; home's in `profiles["home"]`), `placesLoad`/`placesSave`. All labels are alike (no special or automatic
+  Home: `ensureHome`/`homePlace`/`placeSync` are gone). The card (`placesCard()`) saves the current S under a label
+  (`placeOfS`), lists the saved ones (tap: `usePlace()`, applySettings + `placeAfter()`, which resets Spotted today;
+  Update: overwrite with the current S; ×: delete) and has the live switch; the address search lives only in Settings
+  (`wireSearch`). `S.placeKey` is the label being watched (`placeKeySet()`); a Settings save runs `placeCheck()`, which
+  drops the label when the point no longer matches it. The key sent (`placeKeyNow()`): "live", else "home" (no `pl`)
+  at the relay's own point (`ownSpot()`: home profile within 100 m of the relay's defaults, so a label there keeps
+  today's list) or for a guest without a label, else the label, else "here" (`placeName`: Elsewhere); `placeLabel()`
+  is what to show. A screen names its place on each position request (`placeQs()`: `?pl=key&pc=lat,lon&pr=km`;
   `screen_place`), `Spot.take(..., place)` records around that place with `e.place` (absent = home), and a plane already
   logged today from another place in the same pass only extends that pass (no double entries). `/sightings?place=`
   filters (`sightPlaceQ()`; the app's Today `#svPlaces`/`allPlaces` asks for all). Live location (`S.live`, `S.livePrev`,
-  device-only: kept out of `/me`): `liveStart/liveStop/liveRun/liveFix` (watchPosition, or `hereNow()` every minute in
+  device-only: kept out of `/me`; `S.livePrev` is the label and point watched before, `liveStop` goes back to it):
+  `liveStart/liveStop/liveRun/liveFix` (watchPosition, or `hereNow()` every minute in
   the Android app; moves over 300 m move the point, new names via `/geo/reverse` over 2 km, nearest airport over 15 km),
   key "live", shown as "On the go". Address search: `/geo/search` and `/geo/reverse` (Nominatim, one request a second,
   cached a day; `geo_search`, `geo_reverse`), the cards' `placesCard()` and Settings' `wireSearch()` (`type: "search"`).
@@ -247,6 +254,18 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   formulas (`_csv_safe`). Board: `poll()` numbers its updates (`pollSeq`) and draws outside the try; the app's radar card
   only updates its numbers (`planeBody(...).sig/dyn`). `tools/test/smoke.py` and `.github/workflows/check.yml` check
   pull requests.
+- 1.38: the app's status dot (`#dot`, a button) opens `statusCard()` (main.js; relay, source and freshness,
+  last update, failures, Flightradar24, relay version; refreshed every second while open). List rows: the app's
+  `rowHtml` has a `+` (`.flAdd`, `data-add`) as the only way to the favourite/hide sheet, and the airline, places and
+  type are `.tap` (dotted underline); the board draws the same on its static layer (`listHints`, `plusBtn`, `plusBox`,
+  `tapLine`; the Recent flights flaps leave `PLUS_W` at the row end, `renderSpotted` redraws when the number of rows
+  changes; Spotted today has `SV_X.plus`), and `boardTap` only opens the sheet from the `+`. Achievements (shared
+  block before the places): `achCheck(game)` from both `fetchLogbook`s compares `achList()` (complete sets, bingo
+  lines and full card per week, trophies) with what this browser celebrated (`od.ach`, per guest `od.ach.g.<id>`;
+  seeded quietly the first time), and `achNext()` shows a card (confetti(), `chime("special")`) that closes after
+  `ACH_MS` (10 s) and waits while another card is open. `RADAR_COL.away` (Outbound) is violet.
+  Relay 35 fixed relay 34's custom `--source` state (no `last_call`: every position request failed).
+  The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
@@ -269,7 +288,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## Testing a change
 
-0. `py tools/test/smoke.py` loads every page against the test relay and fails on a page error (GitHub runs it on
+0. `py tools/test/smoke.py` checks the test relay serves positions, loads every page against it and fails on a page error (GitHub runs it on
    pull requests).
 1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
    `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights

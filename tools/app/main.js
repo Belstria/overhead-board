@@ -109,7 +109,7 @@ function placeRow(ids, gaps, y, step, ratio, x0){
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
-def(HERO, "remarks", {kind:"word",  n:6.3, dur:120, words:"remarks", label:["Status",""], loud:1});
+def(HERO, "remarks", {kind:"word",  n:6.3, dur:70, words:"remarks", label:["Status",""], loud:1});
 def(HERO, "airline", {kind:"word",  n:13.93, dur:120, words:"airline", label:["Airline","Fluglinie"], loud:1});
 def(HERO, "fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","Von"], loud:1});
 def(HERO, "fromCity",{kind:"chars", n:10, dur:82, loud:1});
@@ -171,7 +171,7 @@ for (let i = 0; i < NOW_ROWS; i++) {
   def(RECENTP, `nl${i}from`,    {kind:"chars", n:10, dur:60, loud:.5, label:lab("From")});
   def(RECENTP, `nl${i}to`,      {kind:"chars", n:10, dur:60, loud:.5, label:lab("To")});
   def(RECENTP, `nl${i}type`,    {kind:"chars", n:14, dur:60, loud:.5, label:lab("Aircraft")});
-  def(RECENTP, `nl${i}remarks`, {kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks")});
+  def(RECENTP, `nl${i}remarks`, {kind:"word",  n:10, dur:60, words:"remarks", small:true, loud:.5, label:lab("Remarks")});
   placeRow(["time", "flight", "from", "to", "type", "remarks"].map(c => `nl${i}${c}`), [.8, .8, .8, .8, .8], 18 + i * 30, s, 1.45, UM);
 }
 const APP = makePanel($("apP"), 900, 196);
@@ -180,7 +180,7 @@ for (const k of ["d", "a"]) for (let i = 0; i < NOW_ROWS; i++) {
   def(APP, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
   def(APP, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
   def(APP, id("city"),   {kind:"chars", n:10, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
-  def(APP, id("st"),     {kind:"word",  n:8, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  def(APP, id("st"),     {kind:"word",  n:8, dur:60, words:"remarks", small:true, loud:.5, label:lab("Status")});
   placeRow(["time", "flight", "city", "st"].map(id), [.6, .6, .6], 18 + i * 30, s, 1.45, dep ? UM : UM + 34.2 * s);
 }
 const ACP = makePanel($("acP"), 560, 192);
@@ -202,7 +202,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) for (let i = 0; i < 5; i++) {  
   def(P, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
   def(P, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
   def(P, id("city"),   {kind:"chars", n:7, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
-  def(P, id("st"),     {kind:"word",  n:7, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  def(P, id("st"),     {kind:"word",  n:7, dur:60, words:"remarks", small:true, loud:.5, label:lab("Status")});
   placeRow(["time", "flight", "city", "st"].map(id), [.4, .4, .4], 18 + i * 30, s, 1.45, UM);
 }
 RECENTP.off = APP.off = ACP.off = APDP.off = APAP.off = true;
@@ -474,12 +474,14 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
+  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
-    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
+  return `<li class="fl${col ? " sp" : ""}${listsOk() ? " plus" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><time>${escH(e.time || "")}</time>` +
+    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
+    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -633,7 +635,7 @@ function renderToday(){
   const ap = $("svPlaces");
   if (ap) {
     ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
-    ap.textContent = allPlaces ? T("All places") : placeName(placeKeyNow());
+    ap.textContent = allPlaces ? T("All places") : placeLabel();
     ap.setAttribute("aria-pressed", String(allPlaces));
   }
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
@@ -655,6 +657,7 @@ async function fetchLogbook(){
     catch (e) { lbError = netError(e, "relay"); }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
+  achCheck((lbData() || {}).game);
   renderLogbook();
 }
 let lbSig = "";
@@ -1387,7 +1390,7 @@ let savedTimer = 0;
 function buildSaveBar(){
   $("saveBtn").onclick = () => {
     ctlSound.press();
-    applySettings(draft); placeSync(); cockpitOpen();
+    applySettings(draft); placeCheck(); cockpitOpen();
     const b = $("saveBtn");
     b.textContent = T("Saved"); clearTimeout(savedTimer);
     savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
@@ -1461,6 +1464,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
   planeCard({ac: row.ac, alt: row.alt});
 });
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
+$("dot").onclick = statusCard;
 $("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
@@ -1472,13 +1476,14 @@ lookAuto();
 addEventListener("pointerup", function lookFirst(){ removeEventListener("pointerup", lookFirst); lookAuto(); });
 /* ---------- favourites and hidden planes (1.31, relay 31) ----------
    The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
-   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and
+   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' + and
    This aircraft), and the manager in Settings. */
 const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
-// A row of the lists: its airline and places open their cards, the rest the favourite/hide sheet.
+// A row of the lists: its airline, places and type open their cards, its + the favourite/hide sheet (1.38: the rest of
+// the row does nothing, so a tap meant for a card can't open the sheet).
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-more]");
   if (!b) return;
@@ -1489,7 +1494,7 @@ document.addEventListener("click", e => {
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
-  listSheet(x);
+  if (e.target.closest("[data-add]") && listsOk()) listSheet(x);
 }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
@@ -1895,7 +1900,34 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${S.live ? "◉ " : ""}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
+// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
+function statusCard(){
+  ctlSound.press();
+  const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
+  const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
+  const draw = () => {
+    const stale = lastFreshness.startsWith("stale"), rv = window.OVERHEAD_RELAY_VERSION || 0;
+    const relayRow = S.demo ? ok("meh", T("Demo mode · sample flights, not live data")) : !relay() ? ok("bad", T("Not connected: open the app through the home relay"))
+      : isOffline() ? ok("bad", T("No answer for over a minute · retrying")) : lastOk ? ok("good", T("Connected")) : ok("meh", T("Connecting…"));
+    const srcRow = !feedName ? escH(T("None yet")) : ok(stale ? "meh" : "good", stale ? T("{src} · last good copy, {n} s old", {src: feedName, n: lastFreshness.split(" ")[1] || "?"}) : T("{src} · live", {src: feedName}));
+    const fr = !USE_API ? T("Not used") : apiOn() ? T("On") : window.OVERHEAD_FR24 === true ? T("On, not answering · free sources for now") : T("Off · free sources");
+    return factsHtml([["Relay", relayRow], ["Position source", srcRow],
+      ["Last update", escH(lastOk ? ago(lastOk) : T("None yet"))],
+      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : escH(T("None"))],
+      ["In range", escH(T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}))],
+      ["Flightradar24", escH(fr)], ["Relay version", rv ? escH(String(rv)) : ""]]);
+  };
+  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>`);
+  const tick = setInterval(() => {
+    const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
+    if (!el) return clearInterval(tick);
+    const h = draw(); if (el.innerHTML !== h) el.innerHTML = h;
+  }, 1000);
+}
+function updateWhere(){
+  const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
+  $("where").textContent = `${S.live ? "◉ " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+}
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

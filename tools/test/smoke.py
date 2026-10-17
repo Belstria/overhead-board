@@ -52,6 +52,21 @@ def pages():
                 time.sleep(1)
         else:
             raise SystemExit("the test relay didn't start")
+        # the relay must hand out positions too (relay 34 failed every request with a custom source and nobody saw it)
+        import json
+        ac = []
+        for _ in range(10):
+            try:
+                ac = json.loads(urllib.request.urlopen("http://localhost:8096/aircraft/48.2085/16.3731/25", timeout=10).read()).get("ac") or []
+            except (OSError, ValueError):
+                ac = []
+            if ac:
+                break
+            time.sleep(1)
+        if not ac:
+            print("the test relay served no positions at /aircraft/48.2085/16.3731/25")
+            return False
+        print(f"positions: {len(ac)} aircraft")
         errors = []
         with sync_playwright() as p:
             b = p.chromium.launch()
