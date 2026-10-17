@@ -54,7 +54,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 34
+RELAY_VERSION = 35
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3802,7 +3802,8 @@ def main():
     if ARGS.source:
         SOURCES[:] = [{"key": "custom", "name": re.sub(r"^https?://([^/]+).*$", r"\1", ARGS.source), "url": ARGS.source}]
         STATE.clear()
-        STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0}
+        STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0,
+                           "last_call": 0.0}   # relay 35: without it, relay 34 failed every request to a --source
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()

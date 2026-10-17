@@ -216,11 +216,19 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:160px}
 #cardBox .plRow{display:flex;gap:8px;margin:8px 0}
 #cardBox .plGo{flex:1;display:flex;flex-direction:column;gap:2px}
-#cardBox .plGo small,#cardBox .plRes small{font-weight:500;opacity:.7;letter-spacing:0}
+#cardBox .plGo small{font-weight:500;opacity:.7;letter-spacing:0}
 #cardBox .plRm{flex:none;width:46px;text-align:center}
-#cardBox .plRes{display:flex;flex-direction:column;gap:6px;margin:8px 0}
-#cardBox .plRes .cBtn{display:flex;flex-direction:column;gap:2px}
-#cardBox [data-here]{margin-top:4px}
+#cardBox .plUp{flex:none;padding-left:12px;padding-right:12px}
+/* achievements (1.38): the card, its badge, the bar running down to the close, and the confetti over everything */
+#cardBox .cardIn.ach{text-align:center;border-top:2px solid #f2c44e}
+#cardBox .achBadge{width:64px;height:64px;margin:4px auto 6px;border-radius:50%;display:grid;place-items:center;font:700 32px/1 var(--f-board);color:#2a1d02;
+  background:radial-gradient(circle at 35% 30%,#fff1b8,#f2c44e 45%,#b8861a);box-shadow:0 0 24px rgba(242,196,78,.45)}
+#cardBox .ach h3{padding:0 34px;margin-top:6px}
+#cardBox .achTx{margin:4px 0 10px;font:500 15px/1.4 var(--f-board);color:#cfc9bb}
+#cardBox .achBar{height:3px;margin:12px auto 0;max-width:240px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+#cardBox .achBar i{display:block;height:100%;background:#f2c44e;transform-origin:left;animation:achDown linear forwards}
+@keyframes achDown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;pointer-events:none}
 .geoQ{display:flex;gap:8px;align-items:center}
 .geoQ input{flex:1;min-width:0;box-sizing:border-box;background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:7px 9px;font:600 14px var(--f-board)}
 .geoRes{display:flex;flex-direction:column;gap:4px;margin-top:6px}
@@ -271,7 +279,9 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 @media (max-width:400px){.title h1{font-size:22px}}
 @media (max-width:374px){.title h1{font-size:20px}}
 #clockP{width:112px}
-.dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6)}
+.dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
+.dot::after{content:"";position:absolute;inset:-16px}
+#cardBox .stOk{font-size:.9em}#cardBox .stOk[data-ok=good]{color:#22a058}#cardBox .stOk[data-ok=meh]{color:var(--amber)}#cardBox .stOk[data-ok=bad]{color:#c7372d}
 .dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
 main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
 /* split-flap panels: canvases drawn by the same flap engine as the board */
@@ -427,10 +437,18 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
-/* favourites and hidden planes: the ⋯ on a row, the sheet, This aircraft's buttons and the manager in Settings */
+/* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
-.fl[data-more]{cursor:pointer}
-.fl[data-more]:active{background:rgba(255,255,255,.06)}
+.fl.plus{grid-template-columns:44px minmax(0,1fr) auto 44px}
+.fl .flAdd{grid-column:4;grid-row:1/4;align-self:stretch;width:44px;min-height:44px;margin:-4px 0;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:10px;
+  background:linear-gradient(#26282c,#1a1b1e);color:var(--amber);font:600 26px/1 var(--f-board);cursor:pointer}
+.fl .flAdd:active{background:#34363b}
+/* what opens a card: the airline, the places and the type */
+.fl .tap{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.45);text-underline-offset:3px;padding:6px 2px;margin:-6px -2px}
+.fl .who .tap{color:#d9d4c6;margin-left:calc(.45em - 2px)}
+.fl .rt .tap{color:#f3eee0}
+.fl .meta .tap{color:#d9d4c6}
+.fl .tap:active{background:rgba(255,255,255,.1);border-radius:4px}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
@@ -666,7 +684,7 @@ body.arOpen{overflow:hidden}
     <canvas id="mark" aria-hidden="true"></canvas>
     <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
-    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
+    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection"></button></div>
   </div>
 </header>
 <main>
@@ -976,6 +994,48 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["Elsewhere", "Anderswo", "Ailleurs", "En otro lugar", "Elders"],
+  ["Update", "Aktualisieren", "Mettre à jour", "Actualizar", "Bijwerken"],
+  ["Watching now: {name}", "Gerade beobachtet: {name}", "Surveillé maintenant : {name}", "Vigilando ahora: {name}", "Nu bekeken: {name}"],
+  ["Save where the board is watching now", "Speichern, wo die Tafel gerade hinschaut", "Enregistrer l'endroit que surveille le tableau", "Guardar el lugar que vigila el panel ahora", "Bewaar waar het bord nu naar kijkt"],
+  ["Saved places", "Gespeicherte Orte", "Lieux enregistrés", "Lugares guardados", "Bewaarde plaatsen"],
+  ["No saved places yet. Set the location in Settings, then save it here under a name.", "Noch keine gespeicherten Orte. Stell den Standort in den Einstellungen ein und speichere ihn hier unter einem Namen.", "Aucun lieu enregistré. Réglez la position dans les Réglages, puis enregistrez-la ici sous un nom.", "Aún no hay lugares guardados. Fija la ubicación en Ajustes y guárdala aquí con un nombre.", "Nog geen bewaarde plaatsen. Stel de locatie in bij Instellingen en bewaar die hier onder een naam."],
+  ["Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now.", "Die Flugzeuge aller Orte kommen ins selbe Logbuch; Heute gesichtet zeigt den Ort, den du beobachtest. Aktualisieren verlegt einen gespeicherten Ort dorthin, wo die Tafel gerade hinschaut.", "Les avions de tous les lieux vont dans le même carnet ; Vus aujourd'hui montre le lieu surveillé. Mettre à jour déplace un lieu enregistré vers l'endroit que surveille le tableau.", "Los aviones de todos los lugares van al mismo registro; Vistos hoy muestra el lugar que vigilas. Actualizar mueve un lugar guardado al que vigila el panel ahora.", "De vliegtuigen van alle plaatsen gaan in hetzelfde logboek; Vandaag gespot toont de plaats die je bekijkt. Bijwerken verplaatst een bewaarde plaats naar waar het bord nu naar kijkt."],
+  ["{name} now points to where the board is watching.", "{name} zeigt jetzt dorthin, wo die Tafel hinschaut.", "{name} pointe maintenant vers l'endroit surveillé.", "{name} apunta ahora al lugar que vigila el panel.", "{name} wijst nu naar waar het bord naar kijkt."],
+  ["{name} removed.", "{name} entfernt.", "{name} supprimé.", "{name} eliminado.", "{name} verwijderd."],
+  ["{name} is saved already: use its Update button to move it here.", "{name} gibt es schon: Mit seinem Aktualisieren-Knopf verlegst du ihn hierher.", "{name} existe déjà : utilisez son bouton Mettre à jour pour le déplacer ici.", "{name} ya existe: usa su botón Actualizar para moverlo aquí.", "{name} bestaat al: gebruik de knop Bijwerken om het hierheen te verplaatsen."],
+  ["Turn off live location first, or save the place once you've arrived.", "Schalte zuerst den Live-Standort aus oder speichere den Ort, wenn du angekommen bist.", "Désactivez d'abord la position en direct, ou enregistrez le lieu une fois arrivé.", "Desactiva primero la ubicación en vivo, o guarda el lugar al llegar.", "Zet eerst de live locatie uit, of bewaar de plaats als je er bent."],
+  ["Saved as {name}.", "Gespeichert als {name}.", "Enregistré sous {name}.", "Guardado como {name}.", "Bewaard als {name}."],
+  ["Connection", "Verbindung", "Connexion", "Conexión", "Verbinding"],
+  ["Connected", "Verbunden", "Connecté", "Conectado", "Verbonden"],
+  ["Not connected: open the app through the home relay", "Nicht verbunden: öffne die App über das Heim-Relay", "Non connecté : ouvrez l'application par le relais de la maison", "Sin conexión: abre la app a través del relé de casa", "Niet verbonden: open de app via de relay thuis"],
+  ["No answer for over a minute · retrying", "Seit über einer Minute keine Antwort · neuer Versuch", "Pas de réponse depuis plus d'une minute · nouvel essai", "Sin respuesta desde hace más de un minuto · reintentando", "Al meer dan een minuut geen antwoord · opnieuw proberen"],
+  ["None yet", "Noch keine", "Aucune pour l'instant", "Todavía ninguna", "Nog geen"],
+  ["None", "Keine", "Aucune", "Ninguna", "Geen"],
+  ["{src} · live", "{src} · live", "{src} · en direct", "{src} · en vivo", "{src} · live"],
+  ["{src} · last good copy, {n} s old", "{src} · letzter guter Stand, {n} s alt", "{src} · dernière bonne copie, il y a {n} s", "{src} · última copia buena, de hace {n} s", "{src} · laatste goede kopie, {n} s oud"],
+  ["Not used", "Nicht genutzt", "Non utilisé", "No se usa", "Niet gebruikt"],
+  ["On", "An", "Activé", "Activado", "Aan"],
+  ["On, not answering · free sources for now", "An, antwortet nicht · vorerst freie Quellen", "Activé, sans réponse · sources gratuites pour l'instant", "Activado, sin respuesta · fuentes gratuitas por ahora", "Aan, geeft geen antwoord · voorlopig gratis bronnen"],
+  ["Off · free sources", "Aus · freie Quellen", "Désactivé · sources gratuites", "Desactivado · fuentes gratuitas", "Uit · gratis bronnen"],
+  ["just now", "gerade eben", "à l'instant", "ahora mismo", "zojuist"],
+  ["{n} s ago", "vor {n} s", "il y a {n} s", "hace {n} s", "{n} s geleden"],
+  ["{n} min ago", "vor {n} min", "il y a {n} min", "hace {n} min", "{n} min geleden"],
+  ["{n} in a row", "{n} hintereinander", "{n} d'affilée", "{n} seguidos", "{n} op rij"],
+  ["Relay", "Relay", "Relais", "Relé", "Relay"],
+  ["Position source", "Positionsquelle", "Source des positions", "Fuente de posiciones", "Positiebron"],
+  ["Last update", "Letzte Aktualisierung", "Dernière mise à jour", "Última actualización", "Laatste update"],
+  ["Failed attempts", "Fehlversuche", "Échecs", "Intentos fallidos", "Mislukte pogingen"],
+  ["In range", "In Reichweite", "À portée", "Al alcance", "Binnen bereik"],
+  ["Flightradar24", "Flightradar24", "Flightradar24", "Flightradar24", "Flightradar24"],
+  ["Relay version", "Relay-Version", "Version du relais", "Versión del relé", "Relayversie"],
+  ["Achievement", "Erfolg", "Succès", "Logro", "Prestatie"],
+  ["Collection complete", "Sammlung komplett", "Collection complète", "Colección completa", "Verzameling compleet"],
+  ["{name}: all {n} seen", "{name}: alle {n} gesehen", "{name} : les {n} vus", "{name}: los {n} vistos", "{name}: alle {n} gezien"],
+  ["A line on this week's bingo card", "Eine Reihe auf der Bingokarte dieser Woche", "Une ligne sur la carte de bingo de la semaine", "Una línea en el cartón de bingo de esta semana", "Een rij op de bingokaart van deze week"],
+  ["Line {n} on this week's bingo card", "Reihe {n} auf der Bingokarte dieser Woche", "Ligne {n} sur la carte de bingo de la semaine", "Línea {n} en el cartón de bingo de esta semana", "Rij {n} op de bingokaart van deze week"],
+  ["All nine on this week's bingo card", "Alle neun auf der Bingokarte dieser Woche", "Les neuf de la carte de bingo de la semaine", "Las nueve del cartón de bingo de esta semana", "Alle negen op de bingokaart van deze week"],
+  ["Trophy: {name}", "Trophäe: {name}", "Trophée : {name}", "Trofeo: {name}", "Trofee: {name}"],
   ["Once since {d}", "Einmal seit {d}", "Une fois depuis le {d}", "Una vez desde el {d}", "Eén keer sinds {d}"],
   ["1 plane", "1 Flugzeug", "1 avion", "1 avión", "1 vliegtuig"],
   ["1 flight to or from here", "1 Flug von oder nach hier", "1 vol depuis ou vers ici", "1 vuelo desde o hacia aquí", "1 vlucht van of naar hier"],
@@ -1314,23 +1374,16 @@ const I18N_ROWS = [
   ["All places", "Alle Orte", "Tous les lieux", "Todos los lugares", "Alle plaatsen"],
   ["Places & live location", "Orte & Live-Standort", "Lieux et position en direct", "Lugares y ubicación en vivo", "Plaatsen & live locatie"],
   ["Switch between saved places, or follow this phone's location.", "Zwischen gespeicherten Orten wechseln oder dem Standort dieses Handys folgen.", "Passer d'un lieu enregistré à l'autre, ou suivre la position de ce téléphone.", "Cambia entre lugares guardados o sigue la ubicación de este teléfono.", "Wissel tussen bewaarde plaatsen of volg de locatie van deze telefoon."],
-  ["The board watches one place at a time. Every place's planes go into the same logbook; Spotted today shows the place you're watching.", "Die Tafel beobachtet jeweils einen Ort. Die Flugzeuge aller Orte kommen ins selbe Logbuch; Heute gesichtet zeigt den Ort, den du gerade beobachtest.", "Le tableau surveille un lieu à la fois. Les avions de tous les lieux vont dans le même carnet ; Vus aujourd'hui montre le lieu surveillé.", "El panel vigila un lugar a la vez. Los aviones de todos los lugares van al mismo cuaderno; Vistos hoy muestra el lugar que vigilas.", "Het bord kijkt naar één plaats tegelijk. De vliegtuigen van alle plaatsen gaan in hetzelfde logboek; Vandaag gezien toont de plaats waar je nu naar kijkt."],
   ["Live location", "Live-Standort", "Position en direct", "Ubicación en vivo", "Live locatie"],
   ["Follow this phone's location", "Dem Standort dieses Handys folgen", "Suivre la position de ce téléphone", "Seguir la ubicación de este teléfono", "Locatie van deze telefoon volgen"],
   ["Following this phone's location", "Folgt dem Standort dieses Handys", "Suit la position de ce téléphone", "Siguiendo la ubicación de este teléfono", "Volgt de locatie van deze telefoon"],
   ["While the app is open, the board watches where you are and names the town; planes seen on the way count as \"On the go\".", "Solange die App offen ist, beobachtet die Tafel, wo du bist, und nennt den Ort; unterwegs gesehene Flugzeuge zählen als „Unterwegs“.", "Tant que l'application est ouverte, le tableau surveille l'endroit où vous êtes et nomme la ville ; les avions vus en route comptent comme « En route ».", "Mientras la app está abierta, el panel vigila dónde estás y nombra el lugar; los aviones vistos por el camino cuentan como «De camino».", "Zolang de app open is, kijkt het bord waar je bent en noemt het de plaats; onderweg geziene vliegtuigen tellen als ‘Onderweg’."],
   ["Following your location needs the https address or the Fallblatt Android app.", "Dem Standort folgen geht über die https-Adresse oder die Fallblatt-Android-App.", "Suivre votre position demande l'adresse https ou l'application Android Fallblatt.", "Seguir tu ubicación necesita la dirección https o la app de Android de Fallblatt.", "Je locatie volgen kan via het https-adres of de Fallblatt Android-app."],
-  ["Add a place", "Ort hinzufügen", "Ajouter un lieu", "Añadir un lugar", "Plaats toevoegen"],
-  ["Address or place, e.g. Stephansplatz, Vienna", "Adresse oder Ort, z. B. Stephansplatz, Wien", "Adresse ou lieu, p. ex. Stephansplatz, Vienne", "Dirección o lugar, p. ej. Stephansplatz, Viena", "Adres of plaats, bv. Stephansplatz, Wenen"],
   ["Address or place", "Adresse oder Ort", "Adresse ou lieu", "Dirección o lugar", "Adres of plaats"],
   ["Search", "Suchen", "Chercher", "Buscar", "Zoeken"],
   ["Searching …", "Suche …", "Recherche …", "Buscando …", "Zoeken …"],
   ["Pick one:", "Eins auswählen:", "Choisissez :", "Elige uno:", "Kies er een:"],
   ["Nothing found. Try a street and town, or a landmark.", "Nichts gefunden. Versuch Straße und Ort oder ein Wahrzeichen.", "Rien trouvé. Essayez une rue et une ville, ou un monument.", "No se encontró nada. Prueba una calle y ciudad, o un lugar conocido.", "Niets gevonden. Probeer een straat en plaats, of een bezienswaardigheid."],
-  ["Use where the board looks now", "Den aktuellen Ort der Tafel nehmen", "Utiliser l'endroit que surveille le tableau", "Usar el lugar que vigila el panel", "Gebruik waar het bord nu naar kijkt"],
-  ["Name, e.g. Work", "Name, z. B. Arbeit", "Nom, p. ex. Travail", "Nombre, p. ej. Trabajo", "Naam, bv. Werk"],
-  ["Save and watch", "Speichern und beobachten", "Enregistrer et surveiller", "Guardar y vigilar", "Bewaren en bekijken"],
-  ["Selected: {name}", "Ausgewählt: {name}", "Sélectionné : {name}", "Seleccionado: {name}", "Gekozen: {name}"],
   ["Give the place a name.", "Gib dem Ort einen Namen.", "Donnez un nom au lieu.", "Ponle un nombre al lugar.", "Geef de plaats een naam."],
   ["That name is taken; pick another.", "Diesen Namen gibt es schon; nimm einen anderen.", "Ce nom est déjà pris ; choisissez-en un autre.", "Ese nombre ya existe; elige otro.", "Die naam bestaat al; kies een andere."],
   ["Saving …", "Speichern …", "Enregistrement …", "Guardando …", "Opslaan …"],
@@ -1922,17 +1975,100 @@ function planeCard(o){
   cardOpen(b.html, b.wire);
 }
 
-/* ---------- places (relay 33) ----------
-   A profile's saved places ("Home", "Work" …, kept on the relay for all its devices) and "live", a phone following its
-   owner. A screen tells the relay which place it watches with each position request, its sightings carry that place,
-   and its Spotted today shows that place only; the logbook counts them all, and a plane seen from two places in the
-   same pass is one sighting. */
+/* ---------- achievements (1.38) ----------
+   A completed collection, a new bingo line or a trophy won (the logbook's `game`) pops up once on each device: a card
+   with a little confetti and the bell, closing by itself after 10 s (a TV must never get stuck on it). What was
+   already celebrated is kept in this browser; the first time, everything there is now counts as seen, quietly. */
+const ACH_KEY = GUEST ? "od.ach.g." + GUEST.id : "od.ach";
+const ACH_MS = 10000;
+let achQueue = [], achTimer = 0;
+function achList(g0){
+  const out = [];
+  if (!g0) return out;
+  for (const s of g0.sets || []) if (s.total && (s.have || []).length >= s.total)
+    out.push({k: "set:" + s.name, icon: "▣", title: T("Collection complete"), text: T("{name}: all {n} seen", {name: T(s.name), n: s.total})});
+  const b = g0.bingo;
+  if (b && b.week) {
+    for (let n = 1; n <= Math.min(8, b.lines || 0); n++)
+      out.push({k: `line:${b.week}:${n}`, icon: "▦", title: T("Bingo!"), text: n === 1 ? T("A line on this week's bingo card") : T("Line {n} on this week's bingo card", {n})});
+    if (Object.keys(b.done || {}).length >= 9) out.push({k: "card:" + b.week, icon: "▦", title: T("Full card"), text: T("All nine on this week's bingo card")});
+  }
+  for (const id of Object.keys(g0.trophies || {})) {
+    const [name, desc] = trophyText(id);
+    out.push({k: "tr:" + id, icon: "★", title: T("Trophy: {name}", {name}), text: desc});
+  }
+  return out;
+}
+function achCheck(g0){
+  if (!g0 || S.demo) return;
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(ACH_KEY) || "null"); } catch {}
+  const all = achList(g0), first = !Array.isArray(seen);
+  const known = new Set(first ? [] : seen), fresh = all.filter(a => !known.has(a.k));
+  if (!first && !fresh.length) return;
+  const keep = [...new Set([...(first ? [] : seen), ...all.map(a => a.k)])].slice(-400);
+  try { localStorage.setItem(ACH_KEY, JSON.stringify(keep)); } catch {}
+  if (first) return;                                   // the first look: what's there now was won before
+  for (const a of fresh) if (!achQueue.some(q => q.k === a.k)) achQueue.push(a);
+  achNext();
+}
+// One card at a time (up to three achievements on it); it waits while another card is open.
+function achNext(){
+  clearTimeout(achTimer);
+  if (!achQueue.length) return;
+  if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
+  const list = achQueue.splice(0, 3);
+  const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
+    `<p class="shH">${escH(T("Achievement"))}</p>` +
+    list.map(a => `<h3>${escH(a.title)}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
+    `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
+  confetti();
+  chime("special");
+  achTimer = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); achTimer = setTimeout(achNext, 1500); }, ACH_MS);
+}
+// A short burst of paper bits over the page (fewer and shorter on the weaker TVs; none with reduced motion).
+function confetti(){
+  if (typeof REDUCED !== "undefined" && REDUCED) return;
+  const weak = typeof WEAK_TV !== "undefined" && WEAK_TV, n = weak ? 36 : 90, life = weak ? 1800 : 2600;
+  const cv = document.createElement("canvas"), w = innerWidth, h = innerHeight, dpr = weak ? 1 : Math.min(2, devicePixelRatio || 1);
+  cv.className = "confetti"; cv.width = w * dpr; cv.height = h * dpr;
+  document.body.appendChild(cv);
+  const g = cv.getContext("2d"), cols = ["#f6be35", "#e0372c", "#27a85e", "#4f8fe0", "#b483ff", "#f3eee0"];
+  const bits = Array.from({length: n}, () => ({x: w / 2 + (Math.random() - .5) * w * .3, y: h * .45, vx: (Math.random() - .5) * w * .9,
+    vy: -h * (.5 + Math.random() * .7), r: Math.random() * 6, vr: (Math.random() - .5) * 12, s: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)]}));
+  const t0 = performance.now();
+  let last = t0;
+  const step = now => {
+    const t = now - t0, dt = Math.min(.05, (now - last) / 1000);
+    last = now;
+    if (t > life || !cv.isConnected) return cv.remove();
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    g.globalAlpha = Math.min(1, (life - t) / 500);
+    for (const b of bits) {
+      b.vy += h * 1.4 * dt; b.vx *= .985; b.x += b.vx * dt; b.y += b.vy * dt; b.r += b.vr * dt;
+      g.save(); g.translate(b.x, b.y); g.rotate(b.r); g.fillStyle = b.c; g.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2 * Math.abs(Math.cos(b.r * 2)) + 1); g.restore();
+    }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- places (relay 33; simpler since 1.38) ----------
+   A profile's saved places: labels ("Home", "Work" …, all alike, kept on the relay for all its devices) for where the
+   board watches, plus "live", a phone following its owner. A screen tells the relay which place it watches with each
+   position request, its sightings carry that place, and its Spotted today shows that place only; the logbook counts
+   them all, and a plane seen from two places in the same pass is one sighting. A location without a label is the
+   profile's own ("home": no `pl`, the relay knows it) or, away from it, "here". */
 const placesRelay = () => !!relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 33;
 let places = {list: [], at: 0};
 let allPlaces = false;                       // the app's Today: every place instead of this one
-const placeKeyNow = () => S.live ? "live" : (S.placeKey || "home");
-const placeName = k => k === "home" ? T("Home") : k === "live" ? T("On the go") : k;
-// What a position request adds: the place, its centre and radius (the home place needs nothing: the relay knows it).
+// The relay's own place (at home): a label there records as "home" too, so today's list carries on.
+const ownSpot = () => !GUEST && DEFAULTS.lat != null && gcKm(+S.lat, +S.lon, +DEFAULTS.lat, +DEFAULTS.lon) < 0.1;
+const placeKeyNow = () => S.live ? "live" : ownSpot() ? "home" : S.placeKey || (GUEST ? "home" : "here");
+const placeName = k => k === "home" ? T("Home") : k === "live" ? T("On the go") : k === "here" ? T("Elsewhere") : k;
+// What the screen is watching, in words: the label, or the place's name.
+const placeLabel = () => S.live ? T("On the go") : S.placeKey || clean(S.place);
+// What a position request adds: the place, its centre and radius (the profile's own place needs nothing).
 function placeQs(){
   const k = placeKeyNow();
   return placesRelay() && k !== "home" ? `?pl=${encodeURIComponent(k)}&pc=${(+S.lat).toFixed(4)},${(+S.lon).toFixed(4)}&pr=${+S.radiusKm || 15}` : "";
@@ -1948,24 +2084,20 @@ async function placesSave(list){
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   places = {list: (await r.json()).places || [], at: Date.now()};
 }
-// Home: the saved one, or (at home) the relay's own place.
-function homePlace(){
-  const h = places.list.find(p => p.k === "home");
-  if (h) return h;
-  return GUEST ? null : {k: "home", n: DEFAULTS.place, lat: DEFAULTS.lat, lon: DEFAULTS.lon, home: DEFAULTS.home, r: DEFAULTS.radiusKm};
+const placeOfS = k => ({k, n: String(S.place || "").trim().slice(0, 24), lat: +(+S.lat).toFixed(5), lon: +(+S.lon).toFixed(5), home: clean(S.home).slice(0, 3), r: +S.radiusKm || 15});
+// Watch the same point under another label, or none (k empty).
+function placeKeySet(k){
+  const was = placeKeyNow();
+  delete S.placeKey;
+  applySettings(k ? {...S, placeKey: k} : {...S});
+  if (placeKeyNow() !== was) placeAfter();
 }
-const placeOfS = k => ({k, n: S.place, lat: +(+S.lat).toFixed(5), lon: +(+S.lon).toFixed(5), home: clean(S.home).slice(0, 3), r: +S.radiusKm || 15});
-// Before leaving home for another place the first time, home is saved, so there is a way back.
-async function ensureHome(){
-  if (placeKeyNow() === "home" && !places.list.some(p => p.k === "home")) await placesSave([placeOfS("home"), ...places.list]).catch(() => {});
-}
-// Settings changed the place being watched: its saved entry follows (not for "live").
-function placeSync(){
-  const k = placeKeyNow();
-  if (!placesRelay() || k === "live") return;
-  const i = places.list.findIndex(p => p.k === k), now = placeOfS(k);
-  if (i < 0 ? k === "home" && GUEST : JSON.stringify(places.list[i]) !== JSON.stringify(now))
-    placesSave(i < 0 ? [now, ...places.list] : places.list.map((p, j) => j === i ? now : p)).catch(() => {});
+const placeAt = (p, lat, lon) => !!p && gcKm(+p.lat, +p.lon, +lat, +lon) < 0.05;
+// Settings moved the point being watched: the label goes unless it still matches (Update moves a label on purpose).
+function placeCheck(){
+  if (!S.placeKey || !places.at) return;
+  const p = places.list.find(q => q.k === S.placeKey);
+  if (!placeAt(p, S.lat, S.lon)) placeKeySet("");
 }
 // Watch another place: the board turns to it, and Spotted today with it.
 function placeAfter(){
@@ -1975,7 +2107,7 @@ function placeAfter(){
 function usePlace(p){
   if (!p) return;
   liveHalt();
-  applySettings({...S, live: false, placeKey: p.k, lat: p.lat, lon: p.lon, place: p.n || placeName(p.k), home: p.home || S.home, radiusKm: p.r || S.radiusKm});
+  applySettings({...S, live: false, placeKey: p.k, lat: p.lat, lon: p.lon, place: p.n || p.k, home: p.home || S.home, radiusKm: p.r || S.radiusKm});
   placeAfter();
 }
 /* Live location: the phone's position drives the board while the page is open (https, or the Android app). Small moves
@@ -1994,18 +2126,22 @@ function liveRun(){
   } else liveWatch = navigator.geolocation.watchPosition(p => liveFix({lat: p.coords.latitude, lon: p.coords.longitude}), () => {},
     {enableHighAccuracy: false, maximumAge: 30000, timeout: 60000});
 }
-async function liveStart(){
+// Where the board looked before following the phone, to go back to (a label, or just the point).
+function liveStart(){
   if (!liveOk()) return;
-  await ensureHome();
-  S.livePrev = placeKeyNow() === "live" ? S.livePrev : placeKeyNow();
+  if (!S.live) S.livePrev = placeOfS(S.placeKey || "");
   S.live = true; saveSettings();
   liveRun(); placeAfter();
 }
 function liveStop(){
   liveHalt();
-  const prev = places.list.find(p => p.k === S.livePrev) || homePlace();
-  S.live = false;
-  if (prev) usePlace(prev); else { saveSettings(); placeAfter(); }
+  const was = S.livePrev && typeof S.livePrev === "object" ? S.livePrev : null;
+  const saved = was && was.k ? places.list.find(p => p.k === was.k) : null;
+  S.live = false; delete S.livePrev;
+  if (saved) return usePlace(saved);
+  if (was && !was.k && was.lat != null) { const {k, ...p} = was; delete S.placeKey; applySettings({...S, ...p, place: p.n || S.place, radiusKm: p.r || S.radiusKm}); }
+  else { delete S.placeKey; applySettings({...S}); }
+  placeAfter();
 }
 async function geoReverse(lat, lon){
   try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? j.name : ""; }
@@ -2031,74 +2167,69 @@ async function liveFix(p){
   if (first || Object.keys(extra).length) applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon});
   else if (moved > 0.3 && Date.now() - liveSaved > 60000) { liveSaved = Date.now(); saveSettings(); }
 }
-setTimeout(() => { placesLoad(); if (S.live) { if (liveOk()) liveRun(); else { S.live = false; saveSettings(); } } }, 1500);
-// The address search: OpenStreetMap, through the relay.
+setTimeout(() => { placesLoad().then(placeCheck); if (S.live) { if (liveOk()) liveRun(); else { S.live = false; saveSettings(); } } }, 1500);
+// The address search: OpenStreetMap, through the relay (Settings → Location).
 async function geoSearch(q){
   const j = await fetchJSON(`${relay()}/geo/search?q=${encodeURIComponent(q)}&lang=${LANG}`, {}, 20000);
   if (j.status !== "ok") throw new Error(T("The address search isn't available right now."));
   return j.results || [];
 }
-// The places card: pick one, follow this phone, add one (from an address, or where the board looks now).
+// The places card: save where the board watches now under a label, the saved ones to tap (Update, ×), live location.
 async function placesCard(){
   if (!placesRelay()) return;
   ctlSound.press();
-  let pending = null, busy = false;
-  const draw = note => {
-    const list = [homePlace(), ...places.list.filter(p => p.k !== "home")].filter(Boolean), cur = placeKeyNow();
-    const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(placeName(p.k))}</b>` +
-      `<small>${escH([p.n, `${p.r || 15} km`].filter(Boolean).join(" · "))}</small></button>` +
-      (p.k !== "home" ? `<button class="cBtn plRm" type="button" data-rm="${escH(p.k)}" aria-label="${escH(T("Remove"))}">×</button>` : "") + `</div>`;
-    return cardOpen(`<h3>${escH(T("Places"))}</h3><p class="note">${escH(T("The board watches one place at a time. Every place's planes go into the same logbook; Spotted today shows the place you're watching."))}</p>` +
-      list.map(row).join("") +
+  const draw = (note, typed) => {
+    const cur = S.live ? "" : S.placeKey || "";
+    const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(p.k)}</b>` +
+      `<small>${escH([p.n !== p.k ? p.n : "", `${p.r || 15} km`].filter(Boolean).join(" · "))}</small></button>` +
+      `<button class="cBtn plUp" type="button" data-up="${i}">${escH(T("Update"))}</button>` +
+      `<button class="cBtn plRm" type="button" data-rm="${i}" aria-label="${escH(T("Remove"))}">×</button></div>`;
+    return cardOpen(`<h3>${escH(T("Places"))}</h3>` +
+      `<p class="note">${escH(T("Watching now: {name}", {name: [placeLabel(), S.placeKey && !S.live && clean(S.place) !== clean(S.placeKey) ? S.place : ""].filter(Boolean).join(" · ")}))}</p>` +
+      `<p class="shH">＋ ${escH(T("Save where the board is watching now"))}</p>` +
+      `<div class="favAdd"><input data-l maxlength="24" autocomplete="off" placeholder="${escH(T("Home"))}" value="${escH(typed != null ? typed : "")}">` +
+      `<button class="cBtn go" type="button" data-add>${escH(T("Save"))}</button></div>` +
+      `<p class="note" data-n aria-live="polite">${escH(note || "")}</p>` +
+      (places.list.length ? `<p class="shH">◎ ${escH(T("Saved places"))}</p>` + places.list.map(row).join("")
+        : `<p class="note">${escH(T("No saved places yet. Set the location in Settings, then save it here under a name."))}</p>`) +
+      `<p class="note">${escH(T("Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now."))}</p>` +
       `<p class="shH">◉ ${escH(T("Live location"))}</p>` +
-      (liveOk() ? `<button class="cBtn${S.live ? " on" : ""}" type="button" data-live>${escH(T(S.live ? "Following this phone's location" : "Follow this phone's location"))}</button>` +
+      (liveOk() ? `<button class="cBtn${S.live ? " on" : ""}" type="button" data-live aria-pressed="${S.live}">${escH(T(S.live ? "Following this phone's location" : "Follow this phone's location"))}</button>` +
         `<p class="note">${escH(T("While the app is open, the board watches where you are and names the town; planes seen on the way count as \"On the go\"."))}</p>`
-        : `<p class="note">${escH(T("Following your location needs the https address or the Fallblatt Android app."))}</p>`) +
-      `<p class="shH">＋ ${escH(T("Add a place"))}</p>` +
-      `<div class="favAdd"><input data-q autocomplete="off" maxlength="120" placeholder="${escH(T("Address or place, e.g. Stephansplatz, Vienna"))}"><button class="cBtn" type="button" data-s>${escH(T("Search"))}</button></div>` +
-      `<div class="plRes" data-res></div>` +
-      `<button class="cBtn" type="button" data-here>${escH(T("Use where the board looks now"))}</button>` +
-      `<div class="favAdd" data-nm${pending ? "" : " hidden"}><input data-l maxlength="24" autocomplete="off" placeholder="${escH(T("Name, e.g. Work"))}" value="${escH(pending ? pending.label : "")}">` +
-      `<button class="cBtn go" type="button" data-add>${escH(T("Save and watch"))}</button></div>` +
-      `<p class="note" data-n aria-live="polite">${escH(note || (pending ? T("Selected: {name}", {name: pending.n}) : ""))}</p>`, el => {
+        : `<p class="note">${escH(T("Following your location needs the https address or the Fallblatt Android app."))}</p>`), el => {
       const say = t => { el.querySelector("[data-n]").textContent = t; };
-      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = list[+b.dataset.go]; cardClose(); if (S.live) liveHalt(); usePlace(p); };
-      for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
+      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
+      for (const b of el.querySelectorAll("[data-up]")) b.onclick = async () => {
+        const p = places.list[+b.dataset.up]; if (!p) return;
+        ctlSound.press(); say(T("Saving …"));
+        try { await placesSave(places.list.map(q => q === p ? placeOfS(p.k) : q)); } catch (e) { return say(e.message); }
+        if (!S.live) placeKeySet(p.k);
+        draw(T("{name} now points to where the board is watching.", {name: p.k}));
+      };
+      for (const b of el.querySelectorAll("[data-rm]")) b.onclick = async () => {
+        const p = places.list[+b.dataset.rm]; if (!p) return;
         ctlSound.press();
-        placesSave(places.list.filter(p => p.k !== b.dataset.rm)).then(() => { if (placeKeyNow() === b.dataset.rm) usePlace(homePlace()); draw(); }).catch(e => say(e.message));
+        try { await placesSave(places.list.filter(q => q !== p)); } catch (e) { return say(e.message); }
+        if (S.placeKey === p.k) placeKeySet("");
+        draw(T("{name} removed.", {name: p.k}));
       };
       const lv = el.querySelector("[data-live]");
-      if (lv) lv.onclick = async () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else await liveStart(); draw(); };
-      const q = el.querySelector("[data-q]"), res = el.querySelector("[data-res]");
-      const search = async () => {
-        if (busy || q.value.trim().length < 2) return;
-        busy = true; ctlSound.press(); say(T("Searching …"));
-        try {
-          const hits = await geoSearch(q.value.trim());
-          res.innerHTML = hits.length ? hits.map((h, i) => `<button class="cBtn" type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b><small>${escH(h.name)}</small></button>`).join("") : "";
-          say(hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark."));
-          for (const b of res.querySelectorAll("[data-hit]")) b.onclick = () => {
-            const h = hits[+b.dataset.hit]; ctlSound.press();
-            pending = {lat: h.lat, lon: h.lon, n: h.short || h.name.split(",")[0], label: (h.short || "").slice(0, 24)};
-            draw();
-          };
-        } catch (e) { say(e.message); } finally { busy = false; }
-      };
-      el.querySelector("[data-s]").onclick = search;
-      q.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); search(); } };
-      el.querySelector("[data-here]").onclick = () => { ctlSound.press(); pending = {lat: +S.lat, lon: +S.lon, n: S.place, label: "", home: S.home}; draw(); };
-      const add = el.querySelector("[data-add]");
-      if (add) add.onclick = async () => {
-        const label = el.querySelector("[data-l]").value.trim();
+      if (lv) lv.onclick = () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else liveStart(); draw(); };
+      const inp = el.querySelector("[data-l]"), add = el.querySelector("[data-add]");
+      const save = async () => {
+        let label = inp.value.trim().replace(/[<>"&\x00-\x1f]/g, "");
+        if (label === "home") label = "Home";          // "home" alone is the profile's own place on the relay
         if (!label) return say(T("Give the place a name."));
-        if (/^(home|live)$/i.test(label) || places.list.some(p => p.k.toLowerCase() === label.toLowerCase())) return say(T("That name is taken; pick another."));
+        if (/^live$/i.test(label)) return say(T("That name is taken; pick another."));
+        if (places.list.some(p => p.k.toLowerCase() === label.toLowerCase())) return say(T("{name} is saved already: use its Update button to move it here.", {name: label}));
+        if (S.live) return say(T("Turn off live location first, or save the place once you've arrived."));
         ctlSound.press(); say(T("Saving …"));
-        let home = pending.home || "";
-        if (!home) { try { const a = await nearestAirport(pending.lat, pending.lon); home = a ? a.code : clean(S.home); } catch { home = clean(S.home); } }
-        const p = {k: label, n: pending.n || label, lat: +(+pending.lat).toFixed(5), lon: +(+pending.lon).toFixed(5), home, r: +S.radiusKm || 15};
-        try { await ensureHome(); await placesSave([...places.list, p]); } catch (e) { return say(e.message); }
-        cardClose(); usePlace(p);
+        try { await placesSave([...places.list, placeOfS(label)]); } catch (e) { return say(e.message); }
+        placeKeySet(label);
+        draw(T("Saved as {name}.", {name: label}), "");
       };
+      add.onclick = save;
+      inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); } };
     });
   };
   draw(T("Loading …"));
@@ -3931,7 +4062,7 @@ function logbookSummary(){
 }
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map(), rep: new Map(), sel: ""};
-const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#8a8d93", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
+const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#7166b8", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
   for (const o of all) {                    // when this position was reported: a repeat of the same one keeps its time
@@ -4063,12 +4194,14 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
+  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
-    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt"><span data-pl="from">${placeHtml(e.from)}</span><i>→</i><span data-pl="to">${placeHtml(e.to)}</span></div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
+  return `<li class="fl${col ? " sp" : ""}${listsOk() ? " plus" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><time>${escH(e.time || "")}</time>` +
+    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
+    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -4232,7 +4365,7 @@ function renderToday(){
   const ap = $("svPlaces");
   if (ap) {
     ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
-    ap.textContent = allPlaces ? T("All places") : placeName(placeKeyNow());
+    ap.textContent = allPlaces ? T("All places") : placeLabel();
     ap.setAttribute("aria-pressed", String(allPlaces));
   }
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
@@ -4256,6 +4389,7 @@ async function fetchLogbook(){
     catch (e) { lbError = netError(e, "relay"); }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
+  achCheck((lbData() || {}).game);
   renderLogbook();
 }
 let lbSig = "";
@@ -5465,6 +5599,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.38", date: "2026-10-17", notes: [
+    "Places are simpler: save where the board is watching under a name, tap a saved place to watch it, update or delete any of them, Home included.",
+    "Tap the status dot by the clock in the app to see the connection: the data source, the last update and Flightradar24.",
+    "List rows have a + for Favourite / Hide; airlines, places and aircraft types are marked and open their cards.",
+    "Achievements pop up: a completed collection, a bingo line or a new trophy, with confetti and the bell, closing by themselves.",
+    "Outbound planes are violet on the radar."]},
   {v: "1.37.0.1", date: "2026-10-17", notes: [
     "Fewer gaps in the live positions when a data source is busy."]},
   {v: "1.37", date: "2026-10-17", notes: [
@@ -5720,7 +5860,7 @@ let savedTimer = 0;
 function buildSaveBar(){
   $("saveBtn").onclick = () => {
     ctlSound.press();
-    applySettings(draft); placeSync(); cockpitOpen();
+    applySettings(draft); placeCheck(); cockpitOpen();
     const b = $("saveBtn");
     b.textContent = T("Saved"); clearTimeout(savedTimer);
     savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
@@ -5794,6 +5934,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
   planeCard({ac: row.ac, alt: row.alt});
 });
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
+$("dot").onclick = statusCard;
 $("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
@@ -5805,13 +5946,14 @@ lookAuto();
 addEventListener("pointerup", function lookFirst(){ removeEventListener("pointerup", lookFirst); lookAuto(); });
 /* ---------- favourites and hidden planes (1.31, relay 31) ----------
    The lists live on the relay (userLists, shared code), so the boards and the notifications follow them. Here: a sheet
-   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' ⋯ and
+   to switch a plane's aircraft, type, airline or flight on or off as a favourite or hidden (from the lists' + and
    This aircraft), and the manager in Settings. */
 const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, emergencies)"], ["watch", "Watchlist (police, ambulance, government, historic …)"],
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
-// A row of the lists: its airline and places open their cards, the rest the favourite/hide sheet.
+// A row of the lists: its airline, places and type open their cards, its + the favourite/hide sheet (1.38: the rest of
+// the row does nothing, so a tap meant for a card can't open the sheet).
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-more]");
   if (!b) return;
@@ -5822,7 +5964,7 @@ document.addEventListener("click", e => {
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
-  listSheet(x);
+  if (e.target.closest("[data-add]") && listsOk()) listSheet(x);
 }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
@@ -6228,7 +6370,34 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${S.live ? "◉ " : ""}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
+// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
+function statusCard(){
+  ctlSound.press();
+  const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
+  const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
+  const draw = () => {
+    const stale = lastFreshness.startsWith("stale"), rv = window.OVERHEAD_RELAY_VERSION || 0;
+    const relayRow = S.demo ? ok("meh", T("Demo mode · sample flights, not live data")) : !relay() ? ok("bad", T("Not connected: open the app through the home relay"))
+      : isOffline() ? ok("bad", T("No answer for over a minute · retrying")) : lastOk ? ok("good", T("Connected")) : ok("meh", T("Connecting…"));
+    const srcRow = !feedName ? escH(T("None yet")) : ok(stale ? "meh" : "good", stale ? T("{src} · last good copy, {n} s old", {src: feedName, n: lastFreshness.split(" ")[1] || "?"}) : T("{src} · live", {src: feedName}));
+    const fr = !USE_API ? T("Not used") : apiOn() ? T("On") : window.OVERHEAD_FR24 === true ? T("On, not answering · free sources for now") : T("Off · free sources");
+    return factsHtml([["Relay", relayRow], ["Position source", srcRow],
+      ["Last update", escH(lastOk ? ago(lastOk) : T("None yet"))],
+      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : escH(T("None"))],
+      ["In range", escH(T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}))],
+      ["Flightradar24", escH(fr)], ["Relay version", rv ? escH(String(rv)) : ""]]);
+  };
+  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>`);
+  const tick = setInterval(() => {
+    const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
+    if (!el) return clearInterval(tick);
+    const h = draw(); if (el.innerHTML !== h) el.innerHTML = h;
+  }, 1000);
+}
+function updateWhere(){
+  const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
+  $("where").textContent = `${S.live ? "◉ " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+}
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

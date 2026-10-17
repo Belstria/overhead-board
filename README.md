@@ -136,9 +136,11 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
   today's planes, a few words from Wikipedia, Favourite / Hide), a place (From, To) for its airport (name, codes,
   distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
-  Remarks). In the phone app and on the full board alike: on the board a tap on a row of Recent flights or Spotted today
-  opens the favourite/hide sheet, a plane on the radar its card, the airline field the airline; a **double tap** goes full
-  screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
+  Remarks). In the phone app and on the full board alike. What opens a card is marked (1.38): the airline, the places and
+  the aircraft type in the lists are brighter with a dotted underline (on the board a thin dotted line under those flaps).
+  On the board a plane on the radar opens its card and the airline field the airline, and the **+** at the end of a row
+  of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
+  **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
 - **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
   model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've seen
   it and today's count, with Favourite / Hide for the type. In the app, Settings → Account → Change password opens a
@@ -148,7 +150,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
   Commons), credited as such.
-- **Favourites and hidden planes** (1.31, relay 31): in the phone app, tapping any row of the lists (the **⋯**), or
+- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the **+** at the end of a row of the lists (1.38;
+  before, a tap anywhere on the row), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
@@ -184,6 +187,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week, and **17 trophies** (Century, Type
   hunter, Odd couple: a 747 and a helicopter on the same day, Night owl, Bullseye ...) that are won once and kept for
   good; nothing ever resets. An older logbook wins its trophies once from its saved days, on the day they were earned.
+- **Achievements** (1.38; boards and phone app): when a collection is complete, a bingo line is made or a trophy is won,
+  a card pops up with a little confetti and the bell (if chimes are on), and closes by itself after 10 seconds (or tap
+  ×). Each one shows once on each screen; a screen opening the board for the first time doesn't celebrate everything
+  won before.
 - **Watchlist** (1.28, relay 29): the relay downloads [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db)
   once a day, about 17,000 aircraft worth a look, and a plane on it says what it is in its status and the lists:
   POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or
@@ -216,17 +223,21 @@ The main board has everything below. New features are tried on `/test/` first; o
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
   skips it). The two styles sit in the title as a switch: tap the other one to change. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
-- **Places** (1.37, relay 33; Settings → Location → **Places & live location**, or tap the place under the title in
-  the app): save places such as Home or Work (from an address search, or where the board looks now) and switch between
-  them with a tap. Places are kept on the relay, so all of a person's devices (or all screens at home) share them; each
-  device watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and
+- **Places** (1.37, simpler since 1.38, relay 33; Settings → Location → **Places & live location**, or tap the place
+  under the title in the app): set the location in Settings as usual (address search, latitude and longitude, or Use
+  current location), then in the Places card **save where the board is watching now** under a name (Home, Work,
+  London ...). Saved places are a plain list: tap one to watch it, **Update** moves it to where the board is watching
+  now, **×** deletes it. Home is a name like any other, so it can be moved or deleted too, and nothing is saved by
+  itself. Changing the location in Settings leaves the saved place it came from as it was (the title then shows the
+  new place without a name). Places are kept on the relay, so all of a person's devices (or all screens at home) share
+  them; each device watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and
   records count them all), and **Spotted today shows the place being watched**, so the TVs keep showing the sky over
   home while a phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today
   has a switch to show every place at once, with each plane's place. Sightings carry their place in the logbook's CSV.
 - **Live location** (1.37; the app through the https address, or the Android app): **Follow this phone's location** in
   the Places card makes the board watch where the phone is while the app is open; it names the town (OpenStreetMap)
   and picks the nearest airport as it moves, and its planes count as "On the go". The title shows ◉ while it follows.
-  Turning it off goes back to the place before. The TVs can't follow (browsers only share their location with https
+  Turning it off goes back to the place before (or stays where it is if that saved place was deleted meanwhile). The TVs can't follow (browsers only share their location with https
   pages).
 - **Find an address** (1.37, relay 33; Settings → Location): type an address or a place and pick it from the list:
   the place name, latitude and longitude are filled in, and the nearest airport becomes the home airport. The search
@@ -323,7 +334,11 @@ Five buttons along the bottom:
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
-  Hide… (1.33).
+  Hide… (1.33). Outbound planes are violet (1.38), apart from the dark grey of the ones too high to count.
+- **Connection** (1.38): the small dot by the clock is green while live, amber when the data is late or a demo, red when
+  there is none. Tap it for a card: connected to the relay or not, the position source and whether its data is live or
+  the last good copy, when the last update came, failed attempts, planes in range, Flightradar24 on or off and the
+  relay's version.
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
