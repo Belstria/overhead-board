@@ -109,7 +109,7 @@ function placeRow(ids, gaps, y, step, ratio, x0){
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
 const HERO = makePanel($("hero"), 390, 404, 10.5);
 def(HERO, "flight",  {kind:"chars", n:7, dur:82, label:["Flight","Flug"], loud:1});
-def(HERO, "remarks", {kind:"word",  n:6.3, dur:120, words:"remarks", label:["Status",""], loud:1});
+def(HERO, "remarks", {kind:"word",  n:6.3, dur:70, words:"remarks", label:["Status",""], loud:1});
 def(HERO, "airline", {kind:"word",  n:13.93, dur:120, words:"airline", label:["Airline","Fluglinie"], loud:1});
 def(HERO, "fromCode",{kind:"chars", n:3, dur:82, style:"amber", label:["From","Von"], loud:1});
 def(HERO, "fromCity",{kind:"chars", n:10, dur:82, loud:1});
@@ -171,7 +171,7 @@ for (let i = 0; i < NOW_ROWS; i++) {
   def(RECENTP, `nl${i}from`,    {kind:"chars", n:10, dur:60, loud:.5, label:lab("From")});
   def(RECENTP, `nl${i}to`,      {kind:"chars", n:10, dur:60, loud:.5, label:lab("To")});
   def(RECENTP, `nl${i}type`,    {kind:"chars", n:14, dur:60, loud:.5, label:lab("Aircraft")});
-  def(RECENTP, `nl${i}remarks`, {kind:"word",  n:10, dur:95, words:"remarks", small:true, loud:.5, label:lab("Remarks")});
+  def(RECENTP, `nl${i}remarks`, {kind:"word",  n:10, dur:60, words:"remarks", small:true, loud:.5, label:lab("Remarks")});
   placeRow(["time", "flight", "from", "to", "type", "remarks"].map(c => `nl${i}${c}`), [.8, .8, .8, .8, .8], 18 + i * 30, s, 1.45, UM);
 }
 const APP = makePanel($("apP"), 900, 196);
@@ -180,7 +180,7 @@ for (const k of ["d", "a"]) for (let i = 0; i < NOW_ROWS; i++) {
   def(APP, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
   def(APP, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
   def(APP, id("city"),   {kind:"chars", n:10, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
-  def(APP, id("st"),     {kind:"word",  n:8, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  def(APP, id("st"),     {kind:"word",  n:8, dur:60, words:"remarks", small:true, loud:.5, label:lab("Status")});
   placeRow(["time", "flight", "city", "st"].map(id), [.6, .6, .6], 18 + i * 30, s, 1.45, dep ? UM : UM + 34.2 * s);
 }
 const ACP = makePanel($("acP"), 560, 192);
@@ -202,7 +202,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) for (let i = 0; i < 5; i++) {  
   def(P, id("time"),   {kind:"chars", n:5, drum:DRUM_DIGIT, dur:60, style:"amber", loud:.5, label:lab(dep ? "Time" : "Due")});
   def(P, id("flight"), {kind:"chars", n:7, dur:60, loud:.5, label:lab("Flight")});
   def(P, id("city"),   {kind:"chars", n:7, dur:60, loud:.5, label:lab(dep ? "To" : "From")});
-  def(P, id("st"),     {kind:"word",  n:7, dur:95, words:"remarks", small:true, loud:.5, label:lab("Status")});
+  def(P, id("st"),     {kind:"word",  n:7, dur:60, words:"remarks", small:true, loud:.5, label:lab("Status")});
   placeRow(["time", "flight", "city", "st"].map(id), [.4, .4, .4], 18 + i * 30, s, 1.45, UM);
 }
 RECENTP.off = APP.off = ACP.off = APDP.off = APAP.off = true;

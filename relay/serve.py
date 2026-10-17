@@ -194,7 +194,7 @@ def aircraft(lat, lon, nm):
             if now < st["cooldown_until"]:
                 tried.append(f"{src['name']} resting {int(st['cooldown_until'] - now)} s")
                 continue
-            wait = st["last_call"] + SOURCE_GAP_S - time.time()
+            wait = st.get("last_call", 0.0) + SOURCE_GAP_S - time.time()
             if wait > 0:                          # another place was just asked for; space the calls out
                 time.sleep(wait)
             t0 = time.time()

@@ -265,6 +265,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   seeded quietly the first time), and `achNext()` shows a card (confetti(), `chime("special")`) that closes after
   `ACH_MS` (10 s) and waits while another card is open. `RADAR_COL.away` (Outbound) is violet.
   Relay 35 fixed relay 34's custom `--source` state (no `last_call`: every position request failed).
+  The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
@@ -287,7 +288,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## Testing a change
 
-0. `py tools/test/smoke.py` loads every page against the test relay and fails on a page error (GitHub runs it on
+0. `py tools/test/smoke.py` checks the test relay serves positions, loads every page against it and fails on a page error (GitHub runs it on
    pull requests).
 1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
    `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights
