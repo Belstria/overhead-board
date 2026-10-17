@@ -21,6 +21,8 @@ function loadSettings(){
 let meQ = 0;
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
+  const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
+  changed = rest;
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
   const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
   clearTimeout(meQ);
@@ -393,7 +395,7 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
     if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
@@ -411,7 +413,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
     if (j.stats) relayStats = j.stats;
     renderToday();
@@ -472,7 +474,7 @@ function placeHtml(a){
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || "")].filter(Boolean).join(" · ");
+  const meta = [e.type ? `<span data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   return `<li class="fl${col ? " sp" : ""}"${style}${listsOk() ? ` data-more="${escH(e.id || e.hex || "")}"` : ""}><time>${escH(e.time || "")}</time>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span data-al>${escH(e.airline)}</span>` : ""}</div>` +
@@ -628,7 +630,13 @@ function renderToday(){
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
   $("svSum").textContent = spottedSummary();
-  const sig = svFilter + S.units + d.rows.map(rowSig).join("~");
+  const ap = $("svPlaces");
+  if (ap) {
+    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
+    ap.textContent = allPlaces ? T("All places") : placeName(placeKeyNow());
+    ap.setAttribute("aria-pressed", String(allPlaces));
+  }
+  const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
   $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
@@ -1019,9 +1027,12 @@ function renderRadarCard(){
   const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
   if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
   $("rvHint").hidden = true;
-  const b = planeBody(o), html = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html;
-  if (html === rcardSig) return;
-  rcardSig = html; box.innerHTML = html; box.hidden = false;
+  const b = planeBody(o);
+  if (b.sig === rcardSig && !box.hidden) {                 // the same plane and facts: only the numbers move
+    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+    return;
+  }
+  rcardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
   b.wire(box);
   box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
 }
@@ -1164,7 +1175,9 @@ const COCKPIT = [
     {k: "lon", type: "lcd", label: "Longitude", max: 12},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "locate", label: "Current location", span: 2}]},
+    {type: "locate", label: "Current location", span: 2},
+    {type: "places", label: "Places", span: 2},
+    {type: "search", label: "Find an address", span: 2}]},
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
@@ -1358,7 +1371,9 @@ function cockpitOpen(){
       el.querySelector(".dec").onclick = () => roll(-1);
     }
   }
-  wireLocate(box);
+  wireLocate(box); wireSearch(box);
+  const pb = box.querySelector("[data-places]");
+  if (pb) { pb.disabled = !placesRelay(); pb.onclick = () => placesCard(); }
   cockpitShow();
   renderAbout();
 }
@@ -1372,7 +1387,7 @@ let savedTimer = 0;
 function buildSaveBar(){
   $("saveBtn").onclick = () => {
     ctlSound.press();
-    applySettings(draft); cockpitOpen();
+    applySettings(draft); placeSync(); cockpitOpen();
     const b = $("saveBtn");
     b.textContent = T("Saved"); clearTimeout(savedTimer);
     savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
@@ -1445,6 +1460,8 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
   if (x >= city.x && x <= city.x + city.n * city.step) return placeCard(k === "d" ? info.to : info.from);
   planeCard({ac: row.ac, alt: row.alt});
 });
+$("where").onclick = () => { if (placesRelay()) placesCard(); };
+$("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
@@ -1565,7 +1582,7 @@ async function accountBox(el, onChange){
 }
 
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
-   Browser push, which only works on https (fallblatt.app). The service worker (sw.js next to the app) shows them. */
+   Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
@@ -1615,7 +1632,7 @@ async function renderPush(){
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
-  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → fallblatt.app → Sound and pick it."))} ` +
+  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
     `<a href="airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
@@ -1878,7 +1895,7 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (tab === "about") renderAbout();
 }
-function updateWhere(){ $("where").textContent = `${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
+function updateWhere(){ $("where").textContent = `${S.live ? "◉ " : ""}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`; }
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

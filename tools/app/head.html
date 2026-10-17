@@ -320,6 +320,8 @@ body.arOpen{overflow:hidden}
 .apPick{display:none;gap:12px;margin:2px 0 14px}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
 #t-now.ap .apPick{display:flex}
+.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svPlaces{margin:0 0 10px;width:auto!important;padding:0 14px}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -383,7 +385,7 @@ body.arOpen{overflow:hidden}
   #mark{width:28px;height:28px}
   .title{flex:0 1 auto}
   .title h1{font-size:18px}
-  .title p{margin-top:3px;font-size:9.5px}
+  .title p,.title .where{margin-top:3px;font-size:9.5px}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
   #top .pages .cap{width:104px;height:30px;margin:0;font-size:9.5px;letter-spacing:.05em}
   #clockP{width:84px}
@@ -453,7 +455,7 @@ body.arOpen{overflow:hidden}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><p id="where"></p></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><span class="dot" id="dot"></span></div>
   </div>
@@ -510,6 +512,7 @@ body.arOpen{overflow:hidden}
       <div class="groove"></div>
       <div class="tools" id="svTools"></div>
       <p class="sum" id="svSum"></p>
+      <button class="cap small svPlaces" type="button" id="svPlaces" hidden></button>
       <ol class="flights" id="svList"></ol>
       <p class="status statusText"></p>
     </div>

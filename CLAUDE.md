@@ -203,7 +203,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   by `passkey_signin`, a small CBOR reader `_cbor`, challenges in memory for 5 min). Guests use `/account` (GET) and
   `/account/user|password|passkey/begin|finish|remove` (same-origin JSON POSTs); anyone can open `/signin` and POST
   `/signin/begin|passkey|password` (rate-limited), which adds a device to that profile (`add_device`) and sets the
-  cookie. The relying party is the Host (fallblatt.app; localhost while testing, `secure()`). The app's `accountBox()`
+  cookie. The relying party is the Host (the public address; localhost while testing, `secure()`). The app's `accountBox()`
   serves About → Account and the welcome's `wAcct` step (after notifications; https only).
 - Favourites and hidden (relay 31, app 1.31): `lists` per profile (`/lists` GET/POST, `_clean_list`, `lists_of`,
   `_list_hit`); the boards' `userLists`/`listsLoad()` (every 5 min), `favList()` adds the favourites, `isHidden`/`hiddenAc`
@@ -226,6 +226,27 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   model). The app's `pwCard` sets or changes the password. The board maps a click to its own units (`fieldAt`, `boardTap`; a double
   tap is `toggleFullscreen`), the app its hero panel. `remarkLines()` fills the Remarks flap (`seen` field) and facts.
   `keys/index.html` is the remote key test.
+- Places (relay 33, app 1.37; shared "places" block before the airport mode, copied by the app): `places` per profile
+  (`/places` GET/POST, `_clean_places`: `{k: "home" or the label, n, lat, lon, home, r}`; home's in `profiles["home"]`),
+  `placesLoad`/`placesSave`, `homePlace()` (the saved Home, or at home the relay's defaults), `ensureHome()` before
+  leaving home, `usePlace()` (applySettings + `placeAfter()`, which resets Spotted today), `placeSync()` after a Settings
+  save. A screen names its place on each position request (`placeQs()`: `?pl=key&pc=lat,lon&pr=km`, nothing for home;
+  `screen_place`), `Spot.take(..., place)` records around that place with `e.place` (absent = home), and a plane already
+  logged today from another place in the same pass only extends that pass (no double entries). `/sightings?place=`
+  filters (`sightPlaceQ()`; the app's Today `#svPlaces`/`allPlaces` asks for all). Live location (`S.live`, `S.livePrev`,
+  device-only: kept out of `/me`): `liveStart/liveStop/liveRun/liveFix` (watchPosition, or `hereNow()` every minute in
+  the Android app; moves over 300 m move the point, new names via `/geo/reverse` over 2 km, nearest airport over 15 km),
+  key "live", shown as "On the go". Address search: `/geo/search` and `/geo/reverse` (Nominatim, one request a second,
+  cached a day; `geo_search`, `geo_reverse`), the cards' `placesCard()` and Settings' `wireSearch()` (`type: "search"`).
+- Hardening (relay 33, from the code review): `host_ok()` refuses requests for names that aren't the relay's (DNS
+  rebinding; loopback, i.e. the tunnel, always passes; `--allow-host`, saved), `https()` only believes the tunnel,
+  password sign-in has `pw_wait`/`pw_failed` backoff and a dummy check for unknown users, `allow()` trims its table
+  instead of emptying it, `/push/subscribe` needs same-origin and a push-service endpoint (`push_endpoint_ok`),
+  `cached_or_stale` keeps a failed GitHub download from being retried on every request, `_positions` and `_cache` drop
+  old entries and position requests are rounded to 0.01°, passkeys are removed by their whole id, the CSV defuses
+  formulas (`_csv_safe`). Board: `poll()` numbers its updates (`pollSeq`) and draws outside the try; the app's radar card
+  only updates its numbers (`planeBody(...).sig/dyn`). `tools/test/smoke.py` and `.github/workflows/check.yml` check
+  pull requests.
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
@@ -248,6 +269,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## Testing a change
 
+0. `py tools/test/smoke.py` loads every page against the test relay and fails on a page error (GitHub runs it on
+   pull requests).
 1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
    `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights
    and serves this checkout at `http://localhost:8096/` (`/test/`, `/app/`). Dave's real relay and

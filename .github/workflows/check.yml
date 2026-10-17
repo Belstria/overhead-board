@@ -1,0 +1,34 @@
+name: Check
+
+# Every pull request: the relay compiles, the phone app is up to date with the board, the pages' scripts parse, and
+# the boards and the app load against made-up flights without a page error (tools/test/smoke.py).
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Tools
+        run: |
+          pip install playwright cryptography
+          python -m playwright install --with-deps chromium
+      - name: The relay compiles
+        run: python -m py_compile relay/serve.py
+      - name: The phone app is built from the board
+        run: |
+          python tools/app/build.py
+          git diff --exit-code app/index.html || (echo "app/index.html is out of date: run py tools/app/build.py" && exit 1)
+      - name: The scripts parse
+        run: python tools/test/smoke.py --syntax
+      - name: The pages load without errors
+        run: python tools/test/smoke.py
