@@ -294,6 +294,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   home network itself (`at_home()`).
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
   `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
+- Position sources (`SOURCES`, tried in order): adsb.lol, adsb.fi (v3 since relay 36; 1 request a second, so
+  `SOURCE_GAP_S`; failed requests count towards a temporary IP block), airplanes.live (403 until Dave's email is
+  answered), then AvioADSB (relay 36, emergency only: anonymous tier 1 request/10 s and 100/day per network, personal
+  non-commercial use, CC BY 4.0; the source's `gap` 15 s is skipped rather than waited for, `day_cap` 90 per UTC day,
+  also stopped by `X-RateLimit-Remaining: 0`; `/status` shows `used_today`). Their terms want a credit with a link:
+  the board's `siteLinks()` turns the names in About's credits (and the app's privacy line) into links (`SITE_LINKS`).
+  OpenSky is ruled out (needs a written licence).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
 - Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
