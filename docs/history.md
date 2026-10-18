@@ -386,6 +386,27 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `rwf0-7`, `rwNew`; Logbook tools button "Week & month", Week/Month/◀▶ via `data-s`/`data-b`), shared helpers after
   `logbookSummary()` (E24: `review`, `fetchReview`, `reviewData`, `demoReview`, `reviewTitle`, `reviewSummary`,
   `reviewFacts`, `REVIEW_NUMS`); app `reviewHtml()` above the year card.
+- 1.53 (to-do #51): the plane card (`planeBody`, cards block, so also app and light) has **Share** when `SHARE_OK`
+  (not a TV user agent). `shareCard(x)` → `shareCanvas(x)`: 1200 wide, the photo 630 high on top (cover) when
+  `shareImg` gets it (relay 47 `/photo?u=` as a blob → object URL, so the canvas stays clean; else Wikimedia with
+  `crossOrigin`; else none), then flaps drawn by `flaps()` (flight, route codes + cities, aircraft, registration, time)
+  and FALLBLATT on tiny flaps. The card shows the PNG; Share = `navigator.share({files})` or the Android app's
+  `OverheadAndroid.shareImage(base64, name)` (`ShareProvider`, content://<app>.share/, cache/share/), Save = download
+  (not in the Android WebView). Relay `photo_get`: `PHOTO_HOSTS`/`PHOTO_TYPES` only, 4 MB, last 30 cached an hour;
+  the test relay adds 127.0.0.1 and SVG (the fake photos).
+- 1.53 (to-do #52): `S.nightView` "dim"/"view" (Settings → Night, `cols: 3`; `?nightview=1`). `#nightView` (in #stage,
+  z 6, board units via `--k`) is drawn by `renderNightView()` (from `applyNight`, every 2 s; not while a card is
+  open). A capture listener (keydown/pointerdown/touchstart/wheel) calls `nightPeek()` (60 s) and swallows the key
+  that uncovers it; a pointer lands on the fading overlay. The app and light have no night mode, so no night view.
+- Relay 47 (to-do #46): `window_check` split into `window_planes(who, centre, spot, st)` (the planes worth a look with
+  `kinds`, `airline`) and the alerts. `hue_check` (thread `_hue_watch`, every 15 s) takes the owner profile's place,
+  pulses for the first plane with kind special/fav not in `_hue_seen` (3 h), at most every `HUE_GAP_S` (60 s), not in
+  the quiet hours. `hue_pulse(rgb, what)` saves each lamp's state, 3 steps (254/110/254), restores bri + xy/ct/hs,
+  then off for lamps that were off. Colours `HUE_COLOURS` by ICAO, else `HUE_AMBER`. Admin: `hue_admin_html`,
+  `/admin/hue/{find,use,pair,forget,switch,quiet,lamps,test}` (`hue_admin_post`); `hue_find` uses
+  `HUE_DISCOVERY` and checks `/api/config`; `hue_addr` only private/loopback IPv4; `hue_pair` asks every 2 s for 30 s
+  (error 101 = button not pressed) and the admin page refreshes itself meanwhile (`plain_page(refresh=)`).
+  `tools/test/fakehue.py`: pairing works on the second try, `/log` lists lamp changes, `/discovery`.
 - Relay 46 (to-do #45): `admin_stats(pid, p, live)` per profile card on `/admin`: today/week/total, new aircraft and
   types this week/month (from `review_json`), rare this month, live screens whose hello name is the profile's.
 - Relay 46 / 1.52 (to-do #50): `_vie_load` keeps `gate`/`gateArea` (departures) and `belt` (arrivals) from Vienna's
@@ -413,6 +434,5 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 Wake The Frame and reopen the board when it drops off,
 Art Mode at night (Samsung's local TV API); a spotter's
 collection page and weekly bingo of rare planes; rarity marks ("first time ever", "seen 4 times"); worth going to
-the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; a Hue
-light pulse for special planes (local Hue Bridge API), phone push via ntfy; a Vestaboard-style 6x22 view; a report of
+the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; phone push via ntfy; a Vestaboard-style 6x22 view; a report of
 what Flightradar24 added, to decide on renewing.

@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 46
+RELAY_VERSION = 47
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3251,9 +3251,10 @@ button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}but
 font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
 
 
-def plain_page(title, body):
+def plain_page(title, body, refresh=None):
+    meta = f'<meta http-equiv="refresh" content="{int(refresh)}">' if refresh else ""
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,'
-            f'initial-scale=1"><title>{html.escape(title)}</title><style>{PAGE_CSS}</style></head><body><main>'
+            f'initial-scale=1">{meta}<title>{html.escape(title)}</title><style>{PAGE_CSS}</style></head><body><main>'
             f'<div class="word" role="img" aria-label="Fallblatt">{WORDMARK}</div>{body}</main></body></html>').encode("utf-8")
 
 
@@ -3375,8 +3376,8 @@ def admin_html(host, made=None):
             f"<h2>People</h2>{people}<p class=muted>Flightradar24 a day: {FR24_DAY_GUEST:,} credits for a guest, {FR24_DAY_ACCOUNT:,} "
             f"with an account, unless set here.</p><h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
-            f"<button class=go>Make a link</button></form>" + fr24_admin_html())
-    return plain_page("Fallblatt: friends & family", body)
+            f"<button class=go>Make a link</button></form>" + fr24_admin_html() + hue_admin_html())
+    return plain_page("Fallblatt: friends & family", body, refresh=3 if hue_pairing() else None)
 
 
 def fr24_admin_html():
@@ -3756,20 +3757,17 @@ def _push_prefs(p):
     return out
 
 
-def window_check(who, subs, centre, spot, st):
-    """Planes worth going to the window for: passing within 5 km in the next 3 minutes, and of a kind the device asked
-    for (special, watchlist, military, favourite, a new type, very low); the alert says why."""
-    want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("window", True)]
-    if not want:
-        return
+def window_planes(who, centre, spot, st):
+    """Planes worth going to the window for: passing within 5 km in the next 3 minutes, with why (special, watchlist,
+    military, favourite, a new type, very low; most telling first). Relay 47: shared by the alerts and the Hue pulse."""
     # rounded like the screens' requests (relay 34), so the alerts share their answer instead of asking again
     status, body, _, _ = aircraft(f"{centre[0]:.2f}", f"{centre[1]:.2f}", "25")
     if status != 200:
-        return
+        return []
     try:
         planes = json.loads(body).get("ac") or json.loads(body).get("aircraft") or []
     except ValueError:
-        return
+        return []
     lat0, lon0 = centre
     kx, ky = 111.32 * math.cos(math.radians(lat0)), 110.57
     with _data_lock:
@@ -3777,10 +3775,7 @@ def window_check(who, subs, centre, spot, st):
         types, learning = book.get("types", {}), time.time() - book.get("startedTs", 0) < LEARN_S
     favs = _fav_tokens(st)
     fav_list, hide_list = lists_of(who)
-    hour = time.localtime().tm_hour
-    now = time.time()
-    for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
-        del _sent[k]
+    out = []
     for ac in planes:
         if not isinstance(ac, dict) or ac.get("lat") is None or ac.get("alt_baro") == "ground" or not ac.get("gs") or ac.get("track") is None:
             continue
@@ -3819,6 +3814,21 @@ def window_check(who, subs, centre, spot, st):
         if not kinds:
             continue
         what = " ".join(x_ for x_ in [ac.get("desc") or tc, cs] if x_) or reg or ac.get("hex", "").upper()
+        out.append({"ac": ac, "kinds": kinds, "what": what, "t": t, "cpa": cpa, "cx": cx, "cy": cy, "alt": alt, "airline": al})
+    return out
+
+
+def window_check(who, subs, centre, spot, st):
+    """The alerts: each plane worth a look (window_planes) to the devices that asked for its kind; the alert says why."""
+    want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("window", True)]
+    if not want:
+        return
+    hour = time.localtime().tm_hour
+    now = time.time()
+    for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
+        del _sent[k]
+    for pl in window_planes(who, centre, spot, st):
+        ac, kinds, what, t, cpa, cx, cy, alt = (pl[k] for k in ("ac", "kinds", "what", "t", "cpa", "cx", "cy", "alt"))
         for sub in want:
             key = (sub["endpoint"], ac.get("hex"))
             if key in _sent:
@@ -3908,6 +3918,389 @@ def review_check(who, subs, spot, st):
         if r is not None:
             with _data_lock:
                 _dirty.add("profiles")
+
+
+# A plane's photo for the boards' share picture (relay 47, to-do #51): a browser can't save a picture that has another
+# site's photo in it, so the relay passes the photo on, from the photo sites the boards use only, images only, a few MB
+# at most. The last few are kept an hour.
+PHOTO_HOSTS = ("upload.wikimedia.org", "airport-data.com", ".airport-data.com", "cdn.jetphotos.com", ".plnspttrs.net")
+PHOTO_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
+PHOTO_MAX = 4 * 1024 * 1024
+_photos = collections.OrderedDict()        # url -> (time, content type, bytes)
+
+
+def _photo_host_ok(u):
+    sp = urllib.parse.urlsplit(u)
+    h = (sp.hostname or "").lower()
+    return sp.scheme in ("http", "https") and any(h == p or (p.startswith(".") and h.endswith(p)) for p in PHOTO_HOSTS)
+
+
+def photo_get(u):
+    """(status, content type, body) for a photo URL."""
+    if not _photo_host_ok(u):
+        return 400, "text/plain", b"Not a photo site"
+    with _lock:
+        hit = _photos.get(u)
+        if hit and time.time() - hit[0] < 3600:
+            _photos.move_to_end(u)
+            return 200, hit[1], hit[2]
+    req = urllib.request.Request(u, headers={"User-Agent": USER_AGENT, "Accept": "image/*"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if not _photo_host_ok(r.geturl()) or ctype not in PHOTO_TYPES:
+                return 415, "text/plain", b"Not a photo"
+            body = r.read(PHOTO_MAX + 1)
+    except Exception:
+        return 502, "text/plain", b"Couldn't get the photo"
+    if len(body) > PHOTO_MAX:
+        return 413, "text/plain", b"Too big"
+    with _lock:
+        _photos[u] = (time.time(), ctype, body)
+        while len(_photos) > 30:
+            _photos.popitem(last=False)
+    return 200, ctype, body
+
+
+# Hue light pulse (relay 47, to-do #46; a test feature, the owner's only). When a special or favourite plane is about to
+# pass the owner's place (the moments the window alerts ring for, window_planes), the chosen Philips Hue lamps glow
+# briefly in the airline's colour (amber when it has none here) through the Hue Bridge on the home network, its local
+# API only (no cloud), and then go back to how they were. At most once per plane and once a minute, never in the quiet
+# hours (22:00-07:00) unless turned off. Set up on the admin page: find the bridge (Philips' discovery service, or type
+# its address), press its link button and Pair, pick the lamps. The bridge's username lives in data/hue.json only.
+HUE_FILE = DATA_DIR / "hue.json"           # {addr, name, user, on, quiet, lights: [ids]}
+HUE_DISCOVERY = "https://discovery.meethue.com"
+HUE_GAP_S = 60
+HUE_PAIR_S = 30
+HUE_AMBER = (255, 170, 0)
+HUE_COLOURS = {   # an airline's colour (ICAO code): bright enough for a lamp, so not always the darkest brand colour
+    "AUA": (225, 10, 30), "LDM": (225, 10, 30), "DLH": (250, 180, 0), "SWR": (225, 0, 20), "EWG": (170, 20, 90),
+    "RYR": (20, 60, 170), "EZY": (255, 100, 0), "EJU": (255, 100, 0), "WZZ": (200, 0, 130), "WMT": (200, 0, 130),
+    "WUK": (200, 0, 130), "BAW": (30, 60, 180), "AFR": (0, 50, 170), "KLM": (0, 160, 225), "THY": (200, 15, 45),
+    "PGT": (255, 200, 0), "UAE": (210, 20, 30), "QTR": (120, 10, 70), "ETD": (200, 150, 80), "AEE": (0, 60, 160),
+    "LOT": (20, 60, 150), "SAS": (0, 50, 150), "FIN": (0, 80, 180), "TAP": (0, 170, 80), "IBE": (215, 20, 30),
+    "VLG": (255, 200, 0), "ITY": (0, 80, 200), "EVA": (0, 130, 70), "SIA": (255, 160, 0), "CCA": (215, 20, 30),
+    "KAL": (0, 140, 210), "UAL": (0, 70, 170), "DAL": (200, 20, 50), "AAL": (0, 120, 215), "ELY": (0, 60, 160),
+    "NOZ": (215, 25, 35), "ICE": (0, 70, 150), "FDX": (90, 30, 160), "BCS": (255, 200, 0), "DHK": (255, 200, 0),
+    "CLX": (0, 100, 180), "ETH": (0, 150, 60), "SVA": (0, 120, 80), "FDB": (0, 90, 180), "BTI": (180, 220, 0)}
+_hue = None
+_hue_lock = threading.Lock()
+_hue_seen = {}                             # plane hex -> when it pulsed (once per plane)
+_hue_run = {"pairUntil": 0.0, "last": 0.0, "busy": False, "msg": None, "lastWhat": ""}
+
+
+def hue_state():
+    """The Hue settings (a copy)."""
+    global _hue
+    with _hue_lock:
+        if _hue is None:
+            try:
+                _hue = json.loads(HUE_FILE.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                _hue = {}
+        return dict(_hue)
+
+
+def hue_save(**kw):
+    global _hue
+    hue_state()
+    with _hue_lock:
+        _hue.update(kw)
+        _hue = {k: v for k, v in _hue.items() if v is not None}
+        _write_json(HUE_FILE, _hue)
+        try:
+            os.chmod(HUE_FILE, 0o600)
+        except OSError:
+            pass
+
+
+def hue_say(text, ok=True):
+    _hue_run["msg"] = (time.time(), text, ok)
+    event("info" if ok else "warn", f"Hue: {text}")
+
+
+def hue_pairing():
+    return _hue_run["pairUntil"] > time.time()
+
+
+def hue_addr(text):
+    """A bridge address on the home network (an IPv4 address, :port optional), or None."""
+    m = re.fullmatch(r"\s*(\d{1,3}(?:\.\d{1,3}){3})(?::(\d{1,5}))?\s*", str(text or ""))
+    if not m:
+        return None
+    try:
+        a = ipaddress.ip_address(m.group(1))
+    except ValueError:
+        return None
+    if not (a.is_private or a.is_loopback) or (m.group(2) and not 0 < int(m.group(2)) < 65536):
+        return None
+    return m.group(1) + (f":{int(m.group(2))}" if m.group(2) and int(m.group(2)) != 80 else "")
+
+
+def hue_call(method, path, body=None, addr=None, timeout=4):
+    """The bridge's local API (v1, plain http on the home network): the answer as JSON, or None."""
+    addr = addr or hue_state().get("addr")
+    if not addr:
+        return None
+    req = urllib.request.Request(f"http://{addr}/api{path}", data=json.dumps(body).encode() if body is not None else None,
+                                 method=method, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read(2_000_000) or b"null")
+    except Exception:
+        return None
+
+
+def _hue_error(r):
+    """The bridge's error (type, description) in an answer, or None."""
+    e = r[0].get("error") if isinstance(r, list) and r and isinstance(r[0], dict) else None
+    return (e.get("type"), e.get("description") or "") if isinstance(e, dict) else None
+
+
+def hue_find():
+    """Look for the bridge with Philips' discovery service (it lists the bridges on the network this request comes
+    from) and check it answers here."""
+    status, _, body, _ = fetch(HUE_DISCOVERY, timeout=8)
+    try:
+        found = json.loads(body) if status == 200 else []
+    except ValueError:
+        found = []
+    for b in found if isinstance(found, list) else []:
+        port = b.get("port") if isinstance(b, dict) else None
+        addr = hue_addr(f"{b.get('internalipaddress')}" + (f":{port}" if port not in (None, 80, 443) else "")) if isinstance(b, dict) else None
+        cfg = hue_call("GET", "/config", addr=addr) if addr else None
+        if isinstance(cfg, dict) and cfg.get("bridgeid"):
+            hue_save(addr=addr, name=str(cfg.get("name") or "Hue Bridge")[:40], user=None, lights=None)
+            return hue_say(f"found {cfg.get('name') or 'the bridge'} at {addr}")
+    hue_say("no bridge found (Philips' discovery service didn't list one that answers): type its address instead", False)
+
+
+def hue_use(text):
+    addr = hue_addr(text)
+    if not addr:
+        return hue_say("that isn't an address on the home network (like 192.168.1.20)", False)
+    cfg = hue_call("GET", "/config", addr=addr)
+    if not (isinstance(cfg, dict) and cfg.get("bridgeid")):
+        return hue_say(f"no Hue Bridge answers at {addr}", False)
+    hue_save(addr=addr, name=str(cfg.get("name") or "Hue Bridge")[:40], user=None, lights=None)
+    hue_say(f"found {cfg.get('name') or 'the bridge'} at {addr}")
+
+
+def hue_pair():
+    """Ask the bridge for a username for HUE_PAIR_S seconds, every 2 s: it gives one within 30 s of its link button
+    being pressed, so the button can be pressed just before or after Pair."""
+    if hue_pairing() or not hue_state().get("addr"):
+        return
+    _hue_run["pairUntil"] = time.time() + HUE_PAIR_S
+    hue_say("waiting for the bridge's link button")
+
+    def run():
+        try:
+            while hue_pairing():
+                r = hue_call("POST", "", {"devicetype": "fallblatt#relay"})
+                ok = r[0].get("success") if isinstance(r, list) and r and isinstance(r[0], dict) else None
+                if isinstance(ok, dict) and ok.get("username"):
+                    hue_save(user=str(ok["username"]), on=False, quiet=True, lights=[])
+                    return hue_say("paired: now pick the lamps")
+                err = _hue_error(r)
+                if r is None or (err and err[0] != 101):           # 101: the link button hasn't been pressed
+                    return hue_say("the bridge didn't answer" if r is None else f"the bridge said: {err[1]}", False)
+                time.sleep(2)
+            hue_say("the link button wasn't pressed within 30 seconds: press it, then Pair again", False)
+        finally:
+            _hue_run["pairUntil"] = 0.0
+    threading.Thread(target=run, daemon=True).start()
+
+
+def hue_lamps():
+    """(rooms, names): the bridge's rooms [(name, [light ids])] (lamps in no room last) and {light id: name}; None when
+    the bridge doesn't answer or no longer knows the relay."""
+    st = hue_state()
+    if not st.get("user"):
+        return None
+    lights = hue_call("GET", f"/{st['user']}/lights")
+    if not isinstance(lights, dict):
+        return None
+    groups = hue_call("GET", f"/{st['user']}/groups") or {}
+    names = {i: str((l or {}).get("name") or f"Lamp {i}") for i, l in lights.items()}
+    rooms, placed = [], set()
+    for g in (groups.values() if isinstance(groups, dict) else []):
+        if isinstance(g, dict) and g.get("type") == "Room":
+            ids = [i for i in g.get("lights") or [] if i in names]
+            if ids:
+                rooms.append((str(g.get("name") or "Room"), ids))
+                placed.update(ids)
+    rest = [i for i in names if i not in placed]
+    if rest:
+        rooms.append(("Other lamps", rest))
+    return rooms, names
+
+
+def _xy(rgb):
+    """An sRGB colour as Hue's CIE xy."""
+    lin = [((c / 255 + .055) / 1.055) ** 2.4 if c / 255 > .04045 else c / 255 / 12.92 for c in rgb]
+    X = lin[0] * .4124 + lin[1] * .3576 + lin[2] * .1805
+    Y = lin[0] * .2126 + lin[1] * .7152 + lin[2] * .0722
+    Z = lin[0] * .0193 + lin[1] * .1192 + lin[2] * .9505
+    t = X + Y + Z
+    return [round(X / t, 4), round(Y / t, 4)] if t else [.3227, .329]
+
+
+def hue_pulse(rgb, what):
+    """Glow the chosen lamps in this colour (up, a little down, up again: about 4 s), then put each back as it was:
+    its brightness and colour, and off again if it was off. In a thread; False if it can't start."""
+    st = hue_state()
+    user, ids = st.get("user"), [str(i) for i in st.get("lights") or []]
+    if not (user and ids and st.get("addr")) or _hue_run["busy"]:
+        return False
+    _hue_run.update(busy=True, last=time.time(), lastWhat=what)
+
+    def run():
+        try:
+            saved = {}
+            for i in ids:
+                r = hue_call("GET", f"/{user}/lights/{i}")
+                if isinstance(r, dict) and isinstance(r.get("state"), dict) and r["state"].get("reachable", True):
+                    saved[i] = r["state"]
+            xy = _xy(rgb)
+            for step, wait in (({"on": True, "bri": 254, "xy": xy, "transitiontime": 3}, 1.2), ({"bri": 110, "transitiontime": 5}, .7),
+                               ({"bri": 254, "transitiontime": 5}, 1.8)):
+                for i in saved:
+                    hue_call("PUT", f"/{user}/lights/{i}/state", step)
+                time.sleep(wait)
+            for i, was in saved.items():
+                back = {"bri": was.get("bri"), "transitiontime": 8}
+                if was.get("colormode") == "xy" and was.get("xy"):
+                    back["xy"] = was["xy"]
+                elif was.get("colormode") == "ct" and was.get("ct"):
+                    back["ct"] = was["ct"]
+                elif was.get("colormode") == "hs":
+                    back.update(hue=was.get("hue"), sat=was.get("sat"))
+                hue_call("PUT", f"/{user}/lights/{i}/state", {k: v for k, v in back.items() if v is not None})
+            time.sleep(1)
+            for i, was in saved.items():
+                if not was.get("on"):
+                    hue_call("PUT", f"/{user}/lights/{i}/state", {"on": False, "transitiontime": 6})
+        except Exception as e:
+            event("warn", f"Hue pulse failed: {e}", echo=False)
+        finally:
+            _hue_run["busy"] = False
+    threading.Thread(target=run, daemon=True).start()
+    return True
+
+
+def _hue_quiet(st):
+    h = time.localtime().tm_hour
+    return st.get("quiet", True) and (h >= 22 or h < 7)
+
+
+def hue_check():
+    """A special or favourite plane about to pass the owner's place: pulse, once per plane, once a minute at most."""
+    st = hue_state()
+    if not (st.get("on") and st.get("user") and st.get("lights")) or _hue_quiet(st):
+        return
+    now = time.time()
+    for k in [k for k, t in _hue_seen.items() if now - t > 3 * 3600]:
+        del _hue_seen[k]
+    if now - _hue_run["last"] < HUE_GAP_S:
+        return
+    with _data_lock:
+        own = [(pid, p.get("settings") or {}) for pid, p in profiles()["profiles"].items()
+               if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower()]
+    if len(own) != 1 or own[0][1].get("lat") is None:
+        return
+    pid, ost = own[0]
+    try:
+        centre = (float(ost["lat"]), float(ost["lon"]))
+    except (TypeError, ValueError, KeyError):
+        return
+    for pl in window_planes(pid, centre, guest_spot(pid), ost):
+        kind = next((k for k, _ in pl["kinds"] if k in ("special", "fav")), None)
+        hx = pl["ac"].get("hex")
+        if not kind or hx in _hue_seen:
+            continue
+        _hue_seen[hx] = now
+        if hue_pulse(HUE_COLOURS.get(pl["airline"], HUE_AMBER), pl["what"]):
+            event("info", f"Hue pulse: {pl['what']} ({kind})")
+        return
+
+
+def _hue_watch():
+    while True:
+        time.sleep(15)
+        try:
+            hue_check()
+        except Exception as e:
+            event("warn", f"Hue check failed: {e}", echo=False)
+
+
+def hue_admin_html():
+    """The admin page's Hue section (the admin page is the owner's only)."""
+    esc = html.escape
+    st, msg = hue_state(), _hue_run["msg"]
+    note = (f"<p style='color:{'#3c3' if msg[2] else '#f2b134'}'>{esc(msg[1][:1].upper() + msg[1][1:])} "
+            f"<span class=muted>({_ago(msg[0])})</span></p>" if msg and time.time() - msg[0] < 600 else "")
+    form = lambda action, inner, extra="": f"<form method=post action='/admin/hue/{action}' style='display:inline'{extra}>{inner}</form>"
+    out = ("<h2>Hue lights <span class='tag g'>test</span></h2><p>When a special plane or a favourite is about to pass, chosen "
+           "Philips Hue lamps glow for a few seconds in the airline's colour (amber otherwise), then go back to how they were. "
+           "Only for this profile's place; through the Hue Bridge at home, no cloud.</p>" + note)
+    if not st.get("addr"):
+        return out + (f"<div class=row>{form('find', '<button class=go>Find the bridge</button>')} or "
+                      f"{form('use', '<input type=text name=addr maxlength=21 placeholder=192.168.1.20 style=width:150px> <button>Use this address</button>')}</div>"
+                      "<p class=muted>The address is in the Hue app: Settings → Hue Bridges → ⓘ.</p>")
+    where = f"<b>{esc(st.get('name') or 'Hue Bridge')}</b> at {esc(st['addr'])}"
+    forget = form("forget", "<button class=sm>Forget the bridge</button>", " onsubmit=\"return confirm('Forget the bridge?')\"")
+    if not st.get("user"):
+        if hue_pairing():
+            left = max(0, round(_hue_run["pairUntil"] - time.time()))
+            return out + (f"<p>{where}</p><p style='font-size:20px'><b>Press the round link button on top of the bridge now.</b> "
+                          f"<span class=muted>Waiting {left} s …</span></p>")
+        return out + (f"<p>{where} · not paired yet</p><p>Press the round <b>link button</b> on top of the bridge, then click "
+                      f"Pair within 30 seconds (or click Pair first and press the button while this page waits).</p>"
+                      f"<div class=row>{form('pair', '<button class=go>Pair</button>')} {forget}</div>")
+    lamps = hue_lamps()
+    if lamps is None:
+        return out + (f"<p>{where} · paired, but the bridge doesn't answer or no longer knows the relay.</p>"
+                      f"<div class=row>{form('pair', '<button>Pair again</button>')} {forget}</div>")
+    rooms, names = lamps
+    chosen = {str(i) for i in st.get("lights") or []}
+    boxes = "".join(f"<fieldset style='border:1px solid #26272b;border-radius:8px;margin:6px 0;padding:6px 10px'><legend class=muted>{esc(r)}</legend>"
+                    + "".join(f"<label style='margin-right:14px;white-space:nowrap'><input type=checkbox name='l_{esc(i, quote=True)}' value=1"
+                              f"{' checked' if i in chosen else ''}> {esc(names[i])}</label>" for i in ids) + "</fieldset>" for r, ids in rooms)
+    sw = lambda k, on, label: form(k, f"<input type=hidden name=on value='{'0' if on else '1'}'><button{' class=go' if on else ''}>{label}: {'on' if on else 'off'}</button>")
+    last = (f" <span class=muted>Last pulse {_ago(_hue_run['last'])}: {esc(_hue_run['lastWhat'])}</span>" if _hue_run["last"] else "")
+    return out + (f"<p>{where} · paired · {len(chosen)} lamp{'s' if len(chosen) != 1 else ''} chosen</p>"
+                  f"<div class=row>{sw('switch', bool(st.get('on')), 'Pulse')} {sw('quiet', st.get('quiet', True) is not False, 'Quiet 22:00–07:00')} "
+                  f"{form('test', '<button>Test pulse</button>')}{last}</div>"
+                  f"<form method=post action='/admin/hue/lamps'>{boxes or '<p class=muted>The bridge has no lamps.</p>'}<button>Save lamps</button></form>"
+                  f"<div class=row style='margin-top:10px'>{forget}</div>")
+
+
+def hue_admin_post(what, f):
+    global _hue
+    if what == "find":
+        hue_find()
+    elif what == "use":
+        hue_use(f.get("addr"))
+    elif what == "pair":
+        hue_pair()
+    elif what == "forget":
+        with _hue_lock:
+            _hue = {}
+        try:
+            HUE_FILE.unlink()
+        except OSError:
+            pass
+        hue_say("forgot the bridge")
+    elif what in ("switch", "quiet") and hue_state().get("user"):
+        hue_save(**{"on" if what == "switch" else "quiet": f.get("on") == "1"})
+    elif what == "lamps" and hue_state().get("user"):
+        lamps = hue_lamps()
+        known = set(lamps[1]) if lamps else set()
+        hue_save(lights=[k[2:] for k in f if k.startswith("l_") and k[2:] in known][:50])
+        hue_say(f"{len(hue_state().get('lights') or [])} lamps chosen")
+    elif what == "test":
+        hue_say("test pulse" if hue_pulse(HUE_AMBER, "test") else "no lamps chosen yet (or a pulse is running)", bool(hue_state().get("lights")))
 
 
 # Health watch (relay 45): Dave (the profile named HOME_OWNER) gets a notification when something breaks, and once when
@@ -4505,10 +4898,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/account":
             return self.reply(200, "application/json", json.dumps(account_json(self.guest[0], self.secure())).encode())
+        if path == "/photo":                # relay 47: a plane's photo for the share picture
+            if not allow("photo:" + self.guest[0], 1, 20):
+                return self.reply(429, "text/plain", b"Too many requests")
+            status, ctype, body = photo_get((self.query().get("u") or [""])[0])
+            return self.reply(status, ctype, body)
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -4776,6 +5174,8 @@ class Handler(BaseHTTPRequestHandler):
                 _dirty.add("profiles")
         elif path == "/admin/remove" and f.get("pid"):
             remove_profile(f["pid"])
+        elif path.startswith("/admin/hue/"):
+            hue_admin_post(path[len("/admin/hue/"):], f)
         elif path == "/admin/fr24" and f.get("pid") in profiles()["profiles"]:
             with _data_lock:
                 profiles()["profiles"][f["pid"]]["fr24"] = f.get("on") == "1"
@@ -4938,6 +5338,7 @@ def main():
     threading.Thread(target=_screen_watch, daemon=True).start()
     threading.Thread(target=_push_watch, daemon=True).start()
     threading.Thread(target=_health_watch, daemon=True).start()
+    threading.Thread(target=_hue_watch, daemon=True).start()
     with _data_lock:
         _fr24_data()
         profiles()

@@ -106,6 +106,20 @@ textarea.fav{font:15px var(--f-board);color:var(--ink);background:var(--housing)
 .times{display:flex;gap:8px;align-items:center}
 .times input{width:auto;flex:1}
 #shade{position:absolute;inset:0;z-index:3;background:#000;opacity:0;pointer-events:none;transition:opacity 2s}
+/* 1.53: the night view, dark red on black so it doesn't light up the room */
+#nightView{position:absolute;inset:0;z-index:6;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:calc(14px*var(--k));font-family:var(--f-board);color:#7a1810;text-align:center;opacity:1;transition:opacity .4s;cursor:default}
+#nightView[hidden]{display:none}
+#nightView.off{opacity:0}
+#nightView .nvClock{display:flex;gap:calc(14px*var(--k));margin-bottom:calc(40px*var(--k))}
+#nightView .nvClock b{display:block;position:relative;width:calc(170px*var(--k));height:calc(250px*var(--k));border-radius:calc(12px*var(--k));
+  background:linear-gradient(#120404,#0a0202 49.6%,#000 49.6%,#000 50.4%,#0c0303 50.4%,#070101);font:700 calc(220px*var(--k))/calc(250px*var(--k)) var(--f-board);color:#8c1d13}
+#nightView .nvColon{font:700 calc(180px*var(--k))/calc(250px*var(--k)) var(--f-board);font-style:normal;color:#5c120b}
+#nightView .nvFlight{font:700 calc(92px*var(--k))/1.1 var(--f-board);letter-spacing:.06em;color:#7d1a11}
+#nightView .nvRoute{font:600 calc(52px*var(--k))/1.2 var(--f-board);color:#64140d;max-width:90%}
+#nightView .nvType{font:500 calc(42px*var(--k))/1.2 var(--f-board);color:#50100a}
+#nightView .nvNone{font:600 calc(52px*var(--k))/1.2 var(--f-board);color:#50100a}
+#nightView .nvCount{margin-top:calc(56px*var(--k));font:600 calc(40px*var(--k))/1.2 var(--f-board);letter-spacing:.08em;color:#4a0f09;text-transform:uppercase}
 .photo{position:absolute;overflow:hidden;pointer-events:none}
 .photo canvas{display:block;width:100%;height:100%}
 .photo.plain{border-radius:6px;box-shadow:inset 0 0 0 2px #000,0 6px 18px rgba(0,0,0,.6)}
@@ -322,6 +336,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:14px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
+#cardBox .cPic.shImg{max-height:60vh;object-fit:contain;background:#111214}
 #cardBox .shRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 #cardBox .shRow .cBtn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:7px 8px;font-size:12px}
 #cardBox .note,.cardish .note{min-height:1.2em;color:#959aa3;font-size:13px;margin:8px 0 0}
@@ -434,6 +449,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <div class="rail" id="viewTools" hidden></div>
   <section id="cockpit" hidden aria-label="Settings"></section>
   <div id="shade"></div>
+  <div id="nightView" hidden aria-live="off"></div>
   <span class="pip" id="pip" aria-hidden="true"></span>
   <footer>
     <div id="status"><b class="brand">Fallblatt</b><span class="dot" id="dot"></span><span id="statusText">Starting…</span></div>
@@ -546,7 +562,7 @@ const REMARK_LOOK = {
 
 /* ---------- settings ---------- */
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
-  theme:"classic", rotateS:30, statsPage:true, ding:true, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
+  theme:"classic", rotateS:30, statsPage:true, ding:true, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, nightView:"dim", airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
 // A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
 // profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
 const GUEST = window.OVERHEAD_GUEST || null;
@@ -602,6 +618,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
+  if (q.get("nightview")) S.nightView = q.get("nightview") === "1" ? "view" : "dim";
   if (num("airtime") != null) S.airtimeMin = Math.max(0, num("airtime"));
   if (q.get("quality")) S.quality = q.get("quality");
 })();
@@ -1875,7 +1892,45 @@ function applyNight(force){
   if (nightKnown && on !== nightOn) dlog("info", on ? `Night mode: dimmed to ${S.nightDim}% and muted until ${S.nightTo}` : "Night mode over");
   nightOn = on; nightKnown = true;
   $("shade").style.opacity = on ? String(1 - Math.min(100, Math.max(10, +S.nightDim || 40)) / 100) : "0";
+  renderNightView();
 }
+/* ---------- night view (1.53) ----------
+   Settings → Night → At night: DIM (the dimmed board) or NIGHT VIEW: during Night mode's hours a calm black page over
+   the board with only the clock, the plane on top (flight, route, type) and today's count, in dark red. Any key, tap or
+   click shows the dimmed board for a minute (the input itself does nothing else). */
+let nightPeekUntil = 0, nightSig = "", nightHideT = 0;
+const nightViewWanted = () => nightOn && S.nightView === "view";
+function nightPeek(){ nightPeekUntil = Date.now() + 60000; renderNightView(); }
+function renderNightView(){
+  const el = $("nightView");
+  if (!el) return;
+  const show = nightViewWanted() && Date.now() >= nightPeekUntil && !(typeof cardOpenNow === "function" && cardOpenNow());
+  if (!show) {
+    if (!el.hidden && !el.classList.contains("off")) { el.classList.add("off"); clearTimeout(nightHideT); nightHideT = setTimeout(() => { el.hidden = true; }, 450); }
+    return;
+  }
+  clearTimeout(nightHideT); el.hidden = false; el.classList.remove("off");
+  const info = feat && feat.o ? feat.info || baseInfo(feat.o.ac) : null, n = dayList().length;
+  const flight = info ? info.flightNo || String(feat.o.ac.flight || "").trim() || feat.o.ac.r || "" : "";
+  const route = info && (info.from || info.to) ? [info.from, info.to].map(p => p ? [code3(p) || p.code, p.city].filter(Boolean).join(" ") : NA).join("  →  ") : "";
+  const parts = [hhmm(), flight, route, info ? info.type || "" : "", n, S.lang];
+  const sig = parts.join("|");
+  if (sig === nightSig) return;
+  nightSig = sig;
+  const cells = t => [...t].map(c => c === ":" ? `<i class="nvColon">:</i>` : `<b>${escH(c)}</b>`).join("");
+  el.innerHTML = `<div class="nvClock">${cells(hhmm())}</div>` +
+    (info ? `<div class="nvFlight">${escH(flight)}</div>${route ? `<div class="nvRoute">${escH(route)}</div>` : ""}${info.type ? `<div class="nvType">${escH(info.type)}</div>` : ""}`
+      : `<div class="nvNone">${escH(T("No plane overhead"))}</div>`) +
+    `<div class="nvCount">${escH(n === 1 ? T("1 plane today") : T("{n} planes today", {n: nf.format(n)}))}</div>`;
+}
+setInterval(renderNightView, 2000);
+// The night view swallows the first input: a key or tap only shows the board. Any input while it is shown keeps it a minute.
+for (const ev of ["keydown", "pointerdown", "touchstart", "wheel"]) addEventListener(ev, e => {
+  if (!nightViewWanted()) return;
+  const el = $("nightView"), covering = el && !el.hidden && !el.classList.contains("off");
+  nightPeek();
+  if (covering && ev === "keydown") { e.preventDefault(); e.stopImmediatePropagation(); }
+}, {capture: true, passive: false});
 
 /* ---------- reference tables ---------- */
 const AIRLINES = {
@@ -5297,7 +5352,22 @@ const I18N_ROWS = [
   ["CLIMBING", "STEIGFLUG", "MONTÉE", "ASCENSO", "KLIMT"],
   ["APPROACH", "ANFLUG", "APPROCHE", "APROXIMACIÓN", "NADERING"],
   ["FINAL", "ENDANFLUG", "FINALE", "FINAL", "EINDNADERING"],
-  ["LANDED", "GELANDET", "ATTERRI", "ATERRIZÓ", "GELAND"],
+  ["LANDED", "GELANDET", "ATTERRI", "ATERRIZÓ", "GELAND"],  // 1.53: night view, sharing a sighting
+  ["At night", "Nachts", "La nuit", "De noche", "'s Nachts"],
+  ["NIGHT VIEW", "NACHTANSICHT", "VUE DE NUIT", "VISTA NOCTURNA", "NACHTWEERGAVE"],
+  ["DIM", "GEDIMMT", "TAMISÉ", "ATENUADO", "GEDIMD"],
+  ["DIM keeps the board, dimmed. NIGHT VIEW shows only the clock, the plane on top and today's count in dark red; any key or tap brings the board back for a minute.",
+   "GEDIMMT behält die Tafel, gedimmt. NACHTANSICHT zeigt nur die Uhr, das Flugzeug oben und die Zahl von heute in dunklem Rot; jede Taste oder Berührung holt die Tafel für eine Minute zurück.",
+   "TAMISÉ garde le tableau, assombri. VUE DE NUIT n'affiche que l'heure, l'avion en haut et le total du jour en rouge sombre ; une touche ou un appui ramène le tableau pendant une minute.",
+   "ATENUADO mantiene el panel, más oscuro. VISTA NOCTURNA muestra solo la hora, el avión de arriba y el total de hoy en rojo oscuro; cualquier tecla o toque recupera el panel durante un minuto.",
+   "GEDIMD houdt het bord, gedimd. NACHTWEERGAVE toont alleen de klok, het vliegtuig bovenaan en het aantal van vandaag in donkerrood; elke toets of tik brengt het bord een minuut terug."],
+  ["No plane overhead", "Kein Flugzeug über uns", "Aucun avion au-dessus", "Ningún avión encima", "Geen vliegtuig boven ons"],
+  ["1 plane today", "Heute 1 Flugzeug", "1 avion aujourd'hui", "1 avión hoy", "Vandaag 1 vliegtuig"],
+  ["{n} planes today", "Heute {n} Flugzeuge", "{n} avions aujourd'hui", "{n} aviones hoy", "Vandaag {n} vliegtuigen"],
+  ["Save picture", "Bild speichern", "Enregistrer l'image", "Guardar imagen", "Afbeelding opslaan"],
+  ["Couldn't make the picture.", "Das Bild konnte nicht erstellt werden.", "Impossible de créer l'image.", "No se pudo crear la imagen.", "Kon de afbeelding niet maken."],
+  ["Press and hold the picture to save it.", "Bild lange drücken, um es zu speichern.", "Appuyez longuement sur l'image pour l'enregistrer.", "Mantén pulsada la imagen para guardarla.", "Houd de afbeelding ingedrukt om hem op te slaan."],
+  ["Sharing didn't work. Save the picture instead.", "Teilen hat nicht geklappt. Speichere stattdessen das Bild.", "Le partage n'a pas fonctionné. Enregistrez plutôt l'image.", "No se pudo compartir. Guarda la imagen.", "Delen lukte niet. Sla de afbeelding op."],
 ];
 const I18N = (() => {
   const d = {en: {"Overhead (board style)": "Overhead", "Airport (board style)": "Airport"}, de: {}, fr: {}, es: {}, nl: {}};
@@ -5640,13 +5710,16 @@ function planeBody(o){
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
       ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
-    (listsOk() ? `<div class="cBtns"><button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button></div>` : "");
+    (listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
+      (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "");
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
+  const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || "", pic, model: !!pic && isModelPic(pic)};
   const wire = el => {
     const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
     const ty = el.querySelector("[data-ty]"); if (ty) ty.onclick = () => typeCard({typeCode: ac.t, type});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
     const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
+    const sp = el.querySelector("[data-share]"); if (sp) sp.onclick = () => shareCard(share);
   };
   // the card without its changing numbers: the same signature means only those need updating (the radar's card)
   return {html, wire, dyn, sig: html.replace(/<span data-dyn="\w+">[^<]*<\/span>/g, "")};
@@ -5674,6 +5747,119 @@ async function typeCard(x){
   const tok = cardLoading();
   const w = await cardWait(modelWiki([t.name, x.type]), 4500);
   cardWhenReady(tok, draw(w));
+}
+/* Share a sighting as a picture (1.53): a split-flap panel (flight, route, aircraft, registration, time) under the
+   plane's photo, with a small Fallblatt mark and no link. The photo comes through the relay (relay 47, /photo) or
+   straight from Wikimedia (which allows it), so the canvas can be saved; if neither works the picture has no photo.
+   A first tap makes the picture and shows it; Share (the share sheet, or the Android app's) or Save picture then. */
+const SHARE_OK = !/Tizen|SMART-TV|SmartTV|HbbTV|CrKey|Web0S|webOS|NetCast|AFT[A-Z]|AmazonWebAppPlatform|Silk\/|Android TV|GoogleTV|BRAVIA|AndroidTV/i.test(navigator.userAgent || "");
+function shareImg(src){
+  const load = (u, cors) => new Promise((ok, no) => { const i = new Image(); if (cors) i.crossOrigin = "anonymous"; i.referrerPolicy = "no-referrer";
+    i.onload = () => i.naturalWidth ? ok(i) : no(); i.onerror = no; i.src = u; });
+  const viaRelay = async () => {
+    if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 47) throw 0;
+    const r = await fetch(`${relay()}/photo?u=${encodeURIComponent(src)}`, {credentials: "include"});
+    if (!r.ok) throw 0;
+    const u = URL.createObjectURL(await r.blob());
+    try { return await load(u); } finally { setTimeout(() => URL.revokeObjectURL(u), 1000); }
+  };
+  if (!src) return Promise.resolve(null);
+  return cardWait(viaRelay().catch(() => /^https:\/\/upload\.wikimedia\.org\//.test(src) ? load(src, true) : null), 8000);
+}
+async function shareCanvas(x){
+  const font = (getComputedStyle(document.documentElement).getPropertyValue("--f-board") || "").trim() || "sans-serif";
+  try { await cardWait(Promise.all(["700 40px", "600 20px"].map(w => document.fonts.load(`${w} ${font}`))), 2500); } catch {}
+  const img = await shareImg(x.pic);
+  const W = 1200, PH = img ? 630 : 0, H = PH + 660, cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), up = v => String(v || "").toUpperCase();
+  g.fillStyle = "#111214"; g.fillRect(0, 0, W, H);
+  if (img) {
+    const sc = Math.max(W / img.naturalWidth, PH / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
+    g.drawImage(img, (W - iw) / 2, (PH - ih) / 2, iw, ih);
+    const fade = g.createLinearGradient(0, PH - 90, 0, PH); fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,.55)");
+    g.fillStyle = fade; g.fillRect(0, PH - 90, W, 90);
+    g.font = `500 20px ${font}`; g.fillStyle = "rgba(255,255,255,.75)"; g.textAlign = "left";
+    g.fillText(x.model ? T("Model photo · not this aircraft") + " · Wikimedia Commons" : /wikimedia/.test(x.pic) ? "Wikimedia Commons" : /airport-data/.test(x.pic) ? "airport-data.com" : "", 28, PH - 22);
+  }
+  const bg = g.createLinearGradient(0, PH, 0, H); bg.addColorStop(0, "#202124"); bg.addColorStop(1, "#141517");
+  g.fillStyle = bg; g.fillRect(0, PH, W, H - PH);
+  const rr = (x0, y0, w, h, r) => { g.beginPath(); g.moveTo(x0 + r, y0); g.arcTo(x0 + w, y0, x0 + w, y0 + h, r); g.arcTo(x0 + w, y0 + h, x0, y0 + h, r); g.arcTo(x0, y0 + h, x0, y0, r); g.arcTo(x0, y0, x0 + w, y0, r); g.closePath(); };
+  // a row of flaps: one module per letter, split across the middle like the board's
+  const flaps = (text, x0, y0, cw, ch, max, ink = "#f3efe4") => {
+    const t = [...up(text)].slice(0, max), gap = Math.round(cw * .1);
+    g.font = `700 ${Math.round(ch * .74)}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle";
+    t.forEach((c, i) => {
+      const cx = x0 + i * (cw + gap);
+      const top = g.createLinearGradient(0, y0, 0, y0 + ch / 2); top.addColorStop(0, "#303135"); top.addColorStop(1, "#25262a");
+      const bot = g.createLinearGradient(0, y0 + ch / 2, 0, y0 + ch); bot.addColorStop(0, "#1f2023"); bot.addColorStop(1, "#18191c");
+      rr(cx, y0, cw, ch, 6); g.fillStyle = top; g.fill();
+      g.save(); g.beginPath(); g.rect(cx, y0 + ch / 2, cw, ch / 2); g.clip(); rr(cx, y0, cw, ch, 6); g.fillStyle = bot; g.fill(); g.restore();
+      if (c !== " ") { g.fillStyle = ink; g.fillText(c, cx + cw / 2, y0 + ch / 2 + ch * .03); }
+      g.fillStyle = "#08090a"; g.fillRect(cx, y0 + ch / 2 - 1, cw, 2);
+    });
+    g.textBaseline = "alphabetic";
+    return x0 + t.length * (cw + gap) - gap;
+  };
+  const label = (t, x0, y0) => { g.font = `600 19px ${font}`; g.textAlign = "left"; g.fillStyle = "#f0b429"; if ("letterSpacing" in g) g.letterSpacing = "3px"; g.fillText(up(t), x0, y0); if ("letterSpacing" in g) g.letterSpacing = "0px"; };
+  const L = 60, y = PH;
+  label(T("Flight"), L, y + 62);
+  const fx = flaps(x.flight || NA, L, y + 78, 62, 92, 10);
+  if (x.airline) { g.font = `600 34px ${font}`; g.textAlign = "left"; g.fillStyle = "#d8d3c6"; g.fillText(String(x.airline).slice(0, 32), fx + 30, y + 138); }
+  label(T("Route"), L, y + 222);
+  const code = p => p ? code3(p) || p.code || NA : NA;
+  const ax = flaps(code(x.from), L, y + 238, 62, 92, 4);
+  g.font = `700 60px ${font}`; g.textAlign = "center"; g.fillStyle = "#f0b429"; g.fillText("→", ax + 56, y + 304);
+  const bx = ax + 112;
+  flaps(code(x.to), bx, y + 238, 62, 92, 4);
+  g.font = `500 26px ${font}`; g.textAlign = "left"; g.fillStyle = "#a9a496";
+  if (x.from && x.from.city) g.fillText(String(x.from.city).slice(0, 22), L, y + 366);
+  if (x.to && x.to.city) g.fillText(String(x.to.city).slice(0, 22), bx, y + 366);
+  label(T("Aircraft"), L, y + 424);
+  flaps(x.type || NA, L, y + 438, 38, 58, 25);
+  const d = new Date();
+  label(T("Registration"), L, y + 540);
+  flaps(x.reg || NA, L, y + 554, 38, 58, 8);
+  label(T("Time"), 520, y + 540);
+  flaps(hhmm(d), 520, y + 554, 38, 58, 5, "#f6c54a");
+  g.font = `500 24px ${font}`; g.textAlign = "left"; g.fillStyle = "#8d887d";
+  g.fillText(d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), 760, y + 594);
+  // the mark: FALLBLATT on tiny flaps in the corner
+  flaps("FALLBLATT", W - 44 - (9 * 22 - 2), H - 52, 20, 30, 9, "#f0b429");
+  return cv;
+}
+async function shareCard(x){
+  ctlSound.press();
+  const tok = cardLoading();
+  let blob = null;
+  try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
+  if (tok !== cardTok) return;
+  if (!blob) { cardOpen(`<p class="note">${escH(T("Couldn't make the picture."))}</p>`); return; }
+  const fname = `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`;
+  const file = typeof File === "function" ? new File([blob], fname, {type: "image/png"}) : null;
+  const andr = !!window.OverheadAndroid && typeof window.OverheadAndroid.shareImage === "function";
+  const canShare = andr || !!(file && navigator.share && navigator.canShare && navigator.canShare({files: [file]}));
+  const canSave = !window.OverheadAndroid;            // the Android app's WebView can't download a picture
+  const url = URL.createObjectURL(blob);
+  cardOpen(`<img class="cPic shImg" src="${url}" alt="">` +
+    `<div class="cBtns">${canShare ? `<button class="cBtn go" type="button" data-sh>⇪ ${escH(T("Share"))}</button>` : ""}` +
+    (canSave ? `<button class="cBtn" type="button" data-sv>${escH(T("Save picture"))}</button>` : "") + `</div>` +
+    `<p class="note">${canShare || canSave ? "" : escH(T("Press and hold the picture to save it."))}</p>`, el => {
+    const note = el.querySelector(".note");
+    const b = el.querySelector("[data-sh]");
+    if (b) b.onclick = async () => {
+      ctlSound.press();
+      try {
+        if (andr) {
+          const fr = new FileReader();
+          fr.onload = () => window.OverheadAndroid.shareImage(String(fr.result).split(",")[1], fname);
+          fr.readAsDataURL(blob);
+        } else await navigator.share({files: [file]});
+      } catch (e) { if (!e || e.name !== "AbortError") note.textContent = T("Sharing didn't work. Save the picture instead."); }
+    };
+    const sv = el.querySelector("[data-sv]");
+    if (sv) sv.onclick = () => { ctlSound.press(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
+  });
 }
 let planeShown = null;
 async function planeCard(o){
@@ -6336,6 +6522,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.53", date: "2026-10-18", notes: [
+    "Share a plane as a picture: tap Share on its card for a split-flap card with the flight, route, aircraft, registration and time, and its photo when there is one (not on TVs).",
+    "Night view: during Night mode's hours the board can show just the clock, the plane on top and today's count in dark red (Settings → Night → At night). Any key or tap shows the board for a minute.",
+    "Test feature for the owner: Philips Hue lamps can glow briefly in the airline's colour when a special plane or a favourite passes.",
+  ]},
   {v: "1.52", date: "2026-10-18", notes: [
     "Week and month in review: the busiest day, the rarest plane, new types, airlines, the farthest route and more, for any past week or month (Logbook → Week & month; in the app at the top of the Logbook).",
     "A notification with your week on Sunday at 20:00 and your month on the 1st at 9:00 (can be turned off with the other notifications).",
@@ -6747,10 +6938,11 @@ const COCKPIT = [
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]},
   {title: ["Control", "Steuerung"], actions: true},
-  {title: ["Night", "Nacht"], cols: 4, items: [
+  {title: ["Night", "Nacht"], cols: 3, items: [
     {k: "night", type: "switch", label: "Night mode"},
     {k: "nightFrom", type: "time", label: "Dim from"},
     {k: "nightTo", type: "time", label: "Until"},
+    {k: "nightView", type: "switch", label: "At night", on: "view", off: "dim", upText: "NIGHT VIEW", downText: "DIM"},
     {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
 let draft = null;
 const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
@@ -6799,6 +6991,7 @@ const HINTS = {
   nightFrom: "When night mode starts.",
   nightTo: "When night mode ends.",
   nightDim: "How bright the board stays at night.",
+  nightView: "DIM keeps the board, dimmed. NIGHT VIEW shows only the clock, the plane on top and today's count in dark red; any key or tap brings the board back for a minute.",
   lon: "Where to watch the sky. Use current location fills it in.",
 };
 // On a phone a description shows while a control is held for a moment (a tap just works the control).

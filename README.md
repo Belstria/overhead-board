@@ -357,6 +357,16 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Quick flaps** (Settings → Display, 1.14): every flap still turns through its letters and words, but as a blur,
   and the whole board lands on the new text in about 1.5 seconds. Flap speed % doesn't apply while it is on.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+  **At night** (Settings → Night, 1.53) picks DIM (the dimmed board) or NIGHT VIEW: during those hours a black page
+  with just the clock, the plane on top (flight, route, type) and today's count in dark red, so it doesn't light up
+  the room. Any key, tap or click brings back the (dimmed) board for a minute; that first input does nothing else.
+  `?nightview=1` (or `0`) sets it from the address.
+- **Share a plane** (1.53): the plane card's **Share** (on a computer, in the phone app and the light version; not on
+  TVs) makes a picture: the plane's photo (or its model's) over a split-flap panel with the flight and airline, the
+  route, the aircraft, the registration and the time, and a small Fallblatt mark (no link). Then **Share** opens the
+  phone's share sheet (WhatsApp and the like; in the Android app its own) and **Save picture** downloads it. The
+  photo comes through the relay (relay 47) so the picture can be saved; with an older relay a model photo from
+  Wikimedia still works, an aircraft's own photo is left out.
 - **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
   big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
@@ -569,6 +579,16 @@ empty field is automatic; type a number to set it), and under **Account**: creat
 password, and **Reset sign-in** (removes passkeys and password). **Remove** deletes a profile with its sightings.
 Flightradar24 per profile and day: 500 credits for a guest, 2,000 with an account (a fallback against a bug or a lost
 device, not a limit anyone should reach); past it their boards still show what has already been looked up.
+**Hue lights (relay 47, a test, the owner's only).** When a special plane or a favourite is about to pass the
+owner's place (the moments the "worth going to the window" alerts ring for), chosen Philips Hue lamps glow for about
+four seconds in the airline's colour (amber for others) and then go back to how they were (brightness, colour, off
+again if they were off). Through the Hue Bridge on the home network (its local API, no cloud); at most once per plane
+and once a minute, and not between 22:00 and 07:00 unless **Quiet** is turned off. Set it up at the bottom of the
+admin page: **Find the bridge** (asks Philips' discovery service, which lists the bridges on the network the relay
+is on) or type its address (Hue app: Settings → Hue Bridges → ⓘ), then press the round link button on top of the
+bridge and click **Pair** within 30 seconds (or click Pair first: the page waits 30 seconds for the button). Then tick
+the lamps, **Save lamps**, turn **Pulse** on, and **Test pulse** to see it. The bridge's username is kept in
+`data/hue.json` only. To try it without a bridge: `py tools/test/run_test_relay.py --hue` (a fake bridge).
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
 
