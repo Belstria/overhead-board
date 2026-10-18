@@ -1,444 +1,145 @@
 # Fallblatt (the Overhead board): notes for Claude
 
-The app is called Fallblatt since 13 Oct 2026 (1.16). Overhead (planes flying over you) and Airport
-(take-offs and landings) are the names of its two styles and stay; so do the OVERHEAD status, the repository name,
-`OVERHEAD_*` page variables, storage keys, the cookie and the `OverheadRelay` server header the Android app looks for.
+Called Fallblatt since 13 Oct 2026 (1.16). Overhead (planes flying over you) and Airport (take-offs and landings)
+are its two styles and stay named so; so do the OVERHEAD status, the repository name, `OVERHEAD_*` page variables,
+storage keys, the cookie and the `OverheadRelay` server header the Android app looks for.
 
-A split-flap "planes overhead" board for Dave's home in Vienna: an airport departures board look, drawn on canvas,
-showing the plane flying over right now plus Spotted today, a lifetime logbook and a radar. Published with GitHub
-Pages and served to the screens through a small relay on Dave's PC. Shown on a Samsung The Frame (2021, Tizen), a
-Fire TV and an LG TV, and on phones as a web app. The README is the user guide; keep it current with every change
-someone would notice.
+A split-flap "planes overhead" board for Dave's home in Vienna, drawn on canvas: the plane overhead now, Spotted
+today, a lifetime logbook and a radar. Published with GitHub Pages, served to the screens through a small relay
+(Python) on Dave's homelab. Shown on a Samsung The Frame (Tizen), a Fire TV, an LG TV, and on phones as a web app and
+an Android app. The README is the user guide; keep it current with every change someone would notice.
+
+**Version-by-version details (what each version added, function names): `docs/history.md`; read it when touching that
+area.** Where it and the code disagree, the code wins.
 
 ## Rules Dave set (keep to them)
 
 - **Test first.** Visual and feature changes go to the test board first. Copy to the main board (`index.html`) only
   when Dave says so.
-- **One test board.** `test/` is the test board, Flightradar24 features included (since 17 Oct 2026, 1.35.2, Dave's
-  choice: the free-only test board was dropped and the API board took its place; `test-api/index.html` is only a page
-  forwarding to `/test/`). Without a key the board falls back to the free sources by itself.
-- **The phone app** (`app/`) is built from the test board's code (so new features reach the phone together with
-  `test/`; see below); rebuild it when shared code changes, and its light version (`light/`, `py tools/light/build.py`) with it.
+- **One test board.** `test/` is the test board, Flightradar24 features included (since 17 Oct 2026, 1.35.2;
+  `test-api/index.html` only forwards to `/test/`). Without a key it falls back to the free sources by itself.
+- **The phone app** (`app/`) is built from the test board's code, so new features reach the phone together with
+  `test/`; rebuild it when shared code changes, and its light version (`light/`, `py tools/light/build.py`) with it.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
   "versions and patch notes" block, which the app copies). With every change add an entry at the top: a new feature
   raises the second number (1.8 → 1.9), a small change adds a third (1.8.1), a bug fix a fourth (1.8.1.1). Notes are
   short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
-  versions (guests read them too; the history was rewritten that way on 14 Oct 2026). Settings → About shows them; the relay (17+) adds the publish time
-  (`window.OVERHEAD_PAGE_DATE`).
-- **Every visible text goes through `T()`** (test board and app): `T("English text", {vars})`, with `{name}`
-  placeholders. Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row
-  shows English. Flap status words stay English inside (the key for colours and drum order) and are translated when
-  drawn. No more German second lines under labels (removed in 1.12); a second label word is only kept for units.
-  Patch notes and the connection log stay English.
+  versions (guests read them too). Settings → About shows them. Bump `RELAY_VERSION` with every relay change.
+- **Every visible text goes through `T()`** (test board and app): `T("English text", {vars})`, `{name}` placeholders.
+  Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row shows English.
+  Flap status words stay English inside (key for colours and drum order) and are translated when drawn. No German
+  second lines under labels; a second label word is only kept for units. Patch notes and the connection log stay English.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in
-  `overhead.json` next to the relay on Dave's PC (`py serve.py --fr24-key ... --save`). Never print, read out or
-  commit that file. When a key is needed, Dave types it into the terminal himself; don't ask him to paste it in chat.
-  Dave's home location never goes into the repository either: the relay hands it to the board at page load.
-  Test data uses central Vienna (48.2085, 16.3731).
-- Removed on request earlier, don't bring back: the page-flip sound on page turns, the board shake, the Delay field,
-  the falling-page animation for views.
+  `overhead.json` next to the relay: never print, read out or commit that file. When a key is needed, Dave types it
+  into the terminal himself; don't ask him to paste it in chat. Dave's home location never goes into the repository
+  either (the relay hands it to the board at page load). Test data uses central Vienna (48.2085, 16.3731). No
+  addresses of the homelab or tunnel here: they are in Claude's memory.
+- Removed on request, don't bring back: the page-flip sound on page turns, the board shake, the Delay field, the
+  falling-page animation for views.
+- The Android signing key (Actions secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`; backup in
+  `%USERPROFILE%\overhead-android-key`): never commit or print it, never replace it, or phones refuse updates.
+- No Tailscale suggestions (tried and dropped 11 Oct 2026). OpenSky is ruled out (needs a written licence).
 
 ## Files
 
 | Path | What it is |
 |------|------------|
-| `index.html` | Main board (PROD). A copy of `test/index.html` (only the title and one comment differ), made when Dave says "push to main". |
-| `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, FR24 remarks, ...). |
-| `test-api/index.html` | Forwards to `/test/` (the old API test board's address). |
+| `index.html` | Main board (PROD): a copy of `test/index.html` (only the title "Fallblatt" and one comment differ), made when Dave says "push to main". |
+| `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, ...). |
+| `test-api/index.html` | Forwards to `/test/`. |
 | `keys/index.html` | Remote key test for the TVs. |
-| `app/` | Phone web app: `index.html` (generated), `manifest.webmanifest`, icons. |
+| `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
+| `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top. |
-| `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service on Linux (the homelab). |
-| `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup and CSS), `main.js` (phone layout and glue). |
-| `light/`, `tools/light/` | The light version of the app (`light/index.html`, generated): `build.py`, `light.js` (its code for main.js's `//@L` regions), `light.css`. |
-| `tools/sounds/` | `build_sounds.py` cuts the recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block; credits and licenses in its README. |
-| `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py` (the fake data), `shoot.py` (screenshots). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (43 now). |
+| `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
+| `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
+| `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
+| `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block. |
+| `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `smoke.py`, `shoot.py` (screenshots). |
+| `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |
 
-The main board and the test board are full copies of one single-file app: work in `test/`, copy to `index.html`
-when Dave says so (keep its title "Fallblatt").
+## How it works
 
-## How the board works (index.html and the test board)
+**Board** (`test/index.html`, single file, copied to `index.html`): fixed 1920x1080 layout in board units, scaled to
+the screen. Two canvases: `bg` (static: metal, wear, engraved labels; `drawStatic()`) and `fx` (the flaps). Flap
+engine: `def()` fields of cells, `tile()` pre-renders flap faces, `setChars`/`setWord` queue the drum path, `frame()`
+animates, `paintCell()` draws a flap mid-flip; drums are `DRUM_*` tables. Sounds: recordings in `SOUND_DATA` (made by
+`build_sounds.py`), played by `sample()`; flaps always clack synthesised. Top half: the plane overhead (`process()`
+picks it: alerts, overhead, inbound, flying by) via `renderFeatured()`/`renderTimes()`. Lower half: rotating pages
+(Recent flights, This aircraft, Today in numbers) turned by a giant falling flap; views (Spotted today, Logbook,
+Radar, Settings) take over below the header (`switchView`). The rail buttons and Settings cockpit (`COCKPIT`) are DOM.
+Realistic look is `S.real`/`REAL()`. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
+Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 
-- Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,
-  engraved labels; `drawStatic()`) and `fx` (the flaps).
-- Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
-  `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
-  `paintCell()` draws a flap mid-flip. Sounds (1.17): recordings in `SOUND_DATA` (embedded, made by
-  `tools/sounds/build_sounds.py`), decoded by `loadSounds()`, played by `sample()` from `clack()` and `ctlSound`; with
-  `S.soundSet === "classic"` or before decoding, the old synthesised sounds play. The flaps always clack synthesised
-  (1.19.1, Dave's choice; the flap recording was dropped). The board's rail buttons carry the app's tab icons (`RAIL_ICONS`). Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
-- Top half: the plane overhead (`process()` picks it: alerts first, then overhead, inbound, flying by; airtime limit
-  for hovering planes) rendered by `renderFeatured()` and `renderTimes()`.
-- Lower half: rotating pages (Recent flights, This aircraft, Today in numbers; `ROTATION`), turned by one giant
-  falling flap (`startBigFlap`). Views (Spotted today, Logbook, Radar, Settings) take over below the header at once
-  (`switchView`). The rail of lamp buttons is DOM (`.cap`), as is the Settings cockpit (`COCKPIT`, `cockpitOpen`).
-- Look (1.18): the footer and the app's status line stay quiet while live (`updateFooter`, `body[data-health]` in
-  the app), the radar's labels go through `radarLabels()` (no overlaps, inside the scope), the app's Save bar only
-  shows when `#t-settings.dirty`, the app's tabs carry line icons (`TAB_ICONS`), and altitudes below zero show as 0.
-- Realistic look (1.19, `S.real`, `REAL()`): extra layers in `tile()` (two-card print, grain, lighting) and
-  `paintCell()` (light and edge on a turning flap), `#glass` over the stage and `body.real` CSS for the cockpit. Settings
-  show a description per control (`HINTS`, hover; press and hold on touch).
-- Drawing quality: Fire TV and LG TVs (`WEAK_TV`) draw at 1080p, 30 fps, shorter flap runs (`LITE()`).
-- Data: positions from the relay (`/aircraft/...`), routes and aircraft from adsbdb (browser) and adsb.lol's
-  routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from
-  Vienna Airport via the relay (`/times`), Flightradar24 via the relay (`/flightinfo`). Features check
-  `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints.
+**Airport style** (`S.mode === "airport"`, toggled by tapping Overhead/Airport in the title): pages aplists, apland,
+apdep (`pageOrder()`), `apFeature` picks the plane; runways from `AIRPORTS` or the relay's `/airport`.
 
-## The phone app
+**Data**: positions from the relay (`/aircraft/...`); routes and aircraft from adsbdb (browser) and adsb.lol's routeset
+(via the relay); Spotted today and the logbook from the relay (`/sightings`, `/logbook`); times from Vienna Airport
+(`/times`); Flightradar24 via `/flightinfo`. Unknown details show "/" (`NA`/`orNA`). Features check
+`window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints. Shared blocks (cards, places, tips, achievements,
+account, game/records) live in the board and are copied by the app build.
 
-`app/index.html` is generated: `py tools/app/build.py` copies the flap engine, reference tables, network, tracking,
-times, specials, logbook, radar and Settings control code out of `test/index.html` by marker strings and wraps them in the phone layout
-from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
-(or the board) and rebuild. If the build stops on a marker, the board's code moved: update the marker in `build.py`.
-The app keeps its settings under its own key (`od.app.settings`) and needs the relay (relay 13+ serves its icons).
+**Phone app**: `app/index.html` is generated by `py tools/app/build.py`, which copies the flap engine, tables,
+network, tracking, logbook, radar, Settings code etc. out of `test/index.html` by marker strings and wraps them in
+`tools/app/head.html` and `main.js`. If the build stops on a marker, the board's code moved: update the marker in
+`build.py`. Settings under `od.app.settings`. On Android, the Overhead app (`android/`) is a full-screen WebView of
+`<relay>/app/` (so web changes need no new APK); it finds the relay via `/health` on the phone's /24 (port 8080,
+`Server: OverheadRelay`). Landscape on the phone shows the board-like Now layout (`heroLayout()`, `fitSideways()`).
+GitHub Actions builds the APK on pushes touching `android/` and releases it from `main` (named after the newest
+patch-notes entry; bump nothing by hand).
 
-The light version (1.39, `/light/`, Dave's wish: the phone app without split flaps, same content, colours and fonts,
-plain and modern; phone only for now): `py tools/light/build.py` builds `light/index.html` from the app's own
-head.html/main.js and the board's code (`extract`/`assemble` in `tools/app/build.py`), replacing the regions main.js
-marks `//@L:name` ... `//@L:end` with `tools/light/light.js` (the app build keeps them): `flag` (`LIGHT`), `engine1`/
-`engine2` (makePanel/def/placeRow/setChars/setWord as DOM fields: label above value, `lfPaint` slides a new value in;
-words: `chip()`, trend arrows, tier pill, airline logo; E4/E5 left out), `static`, `metal`, `radar` (flat scope),
-`cockpit` (no flap settings; Sounds: Button sounds = `S.sound`, Chimes, Bell), `taps` (cards by `data-f`), `greet`
-(welcome text slides in). `tools/light/light.css` comes after the app's styles. Settings under `od.light.settings`
-(`.g.<id>` per guest); `LIGHT_FIXED` (real, imperfect, quick, theme, soundSet) and `sound` stay out of `/me`. It uses
-the app's manifest, icons and service worker (`SW_DIR` = `../app/`; `sw.js` matches `/light/` too). Settings → Device
-switches (`#uiBtn`, `localStorage` `od.ui`); `/app/`'s head script then opens `/light/`. A new region in main.js needs
-one in light.js, or the light build stops.
+**Light version**: `py tools/light/build.py` builds `light/index.html` from the app's head.html/main.js and the board's
+code, replacing main.js's `//@L:` regions with `light.js`'s. A new region in main.js needs one in light.js, or the
+build stops. Settings under `od.light.settings`; Settings → Device switches (`od.ui`).
 
-Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in the title; the "airport mode" block,
-copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on
-top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The airport
-statuses (`AP_ICON`) carry a plane pictogram in front of the word, in the flap tile and the app's chips (Dave's choice
-over a header sign, which was tried in 1.12.1). Since 1.49 (to-do #33, Dave approved the look) they are Tabler Icons'
-plane-departure/plane-arrival (MIT), filled, over a solid runway (`AP_PATH`, `apSvg`/`apSvgInner` for the app's chips and
-the rail's up/down icons, `drawApIcon` in `tile()` via Path2D); `landed` is the departure plane turned level (`AP_LEVEL`).
-Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
-The game (1.21, relay 24): the relay scores each sighting when it is recorded (`tier_of`, `score`: `e.tier`,
-`book.points/days/tiers/rareDays`; `game_json` in `/logbook` with the `SETS`); the board's `tierOf()` gives the plane on
-top its tier (the relay's for planes on today's list, else `fleetTier`) on the `tier` flap
-(`TIER_COL`, `drawTierIcon`; the app's Collection list shows them via `tierIcon`), and the `collection` view (from Logbook's view tools) shows `game`.
-Since 1.25 (relay 26) the tier goes by fleet size: `FLEET` (types in service worldwide) is the same table in the relay and
-the board, keep them equal. The keys stay `common/uncommon/rare/epic/legendary` (stored in sightings); shown as Common,
-Uncommon, Rare, Very rare, Special. A logbook scored under an older rule (`gameV` < `GAME_V`) is scored again from its
-saved days when loaded (`_rescore`).
-Spotter facts (1.27, relay 28): `seenText()` (relay `/seen?reg=`, from the logbook's `regs`: count, first, last and `prev`,
-the sighting before the last) and `toGoText()` fill the top half's `seen` and `toGo` flaps (row 3; in `TOP_IDS`) and
-the app's This aircraft facts; `skyCheck()` reads `/sky?code=` (the home airport's METAR: the lowest BKN/OVC/VV layer
-plus the airport's elevation, from the airport list's v3) every ten minutes and `remarkLines` shows ABOVE CLOUD (1.49,
-to-do #32: no longer a status; only when `windowWorthy()`: special, watchlist, military or favourite);
-`liveryLine()` (Flightradar24) puts Flightradar24's `painted_as` on the Operator line; the relay keeps lifetime
-`records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
-("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
-Flightradar24's credits this month and what it added (`fr24_admin_html`, `usage.found/wetLease/diverted`).
-More of the game (1.28, relay 29): the watchlist (`watch_of`, plane-alert-db downloaded daily to `data/plane-alert.json`,
-categories mapped to remark words by `WATCH_WORDS`; `/watch?hex=` (503 while loading) for the board's `watchAsk`/`watchOf`,
-`e.watch` on sightings; `badgeFor` shows it after the big specials); trophies (`TROPHY_IDS`, `trophy_check`/`trophy_pass`,
-`book.trophies`, backfilled once by `_backfill_trophies`, `trophiesV`) and the weekly bingo (`BINGO` goals, `bingo_json`
-in `/logbook`'s `game.bingo`), drawn by `recordsStatic` and the app's Logbook (`GOAL_TEXT`, `TROPHY_TEXT`, shared); the
-day in review (`reviewTime()`, Today in numbers after 21:00); `/year?y=` (`year_json`) for the app's year card and
-`/logbook.csv` (`logbook_csv`); the app's Where to look (`lookAt`, `drawLook`, `lookStart`: deviceorientation(absolute)
-or `webkitCompassHeading`, https only). Sky view (1.30, app only): `arOpen` (camera via getUserMedia, motion permission,
-`watchPosition`), `arOrient` (absolute alpha, or 360 - `webkitCompassHeading` on iPhones; smoothed), `arMatrix` (W3C
-Z-X'-Y'' rotation), `arProject` (east-north-up to the screen, the camera along -z, `AR_VFOV` 64°, drag offsets `arOff` in
-`od.ar.off`), `arLoop` draws the labels; the planes come from `arFeed(list)` in the board's `poll`. Test it headless with
-`--use-fake-device-for-media-stream` and synthetic `deviceorientationabsolute` events (grant camera, accelerometer,
-gyroscope, magnetometer). `run_test_relay.py --hover` puts a real watchlisted police helicopter (OE-BXB) overhead.
-Runways (1.20, relay 23): `AP.rwys` from `AIRPORTS[code].runways` (Vienna) or the relay's `/airport` (OurAirports
-runways.csv, cached per airport); `rwyTrack()` matches each take-off and landing to the runway it is lined up with,
-`rwyInUse()`/`rwyLine()` give the ones used in the last 15 minutes (shown next to the lists' title and lit on the radar),
-and the Take-off and Landing pages paint `paintRunwayScreen()` on the photo screen (1.26: the photo full size far out, with
-`EXPECTED IN {n} MIN` for landings from `e.t`; close in, `rwyClose(e)`, it slides into the corner away from the plane and the
-radar zooms to the runways; `rwyMix` eases it and returns `moving`, so `placePhoto`/the app's `paintRwy` paint again next frame;
-`run_test_relay.py --far` starts the landing 32 km out).
+**Relay** (`relay/serve.py`): serves the published boards from GitHub Pages (refreshed at most once a minute; pushing to
+`main` reaches screens within minutes; `--local-root <repo>` serves a checkout), positions (`SOURCES` tried in order:
+adsb.lol, adsb.fi, airplanes.live, AvioADSB emergency only), sightings, logbook and game, Web Push, Flightradar24
+(Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search,
+QR sign-in. Credit links are in About.
 
-Settings cockpit (shared by the boards and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
-cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
-`ctlSound.rotary(steps)/toggle(on)/wheel()/press()` (they play when `S.sound || S.chimes`). "Use current location"
-(`wireLocate`, `hereNow`, `nearestAirport`) uses `navigator.geolocation` (secure contexts only, so not on the TVs) or the
-Android app's `OverheadAndroid.locate()`, and the relay's `/airports/near` (relay 16+) for the home airport.
+**Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite
+link, an account sign-in, or a QR pairing) or a stranger (only the private page with the QR sign-in, `/health`, the app's
+icons and manifest). A profile has its own spot (sightings, logbook, places, lists, settings under `data/profiles/<id>/`)
+and may have an account (user, scrypt password, passkeys). `at_home()` only opens the admin paths (`/admin`, `/screens`,
+`/status`, `/admin/*` POSTs), and since relay 43 `owner_ok()` only for the one profile named `HOME_OWNER` (David)
+or a device without a profile (other guests: 403). A guest not yet `located` gets the relay's place and airport in
+`OVERHEAD_DEFAULTS`, never its lat/lon (Dave's home). `/admin` makes invites, accounts and limits. Screens name
+their place on each position request. `host_ok()` refuses foreign Host names; loopback (the tunnel) always passes.
 
-On Android it is installed as the Overhead app (`android/`), because Chrome installs web apps only from https and the
-relay is plain http (Tailscale was tried and dropped on 11 Oct 2026; don't suggest it again). The app is a full-screen
-WebView of `<relay>/app/`, so web app changes need no new APK. It finds the relay by asking `/health` on every
-address of the phone's /24 (port 8080, `Server: OverheadRelay`), or takes a typed address; Settings → About →
-Change relay calls `window.OverheadAndroid.changeRelay()` (`ANDROID` in `main.js`). Its user agent ends in
-`OverheadAndroid/<version>`. On its side the app page itself takes its landscape layout (CSS for
-`(orientation: landscape) and (max-height: 600px)`): only Now, full screen, no tab buttons (`sideways()` switches to
-Now and back; `showTab` refuses other tabs on its side), the status line only as a pop-up when something is wrong
-(`#sideAlert`). Now is the board (1.13.2/1.13.3, Dave's choice): `heroLayout()` puts the flaps in three rows across the
-width, and under them one page at a time, `nowPage` "lists" or "ac", picked by lamp buttons in the title strip
-(`buildNowPages`; in the Airport style `lists`/`dep`/`land`, the board's pages, `appApPage()` telling `apFeature` which plane, `paintRwy()` the runway screen; upright a `#apPick` switch above the plane's section, so it stays without a plane, and the lists as flap panels `APDP`/`APAP` (1.36, `nu{d|a}{i}*` fields; tap a row for `planeCard`, its city for `placeCard`)), turning every 20 s, drawn on their own flap panels (`RECENTP`, `APP`, `ACP`, switched by
-`nowPanels()`) in place of the text lists; `fitSideways()` sizes it all to fill the screen (`--fitW`, `--lowH`), with fewer list rows (`setNowRows`, 6 down to 4) on a screen short for its width. The
-Android app goes immersive, draws under the camera cutout and tells the page how far it reaches (`--cut-l`, `--cut-r`),
-and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1; before only on its side and charging). (1.9–1.12.2 showed the board instead; Dave preferred a layout of the app's own.) GitHub Actions builds it on every push touching `android/` (no Gradle wrapper; Gradle
-8.10.2 from the workflow) and, on `main`, publishes a release `android-build-<run>` named "Android app <version> (build <run>)" with `overhead.apk`
-(`releases/latest/download/overhead.apk`). The signing key is in the Actions secrets `ANDROID_KEYSTORE_B64` and
-`ANDROID_KEYSTORE_PASSWORD`, with a backup in `%USERPROFILE%\overhead-android-key` on Dave's PC: never commit or print
-it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
+## The relay's home and how to update it
 
-## The relay
-
-- Since 12 Oct 2026 it runs on Dave's homelab: a Debian LXC container on Proxmox (`overhead-relay`, always on), as the
-  systemd service `overhead-relay` (`relay/overhead-relay.service`) in `/opt/overhead-relay`, which also holds
-  `overhead.json` (settings and the API key) and `data/` (sightings per day, logbook, Flightradar24 cache). Port 8080.
-  The container's address and how to reach it are in Claude's memory for this project, not here (the repository is
-  public). Claude logs in as root with the key `~/.ssh/overhead_homelab` on Dave's PC. The old copy in
-  `%USERPROFILE%\overhead-relay` on the PC stays stopped: two relays on one network confuse the Android app's search.
-- The container is kept to a standard (13 Oct 2026): security updates install themselves (unattended-upgrades), SSH
-  takes keys only (`/etc/ssh/sshd_config.d/10-overhead.conf`; `ssh.socket` is off, as with both on a reload leaves SSH
-  dead), nftables lets in only 22 and 8080 from private addresses (`/etc/nftables.conf`), the journal is capped at
-  100 MB, and the service runs in a tight systemd sandbox (`systemd-analyze security overhead-relay`: 1.3). Change SSH
-  or the firewall only with a `systemd-run --on-active=180` rollback armed, cancelled once a fresh login works.
-- From outside it is reached through a Cloudflare Tunnel (since 13 Oct 2026; the address is in Claude's memory, not
-  here): `cloudflared` from Cloudflare's apt repository (also updated by unattended-upgrades), the tunnel's token in
-  `/etc/cloudflared/token` (root only; Dave pasted it in the console, it never passes through chat), and a sandbox
-  drop-in `cloudflared.service.d/10-sandbox.conf` (DynamicUser, the token handed over with LoadCredential). The tunnel
-  sends the hostname to `http://localhost:8080`; Cloudflare Access is off, as the relay's invite links decide who gets
-  in. The relay's `public_url` in `overhead.json` makes the admin page hand out full links.
-- To update it: `py -m py_compile relay/serve.py`, copy `relay/serve.py`, `relay/overhead-relay.service` and
-  `relay/install.sh` to the container (scp, to `/root/overhead-install/`) and run `sh /root/overhead-install/install.sh`
-  there: it checks the file compiles, replaces it, keeps the settings and data, and restarts the service. (After the
-  change is on `main`, `curl -fsSL .../relay/install.sh | sh` on the container does the same from GitHub.) Bump
-  `RELAY_VERSION` with every relay change and gate board features that need the new version on
+- Runs since 12 Oct 2026 on Dave's homelab: Debian LXC on Proxmox (`overhead-relay`, always on), systemd service
+  `overhead-relay` in `/opt/overhead-relay` with `overhead.json` (settings, API key: never read it out) and `data/`.
+  Port 8080. Address and login (root, key `~/.ssh/overhead_homelab` on Dave's PC) are in Claude's memory. The old copy
+  in `%USERPROFILE%\overhead-relay` stays stopped: two relays on one network confuse the Android app's search.
+- Kept to a standard: unattended-upgrades; SSH keys only (`/etc/ssh/sshd_config.d/10-overhead.conf`; `ssh.socket` is off,
+  both on a reload leaves SSH dead); nftables lets in only 22 and 8080 from private addresses; journal capped at 100 MB;
+  tight systemd sandbox. **Change SSH or the firewall only with a `systemd-run --on-active=180` rollback armed, cancelled
+  once a fresh login works.**
+- From outside through a Cloudflare Tunnel (`cloudflared`, token in `/etc/cloudflared/token`, root only; Dave enters it
+  in the console, never through chat) to `http://localhost:8080`; Cloudflare Access is off, the invite links decide who
+  gets in. `public_url` in `overhead.json` makes admin links full.
+- **Update**: `py -m py_compile relay/serve.py`, scp `relay/serve.py`, `relay/overhead-relay.service`, `relay/install.sh`
+  to `/root/overhead-install/` on the container and run `sh /root/overhead-install/install.sh` there (checks it compiles,
+  replaces it, keeps settings and data, restarts). Bump `RELAY_VERSION`; gate board features needing it on
   `OVERHEAD_RELAY_VERSION`.
-- Friends and family (relay 19, app 1.15; no Home since relay 42): every visitor is a profile's device (a cookie from a
-  personal invite link: GET `/join/<code>` shows a page, its button POSTs to take it
-  (relay 27: chat apps' link previews used links up; `PREVIEW_BOT`); from an account's sign-in; or from a QR pairing;
-  profiles, invite and cookie hashes in `data/profiles.json`) or a stranger (only the "private" page with the QR
-  sign-in, `/health`, the app's icons and manifest). `at_home()` now only opens `ADMIN_PATHS` (`/admin`, `/screens`,
-  `/status`, and the `/admin/*` POSTs), and since relay 43 `owner_ok()` limits them to the one profile named
-  `HOME_OWNER` or a device without a profile (other guests: 403 "Only for the owner"). Each profile has a `Spot`
-  (sightings and logbook in `data/profiles/<id>/`), and
-  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Profiles get
-  `OVERHEAD_GUEST` (id, name, settings) and, until they are `located`, the relay's place, home and radius in `OVERHEAD_DEFAULTS`
-  (the welcome starts from them; relay 43 leaves out lat/lon: Dave's home never reaches a guest), their settings back via `/me`
-  (merged, so the app and the board don't wipe each other's), the boards too (1.16; the welcome's "Phone app / Full
-  board" choice; a board sends a guest without `located` to the app's welcome), per-guest storage keys
-  (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), rate limits (`allow`; per profile `guest:` 8/s,
-  `pos:` 2/s, as one profile may be a house of screens), and Flightradar24 only if turned on for them (relay 42:
-  `fr24_limit(p)` credits a day, `FR24_DAY_GUEST` 500 / `FR24_DAY_ACCOUNT` 2,000 unless `p["fr24Limit"]`; counted per
-  profile in `p["fr24Use"]` by `fr24_use()` from the worker, as `fr24_want(..., pid)` queues the profile with the
-  lookup). `/admin` (home network only, same-origin POSTs, `admin_post`) makes invite links; `--public-url` gives them the public
-  address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place. The app opens with `#splash` (head.html; `splashGo()` once the board is ready).
-- Accounts (relay 30, app 1.29): `p["account"]` = `user` (unique, lower case), `pw` (scrypt, `_pw_hash`/`_pw_ok`) and
-  `passkeys` (WebAuthn: id, public key as SPKI, alg ES256/RS256, sign count; registered by `passkey_register`, checked
-  by `passkey_signin`, a small CBOR reader `_cbor`, challenges in memory for 5 min). Guests use `/account` (GET) and
-  `/account/user|password|passkey/begin|finish|remove` (same-origin JSON POSTs); anyone can open `/signin` and POST
-  `/signin/begin|passkey|password` (rate-limited), which adds a device to that profile (`add_device`) and sets the
-  cookie. The relying party is the Host (the public address; localhost while testing, `secure()`). The app's `accountBox()`
-  serves About → Account and the welcome's `wAcct` step (after notifications; https only).
-- Favourites and hidden (relay 31, app 1.31): `lists` per profile (`/lists` GET/POST, `_clean_list`, `lists_of`,
-  `_list_hit`); the boards' `userLists`/`listsLoad()` (every 5 min), `favList()` adds the favourites, `isHidden`/`hiddenAc`
-  keep hidden planes out of `process()`'s candidates, chimes, `dayList()`, Recent flights and the radar; the app's
-  `listSheet()` (rows' ⋯, This aircraft), `renderFavBox()` (Settings), `listsMigrate()` (the old `S.favs` text). Window
-  alerts (`window_check`) pick their reason (`why_*` texts), honour per-device `_push_prefs` kinds and quiet hours, and
-  `WINDOW_GAP_S` (15 min) for anything but emergencies and special planes. The radar draws `radarPos()` (dead
-  reckoning from when each position was reported, `radar.rep`, so a repeated stale update doesn't pull planes back; gaps
-  closed over ~1 s), also for the runway screen's plane (`paintRunwayScreen` keeps repainting through `rwyAgain`);
-  positions every 5 s in the app (`refreshS`), relay `FRESH_S` 4. Since 1.33 every plane's `kind` is set before
-  `radarTrack` in both styles; `radarCentre()` is the home airport in the Airport style and `radarRows()` gives the list
-  beside the radar (spotting radius around the centre, airport statuses); the app's radar ringing a tapped plane
-  (`radar.sel`, `radar.hits`) and showing `renderRadarCard()`; Today rows are tappable (`data-more` on the `li`).
-- Cards (1.34, shared: the board's "cards" block before the airport mode, copied by the app; styles at the end of the
-  board's `<style>`, scoped to `#cardBox` and `.cardish`): `cardOpen`/`cardClose`, `airlineCard`, `placeCard` (relay
-  `/airport`), `planeBody`/`planeCard`, `listSheet`, `favManager`/`favCard`, `listsSave` (calls each side's
-  `listsChanged`), Wikipedia summaries (`wikiPage`, `wikiFind`, English pages) and model pictures (`modelPic`,
-  `isModelPic`; `featPhoto` on the board; 1.35: `modelTitles`/`modelWiki` try several spellings, and pictures are asked
-  at 500 px: Wikimedia only serves standard thumbnail widths and answers 400 to others such as 800), `typeCard` (the
-  model). The app's `pwCard` sets or changes the password. The board maps a click to its own units (`fieldAt`, `boardTap`; a double
-  tap is `toggleFullscreen`), the app its hero panel. `remarkLines()` fills the Remarks flap (`seen` field) and facts.
-  `keys/index.html` is the remote key test.
-- Places (relay 33, app 1.37, simplified in 1.38 on Dave's word; shared "places" block before the airport mode, copied
-  by the app): `places` per profile (`/places` GET/POST, `_clean_places`: `{k: label, n, lat, lon, home, r}`, any label
-  but "live"), `placesLoad`/`placesSave`. All labels are alike (no special or automatic
-  Home: `ensureHome`/`homePlace`/`placeSync` are gone). Since 1.40 a label is saved from Settings → Location → Place name (see 1.40 below); the card (`placesCard()`) only lists the saved ones (tap: `usePlace()`, applySettings + `placeAfter()`, which resets Spotted today; Update: overwrite with the current S; ×: delete); the live switch and the address search are in Settings. `S.placeKey` is the label being watched (`placeKeySet()`); a Settings save runs `placeCheck()`, which
-  drops the label when the point no longer matches it. The key sent (`placeKeyNow()`): "live", else the label, else
-  "home" (no `pl`: the profile's own place; `ownSpot` and "here" went with Home in 1.49); `placeLabel()`
-  is what to show. A screen names its place on each position request (`placeQs()`: `?pl=key&pc=lat,lon&pr=km`;
-  `screen_place`), `Spot.take(..., place)` records around that place with `e.place` (absent = home), and a plane already
-  logged today from another place in the same pass only extends that pass (no double entries). `/sightings?place=`
-  filters (`sightPlaceQ()`; the app's Today `#svPlaces`/`allPlaces` asks for all). Live location (`S.live`, `S.livePrev`,
-  device-only: kept out of `/me`; `S.livePrev` is the label and point watched before, `liveStop` goes back to it):
-  `liveStart/liveStop/liveRun/liveFix` (watchPosition, or `hereNow()` every minute in
-  the Android app; moves over 300 m move the point, new names via `/geo/reverse` over 2 km, nearest airport over 15 km),
-  key "live", shown as "On the go". Address search: `/geo/search` and `/geo/reverse` (Nominatim, one request a second,
-  cached a day; `geo_search`, `geo_reverse`), the cards' `placesCard()` and Settings' `wireSearch()` (`type: "search"`).
-- Hardening (relay 33, from the code review): `host_ok()` refuses requests for names that aren't the relay's (DNS
-  rebinding; loopback, i.e. the tunnel, always passes; `--allow-host`, saved), `https()` only believes the tunnel,
-  password sign-in has `pw_wait`/`pw_failed` backoff and a dummy check for unknown users, `allow()` trims its table
-  instead of emptying it, `/push/subscribe` needs same-origin and a push-service endpoint (`push_endpoint_ok`),
-  `cached_or_stale` keeps a failed GitHub download from being retried on every request, `_positions` and `_cache` drop
-  old entries and position requests are rounded to 0.01°, passkeys are removed by their whole id, the CSV defuses
-  formulas (`_csv_safe`). Board: `poll()` numbers its updates (`pollSeq`) and draws outside the try; the app's radar card
-  only updates its numbers (`planeBody(...).sig/dyn`). `tools/test/smoke.py` and `.github/workflows/check.yml` check
-  pull requests.
-- 1.38: the app's status dot (`#dot`, a button) opens `statusCard()` (main.js; relay, source and freshness,
-  last update, failures, Flightradar24, relay version; refreshed every second while open). List rows: the app's
-  `rowHtml` has a `+` (`.flAdd`, `data-add`) as the only way to the favourite/hide sheet, and the airline, places and
-  type are `.tap` (dotted underline); the board draws the same on its static layer (`listHints`, `plusBtn`, `plusBox`,
-  `tapLine`; the Recent flights flaps leave `PLUS_W` at the row end, `renderSpotted` redraws when the number of rows
-  changes; Spotted today has `SV_X.plus`), and `boardTap` only opens the sheet from the `+`. Achievements (shared
-  block before the places): `achCheck(game)` from both `fetchLogbook`s compares `achList()` (complete sets, bingo
-  lines and full card per week, trophies) with what this browser celebrated (`od.ach`, per guest `od.ach.g.<id>`;
-  seeded quietly the first time), and `achNext()` shows a card (confetti(), `chime("special")`) that closes after
-  `ACH_MS` (10 s) and waits while another card is open. `RADAR_COL.away` (Outbound) is violet.
-  Relay 35 fixed relay 34's custom `--source` state (no `last_call`: every position request failed).
-- 1.40 (Dave's list, built in the main chat): Settings → Location has `placeKey` as a field (`type: "label"`, "Place
-  name", with a Save inside it, `[data-lsave]`, when the label isn't saved; `[data-lok]` ✓ when it is), `place` shown as
-  "City", `home` as "Airport", `type: "update"` (Use current location `[data-loc]` + Live location `[data-live]`; on the
-  board also Saved places and the address search, `places`/`search` flags, as its plates have a fixed height) and
-  `type: "places"` (the list). `wireLocation(box)` wires them all (replaces wireLocate; calls `wireSearch`);
-  `locatedAt(box, lat, lon, name, why)` is what every new location goes through: draft lat/lon, the town via
-  `/geo/reverse` into City, `nearbyAirports()` (relay `/airports/near`, up to 3 within 100 km) as a pick list
-  (`[data-lask]`) when there are several. Typed coordinates trigger it on `change`. `settingsSync()` puts S's location
-  into the open Settings (after `usePlace`, live start/stop/fix, Update, ×). The places card is only the list now.
-  The style (`mode`) and `live`/`livePrev` stay out of `/me` and out of a guest's profile settings on load, so each
-  device keeps its own. The app's rows: `.tc` holds the time and the `+` ring (`.flAdd`) in column 1 over all three
-  rows; `.tap` is an outlined pill. About has `#aboutX`. `html,body{overflow-x:clip}` and the status dot's tap area no
-  longer reaching past the screen fixed the sideways scroll; the light hero's stat rows (`data-r` reg, speed, depTime)
-  are a three-column grid. The "Save the bell" download is gone (the wav file stays).
-- 1.41: About is an overlay over Settings (`aboutShow`/`aboutHide`; `showTab("about")` calls aboutShow; `#t-about` is
-  fixed with a sticky `.tabHead`), Settings stays rendered and scrolled underneath. Rows swipe (main.js, touch events on
-  `.flights li.fl[data-more]`: past `SWIPE_AT` 72 px right opens `listSheet(x, "fav")`, left `listSheet(x, "hide")`;
-  `.swiping` slides the row's children by `--dx`, `::after` shows the label from `--swFav`/`--swHide` set in
-  `applyLang`); `listSheet(x, only)` can show one half. Cards' `.cLink` are outlined pills. The Account plate
-  (`settingsExtra`: `.acHead` with `.acAv` initial, `#acSub`, `accountBox(el, onChange, plate=true)` with Passkeys and
-  Password headings, `#signOut` in `.acOut`) replaced the sign-out button under Device.
-- 1.42 (relay 37): tips (shared block before the places: `tip(id, target, text, auto)` queues one, `tipNext` shows
-  `#tipLayer` with `.tipShade` (a radial gradient around the target), `.tipRing` and `.tipBub`; seen ids in `od.tips`
-  (per guest `.g.<id>`), `tipsReset()`; the app's `appTips(tab)` from `showTab`, the board's `boardTips(view)` from
-  `switchView` and once 20 s after start, auto-closing after 11 s). Cards: `cardLoading()` then `cardWhenReady(tok,
-  html, wire)` (waits for the pictures, `imgsReady`); airline, place, type and plane cards build their HTML first.
-  Logbook by place: relay `place_logbook(spot, place)` sums per-place summaries of each saved day (`_place_summary`,
-  past days cached in `_place_days`), `/logbook?place=` (`place_logbook_json`), `/logbook`'s `places` ([key, count]);
-  the app's `lbPlace`/`lbPlaceData`, `#lbPlaces` chips, the game/year parts only under All. Today: `fullDay.all` and
-  `fullDay.stats`; `todayList()` for Today (empty until the whole day of all places is in), `dayList()` ignores an
-  all-places day, `relayStats` only from this place; `#svPlaces` is a two-button switch. The app's rows have no `+`
-  (`.tc` holds only the time); the swipe's favourite side is grey until `.armed`. About is the last plate of Settings
-  (in `settingsExtra`), with Show the tips again under Device.
-- 1.43 (relay 38): `seatbeltDing()` (sound block, synthesised E6 bell, gain .16) from both `setFeat`s for a new plane on
-  top unless it rang the special chime (`S.ding`, not at night, 15 s apart, not in the first 8 s). The overhead rotation
-  no longer has `stats`: `nextPage()` puts Today in numbers after every tenth round (`rotLoops`, `statsTurn`,
-  `S.statsPage`). `modelTag()` on the board's photo, `.mtag` on the app's screen (`.screen.model`), `.cTag` in plane
-  cards. Remarks: `seenGet(kind, key)` (relay `/seen?reg=` or `?cs=`, the latter from `book["flights"]`, counted in
-  `_record` and backfilled once by `_backfill_flights`, `flightsV`), `firstLines()` names the first (type, plane,
-  airline, flight) and is skipped while the logbook is learning; the app's `seen` flap is 19 cells. Today's switch keeps
-  the list's height and the scroll position while the other list loads.
-- 1.44 (the board catches up with the app): the account code (`accountBox`, `pwCard`, `passkeyAdd`, `acctPost`,
-  `accountsOk`, …) moved from main.js into the board's shared block; the board's `account` view (`accountOpen`, from
-  Settings' Control plate) shows the Account, Device and Privacy plates (each `grid-row: 1 / span 2`). The board's
-  `todayList()`/`fullDay.all` and the `places` button in Spotted today's view tools; `lbPlace`/`lbPlaceData`/
-  `lbPlaceOk` now live in the board's code (copied by the app) with place buttons and a CSV link in the Logbook's view
-  tools. No scrolling on the board (TVs): `locatedAt`/`wireSearch` open a pick card when the cell is `.updAll`, and About
-  has ▲ ▼ (`[data-sc]`, `scrollBy`) for the log.
-  The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
-- 1.45: the ding is the recorded Airbus cabin tone (`SND.ding`, its first note; Pixabay, cut by `build_sounds.py`),
-  synthesised until decoded; switching it on in Settings plays it. `onMainPage()` (board: no `view`; app: `tab` "now")
-  keeps `seatbeltDing()` quiet elsewhere (the chimes play anywhere, Dave's choice). Achievements play `fanfare()`
-  (synthesised arpeggio, chord and sparkle), not the bell.
-- 1.46 (relay 39, Dave's list in the private `fallblatt-todo` issues): QR sign-in for screens. `refuse()`'s private
-  page includes `pair_page_js()`: POST `/pair/new` (stranger, same-origin, rate-limited) gives a six-letter code
-  (`PAIR_ALPHA`), a secret and `qr_svg()` of `<public_url>/pair/<code>` (`qr_matrix`: a stdlib QR encoder, byte mode,
-  level M, versions 1-10); the page polls `/pair/wait` and reloads once `signed_in()` set the cookie. The phone's GET
-  `/pair/<code>` (`pair_page`; `/pair` to type it) asks `pair_who()` (the phone's profile; else
-  `signin_html(next)`), POST `/pair/<code>` approves. `_pairs` lives in memory, `PAIR_S` 10 min. Account plate: `.acOutBtn` Sign out chip in `.acHead`, `.acSec` rows (name + state left, button right). The
-  ding is the whole chime again (both tones).
-- 1.47 (relay 40, to-do #20, #22, #23): the title's styles: the active word in `COL.amber`, the other at .45 alpha,
-  `swapSign()` (two arrows) instead of "/" (the app's `#modes` `.sl` is an inline SVG). Logbook chips: `lbChips()`
-  (board code, copied by the app) gives `{id, keys, name, n}` for home (merged with a saved label at the relay's own
-  point, relay 40), live and the saved labels only; `lbPlaceUrl(id)` asks `/logbook?place=a&place=b` (the relay merges
-  a tuple of keys in `place_logbook`; labels may contain commas, hence repeated parameters), `lbPlaceName(id)`.
-  Flightradar24: `fr24_period()` from `--fr24-reset-day` (saved; Dave's plan renews on the 9th, 60,000 credits),
-  `_fr24_usage` keyed by the period's first day (an older calendar-month or other-day count carries over while it
-  started within the period), `usage["by"]` per asker (`fr24_want(..., who)`; /flightinfo passes name · device,
-  else "Lists and alerts"), the admin page's renewal line, breakdown table and `/admin/fr24plan` form (`save_config()`
-  writes overhead.json the way `--save` does). A temporary budget: `fr24_budget_promo` until `fr24_promo_until`
-  (`_fr24_promo()`; `_fr24_budget()` returns it while it runs, else `_fr24_base_budget()`). Dave's Explorer plan is
-  30,000 a month, doubled to 60,000 for billing months starting up to 31 Dec 2026 (9 Oct, 9 Nov, 9 Dec); nothing rolls
-  over. His choice: 54,000 until 2027-01-08, then 27,000.
-- 1.49 (relay 42, Dave's list of 18 Oct 2026, to-do #25, #29-#34): no Home (above; `merge_home()` runs once at start
-  under `_data_lock`: `HOME_OWNER` "David" must be exactly one profile's name, else it logs and changes nothing;
-  `_merge_day` joins a day's lists (same hex within `SAME_PASS_S` is one pass), `_rebuild_book` counts the logbook
-  again from the joined days and leaves the scores, records, trophies and flights to `Spot.book`'s backfills; places,
-  lists, push, devices and the relay's location move to the profile; the old files go to `data/home-before-merge/`;
-  `profiles.json` `homeMerged` marks it done). The admin page (`admin_html`, `_pform`, `ADMIN_CSS`): a card per profile,
-  Guest (invite link) or Account (no link; `/account/user` and `/admin/username` void its unused invites), devices with
-  `/admin/device` (first 16 hex of the token hash), `/admin/limit`, `/admin/password`, `/admin/username`. Tips
-  (`MODE_TIP`, `PAGE_TIPS` in the tips block; `boardTips(null)` walks styles, pages (`b-p-<page>`) and views; the app's
-  `appTips("now")` walks `mode`, `pg-`/`ap-` pages and every tab, also after `setMode`); the board's tips scale with
-  `--tipK`. The barking dog: `aboutTap()` (sound block; 7 taps within 4 s; board: Settings' About button and the About
-  plate's `#abAbout`; app: `#aboutBtn` and the About page's title) plays `SND.dog` (`build_sounds.py` `barks()`:
-  high-pass, `audio.gate`, `audio.fade_out`, 11 kHz). Card music: `cardMusicStart(name)`/`cardMusicStop()` (cards
-  block; Web Audio gain on a media element, `MUSIC_S` 30, `MUSIC_FADE_S` 4; a card keeps it while its HTML has
-  `data-music`; `cardClose` stops it); relay `/media/<name>` (`MEDIA` allowlist, `MEDIA_DIR` = `data/media/`, Range,
-  signed-in only, 404 when absent). The Emirates file never goes into the repository.
-- 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
-  960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
-- Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
-  (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
-  `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
-  runs `window_check` (passes within 5 km in 20–180 s: special, first-ever, favourite or below 3,000 ft) and
-  `summary_check` (once a day at `SUMMARY_AT`) every 30 s. Since 1.32 (relay 32) `sw.js` shows one notification at a
-  time (tag `fallblatt`, older ones closed: Android's group summary showed its own icon) and, with the app in front,
-  stays silent and posts `{type: "bell", kind}` (the alert's `kind` from the relay) so the page plays `chime()`;
-  `app/airport-bell.wav` (from `tools/sounds/make_bell.py`, same notes as `BELL_NOTES`/`airportBell()`; served as a
-  board file, `wav` in `BOARD_FILE`) can be set as the Android notification sound. `S.bell` airport|classic picks the
-  special chime; toggling it in Settings plays it (`chime(kind, {force, set})`). (The "Link a device to Home"
-  pseudo-profile went with Home in relay 42.)
-- Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
-  `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
-- Position sources (`SOURCES`, tried in order): adsb.lol, adsb.fi (v3 since relay 36; 1 request a second, so
-  `SOURCE_GAP_S`; failed requests count towards a temporary IP block), airplanes.live (403 until Dave's email is
-  answered), then AvioADSB (relay 36, emergency only: anonymous tier 1 request/10 s and 100/day per network, personal
-  non-commercial use, CC BY 4.0; the source's `gap` 15 s is skipped rather than waited for, `day_cap` 90 per UTC day,
-  also stopped by `X-RateLimit-Remaining: 0`; `/status` shows `used_today`). Their terms want a credit with a link:
-  the board's `siteLinks()` turns the names in About's credits (and the app's privacy line) into links (`SITE_LINKS`).
-  OpenSky is ruled out (needs a written licence).
-- Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
-  month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
-  Relay 41 / 1.48: `/flightinfo` hands out cached answers to anyone allowed Flightradar24 even past a profile's
-  daily limit or the budget (then "none", not "off"); since relay 42 the limit is in credits, counted when the lookup
-  is made (not on the board's retries). "off" pauses a board's lookups for `API_PAUSE_MS` (10 min,
-  `apiOff`), not until a reload; `/sightings` keeps asking `api=1` (`apiWanted`). `recentInfo` (from `infoChanged`,
-  `info.hex`) fills a Recent flights row when an answer comes after the plane left the top half, and `withShared` takes
-  Flightradar24's flight and route from the shared list for rows that didn't get them.
-- "/" for what isn't known (1.48, to-do #24): `NA`/`orNA(v, done)` (network block). `info.done` is set when enrich's
-  free lookups are in and Flightradar24 answered or gave up (`lookedUp(info)` from every exit of `apiLookup`; at once
-  without it), and calls `infoChanged` (which also runs `scheduleAirport`). Sightings: the relay (41) sets `e.looked`
-  after the enricher and `fr24Wait` in `fr24_overlay` while a lookup is queued; `sightDone()` (also true ten minutes
-  after the sighting) gives `done` in `fromRelay`; Recent flights rows carry `done` from `fillEntry` (missing = done).
-  Times need `timesSettled(info)` too, This aircraft `detailsDone(hex)` (adsbdb answered; not found is `{}`).
-  `DRUM_DIGIT` has "/" for the time flaps.
-- Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
-- It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
-  the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
+- Useful: `/status` (JSON), `/screens`; on the container `journalctl -u overhead-relay -f`.
 
 ## Testing a change
 
-0. `py tools/test/smoke.py` checks the test relay serves positions, loads every page against it and fails on a page error (GitHub runs it on
-   pull requests).
-1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
-   `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights
-   and serves this checkout at `http://localhost:8096/` (`/test/`, `/app/`). Dave's real relay and
-   data are untouched. Since relay 42 it starts with two profiles: "Test" (cookie `overhead=test-device`, sent by
-   shoot.py and smoke.py; a browser gets it from `/test-signin`) and "New guest" (`new-device`, `?as=new`, for the
-   welcome), and copies `sounds-src/emirates-boarding.m4a` (git-ignored) into its `data/media/` when it is there.
-   The made-up flights play out in the first minutes after it starts (restart it for the Airport style).
-2. Look at it: in a browser, or `py tools/test/shoot.py URL OUT steps...` for screenshots (set `PHONE=390x844` for
-   the app, `SIZE=960x540 DPR=2` for the Fire TV, `COOKIE=` for another profile or none). Check the page errors it prints and look at the screenshots, not just the exit code.
-3. Syntax check of the inline script: extract the `<script>` and run `node --check` on it if Node is installed.
-4. For anything about the TVs, the real screens are the test: open `http://<pc>:8080/test/` on them.
+0. `py tools/test/smoke.py`: loads every page against the test relay and fails on a page error (GitHub runs it on pull requests).
+1. `py tools/test/run_test_relay.py` (`--fr24` for Flightradar24 features, `--quiet` without special planes, `--hover`
+   for a hovering helicopter, `--far` a landing 32 km out). It runs a copy of the relay against made-up flights and serves
+   this checkout at `http://localhost:8096/` (`/test/`, `/app/`); Dave's real relay and data are untouched. Profiles:
+   "Test" (cookie `overhead=test-device`; a browser gets it from `/test-signin`) "New guest" (`?as=new`, the welcome) and "David" (`overhead=owner-device`, the owner: the admin pages).
+   Flights play out in the first minutes (restart for the Airport style).
+2. Look at it: a browser, or `py tools/test/shoot.py URL OUT steps...` (`PHONE=390x844` for the app, `SIZE=960x540 DPR=2`
+   for the Fire TV, `COOKIE=` for another profile). Check the page errors it prints and look at the screenshots.
+3. Syntax check: extract the inline `<script>` and `node --check` it if Node is installed.
+4. For the TVs, the real screens are the test: open the relay's `/test/` on them.
 
-Then commit (what changed and why), push to `main`, and tell Dave which boards changed and whether the relay needs
-a restart.
-
-## Ideas Dave hasn't picked yet (Oct 2026)
-
-Screens update themselves when a new version is published; wake The Frame and reopen the board when it drops off,
-Art Mode at night (Samsung's local TV API); a spotter's
-collection page and weekly bingo of rare planes; rarity marks ("first time ever", "seen 4 times"); worth going to
-the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; a Hue
-light pulse for special planes (local Hue Bridge API), phone push via ntfy; a Vestaboard-style 6x22 view; a report of
-what Flightradar24 added, to decide on renewing.
+Then commit (what changed and why), push, and tell Dave which boards changed and whether the relay needs an update.
