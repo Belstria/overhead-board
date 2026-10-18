@@ -20,7 +20,7 @@ ASSETS = ("i18n.js", "sounds.js")
 
 
 def version(f):
-    return hashlib.sha256(Path(f).read_bytes()).hexdigest()[:10]
+    return hashlib.sha256(Path(f).read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:10]   # the same on a CRLF checkout
 
 
 def stamped(html, folder):

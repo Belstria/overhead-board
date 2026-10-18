@@ -2348,7 +2348,7 @@ _board_file_try = {}         # rel -> when a copy was last fetched for a version
 
 def file_version(body):
     """The version a board names a file by (`i18n.js?v=...`, tools/assets.py): its SHA-256 (the board uses the start)."""
-    return hashlib.sha256(body).hexdigest()
+    return hashlib.sha256(body.replace(b"\r\n", b"\n")).hexdigest()   # line ends as in the repository
 
 
 def board_file(sub, name, ext, want=""):
