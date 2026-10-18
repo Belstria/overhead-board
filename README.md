@@ -137,8 +137,9 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
   today's planes, a few words from Wikipedia, Favourite / Hide), a place (From, To) for its airport (name, codes,
   distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
-  Remarks). In the phone app and on the full board alike. What opens a card is marked (1.38): the airline, the places and
-  the aircraft type in the lists are brighter with a dotted underline (on the board a thin dotted line under those flaps).
+  Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
+  the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
+  a thin dotted line runs under those flaps (1.38).
   On the board a plane on the radar opens its card and the airline field the airline, and the **+** at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
@@ -151,8 +152,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
   Commons), credited as such.
-- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the **+** at the end of a row of the lists (1.38;
-  before, a tap anywhere on the row), or
+- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the small **+** ring under a row's time (1.40;
+  1.38 had a big + at the row's end; before, a tap anywhere on the row), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
@@ -222,29 +223,36 @@ The main board has everything below. New features are tried on `/test/` first; o
   its status flap shows a plane climbing away from or coming down onto a runway in front of the word. Below, the pages
   turn between the take-offs and landings (two lists side by side), the departing plane and the landing plane (photo
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
-  skips it). The two styles sit in the title as a switch: tap the other one to change. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
+  skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
+  it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
-- **Places** (1.37, simpler since 1.38, relay 33; Settings → Location → **Places & live location**, or tap the place
-  under the title in the app): set the location in Settings as usual (address search, latitude and longitude, or Use
-  current location), then in the Places card **save where the board is watching now** under a name (Home, Work,
-  London ...). Saved places are a plain list: tap one to watch it, **Update** moves it to where the board is watching
-  now, **×** deletes it. Home is a name like any other, so it can be moved or deleted too, and nothing is saved by
-  itself. Changing the location in Settings leaves the saved place it came from as it was (the title then shows the
-  new place without a name). Places are kept on the relay, so all of a person's devices (or all screens at home) share
-  them; each device watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and
-  records count them all), and **Spotted today shows the place being watched**, so the TVs keep showing the sky over
-  home while a phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today
-  has a switch to show every place at once, with each plane's place. Sightings carry their place in the logbook's CSV.
-- **Live location** (1.37; the app through the https address, or the Android app): **Follow this phone's location** in
-  the Places card makes the board watch where the phone is while the app is open; it names the town (OpenStreetMap)
-  and picks the nearest airport as it moves, and its planes count as "On the go". The title shows ◉ while it follows.
-  Turning it off goes back to the place before (or stays where it is if that saved place was deleted meanwhile). The TVs can't follow (browsers only share their location with https
-  pages).
-- **Find an address** (1.37, relay 33; Settings → Location): type an address or a place and pick it from the list:
-  the place name, latitude and longitude are filled in, and the nearest airport becomes the home airport. The search
-  is OpenStreetMap's (Nominatim), through the relay, so no key is needed.
-- **Use current location** (Settings → Location; boards and phone app): fills in latitude and longitude and
-  offers the nearest airport with scheduled flights as the home airport (relay 16 or newer). Browsers only share their
+- **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
+  - **Place name** is the name of the place being watched (Home, Parents, Vacation …). Type a new one and a **Save**
+    appears inside the field: it saves the location being watched under that name. A name that is saved already
+    shows a ✓.
+  - **City** is the town shown under the title. It fills itself in whenever the location changes (an address, the
+    current location, typed latitude and longitude, a saved place, live location) and can still be typed over.
+  - **Airport** (was Home airport): when there are several airports with scheduled flights within 100 km, a short list
+    to pick from (code, name, distance) appears; with one, it is taken.
+  - **Update location**: **Use current location** and **Live location** side by side. Live location (the app through
+    the https address, or the Android app) makes the board watch where the phone is while the app is open, names the
+    town and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
+    reads "On the go". Turning it off goes back to the place before. The TVs can't follow (browsers only share their
+    location with https pages).
+  - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
+    board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.
+  - **Find an address**: type an address or a place and pick it from the list (OpenStreetMap's Nominatim, through the
+    relay, no key needed); the town and the airports follow.
+  - On the full board, whose panels have a fixed height, Saved places and the address search sit in the Update
+    location cell.
+
+  Saved places are kept on the relay, so all of a person's devices (or all screens at home) share them; each device
+  watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and records
+  count them all), and **Spotted today shows the place being watched**, so the TVs keep showing the sky over home while a
+  phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today has a switch to
+  show every place at once, with each plane's place. Sightings carry their place in the logbook's CSV.
+- **Use current location** (Settings → Location → Update location; boards and phone app): fills in latitude and
+  longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
 - **Rarity and the Collection** (1.21, relay 24; by fleet size since 1.25, relay 26): every plane gets a tier, shown in
@@ -500,9 +508,8 @@ favourites, a type never seen here, passing very low), and About → Notificatio
 planes, the watchlist, military and favourites are on; new types and very low passes off). At most one every 15
 minutes and none from 22:00 to 07:00, except emergencies and special planes; hidden planes never notify.
 Since 1.32 only one notification shows at a time (a new one replaces the last), so Android never stacks them into a
-group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; to hear the
-bell with the app closed on Android, About → Notifications → **Save the bell**, then pick it as the sound for
-your public address under Android's settings → Notifications → Chrome (iPhones always play their own sound).
+group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; with the app
+closed the phone plays its own notification sound (the "Save the bell" download was removed in 1.40).
 
 **New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
 update. Nothing reloads by itself.

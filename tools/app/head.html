@@ -65,7 +65,8 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 @media (max-width:374px){.title h1{font-size:20px}}
 #clockP{width:112px}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
-.dot::after{content:"";position:absolute;inset:-16px}
+.dot::after{content:"";position:absolute;inset:-16px -4px -16px -16px}   /* a bigger tap area, kept inside the screen (1.40) */
+html,body{overflow-x:clip}
 #cardBox .stOk{font-size:.9em}#cardBox .stOk[data-ok=good]{color:#22a058}#cardBox .stOk[data-ok=meh]{color:var(--amber)}#cardBox .stOk[data-ok=bad]{color:#c7372d}
 .dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
 main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
@@ -137,7 +138,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .flights li.empty{color:var(--muted);padding-left:10px;font-size:14px;border:0;box-shadow:none}
 .fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center}
 .fl time{font:600 14px/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
-.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
 .fl .who strong{font:700 16.5px/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
 .fl .who span{font:500 13.5px/1 var(--f-board);color:var(--muted);margin-left:.45em}
 .fl .rt,.fl .meta{grid-column:2/4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -145,7 +146,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .fl .rt b{font-weight:700;color:var(--amber);margin-right:.25em}
 .fl .rt i{font-style:normal;color:var(--muted);margin:0 .4em}
 .fl .rt .no{color:rgba(255,255,255,.25)}
-.fl .meta{display:flex;justify-content:space-between;gap:10px;font:500 13px/1.2 var(--f-board);color:var(--muted)}
+.fl .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
 .fl .meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
 .flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
@@ -224,16 +225,23 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
-.fl.plus{grid-template-columns:44px minmax(0,1fr) auto 44px}
-.fl .flAdd{grid-column:4;grid-row:1/4;align-self:stretch;width:44px;min-height:44px;margin:-4px 0;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:10px;
-  background:linear-gradient(#26282c,#1a1b1e);color:var(--amber);font:600 26px/1 var(--f-board);cursor:pointer}
-.fl .flAdd:active{background:#34363b}
-/* what opens a card: the airline, the places and the type */
-.fl .tap{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.45);text-underline-offset:3px;padding:6px 2px;margin:-6px -2px}
-.fl .who .tap{color:#d9d4c6;margin-left:calc(.45em - 2px)}
+.tabHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tabX{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:none;color:var(--ink);font:400 24px/1 Arial,sans-serif;cursor:pointer}
+.tabX:active{background:rgba(255,255,255,.1)}
+/* 1.40: the time and, under it, a small grey ring with the + (the favourite/hide sheet), centred in the row */
+.fl{row-gap:5px}
+.fl .tc{grid-column:1;grid-row:1/4;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
+.fl .flAdd{position:relative;width:28px;height:28px;margin:0;padding:0;border:1.5px solid #4a4c52;border-radius:50%;background:none;color:#a39d8f;
+  font:600 19px/1 Arial,sans-serif;display:grid;place-items:center;cursor:pointer}
+.fl .flAdd::before{content:"";position:absolute;inset:-9px}
+.fl .flAdd:active{background:rgba(255,255,255,.1)}
+/* what opens a card: the airline, the places and the type, each in a thin grey outline */
+.fl .tap{display:inline-block;cursor:pointer;border:1px solid #44474d;border-radius:12px;padding:2px 8px;line-height:1.25;text-decoration:none;vertical-align:middle}
+.fl .who .tap{color:#d9d4c6;margin-left:.45em;font-size:13px}
+.fl .rt{line-height:1.6}
 .fl .rt .tap{color:#f3eee0}
-.fl .meta .tap{color:#d9d4c6}
-.fl .tap:active{background:rgba(255,255,255,.1);border-radius:4px}
+.fl .meta .tap{color:#d9d4c6;font-size:12.5px;padding:1px 7px}
+.fl .tap:active{background:rgba(255,255,255,.1)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
@@ -555,7 +563,7 @@ body.arOpen{overflow:hidden}
     </div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
-    <h2 data-t="About">About</h2>
+    <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close">×</button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
