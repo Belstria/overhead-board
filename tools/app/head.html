@@ -91,6 +91,19 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acIn{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
   background:#0f1012;color:var(--ink);font:600 15px var(--f-board)}
 #acctBox p.warn,#wAcctBox p.warn{color:#f6be35}
+/* 1.41: the Account plate: who this device is signed in as, then the sign-in methods, then Sign out */
+.acHead{display:flex;align-items:center;gap:14px;margin:2px 0 14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
+.acAv{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 22px/1 var(--f-board)}
+.acWho{min-width:0}
+.acWho b{display:block;font:700 20px/1.2 var(--f-board);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acWho small{display:block;margin-top:2px;font-size:13px;color:var(--muted)}
+.acctPlate h4{margin:14px 0 4px;font:700 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.acOut{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+.acOut .acts{margin:0}
+.acOut .cap{width:100%;white-space:nowrap}
+.acOut .muted{margin-top:10px}
+.cap.danger{color:#ff9d92}
+.acOut .muted{color:var(--muted);font-size:13px}
 #acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
 .acKeys li{align-items:center}
 .acKeys .cap{width:auto;padding:0 10px;height:30px}
@@ -226,8 +239,30 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .tabHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.tabX{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:none;color:var(--ink);font:400 24px/1 Arial,sans-serif;cursor:pointer}
-.tabX:active{background:rgba(255,255,255,.1)}
+.tabX{width:42px;height:42px;flex:none;display:grid;place-items:center;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);cursor:pointer}
+.tabX:active{background:rgba(255,255,255,.12)}
+/* 1.41: About opens over Settings as a page of its own; its title and close button stay at the top while it scrolls,
+   and closing it leaves Settings where it was */
+#t-about{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+  padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(env(safe-area-inset-bottom) + 28px)}
+#t-about .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(env(safe-area-inset-top) + 14px) var(--gut) 12px;
+  background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
+#t-about .tabHead h2{margin:0}
+#t-about #aboutBox{margin-top:4px!important}
+body.aboutOpen{overflow:hidden}
+/* 1.41: swipe a row right (favourite) or left (hide): the content slides, the row shows what letting go will do */
+.fl.swiping{overflow:hidden;touch-action:pan-y}
+.fl.swiping > *{transform:translateX(var(--dx,0));transition:none}
+.fl > *{transition:transform .18s ease-out}
+.fl.swiping::after{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 16px;font:700 13px/1 var(--f-board);
+  letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
+.fl.swiping[data-swipe=fav]::after{content:"★ " var(--swFav,"Favourite");left:0;color:#f0b429;
+  background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(240,180,41,0));width:50%}
+.fl.swiping[data-swipe=hide]::after{content:var(--swHide,"Hide") " ⊘";right:0;justify-content:flex-end;color:#c9ced6;
+  background:linear-gradient(270deg,rgba(150,160,175,.22),rgba(150,160,175,0));width:50%}
+.fl.swiping.armed[data-swipe=fav]::after{background:linear-gradient(90deg,rgba(240,180,41,.42),rgba(240,180,41,0));color:#ffd36b}
+.fl.swiping.armed[data-swipe=hide]::after{background:linear-gradient(270deg,rgba(200,80,70,.4),rgba(200,80,70,0));color:#ff9d92}
 /* 1.40: the time and, under it, a small grey ring with the + (the favourite/hide sheet), centred in the row */
 .fl{row-gap:5px}
 .fl .tc{grid-column:1;grid-row:1/4;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
@@ -563,7 +598,7 @@ body.arOpen{overflow:hidden}
     </div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
-    <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close">×</button></div>
+    <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
