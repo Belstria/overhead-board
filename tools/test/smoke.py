@@ -1,7 +1,8 @@
 """A quick check that a change didn't break the pages: run by GitHub Actions on every pull request (.github/workflows/
 check.yml), and handy before a commit.
 
-    py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps parse (needs Node)
+    py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps and their separate files (i18n.js,
+                                       sounds.js) parse, and the boards name those files' current versions (needs Node)
     py tools/test/smoke.py             the test relay with made-up flights, then /, /test/, /app/, /light/ and /test-api/ in a
                                        headless browser (needs Playwright); fails on any page error
     py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
@@ -24,6 +25,8 @@ REPO = Path(__file__).resolve().parent.parent.parent
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
 BASE = f"http://localhost:{PORT}"
 PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html"]
+sys.path.insert(0, str(REPO / "tools"))
+import assets  # noqa: E402  (tools/assets.py)
 
 
 def syntax():
@@ -41,6 +44,15 @@ def syntax():
                 if r.returncode:
                     bad += 1
                     print(f"{page}, script {i + 1}:\n{r.stderr.strip()}\n")
+        for f in [REPO / d / n for d in ("", "test") for n in assets.ASSETS if (REPO / d / n).is_file()]:
+            r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True)
+            if r.returncode:
+                bad += 1
+                print(f"{f.relative_to(REPO).as_posix()}:\n{r.stderr.strip()}\n")
+    stale = assets.stamp(check=True)
+    if stale:
+        bad += 1
+        print(f"{', '.join(stale)} don't name the current i18n.js/sounds.js: run py tools/assets.py (or tools/app/build.py)")
     print("scripts parse" if not bad else f"{bad} script(s) don't parse")
     return bad == 0
 
@@ -74,6 +86,14 @@ def pages():
             print("the test relay served no positions at /aircraft/48.2085/16.3731/25")
             return False
         print(f"positions: {len(ac)} aircraft")
+        # 1.53.1: the board's translations and sounds, by the version the board names, kept for good (relay 48)
+        board = (REPO / "test" / "index.html").read_text(encoding="utf-8")
+        for name in assets.ASSETS:
+            m = re.search(re.escape(name) + r"\?v=([0-9a-f]+)", board)
+            r = urllib.request.urlopen(f"{BASE}/test/{name}?v={m.group(1)}", timeout=10) if m else None
+            if not r or r.status != 200 or "immutable" not in (r.headers.get("Cache-Control") or ""):
+                print(f"/test/{name} isn't served as a lasting file by its version")
+                return False
         errors = []
         with sync_playwright() as p:
             b = p.chromium.launch()
@@ -94,6 +114,8 @@ def pages():
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))
                 pg.goto(url)
                 pg.wait_for_timeout(8000)
+                if not pg.evaluate("!document.querySelector('script[src*=\"i18n.js\"]') || (window.I18N_ROWS || []).length"):
+                    errors.append(f"{url} {size}: no translations (i18n.js didn't load)")
                 print(f"{pg.url} at {size[0]}x{size[1]}: loaded")
                 pg.close()
             b.close()

@@ -1,8 +1,8 @@
 # The board's sounds
 
 Since 1.17 the Settings controls play short recordings (the flaps did too until 1.19.1, when their synthesised clack
-came back), embedded in the boards (the `@sounds-begin` /
-`@sounds-end` block) and copied into the phone app. Settings → Sounds → CLASSIC plays the earlier synthesised sounds
+came back), since 1.53.1 in `test/sounds.js` next to the test board (before, embedded in the board), loaded by
+the boards and the phone app when sound is on. If it can't be loaded, the synthesised sounds play. Settings → Sounds → CLASSIC plays the earlier synthesised sounds
 instead (they stay in the code as the fallback, also while the recordings are still being decoded).
 
 ## Where they come from
@@ -29,7 +29,7 @@ py tools/sounds/build_sounds.py
 
 It finds the single clicks in the long recordings (the cleanest: loud, quiet just before, not overlapping the next),
 cuts them with short fades, evens out their level, halves the sample rate (22 kHz mono is plenty: everything above
-6.5 kHz is filtered on playback anyway) and writes them into `test/`, plus listening copies in
+6.5 kHz is filtered on playback anyway) and writes them to `test/sounds.js` (and stamps its new version into the test board: `tools/assets.py`), plus listening copies in
 `sounds-src/out/`. The Pixabay file is an MP3: decode it to `sounds-src/eaglaxle-switching-button-2.wav` first (and the cabin chime to
 `sounds-src/arunangshubanerjee-airbus-cabin-pa-beep.wav`, and the barking dog to
 `sounds-src/arunangshubanerjee-airbus-ptu-barking-dog.wav`) (the

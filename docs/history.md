@@ -14,7 +14,7 @@ The repository is public: no addresses, keys or personal data here either.
   engraved labels; `drawStatic()`) and `fx` (the flaps).
 - Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
   `setChars(id, text, delay)` / `setWord(id, word, delay)` queue the drum path (`retarget`; with Quick flaps, `S.quick`, each flip gets `c.qdur` so the run ends within `QUICK_MS`, and `frame()` chains and skips flips), `frame()` animates and
-  `paintCell()` draws a flap mid-flip. Sounds (1.17): recordings in `SOUND_DATA` (embedded, made by
+  `paintCell()` draws a flap mid-flip. Sounds (1.17): recordings in `SOUND_DATA` (embedded until 1.53.1, now `test/sounds.js`; made by
   `tools/sounds/build_sounds.py`), decoded by `loadSounds()`, played by `sample()` from `clack()` and `ctlSound`; with
   `S.soundSet === "classic"` or before decoding, the old synthesised sounds play. The flaps always clack synthesised
   (1.19.1, Dave's choice; the flap recording was dropped). The board's rail buttons carry the app's tab icons (`RAIL_ICONS`). Drums: `DRUM_ALPHA`, `DRUM_DIGIT`, `DRUM_ALT`, `DRUM_POS`, `REMARKS`.
@@ -398,6 +398,21 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   z 6, board units via `--k`) is drawn by `renderNightView()` (from `applyNight`, every 2 s; not while a card is
   open). A capture listener (keydown/pointerdown/touchstart/wheel) calls `nightPeek()` (60 s) and swallows the key
   that uncovers it; a pointer lands on the fading overlay. The app and light have no night mode, so no night view.
+- 1.53.1 / relay 48 (to-do #42), a lighter board file: the translations (`I18N_ROWS`, 152 KB) and the sounds
+  (`SOUND_DATA`, 260 KB) moved to `test/i18n.js` and `test/sounds.js` (`window.I18N_ROWS`, `window.SOUND_DATA`); the
+  board went from 903 KB to 483 KB. i18n.js is a plain `<script src="i18n.js?v=…">` before the main script (without
+  it `I18N_ROWS = []` and `T()` falls back to `I18N.en`, then the key: English); sounds.js is added by `soundFile()`
+  5 s after the start when `S.sound || S.chimes`, or by `loadSounds()` when sound starts (a failure: synthesised
+  sounds, tried again after a minute). `?v=` is the start of the file's SHA-256, stamped by `tools/assets.py`
+  (`tools/app/build.py`, light's build and `build_sounds.py` call it; smoke.py --syntax and CI check it). The app and
+  light load `../test/i18n.js` / `../test/sounds.js` (build.py patches `SOUNDS_JS` in E10 and puts the script tag
+  before main.js). Relay 48: `board_file(sub, name, ext, want)` refetches a copy whose hash isn't `want` (at most
+  every 20 s) and answers `Cache-Control: public, max-age=31536000, immutable` when it matches; `reply()` takes
+  Cache-Control from `extra`. `app/sw.js` keeps the versioned files in cache `fallblatt-files` (cache first, older
+  versions dropped); the light page isn't in its scope and relies on the browser cache. Main board: its own root
+  copies, made by `tools/push_main.py`. Measured at 960x540 on the test relay: first load 888 KB as before (875),
+  later loads 486 KB; first flap at 5 Mbps 1.57 s before, 1.19 s first / 0.90 s later after (20 Mbps: 0.50 s →
+  0.44 / 0.31 s). AIRPORTS, AIRLINES, TYPES, FLEET stay in the board (a few KB together).
 - Relay 47 (to-do #46): `window_check` split into `window_planes(who, centre, spot, st)` (the planes worth a look with
   `kinds`, `airline`) and the alerts. `hue_check` (thread `_hue_watch`, every 15 s) takes the owner profile's place,
   pulses for the first plane with kind special/fav not in `_hue_seen` (3 h), at most every `HUE_GAP_S` (60 s), not in

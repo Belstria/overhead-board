@@ -3,7 +3,9 @@
 An airport-style split-flap board (*Fallblatt* is German for split-flap) that shows the planes flying over a
 chosen spot, live. It has two styles: **Overhead**, the planes flying over you, and **Airport**, the planes taking
 off and landing at an airport.
-It is a single static page: open `index.html` in any modern browser, or serve it from GitHub Pages.
+It is a static page: open `index.html` in any modern browser, or serve it from GitHub Pages. Its translations and
+recorded sounds are two files next to it (`i18n.js`, `sounds.js`; since 1.53.1), which a screen keeps after the
+first visit, so later visits load half as much; without them the board still works, in English with synthesised sounds.
 
 ## Choosing the location
 
@@ -665,7 +667,8 @@ NEW AIRLINE marks start the day after. The spotting radius the relay uses is `--
 
 The relay always serves the latest published board from GitHub Pages (it checks for a newer one at most once
 a minute, so a change shows up a minute or two after it is published; a local copy is kept for when GitHub is
-unreachable). Use `--local path/to/index.html` to serve a
+unreachable). Since relay 48 it lets screens keep the board's translations and sounds for good: the board names
+them by version, so a changed file has a new address. Use `--local path/to/index.html` to serve a
 local file instead, `--local-root path/to/overhead-board` to serve every board, the phone app and its icons from a
 copy of this repository, `--source URL` to read positions from your own receiver (a URL with `{lat}`, `{lon}` and
 `{nm}` placeholders, or a local `aircraft.json`), and `--help` for all options.

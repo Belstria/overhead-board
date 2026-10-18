@@ -27,7 +27,7 @@ jobs:
       - name: The phone app is built from the board
         run: |
           python tools/app/build.py
-          git diff --exit-code app/index.html || (echo "app/index.html is out of date: run py tools/app/build.py" && exit 1)
+          git diff --exit-code app/index.html test/index.html || (echo "app/index.html or the versions of i18n.js/sounds.js in test/index.html are out of date: run py tools/app/build.py" && exit 1)
       - name: The light version is built from the app
         run: |
           python tools/light/build.py

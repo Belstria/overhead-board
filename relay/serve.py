@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 47
+RELAY_VERSION = 48
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -79,7 +79,7 @@ AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
 BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
-FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript", "wav": "audio/wav"}
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "fr24_budget_promo", "fr24_promo_until", "public_url", "allow_host")
 DATA_DIR = Path(__file__).with_name("data")
@@ -2343,24 +2343,43 @@ _board_seen = {}
 _board_date = {}             # when each board was published (GitHub's Last-Modified), in ms since 1970
 
 
-def board_file(sub, name, ext):
-    """An icon or the web app manifest next to a board (the phone app needs them to go on the home screen)."""
+_board_file_try = {}         # rel -> when a copy was last fetched for a version the cached one isn't (relay 48)
+
+
+def file_version(body):
+    """The version a board names a file by (`i18n.js?v=...`, tools/assets.py): its SHA-256 (the board uses the start)."""
+    return hashlib.sha256(body.replace(b"\r\n", b"\n")).hexdigest()   # line ends as in the repository
+
+
+def board_file(sub, name, ext, want=""):
+    """An icon or the web app manifest next to a board (the phone app needs them to go on the home screen), or since
+    relay 48 the board's translations and sounds (i18n.js, sounds.js). `want`: the version the board asked for; a copy
+    that isn't it is fetched again (GitHub may have the new board before this relay's copy is ten minutes old). Returns
+    (status, body, whether the body is that version, so the screen may keep it for good)."""
     rel = (sub + "/" if sub else "") + name
     if ARGS.local_root:
         f = Path(ARGS.local_root) / rel
-        return (200, f.read_bytes()) if f.is_file() else (404, b"Not found")
+        if not f.is_file():
+            return 404, b"Not found", False
+        body = f.read_bytes()
+        return 200, body, bool(want) and file_version(body).startswith(want)
     copy = DATA_DIR / "board-files" / rel.replace("/", "--")
-    status, _, body, _ = cached_or_stale("file:" + rel, PAGE_TTL * 10, lambda: fetch(f"{BOARD_URL}{rel}?v={int(time.time()) // 600}", timeout=15))
+    load = lambda: fetch(f"{BOARD_URL}{rel}?v={want or int(time.time()) // 600}", timeout=15)
+    status, _, body, _ = cached_or_stale("file:" + rel, PAGE_TTL * 10, load)
+    if want and status == 200 and not file_version(body).startswith(want) and time.time() - _board_file_try.get(rel, 0) > 20:
+        _board_file_try[rel] = time.time()          # at most every 20 s, whatever version a request names
+        status, _, body, _ = cached("file:" + rel, 0, load)
     if status == 200:
         try:
             copy.parent.mkdir(parents=True, exist_ok=True)
             copy.write_bytes(body)
         except OSError:
             pass
-        return 200, body
+        return 200, body, bool(want) and file_version(body).startswith(want)
     if copy.exists():
-        return 200, copy.read_bytes()
-    return (404 if status == 404 else 502), b"Not found"
+        body = copy.read_bytes()
+        return 200, body, bool(want) and file_version(body).startswith(want)
+    return (404 if status == 404 else 502), b"Not found", False
 
 
 def board_html(sub="", guest=None):
@@ -4423,10 +4442,11 @@ class Handler(BaseHTTPRequestHandler):
             super().log_message(fmt, *args)
 
     def reply(self, status, content_type, body, extra=None):
+        extra = dict(extra or {})
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", extra.pop("Cache-Control", "no-store"))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("X-Frame-Options", "SAMEORIGIN")
@@ -4913,8 +4933,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         bf = BOARD_FILE.match(path)
         if bf:
-            status, body = board_file(bf.group(1) or "", bf.group(2), bf.group(3))
-            return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body)
+            want = (self.query().get("v") or [""])[0]
+            want = want.lower() if re.fullmatch(r"[0-9a-fA-F]{8,64}", want) else ""
+            status, body, exact = board_file(bf.group(1) or "", bf.group(2), bf.group(3), want)
+            # relay 48: a file the board names by its version (i18n.js?v=...) is that version for good: kept a year
+            keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact else None
+            return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body, keep)
         page = PAGE.match(path)
         if page:
             html = board_html(page.group(1) or "", self.guest)
