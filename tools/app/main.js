@@ -1485,10 +1485,9 @@ function settingsExtra(){
   const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Home");
   const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
     `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
-    `<small id="acSub">${escH(GUEST ? T("Signed in on this device") : T("This device uses the home profile (your home network or a linked device)."))}</small></div></div>` +
-    (accountsOk() ? `<div id="acctBox"></div>` : "") +
-    (GUEST ? `<div class="acOut"><button class="cap big danger" type="button" id="signOut">${T("Sign out of this device")}</button>` +
-      `<p class="muted">${escH(T("Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link."))}</p></div>` : "") + `</div>`;
+    `<small id="acSub">${escH(GUEST ? T("Signed in on this device") : T("This device uses the home profile (your home network or a linked device)."))}</small></div>` +
+    (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +      // 1.46: in the header
+    (accountsOk() ? `<div id="acctBox"></div>` : "") + `</div>`;
   box.innerHTML = acct +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +

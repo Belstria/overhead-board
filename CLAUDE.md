@@ -329,6 +329,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   synthesised until decoded; switching it on in Settings plays it. `onMainPage()` (board: no `view`; app: `tab` "now")
   keeps `seatbeltDing()` quiet elsewhere (the chimes play anywhere, Dave's choice). Achievements play `fanfare()`
   (synthesised arpeggio, chord and sparkle), not the bell.
+- 1.46 (relay 39, Dave's list in the private `fallblatt-todo` issues): QR sign-in for screens. `refuse()`'s private
+  page includes `pair_page_js()`: POST `/pair/new` (stranger, same-origin, rate-limited) gives a six-letter code
+  (`PAIR_ALPHA`), a secret and `qr_svg()` of `<public_url>/pair/<code>` (`qr_matrix`: a stdlib QR encoder, byte mode,
+  level M, versions 1-10); the page polls `/pair/wait` and reloads once `signed_in()` set the cookie. The phone's GET
+  `/pair/<code>` (`pair_page`; `/pair` to type it) asks `pair_who()` (guest, or Home at home/homelinked; else
+  `signin_html(next)`), POST `/pair/<code>` approves. `_pairs` lives in memory, `PAIR_S` 10 min. `add_device` handles
+  "home". Account plate: `.acOutBtn` Sign out chip in `.acHead`, `.acSec` rows (name + state left, button right). The
+  ding is the whole chime again (both tones).
 - 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
   960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
