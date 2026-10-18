@@ -520,6 +520,14 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .cups li:not(.on) .name{color:rgba(243,240,232,.5)}
 .cups .name{white-space:normal}
 .cups .s{display:block;margin:2px 0 0}
+.cups.ladders{margin-bottom:10px}
+.cups .tl{grid-column:2/4;display:flex;align-items:center;gap:8px;margin-top:2px}
+.cups .pips{display:flex;gap:4px}
+.cups .pips b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
+.cups .pips b.on{background:#e0aa1f}
+.cups .tl .bar{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden}
+.cups .tl .bar i{display:block;height:100%;background:#c99a2e}
+.cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:#e0aa1f}
 /* the year in planes */
 .yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
 .yearCard h3{margin-top:0}
@@ -637,6 +645,8 @@ body.arOpen{overflow:hidden}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
+.rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
+.rvMap small{font:500 11px/1.2 var(--f-board);color:var(--muted);text-align:right}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -688,11 +698,13 @@ body.arOpen{overflow:hidden}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 13.5px/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:#f0b429;background:rgba(240,180,41,.12)}
-.seg.svPlaces{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
-.seg.svPlaces[hidden]{display:none}
-.seg.svPlaces button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
+.seg.svPlaces,.seg.lbViews{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
+.seg.svPlaces button,.seg.lbViews button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
-.seg.svPlaces button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.lbViews{margin:10px 0 0}
+.seg.lbViews button{height:40px;padding:0 4px;font-size:13px;line-height:1.1;white-space:normal}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -969,6 +981,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #cardBox .cBtn,.cardish .cBtn{background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:11px;box-shadow:none;text-shadow:none}
 #cardBox .cBtn.go,.cardish .cBtn.go{background:var(--amber);color:#17140e;border-color:transparent}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:0;color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5)}
+#svList.wait{opacity:.55;transition:opacity .2s}
 </style>
 </head>
 <body>
@@ -1072,6 +1085,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   <section class="wrap tab cols" id="t-logbook" hidden>
     <div class="lcol">
       <h2 data-t="Logbook">Logbook</h2>
+      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
       <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
@@ -1085,6 +1099,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+      <div class="rvMap"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button><small id="rvCredit" hidden></small></div>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>
@@ -1148,7 +1163,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=c6af3b2fff"></script>
+<script src="../test/i18n.js?v=5e24e3c065"></script>
 <script>
 (() => {
 "use strict";
@@ -1186,7 +1201,7 @@ const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change 
 const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
-const REMARKS = ["", "OVERHEAD", "INBOUND", "FLYING BY", "OUTBOUND", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
+const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED",
   "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
@@ -1212,11 +1227,11 @@ function drawApIcon(g, k, x, y, s, col){
 const GOLD = {fill:["#e6b94a","#c99a24"], fg:"#1b1508"};
 const REMARK_LOOK = {
   OVERHEAD:{fill:["#27a85e","#1d8a4b"], fg:"#ffffff"},
-  INBOUND:{fill:["#f6be35","#dc9f1d"], fg:"#17140d"},
+  APPROACHING:{fill:["#f6be35","#dc9f1d"], fg:"#17140d"},
   PASSED:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
   NEARBY:{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
   "FLYING BY":{fill:["#2c6ec4","#215aa2"], fg:"#ffffff"},
-  OUTBOUND:{fill:["#3d3f44","#303237"], fg:"#d9d6cf"},
+  LEAVING:{fill:["#b4625b","#974f49"], fg:"#fff1ee"},
   "NO TRAFFIC":{fill:["#2f3135","#26282b"], fg:"#a6a49e"},
   OFFLINE:{fill:["#cb3a2f","#aa2d24"], fg:"#ffffff"},
   ARRIVING:{fg:"#45d483"}, DEPARTING:{fg:"#f6be35"}, OVERFLIGHT:{fg:"#86b8ff"}, "CLOSE BY":{fg:"#86b8ff"},
@@ -1623,7 +1638,7 @@ async function airlineCard(x){
   ctlSound.press();
   const b = lbData() || {}, lb = a.icao && b.airlines ? b.airlines[a.icao] : null;
   const today = a.icao ? dayList().filter(e => airlineOf(e).icao === a.icao).length : 0;
-  const L = a.iata ? logo(a.iata) : null;
+  const L = a.iata ? logo(a.iata, true) : null;
   const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
   const music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
   const draw = (w, info) => { const src = L && L.state === "ok" ? L.img.src : "", cs = info && info.callsign ? String(info.callsign).toUpperCase() : "";
@@ -1636,6 +1651,10 @@ async function airlineCard(x){
   if (music) cardMusicStart(music);                 // in the tap itself, so the browser lets it play
   const [w, info] = await Promise.all([cardWait(airlineWiki(a), 4500), cardWait(airlineInfo(a.icao), 4500), logoReady(L)]);
   cardWhenReady(tok, draw(w, info));
+  if (L && L.state === "loading") logoReady(L, 15000).then(() => {          // a slow logo joins the open card
+    const h = document.querySelector("#cardBox .cHead");
+    if (tok === cardTok && L.state === "ok" && h && !h.querySelector(".cLogo") && h.querySelector("h3")) h.insertAdjacentHTML("afterbegin", `<img class="cLogo" src="${escH(L.img.src)}" alt="">`);
+  });
 }
 // A place a plane comes from or flies to: its airport (the relay's list: name, codes, runways), the distance from
 // here and Wikipedia's words about the airport.
@@ -2413,15 +2432,18 @@ let tileBytes = 0;
 const clearTiles = () => { tiles.clear(); tileBytes = 0; };
 const IVORY = ["#f4f1ea", "#ece8de", "#e3dfd4", "#dad6ca"];
 const logos = new Map();
-function logo(code){
-  if (!code || !S.logos) return null;
+// 1.55 (to-do #67): a logo that didn't load is tried again after ten minutes (a busy moment no longer loses it for the
+// day); cards show logos even with the flaps' logos off (`any`).
+function logo(code, any){
+  if (!code || !S.logos && !any) return null;
   let L = logos.get(code);
+  if (L && L.state === "fail" && Date.now() - L.at > 10 * 60000) L = null;
   if (!L) {
-    L = {state: "loading", img: new Image()};
+    L = {state: "loading", img: new Image(), at: Date.now()};
     logos.set(code, L);
     const srcs = [`https://img.wway.io/pics/root/${code}@png?exar=1&rs=fit:360:144`, `https://pics.avs.io/360/144/${code}.png`];
     let k = 0;
-    const done = state => { L.state = state; clearTiles(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
+    const done = state => { L.state = state; L.at = Date.now(); clearTiles(); redrawAll(); if (state === "fail") dlog("debug", `No logo available for airline ${code}; showing the code instead`); };
     L.img.onload = () => L.img.naturalWidth > 4 ? done("ok") : L.img.onerror();
     L.img.onerror = () => { if (++k < srcs.length) L.img.src = srcs[k]; else done("fail"); };
     L.img.src = srcs[0];
@@ -2931,6 +2953,8 @@ function applyTheme(){
 }
 /* ---------- reference tables ---------- */
 const AIRLINES = {
+  CAI:["XC","Corendon Airlines"],CXI:["XR","Corendon Europe"],CND:["CD","Corendon Dutch"],FHY:["FH","Freebird"],TOM:["BY","TUI"],TFL:["OR","TUI"],
+  EXS:["LS","Jet2"],BOX:["3S","AeroLogic"],HFY:["5K","Hi Fly"],NOS:["NO","Neos"],MAC:["3O","Air Arabia Maroc"],SBI:["S7","S7 Airlines"],
   AUA:["OS","Austrian"],DLH:["LH","Lufthansa"],LDM:["OE","Lauda"],RYR:["FR","Ryanair"],EZY:["U2","easyJet"],EJU:["EC","easyJet"],
   WZZ:["W6","Wizz Air"],WMT:["W4","Wizz Air"],WUK:["W9","Wizz Air"],SWR:["LX","Swiss"],EWG:["EW","Eurowings"],BAW:["BA","British Airways"],
   AFR:["AF","Air France"],KLM:["KL","KLM"],THY:["TK","Turkish Airlines"],PGT:["PC","Pegasus"],UAE:["EK","Emirates"],QTR:["QR","Qatar Airways"],
@@ -3798,25 +3822,47 @@ function renderTimes(){
 
 /* ---------- what goes on the board ---------- */
 // Trophies and the weekly bingo's goals (relay 29), by the relay's ids: shared with the phone app.
-const TROPHY_IDS = ["century", "thousand", "busyday", "types50", "airlines25", "a320fam", "giants", "jumbochopper", "oldfriend",
-  "nightowl", "aroundclock", "lowpass", "bullseye", "specialday", "streak7", "bingo", "fullcard"];
-const TROPHY_TEXT = {century: ["Century", "100 planes in the logbook"],
-  thousand: ["Thousand", "1,000 planes in the logbook"],
-  busyday: ["Busy sky", "100 planes in one day"],
-  types50: ["Type hunter", "50 aircraft types"],
-  airlines25: ["Globetrotter", "25 airlines"],
+// 1.55 (to-do #55, relay 50): most trophies come in tiers, each tier a trophy of its own; the ladders say what each
+// counts (the relay's trophyCounts, for the progress bar to the next tier) and the description they share.
+const TROPHY_LADDERS = [
+  ["planes", "{n} planes in the logbook", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
+  ["types", "{n} aircraft types", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
+  ["airlines", "{n} airlines", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "Frequent flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
+  ["regs", "{n} different aircraft", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
+  ["countries", "Aircraft from {n} countries", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
+  ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
+  ["legendary", "{n} special planes", [["legend10", 10, "Spotter's eye"], ["legend100", 100, "Rare breed"], ["legend500", 500, "Hall of fame"]]],
+  ["today", "{n} planes in one day", [["busyday", 100, "Busy sky"], ["busy300", 300, "Rush hour"], ["busy500", 500, "Gridlock"]]],
+  ["friend", "The same aircraft {n} times", [["oldfriend", 25, "Old friend"], ["regular100", 100, "Regular"]]],
+  ["streak", "Something rare {n} days running", [["streak7", 7, "On a roll"], ["streak30", 30, "Unstoppable"]]]];
+const TROPHY_SINGLES = ["a320fam", "giants", "jumbochopper", "nightowl", "aroundclock", "lowpass", "bullseye", "stratos", "specialday",
+  "daytypes40", "dayairlines40", "beluga", "antonov", "allsets", "bingo", "fullcard"];
+const TROPHY_IDS = [...TROPHY_LADDERS.flatMap(l => l[2].map(t => t[0])), ...TROPHY_SINGLES];
+const TROPHY_TEXT = {
   a320fam: ["Family album", "A319, A320, A321 and a neo"],
   giants: ["Giants", "An A380 and a 747"],
   jumbochopper: ["Odd couple", "A 747 and a helicopter on the same day"],
-  oldfriend: ["Old friend", "The same aircraft 25 times"],
   nightowl: ["Night owl", "A plane between 01:00 and 04:00"],
   aroundclock: ["Around the clock", "A plane in every hour of the day"],
   lowpass: ["Low pass", "Lower than {a}, within 2 km"],
   bullseye: ["Bullseye", "Within 300 m of straight overhead"],
+  stratos: ["Stratosphere", "Overhead at {h} or higher"],
   specialday: ["Special day", "Three special planes in one day"],
-  streak7: ["On a roll", "Something rare seven days running"],
+  daytypes40: ["Variety show", "40 aircraft types in one day"],
+  dayairlines40: ["Airline parade", "40 airlines in one day"],
+  beluga: ["Whale watcher", "An Airbus Beluga"],
+  antonov: ["Heavy lifter", "An Antonov An-124, An-225 or An-22"],
+  allsets: ["Completionist", "Every collection complete"],
   bingo: ["Bingo!", "A line on the weekly bingo card"],
   fullcard: ["Full card", "All nine on the weekly bingo card"]};
+const TROPHY_TIER = new Map(TROPHY_LADDERS.flatMap(([key, text, tiers]) => tiers.map(([id, at, name]) => [id, {key, text, at, name}])));
+// A ladder's state: the tiers won, the next one (none when all are won), and the count towards it (null: unknown).
+function trophyLadder(g0, [key, text, tiers]){
+  const won = (g0 && g0.trophies) || {}, c = (g0 && g0.trophyCounts) || null;
+  const have = key === "today" ? (g0 && g0.trophyToday != null ? g0.trophyToday : null) : c && c[key] != null ? c[key] : null;
+  const done = tiers.filter(t => won[t[0]]).length, next = tiers.find(t => !won[t[0]]) || null;
+  return {done, next, last: tiers[done - 1] || null, have, tiers, text, won};
+}
 const GOAL_TEXT = {heli: "A helicopter",
   a380: "An A380",
   b747: "A 747",
@@ -3853,7 +3899,11 @@ function bingoReset(bg){
   const t = left >= 48 * 36e5 ? T("{n} days", {n: Math.round(left / 864e5)}) : left >= 36e5 ? T("{n} h", {n: Math.floor(left / 36e5)}) : T("{n} min", {n: Math.max(1, Math.ceil(left / 6e4))});
   return T("New card {d} (in {t})", {d: new Date(at).toLocaleString(LOC(), {weekday: "short", hour: "2-digit", minute: "2-digit"}), t});
 }
-const trophyText = k => [T((TROPHY_TEXT[k] || [k])[0]), T((TROPHY_TEXT[k] || ["", ""])[1], {a: altitudeStr(1500).toLowerCase()})];
+function trophyText(k){
+  const t = TROPHY_TIER.get(k);
+  if (t) return [T(t.name), T(t.text, {n: nf.format(t.at)})];
+  return [T((TROPHY_TEXT[k] || [k])[0]), T((TROPHY_TEXT[k] || ["", ""])[1], {a: altitudeStr(1500).toLowerCase(), h: altitudeStr(43000).toLowerCase()})];
+}
 // How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
 // MONTHS when it had been away for two months or more. The count is the times before this pass.
 const seenCache = new Map();
@@ -3960,7 +4010,7 @@ function windowWorthy(ac, info){
   const x = liveFacts(ac, info), sp = specialOf(x);
   return sp === "EMERGENCY" || SPECIAL_BIG.has(sp) || sp === "MILITARY" || !!x.watch || isFav(x);
 }
-const MODE_REMARK = {over: "OVERHEAD", soon: "INBOUND", passed: "PASSED", by: "FLYING BY", away: "OUTBOUND", near: "NEARBY", ap: ""};
+const MODE_REMARK = {over: "OVERHEAD", soon: "APPROACHING", passed: "PASSED", by: "FLYING BY", away: "LEAVING", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -4026,9 +4076,9 @@ function legendGroups(){
   return [
     [T("Status on the board"), [
       ["OVERHEAD", T("Directly above you, within {n} km (in the lists: it came that close)", {n: OVK})],
-      ["INBOUND", T("On course to pass overhead within three minutes")],
+      ["APPROACHING", T("On course to pass overhead within three minutes")],
       ["FLYING BY", T("Getting closer, but won't pass overhead")],
-      ["OUTBOUND", T("Moving away")],
+      ["LEAVING", T("Moving away")],
       ["PASSED", T("Just passed overhead")],
       ["NO TRAFFIC", T("No planes around right now")],
       ["OFFLINE", T("No flight data for over a minute")]]],
@@ -4080,16 +4130,20 @@ function demoLogbook(){
 const lbData = () => S.demo ? demoLogbook() : lbCache;
 // The Logbook by place (1.44 on the board, relay 37): All, or one place's own numbers.
 let lbPlace = "", lbPlaceData = {};
+// The logbook's views, in the order their buttons show on the board and in the app (1.55)
+const LB_VIEWS = ["logbook", "collection", "records", "review"], LB_VIEW_NAMES = {logbook: "Logbook", collection: "Collection", records: "Records", review: "Week & month"};
 const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
-// 1.47: a place button for each place that still exists: the profile's own place, on the go and the saved labels. A
-// removed label or an unnamed spot only counts under All. Each chip: {id (its keys joined by a line break), keys, name, n}.
+// 1.47: a place button for each place that still exists. 1.55 (to-do #54): only the saved places and on the go; the
+// profile's own unnamed spot ("home", where its sightings went before it saved places) joins a saved place called Home,
+// else it counts only under All, like a removed place. Each chip: {id (its keys joined by a line break), keys, name, n}.
 function lbChips(){
   const cnt = new Map(((lbData() || {}).places || []).filter(([k, n]) => n > 0)), list = places.list || [], out = [];
   const add = (keys, name) => { keys = keys.filter(k => cnt.has(k)); if (keys.length) out.push({id: keys.join("\n"), keys, name, n: keys.reduce((a, k) => a + cnt.get(k), 0)}); };
-  add(["home"], placeName("home"));
+  const isHome = k => [String(T("Home")).toLowerCase(), "home"].includes(String(k).trim().toLowerCase());
+  const homeTo = list.find(p => p.k !== "home" && isHome(p.k));
+  for (const p of list) add(p === homeTo ? [p.k, "home"] : [p.k], p.k === "home" ? placeName("home") : p.k);
   add(["live"], placeName("live"));
-  for (const p of list) if (p.k !== "home") add([p.k], p.k);
-  return out.length > 1 || (out.length === 1 && out[0].keys[0] !== "home") ? out : [];
+  return out.length > 1 || (out.length === 1 && cnt.size > 1) ? out : [];
 }
 const lbPlaceName = id => (lbChips().find(c => c.id === id) || {}).name || placeName(id);
 const lbPlaceUrl = id => `${relay()}/logbook?` + id.split("\n").map(k => "place=" + encodeURIComponent(k)).join("&");
@@ -4164,7 +4218,7 @@ const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.
 const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map(), rep: new Map(), sel: ""};
-const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#7166b8", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
+const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#c8645c", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
   for (const o of all) {                    // when this position was reported: a repeat of the same one keeps its time
@@ -4221,6 +4275,111 @@ function radarRows(n){
   }).filter(r => r.dist <= R).sort((a, b) => a.dist - b.dist).slice(0, n);
 }
 const radarRange = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
+/* 1.55 (to-do #68): a map under the radar, switched per device (board, app and light). OpenFreeMap's vector tiles
+   (OpenStreetMap data, free and without a key) drawn here in the board's own dim colours, so there's no text on it:
+   built-up areas, water, rivers, main roads and runways. The tiles are put together once for the radar's centre, range
+   and size. They are Web Mercator, true to scale this close in, so 1 km on the map is 1 km on the rings. */
+const RADAR_MAP_KEY = "od.radarMap", RADAR_MAP_CREDIT = "OpenFreeMap © OpenMapTiles © OpenStreetMap contributors";
+let radarMapOn = (() => { try { return localStorage.getItem(RADAR_MAP_KEY) === "1"; } catch { return false; } })();
+function radarMapSet(on){ radarMapOn = !!on; try { localStorage.setItem(RADAR_MAP_KEY, on ? "1" : "0"); } catch {} }
+const radarMap = {key: "", cv: null, ready: false, tiles: null};
+// Into g (clipped to the scope): the map for a scope of radius R (units) at cx, cy, `range` km to the rim, px pixels a unit.
+function radarMapDraw(g, cx, cy, R, range, C, px){
+  if (!radarMapOn) return;
+  const size = Math.round(2 * R * px), key = [(+C.lat).toFixed(4), (+C.lon).toFixed(4), range, size].join();
+  if (radarMap.key !== key) radarMapBuild(key, +C.lat, +C.lon, range, size);
+  if (radarMap.ready) g.drawImage(radarMap.cv, cx - R, cy - R, 2 * R, 2 * R);
+}
+// A Mapbox vector tile (protobuf): the layers we draw, each a list of {type (2 line, 3 area), cls, geom (commands)}.
+const MVT_LAYERS = new Set(["water", "waterway", "transportation", "aeroway", "landuse"]);
+function mvtRead(buf){
+  const b = new Uint8Array(buf), out = {}, td = new TextDecoder();
+  let p = 0;
+  const vint = () => { let r = 0, m = 1, c; do { c = b[p++]; r += (c & 127) * m; m *= 128; } while (c & 128); return r; };
+  const skip = w => { if (w === 0) vint(); else if (w === 1) p += 8; else if (w === 2) p += vint(); else if (w === 5) p += 4; };
+  const packed = () => { const e = vint() + p, a = []; while (p < e) a.push(vint()); return a; };
+  while (p < b.length) {
+    const t = vint();
+    if (t >> 3 !== 3 || (t & 7) !== 2) { skip(t & 7); continue; }
+    const end = vint() + p, keys = [], vals = [], feats = [];
+    let name = "", extent = 4096;
+    while (p < end) {
+      const f = vint(), w = f & 7, k = f >> 3;
+      if (k === 1 && w === 2) { const l = vint(); name = td.decode(b.subarray(p, p + l)); p += l; }
+      else if (k === 3 && w === 2) { const l = vint(); keys.push(td.decode(b.subarray(p, p + l))); p += l; }
+      else if (k === 4 && w === 2) { const e2 = vint() + p; let v = null;
+        while (p < e2) { const g2 = vint(); if (g2 >> 3 === 1 && (g2 & 7) === 2) { const l = vint(); v = td.decode(b.subarray(p, p + l)); p += l; } else skip(g2 & 7); }
+        vals.push(v); }
+      else if (k === 5 && w === 0) extent = vint();
+      else if (k === 2 && w === 2) { const l = vint(); feats.push([p, p + l]); p += l; }      // read once the layer's name is known
+      else skip(w);
+    }
+    if (!MVT_LAYERS.has(name)) continue;
+    for (let n = 0; n < feats.length; n++) {
+      const [a, e2] = feats[n], ft = feats[n] = {type: 0, tags: [], geom: []};
+      for (p = a; p < e2;) { const g2 = vint(), k2 = g2 >> 3;
+        if (k2 === 2 && (g2 & 7) === 2) ft.tags = packed(); else if (k2 === 3) ft.type = vint(); else if (k2 === 4 && (g2 & 7) === 2) ft.geom = packed(); else skip(g2 & 7); }
+    }
+    p = end;
+    for (const ft of feats) { const i = keys.indexOf("class"); for (let j = 0; j < ft.tags.length; j += 2) if (ft.tags[j] === i) ft.cls = vals[ft.tags[j + 1]]; }
+    out[name] = {extent, feats};
+  }
+  return out;
+}
+// One feature's path into c, the tile's corner at ox, oy and q pixels a tile unit.
+function mvtPath(c, geom, ox, oy, q){
+  let x = 0, y = 0, i = 0;
+  const zz = n => (n >> 1) ^ -(n & 1);
+  while (i < geom.length) {
+    const cmd = geom[i] & 7, n = geom[i++] >> 3;
+    if (cmd === 7) { c.closePath(); continue; }
+    for (let j = 0; j < n; j++) {
+      x += zz(geom[i++]); y += zz(geom[i++]);
+      if (cmd === 1) c.moveTo(ox + x * q, oy + y * q); else c.lineTo(ox + x * q, oy + y * q);
+    }
+  }
+}
+const RADAR_MAP_LOOK = [            // [layer, classes (none: all), area fill or line colour, line width in pixels a unit]
+  ["landuse", ["residential", "commercial", "industrial", "retail"], "rgba(255,246,225,.035)"],
+  ["water", null, "#0b1218"],
+  ["waterway", ["river", "canal"], "rgba(40,62,80,.9)", 1.6],
+  ["transportation", ["secondary", "tertiary"], "rgba(235,225,200,.07)", .7],
+  ["transportation", ["primary", "trunk"], "rgba(235,225,200,.12)", 1],
+  ["transportation", ["motorway"], "rgba(240,205,140,.17)", 1.5],
+  ["aeroway", ["runway"], "rgba(235,225,200,.22)", 2.4]];
+async function radarMapTiles(){
+  if (!radarMap.tiles) radarMap.tiles = fetchJSON("https://tiles.openfreemap.org/planet", {}, 10000).then(j => j.tiles[0]).catch(e => { radarMap.tiles = null; throw e; });
+  return radarMap.tiles;
+}
+async function radarMapBuild(key, lat, lon, range, size){
+  const cv = document.createElement("canvas"), c = cv.getContext("2d");
+  cv.width = cv.height = size;
+  Object.assign(radarMap, {key, cv, ready: false});
+  const km = 2 * range / size, cosl = Math.cos(lat * Math.PI / 180), EARTH = 40075.016686, lr = lat * Math.PI / 180;     // km a pixel
+  const z = Math.max(3, Math.min(13, Math.round(Math.log2(EARTH * cosl / (256 * km))) - (size > 700 ? 1 : 0))), n = 2 ** z;   // vector: sharp a zoom out
+  const s = EARTH * cosl / (256 * n) / km;                                                       // pixels a tile pixel
+  const wx = (lon + 180) / 360 * n * 256, wy = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n * 256;
+  const half = size / 2 / s, want = [];
+  for (let tx = Math.floor((wx - half) / 256); tx <= Math.floor((wx + half) / 256); tx++)
+    for (let ty = Math.max(0, Math.floor((wy - half) / 256)); ty <= Math.min(n - 1, Math.floor((wy + half) / 256)); ty++) want.push([tx, ty]);
+  let url;
+  try { url = await radarMapTiles(); } catch (e) { dlog("warn", `Radar map: ${e.message || e}`); radarMap.key = ""; return; }
+  const tiles = await Promise.all(want.map(([tx, ty]) => fetch(url.replace("{z}", z).replace("{x}", ((tx % n) + n) % n).replace("{y}", ty))
+    .then(r => r.ok ? r.arrayBuffer() : null).then(b => b && {tx, ty, L: mvtRead(b)}).catch(() => null)));
+  if (radarMap.cv !== cv) return;
+  c.lineJoin = c.lineCap = "round";
+  for (const [layer, cls, col, lw] of RADAR_MAP_LOOK) for (const t of tiles) {
+    const L = t && t.L[layer];
+    if (!L) continue;
+    const ox = (t.tx * 256 - wx) * s + size / 2, oy = (t.ty * 256 - wy) * s + size / 2, q = 256 * s / L.extent;
+    c.save(); c.beginPath(); c.rect(ox, oy, 256 * s, 256 * s); c.clip();          // the tile's edge: no doubled areas
+    c.beginPath();
+    for (const ft of L.feats) if (ft.type === (lw ? 2 : 3) && (!cls || cls.includes(ft.cls))) mvtPath(c, ft.geom, ox, oy, q);
+    if (lw) { c.strokeStyle = col; c.lineWidth = lw * size / 600; c.stroke(); } else { c.fillStyle = col; c.fill(); }
+    c.restore();
+  }
+  radarMap.ready = tiles.some(Boolean);
+}
 function altShort(ft){
   if (ft == null) return "";
   ft = Math.max(0, ft);
@@ -4413,13 +4572,16 @@ function spottedSummary(){
     `${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
 }
 // 1.50: the filter above Spotted today (where there is a keyboard): words, comma-separated, each found in the airline,
-// flight, places, aircraft type or registration ("Austrian, Vienna"). Per device, gone on a reload.
+// flight, places, aircraft type, registration or remarks ("Austrian, Vienna", "jumbo"). Per device, gone on a reload.
 let svQuery = "";
 function spotMatch(e, q){
   const terms = String(q || "").split(",").map(t => clean(t)).filter(Boolean);
   if (!terms.length) return true;
   const al = airlineOf(e), pl = p => p ? [p.code, code3(p), p.city, p.name, p.icao, p.iata] : [];
-  const hay = clean([e.flight, e.callsign, e.flightNo, e.airline, al.name, al.icao, al.iata, ...pl(e.from), ...pl(e.to), e.type, e.typeCode, TYPES[e.typeCode], e.reg].filter(Boolean).join(" | "));
+  // 1.55 (to-do #73): the remark shown and the other tags the plane has, in English and the board's language
+  const rm = [remarkFor(e), specialOf(e), e.watch, e.newType && "NEW TYPE", e.newAirline && "NEW AIRLINE", isFav(e) && "FAVOURITE"].filter(Boolean);
+  const hay = clean([e.flight, e.callsign, e.flightNo, e.airline, al.name, al.icao, al.iata, ...pl(e.from), ...pl(e.to), e.type, e.typeCode, TYPES[e.typeCode], e.reg,
+    ...rm, ...rm.map(r => T(r))].filter(Boolean).join(" | "));
   const tight = hay.replace(/[\s-]/g, "");
   return terms.every(t => hay.includes(t) || tight.includes(t.replace(/[\s-]/g, "")));
 }
@@ -4507,9 +4669,12 @@ function renderToday(){
   }
   const sig = svFilter + svQuery + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
+  const waiting = allPlaces && !(fullDay.all && fullDay.list), L = $("svList");
+  // 1.55 (to-do #72): every place's list keeps this place's on show, dimmed, until it has come in
+  if (waiting && L.children.length && !L.querySelector(".empty")) return void L.classList.add("wait");
   svSig = sig;
-  const waiting = allPlaces && !(fullDay.all && fullDay.list);
-  if (!waiting) $("svList").style.minHeight = "";
+  L.classList.remove("wait");
+  if (!waiting) L.style.minHeight = "";
   $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
     : `<li class="empty">${svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
@@ -4535,18 +4700,36 @@ async function fetchLogbook(){
   achCheck((lbData() || {}).game);
   renderLogbook();
 }
-let lbSig = "";
+let lbSig = "", lbView = "logbook";
+// 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
+// put (Logbook, Collection, Records, Week & month); the places are a second row, only under Logbook.
+function lbViewsBar(){
+  const bar = $("lbViews"), views = LB_VIEWS.filter(v => v !== "review" || reviewOk());
+  if (!views.includes(lbView)) lbView = "logbook";
+  const sig = JSON.stringify([views, lbView, LANG]);
+  bar.hidden = false;
+  if (bar.dataset.sig === sig) return;
+  bar.dataset.sig = sig;
+  bar.innerHTML = views.map(v => `<button type="button" data-v="${v}"${v === lbView ? ' aria-current="page"' : ""}>${escH(T(LB_VIEW_NAMES[v]))}</button>`).join("");
+  for (const btn of bar.children) btn.onclick = () => {
+    if (btn.dataset.v === lbView) return;
+    ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
+  };
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
-  fetchYear();
-  if (!lbPlace) fetchReview(() => { lbSig = ""; renderLogbook(); });
-  const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
-  if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  lbViewsBar();
+  const v = lbView;
+  if (v === "logbook") fetchYear();
+  if (v === "review") fetchReview(() => { lbSig = ""; renderLogbook(); });
+  const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
+  if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  const place = v === "logbook" ? lbPlace : "";
   const chips = $("lbPlaces");
   chips.hidden = !pl.length;
   const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
   const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (chips.dataset.sig !== csig) {
+  if (pl.length && chips.dataset.sig !== csig) {
     chips.dataset.sig = csig;
     chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
     for (const btn of chips.children) btn.onclick = async () => {
@@ -4555,66 +4738,68 @@ function renderLogbook(){
       if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
     };
   }
-  const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
-  $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+  const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
+  $("lbSum").hidden = v === "review";
+  $("lbSum").textContent = v === "collection" ? T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.")
+    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.")
+    : !place ? logbookSummary() : !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
+  $("lbP").hidden = $("lbModel").hidden = v !== "logbook";
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, v === "review" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
-  if (b.categories) {
-    const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-    html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
-      const n = b.categories[k] || 0;
-      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
-        `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
-    }).join("") + "</ul>";
-  }
-  if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
-  if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
-  if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
-  if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
-  const g0 = lbPlace ? null : b.game;              // the collection, bingo and trophies count every place
-  if (g0) {                                          // the game: points, tiers and the collections
-    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
-    const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
-      `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
-    html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
-      (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
-      `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
-  }
-  const r = b.records;
-  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
-    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
-    const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
-      ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
-    const rec = `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, v]) => li(T(en), v(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
-    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
-    html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
-  }
-  const bg = g0 && g0.bingo, won = (g0 && g0.trophies) || {};
-  if (bg && bg.card) {                                 // the weekly bingo and the trophies (relay 29)
-    const nd = Object.keys(bg.done || {}).length;
-    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
-      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    const cups = TROPHY_IDS.map(k => { const [nm, what] = trophyText(k), d = won[k];
-      return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
-    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>` +
-      `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p><ul class="ranks plain cups">${cups}</ul>`;
-    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
-    html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
-  }
-  if (!lbPlace) html = reviewHtml() + yearHtml() + html;
-  $("lbLists").innerHTML = html;
+  const g0 = all.game;                               // the collection, bingo and trophies count every place
+  if (v === "logbook") {
+    if (b.categories) {
+      const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
+      html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+        const n = b.categories[k] || 0;
+        return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
+          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
+      }).join("") + "</ul>";
+    }
+    if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
+    if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
+    if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+    if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+    if (!place) html = yearHtml() + html;
+  } else if (v === "collection") {                   // the game: points, tiers and the collections
+    if (g0) {
+      const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+      const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+        `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+      html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
+        (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
+        `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
+    }
+  } else if (v === "records") {
+    const r = all.records;
+    if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
+      const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+      const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
+        ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
+      html += `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+    }
+    const bg = g0 && g0.bingo;
+    if (bg && bg.card) {                                 // the weekly bingo (relay 29)
+      const nd = Object.keys(bg.done || {}).length;
+      const cells = bg.card.map(k => { const d = (bg.done || {})[k];
+        return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
+      html += `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`;
+    }
+    if (g0) html += trophiesHtml(g0);
+  } else html = reviewHtml();
+  $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
@@ -4628,6 +4813,22 @@ function tierIcon(t){
   g.fillStyle = gr; g.beginPath(); g.roundRect ? g.roundRect(0, 0, n, n, 9) : g.rect(0, 0, n, n); g.fill();
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
+}
+// The trophies (1.55): a row for each ladder (its next tier, the count towards it and a bar), then the single ones.
+function trophiesHtml(g0){
+  const won = g0.trophies || {};
+  const lad = TROPHY_LADDERS.map(L => {
+    const st = trophyLadder(g0, L), t = st.next || st.last;
+    const n = st.next ? (st.have != null ? T("{n} of {t}", {n: nf.format(Math.min(st.have, st.next[1])), t: nf.format(st.next[1])}) : "") : fmtDay(st.won[st.last[0]]);
+    const p = !st.next ? 100 : st.have != null ? Math.min(100, st.have / st.next[1] * 100) : 0;
+    const pips = st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("");
+    return `<li class="${st.done ? "on" : ""}">${CUP}<span class="name">${escH(T(t[2]))}<span class="s">${escH(T(L[1], {n: nf.format(t[1])}))}</span></span><span class="n">${escH(n)}</span>` +
+      `<span class="tl"><span class="pips">${pips}</span><span class="bar"><i style="width:${p.toFixed(1)}%"></i></span></span></li>`;
+  }).join("");
+  const cups = TROPHY_SINGLES.map(k => { const [nm, what] = trophyText(k), d = won[k];
+    return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
+  return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p>` +
+    `<ul class="ranks plain cups ladders">${lad}</ul><ul class="ranks plain cups">${cups}</ul>`;
 }
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -4990,6 +5191,7 @@ function drawRadar(t){
   const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
   const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+  radarMapDraw(g, cx, cy, R, range, C, radar.px);
   const a0 = (t / 7000) * TAU;                                  // slow sweep
   for (let i = 0; i < 28; i++) {
     g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
@@ -5054,7 +5256,9 @@ function drawRadar(t){
   g.textAlign = "left"; g.textBaseline = "alphabetic";
 }
 function buildRadarLegend(){
-  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
+  const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
+  mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn)); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
+  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Approaching"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Leaving"],
     [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
@@ -5964,6 +6168,16 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.55", date: "2026-10-19", notes: [
+    "Many more trophies, most in tiers (100, 1,000, 10,000 planes and so on), with a bar showing how far it is to the next one.",
+    "The logbook's buttons stay in one place: Logbook, Collection, Records and Week & month in one row, places below; the app's Logbook switches between the same four.",
+    "The logbook's place buttons show only your saved places (and On the go); planes from removed places still count under All.",
+    "The radar can show a map underneath (Map button); each screen remembers it.",
+    "Inbound is now called Approaching and Outbound Leaving; leaving planes are soft red.",
+    "The Spotted today filter also finds remarks, such as Jumbo or New airline.",
+    "In the app's Today, switching to All places keeps the list on show until the new one is ready.",
+    "Airline logos that didn't load are tried again, and a few more airlines are known.",
+  ]},
   {v: "1.53.2", date: "2026-10-18", notes: [
     "Settings on the board and in the app are now built from one shared layout; they look and work as before.",
   ]},
@@ -6274,7 +6488,8 @@ function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>`;
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
+    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`;
 }
 // The position sources' terms ask for a credit with a link to their home pages (AvioADSB's also to its licence).
 const SITE_LINKS = {"adsb.lol": "https://adsb.lol", "adsb.fi": "https://adsb.fi", "airplanes.live": "https://airplanes.live",
@@ -6463,6 +6678,7 @@ for (const k of ["d", "a"]) $(k === "d" ? "apDP" : "apAP").addEventListener("cli
 });
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
+$("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;

@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 48
+RELAY_VERSION = 50
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -317,14 +317,14 @@ class Spot:
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
                                                                        "sightings": 0, "types": {}, "airlines": {}, "regs": {},
-                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": 1}
+                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": TROPHIES_V}
             if self.logbook.get("gameV") != GAME_V:
                 self.ensure_day()
                 _rescore(self)
             if self.logbook.get("recordsV") != 1:
                 self.ensure_day()
                 _backfill_records(self)
-            if self.logbook.get("trophiesV") != 1:
+            if self.logbook.get("trophiesV") != TROPHIES_V:
                 self.ensure_day()
                 _backfill_trophies(self)
             if self.logbook.get("flightsV") != 1:
@@ -663,14 +663,40 @@ def _streak(book, day):
     return streak
 
 
-# Trophies (relay 29): won once and kept for good (nothing resets), each with the day it was won.
-TROPHY_IDS = ["century", "thousand", "busyday", "types50", "airlines25", "a320fam", "giants", "jumbochopper", "oldfriend",
-              "nightowl", "aroundclock", "lowpass", "bullseye", "specialday", "streak7", "bingo", "fullcard"]
+# Trophies (relay 29): won once and kept for good (nothing resets), each with the day it was won. Relay 50 (to-do #55):
+# more of them, most in tiers (100, 1,000, 10,000 planes ...), and the counts behind them for the boards' progress bars.
+TROPHIES_V = 2                 # an older logbook wins the new ones once from its saved days (keeping what it has)
+TROPHY_LADDER = {              # id: (what is counted, how many)
+    "century": ("planes", 100), "thousand": ("planes", 1000), "planes10k": ("planes", 10000), "planes50k": ("planes", 50000),
+    "planes100k": ("planes", 100000),
+    "types50": ("types", 50), "types100": ("types", 100), "types150": ("types", 150), "types200": ("types", 200),
+    "airlines25": ("airlines", 25), "airlines50": ("airlines", 50), "airlines100": ("airlines", 100), "airlines150": ("airlines", 150),
+    "regs1k": ("regs", 1000), "regs5k": ("regs", 5000), "regs10k": ("regs", 10000),
+    "countries10": ("countries", 10), "countries25": ("countries", 25), "countries50": ("countries", 50),
+    "points1k": ("points", 1000), "points10k": ("points", 10000), "points100k": ("points", 100000),
+    "legend10": ("legendary", 10), "legend100": ("legendary", 100), "legend500": ("legendary", 500),
+    "busyday": ("today", 100), "busy300": ("today", 300), "busy500": ("today", 500),
+    "oldfriend": ("friend", 25), "regular100": ("friend", 100),
+    "streak7": ("streak", 7), "streak30": ("streak", 30),
+}
+TROPHY_IDS = list(TROPHY_LADDER) + ["a320fam", "giants", "jumbochopper", "nightowl", "aroundclock", "lowpass", "bullseye",
+                                    "stratos", "specialday", "daytypes40", "dayairlines40", "beluga", "antonov", "allsets",
+                                    "bingo", "fullcard"]
 A320_FAMILY = ("A319", "A320", "A321")
 
 
 def _hour(e):
     return time.localtime((e.get("ts") or 0) / 1000).tm_hour
+
+
+def trophy_counts(book, day_entries=None, day=None):
+    """What the tiers count, as the logbook has it now (also the boards' progress bars)."""
+    regs = book.get("regs", {})
+    return {"planes": book.get("sightings", 0), "types": len(book.get("types", {})), "airlines": len(book.get("airlines", {})),
+            "regs": len(regs), "countries": len(book.get("countries", {})), "points": book.get("points", 0),
+            "legendary": book.get("tiers", {}).get("legendary", 0), "today": len(day_entries or []),
+            "friend": max((r.get("count", 0) if isinstance(r, dict) else r for r in regs.values()), default=0),
+            "streak": _streak(book, day or board_day())}
 
 
 def trophy_check(book, e, day_entries, ctx=None):
@@ -684,22 +710,29 @@ def trophy_check(book, e, day_entries, ctx=None):
             got[k] = ts
             won.append(k)
     c = ctx or {"n": book.get("sightings", 0), "types": book.get("types", {}), "airlines": book.get("airlines", {}),
-                "regs": book.get("regs", {}), "hours": set(book.get("hours", []))}
+                "regs": book.get("regs", {}), "hours": set(book.get("hours", [])), "countries": book.get("countries", {}),
+                "points": book.get("points", 0), "legendary": book.get("tiers", {}).get("legendary", 0)}
     types = c["types"]
-    win("century", c["n"] >= 100)
-    win("thousand", c["n"] >= 1000)
-    win("busyday", len(day_entries) >= 100)
-    win("types50", len(types) >= 50)
-    win("airlines25", len(c["airlines"]) >= 25)
+    r = c["regs"].get(e.get("reg") or "")
+    have = {"planes": c["n"], "types": len(types), "airlines": len(c["airlines"]), "regs": len(c["regs"]),
+            "countries": len(c.get("countries") or ()), "points": c.get("points", 0), "legendary": c.get("legendary", 0),
+            "today": len(day_entries), "friend": (r.get("count", 0) if isinstance(r, dict) else r) if r else 0,
+            "streak": c["streak"] if "streak" in c else _streak(book, board_day())}
+    for k, (what, n) in TROPHY_LADDER.items():
+        win(k, have[what] >= n)
     win("a320fam", all(t in types for t in A320_FAMILY) and any(t in types for t in ("A20N", "A21N", "A19N")))
     win("giants", "A388" in types and any(t.startswith("B74") for t in types))
-    r = c["regs"].get(e.get("reg") or "")
-    win("oldfriend", bool(r) and (r.get("count", 0) if isinstance(r, dict) else r) >= 25)
     win("jumbochopper", any(str(x.get("typeCode") or "").startswith("B74") for x in day_entries)
         and any(category_of(x) == "helicopter" for x in day_entries))
     win("nightowl", 1 <= _hour(e) <= 3)
     win("aroundclock", len(c["hours"]) >= 24)
     win("specialday", sum(1 for x in day_entries if x.get("tier") == "legendary") >= 3)
+    if len(day_entries) >= 40:
+        win("daytypes40", len({_tc(x) for x in day_entries} - {""}) >= 40)
+        win("dayairlines40", len({_al(x) for x in day_entries} - {""}) >= 40)
+    win("beluga", _tc(e) in ("A3ST", "A337"))
+    win("antonov", _tc(e) in ("A124", "A225", "AN22"))
+    win("allsets", all(all(t in types for t in ts) for _, ts in SETS))
     trophy_pass(book, e, got, won)
     return won
 
@@ -710,7 +743,8 @@ def trophy_pass(book, e, got=None, won=None):
     ts = e.get("ts") or int(time.time() * 1000)
     alt, d = e.get("altAtMin"), e.get("minDist")
     for k, ok in (("lowpass", isinstance(alt, (int, float)) and 100 <= alt < 1500 and d is not None and d <= 2),
-                  ("bullseye", d is not None and d <= 0.3)):
+                  ("bullseye", d is not None and d <= 0.3),
+                  ("stratos", isinstance(alt, (int, float)) and alt >= 43000 and d is not None and d <= 2)):
         if ok and k not in got:
             got[k] = ts
             if won is not None:
@@ -739,10 +773,13 @@ def _backfill_flights(spot):
 
 
 def _backfill_trophies(spot):
-    """An older logbook: win its trophies once from the saved days, on the day they were earned."""
+    """An older logbook: win its trophies once from the saved days, on the day they were earned (relay 50: keeping the
+    ones it has, and learning the countries its aircraft are registered in)."""
     b = spot.logbook
-    b["trophies"], hours = {}, set()
-    ctx = {"n": 0, "types": {}, "airlines": {}, "regs": collections.Counter(), "hours": hours}
+    b["trophies"], hours = b.get("trophies") or {}, set()
+    countries = {}
+    ctx = {"n": 0, "types": {}, "airlines": {}, "regs": collections.Counter(), "hours": hours, "countries": countries,
+           "points": 0, "legendary": 0, "streak": 0}
     for f in sorted(spot.dir.glob("sightings-*.json")):
         day = f.stem[len("sightings-"):]
         entries = spot.entries if day == spot.day else _load(f, [])
@@ -756,6 +793,10 @@ def _backfill_trophies(spot):
                 ctx["airlines"][m.group(1)] = 1
             if e.get("reg"):
                 ctx["regs"][e["reg"]] += 1
+            if e.get("ownerCountry") and e["ownerCountry"] not in countries:
+                countries[e["ownerCountry"]] = e.get("ts") or 0
+            ctx["points"] += TIER_POINTS.get(e.get("tier"), 0)
+            ctx["legendary"] += e.get("tier") == "legendary"
             hours.add(_hour(e))
             so_far.append(e)
             trophy_check(b, e, so_far, ctx)
@@ -763,10 +804,12 @@ def _backfill_trophies(spot):
     run = 0
     for i, d in enumerate(rd):
         run = run + 1 if i and datetime.date.fromisoformat(d) - datetime.date.fromisoformat(rd[i - 1]) == datetime.timedelta(days=1) else 1
-        if run >= 7 and "streak7" not in b["trophies"]:
-            b["trophies"]["streak7"] = int(datetime.datetime.fromisoformat(d + "T20:00").timestamp() * 1000)
+        for k, n in (("streak7", 7), ("streak30", 30)):
+            if run >= n and k not in b["trophies"]:
+                b["trophies"][k] = int(datetime.datetime.fromisoformat(d + "T20:00").timestamp() * 1000)
     b["hours"] = sorted(hours)
-    b["trophiesV"] = 1
+    b["countries"] = {**countries, **(b.get("countries") or {})}
+    b["trophiesV"] = TROPHIES_V
     spot.changed("book")
 
 
@@ -852,7 +895,7 @@ def game_json(book, day):
     return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
             "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
             "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS],
-            "trophies": book.get("trophies", {})}
+            "trophies": book.get("trophies", {}), "trophyCounts": trophy_counts(book, day=day)}
 
 
 # ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
@@ -1118,6 +1161,12 @@ def _enricher():
             book = spot.book()
             if route:
                 note_records(book, e, spot.center() if spot.center else None)
+            ctry = e.get("ownerCountry")
+            if ctry and ctry not in book.setdefault("countries", {}):        # relay 50: countries for the trophies
+                book["countries"][ctry] = e.get("ts") or int(time.time() * 1000)
+            if info and e in spot.entries:
+                for k in trophy_check(book, e, spot.entries):
+                    event("info", f"Trophy won: {k}", echo=False)
             t = book["types"].get(e.get("typeCode") or "")
             if t is not None and not t.get("name") and info:
                 t["name"] = " ".join(x for x in (info.get("manufacturer", "").split(" ")[0], info.get("aircraftType")) if x)
@@ -1658,7 +1707,8 @@ def logbook_json(spot):
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
-                "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day())},
+                "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day()),
+                         "trophyToday": len(spot.entries)},
                 "records": b.get("records", {}),
                 "places": sorted(([k, p["n"]] for k, p in place_logbook(spot).items()), key=lambda kp: -kp[1])}
 

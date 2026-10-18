@@ -53,7 +53,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (48 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (50 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
@@ -73,7 +73,8 @@ picks it: alerts, overhead, inbound, flying by) via `renderFeatured()`/`renderTi
 (Recent flights, This aircraft, Today in numbers) turned by a giant falling flap; views (Spotted today, Logbook,
 Radar, Settings) take over below the header (`switchView`). The rail buttons and Settings cockpit are DOM; Settings
 are one `COCKPIT` for board, app and light (`for`/`flaps`/`phone`/`light` flags, `cockpitFor()`; 1.53.2), checked with
-`tools/test/cockpit_list.py`.
+`tools/test/cockpit_list.py`. The radar's optional map (1.55) is OpenFreeMap vector tiles drawn by the board itself (`radarMapBuild`, `mvtRead`;
+no text, no key); trophies are mostly tiers (`TROPHY_LADDERS`, relay `TROPHY_LADDER`, progress from `trophyCounts`).
 Realistic look is `S.real`/`REAL()`. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
 Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 

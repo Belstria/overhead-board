@@ -672,9 +672,12 @@ function renderToday(){
   }
   const sig = svFilter + svQuery + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
+  const waiting = allPlaces && !(fullDay.all && fullDay.list), L = $("svList");
+  // 1.55 (to-do #72): every place's list keeps this place's on show, dimmed, until it has come in
+  if (waiting && L.children.length && !L.querySelector(".empty")) return void L.classList.add("wait");
   svSig = sig;
-  const waiting = allPlaces && !(fullDay.all && fullDay.list);
-  if (!waiting) $("svList").style.minHeight = "";
+  L.classList.remove("wait");
+  if (!waiting) L.style.minHeight = "";
   $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
     : `<li class="empty">${svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
@@ -698,18 +701,36 @@ async function fetchLogbook(){
   achCheck((lbData() || {}).game);
   renderLogbook();
 }
-let lbSig = "";
+let lbSig = "", lbView = "logbook";
+// 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
+// put (Logbook, Collection, Records, Week & month); the places are a second row, only under Logbook.
+function lbViewsBar(){
+  const bar = $("lbViews"), views = LB_VIEWS.filter(v => v !== "review" || reviewOk());
+  if (!views.includes(lbView)) lbView = "logbook";
+  const sig = JSON.stringify([views, lbView, LANG]);
+  bar.hidden = false;
+  if (bar.dataset.sig === sig) return;
+  bar.dataset.sig = sig;
+  bar.innerHTML = views.map(v => `<button type="button" data-v="${v}"${v === lbView ? ' aria-current="page"' : ""}>${escH(T(LB_VIEW_NAMES[v]))}</button>`).join("");
+  for (const btn of bar.children) btn.onclick = () => {
+    if (btn.dataset.v === lbView) return;
+    ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
+  };
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
-  fetchYear();
-  if (!lbPlace) fetchReview(() => { lbSig = ""; renderLogbook(); });
-  const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
-  if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  lbViewsBar();
+  const v = lbView;
+  if (v === "logbook") fetchYear();
+  if (v === "review") fetchReview(() => { lbSig = ""; renderLogbook(); });
+  const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
+  if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  const place = v === "logbook" ? lbPlace : "";
   const chips = $("lbPlaces");
   chips.hidden = !pl.length;
   const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
   const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (chips.dataset.sig !== csig) {
+  if (pl.length && chips.dataset.sig !== csig) {
     chips.dataset.sig = csig;
     chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
     for (const btn of chips.children) btn.onclick = async () => {
@@ -718,66 +739,68 @@ function renderLogbook(){
       if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
     };
   }
-  const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
-  $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+  const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
+  $("lbSum").hidden = v === "review";
+  $("lbSum").textContent = v === "collection" ? T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.")
+    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.")
+    : !place ? logbookSummary() : !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
+  $("lbP").hidden = $("lbModel").hidden = v !== "logbook";
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, v === "review" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
-  if (b.categories) {
-    const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-    html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
-      const n = b.categories[k] || 0;
-      return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
-        `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
-    }).join("") + "</ul>";
-  }
-  if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
-  if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
-  if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
-  if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
-  const g0 = lbPlace ? null : b.game;              // the collection, bingo and trophies count every place
-  if (g0) {                                          // the game: points, tiers and the collections
-    const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
-    const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
-      `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
-    html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
-      (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
-      `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>` + html;
-  }
-  const r = b.records;
-  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
-    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
-    const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
-      ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
-    const rec = `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, v]) => li(T(en), v(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
-    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
-    html = k >= 0 ? html.slice(0, k) + rec + html.slice(k) : html + rec;
-  }
-  const bg = g0 && g0.bingo, won = (g0 && g0.trophies) || {};
-  if (bg && bg.card) {                                 // the weekly bingo and the trophies (relay 29)
-    const nd = Object.keys(bg.done || {}).length;
-    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
-      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    const cups = TROPHY_IDS.map(k => { const [nm, what] = trophyText(k), d = won[k];
-      return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
-    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>` +
-      `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p><ul class="ranks plain cups">${cups}</ul>`;
-    const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
-    html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
-  }
-  if (!lbPlace) html = reviewHtml() + yearHtml() + html;
-  $("lbLists").innerHTML = html;
+  const g0 = all.game;                               // the collection, bingo and trophies count every place
+  if (v === "logbook") {
+    if (b.categories) {
+      const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
+      html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+        const n = b.categories[k] || 0;
+        return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
+          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
+      }).join("") + "</ul>";
+    }
+    if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
+    if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
+    if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+    if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
+    if (!place) html = yearHtml() + html;
+  } else if (v === "collection") {                   // the game: points, tiers and the collections
+    if (g0) {
+      const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+      const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+        `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+      html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
+        (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
+        `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
+    }
+  } else if (v === "records") {
+    const r = all.records;
+    if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
+      const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+      const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
+        ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
+      html += `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+    }
+    const bg = g0 && g0.bingo;
+    if (bg && bg.card) {                                 // the weekly bingo (relay 29)
+      const nd = Object.keys(bg.done || {}).length;
+      const cells = bg.card.map(k => { const d = (bg.done || {})[k];
+        return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
+      html += `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`;
+    }
+    if (g0) html += trophiesHtml(g0);
+  } else html = reviewHtml();
+  $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
@@ -791,6 +814,22 @@ function tierIcon(t){
   g.fillStyle = gr; g.beginPath(); g.roundRect ? g.roundRect(0, 0, n, n, 9) : g.rect(0, 0, n, n); g.fill();
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
+}
+// The trophies (1.55): a row for each ladder (its next tier, the count towards it and a bar), then the single ones.
+function trophiesHtml(g0){
+  const won = g0.trophies || {};
+  const lad = TROPHY_LADDERS.map(L => {
+    const st = trophyLadder(g0, L), t = st.next || st.last;
+    const n = st.next ? (st.have != null ? T("{n} of {t}", {n: nf.format(Math.min(st.have, st.next[1])), t: nf.format(st.next[1])}) : "") : fmtDay(st.won[st.last[0]]);
+    const p = !st.next ? 100 : st.have != null ? Math.min(100, st.have / st.next[1] * 100) : 0;
+    const pips = st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("");
+    return `<li class="${st.done ? "on" : ""}">${CUP}<span class="name">${escH(T(t[2]))}<span class="s">${escH(T(L[1], {n: nf.format(t[1])}))}</span></span><span class="n">${escH(n)}</span>` +
+      `<span class="tl"><span class="pips">${pips}</span><span class="bar"><i style="width:${p.toFixed(1)}%"></i></span></span></li>`;
+  }).join("");
+  const cups = TROPHY_SINGLES.map(k => { const [nm, what] = trophyText(k), d = won[k];
+    return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
+  return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p>` +
+    `<ul class="ranks plain cups ladders">${lad}</ul><ul class="ranks plain cups">${cups}</ul>`;
 }
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -1164,6 +1203,7 @@ function drawRadar(t){
   const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
   const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+  radarMapDraw(g, cx, cy, R, range, C, radar.px);
   const a0 = (t / 7000) * TAU;                                  // slow sweep
   for (let i = 0; i < 28; i++) {
     g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
@@ -1228,7 +1268,9 @@ function drawRadar(t){
   g.textAlign = "left"; g.textBaseline = "alphabetic";
 }
 function buildRadarLegend(){
-  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Inbound"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Outbound"],
+  const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
+  mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn)); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
+  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Approaching"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Leaving"],
     [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
@@ -1520,6 +1562,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 //@L:end
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
+$("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;
