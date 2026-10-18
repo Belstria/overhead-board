@@ -1166,7 +1166,7 @@ const AIRPORTS = {VIE: {icao:"LOWW", name:"Vienna", lat:48.1103, lon:16.5697, rw
 
 /* Drums: the order a real flap module turns through. */
 const DRUM_ALPHA = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/:,'&()";
-const DRUM_DIGIT = " 0123456789:";
+const DRUM_DIGIT = " 0123456789:/";      // "/": not known (1.48)
 const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change often */
 const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
@@ -3533,8 +3533,17 @@ const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 
 // This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
 // relay (version 8 or newer, with an API key). Without that, everything falls back to the free sources.
 const USE_API = true;
-let apiLive = true;     // turns off when the relay says Flightradar24 isn't available (key refused, budget used up)
-const apiOn = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true && apiLive;
+// The relay may use Flightradar24 for this board; the lists then come with its answers (from the relay's cache).
+const apiWanted = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true;
+// Lookups stop for ten minutes when the relay says Flightradar24 isn't available (key refused, budget used up), then
+// the board asks again (1.48; before, they stayed off until the page was reloaded).
+let apiOffAt = 0;
+const API_PAUSE_MS = 10 * 60000;
+const apiOn = () => apiWanted() && Date.now() - apiOffAt > API_PAUSE_MS;
+function apiOff(){
+  if (apiOn()) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources");
+  apiOffAt = Date.now(); updateFooter();
+}
 const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
@@ -3675,19 +3684,29 @@ async function aircraftLookup(hex){
 }
 /* Flightradar24 through the relay: the relay queues the lookup (10 a minute at most) and answers from its cache. */
 function apiLookup(cs, hex, info, tries = 0){
-  if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return;
+  if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return lookedUp(info);
   fetchJSON(`${relay()}/flightinfo?cs=${encodeURIComponent(cs)}&hex=${encodeURIComponent(hex)}`, {}, 6000).then(d => {
-    if (d.status === "off") { if (apiLive) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); apiLive = false; updateFooter(); return; }
-    if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); return; }
-    if (d.status !== "ok") return;
+    if (d.status === "off") { apiOff(); return lookedUp(info); }
+    if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); else lookedUp(info); return; }
+    if (d.status !== "ok") return lookedUp(info);
     const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     if (d.flight) Object.assign(info, {flightNo: fmtFlight(d.flight)}, marketedBy(d.flight));
     if (d.from && d.to) { info.from = d.from; info.to = d.to; }
     Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator, takeoff: d.takeoff || ""});
     const after = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     dlog("debug", `Flightradar24: ${cs} is ${info.flightNo}, ${d.from ? d.from.code : "?"} → ${d.to ? d.to.code : "?"}${before !== after ? ` (free sources said ${before})` : ""}`);
+    info.done = true;
     infoChanged(info);
-  }).catch(() => {});
+  }).catch(() => lookedUp(info));
+}
+// Every lookup for a plane has answered or given up (1.48): what is still missing isn't known, and shows as "/"
+// (NA) instead of blank flaps. While lookups run the fields stay blank, so a "/" doesn't flip to the real value.
+const NA = "/";
+const orNA = (v, done) => v || (done ? NA : "");
+function lookedUp(info){
+  if (info.done) return;
+  info.done = true;
+  infoChanged(info);
 }
 // Flightradar24's painted_as and operated_as (airline ICAO codes): a plane flown by one airline in another's colours
 // (a wet lease, or a group airline in the parent's livery) says so on the Operator line.
@@ -3702,22 +3721,27 @@ function liveryShort(info){
   return lv && op && lv !== op ? T("IN {a} COLOURS", {a: shortAirline((AIRLINES[lv] || [])[1] || lv)}).slice(0, 20) : "";
 }
 const infoCache = new Map();
-// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
+// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board, and bring its row in
+// Recent flights up to date (1.48: an answer that came after the plane had left the top half was never shown).
 function infoChanged(info){
+  if (typeof recentInfo === "function") recentInfo(info);
+  if (airportMode()) scheduleAirport();
   if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }
 }
 function enrich(ac){
   const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
   if (infoCache.has(key)) return infoCache.get(key);
   const info = baseInfo(ac);
+  info.hex = ac.hex;
   const p = (async () => {
-    if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); return info; }
+    if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); info.done = true; return info; }
     const jobs = [];
     // each answer shows as soon as it comes (the route doesn't wait for the aircraft lookup, or the other way round)
     if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
     if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
     await Promise.all(jobs);
     if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
+    else info.done = true;
     return info;
   })();
   p.info = info;
@@ -3811,8 +3835,12 @@ function fromRelay(r){
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
     newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier, watch: r.watch || "",
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
-    fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata)};
+    fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata),
+    done: sightDone(r)};
 }
+// The relay (41) marks a sighting `looked` once its route and aircraft were looked up, and `fr24Wait` while Flightradar24
+// is still to answer; older sightings (or a relay restarted mid-lookup) count as done after ten minutes.
+const sightDone = r => (!!r.looked || Date.now() - (r.ts || 0) > 10 * 60000) && !r.fr24Wait;
 // Flightradar24 gives the flight number the flight is sold under; show that airline (Lauda flies many Ryanair flights).
 function marketedBy(flight){
   const m = /^([A-Z0-9]{2})\d/.exec(flight || "");
@@ -3824,8 +3852,8 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
-    if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
     relayStats = j.stats || null;
@@ -3842,7 +3870,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
     if (j.stats && !allPlaces) relayStats = j.stats;
     renderToday();
@@ -3996,7 +4024,7 @@ function remarkFor(e){
   if (home && f === home) return "DEPARTING";
   return f && t ? "OVERFLIGHT" : "";
 }
-function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg}); }
+function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg, fr24: !!info.fr24, done: !!info.done}); }
 /* ---------- tracking ---------- */
 let feat = null, nearbyCount = null, failures = 0, lastOk = 0, wasOffline = false;
 const OFFLINE_AFTER = 60000;
@@ -4172,6 +4200,13 @@ function timesFor(info){
   }
   return h.d && h.d.status === "ok" ? h.d : null;
 }
+// Has Vienna Airport's list been asked about this flight (or isn't it one it could know)?
+function timesSettled(info){
+  const fn = info && info.flightNo;
+  if (!fn || !/^[A-Z0-9]{2} \d/.test(fn) || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 11) return true;
+  const h = timesCache.get(fn);
+  return !!h && !h.busy && h.t > 0 && !(h.d && h.d.status === "pending");
+}
 function utcMs(v){
   if (!v) return null;
   const t = Date.parse(/Z$|[+-]\d\d:?\d\d$/.test(v) ? v : v + "Z");       // Flightradar24's times are UTC
@@ -4202,6 +4237,7 @@ function renderTimes(){
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
   const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
   let dep = utcMs(info.takeoff), arr = null;
+  const done = !!info.done && timesSettled(info);
   if (S.demo) ({dep, arr} = demoTimes(feat.hex));
   else {
     const t = timesFor(info);
@@ -4211,10 +4247,10 @@ function renderTimes(){
     }
   }
   if (!arr) arr = estArrival(info, feat.o);
-  setChars("depTime", dep ? hhmm(new Date(dep)) : "", 440);
-  setChars("arrTime", arr ? hhmm(new Date(arr)) : "", 470);
+  setChars("depTime", orNA(dep ? hhmm(new Date(dep)) : "", done), 440);
+  setChars("arrTime", orNA(arr ? hhmm(new Date(arr)) : "", done), 470);
   const mins = dep && arr ? Math.round((arr - dep) / 60000) : -1;    // the whole flight, departure to (expected) arrival
-  setChars("airTime", mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", 500);
+  setChars("airTime", orNA(mins >= 0 && mins < 24 * 60 ? `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}` : "", done), 500);
 }
 
 /* ---------- what goes on the board ---------- */
@@ -4368,9 +4404,10 @@ function renderFeatured(){
   const aCode = airlineCodeOf(info), aName = trimTo(shortAirline(info.airline), 18);
   setWord("airline", (aCode || "-") + "|" + aName);
   setWord("remarks", featRemark());
-  setChars("fromCode", code3(info.from), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
-  setChars("toCode", code3(info.to), 200); setChars("toCity", info.to ? info.to.city : "", 240);
-  setChars("type", info.type || "", 300); setWord("tier", tierOf(ac, info), 330); setChars("reg", info.reg || "", 340);
+  const done = !!info.done;
+  setChars("fromCode", orNA(code3(info.from), done), 120); setChars("fromCity", info.from ? info.from.city : "", 160);
+  setChars("toCode", orNA(code3(info.to), done), 200); setChars("toCity", info.to ? info.to.city : "", 240);
+  setChars("type", orNA(info.type, done), 300); setWord("tier", tierOf(ac, info), 330); setChars("reg", orNA(info.reg, done), 340);
   const now = Date.now();
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
@@ -4378,7 +4415,7 @@ function renderFeatured(){
       feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
-  if (fields.seen) { const rl = remarkLines(ac, info); setChars("seen", rl.length ? rl[Math.floor(now / 6000) % rl.length] : "", 520); setChars("toGo", toGoText(info, o), 510); }
+  if (fields.seen) { const rl = remarkLines(ac, info); setChars("seen", rl.length ? rl[Math.floor(now / 6000) % rl.length] : "", 520); setChars("toGo", toGoText(info, o) || (done && !(info.to && info.to.lat != null) ? NA : ""), 510); }
   setChars("alt", feat.live[0], 380);
   setChars("speed", feat.live[1], 400);
   setChars("pos", feat.live[2], 420);
@@ -4405,12 +4442,14 @@ function lookupDetails(hex){
   acDetails.set(hex, null);
   fetchJSON(`https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(hex)}`).then(j => {
     const a = j && j.response && j.response.aircraft;
-    if (!a) return;
+    if (!a) { acDetails.set(hex, {}); return; }
     acDetails.set(hex, {photo: a.url_photo || "", owner: a.registered_owner || "", country: a.registered_owner_country_name || "",
       type: [String(a.manufacturer || "").split(" ")[0], a.type].filter(Boolean).join(" "), reg: a.registration || ""});
     if (feat && feat.hex === hex) renderAircraftInfo();
-  }).catch(() => {});
+  }).catch(() => { acDetails.set(hex, {}); if (feat && feat.hex === hex) renderAircraftInfo(); });
 }
+// The aircraft lookup (adsbdb) has answered, or the shared list already had what it would give.
+const detailsDone = hex => S.demo || acDetails.get(hex) != null || !!detailsOf(hex);
 function legendGroups(){
   const home = (S.home || "").toUpperCase() || T("your home airport"), OVK = overKm();
   return [
@@ -4625,23 +4664,24 @@ function chip(r){                        // the status word in this language; it
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
-function placeHtml(a){
-  if (!a) return `<span class="no">–</span>`;
+function placeHtml(a, done){
+  if (!a) return `<span class="no">${done ? NA : "–"}</span>`;
   const c = code3(a) || a.code || "";
   return `${c ? `<b>${escH(c)}</b>` : ""}${escH(a.city || "")}`;
 }
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
+  const done = e.done !== false;
+  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : done ? NA : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
+  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k], done)}</span>`;
   return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time></div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to || done ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
-const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
+const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e), e.done].join("|");
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
@@ -4656,9 +4696,10 @@ function renderRecent(){
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
     setChars(id("time"), e ? e.time || "" : "", d);
     setChars(id("flight"), e ? e.flight || String(e.hex || "").toUpperCase() : "", d + 60);
-    setChars(id("from"), e && e.from ? e.from.city || e.from.code || "" : "", d + 120);
-    setChars(id("to"), e && e.to ? e.to.city || e.to.code || "" : "", d + 180);
-    setChars(id("type"), e ? e.type || "" : "", d + 240);
+    const done = !!e && e.done !== false;
+    setChars(id("from"), e ? orNA(e.from && (e.from.city || e.from.code), done) : "", d + 120);
+    setChars(id("to"), e ? orNA(e.to && (e.to.city || e.to.code), done) : "", d + 180);
+    setChars(id("type"), e ? orNA(e.type, done) : "", d + 240);
     setWord(id("remarks"), e ? remarkFor(e) : "", d + 300);
   }
 }
@@ -4686,13 +4727,14 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   paintRwy();
-  setChars("naReg", info.reg || d.reg || "");
+  const done = !!info.done && detailsDone(feat.hex);           // "/": looked up, not known (1.48)
+  setChars("naReg", orNA(info.reg || d.reg, done));
   setChars("naHex", feat.hex.toUpperCase(), 60);
   setChars("naFlight", info.flightNo || "", 120);
-  setChars("naType", d.type || info.type || "", 180);
-  setChars("naOwner", liveryLine(info) || d.owner || info.airline || "", 240);
-  setChars("naCountry", d.country || "", 300);
-  setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
+  setChars("naType", orNA(d.type || info.type, done), 180);
+  setChars("naOwner", orNA(liveryLine(info) || d.owner || info.airline, done), 240);
+  setChars("naCountry", orNA(d.country, done), 300);
+  setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : done ? NA : "", 360);
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo
@@ -6021,7 +6063,7 @@ function apFeature(all){
 let apTimer = 0;
 function scheduleAirport(){ if (!apTimer) apTimer = setTimeout(() => { apTimer = 0; renderAirport(); }, 300); }
 const apFlight = e => (e.info && e.info.flightNo) || String(e.ac.flight || "").trim() || e.ac.r || e.hex.toUpperCase();
-const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.info.from); return p ? p.city || p.code || "" : ""; };
+const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.info.from); return orNA(p && (p.city || p.code), !!(e.info && e.info.done)); };
 /* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,
    then the take-offs and the landings as lists (in place of Recent flights). */
 let apSig = "";
@@ -6170,6 +6212,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.48", date: "2026-10-18", notes: [
+    "A detail that isn't known shows a / instead of blank flaps, once the lookups for the plane are done.",
+    "Recent flights fill in the flight number and route when Flightradar24 answers after the plane has passed.",
+    "Flightradar24 details already looked up keep showing after a guest's daily lookups are used up, and lookups resume by themselves."]},
   {v: "1.47", date: "2026-10-18", notes: [
     "The title shows the style you're in, in amber, with a swap sign to the other one.",
     "The logbook's place buttons only show the places you still have; removed ones count under All."]},

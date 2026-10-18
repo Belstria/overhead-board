@@ -375,6 +375,19 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   OpenSky is ruled out (needs a written licence).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
+  Relay 41 / 1.48: `/flightinfo` hands out cached answers to anyone allowed Flightradar24 even past a guest's
+  `GUEST_FR24_DAY` or the budget (then "none", not "off"); the guest count goes up only when `fr24_want` queues a new
+  flight (it returns True), not on the board's retries. "off" pauses a board's lookups for `API_PAUSE_MS` (10 min,
+  `apiOff`), not until a reload; `/sightings` keeps asking `api=1` (`apiWanted`). `recentInfo` (from `infoChanged`,
+  `info.hex`) fills a Recent flights row when an answer comes after the plane left the top half, and `withShared` takes
+  Flightradar24's flight and route from the shared list for rows that didn't get them.
+- "/" for what isn't known (1.48, to-do #24): `NA`/`orNA(v, done)` (network block). `info.done` is set when enrich's
+  free lookups are in and Flightradar24 answered or gave up (`lookedUp(info)` from every exit of `apiLookup`; at once
+  without it), and calls `infoChanged` (which also runs `scheduleAirport`). Sightings: the relay (41) sets `e.looked`
+  after the enricher and `fr24Wait` in `fr24_overlay` while a lookup is queued; `sightDone()` (also true ten minutes
+  after the sighting) gives `done` in `fromRelay`; Recent flights rows carry `done` from `fillEntry` (missing = done).
+  Times need `timesSettled(info)` too, This aircraft `detailsDone(hex)` (adsbdb answered; not found is `{}`).
+  `DRUM_DIGIT` has "/" for the time flaps.
 - Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
 - It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.

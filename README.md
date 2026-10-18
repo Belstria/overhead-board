@@ -102,6 +102,9 @@ py serve.py --fr24-key YOUR_KEY --save
 
 The main board has everything below. New features are tried on `/test/` first; open them through the relay at `http://<computer-name>:8080/test/`.
 
+- **Not known: /** (1.48): a detail that isn't known (no route, no departure time, no operator ...) shows a "/"
+  instead of blank flaps, on the plane on top, in Recent flights, Spotted today and the airport lists, and in the app.
+  It appears only once every lookup for that plane has answered or given up, so while they run the field stays blank.
 - **Flight times** in a fourth row of the top half: departure, arrival and the flight time (1.35.1: the whole
   flight, departure to arrival, once both are known; before, the time since take-off). Vienna Airport
   publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
@@ -515,7 +518,8 @@ fill them in to check, are asked about notifications (where the browser supports
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
 settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
-its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day each; off by default).
+its sightings, and turns Flightradar24 on for someone (at most 150 new flights looked up a day each, off by default; past that their boards still show what has already been
+looked up).
 Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
