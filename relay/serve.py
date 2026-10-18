@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 41
+RELAY_VERSION = 42
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -287,12 +287,11 @@ def board_day(t=None):
 
 
 class Spot:
-    """Today's sightings and the lifetime logbook of one place. `center()` says where it is (None: unknown) and
-    `radius()` how far around it planes count; the home spot without a saved location records around the screen's
-    own point, as before relay 19."""
+    """Today's sightings and the lifetime logbook of one profile. `center()` says where it is (None: unknown) and
+    `radius()` how far around it planes count."""
 
-    def __init__(self, folder, center, radius, legacy=False):
-        self.dir, self.center, self.radius, self.legacy = folder, center, radius, legacy
+    def __init__(self, folder, center, radius):
+        self.dir, self.center, self.radius = folder, center, radius
         self.day = None
         self.entries = []       # today's sightings, newest first
         self.by_hex = {}        # hex -> its latest entry today
@@ -354,10 +353,8 @@ class Spot:
         lat, lon = float(lat), float(lon)
         c, radius = (place[1], place[2]) if place else (self.center(), self.radius())
         if c is None:
-            if not self.legacy:
-                return
-            c = (lat, lon)
-        elif _dist_km(lat, lon, c[0], c[1]) + radius > int(nm) * 1.852 + 1:
+            return
+        if _dist_km(lat, lon, c[0], c[1]) + radius > int(nm) * 1.852 + 1:
             return                          # looking somewhere else: nothing to count for this spot
         data = json.loads(body)
         planes = data.get("ac", data.get("aircraft"))
@@ -365,16 +362,11 @@ class Spot:
             self.record(planes, c[0], c[1], key, radius)
 
 
-def _home_center():
-    return (ARGS.lat, ARGS.lon) if ARGS.lat is not None and ARGS.lon is not None else None
-
-
-HOME = Spot(DATA_DIR, _home_center, lambda: ARGS.radius or 15.0, legacy=True)
 _guest_spots = {}
 
 
 def all_spots():
-    return [HOME, *_guest_spots.values()]
+    return list(_guest_spots.values())
 
 
 def _saver():
@@ -1263,10 +1255,10 @@ def fr24_info(cs, hx):
     return info if age < 14 * 3600 else None
 
 
-def fr24_want(cs, hx, priority, who="Lists and alerts"):
+def fr24_want(cs, hx, priority, who="Lists and alerts", pid=None):
     """Queue a lookup for a flight with a callsign (airline, cargo, business or private). `who` asked for it (relay 40:
-    the admin page shows the credits by account and device). True when it was queued now (relay 41: a guest's daily
-    count goes by that, not by every time a board asks again while it waits)."""
+    the admin page shows the credits by account and device), `pid` is that profile (relay 42: its credits count towards
+    its daily limit). True when it was queued now."""
     if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z0-9]{3,8}$", cs) or fr24_info(cs, hx) or fr24_paced(priority):
         return False
     key = f"{hx}|{cs}"
@@ -1274,7 +1266,7 @@ def fr24_want(cs, hx, priority, who="Lists and alerts"):
         if key in _fr24_queued or len(_fr24_q) > 300:
             return False
         _fr24_queued.add(key)
-        heapq.heappush(_fr24_q, (priority, next(_fr24_order), key, cs, hx, who))
+        heapq.heappush(_fr24_q, (priority, next(_fr24_order), key, cs, hx, who, pid))
         _fr24_cv.notify()
     return True
 
@@ -1455,7 +1447,7 @@ def _fr24_worker():
         with _fr24_cv:
             while not _fr24_q:
                 _fr24_cv.wait()
-            priority, _, key, cs, hx, who = heapq.heappop(_fr24_q)
+            priority, _, key, cs, hx, who, pid = heapq.heappop(_fr24_q)
         try:
             if not fr24_on() or fr24_info(cs, hx):
                 continue
@@ -1483,6 +1475,14 @@ def _fr24_worker():
                     by = usage.setdefault("by", {}).setdefault(who, {"credits": 0, "lookups": 0})
                     by["credits"] += credits
                     by["lookups"] += 1
+                    p = profiles()["profiles"].get(pid) if pid else None
+                    if p is not None:                 # relay 42: the profile's own count, for its daily limit
+                        pu = fr24_use(p)
+                        pu["today"] += credits
+                        pu["credits"] += credits
+                        pu["lookupsToday"] += 1
+                        pu["lookups"] += 1
+                        _dirty.add("profiles")
                 if info:
                     _fr24_data()["flights"][key] = info
                     for sp in all_spots():            # relay 41: lists showing this flight fetch again for the answer
@@ -2236,8 +2236,9 @@ def board_file(sub, name, ext):
 
 
 def board_html(sub="", guest=None):
-    """The board (or the phone app) with what it needs to know injected: the home location for screens at home, a
-    guest's name, id and saved settings for a guest (`guest` is (id, profile))."""
+    """The board (or the phone app) with what it needs to know injected: the profile's name, id and saved settings
+    (`guest` is (id, profile)), and for a profile without a place yet the relay's own location, to start the welcome
+    from (relay 42)."""
     gid, guest = guest if guest else (None, None)
     copy = Path(__file__).with_name(f"board-cache{'-' + sub if sub else ''}.html")
     if ARGS.local_root:
@@ -2279,7 +2280,7 @@ def board_html(sub="", guest=None):
     if ARGS.sound is not None:
         defaults["sound"] = bool(ARGS.sound)
     fr24 = fr24_on() and (guest is None or bool(guest.get("fr24")))
-    if guest is not None:               # a guest never gets the home location; their own settings come with their profile
+    if guest is not None and (guest.get("settings") or {}).get("located"):     # their own settings come with their profile
         defaults = {"units": ARGS.units} if ARGS.units else {}
     config = json.dumps(defaults).replace("<", "\\u003c")
     who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
@@ -2290,14 +2291,16 @@ def board_html(sub="", guest=None):
 
 
 # ---------- friends and family: profiles, personal invite links and the admin page (relay 19) ----------
-# Screens at home (a direct connection from a private address) are the home profile, as always. Everyone else, which
-# through the Cloudflare tunnel is everyone from outside, needs a profile: Dave makes a personal invite link on /admin
-# (home only), the first device to open it gets a long-lived cookie, and the link is used up. Only a hash of each
-# link and each device's cookie is kept. A guest's settings (their location) are kept with their profile.
+# Every screen belongs to a profile (relay 42: there is no Home any more; a device without one gets the private page,
+# with a QR code to sign it in from a phone). Dave makes a personal invite link on /admin (home network only), the
+# first device to open it gets a long-lived cookie, and the link is used up; an account (username, passkeys, password)
+# signs in more devices. Only a hash of each link and each device's cookie is kept. A profile's settings (its
+# location) are kept with it.
 PROFILES_FILE = DATA_DIR / "profiles.json"
 COOKIE = "overhead"
 INVITE_DAYS = 14
-GUEST_FR24_DAY = 150        # most Flightradar24 lookups a day for a guest it has been turned on for
+FR24_DAY_GUEST = 500        # relay 42: most Flightradar24 credits a day for a profile without an account (it is turned on for)
+FR24_DAY_ACCOUNT = 2000     # ... and with one: a fallback against a bug or a lost device, not a limit anyone should reach
 _profiles = None            # {"profiles": {id: {...}}, "invites": {hash: {...}}}
 _buckets = {}
 _made = {}                  # one-off key -> (expires, (name, invite code)): the admin page's last new link
@@ -2319,7 +2322,7 @@ def profiles():
     global _profiles
     if _profiles is None:
         _profiles = _load(PROFILES_FILE, None) or {"profiles": {}, "invites": {}}
-        for p in [_profiles.get("home") or {}, *_profiles["profiles"].values()]:     # devices that were only a chat's preview
+        for p in _profiles["profiles"].values():          # devices that were only a chat's preview
             keep = [d for d in p.get("devices", []) if not PREVIEW_BOT.search(d.get("device") or "")]
             if len(keep) != len(p.get("devices", [])):
                 p["devices"] = keep
@@ -2334,8 +2337,6 @@ def peek_invite(code):
         inv = P["invites"].get(_hash(code))
         if not inv or inv["expires"] <= time.time():
             return None
-        if inv["profile"] == "home":
-            return "Home"
         p = P["profiles"].get(inv["profile"])
         return p["name"] if p else None
 
@@ -2349,15 +2350,14 @@ def new_invite(name=None, pid=None):
             pid = secrets.token_hex(4)
             while pid in P["profiles"]:
                 pid = secrets.token_hex(4)
-            P["profiles"][pid] = {"name": name, "created": time.time(), "lastSeen": 0, "fr24": False, "devices": [],
-                                  "settings": None, "fr24Day": "", "fr24Count": 0}
-        elif pid != "home" and pid not in P["profiles"]:
+            P["profiles"][pid] = {"name": name, "created": time.time(), "lastSeen": 0, "fr24": False, "devices": [], "settings": None}
+        elif pid not in P["profiles"]:
             return None
         now = time.time()
         P["invites"] = {h: i for h, i in P["invites"].items() if i["expires"] > now}
         P["invites"][_hash(code)] = {"profile": pid, "created": now, "expires": now + INVITE_DAYS * 86400}
         _dirty.add("profiles")
-        who = "a home device" if pid == "home" else P["profiles"][pid]["name"]
+        who = P["profiles"][pid]["name"]
     event("info", f"Invite link made for {who}")
     return code
 
@@ -2371,7 +2371,7 @@ def redeem(code, ua):
             _dirty.add("profiles")
         p = None
         if inv and inv["expires"] > time.time():
-            p = P.setdefault("home", {"name": "Home", "devices": [], "push": []}) if inv["profile"] == "home" else P["profiles"].get(inv["profile"])
+            p = P["profiles"].get(inv["profile"])
         if not p:
             return None, None
         token = secrets.token_urlsafe(32)
@@ -2802,7 +2802,7 @@ def add_device(pid, ua, how):
     token = secrets.token_urlsafe(32)
     with _data_lock:
         P = profiles()
-        p = P.setdefault("home", {"name": "Home", "devices": [], "push": []}) if pid == "home" else P["profiles"][pid]
+        p = P["profiles"][pid]
         p["devices"].append({"token": _hash(token), "device": device_of(ua), "added": time.time(), "lastSeen": time.time(), "via": how})
         del p["devices"][:-20]
         p["lastSeen"] = time.time()
@@ -2845,7 +2845,7 @@ def profile_for(token):
     h, now = _hash(token), time.time()
     with _data_lock:
         P = profiles()
-        for pid, p in ([("home", P["home"])] if P.get("home") else []) + list(P["profiles"].items()):
+        for pid, p in P["profiles"].items():
             for d in p["devices"]:
                 if secrets.compare_digest(d["token"], h):
                     if now - d.get("lastSeen", 0) > 60:     # keep "last seen" without writing on every request
@@ -2908,15 +2908,154 @@ def guest_spot(pid):
         return sp
 
 
+def fr24_limit(p):
+    """A profile's Flightradar24 credits a day (relay 42): set on the admin page, else by whether it has an account."""
+    v = p.get("fr24Limit")
+    if isinstance(v, int) and v >= 0:
+        return v
+    return FR24_DAY_ACCOUNT if (p.get("account") or {}).get("user") else FR24_DAY_GUEST
+
+
+def fr24_use(p):
+    """A profile's Flightradar24 credits and lookups today and in the plan's month (call under _data_lock)."""
+    u = p.setdefault("fr24Use", {})
+    day, month = time.strftime("%Y-%m-%d"), fr24_period()[0].isoformat()
+    if u.get("day") != day:
+        u.update(day=day, today=0, lookupsToday=0)
+    if u.get("month") != month:
+        u.update(month=month, credits=0, lookups=0)
+    return u
+
+
 def guest_fr24(p):
-    """May this guest's board ask Flightradar24 now? Only if Dave turned it on for them, and within a daily share."""
+    """May this profile's board ask Flightradar24 now? Only if Dave turned it on for them, and within its daily limit."""
     if not p.get("fr24") or not fr24_on():
         return False
     with _data_lock:
-        today = board_day()
-        if p.get("fr24Day") != today:
-            p["fr24Day"], p["fr24Count"] = today, 0
-        return p.get("fr24Count", 0) < GUEST_FR24_DAY
+        return fr24_use(p)["today"] < fr24_limit(p)
+
+
+# ---------- relay 42: the old Home profile merges into its owner's, once ----------
+# Before relay 42 a screen on the home network without a cookie was "Home": the relay's own location, data/'s sightings
+# and logbook, and profiles["home"] (places, favourites, notifications, linked devices). Dave's own devices had already
+# become his profile, so Home's history goes there: the days of sightings joined (a plane both recorded in the same pass
+# is one sighting), the logbook counted again from the joined days, and the rest added to his. The old files are kept
+# in data/home-before-merge/. It runs at start until it has been done (profiles.json "homeMerged").
+HOME_OWNER = "David"
+SKIP_FILL = {"id", "place", "newType", "newReg", "newAirline", "newFlight"}
+
+
+def _merge_day(*lists):
+    """One day's sightings from several lists (newest first) as one list: the same plane in the same pass is one."""
+    out, last = [], {}
+    for e in sorted((e for l in lists for e in l), key=lambda e: e.get("ts") or 0):
+        prev = last.get(e.get("hex", ""))
+        if prev and (e.get("ts") or 0) / 1000 - prev.get("lastSeen", (prev.get("ts") or 0) / 1000) <= SAME_PASS_S:
+            prev["lastSeen"] = max(prev.get("lastSeen", 0), e.get("lastSeen", 0))
+            if e.get("minDist") is not None and (prev.get("minDist") is None or e["minDist"] < prev["minDist"]):
+                prev["minDist"], prev["altAtMin"] = e["minDist"], e.get("altAtMin")
+            prev["maxSpeed"] = max(prev.get("maxSpeed") or 0, e.get("maxSpeed") or 0)
+            for k, v in e.items():                 # what only the other one learned (route, airline, Flightradar24)
+                if k not in SKIP_FILL and prev.get(k) in (None, "", [], {}) and v not in (None, "", [], {}):
+                    prev[k] = v
+            continue
+        out.append(e)
+        last[e.get("hex", "")] = e
+    return out[::-1]
+
+
+def _rebuild_book(folder, old_books):
+    """A logbook counted afresh from a folder's saved days; scores, records, trophies and flights follow when it is
+    loaded (Spot.book, as for an older logbook). Names and the start come from the old logbooks."""
+    b = {"since": min([x.get("since") for x in old_books if x.get("since")] or [time.strftime("%Y-%m-%d")]),
+         "startedTs": min([x.get("startedTs") for x in old_books if x.get("startedTs")] or [time.time()]),
+         "sightings": 0, "types": {}, "airlines": {}, "regs": {}, "categories": {}}
+    hours = set()
+    for f in sorted(folder.glob("sightings-*.json")):
+        for e in reversed(_load(f, [])):
+            b["sightings"] += 1
+            c = category_of(e)
+            b["categories"][c] = b["categories"].get(c, 0) + 1
+            x = dict(e)                            # the days keep their own "new" marks
+            if e.get("typeCode"):
+                _note_first(b["types"], e["typeCode"], e.get("desc") or "", x, "newType", True)
+            if e.get("reg"):
+                _note_first(b["regs"], e["reg"], e.get("typeCode") or "", x, "newReg", True)
+            m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+            if m:
+                _note_first(b["airlines"], m.group(1), "", x, "newAirline", True)
+            hours.add(_hour(e))
+    for part in ("types", "airlines", "regs"):
+        for x in old_books:
+            for k, it in (x.get(part) or {}).items():
+                if k in b[part] and not b[part][k].get("name") and isinstance(it, dict) and it.get("name"):
+                    b[part][k]["name"] = it["name"]
+    b["hours"] = sorted(hours)
+    return b
+
+
+def _write_json(path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(obj, separators=(",", ":")), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def merge_home():
+    """Merge the old Home into HOME_OWNER's profile (called once at start, under _data_lock)."""
+    P = profiles()
+    if P.get("homeMerged"):
+        return
+    days, home = sorted(DATA_DIR.glob("sightings-*.json")), P.get("home")
+    if not days and not LOGBOOK_FILE.exists() and not home:
+        P["homeMerged"] = {"v": 1, "at": time.time(), "into": None}
+        _write_json(PROFILES_FILE, P)
+        return
+    hits = [pid for pid, p in P["profiles"].items() if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower()]
+    if len(hits) != 1:
+        event("warn", f"Home's sightings and logbook were not merged: {len(hits)} profiles are named {HOME_OWNER}, one is "
+                      "needed. Nothing was changed; Home's devices can't sign in until it is done (rename the profiles "
+                      "and restart the relay).")
+        return
+    pid = hits[0]
+    p, dest, keep = P["profiles"][pid], DATA_DIR / "profiles" / pid, DATA_DIR / "home-before-merge"
+    keep.mkdir(parents=True, exist_ok=True)
+    before = sum(len(_load(f, [])) for f in days)
+    for f in days:
+        mine = dest / f.name
+        _write_json(mine, _merge_day(_load(f, []), _load(mine, [])))
+    old_books = [b for b in (_load(LOGBOOK_FILE, None), _load(dest / "logbook.json", None)) if isinstance(b, dict)]
+    book = _rebuild_book(dest, old_books)
+    _write_json(dest / "logbook.json", book)
+    for f in days + ([LOGBOOK_FILE] if LOGBOOK_FILE.exists() else []):
+        os.replace(f, keep / f.name)
+    home = home or {}
+    have = {d["token"] for d in p.setdefault("devices", [])}
+    p["devices"] += [{**d, "via": d.get("via") or "Home"} for d in home.get("devices", []) if d.get("token") not in have]
+    eps = {x["endpoint"] for x in p.setdefault("push", [])}
+    p["push"] += [x for x in home.get("push", []) if x.get("endpoint") not in eps]
+    p["places"] = _clean_places((p.get("places") or []) + (home.get("places") or []))
+    L, HL = p.setdefault("lists", {}), home.get("lists") or {}
+    for k in ("fav", "hide"):
+        L[k] = _clean_list((L.get(k) or []) + (HL.get(k) or []))
+    st = p.get("settings") or {}
+    for k, v in (("lat", ARGS.lat), ("lon", ARGS.lon), ("place", ARGS.place), ("home", ARGS.home), ("radiusKm", ARGS.radius)):
+        if st.get(k) in (None, "") and v is not None:
+            st[k] = v
+    for k, v in (home.get("settings") or {}).items():
+        st.setdefault(k, v)
+    if st.get("lat") is not None:
+        st["located"] = True
+    p["settings"] = st
+    p["fr24"] = True                                   # Home always had Flightradar24
+    P.pop("home", None)
+    P["invites"] = {h: i for h, i in P["invites"].items() if i.get("profile") != "home"}
+    P["homeMerged"] = {"v": 1, "at": time.time(), "into": pid, "days": len(days), "sightings": before, "logbook": book["sightings"]}
+    _guest_spots.pop(pid, None)
+    _write_json(PROFILES_FILE, P)
+    event("info", f"Home merged into {p['name']}: {len(days)} days with {before} sightings, the logbook counted again "
+                  f"({book['sightings']} sightings), {len(home.get('devices', []))} devices, {len(home.get('push', []))} "
+                  f"notification subscriptions; the old files are in {keep.name}/")
 
 
 def allow(key, rate, burst):
@@ -3003,34 +3142,69 @@ COPY_JS = ("function cp(){var t=document.getElementById('lnk').textContent,ok=fa
            "if(ok)return done();if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,hand);else hand()}")
 
 
+ADMIN_CSS = ("<style>.prof{border:1px solid #26272b;border-radius:10px;padding:12px 14px;margin:0 0 12px;background:#111214}"
+             ".prof h3{margin:0;font-size:17px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}"
+             ".tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 6px}"
+             ".tag.g{background:#2a2c31;color:#b9b3a3}.tag.a{background:#f2b134;color:#111}"
+             ".prof ul{list-style:none;margin:6px 0;padding:0;font-size:14px}.prof li{padding:3px 0;border-bottom:1px solid #1d1e21}"
+             ".prof .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 0;font-size:14px}"
+             ".prof input[type=text],.prof input[type=password],.prof input[type=number]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;"
+             "border-radius:6px;padding:6px 8px;font:inherit;font-size:14px;width:150px}.prof input[type=number]{width:90px}"
+             "button.sm{padding:3px 8px;font-size:12px}details summary{cursor:pointer;color:#b9b3a3;font-size:14px;margin-top:8px}</style>")
+
+
+def _pform(action, pid, inner, confirm=None):
+    esc = html.escape
+    guard = f" onsubmit=\"return confirm({esc(json.dumps(confirm))})\"" if confirm else ""
+    return f"<form method=post action='{action}'{guard}><input type=hidden name=pid value='{esc(pid, quote=True)}'>{inner}</form>"
+
+
 def admin_html(host, made=None):
+    """Relay 42 (to-do #34): every profile is a Guest (no account yet: an invite link brings in a device) or an Account
+    (a username: devices sign in with it, so there is no link any more), with its devices, Flightradar24 use and limit."""
     esc = html.escape
     base = (ARGS.public_url or "").rstrip("/") or f"http://{host}"
-    rows = []
+    cards = []
     with _data_lock:
+        by = (_fr24_usage().get("by") or {})
         items = sorted(profiles()["profiles"].items(), key=lambda kv: -kv[1].get("lastSeen", 0))
         pending = collections.Counter(i["profile"] for i in profiles()["invites"].values() if i["expires"] > time.time())
         for pid, p in items:
-            kinds = collections.Counter(d.get("device") or "device" for d in p["devices"])
-            devs = ", ".join(f"{k} ×{n}" if n > 1 else k for k, n in sorted(kinds.items())) or "not joined yet"
-            st = p.get("settings") or {}
-            where = esc(str(st.get("place") or "")) or ('location set' if st.get("lat") is not None else "no location yet")
-            fr = "on" if p.get("fr24") else "off"
             acc = p.get("account") or {}
-            acct = (f"account <b>{esc(acc['user'])}</b>: {len(acc.get('passkeys', []))} passkey{'s' if len(acc.get('passkeys', [])) != 1 else ''}"
-                    f"{', password' if acc.get('pw') else ''}" if acc.get("user") else "no account")
-            rows.append(
-                f"<tr><td><b>{esc(p['name'])}</b><br><span class=muted>{where}<br>{acct}</span></td>"
-                f"<td>{esc(devs)}<br><span class=muted>seen {_ago(p.get('lastSeen'))}"
-                f"{f' · {pending[pid]} unused link' if pending[pid] else ''}</span></td>"
-                f"<td><form method=post action='/admin/fr24'><input type=hidden name=pid value='{pid}'>"
-                f"<input type=hidden name=on value='{'0' if p.get('fr24') else '1'}'><button title='Flightradar24 flight numbers, "
-                f"at most {GUEST_FR24_DAY} lookups a day'>FR24 {fr}</button></form></td>"
-                f"<td><form method=post action='/admin/link'><input type=hidden name=pid value='{pid}'><button>New link</button></form> "
-                + (f"<form method=post action='/admin/resetaccount' onsubmit=\"return confirm({esc(json.dumps('Remove ' + p['name'] + chr(39) + 's passkeys and password? They can set them again from a signed-in device.'))})\">"
-                   f"<input type=hidden name=pid value='{pid}'><button>Reset sign-in</button></form> " if acc.get("user") else "") +
-                f"<form method=post action='/admin/remove' onsubmit=\"return confirm({esc(json.dumps('Remove ' + p['name'] + ' and their sightings?'))})\">"
-                f"<input type=hidden name=pid value='{pid}'><button>Remove</button></form></td></tr>")
+            user = acc.get("user") or ""
+            st = p.get("settings") or {}
+            where = esc(str(st.get("place") or "")) or ("location set" if st.get("lat") is not None else "no location yet")
+            pu = fr24_use(p)
+            month = max(pu["credits"], sum(b["credits"] for w, b in by.items() if w.startswith(p["name"] + " · ")))
+            lim, own = fr24_limit(p), isinstance(p.get("fr24Limit"), int)
+            nk = len(acc.get("passkeys", []))
+            how = ", ".join(([f"{nk} passkey{'s' if nk != 1 else ''}"] if nk else []) + (["password"] if acc.get("pw") else [])) or "no passkey or password yet"
+            head = (f"<span class='tag a'>Account</span> <b>{esc(p['name'])}</b> <span class=muted>username <b>{esc(user)}</b> · {how}</span>" if user
+                    else f"<span class='tag g'>Guest</span> <b>{esc(p['name'])}</b> <span class=muted>no account yet</span>")
+            devs = sorted(p.get("devices", []), key=lambda d: -d.get("lastSeen", 0))
+            dl = "".join(f"<li>{esc(d.get('device') or 'device')} <span class=muted>· {esc(d.get('via') or 'invite link')} · "
+                         f"seen {_ago(d.get('lastSeen'))}</span> " + _pform("/admin/device", pid, f"<input type=hidden name=d value='{esc(d['token'][:16])}'>"
+                         "<button class=sm>Sign out</button>", f"Sign out this {d.get('device') or 'device'} of {p['name']}?") + "</li>" for d in devs)
+            link = "" if user else (_pform("/admin/link", pid, "<button>New invite link</button>") +
+                                    (f" <span class=muted>{pending[pid]} unused link{'s' if pending[pid] != 1 else ''}</span>" if pending[pid] else ""))
+            fr = (_pform("/admin/fr24", pid, f"<input type=hidden name=on value='{'0' if p.get('fr24') else '1'}'>"
+                         f"<button>Flightradar24 {'on' if p.get('fr24') else 'off'}</button>") +
+                  f" <span class=muted>{pu['today']:,} credits today · {month:,} this month</span> " +
+                  _pform("/admin/limit", pid, f"<label class=muted>limit a day <input type=number name=limit min=0 max=100000 step=50 "
+                         f"value='{lim if own else ''}' placeholder='{lim}'></label> <button class=sm>Set</button>") +
+                  (" <span class=muted>(set here)</span>" if own else " <span class=muted>(automatic)</span>"))
+            acct = ("<details><summary>Account</summary><div class=row>" +
+                    _pform("/admin/username", pid, f"<input type=text name=user maxlength=30 placeholder='username' value='{esc(user, quote=True)}' "
+                           "autocomplete=off> <button class=sm>" + ("Change username" if user else "Create account") + "</button>") + "</div>" +
+                    (f"<div class=row>" + _pform("/admin/password", pid, "<input type=password name=pw minlength=8 placeholder='new password' "
+                     "autocomplete=new-password> <button class=sm>Set password</button>") + " " +
+                     _pform("/admin/resetaccount", pid, "<button class=sm>Reset sign-in</button>",
+                            f"Remove {p['name']}'s passkeys and password? They can set them again from a signed-in device.") + "</div>" if user else "") +
+                    "</details>")
+            cards.append(f"<div class=prof><h3>{head}</h3><p class=muted style='margin:4px 0'>{where} · seen {_ago(p.get('lastSeen'))}</p>"
+                         f"<ul>{dl or '<li class=muted>not joined yet</li>'}</ul><div class=row>{link}</div><div class=row>{fr}</div>{acct}"
+                         "<div class=row>" + _pform("/admin/remove", pid, "<button class=sm>Remove</button>", f"Remove {p['name']} and their sightings?") +
+                         "</div></div>")
     made_html = ""
     if made:
         name, code = made
@@ -3042,18 +3216,14 @@ def admin_html(host, made=None):
         if not ARGS.public_url:
             made_html += ("<p class=muted>The relay doesn't know its public address yet, so this link only works at home. "
                           "Start it once with <code>--public-url https://overhead.example.com --save</code>.</p>")
-    table = (f"<table><tr><th>Who</th><th>Devices</th><th></th><th></th></tr>{''.join(rows)}</table>" if rows
-             else "<p>Nobody yet. Invite someone below.</p>")
-    home = profiles().get("home") or {}
-    hd = ", ".join(sorted({d.get("device") or "device" for d in home.get("devices", [])})) or "none yet"
-    home_html = (f"<h2>Your own devices</h2><p>Link a phone to Home to use your own place and logbook through the public "
-                 f"address, and get notifications. Linked: {html.escape(hd)}.</p><form method=post action='/admin/homelink'>"
-                 f"<button class=go>Link a device to Home</button></form> <form method=post action='/admin/homeclear' "
-                 f"onsubmit=\"return confirm('Unlink all home devices?')\"><button>Unlink all</button></form>")
-    body = (f"<h1>Friends &amp; family</h1><p>Everyone here has their own profile: their own location, Spotted "
-            f"today and logbook. This page only opens at home.</p>{made_html}<h2>People</h2>{table}<h2>Invite someone</h2>"
+    people = "".join(cards) or "<p>Nobody yet. Invite someone below.</p>"
+    body = (ADMIN_CSS + f"<h1>Friends &amp; family</h1><p>Everyone has their own profile: their own location, Spotted today and "
+            f"logbook. A guest joins with an invite link; once they create an account, they sign in with it instead. A screen "
+            f"without a profile shows a QR code to sign it in from a phone. This page only opens at home.</p>{made_html}"
+            f"<h2>People</h2>{people}<p class=muted>Flightradar24 a day: {FR24_DAY_GUEST:,} credits for a guest, {FR24_DAY_ACCOUNT:,} "
+            f"with an account, unless set here.</p><h2>Invite someone</h2>"
             f"<form method=post action='/admin/invite'><input type=text name=name maxlength=40 placeholder='Name, e.g. Mum' required> "
-            f"<button class=go>Make a link</button></form>" + home_html + fr24_admin_html())
+            f"<button class=go>Make a link</button></form>" + fr24_admin_html())
     return plain_page("Fallblatt: friends & family", body)
 
 
@@ -3112,7 +3282,7 @@ def save_config():
 # ---------- push notifications (relay 25): the evening summary and "worth going to the window" ----------
 # Web Push to browsers (https only: through the public address), encrypted (RFC 8291) and signed (VAPID) with the relay's own
 # key in data/vapid.pem. Needs the cryptography package (Debian: python3-cryptography); without it there are no
-# notifications and everything else works as before. Subscriptions live with each profile (home: profiles["home"]).
+# notifications and everything else works as before. Subscriptions live with each profile.
 try:
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec
@@ -3214,13 +3384,10 @@ def ptext(key, lang, **kw):
 
 
 def push_targets():
-    """Who gets notifications: (who, subscriptions, centre, spot, settings) for home and each guest who has some."""
+    """Who gets notifications: (who, subscriptions, centre, spot, settings) for each profile that has some."""
     out = []
     with _data_lock:
         P = profiles()
-        home = P.get("home") or {}
-        if home.get("push") and ARGS.lat is not None:
-            out.append(("home", home["push"], (ARGS.lat, ARGS.lon), HOME, home.get("settings") or {}))
         for pid, p in P["profiles"].items():
             st = p.get("settings") or {}
             if p.get("push") and st.get("lat") is not None:
@@ -3265,7 +3432,7 @@ def _fav_tokens(st):
     return [re.sub(r"[\s-]", "", t.strip().upper()) for t in re.split(r"[,;\n]+", str(st.get("favs") or "")) if t.strip()]
 
 
-# Favourites and hidden planes (relay 31), per profile (home: profiles["home"]): lists of {k: reg|type|airline|flight,
+# Favourites and hidden planes (relay 31), per profile: lists of {k: reg|type|airline|flight,
 # v: the code, n: a name to show}, set by the phone app and read by the boards and the notifications.
 LIST_KINDS = ("reg", "type", "airline", "flight")
 
@@ -3329,8 +3496,7 @@ def _clean_places(items):
 def places_of(pid):
     with _data_lock:
         P = profiles()
-        owner = (P["profiles"].get(pid) if pid else P.get("home")) or {}
-        return list(owner.get("places") or [])
+        return list((P["profiles"].get(pid) or {}).get("places") or [])
 
 
 # The address search (relay 33): OpenStreetMap's Nominatim, through here so its rules are kept in one place: at most one
@@ -3395,10 +3561,9 @@ def geo_reverse(lat, lon, lang="en"):
 
 
 def lists_of(pid):
-    """(favourites, hidden) of a profile; pid None is home."""
+    """(favourites, hidden) of a profile."""
     with _data_lock:
-        P = profiles()
-        p = (P.get("home") or {}) if pid is None else (P["profiles"].get(pid) or {})
+        p = profiles()["profiles"].get(pid) or {}
         L = p.get("lists") or {}
         return list(L.get("fav") or []), list(L.get("hide") or [])
 
@@ -3449,7 +3614,7 @@ def window_check(who, subs, centre, spot, st):
         book = spot.book()
         types, learning = book.get("types", {}), time.time() - book.get("startedTs", 0) < LEARN_S
     favs = _fav_tokens(st)
-    fav_list, hide_list = lists_of(None if who == "home" else who)
+    fav_list, hide_list = lists_of(who)
     hour = time.localtime().tm_hour
     now = time.time()
     for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
@@ -3561,6 +3726,11 @@ def _push_watch():
                 event("warn", f"Notification check failed for {who}: {e}", echo=False)
 
 
+ADMIN_PATHS = ("/admin", "/screens", "/status")     # the home network only (and for anyone there, signed in or not)
+MEDIA_DIR = DATA_DIR / "media"
+MEDIA = {"emirates-boarding.m4a": "audio/mp4"}     # relay 42: the Emirates airline card's boarding music (copyrighted: never in the repository)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = f"OverheadRelay/{RELAY_VERSION}"
     timeout = 30                    # a connection that sends nothing for this long is closed
@@ -3608,14 +3778,12 @@ class Handler(BaseHTTPRequestHandler):
             return False
 
     def identify(self):
-        """Who is asking: self.guest = (id, profile) for a guest's device, None at home; self.stranger for anyone else."""
+        """Who is asking: self.guest = (id, profile) for a signed-in device; anyone else is a stranger (relay 42: there
+        is no Home any more; the home network only opens the admin pages, ADMIN_PATHS)."""
         pid, p = profile_for(self.cookie_token())
-        self.homelinked = pid == "home"                  # a device linked to Home: home, from anywhere
-        if self.homelinked:
-            pid = p = None
-        self.guest = (pid, p) if pid else None            # a guest's phone stays the guest, even on the home Wi-Fi
-        self.stranger = not self.guest and not self.homelinked and not self.at_home()
-        self.spot = guest_spot(pid) if pid else HOME
+        self.guest = (pid, p) if pid else None
+        self.stranger = not self.guest
+        self.spot = guest_spot(pid) if pid else None
 
     def cookie_token(self):
         jar = http.cookies.SimpleCookie()
@@ -3670,7 +3838,7 @@ class Handler(BaseHTTPRequestHandler):
         return {k: v[0] for k, v in urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).items()}
 
     def refuse(self, path):
-        """Not at home and no profile: a friendly page for people, a short answer for scripts."""
+        """No profile: a friendly page with the QR sign-in for people, a short answer for scripts."""
         if not allow("stranger:" + self.client_ip(), 1, 20):
             return self.reply(429, "text/plain", b"Too many requests")
         if PAGE.match(path):
@@ -3756,7 +3924,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.signed_in(pid, "a password")
             return self.jerr(404, "Not found")
         if not self.guest:
-            return self.jerr(403, "Accounts are for invited guests")
+            return self.jerr(403, "Sign in first")
         pid, p = self.guest
         if not allow("acct:" + pid, 0.5, 10):
             return self.jerr(429, "Too many requests")
@@ -3769,7 +3937,11 @@ class Handler(BaseHTTPRequestHandler):
             if other and other != pid:
                 return self.jerr(409, "That username is taken")
             with _data_lock:
+                new = not (p.get("account") or {}).get("user")
                 p.setdefault("account", {})["user"] = user
+                if new:                         # relay 42: from now on they sign in; an unused invite link is void
+                    P = profiles()
+                    P["invites"] = {h: i for h, i in P["invites"].items() if i["profile"] != pid}
                 _dirty.add("profiles")
             event("info", f"{p['name']} has the account {user}")
         elif path == "/account/password":
@@ -3812,11 +3984,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def pair_who(self):
         """Who a phone would sign a screen in as: (profile id, name), or None for a phone that isn't signed in."""
-        if self.guest:
-            return self.guest[0], self.guest[1]["name"]
-        if self.homelinked or self.at_home():
-            return "home", "Home"
-        return None
+        return (self.guest[0], self.guest[1]["name"]) if self.guest else None
 
     def pair_page(self, path):
         if not allow("pair:" + self.client_ip(), 0.5, 20):
@@ -3928,6 +4096,48 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
 
+    def media(self, name):
+        """Relay 42: a sound the boards play that can't be in the public repository (data/media/, MEDIA only), for
+        signed-in devices, with byte ranges so a browser can stream it. 404 while the file isn't there."""
+        ctype = MEDIA.get(name)
+        f = MEDIA_DIR / name if ctype else None
+        if not f or not f.is_file():
+            return self.reply(404, "text/plain", b"Not found")
+        size = f.stat().st_size
+        a, b, part = 0, size - 1, False
+        m = re.fullmatch(r"bytes=(\d*)-(\d*)", (self.headers.get("Range") or "").strip())
+        if m and (m.group(1) or m.group(2)):
+            if m.group(1):
+                a, b = int(m.group(1)), min(size - 1, int(m.group(2))) if m.group(2) else size - 1
+            else:
+                a = max(0, size - int(m.group(2)))
+            if a > b or a >= size:
+                return self.reply(416, "text/plain", b"", {"Content-Range": f"bytes */{size}"})
+            part = True
+        self.send_response(206 if part else 200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(b - a + 1))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Cache-Control", "private, max-age=86400")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if part:
+            self.send_header("Content-Range", f"bytes {a}-{b}/{size}")
+        self.end_headers()
+        if self.command == "HEAD":
+            return
+        try:
+            with open(f, "rb") as fh:
+                fh.seek(a)
+                left = b - a + 1
+                while left > 0:
+                    chunk = fh.read(min(65536, left))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    left -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass                                # the board stopped listening (the card was closed)
+
     def note_screen(self, path, hello=None, bye=False):
         if hello is not None and self.guest:
             hello = {**hello, "name": self.guest[1]["name"]}     # a guest's screen is listed under their name
@@ -3954,27 +4164,29 @@ class Handler(BaseHTTPRequestHandler):
             return self.pair_page(path)
         if path == "/health" or BOARD_FILE.match(path):
             pass                                  # the app's icons and manifest (fetched without cookies) and the check
+        elif path in ADMIN_PATHS and self.at_home():
+            pass                                  # the admin pages: the home network, signed in or not
         elif self.stranger:
             return self.refuse(path)
-        elif self.guest and not allow("guest:" + self.guest[0], 4, 60):
+        elif not allow("guest:" + self.guest[0], 8, 120):
             return self.reply(429, "text/plain", b"Too many requests")
-        if path == "/admin" and not self.at_home():
+        if path in ADMIN_PATHS and not self.at_home():
             return self.reply(403, "text/plain", b"Only at home")
         if path == "/push/key":
             v = vapid()
             return self.reply(200, "application/json", json.dumps({"key": v[1] if v else None}).encode())
-        if path in ("/screens", "/status", "/admin") and self.guest:
-            return self.reply(403, "text/plain", b"Only at home")
+        if path.startswith("/media/"):
+            return self.media(path[len("/media/"):])
         if path == "/admin":
             with _lock:
                 hit = _made.get((self.query().get("made") or [""])[0])
             made = hit[1] if hit and hit[0] > time.time() else None
             return self.reply(200, "text/html; charset=utf-8", admin_html(self.headers.get("Host") or "", made))
         if path == "/lists":
-            fav, hide = lists_of(self.guest[0] if self.guest else None)
+            fav, hide = lists_of(self.guest[0])
             return self.reply(200, "application/json", json.dumps({"fav": fav, "hide": hide}).encode())
         if path == "/places":
-            return self.reply(200, "application/json", json.dumps({"places": places_of(self.guest[0] if self.guest else None)}).encode())
+            return self.reply(200, "application/json", json.dumps({"places": places_of(self.guest[0])}).encode())
         if path in ("/geo/search", "/geo/reverse"):
             q = self.query()
             if path == "/geo/search":
@@ -3991,12 +4203,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = geo_reverse(lat, lon, (q.get("lang") or ["en"])[0][:2])
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/account":
-            if not self.guest:
-                return self.reply(200, "application/json", b'{"home":true}')
             return self.reply(200, "application/json", json.dumps(account_json(self.guest[0], self.secure())).encode())
         if path == "/me":
-            if not self.guest:
-                return self.reply(200, "application/json", b'{"home":true}')
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
         if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists", "/places"):
@@ -4031,7 +4239,7 @@ class Handler(BaseHTTPRequestHandler):
                 over = min(20.0, max(0.1, float((q.get("over") or ["3"])[0])))
             except ValueError:
                 over = 3.0
-            api = (q.get("api") or [""])[0] == "1" and (not self.guest or bool(self.guest[1].get("fr24")))
+            api = (q.get("api") or [""])[0] == "1" and bool(self.guest[1].get("fr24"))
             data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]))
             if api:
                 data["fr24"] = fr24_on()
@@ -4043,18 +4251,17 @@ class Handler(BaseHTTPRequestHandler):
             # Relay 41: what is already in the cache costs nothing, so it is handed out even past a guest's daily share
             # or the budget; "off" (the board stops asking for a while) only without a key or for guests without it.
             info = fr24_info(cs, hx) if fr24_key() else None
-            if not fr24_key() or (self.guest and not self.guest[1].get("fr24")):
+            pid, p = self.guest
+            if not fr24_key() or not p.get("fr24"):
                 body = {"status": "off"}
             elif info:
                 body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
             elif not fr24_on():
                 body = {"status": "off"}
-            elif fr24_paced(0) or (self.guest and not guest_fr24(self.guest[1])):
+            elif fr24_paced(0) or not guest_fr24(p):    # relay 42: past the profile's daily limit (credits), "none"
                 body = {"status": "none"}
             else:
-                if fr24_want(cs, hx, 0, f"{self.guest[1]['name'] if self.guest else 'Home'} · {device_of(self.headers.get('User-Agent') or '')}") and self.guest:
-                    with _data_lock:
-                        self.guest[1]["fr24Count"] = self.guest[1].get("fr24Count", 0) + 1
+                fr24_want(cs, hx, 0, f"{p['name']} · {device_of(self.headers.get('User-Agent') or '')}", pid)
                 body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/times":
@@ -4128,7 +4335,7 @@ class Handler(BaseHTTPRequestHandler):
             lat, lon, nm = m.groups()[-3:]
             if abs(float(lat)) > 90 or abs(float(lon)) > 180 or not 1 <= int(nm) <= 50:
                 return self.reply(400, "text/plain", b"Out of range")
-            if self.guest and not allow("pos:" + self.guest[0], 0.6, 12):   # a few phones polling every 10 s fit easily
+            if not allow("pos:" + self.guest[0], 2, 30):       # relay 42: one profile can be a whole house of screens
                 return self.reply(429, "text/plain", b"Too many requests")
             lat, lon = f"{float(lat):.2f}", f"{float(lon):.2f}"      # within a kilometre is the same question (relay 33)
             status, body, source, freshness = aircraft(lat, lon, nm)
@@ -4155,90 +4362,132 @@ class Handler(BaseHTTPRequestHandler):
             return self.account_post(path)
         if path == "/pair" or path.startswith("/pair/"):
             return self.pair_post(path)
+        if path.startswith("/admin/"):
+            if not self.at_home() or not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from the admin page at home")
+            return self.admin_post(path)
         if self.stranger:
             return self.refuse(path)
-        if self.guest and not allow("guest:" + self.guest[0], 4, 60):
+        if not allow("guest:" + self.guest[0], 8, 120):
             return self.reply(429, "text/plain", b"Too many requests")
-        if path.startswith("/admin/"):
-            if self.guest or not self.at_home() or not self.same_origin():
-                return self.reply(403, "text/plain", b"Only from the admin page at home")
-            f, made = self.form(), None
-            if path == "/admin/invite" and (f.get("name") or "").strip():
-                name = re.sub(r"[\x00-\x1f<>]", "", f["name"]).strip()[:40]
-                made = (name, new_invite(name=name))
-            elif path == "/admin/link" and f.get("pid") in profiles()["profiles"]:
-                code = new_invite(pid=f["pid"])
-                if code:
-                    made = (profiles()["profiles"][f["pid"]]["name"], code)
-            elif path == "/admin/fr24plan":
-                try:
-                    ARGS.fr24_reset_day = min(28, max(1, int(f.get("day") or 1)))
-                    ARGS.fr24_budget = min(1000000, max(0, int(f.get("budget") or FR24_BUDGET)))
-                    promo, until = (f.get("promo") or "").strip(), (f.get("until") or "").strip()
-                    if promo and until:
-                        ARGS.fr24_budget_promo = min(1000000, max(0, int(promo)))
-                        ARGS.fr24_promo_until = datetime.date.fromisoformat(until).isoformat()
-                    else:
-                        ARGS.fr24_budget_promo = ARGS.fr24_promo_until = None
-                    save_config()
-                    p = _fr24_promo()
-                    event("info", f"Flightradar24: the plan renews on day {ARGS.fr24_reset_day}, at most {_fr24_budget():,} credits a month"
-                                  + (f" until {p[1].isoformat()}, then {_fr24_base_budget():,}" if p else ""))
-                except (ValueError, OSError) as e:
-                    event("warn", f"Couldn't save the Flightradar24 plan: {e}")
-            elif path == "/admin/homelink":
-                made = ("Home", new_invite(pid="home"))
-            elif path == "/admin/homeclear":
-                with _data_lock:
-                    profiles().pop("home", None)
-                    _dirty.add("profiles")
-            elif path == "/admin/resetaccount" and f.get("pid") in profiles()["profiles"]:
-                with _data_lock:
-                    a = profiles()["profiles"][f["pid"]].get("account") or {}
-                    a.pop("pw", None)
-                    a["passkeys"] = []
-                    _dirty.add("profiles")
-            elif path == "/admin/remove" and f.get("pid"):
-                remove_profile(f["pid"])
-            elif path == "/admin/fr24" and f.get("pid") in profiles()["profiles"]:
-                with _data_lock:
-                    profiles()["profiles"][f["pid"]]["fr24"] = f.get("on") == "1"
-                    _dirty.add("profiles")
-            # Post/Redirect/Get: a refresh reloads the page instead of sending the form again (which made a new invite
-            # each time). A new link is kept a few minutes under a one-off key so the page after the redirect can show it.
-            loc = "/admin"
-            if made:
-                key = secrets.token_urlsafe(9)
-                with _lock:
-                    now = time.time()
-                    for k in [k for k, v in _made.items() if v[0] < now]:
-                        del _made[k]
-                    _made[key] = (now + 600, made)
-                loc += "?made=" + key
-            self.send_response(303)
-            self.send_header("Location", loc)
-            self.send_header("Content-Length", "0")
-            self.end_headers()
-            return
         if path == "/places":               # the profile's saved places (relay 33)
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
             j = self.json_body()
             with _data_lock:
-                P = profiles()
-                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
+                owner = self.guest[1]
                 owner["places"] = _clean_places(j.get("places"))
                 _dirty.add("profiles")
                 out = list(owner["places"])
             return self.reply(200, "application/json", json.dumps({"places": out}).encode())
+        return self.profile_post(path)
+
+    def admin_post(self, path):
+        """The admin page's forms (home network only, same origin)."""
+        f, made = self.form(), None
+        if path == "/admin/invite" and (f.get("name") or "").strip():
+            name = re.sub(r"[\x00-\x1f<>]", "", f["name"]).strip()[:40]
+            made = (name, new_invite(name=name))
+        elif path == "/admin/link" and f.get("pid") in profiles()["profiles"]:
+            code = new_invite(pid=f["pid"])
+            if code:
+                made = (profiles()["profiles"][f["pid"]]["name"], code)
+        elif path == "/admin/fr24plan":
+            try:
+                ARGS.fr24_reset_day = min(28, max(1, int(f.get("day") or 1)))
+                ARGS.fr24_budget = min(1000000, max(0, int(f.get("budget") or FR24_BUDGET)))
+                promo, until = (f.get("promo") or "").strip(), (f.get("until") or "").strip()
+                if promo and until:
+                    ARGS.fr24_budget_promo = min(1000000, max(0, int(promo)))
+                    ARGS.fr24_promo_until = datetime.date.fromisoformat(until).isoformat()
+                else:
+                    ARGS.fr24_budget_promo = ARGS.fr24_promo_until = None
+                save_config()
+                p = _fr24_promo()
+                event("info", f"Flightradar24: the plan renews on day {ARGS.fr24_reset_day}, at most {_fr24_budget():,} credits a month"
+                              + (f" until {p[1].isoformat()}, then {_fr24_base_budget():,}" if p else ""))
+            except (ValueError, OSError) as e:
+                event("warn", f"Couldn't save the Flightradar24 plan: {e}")
+        elif path == "/admin/limit" and f.get("pid") in profiles()["profiles"]:
+            with _data_lock:              # relay 42: the profile's Flightradar24 credits a day; empty is automatic
+                p = profiles()["profiles"][f["pid"]]
+                v = (f.get("limit") or "").strip()
+                if v.isdigit():
+                    p["fr24Limit"] = min(100000, int(v))
+                else:
+                    p.pop("fr24Limit", None)
+                _dirty.add("profiles")
+            event("info", f"Flightradar24 for {p['name']}: at most {fr24_limit(p):,} credits a day" + ("" if v.isdigit() else " (automatic)"))
+        elif path == "/admin/username" and f.get("pid") in profiles()["profiles"]:
+            user = (f.get("user") or "").strip().lower()
+            other = account_of(user)
+            if ACCOUNT_RE.match(user) and (not other or other == f["pid"]):
+                with _data_lock:
+                    p = profiles()["profiles"][f["pid"]]
+                    p.setdefault("account", {})["user"] = user
+                    P = profiles()
+                    P["invites"] = {h: i for h, i in P["invites"].items() if i["profile"] != f["pid"]}
+                    _dirty.add("profiles")
+                event("info", f"{p['name']} has the username {user} (admin page)")
+            else:
+                event("warn", f"Username {user[:30] or '(empty)'} not set: " + ("taken" if other else "3 to 30 letters, digits, dots, dashes or underscores"))
+        elif path == "/admin/password" and f.get("pid") in profiles()["profiles"]:
+            pw = f.get("pw") or ""
+            with _data_lock:
+                p = profiles()["profiles"][f["pid"]]
+                ok = len(pw) >= 8 and (p.get("account") or {}).get("user")
+                if ok:
+                    p["account"]["pw"] = _pw_hash(pw)
+                    _dirty.add("profiles")
+            if ok:
+                pw_failed(p["account"]["user"], True)
+            event("info" if ok else "warn", f"{p['name']}'s password " + ("set on the admin page" if ok else "not set: at least 8 characters, and a username first"))
+        elif path == "/admin/device" and f.get("pid") in profiles()["profiles"]:
+            d = (f.get("d") or "")[:16]
+            with _data_lock:
+                p = profiles()["profiles"][f["pid"]]
+                n = len(p["devices"])
+                if len(d) == 16:
+                    p["devices"] = [x for x in p["devices"] if x["token"][:16] != d]
+                _dirty.add("profiles")
+            if len(p["devices"]) < n:
+                event("info", f"Signed out one of {p['name']}'s devices (admin page)")
+        elif path == "/admin/resetaccount" and f.get("pid") in profiles()["profiles"]:
+            with _data_lock:
+                a = profiles()["profiles"][f["pid"]].get("account") or {}
+                a.pop("pw", None)
+                a["passkeys"] = []
+                _dirty.add("profiles")
+        elif path == "/admin/remove" and f.get("pid"):
+            remove_profile(f["pid"])
+        elif path == "/admin/fr24" and f.get("pid") in profiles()["profiles"]:
+            with _data_lock:
+                profiles()["profiles"][f["pid"]]["fr24"] = f.get("on") == "1"
+                _dirty.add("profiles")
+        # Post/Redirect/Get: a refresh reloads the page instead of sending the form again (which made a new invite
+        # each time). A new link is kept a few minutes under a one-off key so the page after the redirect can show it.
+        loc = "/admin"
+        if made:
+            key = secrets.token_urlsafe(9)
+            with _lock:
+                now = time.time()
+                for k in [k for k, v in _made.items() if v[0] < now]:
+                    del _made[k]
+                _made[key] = (now + 600, made)
+            loc += "?made=" + key
+        self.send_response(303)
+        self.send_header("Location", loc)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def profile_post(self, path):
+        """The rest of the POSTs, from a signed-in device."""
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
             j = self.json_body()
             with _data_lock:
-                P = profiles()
-                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
-                L = owner.setdefault("lists", {})
+                L = self.guest[1].setdefault("lists", {})
                 for k in ("fav", "hide"):
                     if k in j:
                         L[k] = _clean_list(j[k])
@@ -4260,9 +4509,7 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, KeyError, TypeError, AttributeError, AssertionError):
                 return self.reply(400, "text/plain", b"subscription missing")
             with _data_lock:
-                P = profiles()
-                owner = self.guest[1] if self.guest else P.setdefault("home", {"name": "Home", "devices": [], "push": []})
-                subs = owner.setdefault("push", [])
+                subs = self.guest[1].setdefault("push", [])
                 subs[:] = [s_ for s_ in subs if s_["endpoint"] != ep]
                 if path == "/push/subscribe":
                     prefs = j.get("prefs") or {}
@@ -4273,8 +4520,6 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(204, "text/plain", b"")
         if path == "/me":               # a guest's settings, so their other devices (and the relay) know their place
             length = int(self.headers.get("Content-Length") or 0)
-            if not self.guest:
-                return self.reply(204, "text/plain", b"")
             if length > 8192:
                 return self.reply(413, "text/plain", b"Too large")
             try:
@@ -4291,8 +4536,7 @@ class Handler(BaseHTTPRequestHandler):
                 _dirty.add("profiles")
             return self.reply(204, "text/plain", b"")
         if path == "/signout":          # "Sign out of this device": forget this device; the profile stays
-            if self.guest:
-                remove_device(self.guest[0], self.cookie_token())
+            remove_device(self.guest[0], self.cookie_token())
             self.send_response(204)
             self.send_header("Set-Cookie", f"{COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax" + ("; Secure" if self.https() else ""))
             self.send_header("Content-Length", "0")
@@ -4378,11 +4622,9 @@ def main():
     threading.Thread(target=_screen_watch, daemon=True).start()
     threading.Thread(target=_push_watch, daemon=True).start()
     with _data_lock:
-        HOME.ensure_day()
-        HOME.book()
         _fr24_data()
-        _backfill_categories(HOME)
         profiles()
+        merge_home()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Fallblatt relay {RELAY_VERSION} running. Open the board at:")

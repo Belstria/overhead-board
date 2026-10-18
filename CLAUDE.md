@@ -111,7 +111,9 @@ Airport style (`S.mode === "airport"`, switched by tapping Overhead/Airport in t
 copied by the app): `pageOrder()` = aplists (take-offs and landings side by side), apland, apdep, under the plane on
 top, which `apFeature` picks (`apFocus`); apland/apdep reuse the This aircraft page (`isAc(page)`). The airport
 statuses (`AP_ICON`) carry a plane pictogram in front of the word, in the flap tile and the app's chips (Dave's choice
-over a header sign, which was tried in 1.12.1).
+over a header sign, which was tried in 1.12.1). Since 1.49 (to-do #33, Dave approved the look) they are Tabler Icons'
+plane-departure/plane-arrival (MIT), filled, over a solid runway (`AP_PATH`, `apSvg`/`apSvgInner` for the app's chips and
+the rail's up/down icons, `drawApIcon` in `tile()` via Path2D); `landed` is the departure plane turned level (`AP_LEVEL`).
 Dave chose this pages layout on 12 Oct 2026; the screens layout (full-screen lists) was removed.
 The game (1.21, relay 24): the relay scores each sighting when it is recorded (`tier_of`, `score`: `e.tier`,
 `book.points/days/tiers/rareDays`; `game_json` in `/logbook` with the `SETS`); the board's `tierOf()` gives the plane on
@@ -124,7 +126,8 @@ saved days when loaded (`_rescore`).
 Spotter facts (1.27, relay 28): `seenText()` (relay `/seen?reg=`, from the logbook's `regs`: count, first, last and `prev`,
 the sighting before the last) and `toGoText()` fill the top half's `seen` and `toGo` flaps (row 3; in `TOP_IDS`) and
 the app's This aircraft facts; `skyCheck()` reads `/sky?code=` (the home airport's METAR: the lowest BKN/OVC/VV layer
-plus the airport's elevation, from the airport list's v3) every ten minutes and `featRemark` shows ABOVE CLOUD;
+plus the airport's elevation, from the airport list's v3) every ten minutes and `remarkLines` shows ABOVE CLOUD (1.49,
+to-do #32: no longer a status; only when `windowWorthy()`: special, watchlist, military or favourite);
 `liveryLine()` (Flightradar24) puts Flightradar24's `painted_as` on the Operator line; the relay keeps lifetime
 `records` in the logbook (`note_records`, backfilled once by `_backfill_records`, `recordsV`) for the `records` view
 ("Records & trophies", from the Logbook and Collection buttons) and the app's Logbook; the admin page shows
@@ -200,17 +203,23 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   change is on `main`, `curl -fsSL .../relay/install.sh | sh` on the container does the same from GitHub.) Bump
   `RELAY_VERSION` with every relay change and gate board features that need the new version on
   `OVERHEAD_RELAY_VERSION`.
-- Friends and family (relay 19, app 1.15): every visitor is home (a direct connection from a private address, no
-  `Cf-Connecting-IP`), a guest (a device cookie from a personal invite link: GET `/join/<code>` shows a page, its button POSTs to take it
-  (relay 27: chat apps' link previews used links up; `PREVIEW_BOT`); profiles, invite and
-  cookie hashes in `data/profiles.json`) or a stranger (only the "private" page, `/health`, the app's icons and
-  manifest). Each profile has a `Spot` (sightings and logbook; home in `data/`, guests in `data/profiles/<id>/`), and
-  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Guests get
-  `OVERHEAD_GUEST` (id, name, settings) instead of the home location, their settings back via `/me`
+- Friends and family (relay 19, app 1.15; no Home since relay 42): every visitor is a profile's device (a cookie from a
+  personal invite link: GET `/join/<code>` shows a page, its button POSTs to take it
+  (relay 27: chat apps' link previews used links up; `PREVIEW_BOT`); from an account's sign-in; or from a QR pairing;
+  profiles, invite and cookie hashes in `data/profiles.json`) or a stranger (only the "private" page with the QR
+  sign-in, `/health`, the app's icons and manifest). `at_home()` now only opens `ADMIN_PATHS` (`/admin`, `/screens`,
+  `/status`, and the `/admin/*` POSTs), for anyone on the home network, signed in or not. Each profile has a `Spot`
+  (sightings and logbook in `data/profiles/<id>/`), and
+  a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Profiles get
+  `OVERHEAD_GUEST` (id, name, settings) and, until they are `located`, the relay's own location in `OVERHEAD_DEFAULTS`
+  (the welcome starts from it, relay 42), their settings back via `/me`
   (merged, so the app and the board don't wipe each other's), the boards too (1.16; the welcome's "Phone app / Full
   board" choice; a board sends a guest without `located` to the app's welcome), per-guest storage keys
-  (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), no `/screens`, `/status` or `/admin`, rate limits (`allow`), and Flightradar24 only if turned on for them
-  (`GUEST_FR24_DAY`). `/admin` (home only, same-origin POSTs) makes invite links; `--public-url` gives them the public
+  (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), rate limits (`allow`; per profile `guest:` 8/s,
+  `pos:` 2/s, as one profile may be a house of screens), and Flightradar24 only if turned on for them (relay 42:
+  `fr24_limit(p)` credits a day, `FR24_DAY_GUEST` 500 / `FR24_DAY_ACCOUNT` 2,000 unless `p["fr24Limit"]`; counted per
+  profile in `p["fr24Use"]` by `fr24_use()` from the worker, as `fr24_want(..., pid)` queues the profile with the
+  lookup). `/admin` (home network only, same-origin POSTs, `admin_post`) makes invite links; `--public-url` gives them the public
   address. The app's welcome (`welcome()`, `located()`, `S.located`) asks a new guest for their place. The app opens with `#splash` (head.html; `splashGo()` once the board is ready).
 - Accounts (relay 30, app 1.29): `p["account"]` = `user` (unique, lower case), `pw` (scrypt, `_pw_hash`/`_pw_ok`) and
   `passkeys` (WebAuthn: id, public key as SPKI, alg ES256/RS256, sign count; registered by `passkey_register`, checked
@@ -242,11 +251,10 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `keys/index.html` is the remote key test.
 - Places (relay 33, app 1.37, simplified in 1.38 on Dave's word; shared "places" block before the airport mode, copied
   by the app): `places` per profile (`/places` GET/POST, `_clean_places`: `{k: label, n, lat, lon, home, r}`, any label
-  but "live"; home's in `profiles["home"]`), `placesLoad`/`placesSave`. All labels are alike (no special or automatic
+  but "live"), `placesLoad`/`placesSave`. All labels are alike (no special or automatic
   Home: `ensureHome`/`homePlace`/`placeSync` are gone). Since 1.40 a label is saved from Settings → Location → Place name (see 1.40 below); the card (`placesCard()`) only lists the saved ones (tap: `usePlace()`, applySettings + `placeAfter()`, which resets Spotted today; Update: overwrite with the current S; ×: delete); the live switch and the address search are in Settings. `S.placeKey` is the label being watched (`placeKeySet()`); a Settings save runs `placeCheck()`, which
-  drops the label when the point no longer matches it. The key sent (`placeKeyNow()`): "live", else "home" (no `pl`)
-  at the relay's own point (`ownSpot()`: home profile within 100 m of the relay's defaults, so a label there keeps
-  today's list) or for a guest without a label, else the label, else "here" (`placeName`: Elsewhere); `placeLabel()`
+  drops the label when the point no longer matches it. The key sent (`placeKeyNow()`): "live", else the label, else
+  "home" (no `pl`: the profile's own place; `ownSpot` and "here" went with Home in 1.49); `placeLabel()`
   is what to show. A screen names its place on each position request (`placeQs()`: `?pl=key&pc=lat,lon&pr=km`;
   `screen_place`), `Spot.take(..., place)` records around that place with `e.place` (absent = home), and a plane already
   logged today from another place in the same pass only extends that pass (no double entries). `/sightings?place=`
@@ -333,9 +341,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   page includes `pair_page_js()`: POST `/pair/new` (stranger, same-origin, rate-limited) gives a six-letter code
   (`PAIR_ALPHA`), a secret and `qr_svg()` of `<public_url>/pair/<code>` (`qr_matrix`: a stdlib QR encoder, byte mode,
   level M, versions 1-10); the page polls `/pair/wait` and reloads once `signed_in()` set the cookie. The phone's GET
-  `/pair/<code>` (`pair_page`; `/pair` to type it) asks `pair_who()` (guest, or Home at home/homelinked; else
-  `signin_html(next)`), POST `/pair/<code>` approves. `_pairs` lives in memory, `PAIR_S` 10 min. `add_device` handles
-  "home". Account plate: `.acOutBtn` Sign out chip in `.acHead`, `.acSec` rows (name + state left, button right). The
+  `/pair/<code>` (`pair_page`; `/pair` to type it) asks `pair_who()` (the phone's profile; else
+  `signin_html(next)`), POST `/pair/<code>` approves. `_pairs` lives in memory, `PAIR_S` 10 min. Account plate: `.acOutBtn` Sign out chip in `.acHead`, `.acSec` rows (name + state left, button right). The
   ding is the whole chime again (both tones).
 - 1.47 (relay 40, to-do #20, #22, #23): the title's styles: the active word in `COL.amber`, the other at .45 alpha,
   `swapSign()` (two arrows) instead of "/" (the app's `#modes` `.sl` is an inline SVG). Logbook chips: `lbChips()`
@@ -350,6 +357,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (`_fr24_promo()`; `_fr24_budget()` returns it while it runs, else `_fr24_base_budget()`). Dave's Explorer plan is
   30,000 a month, doubled to 60,000 for billing months starting up to 31 Dec 2026 (9 Oct, 9 Nov, 9 Dec); nothing rolls
   over. His choice: 54,000 until 2027-01-08, then 27,000.
+- 1.49 (relay 42, Dave's list of 18 Oct 2026, to-do #25, #29-#34): no Home (above; `merge_home()` runs once at start
+  under `_data_lock`: `HOME_OWNER` "David" must be exactly one profile's name, else it logs and changes nothing;
+  `_merge_day` joins a day's lists (same hex within `SAME_PASS_S` is one pass), `_rebuild_book` counts the logbook
+  again from the joined days and leaves the scores, records, trophies and flights to `Spot.book`'s backfills; places,
+  lists, push, devices and the relay's location move to the profile; the old files go to `data/home-before-merge/`;
+  `profiles.json` `homeMerged` marks it done). The admin page (`admin_html`, `_pform`, `ADMIN_CSS`): a card per profile,
+  Guest (invite link) or Account (no link; `/account/user` and `/admin/username` void its unused invites), devices with
+  `/admin/device` (first 16 hex of the token hash), `/admin/limit`, `/admin/password`, `/admin/username`. Tips
+  (`MODE_TIP`, `PAGE_TIPS` in the tips block; `boardTips(null)` walks styles, pages (`b-p-<page>`) and views; the app's
+  `appTips("now")` walks `mode`, `pg-`/`ap-` pages and every tab, also after `setMode`); the board's tips scale with
+  `--tipK`. The barking dog: `aboutTap()` (sound block; 7 taps within 4 s; board: Settings' About button and the About
+  plate's `#abAbout`; app: `#aboutBtn` and the About page's title) plays `SND.dog` (`build_sounds.py` `barks()`:
+  high-pass, `audio.gate`, `audio.fade_out`, 11 kHz). Card music: `cardMusicStart(name)`/`cardMusicStop()` (cards
+  block; Web Audio gain on a media element, `MUSIC_S` 30, `MUSIC_FADE_S` 4; a card keeps it while its HTML has
+  `data-music`; `cardClose` stops it); relay `/media/<name>` (`MEDIA` allowlist, `MEDIA_DIR` = `data/media/`, Range,
+  signed-in only, 404 when absent). The Emirates file never goes into the repository.
 - 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
   960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
@@ -361,9 +384,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   stays silent and posts `{type: "bell", kind}` (the alert's `kind` from the relay) so the page plays `chime()`;
   `app/airport-bell.wav` (from `tools/sounds/make_bell.py`, same notes as `BELL_NOTES`/`airportBell()`; served as a
   board file, `wav` in `BOARD_FILE`) can be set as the Android notification sound. `S.bell` airport|classic picks the
-  special chime; toggling it in Settings plays it (`chime(kind, {force, set})`). "Link a device to Home" (`/admin/homelink`) makes an
-  invite for the pseudo-profile `home`: such a device is home from anywhere (`self.homelinked`), but `/admin` needs the
-  home network itself (`at_home()`).
+  special chime; toggling it in Settings plays it (`chime(kind, {force, set})`). (The "Link a device to Home"
+  pseudo-profile went with Home in relay 42.)
 - Useful: `http://<relay>:8080/status` (JSON), `/screens` (screens using it); on the container
   `journalctl -u overhead-relay -f` is the relay's window (Enter-for-screens only works when run in a terminal).
 - Position sources (`SOURCES`, tried in order): adsb.lol, adsb.fi (v3 since relay 36; 1 request a second, so
@@ -375,9 +397,9 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   OpenSky is ruled out (needs a written licence).
 - Flightradar24 (Explorer plan, Dave may stop after the first month): at most 10 lookups a minute, 27,000 credits a
   month, spread as a daily share (`fr24_paced`). Boards fall back to the free sources when the key is off or refused.
-  Relay 41 / 1.48: `/flightinfo` hands out cached answers to anyone allowed Flightradar24 even past a guest's
-  `GUEST_FR24_DAY` or the budget (then "none", not "off"); the guest count goes up only when `fr24_want` queues a new
-  flight (it returns True), not on the board's retries. "off" pauses a board's lookups for `API_PAUSE_MS` (10 min,
+  Relay 41 / 1.48: `/flightinfo` hands out cached answers to anyone allowed Flightradar24 even past a profile's
+  daily limit or the budget (then "none", not "off"); since relay 42 the limit is in credits, counted when the lookup
+  is made (not on the board's retries). "off" pauses a board's lookups for `API_PAUSE_MS` (10 min,
   `apiOff`), not until a reload; `/sightings` keeps asking `api=1` (`apiWanted`). `recentInfo` (from `infoChanged`,
   `info.hex`) fills a Recent flights row when an answer comes after the plane left the top half, and `withShared` takes
   Flightradar24's flight and route from the shared list for rows that didn't get them.
@@ -399,9 +421,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 1. `py tools/test/run_test_relay.py` (add `--fr24` for the Flightradar24 features, `--quiet` without special planes,
    `--hover` for a hovering helicopter). It runs a copy of the relay in a temporary folder against made-up flights
    and serves this checkout at `http://localhost:8096/` (`/test/`, `/app/`). Dave's real relay and
-   data are untouched.
+   data are untouched. Since relay 42 it starts with two profiles: "Test" (cookie `overhead=test-device`, sent by
+   shoot.py and smoke.py; a browser gets it from `/test-signin`) and "New guest" (`new-device`, `?as=new`, for the
+   welcome), and copies `sounds-src/emirates-boarding.m4a` (git-ignored) into its `data/media/` when it is there.
+   The made-up flights play out in the first minutes after it starts (restart it for the Airport style).
 2. Look at it: in a browser, or `py tools/test/shoot.py URL OUT steps...` for screenshots (set `PHONE=390x844` for
-   the app). Check the page errors it prints and look at the screenshots, not just the exit code.
+   the app, `SIZE=960x540 DPR=2` for the Fire TV, `COOKIE=` for another profile or none). Check the page errors it prints and look at the screenshots, not just the exit code.
 3. Syntax check of the inline script: extract the `<script>` and run `node --check` on it if Node is installed.
 4. For anything about the TVs, the real screens are the test: open `http://<pc>:8080/test/` on them.
 

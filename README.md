@@ -114,9 +114,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
   often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
   been away for two months or more. The phone app shows both under This aircraft.
-- **ABOVE CLOUD** (1.27, relay 28): the relay reads the home airport's weather report (METAR) every ten minutes; a
-  plane passing over or coming in above the cloud base (the lowest broken or overcast layer) says ABOVE CLOUD in turn
-  with its status, since you'll hear it rather than see it.
+- **ABOVE CLOUD** (1.27, relay 28; a remark since 1.49): the relay reads the home airport's weather report (METAR) every
+  ten minutes; a plane above the cloud base (the lowest broken or overcast layer) that is worth going to the window for
+  (a special plane, one on the watchlist, a military plane or a favourite) says ABOVE CLOUD in the Remarks, since
+  you'll hear it rather than see it. It is no longer a status.
 - **Painted as** (test API board, 1.27): when Flightradar24 says a plane flies in another airline's colours (a wet
   lease, or a group airline in the parent's livery), This aircraft's Operator line says so, e.g. "LAUDA · PAINTED AS RYANAIR".
   Overflights without a known route show what is known, often nothing.
@@ -261,18 +262,29 @@ The main board has everything below. New features are tried on `/test/` first; o
   airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
   and gently fades the rest; tap anywhere to close it. Each shows once per device; Settings → Device (the board: the
   Control plate) → **Show the tips again** brings them back. On the full board they close by themselves after 11 seconds.
+  Since 1.49 the first visit walks through everything on the main page at once: the two styles (Overhead and Airport,
+  and what each shows), each page button and each view (the board) or tab (the app); the first switch to Airport walks
+  through its pages. On the board the tips scale with the screen.
+- **Take-off and landing pictograms** (1.49): TAKE-OFF and CLIMBING show a filled plane climbing away from a runway line,
+  APPROACH and FINAL one coming down to it, LANDED the plane level on the runway (after [Tabler Icons](https://tabler.io/icons)'
+  plane-departure and plane-arrival, MIT licence, © Paweł Kuna), on the flaps, in the app's chips and on the page buttons.
+- **Tap About seven times** (1.49) within a few seconds (the board: the About button, then the About heading; the app:
+  About, then the page's title) and the Airbus "barking dog" plays: the hydraulic power transfer unit's bark.
+- **Emirates boarding music** (1.49, relay 42): opening the Emirates airline card plays the first 30 seconds of the
+  boarding music, fading in and, over the last four seconds, out; closing the card fades it out at once. The recording
+  is copyrighted, so it isn't in the repository: the relay serves it to signed-in screens from
+  `data/media/emirates-boarding.m4a` (`/media/<name>`, only names it knows). Without that file the card stays silent.
 - **Logbook by place** (1.42, relay 37; the app and the light version): when planes were seen from more than one place,
   chips above the Logbook pick **All** or one place (with its count); a place shows its own numbers, top types, airlines
   and aircraft and its records (the collection, bingo, trophies and the year card count every place, so they show
   under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
-  counts under All, and a saved place at the board's own home point shares one chip with Home.
+  counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
 - **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
-  red **Sign out** next to the name, and Passkeys and Password each a row with its button beside it). A device at home
-  shows "Home". **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
+  red **Sign out** next to the name, and Passkeys and Password each a row with its button beside it). **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
   scrolls, and closing it leaves Settings as it was.
 - **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
   - **Place name** is the name of the place being watched (Home, Parents, Vacation …). Type a new one and a **Save**
@@ -517,10 +529,26 @@ tap), then turn to their name letter by letter, with sound, within about two sec
 fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
 settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
-(the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
-its sightings, and turns Flightradar24 on for someone (at most 150 new flights looked up a day each, off by default; past that their boards still show what has already been
-looked up).
-Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
+(the profile stays). Testing links yourself? Use a private/incognito window, so your own browser keeps its profile.
+
+**Every screen is a profile's (relay 42, 1.49).** There is no "Home" any more: a screen at home without a profile
+gets the private page with its QR code too (sign it in with your phone, below). The home network only opens the admin
+pages (`/admin`, `/screens`, `/status`), signed in or not. On its first start relay 42 merges the old Home into the
+profile named David, once: its days of sightings are joined with his (a plane both recorded in the same pass counts
+once), the logbook is counted again from the joined days (scores, records, trophies, flights), and Home's saved places,
+favourites and hidden planes, notification subscriptions and linked devices move to his profile, with the relay's own
+location filling in what his settings lack. The old files stay in `data/home-before-merge/`. If there isn't exactly one
+profile of that name, nothing changes and the relay's log says so. A new profile's welcome starts from the relay's
+own location.
+
+**The admin page (relay 42).** Each profile is a **Guest** (no account yet: **New invite link** brings in another
+device) or an **Account** (its username; there is no invite link any more, its devices sign in with the account, and
+creating the account voids any unused link). For each: the devices with how they joined and when they were last seen
+(each with **Sign out**), Flightradar24 on or off, the credits it used today and this month and its daily limit (an
+empty field is automatic; type a number to set it), and under **Account**: create or change the username, set a new
+password, and **Reset sign-in** (removes passkeys and password). **Remove** deletes a profile with its sightings.
+Flightradar24 per profile and day: 500 credits for a guest, 2,000 with an account (a fallback against a bug or a lost
+device, not a limit anyone should reach); past it their boards still show what has already been looked up.
 The relay needs a public https address for this, through a Cloudflare tunnel, and to know it:
 `--public-url https://overhead.example.com` (saved with `--save`) makes the admin page hand out full links.
 
@@ -547,7 +575,7 @@ rate-limited. Passkeys need the https address.
 signed in shows the "private" page with a **QR code** and a six-letter code. Scan it with a phone that is signed in
 (or type the code at `<public address>/pair`), confirm "Sign in the screen as …", and the TV opens the board by
 itself within a few seconds, as a device of that profile. A phone that isn't signed in is asked to sign in first; a
-phone at home signs the screen in as Home. Codes last ten minutes (the screen shows a new one by itself) and are
+phone has to be signed in itself (since relay 42 there is no Home to sign in as). Codes last ten minutes (the screen shows a new one by itself) and are
 rate-limited; only confirm a code on a screen in front of you. The admin page shows who has an account and **Reset sign-in** removes
 someone's passkeys and password (they set new ones from a device that is still signed in, or come back through a
 new invite link).
@@ -557,8 +585,7 @@ new invite link).
 first-ever type, a favourite or a very low plane will pass within about 5 km in the next three minutes; the relay
 watches for these even when no screen is open. Turn them on in the app under About → Notifications (Chrome on Android
 and computers; on an iPhone after adding Fallblatt to the home screen). The relay needs the `cryptography` package for
-this (`install.sh` installs `python3-cryptography`). To get them for your own home and logbook, use **Link a device to
-Home** on the admin page: that phone then opens the public address as home, from anywhere.
+this (`install.sh` installs `python3-cryptography`). They follow the profile the phone is signed in as.
 Since relay 31 each alert says why (a special plane, on the watchlist: police, a military plane, one of your
 favourites, a type never seen here, passing very low), and About → Notifications chooses which kinds you get (special
 planes, the watchlist, military and favourites are on; new types and very low passes off). At most one every 15
@@ -593,7 +620,9 @@ copy of this repository, `--source URL` to read positions from your own receiver
 ## Working on the board
 
 `CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
-`py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/`;
+`py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
+test profile: open `http://localhost:8096/test-signin` once in a browser; the made-up flights play out in the first few
+minutes after it starts);
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
