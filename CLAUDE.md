@@ -329,6 +329,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   synthesised until decoded; switching it on in Settings plays it. `onMainPage()` (board: no `view`; app: `tab` "now")
   keeps `seatbeltDing()` quiet elsewhere (the chimes play anywhere, Dave's choice). Achievements play `fanfare()`
   (synthesised arpeggio, chord and sparkle), not the bell.
+- 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
+  960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
   `profiles["home"]`), from the app's About → Notifications (`renderPush`, `enablePush`, also asked in the welcome; `app/sw.js`, registered as the app opens; https only; its status-bar badge is `app/badge-96.png`, a white plane on transparent from `tools/app/make_badge.py`, as Android uses only the shape). `_push_watch`
