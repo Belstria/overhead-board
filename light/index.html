@@ -234,6 +234,23 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .geoRes{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .geoRes button{all:unset;box-sizing:border-box;cursor:pointer;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.06);font:13px/1.35 system-ui,sans-serif;color:#cfc9bb}
 .geoRes button b{color:#f3f0e8}
+.lblF{position:relative;width:100%}
+.lblF .lcd{width:100%;box-sizing:border-box;padding-right:76px}
+.lblF .lblSave{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;border-radius:6px;padding:6px 12px;background:#f0b429;color:#111;
+  font:700 13px/1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.lblF .lblOk{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#3fd27a;font:700 18px/1 Arial,sans-serif}
+.lblF [hidden]{display:none}
+.upd{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.upd [data-live][aria-pressed="true"]{outline:2px solid #f0b429;outline-offset:2px}
+.apList{display:flex;flex-direction:column;gap:6px;margin-top:6px;min-width:0;width:100%}
+.apList [data-ap]{all:unset;box-sizing:border-box;display:block;width:100%;min-width:0;cursor:pointer;padding:8px 12px;border-radius:8px;border:1px solid #44474d;
+  background:rgba(255,255,255,.04);color:#e9e4d6;font:500 14px/1.3 var(--f-board);text-align:left;white-space:normal;overflow-wrap:anywhere}
+.apList [data-ap] b{color:#f0b429;margin-right:6px}
+.apList [data-ap].on{border-color:#f0b429;background:rgba(240,180,41,.1)}
+.inst.loc{min-width:0}
+.inst.updAll{overflow-y:auto}
+.inst.updAll .upd .cap{padding-left:12px;padding-right:12px}
+.inst.updAll .geoQ{margin-top:8px}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -280,7 +297,8 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 @media (max-width:374px){.title h1{font-size:20px}}
 #clockP{width:112px}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
-.dot::after{content:"";position:absolute;inset:-16px}
+.dot::after{content:"";position:absolute;inset:-16px -4px -16px -16px}   /* a bigger tap area, kept inside the screen (1.40) */
+html,body{overflow-x:clip}
 #cardBox .stOk{font-size:.9em}#cardBox .stOk[data-ok=good]{color:#22a058}#cardBox .stOk[data-ok=meh]{color:var(--amber)}#cardBox .stOk[data-ok=bad]{color:#c7372d}
 .dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
 main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
@@ -352,7 +370,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .flights li.empty{color:var(--muted);padding-left:10px;font-size:14px;border:0;box-shadow:none}
 .fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center}
 .fl time{font:600 14px/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
-.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
 .fl .who strong{font:700 16.5px/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
 .fl .who span{font:500 13.5px/1 var(--f-board);color:var(--muted);margin-left:.45em}
 .fl .rt,.fl .meta{grid-column:2/4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -360,7 +378,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .fl .rt b{font-weight:700;color:var(--amber);margin-right:.25em}
 .fl .rt i{font-style:normal;color:var(--muted);margin:0 .4em}
 .fl .rt .no{color:rgba(255,255,255,.25)}
-.fl .meta{display:flex;justify-content:space-between;gap:10px;font:500 13px/1.2 var(--f-board);color:var(--muted)}
+.fl .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
 .fl .meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
 .flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
@@ -439,16 +457,23 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
-.fl.plus{grid-template-columns:44px minmax(0,1fr) auto 44px}
-.fl .flAdd{grid-column:4;grid-row:1/4;align-self:stretch;width:44px;min-height:44px;margin:-4px 0;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:10px;
-  background:linear-gradient(#26282c,#1a1b1e);color:var(--amber);font:600 26px/1 var(--f-board);cursor:pointer}
-.fl .flAdd:active{background:#34363b}
-/* what opens a card: the airline, the places and the type */
-.fl .tap{cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.45);text-underline-offset:3px;padding:6px 2px;margin:-6px -2px}
-.fl .who .tap{color:#d9d4c6;margin-left:calc(.45em - 2px)}
+.tabHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tabX{width:40px;height:40px;flex:none;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:none;color:var(--ink);font:400 24px/1 Arial,sans-serif;cursor:pointer}
+.tabX:active{background:rgba(255,255,255,.1)}
+/* 1.40: the time and, under it, a small grey ring with the + (the favourite/hide sheet), centred in the row */
+.fl{row-gap:5px}
+.fl .tc{grid-column:1;grid-row:1/4;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
+.fl .flAdd{position:relative;width:28px;height:28px;margin:0;padding:0;border:1.5px solid #4a4c52;border-radius:50%;background:none;color:#a39d8f;
+  font:600 19px/1 Arial,sans-serif;display:grid;place-items:center;cursor:pointer}
+.fl .flAdd::before{content:"";position:absolute;inset:-9px}
+.fl .flAdd:active{background:rgba(255,255,255,.1)}
+/* what opens a card: the airline, the places and the type, each in a thin grey outline */
+.fl .tap{display:inline-block;cursor:pointer;border:1px solid #44474d;border-radius:12px;padding:2px 8px;line-height:1.25;text-decoration:none;vertical-align:middle}
+.fl .who .tap{color:#d9d4c6;margin-left:.45em;font-size:13px}
+.fl .rt{line-height:1.6}
 .fl .rt .tap{color:#f3eee0}
-.fl .meta .tap{color:#d9d4c6}
-.fl .tap:active{background:rgba(255,255,255,.1);border-radius:4px}
+.fl .meta .tap{color:#d9d4c6;font-size:12.5px;padding:1px 7px}
+.fl .tap:active{background:rgba(255,255,255,.1)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
@@ -690,6 +715,9 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #hero .lrow[data-r=toCode]{margin-top:8px}
 #hero .lf[data-f=seen] .lv{font-size:15px;white-space:normal}
 #hero .lrow[data-r=seen]{padding-top:12px;border-top:1px solid var(--edge)}
+/* 1.40: the stat rows share three columns, so Reg., Speed and Departure, Altitude, Position and Arrival line up */
+#hero .lrow[data-r=reg],#hero .lrow[data-r=speed],#hero .lrow[data-r=depTime]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;align-items:end}
+#hero .lrow[data-r=reg] .lf,#hero .lrow[data-r=speed] .lf,#hero .lrow[data-r=depTime] .lf{min-width:0}
 .lf[data-f=trend] .lv{min-height:0}
 /* the clock */
 #clockP.lp{width:auto;min-width:64px}
@@ -729,7 +757,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .chip::after{display:none}
 .flights li{border-bottom:1px solid var(--edge);box-shadow:none}
 .ranks li,.yFacts div{border-bottom-color:var(--edge);box-shadow:none}
-.fl .flAdd{background:var(--card2);border-color:var(--edge)}
+.fl .flAdd{background:none;border-color:#4a4c52}
 .look,.yearCard,.rvCard{background:var(--card);border-color:var(--edge)}
 .yearCard{border-color:rgba(240,180,41,.35)}
 /* buttons: flat */
@@ -948,7 +976,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
     </div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
-    <h2 data-t="About">About</h2>
+    <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close">×</button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
@@ -1089,14 +1117,15 @@ const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classi
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
+  const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
+  return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 let meQ = 0;
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
-  const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
+  const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
@@ -1588,6 +1617,24 @@ const I18N_ROWS = [
   ["The address search isn't available right now.", "Die Adresssuche ist gerade nicht verfügbar.", "La recherche d'adresse n'est pas disponible pour le moment.", "La búsqueda de direcciones no está disponible ahora.", "Adres zoeken is nu niet beschikbaar."],
   ["Place set. Looking for the nearest airport …", "Ort gesetzt. Suche den nächsten Flughafen …", "Lieu défini. Recherche de l'aéroport le plus proche …", "Lugar fijado. Buscando el aeropuerto más cercano …", "Plaats ingesteld. Dichtstbijzijnde luchthaven zoeken …"],
   ["Place set; the nearest airport is {name} ({code}). Press Save to watch it.", "Ort gesetzt; der nächste Flughafen ist {name} ({code}). Speichern, um ihn zu beobachten.", "Lieu défini ; l'aéroport le plus proche est {name} ({code}). Enregistrez pour le surveiller.", "Lugar fijado; el aeropuerto más cercano es {name} ({code}). Pulsa Guardar para vigilarlo.", "Plaats ingesteld; de dichtstbijzijnde luchthaven is {name} ({code}). Druk op Bewaren om hem te bekijken."],
+    ["Update location", "Standort aktualisieren", "Mettre à jour la position", "Actualizar ubicación", "Locatie bijwerken"],
+  ["Tap one to watch it.", "Tippe einen an, um ihn zu beobachten.", "Touchez-en un pour le surveiller.", "Toca uno para vigilarlo.", "Tik er een aan om hem te volgen."],
+  ["Home, Parents …", "Zuhause, Eltern …", "Maison, Parents …", "Casa, Padres …", "Thuis, Ouders …"],
+  ["Live location on", "Live-Standort an", "Position en direct activée", "Ubicación en vivo activada", "Live locatie aan"],
+  ["Following this device's location while the app is open.", "Folgt dem Standort dieses Geräts, solange die App offen ist.", "Suit la position de cet appareil tant que l'application est ouverte.", "Sigue la ubicación de este dispositivo mientras la app está abierta.", "Volgt de locatie van dit apparaat zolang de app open is."],
+  ["Fills in the location, its town and nearby airports.", "Füllt Standort, Ort und nahe Flughäfen aus.", "Remplit la position, sa ville et les aéroports proches.", "Rellena la ubicación, su ciudad y los aeropuertos cercanos.", "Vult de locatie, de plaats en luchthavens in de buurt in."],
+  ["Looking up the town and the airports nearby …", "Suche Ort und nahe Flughäfen …", "Recherche de la ville et des aéroports proches …", "Buscando la ciudad y los aeropuertos cercanos …", "Plaats en luchthavens in de buurt zoeken …"],
+  ["Airport: {name} ({code}). Press Save to watch this spot.", "Flughafen: {name} ({code}). Speichern, um diesen Ort zu beobachten.", "Aéroport : {name} ({code}). Enregistrez pour surveiller cet endroit.", "Aeropuerto: {name} ({code}). Pulsa Guardar para vigilar este lugar.", "Luchthaven: {name} ({code}). Druk op Bewaren om deze plek te volgen."],
+  ["Pick the airport for this place, then press Save:", "Wähle den Flughafen für diesen Ort und speichere dann:", "Choisissez l'aéroport de ce lieu, puis enregistrez :", "Elige el aeropuerto para este lugar y pulsa Guardar:", "Kies de luchthaven voor deze plaats en druk dan op Bewaren:"],
+  ["Airport set to {code}. Press Save to keep the new location.", "Flughafen auf {code} gesetzt. Speichern, um den neuen Standort zu behalten.", "Aéroport réglé sur {code}. Enregistrez pour garder la nouvelle position.", "Aeropuerto fijado en {code}. Pulsa Guardar para mantener la nueva ubicación.", "Luchthaven ingesteld op {code}. Druk op Bewaren om de nieuwe locatie te houden."],
+  ["Location set (to within {d}).", "Standort gesetzt (auf {d} genau).", "Position définie (à {d} près).", "Ubicación fijada (con {d} de precisión).", "Locatie ingesteld (tot op {d})."],
+  ["Location set.", "Standort gesetzt.", "Position définie.", "Ubicación fijada.", "Locatie ingesteld."],
+  ["Type an address or a place and pick it: fills in the town, latitude and longitude.", "Adresse oder Ort eingeben und auswählen: füllt Ort, Breite und Länge aus.", "Tapez une adresse ou un lieu et choisissez-le : remplit la ville, la latitude et la longitude.", "Escribe una dirección o un lugar y elígelo: rellena la ciudad, la latitud y la longitud.", "Typ een adres of plaats en kies hem: vult plaats, breedte- en lengtegraad in."],
+  ["No saved places yet. Set the location in Settings, type a name under Place name and press its Save.", "Noch keine gespeicherten Orte. Standort in den Einstellungen setzen, unter Ortsname einen Namen eingeben und dort speichern.", "Aucun lieu enregistré. Réglez la position dans les réglages, tapez un nom sous Nom du lieu et appuyez sur Enregistrer.", "Aún no hay lugares guardados. Fija la ubicación en Ajustes, escribe un nombre en Nombre del lugar y pulsa Guardar.", "Nog geen bewaarde plaatsen. Stel de locatie in bij Instellingen, typ een naam bij Plaatsnaam en druk op Bewaren."],
+  ["A name for this place (Home, Parents, Vacation …). Save adds it to your saved places.", "Ein Name für diesen Ort (Zuhause, Eltern, Urlaub …). Speichern fügt ihn deinen Orten hinzu.", "Un nom pour ce lieu (Maison, Parents, Vacances …). Enregistrer l'ajoute à vos lieux.", "Un nombre para este lugar (Casa, Padres, Vacaciones …). Guardar lo añade a tus lugares.", "Een naam voor deze plaats (Thuis, Ouders, Vakantie …). Bewaren voegt hem toe aan je plaatsen."],
+  ["The town of the place being watched, shown under the title. It fills itself in when the location changes.", "Der Ort, der beobachtet wird, unter dem Titel. Er füllt sich selbst aus, wenn sich der Standort ändert.", "La ville surveillée, affichée sous le titre. Elle se remplit seule quand la position change.", "La ciudad que se vigila, bajo el título. Se rellena sola cuando cambia la ubicación.", "De plaats die gevolgd wordt, onder de titel. Vult zichzelf in als de locatie verandert."],
+  ["Use this device's location once, or follow it while the app is open.", "Den Standort dieses Geräts einmal nehmen oder ihm folgen, solange die App offen ist.", "Utiliser la position de cet appareil une fois, ou la suivre tant que l'application est ouverte.", "Usar la ubicación de este dispositivo una vez, o seguirla mientras la app está abierta.", "De locatie van dit apparaat één keer gebruiken, of volgen zolang de app open is."],
+  ["Your saved places: tap one to watch it.", "Deine gespeicherten Orte: tippe einen an, um ihn zu beobachten.", "Vos lieux enregistrés : touchez-en un pour le surveiller.", "Tus lugares guardados: toca uno para vigilarlo.", "Je bewaarde plaatsen: tik er een aan om hem te volgen."],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -2302,7 +2349,7 @@ function usePlace(p){
   if (!p) return;
   liveHalt();
   applySettings({...S, live: false, placeKey: p.k, lat: p.lat, lon: p.lon, place: p.n || p.k, home: p.home || S.home, radiusKm: p.r || S.radiusKm});
-  placeAfter();
+  placeAfter(); settingsSync();
 }
 /* Live location: the phone's position drives the board while the page is open (https, or the Android app). Small moves
    only move the point; a new town gets its name (OpenStreetMap, through the relay) and a new nearest airport. */
@@ -2325,7 +2372,7 @@ function liveStart(){
   if (!liveOk()) return;
   if (!S.live) S.livePrev = placeOfS(S.placeKey || "");
   S.live = true; saveSettings();
-  liveRun(); placeAfter();
+  liveRun(); placeAfter(); settingsSync();
 }
 function liveStop(){
   liveHalt();
@@ -2335,7 +2382,7 @@ function liveStop(){
   if (saved) return usePlace(saved);
   if (was && !was.k && was.lat != null) { const {k, ...p} = was; delete S.placeKey; applySettings({...S, ...p, place: p.n || S.place, radiusKm: p.r || S.radiusKm}); }
   else { delete S.placeKey; applySettings({...S}); }
-  placeAfter();
+  placeAfter(); settingsSync();
 }
 async function geoReverse(lat, lon){
   try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? j.name : ""; }
@@ -2358,7 +2405,7 @@ async function liveFix(p){
     try { const a = await nearestAirport(lat, lon); if (a && a.code !== clean(S.home)) extra.home = a.code; } catch {}
   }
   if (!S.live) return;
-  if (first || Object.keys(extra).length) applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon});
+  if (first || Object.keys(extra).length) { applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon}); settingsSync(); }
   else if (moved > 0.3 && Date.now() - liveSaved > 60000) { liveSaved = Date.now(); saveSettings(); }
 }
 setTimeout(() => { placesLoad().then(placeCheck); if (S.live) { if (liveOk()) liveRun(); else { S.live = false; saveSettings(); } } }, 1500);
@@ -2368,29 +2415,23 @@ async function geoSearch(q){
   if (j.status !== "ok") throw new Error(T("The address search isn't available right now."));
   return j.results || [];
 }
-// The places card: save where the board watches now under a label, the saved ones to tap (Update, ×), live location.
+// The saved places (1.40: only the list; a new one is saved from Settings → Location → Place name): tap one to
+// watch it, Update moves it to where the board is watching now, × deletes it.
 async function placesCard(){
   if (!placesRelay()) return;
   ctlSound.press();
-  const draw = (note, typed) => {
+  const draw = note => {
     const cur = S.live ? "" : S.placeKey || "";
     const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(p.k)}</b>` +
-      `<small>${escH([p.n !== p.k ? p.n : "", `${p.r || 15} km`].filter(Boolean).join(" · "))}</small></button>` +
+      `<small>${escH([p.n, p.home, `${p.r || 15} km`].filter(Boolean).join(" · "))}</small></button>` +
       `<button class="cBtn plUp" type="button" data-up="${i}">${escH(T("Update"))}</button>` +
       `<button class="cBtn plRm" type="button" data-rm="${i}" aria-label="${escH(T("Remove"))}">×</button></div>`;
-    return cardOpen(`<h3>${escH(T("Places"))}</h3>` +
+    return cardOpen(`<h3>${escH(T("Saved places"))}</h3>` +
       `<p class="note">${escH(T("Watching now: {name}", {name: [placeLabel(), S.placeKey && !S.live && clean(S.place) !== clean(S.placeKey) ? S.place : ""].filter(Boolean).join(" · ")}))}</p>` +
-      `<p class="shH">＋ ${escH(T("Save where the board is watching now"))}</p>` +
-      `<div class="favAdd"><input data-l maxlength="24" autocomplete="off" placeholder="${escH(T("Home"))}" value="${escH(typed != null ? typed : "")}">` +
-      `<button class="cBtn go" type="button" data-add>${escH(T("Save"))}</button></div>` +
+      (places.list.length ? places.list.map(row).join("")
+        : `<p class="note">${escH(T("No saved places yet. Set the location in Settings, type a name under Place name and press its Save."))}</p>`) +
       `<p class="note" data-n aria-live="polite">${escH(note || "")}</p>` +
-      (places.list.length ? `<p class="shH">◎ ${escH(T("Saved places"))}</p>` + places.list.map(row).join("")
-        : `<p class="note">${escH(T("No saved places yet. Set the location in Settings, then save it here under a name."))}</p>`) +
-      `<p class="note">${escH(T("Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now."))}</p>` +
-      `<p class="shH">◉ ${escH(T("Live location"))}</p>` +
-      (liveOk() ? `<button class="cBtn${S.live ? " on" : ""}" type="button" data-live aria-pressed="${S.live}">${escH(T(S.live ? "Following this phone's location" : "Follow this phone's location"))}</button>` +
-        `<p class="note">${escH(T("While the app is open, the board watches where you are and names the town; planes seen on the way count as \"On the go\"."))}</p>`
-        : `<p class="note">${escH(T("Following your location needs the https address or the Fallblatt Android app."))}</p>`), el => {
+      `<p class="note">${escH(T("Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now."))}</p>`, el => {
       const say = t => { el.querySelector("[data-n]").textContent = t; };
       for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
       for (const b of el.querySelectorAll("[data-up]")) b.onclick = async () => {
@@ -2398,6 +2439,7 @@ async function placesCard(){
         ctlSound.press(); say(T("Saving …"));
         try { await placesSave(places.list.map(q => q === p ? placeOfS(p.k) : q)); } catch (e) { return say(e.message); }
         if (!S.live) placeKeySet(p.k);
+        settingsSync();
         draw(T("{name} now points to where the board is watching.", {name: p.k}));
       };
       for (const b of el.querySelectorAll("[data-rm]")) b.onclick = async () => {
@@ -2405,25 +2447,9 @@ async function placesCard(){
         ctlSound.press();
         try { await placesSave(places.list.filter(q => q !== p)); } catch (e) { return say(e.message); }
         if (S.placeKey === p.k) placeKeySet("");
+        settingsSync();
         draw(T("{name} removed.", {name: p.k}));
       };
-      const lv = el.querySelector("[data-live]");
-      if (lv) lv.onclick = () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else liveStart(); draw(); };
-      const inp = el.querySelector("[data-l]"), add = el.querySelector("[data-add]");
-      const save = async () => {
-        let label = inp.value.trim().replace(/[<>"&\x00-\x1f]/g, "");
-        if (label === "home") label = "Home";          // "home" alone is the profile's own place on the relay
-        if (!label) return say(T("Give the place a name."));
-        if (/^live$/i.test(label)) return say(T("That name is taken; pick another."));
-        if (places.list.some(p => p.k.toLowerCase() === label.toLowerCase())) return say(T("{name} is saved already: use its Update button to move it here.", {name: label}));
-        if (S.live) return say(T("Turn off live location first, or save the place once you've arrived."));
-        ctlSound.press(); say(T("Saving …"));
-        try { await placesSave([...places.list, placeOfS(label)]); } catch (e) { return say(e.message); }
-        placeKeySet(label);
-        draw(T("Saved as {name}.", {name: label}), "");
-      };
-      add.onclick = save;
-      inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); } };
     });
   };
   draw(T("Loading …"));
@@ -4201,11 +4227,11 @@ function rowHtml(e){
   const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
-  return `<li class="fl${col ? " sp" : ""}${listsOk() ? " plus" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><time>${escH(e.time || "")}</time>` +
+  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time>` +
+    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -4900,14 +4926,15 @@ function renderRadarList(){
 // style) and with the sound switch for the buttons and switches.
 const COCKPIT = [
   {title: ["Location", "Standort"], cols: 2, items: [
-    {k: "place", type: "lcd", label: "Place name", max: 24},
-    {k: "home", type: "lcd", label: "Home airport", max: 3},
+    {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
+    {k: "place", type: "lcd", label: "City", max: 24},
+    {k: "home", type: "lcd", label: "Airport", max: 3},
     {k: "lat", type: "lcd", label: "Latitude", max: 12},
     {k: "lon", type: "lcd", label: "Longitude", max: 12},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "locate", label: "Current location", span: 2},
-    {type: "places", label: "Places", span: 2},
+    {type: "update", label: "Update location", span: 2},
+    {type: "places", label: "Saved places", span: 2},
     {type: "search", label: "Find an address", span: 2}]},
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
@@ -4937,8 +4964,11 @@ function rotaryIndex(it){
 // One control in its cell. The name comes last in the markup and is shown above the control (CSS order).
 // What each setting does, shown above it on hover (or a tap on a phone).
 const HINTS = {
-  place: "The name shown under the title.",
+  placeKey: "A name for this place (Home, Parents, Vacation …). Save adds it to your saved places.",
+  place: "The town of the place being watched, shown under the title. It fills itself in when the location changes.",
   home: "Airport code for the times and the Airport style, e.g. VIE.",
+  update: "Use this device's location once, or follow it while the app is open.",
+  places: "Your saved places: tap one to watch it.",
   lat: "Where to watch the sky. Use current location fills it in.",
   radiusKm: "Planes within this distance count as spotted.",
   overKm: "Closer than this counts as directly overhead.",
@@ -4994,11 +5024,20 @@ function itemHtml(it){
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
   if (it.type === "favs") return cell("loc wide", `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
     `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
-  if (it.type === "places") return cell("loc", `<button class="cap small" type="button" data-places>${T("Places & live location")}</button>` +
-    `<p class="note">${escH(T("Switch between saved places, or follow this phone's location."))}</p>`);
+  if (it.type === "label") return cell("label", `<div class="lblF"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 24}" spellcheck="false" autocomplete="off" ` +
+    `aria-label="${escH(T(it.label))}" placeholder="${escH(T(S.live ? "On the go" : "Home, Parents …"))}" value="${escH(S.live ? "" : String(draft[it.k] ?? ""))}"${S.live ? " disabled" : ""}>` +
+    `<button class="lblSave" type="button" data-lsave hidden>${T("Save")}</button><span class="lblOk" data-lok hidden aria-label="${escH(T("Saved"))}">✓</span></div>`);
+  if (it.type === "places") return cell("loc", `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` +
+    `<p class="note">${escH(T("Tap one to watch it."))}</p>`);
+  if (it.type === "update") return cell("loc" + (it.search ? " updAll" : ""), `<div class="upd"><button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
+    `<button class="cap small" type="button" data-live aria-pressed="${!!S.live}">${T(S.live ? "Live location on" : "Live location")}</button>` +
+    (it.places ? `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` : "") + `</div>` +
+    (it.search ? `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T("Find an address"))}" ` +
+      `placeholder="${escH(T("Find an address"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div><span data-gn hidden></span>` : "") +
+    `<p class="note" data-lnote>${escH(T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports."))}</p><div class="ask apList" data-lask hidden></div>`);
   if (it.type === "search") return cell("loc", `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T(it.label))}" ` +
     `placeholder="${escH(T("Address or place"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div>` +
-    `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the place name, latitude and longitude."))}</p>`);
+    `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the town, latitude and longitude."))}</p>`);
   if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
     `<p class="note">${escH(T("Fills in latitude and longitude, then finds the nearest airport."))}</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
@@ -5133,39 +5172,121 @@ async function nearestAirport(lat, lon){
   }
   return null;
 }
-function wireLocate(box){
-  const b = box.querySelector("[data-loc]");
-  if (!b) return;
-  const note = b.parentNode.querySelector(".note"), ask = b.parentNode.querySelector(".ask");
-  const put = (k, v) => { draft[k] = v; const el = box.querySelector(`.lcd[data-k="${k}"]`); if (el) el.value = v; };
-  b.onclick = async () => {
-    ctlSound.press(); audioInit();
-    ask.hidden = true; ask.innerHTML = ""; b.disabled = true;
-    note.textContent = T("Finding out where you are …");
-    try {
-      const p = await hereNow(), lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4);
-      put("lat", lat); put("lon", lon); cockpitDirty();
-      const here = p.acc ? T("Latitude and longitude set (to within {d}).", {d: p.acc < 1000 ? Math.round(p.acc) + " m" : (p.acc / 1000).toFixed(1) + " km"}) : T("Latitude and longitude set.");
-      note.textContent = here + " " + T("Looking for the nearest airport …");
-      let a = null;
-      try { a = await nearestAirport(lat, lon); } catch {}
-      const km = a ? (a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)) : 0;
-      if (!a) note.textContent = here + " " + T("Press Save to watch this spot.");
-      else if (a.code === clean(draft.home)) note.textContent = here + " " + T("The nearest airport, {name} ({code}, {km} km), is already the home airport. Press Save to keep it.", {name: a.city || a.name, code: a.code, km});
-      else {
-        note.textContent = T("Location set. The nearest airport is {name} ({code}), {km} km away. Make it the home airport?", {name: a.city || a.name, code: a.code, km});
-        b.hidden = true;                                // room for the question in the cell
-        ask.innerHTML = `<button class="cap small" type="button" data-yes>${escH(T("Use {code}", {code: a.code}))}</button><button class="cap small" type="button" data-no>${escH(T("Keep {code}", {code: clean(draft.home) || T("none")}))}</button>`;
-        ask.hidden = false;
-        ask.querySelector("[data-yes]").onclick = () => { ctlSound.press(); put("home", a.code); cockpitDirty(); ask.hidden = true; b.hidden = false; note.textContent = T("Home airport set to {code}. Press Save to keep the new location.", {code: a.code}); };
-        ask.querySelector("[data-no]").onclick = () => { ctlSound.press(); ask.hidden = true; b.hidden = false; note.textContent = T("Home airport unchanged. Press Save to keep the new location."); };
-      }
-    } catch (e) {
-      note.textContent = e.message || T("The location isn't available right now.");
-    } finally {
-      b.disabled = false;
-    }
+// The airports with scheduled flights near a spot (up to three), from the relay's list (relay 16+).
+async function nearbyAirports(lat, lon){
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 16) return [];
+  for (let i = 0; i < 8; i++) {                       // the relay downloads the airport list the first time it's asked
+    const j = await fetchJSON(`${relay()}/airports/near?lat=${(+lat).toFixed(4)}&lon=${(+lon).toFixed(4)}`, {}, 8000);
+    if (j.status === "ok") return j.airports || [];
+    await new Promise(r => setTimeout(r, 2500));
+  }
+  return [];
+}
+/* Settings → Location (1.40): a new location (current location, an address, typed coordinates) fills in its town (City)
+   and offers the airports nearby; Place name is the label, saved with the Save inside the field; Update location has
+   the current location and the live switch side by side; Saved places opens the list. */
+const putDraft = (box, k, v) => { draft[k] = v; const el = box.querySelector(`.lcd[data-k="${k}"]`); if (el) el.value = v; };
+async function locatedAt(box, lat, lon, name, why){
+  const note = box.querySelector("[data-lnote]"), ask = box.querySelector("[data-lask]");
+  const say = t => { if (note) note.textContent = t; };
+  putDraft(box, "lat", +(+lat).toFixed(4)); putDraft(box, "lon", +(+lon).toFixed(4));
+  if (name) putDraft(box, "place", String(name).slice(0, 24));
+  cockpitDirty();
+  say((why ? why + " " : "") + T("Looking up the town and the airports nearby …"));
+  if (!name && placesRelay()) { const n = await geoReverse(+lat, +lon); if (n) { putDraft(box, "place", n.slice(0, 24)); cockpitDirty(); } }
+  let list = [];
+  try { list = (await nearbyAirports(+lat, +lon)).filter(a => a.km <= 100); } catch {}
+  if (ask) { ask.innerHTML = ""; ask.hidden = true; }
+  if (!list.length) return say(T("Press Save to watch this spot."));
+  if (list.length === 1 || !ask) {
+    putDraft(box, "home", list[0].code); cockpitDirty();
+    return say(T("Airport: {name} ({code}). Press Save to watch this spot.", {name: list[0].city || list[0].name, code: list[0].code}));
+  }
+  say(T("Pick the airport for this place, then press Save:"));
+  ask.innerHTML = list.map((a, i) => `<button class="${a.code === clean(draft.home) ? "on" : ""}" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)} · ${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</button>`).join("");
+  ask.hidden = false;
+  for (const btn of ask.querySelectorAll("[data-ap]")) btn.onclick = () => {
+    const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty();
+    for (const o of ask.querySelectorAll("[data-ap]")) o.classList.toggle("on", o === btn);
+    say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
   };
+}
+function wireLocation(box){
+  const loc = box.querySelector("[data-loc]"), live = box.querySelector("[data-live]");
+  if (loc) loc.onclick = async () => {
+    ctlSound.press(); audioInit(); loc.disabled = true;
+    const note = box.querySelector("[data-lnote]");
+    if (note) note.textContent = T("Finding out where you are …");
+    try {
+      const p = await hereNow();
+      await locatedAt(box, p.lat, p.lon, "", p.acc ? T("Location set (to within {d}).", {d: p.acc < 1000 ? Math.round(p.acc) + " m" : (p.acc / 1000).toFixed(1) + " km"}) : T("Location set."));
+    } catch (e) { if (note) note.textContent = e.message || T("The location isn't available right now."); }
+    finally { loc.disabled = false; }
+  };
+  if (live) {
+    live.disabled = !liveOk() || !placesRelay();
+    if (live.disabled) { const n = box.querySelector("[data-lnote]"); if (n) n.textContent = T("Following your location needs the https address or the Fallblatt Android app."); }
+    live.onclick = () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else liveStart(); settingsSync(); };
+  }
+  // typed coordinates: once both are numbers and the point moved, the town and airports follow
+  let typed = 0;
+  for (const k of ["lat", "lon"]) {
+    const el = box.querySelector(`.lcd[data-k="${k}"]`);
+    if (el) el.addEventListener("change", () => {
+      clearTimeout(typed);
+      typed = setTimeout(() => {
+        const la = parseFloat(String(draft.lat).replace(",", ".")), lo = parseFloat(String(draft.lon).replace(",", "."));
+        if (isFinite(la) && isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180 && gcKm(la, lo, +S.lat, +S.lon) > 0.05) locatedAt(box, la, lo, "");
+      }, 400);
+    });
+  }
+  // Place name: the label; a Save inside the field when it isn't a saved place yet
+  const li = box.querySelector('.lcd[data-k="placeKey"]'), ls = box.querySelector("[data-lsave]"), ok = box.querySelector("[data-lok]");
+  if (li && ls) {
+    const known = v => places.list.some(p => p.k.toLowerCase() === v.toLowerCase());
+    const show = () => {
+      const v = li.value.trim();
+      ls.hidden = !placesRelay() || !v || known(v) || /^live$/i.test(v) || !!S.live;
+      if (ok) ok.hidden = !v || !known(v);
+    };
+    li.addEventListener("input", show); show(); placesLoad().then(show);
+    ls.onclick = async () => {
+      let label = li.value.trim().replace(/[<>"&\x00-\x1f]/g, "").slice(0, 24);
+      if (label === "home") label = "Home";          // "home" alone is the profile's own place on the relay
+      if (!label || known(label)) return show();
+      ctlSound.press(); ls.disabled = true;
+      applySettings({...draft, placeKey: label});
+      try { await placesSave([...places.list, placeOfS(label)]); }
+      catch (e) { const n = box.querySelector("[data-lnote]"); if (n) n.textContent = e.message; }
+      ls.disabled = false; placeAfter(); settingsSync(); show();
+    };
+  }
+  const pb = box.querySelector("[data-places]");
+  if (pb) { pb.disabled = !placesRelay(); pb.onclick = e => { e.stopPropagation(); placesCard(); }; }
+  wireSearch(box);
+}
+// The place being watched changed outside the Settings fields (a saved place picked, live location): the open
+// Settings follow at once instead of after leaving and coming back.
+function settingsSync(){
+  if (!draft) return;
+  const box = $("cockpit");
+  for (const k of ["placeKey", "place", "home", "lat", "lon", "radiusKm"]) {
+    draft[k] = S[k] ?? "";
+    if (k === "placeKey" && S.live) draft[k] = S.placeKey ?? "";   // kept, but the field reads "On the go" while following
+    const el = box && box.querySelector(`.lcd[data-k="${k}"]`);
+    if (el && document.activeElement !== el) el.value = draft[k];
+  }
+  const live = box && box.querySelector("[data-live]");
+  if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.textContent = T(S.live ? "Live location on" : "Live location"); }
+  const n = box && box.querySelector("[data-lnote]");
+  if (n && liveOk()) n.textContent = T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports.");
+  const li = box && box.querySelector('.lcd[data-k="placeKey"]');
+  if (li) {
+    li.disabled = !!S.live; li.placeholder = T(S.live ? "On the go" : "Home, Parents …");
+    if (S.live) { li.value = ""; for (const x of box.querySelectorAll("[data-lsave], [data-lok]")) x.hidden = true; }
+    else li.dispatchEvent(new Event("input"));
+  }
+  cockpitShow(); cockpitDirty();
 }
 // Settings → Find an address: OpenStreetMap through the relay (33+); a pick fills in the place, latitude and longitude,
 // and the nearest airport when it isn't the home airport already.
@@ -5173,7 +5294,6 @@ function wireSearch(box){
   const q = box.querySelector("[data-gq]");
   if (!q) return;
   const res = box.querySelector("[data-gr]"), note = box.querySelector("[data-gn]");
-  const put = (k, v) => { draft[k] = v; const el = box.querySelector(`.lcd[data-k="${k}"]`); if (el) el.value = v; };
   if (!placesRelay()) { q.disabled = true; box.querySelector("[data-gs]").disabled = true; note.textContent = T("The address search needs a newer relay."); return; }
   let busy = false;
   const go = async () => {
@@ -5185,12 +5305,8 @@ function wireSearch(box){
       note.textContent = hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark.");
       for (const b of res.querySelectorAll("[data-hit]")) b.onclick = async () => {
         const h = hits[+b.dataset.hit]; ctlSound.press(); res.innerHTML = "";
-        put("lat", +(+h.lat).toFixed(4)); put("lon", +(+h.lon).toFixed(4)); put("place", String(h.short || h.name.split(",")[0]).slice(0, 24)); cockpitDirty();
-        note.textContent = T("Place set. Looking for the nearest airport …");
-        let a = null;
-        try { a = await nearestAirport(+h.lat, +h.lon); } catch {}
-        if (a && a.code !== clean(draft.home)) { put("home", a.code); cockpitDirty(); }
-        note.textContent = a ? T("Place set; the nearest airport is {name} ({code}). Press Save to watch it.", {name: a.city || a.name, code: a.code}) : T("Press Save to watch this spot.");
+        note.textContent = T("Type an address or a place and pick it: fills in the town, latitude and longitude.");
+        await locatedAt(box, h.lat, h.lon, "", T("Location set."));
       };
     } catch (e) { note.textContent = e.message; } finally { busy = false; }
   };
@@ -5589,6 +5705,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.40", date: "2026-10-18", notes: [
+    "Settings → Location: Place name saves the place you're watching under a name, City fills itself in, and Airport offers the airports nearby.",
+    "Update location puts the current location and live location side by side; picking a saved place updates Settings at once.",
+    "List rows: a small + under the time, and the airline, places and aircraft type as their own buttons.",
+    "Each device remembers its own Overhead or Airport style.",
+    "About has a close button; the light version fits the phone's width and lines up its fields."]},
   {v: "1.39.1", date: "2026-10-18", notes: [
     "One more emergency source of live positions, used only when all the others are down.",
     "About links to the flight position sources."]},
@@ -5831,6 +5953,8 @@ function cockpitOpen(){
     `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
     `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
   $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
+  $("aboutX").onclick = () => { ctlSound.press(); showTab("settings"); };
+  $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
@@ -5848,9 +5972,7 @@ function cockpitOpen(){
       el.querySelector(".dec").onclick = () => roll(-1);
     }
   }
-  wireLocate(box); wireSearch(box);
-  const pb = box.querySelector("[data-places]");
-  if (pb) { pb.disabled = !placesRelay(); pb.onclick = () => placesCard(); }
+  wireLocation(box);
   cockpitShow();
   renderAbout();
 }
@@ -6113,13 +6235,11 @@ async function renderPush(){
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
-  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
-    `<a href="${SW_DIR}airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
       PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
-    bellNote + `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
+    `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
   for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
     ctlSound.toggle(cb.checked);
     prefs[cb.dataset.p] = cb.checked;

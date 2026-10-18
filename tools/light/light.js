@@ -121,14 +121,15 @@ function radarStatic(){
 // style) and with the sound switch for the buttons and switches.
 const COCKPIT = [
   {title: ["Location", "Standort"], cols: 2, items: [
-    {k: "place", type: "lcd", label: "Place name", max: 24},
-    {k: "home", type: "lcd", label: "Home airport", max: 3},
+    {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
+    {k: "place", type: "lcd", label: "City", max: 24},
+    {k: "home", type: "lcd", label: "Airport", max: 3},
     {k: "lat", type: "lcd", label: "Latitude", max: 12},
     {k: "lon", type: "lcd", label: "Longitude", max: 12},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "locate", label: "Current location", span: 2},
-    {type: "places", label: "Places", span: 2},
+    {type: "update", label: "Update location", span: 2},
+    {type: "places", label: "Saved places", span: 2},
     {type: "search", label: "Find an address", span: 2}]},
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},

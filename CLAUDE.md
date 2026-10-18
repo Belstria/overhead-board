@@ -243,10 +243,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 - Places (relay 33, app 1.37, simplified in 1.38 on Dave's word; shared "places" block before the airport mode, copied
   by the app): `places` per profile (`/places` GET/POST, `_clean_places`: `{k: label, n, lat, lon, home, r}`, any label
   but "live"; home's in `profiles["home"]`), `placesLoad`/`placesSave`. All labels are alike (no special or automatic
-  Home: `ensureHome`/`homePlace`/`placeSync` are gone). The card (`placesCard()`) saves the current S under a label
-  (`placeOfS`), lists the saved ones (tap: `usePlace()`, applySettings + `placeAfter()`, which resets Spotted today;
-  Update: overwrite with the current S; ×: delete) and has the live switch; the address search lives only in Settings
-  (`wireSearch`). `S.placeKey` is the label being watched (`placeKeySet()`); a Settings save runs `placeCheck()`, which
+  Home: `ensureHome`/`homePlace`/`placeSync` are gone). Since 1.40 a label is saved from Settings → Location → Place name (see 1.40 below); the card (`placesCard()`) only lists the saved ones (tap: `usePlace()`, applySettings + `placeAfter()`, which resets Spotted today; Update: overwrite with the current S; ×: delete); the live switch and the address search are in Settings. `S.placeKey` is the label being watched (`placeKeySet()`); a Settings save runs `placeCheck()`, which
   drops the label when the point no longer matches it. The key sent (`placeKeyNow()`): "live", else "home" (no `pl`)
   at the relay's own point (`ownSpot()`: home profile within 100 m of the relay's defaults, so a label there keeps
   today's list) or for a guest without a label, else the label, else "here" (`placeName`: Elsewhere); `placeLabel()`
@@ -279,6 +276,20 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   seeded quietly the first time), and `achNext()` shows a card (confetti(), `chime("special")`) that closes after
   `ACH_MS` (10 s) and waits while another card is open. `RADAR_COL.away` (Outbound) is violet.
   Relay 35 fixed relay 34's custom `--source` state (no `last_call`: every position request failed).
+- 1.40 (Dave's list, built in the main chat): Settings → Location has `placeKey` as a field (`type: "label"`, "Place
+  name", with a Save inside it, `[data-lsave]`, when the label isn't saved; `[data-lok]` ✓ when it is), `place` shown as
+  "City", `home` as "Airport", `type: "update"` (Use current location `[data-loc]` + Live location `[data-live]`; on the
+  board also Saved places and the address search, `places`/`search` flags, as its plates have a fixed height) and
+  `type: "places"` (the list). `wireLocation(box)` wires them all (replaces wireLocate; calls `wireSearch`);
+  `locatedAt(box, lat, lon, name, why)` is what every new location goes through: draft lat/lon, the town via
+  `/geo/reverse` into City, `nearbyAirports()` (relay `/airports/near`, up to 3 within 100 km) as a pick list
+  (`[data-lask]`) when there are several. Typed coordinates trigger it on `change`. `settingsSync()` puts S's location
+  into the open Settings (after `usePlace`, live start/stop/fix, Update, ×). The places card is only the list now.
+  The style (`mode`) and `live`/`livePrev` stay out of `/me` and out of a guest's profile settings on load, so each
+  device keeps its own. The app's rows: `.tc` holds the time and the `+` ring (`.flAdd`) in column 1 over all three
+  rows; `.tap` is an outlined pill. About has `#aboutX`. `html,body{overflow-x:clip}` and the status dot's tap area no
+  longer reaching past the screen fixed the sideways scroll; the light hero's stat rows (`data-r` reg, speed, depTime)
+  are a three-column grid. The "Save the bell" download is gone (the wav file stays).
   The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in

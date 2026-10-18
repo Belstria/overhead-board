@@ -19,14 +19,15 @@ const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classi
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  return {...DEFAULTS, ...(GUEST && GUEST.settings || {}), ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
+  const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
+  return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 let meQ = 0;
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
-  const {live, livePrev, ...rest} = changed;               // following the phone is this device's own business
+  const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
@@ -491,11 +492,11 @@ function rowHtml(e){
   const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
-  return `<li class="fl${col ? " sp" : ""}${listsOk() ? " plus" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><time>${escH(e.time || "")}</time>` +
+  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time>` +
+    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div>` +
-    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</li>`;
+    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
 
@@ -1189,14 +1190,15 @@ function renderRadarList(){
 // Two cells to a row on a phone (three for the switches); `span: 2` or `wide` takes the whole row.
 const COCKPIT = [
   {title: ["Location", "Standort"], cols: 2, items: [
-    {k: "place", type: "lcd", label: "Place name", max: 24},
-    {k: "home", type: "lcd", label: "Home airport", max: 3},
+    {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
+    {k: "place", type: "lcd", label: "City", max: 24},
+    {k: "home", type: "lcd", label: "Airport", max: 3},
     {k: "lat", type: "lcd", label: "Latitude", max: 12},
     {k: "lon", type: "lcd", label: "Longitude", max: 12},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "locate", label: "Current location", span: 2},
-    {type: "places", label: "Places", span: 2},
+    {type: "update", label: "Update location", span: 2},
+    {type: "places", label: "Saved places", span: 2},
     {type: "search", label: "Find an address", span: 2}]},
   {title: ["Traffic", "Verkehr"], cols: 2, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
@@ -1375,6 +1377,8 @@ function cockpitOpen(){
     `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
     `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
   $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
+  $("aboutX").onclick = () => { ctlSound.press(); showTab("settings"); };
+  $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
@@ -1392,9 +1396,7 @@ function cockpitOpen(){
       el.querySelector(".dec").onclick = () => roll(-1);
     }
   }
-  wireLocate(box); wireSearch(box);
-  const pb = box.querySelector("[data-places]");
-  if (pb) { pb.disabled = !placesRelay(); pb.onclick = () => placesCard(); }
+  wireLocation(box);
   cockpitShow();
   renderAbout();
 }
@@ -1662,13 +1664,11 @@ async function renderPush(){
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
-  const bellNote = /Android/.test(navigator.userAgent) ? `<p class="sum">${escH(T("With the app open, a notification plays the bell. To hear it when the app is closed (Android): save the bell, then in Android's settings open Notifications → Chrome → {host} → Sound and pick it.", {host: location.host}))} ` +
-    `<a href="${SW_DIR}airport-bell.wav" download="Fallblatt airport bell.wav">${escH(T("Save the bell"))}</a></p>` : "";
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
       PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
-    bellNote + `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
+    `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
   for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
     ctlSound.toggle(cb.checked);
     prefs[cb.dataset.p] = cb.checked;

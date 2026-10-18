@@ -44,6 +44,9 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #hero .lrow[data-r=toCode]{margin-top:8px}
 #hero .lf[data-f=seen] .lv{font-size:15px;white-space:normal}
 #hero .lrow[data-r=seen]{padding-top:12px;border-top:1px solid var(--edge)}
+/* 1.40: the stat rows share three columns, so Reg., Speed and Departure, Altitude, Position and Arrival line up */
+#hero .lrow[data-r=reg],#hero .lrow[data-r=speed],#hero .lrow[data-r=depTime]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;align-items:end}
+#hero .lrow[data-r=reg] .lf,#hero .lrow[data-r=speed] .lf,#hero .lrow[data-r=depTime] .lf{min-width:0}
 .lf[data-f=trend] .lv{min-height:0}
 /* the clock */
 #clockP.lp{width:auto;min-width:64px}
@@ -83,7 +86,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .chip::after{display:none}
 .flights li{border-bottom:1px solid var(--edge);box-shadow:none}
 .ranks li,.yFacts div{border-bottom-color:var(--edge);box-shadow:none}
-.fl .flAdd{background:var(--card2);border-color:var(--edge)}
+.fl .flAdd{background:none;border-color:#4a4c52}
 .look,.yearCard,.rvCard{background:var(--card);border-color:var(--edge)}
 .yearCard{border-color:rgba(240,180,41,.35)}
 /* buttons: flat */
