@@ -295,14 +295,12 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .acctPlate .acList small{color:#959aa3;margin-left:calc(4px*var(--k))}
 .acctPlate p.muted,.acctPlate .muted{margin:calc(4px*var(--k)) 0 0;font-size:calc(13px*var(--k));color:#959aa3}
 .acctPlate .warn{color:#f6be35}
-.acOut{margin-top:calc(12px*var(--k));padding-top:calc(12px*var(--k));border-top:1px solid rgba(255,255,255,.1)}
 .cap.danger{color:#ff9d92}
 /* 1.44: long pages on the board (patch notes, legend) move with ▲ / ▼ buttons: a TV can't scroll */
 .scrollBtns{display:flex;gap:calc(6px*var(--k));margin-left:auto}
 .scrollBtns .cap{width:auto;padding:0 calc(14px*var(--k))}
 #cardBox .pickList,.cardish .pickList{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 #cardBox .pickList .cBtn small,.cardish .pickList .cBtn small{display:block;font-weight:500;opacity:.7;margin-top:2px;letter-spacing:0}
-#cockpit .acOut .cap{width:auto;white-space:nowrap;padding:0 calc(22px*var(--k))}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -338,10 +336,10 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 #mark{width:40px;height:40px;flex:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-/* Overhead / Airport: the style showing bright, the other dimmed, a slash between them */
-.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted)}
-.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink)}
-.title h1 .sl{font-weight:400;color:var(--muted);margin:0 .22em}
+/* Overhead / Airport: the style showing in amber, the other faded, a swap sign between them (1.47) */
+.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted);opacity:.45}
+.title h1 button[aria-pressed=true]{font-weight:700;color:var(--amber);opacity:1}
+.title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
@@ -391,13 +389,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acctPlate p.muted,.acctPlate .note{margin:4px 0 0;font-size:13px}
 .acctPlate .acNew{margin-top:10px}
 .acctPlate .acHead{margin-bottom:6px}
-.acOut{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
-.acOut .cap{height:40px}
-.acOut .acts{margin:0}
-.acOut .cap{width:100%;white-space:nowrap}
-.acOut .muted{margin-top:10px}
 .cap.danger{color:#ff9d92}
-.acOut .muted{color:var(--muted);font-size:13px}
 #acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
 .acKeys li{align-items:center}
 .acKeys .cap{width:auto;padding:0 10px;height:30px}
@@ -1000,7 +992,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><svg class="sl" viewBox="0 -2 40 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h34M29 -1l8 8-8 8M37 23H3M11 15l-8 8 8 8"/></svg><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection"></button></div>
   </div>
@@ -4480,6 +4472,21 @@ const lbData = () => S.demo ? demoLogbook() : lbCache;
 // The Logbook by place (1.44 on the board, relay 37): All, or one place's own numbers.
 let lbPlace = "", lbPlaceData = {};
 const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
+// 1.47: a place button for each place that still exists: home (together with a saved label at the relay's own point,
+// relay 40 merging them), on the go and the saved labels. A removed label or an unnamed spot only counts under All.
+// Each chip: {id (its keys joined by a line break), keys, name, n}.
+function lbChips(){
+  const cnt = new Map(((lbData() || {}).places || []).filter(([k, n]) => n > 0)), list = places.list || [], out = [];
+  const atHome = !GUEST && DEFAULTS.lat != null ? list.find(p => gcKm(+p.lat, +p.lon, +DEFAULTS.lat, +DEFAULTS.lon) < 0.1) : null;
+  const add = (keys, name) => { keys = keys.filter(k => cnt.has(k)); if (keys.length) out.push({id: keys.join("\n"), keys, name, n: keys.reduce((a, k) => a + cnt.get(k), 0)}); };
+  const homeKeys = ["home", ...(atHome && (window.OVERHEAD_RELAY_VERSION || 0) >= 40 ? [atHome.k] : [])];
+  add(homeKeys, atHome && homeKeys.length > 1 ? atHome.k : placeName("home"));
+  add(["live"], placeName("live"));
+  for (const p of list) if (!homeKeys.includes(p.k)) add([p.k], p.k);
+  return out.length > 1 || (out.length === 1 && out[0].keys[0] !== "home") ? out : [];
+}
+const lbPlaceName = id => (lbChips().find(c => c.id === id) || {}).name || placeName(id);
+const lbPlaceUrl = id => `${relay()}/logbook?` + id.split("\n").map(k => "place=" + encodeURIComponent(k)).join("&");
 let lbCache = null, lbError = "";
 function logbookSummary(){
   if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
@@ -4832,7 +4839,7 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
     if (lbPlace && lbPlaceOk() && tab === "logbook") {
-      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+      try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {}
     }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
@@ -4843,11 +4850,11 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
-  const all = lbData() || {}, pl = (all.places || []).filter(([k, n]) => n > 0);
-  if (lbPlace && !pl.some(([k]) => k === lbPlace)) lbPlace = "";
+  const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
+  if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const chips = $("lbPlaces");
-  chips.hidden = !lbPlaceOk() || pl.length < 2 && !(pl.length === 1 && pl[0][0] !== "home");
-  const want = [["", T("All")], ...pl.map(([k, n]) => [k, placeName(k), n])];
+  chips.hidden = !pl.length;
+  const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
   const csig = JSON.stringify([want, lbPlace, LANG]);
   if (chips.dataset.sig !== csig) {
     chips.dataset.sig = csig;
@@ -4855,12 +4862,12 @@ function renderLogbook(){
     for (const btn of chips.children) btn.onclick = async () => {
       if (btn.dataset.p === lbPlace) return;
       ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
     };
   }
   const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
   $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
@@ -6163,6 +6170,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.47", date: "2026-10-18", notes: [
+    "The title shows the style you're in, in amber, with a swap sign to the other one.",
+    "The logbook's place buttons only show the places you still have; removed ones count under All."]},
   {v: "1.46", date: "2026-10-18", notes: [
     "Sign in a TV with your phone: a screen that isn't signed in shows a QR code to scan.",
     "Account: Sign out sits next to your name, and each sign-in method has its button beside it.",

@@ -337,6 +337,16 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `signin_html(next)`), POST `/pair/<code>` approves. `_pairs` lives in memory, `PAIR_S` 10 min. `add_device` handles
   "home". Account plate: `.acOutBtn` Sign out chip in `.acHead`, `.acSec` rows (name + state left, button right). The
   ding is the whole chime again (both tones).
+- 1.47 (relay 40, to-do #20, #22, #23): the title's styles: the active word in `COL.amber`, the other at .45 alpha,
+  `swapSign()` (two arrows) instead of "/" (the app's `#modes` `.sl` is an inline SVG). Logbook chips: `lbChips()`
+  (board code, copied by the app) gives `{id, keys, name, n}` for home (merged with a saved label at the relay's own
+  point, relay 40), live and the saved labels only; `lbPlaceUrl(id)` asks `/logbook?place=a&place=b` (the relay merges
+  a tuple of keys in `place_logbook`; labels may contain commas, hence repeated parameters), `lbPlaceName(id)`.
+  Flightradar24: `fr24_period()` from `--fr24-reset-day` (saved; Dave's plan renews on the 9th, 60,000 credits),
+  `_fr24_usage` keyed by the period's first day (an older calendar-month or other-day count carries over while it
+  started within the period), `usage["by"]` per asker (`fr24_want(..., who)`; /flightinfo passes name · device,
+  else "Lists and alerts"), the admin page's renewal line, breakdown table and `/admin/fr24plan` form (`save_config()`
+  writes overhead.json the way `--save` does).
 - 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
   960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
