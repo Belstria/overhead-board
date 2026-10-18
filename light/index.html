@@ -270,6 +270,9 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cLoad{display:flex;align-items:center;gap:12px;min-height:90px;justify-content:center;color:#b9b3a3;font:500 16px/1.2 "Archivo Narrow",sans-serif}
 #cardBox .cSpin{width:22px;height:22px;border-radius:50%;border:3px solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
 @keyframes cSpin{to{transform:rotate(360deg)}}
+#cardBox .cPicW,.cardish .cPicW{position:relative}
+#cardBox .cTag,.cardish .cTag{position:absolute;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
+  font:700 11.5px/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -392,6 +395,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
 .screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
 .screen.has .none,.screen:not(.has) .credit{display:none}
+/* 1.43: a picture of the model, not of this aircraft */
+.screen .mtag{position:absolute;z-index:3;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
+  font:700 11.5px/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
+.screen.has.model .mtag{display:block}
+.screen.rwyOn .mtag{display:none}
 .screen.on{animation:screenOn .95s ease-out both}
 @keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
 .bezel.plain{padding:0;background:none;box-shadow:none}
@@ -978,7 +986,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
         <div class="groove"></div>
         <h2 id="acTitle" data-t="This aircraft">This aircraft</h2>
         <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
+          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="mtag" data-t="Model photo · not this aircraft">Model photo · not this aircraft</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
         </div>
         <div class="look" id="look" hidden>
@@ -1183,7 +1191,7 @@ const REMARK_LOOK = {
 const LIGHT = true;                   // the light version: the same app without the split flaps
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
 const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
@@ -1516,6 +1524,10 @@ const I18N_ROWS = [
   ["All nine on the weekly bingo card", "Alle neun auf der Bingokarte der Woche", "Les neuf de la carte de bingo", "Los nueve del cartón de bingo", "Alle negen op de bingokaart van de week"],
   ["Seen here", "Hier gesehen", "Vu ici", "Visto aquí", "Hier gezien"],
   ["To go", "Noch", "Reste", "Faltan", "Nog"],
+  ["FIRST EVER: TYPE", "ERSTMALS: TYP", "INÉDIT: TYPE", "PRIMERA VEZ: TIPO", "EERSTE: TYPE"],
+  ["FIRST EVER: PLANE", "ERSTMALS: FLUGZEUG", "INÉDIT: AVION", "PRIMERA VEZ: AVIÓN", "EERSTE: TOESTEL"],
+  ["FIRST EVER: AIRLINE", "ERSTMALS: AIRLINE", "INÉDIT: COMPAGNIE", "1A VEZ: AEROLÍNEA", "EERSTE: AIRLINE"],
+  ["FIRST EVER: FLIGHT", "ERSTMALS: FLUG", "INÉDIT: VOL", "PRIMERA VEZ: VUELO", "EERSTE: VLUCHT"],
   ["FIRST TIME EVER", "ZUM ERSTEN MAL", "PREMIÈRE FOIS", "PRIMERA VEZ", "VOOR HET EERST"],
   ["SEEN {n} TIMES", "{n} MAL GESEHEN", "VU {n} FOIS", "VISTO {n} VECES", "{n} KEER GEZIEN"],
   ["SEEN ONCE", "EINMAL GESEHEN", "VU UNE FOIS", "VISTO UNA VEZ", "EEN KEER GEZIEN"],
@@ -1737,6 +1749,13 @@ const I18N_ROWS = [
   ["Radar: the planes around you right now. Click one for its card.", "Radar: die Flugzeuge gerade um dich herum. Klicke auf eins für seine Karte.", "Radar : les avions autour de vous en ce moment. Cliquez-en un pour sa fiche.", "Radar: los aviones a tu alrededor ahora. Haz clic en uno para ver su ficha.", "Radar: de vliegtuigen nu om je heen. Klik er een aan voor de kaart."],
   ["{n} planes seen from {place} since {d}.", "{n} Flugzeuge von {place} aus gesehen seit {d}.", "{n} avions vus depuis {place} depuis le {d}.", "{n} aviones vistos desde {place} desde el {d}.", "{n} vliegtuigen gezien vanaf {place} sinds {d}."],
   ["1 plane seen from {place} since {d}.", "1 Flugzeug von {place} aus gesehen seit {d}.", "1 avion vu depuis {place} depuis le {d}.", "1 avión visto desde {place} desde el {d}.", "1 vliegtuig gezien vanaf {place} sinds {d}."],
+  ["MODEL PHOTO · NOT THIS AIRCRAFT", "MODELLFOTO · NICHT DIESES FLUGZEUG", "PHOTO DU MODÈLE · PAS CET AVION", "FOTO DEL MODELO · NO ESTE AVIÓN", "FOTO VAN HET TYPE · NIET DIT TOESTEL"],
+  ["Model photo · not this aircraft", "Modellfoto · nicht dieses Flugzeug", "Photo du modèle · pas cet avion", "Foto del modelo · no este avión", "Foto van het type · niet dit toestel"],
+  ["New plane ding", "Ding bei neuem Flugzeug", "Ding nouvel avion", "Ding de avión nuevo", "Ding bij nieuw toestel"],
+  ["Today in numbers", "Heute in Zahlen", "Aujourd'hui en chiffres", "Hoy en números", "Vandaag in cijfers"],
+  ["EVERY 10TH", "JEDE 10.", "UNE SUR 10", "CADA 10", "ELKE 10E"],
+  ["A soft cabin ding when a new plane comes on top, so you know when to look up.", "Ein leises Kabinen-Ding, wenn ein neues Flugzeug oben erscheint, damit du weißt, wann du hochschauen sollst.", "Un léger ding de cabine quand un nouvel avion arrive en haut, pour savoir quand lever les yeux.", "Un suave ding de cabina cuando aparece un avión nuevo arriba, para saber cuándo mirar.", "Een zachte cabine-ding als er een nieuw toestel bovenaan komt, zodat je weet wanneer je moet kijken."],
+  ["Today in numbers comes round every tenth turn of the pages; off: only when you pick it.", "Heute in Zahlen kommt bei jeder zehnten Runde der Seiten; aus: nur wenn du es wählst.", "Aujourd'hui en chiffres revient tous les dix tours des pages ; désactivé : seulement si vous le choisissez.", "Hoy en números aparece cada diez vueltas de páginas; apagado: solo cuando lo eliges.", "Vandaag in cijfers komt elke tiende ronde van de pagina's; uit: alleen als je het kiest."],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -2280,7 +2299,8 @@ function planeBody(o){
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
-  const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
+  const html = (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
+      (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span></div><p class="cCredit">Wikimedia Commons</p>` : "</div>") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
@@ -2697,7 +2717,7 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-def(HERO, "seen",    {kind:"chars", n:17, dur:60, style:"amber", label:["Remarks",""]});
+def(HERO, "seen",    {kind:"chars", n:19, dur:60, style:"amber", label:["Remarks",""]});
 def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
 fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
@@ -2720,7 +2740,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
-  placeRow(["seen"], [], 411, 19.36, 1.45, UM);
+  placeRow(["seen"], [], 411, 17.4, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -3224,6 +3244,23 @@ function chime(kind, opts = {}){
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8 / mult);
       o.connect(g).connect(out); o.start(t); o.stop(t + 1.9);
     }
+  }
+}
+
+// The seat-belt ding (1.43): one soft, high cabin chime when a new plane comes on top (not for a special plane, which
+// has its own chime; not at night, not in the background, not twice within 15 s, not in the first seconds).
+let dingAt = 0;
+function seatbeltDing(force){
+  if (!force && (!S.ding || nightOn || document.hidden || performance.now() < 8000 || Date.now() - dingAt < 15000)) return;
+  if (!actx || actx.state !== "running") return;
+  dingAt = Date.now();
+  const t = actx.currentTime + .02, out = actx.createGain();
+  out.gain.value = .16; out.connect(sfxOut());                  // subtle: well under the chimes
+  for (const [mult, amp, dec] of [[1, .30, 1.4], [2.76, .04, .5], [.5, .03, .9]]) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.value = 1318.5 * mult;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp, t + .012); g.gain.exponentialRampToValueAtTime(amp * .002, t + dec);
+    o.connect(g).connect(out); o.start(t); o.stop(t + dec + .05);
   }
 }
 
@@ -3829,6 +3866,7 @@ function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist
 function setFeat(o, mode, alert = false){
   const now = Date.now();
   if (!feat || feat.hex !== o.ac.hex) {
+    if (!alert) seatbeltDing();                        // a new plane on top: look up
     const p = enrich(o.ac);
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
     p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
@@ -4081,34 +4119,61 @@ const trophyText = k => [T((TROPHY_TEXT[k] || [k])[0]), T((TROPHY_TEXT[k] || [""
 // How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
 // MONTHS when it had been away for two months or more. The count is the times before this pass.
 const seenCache = new Map();
-function seenText(reg){
-  reg = clean(reg).replace(/\s/g, "");
-  if (!reg || S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 28) return "";
-  let c = seenCache.get(reg);
+// What the logbook knows of an aircraft (reg) or, relay 38, a flight number (cs): asked of the relay, kept 2 minutes.
+function seenGet(kind, key){
+  if (!key || S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < (kind === "cs" ? 38 : 28)) return null;
+  const ck = kind + ":" + key;
+  let c = seenCache.get(ck);
   if (!c || (!c.busy && Date.now() - c.t > 120000)) {
     c = {t: Date.now(), busy: true, d: c && c.d};
-    seenCache.set(reg, c);
-    if (seenCache.size > 200) seenCache.delete(seenCache.keys().next().value);
-    fetchJSON(`${relay()}/seen?reg=${encodeURIComponent(reg)}`, {}, 8000).then(d => {
+    seenCache.set(ck, c);
+    if (seenCache.size > 300) seenCache.delete(seenCache.keys().next().value);
+    fetchJSON(`${relay()}/seen?${kind}=${encodeURIComponent(key)}`, {}, 8000).then(d => {
       c.d = d; c.t = Date.now(); c.busy = false;
-      if (feat && clean((feat.info || {}).reg || feat.o.ac.r || "").replace(/\s/g, "") === reg) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
+      if (feat) { renderFeatured(); if (typeof renderAircraftInfo === "function") renderAircraftInfo(); }
     }).catch(() => { c.busy = false; });
   }
-  const d = c.d;
-  if (!d) return "";
+  return c.d || null;
+}
+// How often it was seen before this pass, and the last time before it.
+function seenBefore(d){
   const now = Date.now(), thisPass = d.last && now - d.last < SAME_PASS_MS;
-  const before = Math.max(0, (d.count || 0) - (thisPass ? 1 : 0)), last = thisPass ? d.prev : d.last;
+  return {n: Math.max(0, (d.count || 0) - (thisPass ? 1 : 0)), last: thisPass ? d.prev : d.last};
+}
+function seenText(reg){
+  reg = clean(reg).replace(/\s/g, "");
+  const d = seenGet("reg", reg);
+  if (!d) return "";
+  const {n: before, last} = seenBefore(d), now = Date.now();
   if (!before) return T("FIRST TIME EVER");
   const months = last ? Math.floor((now - last) / (30.44 * 86400e3)) : 0;
   if (months >= 2) return T("BACK AFTER {n} MONTHS", {n: months});
   return before === 1 ? T("SEEN ONCE") : T("SEEN {n} TIMES", {n: nf.format(before)});
+}
+// 1.43: which first it is: the type (model), the aircraft, the airline, the flight number. A logbook still learning
+// (its first day) has nothing to compare with, so it says none of them.
+function firstLines(ac, info){
+  const b = lbData() || {}, now = Date.now(), out = [];
+  if (!b.types || (b.learningUntil && now < b.learningUntil)) return out;
+  const fresh = it => !it || ((it.count || 0) <= 1 && now - (it.first || 0) < SAME_PASS_MS);
+  const t = String(ac.t || info.typeCode || "").toUpperCase(), cs = String(ac.flight || "").trim().toUpperCase();
+  const icao = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
+  const reg = seenGet("reg", clean(info.reg || ac.r || "").replace(/\s/g, ""));
+  if (t && fresh(b.types[t])) out.push(T("FIRST EVER: TYPE"));
+  else if (reg && !seenBefore(reg).n) out.push(T("FIRST EVER: PLANE"));
+  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST EVER: AIRLINE"));
+  const f = icao ? seenGet("cs", cs) : null;
+  if (f && !seenBefore(f).n) out.push(T("FIRST EVER: FLIGHT"));
+  return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
 // airline's colours (Flightradar24), who flies it when it is on the watchlist, and how few of its type there are.
 function remarkLines(ac, info){
   info = info || {};
   const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
-  if (seen) out.push(seen);
+  const firsts = firstLines(ac, info);
+  if (firsts.length) out.push(...firsts);                 // what is new, by name (1.43)
+  else if (seen) out.push(seen);
   if (typeof liveryShort === "function") { const l = liveryShort(info); if (l) out.push(l); }
   const op = watchOpOf(ac.hex);
   if (op) out.push(clean(op).slice(0, 20));
@@ -4437,7 +4502,8 @@ function renderAircraftInfo(){
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
-  $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
+  $("screen").querySelector(".credit").textContent = isModelPic(src) ? "Wikimedia Commons" : "airport-data.com";
+  $("screen").classList.toggle("model", isModelPic(src));
   if (src !== shownPhoto) {
     shownPhoto = src;
     const scr = $("screen"), img = $("photo");
@@ -4586,7 +4652,9 @@ function renderToday(){
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
-  $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
+  const waiting = allPlaces && !(fullDay.all && fullDay.list);
+  if (!waiting) $("svList").style.minHeight = "";
+  $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
     : `<li class="empty">${svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
 function renderLists(){
@@ -5154,6 +5222,7 @@ const COCKPIT = [
   {title: ["Sounds", ""], cols: 2, items: [
     {k: "sound", type: "switch", label: "Button sounds"},
     {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "ding", type: "switch", label: "New plane ding"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", span: 2}]}];
 let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
@@ -5188,6 +5257,8 @@ const HINTS = {
   theme: "The board's colours and lettering.",
   quality: "Lower it if the board stutters on a TV.",
   rotateS: "How long each page stays before the next one turns.",
+  statsPage: "Today in numbers comes round every tenth turn of the pages; off: only when you pick it.",
+  ding: "A soft cabin ding when a new plane comes on top, so you know when to look up.",
   units: "Metres and km/h, or feet and knots.",
   logos: "Airline logos next to the airline name.",
   real: "Printed flaps, glass and brushed metal, like a real board.",
@@ -5229,7 +5300,7 @@ function itemHtml(it){
   }
   if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
-  if (it.type === "favs") return cell("loc wide", `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
+  if (it.type === "favs") return cell("loc" + (it.wide ? " wide" : ""), `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
     `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
   if (it.type === "label") return cell("label", `<div class="lblF"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 24}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" placeholder="${escH(T(S.live ? "On the go" : "Home, Parents …"))}" value="${escH(S.live ? "" : String(draft[it.k] ?? ""))}"${S.live ? " disabled" : ""}>` +
@@ -5914,6 +5985,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.43", date: "2026-10-18", notes: [
+    "A soft cabin ding when a new plane comes on top, so you know when to look up (Settings, can be turned off).",
+    "Today in numbers comes round only every tenth turn of the pages, and can be turned off.",
+    "A picture of the model, not of the plane itself, says so in its corner.",
+    "Remarks say what's new: the first of a type, of this aircraft, of an airline or of a flight number."]},
   {v: "1.42", date: "2026-10-18", notes: [
     "Short tips point out what each page does and the less obvious taps and swipes; Settings can show them again.",
     "The Logbook can show one place's own numbers, top lists and records.",
@@ -6302,7 +6378,11 @@ $("dot").onclick = statusCard;
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;
-  ctlSound.press(); allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+  ctlSound.press();
+  const L = $("svList"), y = scrollY;
+  L.style.minHeight = L.offsetHeight + "px";              // the list keeps its height while the other one loads (1.43)
+  allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+  scrollTo(0, y);
 };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
