@@ -84,7 +84,13 @@ py serve.py --fr24-key YOUR_KEY --save
 - Lookups happen only while a board that uses them is open, once per flight, shared by every screen, at most 10 a
   minute.
 - Each lookup costs 1 to 3 credits. The relay stops at 27,000 credits a month (the Explorer plan includes 30,000);
-  change that with `--fr24-budget 50000 --save`. Diagnostics on the board shows what has been used.
+  change that with `--fr24-budget 50000 --save`, or on the admin page. Diagnostics on the board shows what has been used.
+- The admin page (relay 40) shows the credits used and left this month, the day the plan renews and a breakdown of
+  who used them (each account and device, plus "Lists and alerts" for the lookups the relay makes for Spotted today).
+  Set the day your plan renews and the monthly budget there (**Plan renews on day … · spend at most …**); the month
+  then runs from that day (`--fr24-reset-day 9 --save` does the same). **For a while** sets a higher budget until a
+  date (a promotion, e.g. 54,000 until 8 Jan 2027); after that day the normal budget applies again by itself
+  (`--fr24-budget-promo 54000 --fr24-promo-until 2027-01-08 --save`).
 - The budget is spread over the month (relay 13 or newer): each day may spend its share of what is left, and unspent
   credits carry over. Past the day's share only the plane on the top half is still looked up; past one and a half
   shares nothing is, until the next day. A busy day can't use up the month, and the free sources fill in meanwhile.
@@ -225,7 +231,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   its status flap shows a plane climbing away from or coming down onto a runway in front of the word. Below, the pages
   turn between the take-offs and landings (two lists side by side), the departing plane and the landing plane (photo
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning
-  skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
+  skips it). The two styles sit in the title as a switch: tap the other one to change (since 1.47 the one you're in
+  shows in amber, the other faded, with a swap sign between them). Each device remembers the style
   it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
 - **The full board has what the app has** (1.44), except what needs a phone (Sky view, compass, notifications):
@@ -254,7 +261,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Logbook by place** (1.42, relay 37; the app and the light version): when planes were seen from more than one place,
   chips above the Logbook pick **All** or one place (with its count); a place shows its own numbers, top types, airlines
   and aircraft and its records (the collection, bingo, trophies and the year card count every place, so they show
-  under All).
+  under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
+  counts under All, and a saved place at the board's own home point shares one chip with Home.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
 - **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
   in (at most a few seconds), instead of filling in piece by piece.

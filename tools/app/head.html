@@ -54,10 +54,10 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 #mark{width:40px;height:40px;flex:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
-/* Overhead / Airport: the style showing bright, the other dimmed, a slash between them */
-.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted)}
-.title h1 button[aria-pressed=true]{font-weight:700;color:var(--ink)}
-.title h1 .sl{font-weight:400;color:var(--muted);margin:0 .22em}
+/* Overhead / Airport: the style showing in amber, the other faded, a swap sign between them (1.47) */
+.title h1 button{all:unset;cursor:pointer;font-weight:400;color:var(--muted);opacity:.45}
+.title h1 button[aria-pressed=true]{font-weight:700;color:var(--amber);opacity:1}
+.title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
@@ -529,7 +529,7 @@ body.arOpen{overflow:hidden}
 <header id="top">
   <div class="wrap">
     <canvas id="mark" aria-hidden="true"></canvas>
-    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><span class="sl">/</span><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
+    <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><svg class="sl" viewBox="0 -2 40 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h34M29 -1l8 8-8 8M37 23H3M11 15l-8 8 8 8"/></svg><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection"></button></div>
   </div>

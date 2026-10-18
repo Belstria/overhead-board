@@ -1339,16 +1339,18 @@ function drawStatic(){
   else if (isAc(page)) { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
   pictogram(g, M, 40, 88);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  // The two styles in the title, "Overhead / Airport": the one showing bright, the other dimmed. Tapping either
-  // switches (modeSw, buttons laid over the words).
-  const ap = airportMode(), t1 = T("Overhead (board style)"), t2 = T("Airport (board style)"), x1 = M + 116;
+  // The two styles in the title: the one showing in amber, the other faded, a swap sign between them (1.47; a slash
+  // before). Tapping either switches (modeSw, buttons laid over the words).
+  const ap = airportMode(), t1 = T("Overhead (board style)"), t2 = T("Airport (board style)"), x1 = M + 116, gap = 78;
   g.textBaseline = "alphabetic"; g.textAlign = "left";
-  g.font = `${ap ? 400 : 700} 66px ${FONT}`; g.fillStyle = ap ? COL.muted : COL.ink; g.fillText(t1, x1, 98);
-  const w1 = g.measureText(t1).width;
-  g.font = `400 66px ${FONT}`; g.fillStyle = COL.muted; g.fillText(" / ", x1 + w1, 98);
-  const x2 = x1 + w1 + g.measureText(" / ").width;
-  g.font = `${ap ? 700 : 400} 66px ${FONT}`; g.fillStyle = ap ? COL.ink : COL.muted; g.fillText(t2, x2, 98);
-  placeModeSwitch(x1, w1, x2, g.measureText(t2).width);
+  const word = (t, x, on) => {
+    g.font = `${on ? 700 : 400} 66px ${FONT}`; g.fillStyle = on ? COL.amber : COL.muted; g.globalAlpha = on ? 1 : .45;
+    g.fillText(t, x, 98); g.globalAlpha = 1;
+    return g.measureText(t).width;
+  };
+  const w1 = word(t1, x1, !ap), x2 = x1 + w1 + gap;
+  swapSign(g, x1 + w1 + gap / 2, 75);
+  placeModeSwitch(x1, w1, x2, word(t2, x2, ap));
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -3311,7 +3313,7 @@ setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_I
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
   if (view === "logbook" && lbPlace) { const b = lbPlaceData[lbPlace];
-    return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
+    return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
   if (view === "logbook") return logbookSummary();
   if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
   if (view === "records") return T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.");
@@ -3541,8 +3543,9 @@ function buildViewTools(){
   const box = $("viewTools");
   if (view === "logbook" || view === "collection" || view === "records") {
     const to = ["logbook", "collection", "records"].filter(v => v !== view);
-    const pl = view === "logbook" && lbPlaceOk() ? ((lbData() || {}).places || []).filter(([k, n]) => n > 0) : [];
-    const chips = pl.length > 1 || (pl.length === 1 && pl[0][0] !== "home") ? [["", T("All")], ...pl.map(([k, n]) => [k, `${placeName(k)} ${nf.format(n)}`])] : [];
+    const pl = view === "logbook" && lbPlaceOk() ? lbChips() : [];
+    if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+    const chips = pl.length ? [["", T("All")], ...pl.map(c => [c.id, `${c.name} ${nf.format(c.n)}`])] : [];
     box.innerHTML = chips.map(([k, t]) => `<button class="cap small" type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(t)}</button>`).join("") +
       to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records"}[v])}</button>`).join("") +
       (view === "logbook" && !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cap small" href="${relay()}/logbook.csv" download>${T("CSV")}</a>` : "");
@@ -3550,7 +3553,7 @@ function buildViewTools(){
     for (const b of box.querySelectorAll("[data-p]")) b.onclick = async e => {
       e.stopPropagation(); ctlSound.press();
       lbPlace = b.dataset.p; buildViewTools(); drawStatic(); renderLogbookBoard();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} drawStatic(); renderLogbookBoard(); }
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} drawStatic(); renderLogbookBoard(); }
     };
     box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
     return true;
@@ -3705,12 +3708,27 @@ const lbData = () => S.demo ? demoLogbook() : lbCache;
 // The Logbook by place (1.44 on the board, relay 37): All, or one place's own numbers.
 let lbPlace = "", lbPlaceData = {};
 const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
+// 1.47: a place button for each place that still exists: home (together with a saved label at the relay's own point,
+// relay 40 merging them), on the go and the saved labels. A removed label or an unnamed spot only counts under All.
+// Each chip: {id (its keys joined by a line break), keys, name, n}.
+function lbChips(){
+  const cnt = new Map(((lbData() || {}).places || []).filter(([k, n]) => n > 0)), list = places.list || [], out = [];
+  const atHome = !GUEST && DEFAULTS.lat != null ? list.find(p => gcKm(+p.lat, +p.lon, +DEFAULTS.lat, +DEFAULTS.lon) < 0.1) : null;
+  const add = (keys, name) => { keys = keys.filter(k => cnt.has(k)); if (keys.length) out.push({id: keys.join("\n"), keys, name, n: keys.reduce((a, k) => a + cnt.get(k), 0)}); };
+  const homeKeys = ["home", ...(atHome && (window.OVERHEAD_RELAY_VERSION || 0) >= 40 ? [atHome.k] : [])];
+  add(homeKeys, atHome && homeKeys.length > 1 ? atHome.k : placeName("home"));
+  add(["live"], placeName("live"));
+  for (const p of list) if (!homeKeys.includes(p.k)) add([p.k], p.k);
+  return out.length > 1 || (out.length === 1 && out[0].keys[0] !== "home") ? out : [];
+}
+const lbPlaceName = id => (lbChips().find(c => c.id === id) || {}).name || placeName(id);
+const lbPlaceUrl = id => `${relay()}/logbook?` + id.split("\n").map(k => "place=" + encodeURIComponent(k)).join("&");
 async function fetchLogbook(){
   if (!S.demo && relayV5()) {
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
     if (lbPlace && lbPlaceOk() && view === "logbook") {
-      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+      try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {}
     }
   }
   renderLogbookBoard(); renderCollection(); renderRecords();
@@ -4026,6 +4044,16 @@ function buildRail(){
   vb.innerHTML = RAIL_VIEWS.map(([v, t]) => `<button class="cap" type="button" data-view="${v}" aria-pressed="false">${RAIL_ICONS[VIEW_ICON[v]] || ""}<span>${T(t)}</span></button>`).join("");
   for (const b of pb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); const p = b.dataset.page; view ? switchView(null, {page: p}) : pickPage(p); };
   for (const b of vb.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); toggleView(b.dataset.view); };
+}
+// Two arrows passing each other, the title's sign that the styles swap (1.47).
+function swapSign(g, cx, cy){
+  g.save();
+  g.strokeStyle = COL.muted; g.globalAlpha = .8; g.lineWidth = 4; g.lineCap = g.lineJoin = "round";
+  g.beginPath();
+  g.moveTo(cx - 17, cy - 8); g.lineTo(cx + 17, cy - 8); g.moveTo(cx + 9, cy - 16); g.lineTo(cx + 17, cy - 8); g.lineTo(cx + 9, cy);
+  g.moveTo(cx + 17, cy + 10); g.lineTo(cx - 17, cy + 10); g.moveTo(cx - 9, cy + 2); g.lineTo(cx - 17, cy + 10); g.lineTo(cx - 9, cy + 18);
+  g.stroke();
+  g.restore();
 }
 function placeModeSwitch(x1, w1, x2, w2){
   const [a, b] = $("modeSw").children, box = (el, x, w) => Object.assign(el.style, {left: `calc(${x - 6}px * var(--k))`,
@@ -5858,6 +5886,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.47", date: "2026-10-18", notes: [
+    "The title shows the style you're in, in amber, with a swap sign to the other one.",
+    "The logbook's place buttons only show the places you still have; removed ones count under All."]},
   {v: "1.46", date: "2026-10-18", notes: [
     "Sign in a TV with your phone: a screen that isn't signed in shows a QR code to scan.",
     "Account: Sign out sits next to your name, and each sign-in method has its button beside it.",

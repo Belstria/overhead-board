@@ -684,7 +684,7 @@ async function fetchLogbook(){
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
     if (lbPlace && lbPlaceOk() && tab === "logbook") {
-      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+      try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {}
     }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
@@ -695,11 +695,11 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
-  const all = lbData() || {}, pl = (all.places || []).filter(([k, n]) => n > 0);
-  if (lbPlace && !pl.some(([k]) => k === lbPlace)) lbPlace = "";
+  const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
+  if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const chips = $("lbPlaces");
-  chips.hidden = !lbPlaceOk() || pl.length < 2 && !(pl.length === 1 && pl[0][0] !== "home");
-  const want = [["", T("All")], ...pl.map(([k, n]) => [k, placeName(k), n])];
+  chips.hidden = !pl.length;
+  const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
   const csig = JSON.stringify([want, lbPlace, LANG]);
   if (chips.dataset.sig !== csig) {
     chips.dataset.sig = csig;
@@ -707,12 +707,12 @@ function renderLogbook(){
     for (const btn of chips.children) btn.onclick = async () => {
       if (btn.dataset.p === lbPlace) return;
       ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
     };
   }
   const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
   $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
