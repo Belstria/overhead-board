@@ -145,7 +145,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
 - **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
-  today's planes, a few words from Wikipedia, Favourite / Hide), a place (From, To) for its airport (name, codes,
+  today's planes, its country and radio callsign, a few words from Wikipedia (1.50: also found under a shorter name or
+  by Wikipedia's search), its logo once loaded, Favourite / Hide), a place (From, To) for its airport (name, codes,
   distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
   Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
   the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
@@ -189,6 +190,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   as plain text engraved into the panel, like the legend: time, flight, airline, route, aircraft and registration,
   closest distance, altitude and remarks. Special planes get a lamp and a tinted row in the remark's colour. Buttons above it filter to overhead or special planes, turn the pages (or the arrow keys), and
   show the **Legend** of every remark. It covers the whole day (relay 10 or newer; older relays send the newest 400).
+  On a computer (not on the TVs) a **filter** box sits beside the buttons (1.50): type an airline, flight number, city
+  or airport (name or code), aircraft type or registration; words separated by commas must all match ("Austrian, VIE"
+  is Austrian's flights from or to Vienna). × clears it; it is per device and empty again after a reload.
 - **Logbook** (press **L**): totals, the most seen model, the categories, and the top aircraft types, airlines and
   individual aircraft, with the newest ones, all on flaps. How many were passenger, cargo, business jet, private and light, helicopter,
   military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
@@ -198,7 +202,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
   Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
-  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week, and **17 trophies** (Century, Type
+  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
+  it says when, and how long until then), and **17 trophies** (Century, Type
   hunter, Odd couple: a 747 and a helicopter on the same day, Night owl, Bullseye ...) that are won once and kept for
   good; nothing ever resets. An older logbook wins its trophies once from its saved days, on the day they were earned.
 - **Achievements** (1.38; boards and phone app): when a collection is complete, a bingo line is made or a trophy is won,
@@ -264,7 +269,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Control plate) → **Show the tips again** brings them back. On the full board they close by themselves after 11 seconds.
   Since 1.49 the first visit walks through everything on the main page at once: the two styles (Overhead and Airport,
   and what each shows), each page button and each view (the board) or tab (the app); the first switch to Airport walks
-  through its pages. On the board the tips scale with the screen.
+  through its pages. On the board the tips scale with the screen. The next tip follows right after one is closed (1.50).
 - **Take-off and landing pictograms** (1.49): TAKE-OFF and CLIMBING show a filled plane climbing away from a runway line,
   APPROACH and FINAL one coming down to it, LANDED the plane level on the runway (after [Tabler Icons](https://tabler.io/icons)'
   plane-departure and plane-arrival, MIT licence, © Paweł Kuna), on the flaps, in the app's chips and on the page buttons.
@@ -385,7 +390,7 @@ Five buttons along the bottom:
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
-  airline), and every plane spotted today, with the same filters and legend as the board.
+  airline), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
 - **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
   At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the

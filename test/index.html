@@ -135,6 +135,16 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .cap:disabled{cursor:default;filter:brightness(.6)}
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
+/* 1.50: the filter above Spotted today (the board on a computer, the app) */
+.svFind{position:relative;display:inline-flex;align-items:center}
+.svFind input{box-sizing:border-box;width:calc(250px*var(--k));height:calc(34px*var(--k));margin:0;padding:0 calc(32px*var(--k)) 0 calc(12px*var(--k));border-radius:calc(8px*var(--k));
+  border:1px solid rgba(255,255,255,.16);background:#0f1012;color:#f3f0e8;font:600 calc(14px*var(--k)) "Archivo Narrow","Arial Narrow",sans-serif;outline:none;-webkit-appearance:none;appearance:none}
+.svFind input:focus{border-color:#f0b429}
+.svFind input::placeholder{color:rgba(243,240,232,.42)}
+.svFind input::-webkit-search-cancel-button{display:none}
+.svFind button{all:unset;position:absolute;right:calc(6px*var(--k));width:calc(22px*var(--k));height:calc(22px*var(--k));line-height:calc(22px*var(--k));text-align:center;border-radius:50%;
+  cursor:pointer;color:#f3f0e8;background:rgba(255,255,255,.14);font:700 calc(15px*var(--k)) sans-serif}
+.svFind button[hidden]{display:none}
 #viewTools{z-index:2}
 #modeSw button{position:absolute;z-index:3;padding:0;border:0;background:transparent;color:transparent;cursor:pointer;border-radius:calc(6px*var(--k));outline:none}
 #modeSw button:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
@@ -358,7 +368,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .inst.updAll .geoQ{margin-top:calc(6px*var(--k));gap:calc(6px*var(--k))}
 .inst.updAll .geoQ input{padding:calc(4px*var(--k)) calc(8px*var(--k));font-size:calc(12px*var(--k));height:calc(28px*var(--k))}
 .inst.updAll .note{display:none}                 /* the board: City and Airport show the result, choices open as a pop-up */
-#tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .38s ease;cursor:pointer}
+#tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .18s ease;cursor:pointer}
 #tipLayer.on{opacity:1}
 #tipLayer .tipShade{position:absolute;inset:0;transition:background .3s ease}
 #tipLayer .tipRing{position:absolute;border-radius:14px;border:2px solid #f0b429;pointer-events:none;
@@ -366,7 +376,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 @keyframes tipPulse{50%{box-shadow:0 0 0 8px rgba(240,180,41,.07),0 0 36px 12px rgba(240,180,41,.42)}}
 #tipLayer .tipBub{position:absolute;box-sizing:border-box;width:max-content;max-width:min(calc(340px*var(--tipK,1)),calc(100vw - 24px));padding:calc(14px*var(--tipK,1)) calc(16px*var(--tipK,1)) calc(12px*var(--tipK,1));border-radius:calc(14px*var(--tipK,1));
   background:linear-gradient(#25272c,#18191c);border:1px solid rgba(240,180,41,.45);box-shadow:0 14px 40px rgba(0,0,0,.6);
-  color:#f3f0e8;font:500 calc(15.5px*var(--tipK,1))/1.4 "Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;transform:translateY(6px);transition:transform .38s ease}
+  color:#f3f0e8;font:500 calc(15.5px*var(--tipK,1))/1.4 "Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;transform:translateY(6px);transition:transform .18s ease}
 #tipLayer.on .tipBub{transform:none}
 #tipLayer .tipBub p{margin:0}
 #tipLayer .tipOk{all:unset;cursor:pointer;display:inline-block;margin-top:calc(10px*var(--tipK,1));padding:calc(7px*var(--tipK,1)) calc(14px*var(--tipK,1));border-radius:calc(8px*var(--tipK,1));background:#f0b429;color:#141414;
@@ -620,6 +630,8 @@ function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-dig
    with shorter flap runs and a smaller cache ("1080p, lighter for TVs"). Everything else draws as sharp as the
    screen allows, up to 4K. Settings → Drawing quality, or ?quality=1080 / 1440 / high. */
 const WEAK_TV = /AFT[A-Z]|Silk\/|AmazonWebAppPlatform|Web0S|webOS|NetCast|Android TV|GoogleTV|BRAVIA|AndroidTV/i.test(navigator.userAgent || "");
+// 1.50: a screen with a keyboard and mouse (a computer, not a TV): the board shows fields to type in, like Spotted today's filter.
+const HAS_KEYS = !WEAK_TV && !/Tizen|SMART-TV|SmartTV|HbbTV|CrKey/i.test(navigator.userAgent || "") && !!(window.matchMedia && matchMedia("(any-pointer: fine)").matches);
 const quality = () => { const q = S.quality || "auto"; return q === "auto" ? (WEAK_TV ? "1080" : "high") : q; };
 const LITE = () => quality() === "1080";
 const pxCap = () => ({"1080": 1, "1440": 4 / 3}[quality()] || 2);
@@ -2777,6 +2789,16 @@ const GOAL_TEXT = {heli: "A helicopter",
   turkish: "Turkish Airlines",
   fast: "Faster than {s}"};
 const goalText = k => T(GOAL_TEXT[k] || k, {a: altitudeStr(2500).toLowerCase(), s: speedStr(520).toLowerCase()});
+// 1.50: when the weekly bingo card is drawn afresh: the relay says (relay 44), else the Monday after its week at 03:00.
+function bingoReset(bg){
+  if (!bg || !bg.week) return "";
+  let at = +bg.resets || 0;
+  if (!at) { const d = new Date(bg.week + "T03:00:00"); d.setDate(d.getDate() + 7); at = +d; }
+  const left = at - Date.now();
+  if (!(left > 0)) return T("New card soon");
+  const t = left >= 48 * 36e5 ? T("{n} days", {n: Math.round(left / 864e5)}) : left >= 36e5 ? T("{n} h", {n: Math.floor(left / 36e5)}) : T("{n} min", {n: Math.max(1, Math.ceil(left / 6e4))});
+  return T("New card {d} (in {t})", {d: new Date(at).toLocaleString(LOC(), {weekday: "short", hour: "2-digit", minute: "2-digit"}), t});
+}
 const trophyText = k => [T((TROPHY_TEXT[k] || [k])[0]), T((TROPHY_TEXT[k] || ["", ""])[1], {a: altitudeStr(1500).toLowerCase()})];
 // How often this airframe was seen here before (relay 28, /seen): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7
 // MONTHS when it had been away for two months or more. The count is the times before this pass.
@@ -3460,10 +3482,10 @@ function airportChanged(){ renderAirport(); }
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
 let svFilter = "all", svPageNo = 0, svLegend = false;
 let svSig = "";function svData(){
-  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm(), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
-  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
-  const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
+  const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecial).length};
+  const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
   return {real, rows, counts, pages: Math.max(1, Math.ceil(rows.length / SV_ROWS))};
 }
 function spottedSummary(){
@@ -3477,6 +3499,29 @@ function spottedSummary(){
     T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
     `${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
 }
+// 1.50: the filter above Spotted today (where there is a keyboard): words, comma-separated, each found in the airline,
+// flight, places, aircraft type or registration ("Austrian, Vienna"). Per device, gone on a reload.
+let svQuery = "";
+function spotMatch(e, q){
+  const terms = String(q || "").split(",").map(t => clean(t)).filter(Boolean);
+  if (!terms.length) return true;
+  const al = airlineOf(e), pl = p => p ? [p.code, code3(p), p.city, p.name, p.icao, p.iata] : [];
+  const hay = clean([e.flight, e.callsign, e.flightNo, e.airline, al.name, al.icao, al.iata, ...pl(e.from), ...pl(e.to), e.type, e.typeCode, TYPES[e.typeCode], e.reg].filter(Boolean).join(" | "));
+  const tight = hay.replace(/[\s-]/g, "");
+  return terms.every(t => hay.includes(t) || tight.includes(t.replace(/[\s-]/g, "")));
+}
+const svFindHtml = () => `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
+  `placeholder="${escH(T("Filter, e.g. Austrian, VIE"))}" aria-label="${escH(T("Filter"))}" value="${escH(svQuery)}">` +
+  `<button type="button" data-qx aria-label="${escH(T("Clear"))}"${svQuery ? "" : " hidden"}>×</button></span>`;
+// The filter's box: typing filters as it goes, × empties it. `go` redraws the list.
+function svFindWire(box, go){
+  const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
+  if (!inp) return;
+  const set = v => { svQuery = v; x.hidden = !v; go(); };
+  inp.oninput = () => set(inp.value.trim());
+  for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
+  x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+}
 const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
 function altNum(ft){
   if (typeof ft !== "number") return "";
@@ -3489,7 +3534,7 @@ function svPart(){
   svPageNo = Math.max(0, Math.min(svPageNo, d.pages - 1));
   return {...d, part: d.rows.slice(svPageNo * SV_ROWS, (svPageNo + 1) * SV_ROWS)};
 }
-const svSignature = ({part, pages}) => [svPageNo, pages, svFilter, svLegend, S.units, spottedSummary(),
+const svSignature = ({part, pages}) => [svPageNo, pages, svFilter, svQuery, svLegend, S.units, spottedSummary(),
   ...part.map(e => [e.id || e.hex, e.time, e.flight, e.type, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e), e.done].join("|"))].join("~");
 function renderSpottedBoard(){
   if (view !== "spotted") return;
@@ -3522,12 +3567,12 @@ function drawSpottedTable(g){
   head(SV_X.from, "From", "Von"); head(SV_X.to, "To", "Nach"); head(SV_X.type, "Aircraft", "Flugzeug");
   head(SV_X.dist, "Closest", "km", true); head(SV_X.alt, "Altitude", S.units === "metric" ? "m" : "ft", true); head(SV_X.rem, "Remarks", "Hinweis");
   g.font = `600 17px ${FONT}`; g.textAlign = "right"; g.fillStyle = COL.muted; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  if (rows.length) g.fillText(T("PAGE {a} OF {b}", {a: svPageNo + 1, b: pages}), W - M - 548, 202);
+  if (rows.length) g.fillText(T("PAGE {a} OF {b}", {a: svPageNo + 1, b: pages}), W - M - 548 - (HAS_KEYS ? 280 : 0), 202);   // left of the filter box
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   g.textAlign = "left";
   if (!rows.length) {
     g.font = `500 22px ${FONT}`; g.fillStyle = COL.muted;
-    g.fillText(svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet."), M, 340);
+    g.fillText(svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet."), M, 340);
     return;
   }
   part.forEach((e, i) => {
@@ -3669,8 +3714,9 @@ function buildViewTools(){
   const placesOn = placesRelay() && (places.list.length || S.live || placeKeyNow() !== "home" || seenFrom > 1);
   if (box.children.length && !!box.querySelector('[data-t="places"]') !== !!placesOn) box.innerHTML = "";
   if (!box.children.length) {
-    box.innerHTML = (placesOn ? [["places", "All places"]] : []).concat(SV_TOOLS).map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
-    for (const b of box.children) b.onclick = e => {
+    box.innerHTML = (HAS_KEYS ? svFindHtml() : "") + (placesOn ? [["places", "All places"]] : []).concat(SV_TOOLS).map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
+    svFindWire(box, () => { svPageNo = 0; renderSpottedBoard(); });
+    for (const b of box.querySelectorAll("[data-t]")) b.onclick = e => {
       e.stopPropagation(); ctlSound.press();
       const k = b.dataset.t;
       if (k === "prev" || k === "next") return svStep(k === "next" ? 1 : -1);
@@ -3688,7 +3734,7 @@ function updateViewTools(){
   const box = $("viewTools");
   if (view !== "spotted" || !box.children.length) return;
   const {counts} = svData();
-  for (const b of box.children) {
+  for (const b of box.querySelectorAll("[data-t]")) {
     const k = b.dataset.t, n = counts[k];
     if (n != null) b.textContent = `${T(SV_TOOLS.find(t => t[0] === k)[1])} ${nf.format(n)}`;
     if (k === "places") b.textContent = allPlaces ? T("All places") : placeLabel();
@@ -3708,6 +3754,8 @@ function recordsStatic(g){
   if (bg && bg.card) {
     const x0 = M, y0 = 470, cw = 250, ch = 128, gap = 10, nd = Object.keys(bg.done || {}).length;
     head(T("This week's bingo"), x0, y0);
+    const hw = (g.font = `600 15px ${FONT}`, g.measureText(T("This week's bingo").toUpperCase()).width + T("This week's bingo").length * 2);
+    g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; fit(bingoReset(bg), x0 + hw + 18, y0, 3 * (cw + gap) - 180 - hw - 36);
     g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; g.fillText(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}), x0 + 3 * (cw + gap) - 160, y0);
     bg.card.forEach((k, i) => {
       const x = x0 + (i % 3) * (cw + gap), y = y0 + 16 + Math.floor(i / 3) * (ch + gap), done = !!(bg.done || {})[k];
@@ -3745,7 +3793,7 @@ function drawTrophy(g, cx, cy, s, on){
 let rcSig = "";
 function renderRecords(){
   if (view !== "records") return;
-  const g1 = game() || {}, sig = JSON.stringify([g1.bingo, g1.trophies, LANG]);
+  const g1 = game() || {}, sig = JSON.stringify([g1.bingo, g1.trophies, LANG, bingoReset(g1.bingo)]);
   if (!snapping && sig !== rcSig) { rcSig = sig; drawStatic(); }
   const r = (lbData() || {}).records || {};
   const who = x => x.callsign || x.reg || x.type || "";
@@ -4270,6 +4318,17 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  // 1.50
+  ["Country", "Land", "Pays", "País", "Land"],
+  ["Radio callsign", "Funkrufname", "Indicatif radio", "Indicativo de radio", "Roepnaam"],
+  ["New card soon", "Bald eine neue Karte", "Nouvelle carte bientôt", "Cartón nuevo pronto", "Binnenkort een nieuwe kaart"],
+  ["New card {d} (in {t})", "Neue Karte {d} (in {t})", "Nouvelle carte {d} (dans {t})", "Cartón nuevo {d} (en {t})", "Nieuwe kaart {d} (over {t})"],
+  ["{n} days", "{n} Tagen", "{n} jours", "{n} días", "{n} dagen"],
+  ["{n} h", "{n} Std.", "{n} h", "{n} h", "{n} uur"],
+  ["{n} min", "{n} Min.", "{n} min", "{n} min", "{n} min"],
+  ["Filter, e.g. Austrian, VIE", "Filtern, z. B. Austrian, VIE", "Filtrer, p. ex. Austrian, VIE", "Filtrar, p. ej. Austrian, VIE", "Filteren, bijv. Austrian, VIE"],
+  ["Filter", "Filter", "Filtre", "Filtro", "Filter"],
+  ["Clear", "Leeren", "Effacer", "Borrar", "Wissen"],
   ["Switch to the light version", "Zur leichten Version wechseln", "Passer à la version légère", "Cambiar a la versión ligera", "Naar de lichte versie"],
   ["Back to the full app", "Zurück zur vollen App", "Retour à l'appli complète", "Volver a la app completa", "Terug naar de volledige app"],
   ["The same planes, lists and cards in a plain, modern display without split flaps.", "Dieselben Flugzeuge, Listen und Karten in einer schlichten, modernen Anzeige ohne Fallblätter.", "Les mêmes avions, listes et fiches dans un affichage sobre et moderne, sans palettes.", "Los mismos aviones, listas y fichas en una pantalla sencilla y moderna, sin paletas.", "Dezelfde vliegtuigen, lijsten en kaarten in een eenvoudige, moderne weergave zonder klappen."],
@@ -5307,23 +5366,52 @@ function airlineOf(x){
   const a = AIRLINES[icao] || [];
   return {icao, iata: x.airlineCode || a[0] || "", name: x.airline || a[1] || icao || x.airlineCode || ""};
 }
+// 1.50: the Wikipedia page of an airline: its name and shorter forms ("HiSky Europe" → "HiSky"), then Wikipedia's search.
+const AIRLINE_TAIL = /\s+(Europe|Airlines?|Airways|Air ?Lines|Aviation|Group|International|Express|Cargo)$/i;
+async function airlineWiki(a){
+  const like = /airline|carrier/i, names = [a.name];
+  for (let n = a.name; AIRLINE_TAIL.test(n);) names.push(n = n.replace(AIRLINE_TAIL, ""));
+  const p = await wikiFind(names.flatMap(n => [n + " (airline)", n, n + " Airlines", n + " Air Lines"]), like);
+  if (p || S.demo) return p;
+  try {
+    const j = await fetchJSON(`https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=5&format=json&origin=*&srsearch=${encodeURIComponent(a.name + " airline")}`, {}, 4000);
+    const first = clean(names[names.length - 1]).split(" ")[0];
+    return await wikiFind(((j.query || {}).search || []).map(h => h.title).filter(t => clean(t).startsWith(first)), like);
+  } catch { return null; }
+}
+// What adsbdb knows about an airline (its country and radio callsign), also for airlines Wikipedia has no page on.
+const airlineFacts = new Map();
+function airlineInfo(icao){
+  if (!icao || S.demo) return Promise.resolve(null);
+  if (!airlineFacts.has(icao)) airlineFacts.set(icao, fetchJSON(`https://api.adsbdb.com/v0/airline/${encodeURIComponent(icao)}`, {}, 4000)
+    .then(j => { const r = j && j.response; return (Array.isArray(r) ? r.find(x => x.icao === icao) || r[0] : r) || null; }).catch(() => null));
+  return airlineFacts.get(icao);
+}
+const countryName = (iso, name) => { try { return iso ? new Intl.DisplayNames([LOC()], {type: "region"}).of(iso) || name : name; } catch { return name; } };
+// 1.50: an airline's logo still loading: the card waits for it (a few seconds at most), so it shows the first time.
+function logoReady(L, ms = 3000){
+  if (!L || L.state !== "loading") return Promise.resolve();
+  return new Promise(r => { const t0 = Date.now(), t = setInterval(() => { if (L.state !== "loading" || Date.now() - t0 > ms) { clearInterval(t); r(); } }, 50); });
+}
 async function airlineCard(x){
   const a = airlineOf(x || {});
   if (!a.name) return;
   ctlSound.press();
   const b = lbData() || {}, lb = a.icao && b.airlines ? b.airlines[a.icao] : null;
   const today = a.icao ? dayList().filter(e => airlineOf(e).icao === a.icao).length : 0;
-  const L = a.iata ? logo(a.iata) : null, src = L && L.state === "ok" ? L.img.src : "";
+  const L = a.iata ? logo(a.iata) : null;
   const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
   const music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
-  const draw = w => (`<div class="cHead"${music ? " data-music" : ""}>${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
+  const draw = (w, info) => { const src = L && L.state === "ok" ? L.img.src : "", cs = info && info.callsign ? String(info.callsign).toUpperCase() : "";
+    return (`<div class="cHead"${music ? " data-music" : ""}>${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
     factsHtml([["Codes", escH([a.iata, a.icao].filter(Boolean).join(" · "))], ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
-      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
-    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""],
+      ["Country", info && info.country ? escH(countryName(info.country_iso, info.country)) : ""], ["Radio callsign", escH(cs)]]) + wikiHtml(w) +
+    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : "")); };
   const tok = cardLoading(!!music);
   if (music) cardMusicStart(music);                 // in the tap itself, so the browser lets it play
-  const w = await cardWait(wikiFind([a.name + " (airline)", a.name, a.name + " Airlines", a.name + " Air Lines"], /airline|carrier/i), 4500);
-  cardWhenReady(tok, draw(w));
+  const [w, info] = await Promise.all([cardWait(airlineWiki(a), 4500), cardWait(airlineInfo(a.icao), 4500), logoReady(L)]);
+  cardWhenReady(tok, draw(w, info));
 }
 // A place a plane comes from or flies to: its airport (the relay's list: name, codes, runways), the distance from
 // here and Wikipedia's words about the airport.
@@ -5617,9 +5705,10 @@ function tipNext(){
   if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
   const t = tipQueue.shift();
   const el = typeof t.target === "function" ? t.target() : t.target;
-  if (t.target && (!el || !el.getClientRects().length)) { setTimeout(tipNext, 60); return; }     // not on screen now: another time
+  if (t.target && (!el || !el.getClientRects().length)) return tipNext();     // not on screen now: another time
   tipCur = t;
-  if (el) { const r = el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 90) el.scrollIntoView({block: "center"}); }
+  let moved = false;
+  if (el) { const r = el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 90) { el.scrollIntoView({block: "center"}); moved = Math.abs(el.getBoundingClientRect().top - r.top) > 1; } }
   const L = document.createElement("div");
   L.id = "tipLayer";
   L.innerHTML = `<div class="tipShade"></div>${el ? '<div class="tipRing"></div>' : ""}<div class="tipBub" role="dialog" aria-live="polite"><p></p><button class="tipOk" type="button"></button></div>`;
@@ -5644,13 +5733,13 @@ function tipNext(){
     tipCur = null;
     L.style.pointerEvents = "none";                        // fading out: a second tap goes nowhere
     removeEventListener("resize", place); removeEventListener("scroll", place, true); removeEventListener("keydown", key, true);
-    L.classList.remove("on"); setTimeout(() => L.remove(), 380);
-    setTimeout(tipNext, 700);
+    L.classList.remove("on"); setTimeout(() => L.remove(), 200);
+    setTimeout(tipNext, 40);                               // 1.50: the next one follows at once, over the fading one
   };
   const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
   L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
   addEventListener("resize", place); addEventListener("scroll", place, {passive: true, capture: true}); addEventListener("keydown", key, true);
-  setTimeout(() => { place(); L.classList.add("on"); }, el ? 280 : 30);
+  setTimeout(() => { place(); L.classList.add("on"); }, moved ? 50 : 20);
   if (t.auto) setTimeout(done, t.auto);
 }
 
@@ -6069,6 +6158,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.50", date: "2026-10-18", notes: [
+    "Spotted today has a filter: type an airline, flight, city, airport, aircraft type or registration; separate words with commas to combine them (in the app, and on the board on a computer).",
+    "The weekly bingo says when the next card comes.",
+    "Airline cards find more airlines on Wikipedia and show the country and radio callsign.",
+    "Airline cards show the logo the first time they open.",
+    "The next tip appears right after the last one is closed.",
+  ]},
   {v: "1.49.1", date: "2026-10-18", notes: [
     "The admin pages are only for the board's owner.",
     "A new guest's welcome suggests a city and airport and leaves the exact spot to them.",

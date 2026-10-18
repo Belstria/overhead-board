@@ -593,18 +593,19 @@ function todayList(){
   return userLists.hide.length ? fullDay.list.filter(e => !isHidden(e)) : fullDay.list;
 }
 function svData(){
-  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm(), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
-  const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
-  const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
+  const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecial).length};
+  const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
   return {real, rows, counts};
 }
 //@E27
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
-  for (const b of box.children) b.onclick = () => {
+  box.innerHTML = svFindHtml() + SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
+  svFindWire(box, () => { svSig = ""; renderToday(); });
+  for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.press();
     const k = b.dataset.t;
     svFilter = k;
@@ -654,7 +655,7 @@ function renderToday(){
   loadFullDay();
   renderTodayNumbers();
   const d = svData();
-  for (const b of $("svTools").children) {
+  for (const b of $("svTools").querySelectorAll("[data-t]")) {
     const k = b.dataset.t, n = d.counts[k];
     const text = `${T(SV_TOOLS.find(t => t[0] === k)[1])}${n != null ? " " + nf.format(n) : ""}`;
     if (b.textContent !== text) b.textContent = text;
@@ -669,13 +670,13 @@ function renderToday(){
     one.textContent = placeLabel(); all.textContent = T("All places");
     one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
-  const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
+  const sig = svFilter + svQuery + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
   const waiting = allPlaces && !(fullDay.all && fullDay.list);
   if (!waiting) $("svList").style.minHeight = "";
   $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
-    : `<li class="empty">${svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
+    : `<li class="empty">${svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
 function renderLists(){
   renderRecent();
@@ -769,7 +770,7 @@ function renderLogbook(){
       return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
     const cups = TROPHY_IDS.map(k => { const [nm, what] = trophyText(k), d = won[k];
       return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
-    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))}</p><div class="bingo">${cells}</div>` +
+    const more = `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>` +
       `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p><ul class="ranks plain cups">${cups}</ul>`;
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
