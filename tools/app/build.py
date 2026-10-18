@@ -85,7 +85,9 @@ def extract(text):
         "E26": ex("const lampOf = r =>", "// Spotted today is engraved text, like the legend"),
         "E27": ex("function spottedSummary(){", "const lampOf = r =>"),
         "E28": ex("const LB_CATS = [", "vdef(\"logbook\", \"lvSight\""),
-        "E29": ex("function rotaryAngles(n)", "function plateHtml(p){") + ex("function wheelStep(it, part, d){", "function cockpitDirty(){") + ex("/* ---------- Settings: the sounds of the controls", "function applySettings(n){"),
+        # Settings (1.53.2): the shared plates (COCKPIT, cockpitFor), the controls, their wiring, Save/Cancel; main.js's
+        # cockpit region says which screen (COCKPIT_FOR) and the app's own cockpitDone/cockpitMark go with it
+        "E29": ex("/* Settings, once for every screen", "function plateHtml(p){") + ex("/* ---------- Settings: the sounds of the controls", "function applySettings(n){"),
         "E33": ex("/* ---------- languages ----------", "/* ---------- airport mode ----------"),
         "E32": ex("/* ---------- airport mode ----------", "/* ---------- versions and patch notes ----------"),
         "E31": ex("/* ---------- versions and patch notes", "/* ---------- settings: a cockpit panel ----------"),
