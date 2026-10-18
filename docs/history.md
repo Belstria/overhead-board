@@ -54,7 +54,7 @@ head.html/main.js and the board's code (`extract`/`assemble` in `tools/app/build
 marks `//@L:name` ... `//@L:end` with `tools/light/light.js` (the app build keeps them): `flag` (`LIGHT`), `engine1`/
 `engine2` (makePanel/def/placeRow/setChars/setWord as DOM fields: label above value, `lfPaint` slides a new value in;
 words: `chip()`, trend arrows, tier pill, airline logo; E4/E5 left out), `static`, `metal`, `radar` (flat scope),
-`cockpit` (no flap settings; Sounds: Button sounds = `S.sound`, Chimes, Bell), `taps` (cards by `data-f`), `greet`
+`cockpit` (since 1.53.2 only `COCKPIT_FOR = "light"`: the board's COCKPIT without `flaps: true`, with its `light: {…}`), `taps` (cards by `data-f`), `greet`
 (welcome text slides in). `tools/light/light.css` comes after the app's styles. Settings under `od.light.settings`
 (`.g.<id>` per guest); `LIGHT_FIXED` (real, imperfect, quick, theme, soundSet) and `sound` stay out of `/me`. It uses
 the app's manifest, icons and service worker (`SW_DIR` = `../app/`; `sw.js` matches `/light/` too). Settings → Device
@@ -108,7 +108,19 @@ radar zooms to the runways; `rwyMix` eases it and returns `moving`, so `placePho
 `run_test_relay.py --far` starts the landing 32 km out).
 
 Settings cockpit (shared by the boards and the app): `COCKPIT` plates are CSS grids of `cols` cells, items take `span`
-cells or `wide`; `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
+cells or `wide`. Since 1.53.2 (to-do #47, steps 1-2) there is one `COCKPIT`, in the test board, for every screen:
+plates have an `id`; `for: "tv"|"phone"` keeps a plate or control to one side, `flaps: true` leaves it out of the light
+version, `phone: {…}`/`light: {…}` override (span, label, title, `places`/`search`; `plate` + `before` moves a control:
+New plane ding sits in Traffic on the board, in Flaps & sound on the phone), `dflt` is the value shown for a setting
+never set (quality: auto). `cockpitFor(target)` resolves it ("tv", "phone", "light"; phone plates have 2 columns) into
+`PLATES`/`ITEMS` from the page's `COCKPIT_FOR` (the board's line before the shared block; main.js's and light.js's
+`//@L:cockpit` region). Shared too (E29, from "/* Settings, once for every screen" to `plateHtml`): `cockpitDraft()`,
+`wireCockpit(box)` (the controls; the mouse wheel turns knobs only on the board, where Settings never scroll; arrow keys
+everywhere), `cockpitShow`, `cockpitUnsaved`, `cockpitDirty`, `cockpitSave`, `cockpitCancel`. Each page has its own
+`plateHtml`, `cockpitOpen` and two hooks: `cockpitDone(saved)` (board: back to the board; app: Settings again, "Saved"
+on the bar) and `cockpitMark(dirty)` (board: the Save plate button; app: `#saveBtn` and `#t-settings.dirty`).
+`tools/test/cockpit_list.py` lists every control per target (and a hash of the markup): compare before and after a
+Settings change. `itemHtml()` puts each control in a `.inst` cell with its name above it. Control sounds are
 `ctlSound.rotary(steps)/toggle(on)/wheel()/press()` (they play when `S.sound || S.chimes`). "Use current location"
 (`wireLocate`, `hereNow`, `nearestAirport`) uses `navigator.geolocation` (secure contexts only, so not on the TVs) or the
 Android app's `OverheadAndroid.locate()`, and the relay's `/airports/near` (relay 16+) for the home airport.

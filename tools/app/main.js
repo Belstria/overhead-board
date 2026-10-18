@@ -1247,44 +1247,11 @@ function renderRadarList(){
 
 /* ---------- settings: the cockpit plates, stacked for a phone ---------- */
 //@L:cockpit
-// Two cells to a row on a phone (three for the switches); `span: 2` or `wide` takes the whole row.
-const COCKPIT = [
-  {title: ["Location", "Standort"], cols: 2, items: [
-    {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
-    {k: "place", type: "lcd", label: "City", max: 24},
-    {k: "home", type: "lcd", label: "Airport", max: 3},
-    {k: "lat", type: "lcd", label: "Latitude", max: 12},
-    {k: "lon", type: "lcd", label: "Longitude", max: 12},
-    {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
-    {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "update", label: "Update location", span: 2},
-    {type: "places", label: "Saved places", span: 2},
-    {type: "search", label: "Find an address", span: 2}]},
-  {title: ["Traffic", "Verkehr"], cols: 2, items: [
-    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
-    {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
-]},
-  {title: ["Display", "Anzeige"], cols: 2, items: [
-    {k: "lang", type: "rotary", label: "Language", opts: LANGS},
-    {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
-    {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
-    {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "real", type: "switch", label: "Realistic look"},
-    {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
-  {title: ["Flaps & sound", "Klappen & Klang"], cols: 2, items: [
-    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
-    {k: "quick", type: "switch", label: "Quick flaps"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"},
-    {k: "sound", type: "switch", label: "Flap sound"},
-    {k: "chimes", type: "switch", label: "Chimes"},
-    {k: "ding", type: "switch", label: "New plane ding"},
-    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]}];
+const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, copied in below) as a phone shows them
 //@L:end
-let draft = null;
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 //@E29
 //@E32
 /* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,
@@ -1435,50 +1402,33 @@ function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
-  draft = {...S};
+  draft = cockpitDraft();
   const box = $("cockpit");
-  box.innerHTML = COCKPIT.map(plateHtml).join("");
+  box.innerHTML = PLATES.map(plateHtml).join("");
   $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
   $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
-  for (const el of box.querySelectorAll("[data-k]")) {
-    const it = ITEMS.find(x => x.k === el.dataset.k);
-    if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
-    else if (el.classList.contains("rotary")) {
-      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
-      el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
-      el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
-    } else if (el.classList.contains("toggle")) el.onclick = () => {
-      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
-      if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
-      if (it.k === "ding" && draft.ding) { audioInit(); setTimeout(() => seatbeltDing(true), 250); }
-    };
-    else if (el.classList.contains("wheel")) {
-      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
-      el.querySelector(".inc").onclick = () => roll(1);
-      el.querySelector(".dec").onclick = () => roll(-1);
-    }
-  }
-  wireLocation(box);
+  wireCockpit(box);
   cockpitShow();
   renderAbout();
 }
-function cockpitDirty(){
-  const dirty = !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String(S[it.k] ?? ""));
+// The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
+// lights up while there is something to save.
+let savedTimer = 0;
+function cockpitDone(saved){
+  cockpitOpen();
+  if (!saved) return;
+  const b = $("saveBtn");
+  b.textContent = T("Saved"); clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
+}
+function cockpitMark(dirty){
   $("saveBtn").setAttribute("aria-pressed", String(dirty));
   $("t-settings").classList.toggle("dirty", dirty);
 }
-// Save applies the draft and keeps it on this phone; Cancel puts the controls back to the saved settings.
-let savedTimer = 0;
 function buildSaveBar(){
-  $("saveBtn").onclick = () => {
-    ctlSound.press();
-    applySettings(draft); placeCheck(); cockpitOpen();
-    const b = $("saveBtn");
-    b.textContent = T("Saved"); clearTimeout(savedTimer);
-    savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
-  };
-  $("cancelBtn").onclick = () => { ctlSound.press(); cockpitOpen(); };
+  $("saveBtn").onclick = () => { ctlSound.press(); cockpitSave(); };
+  $("cancelBtn").onclick = () => { ctlSound.press(); cockpitCancel(); };
 }
 /* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
 function aboutOpen(){

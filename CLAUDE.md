@@ -59,7 +59,7 @@ area.** Where it and the code disagree, the code wins.
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
 | `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
 | `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js` into the boards (the app build does it first); make the main board. |
-| `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots). |
+| `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |
 
 ## How it works
@@ -71,7 +71,9 @@ animates, `paintCell()` draws a flap mid-flip; drums are `DRUM_*` tables. Sounds
 `build_sounds.py`), played by `sample()`; flaps always clack synthesised. Top half: the plane overhead (`process()`
 picks it: alerts, overhead, inbound, flying by) via `renderFeatured()`/`renderTimes()`. Lower half: rotating pages
 (Recent flights, This aircraft, Today in numbers) turned by a giant falling flap; views (Spotted today, Logbook,
-Radar, Settings) take over below the header (`switchView`). The rail buttons and Settings cockpit (`COCKPIT`) are DOM.
+Radar, Settings) take over below the header (`switchView`). The rail buttons and Settings cockpit are DOM; Settings
+are one `COCKPIT` for board, app and light (`for`/`flaps`/`phone`/`light` flags, `cockpitFor()`; 1.53.2), checked with
+`tools/test/cockpit_list.py`.
 Realistic look is `S.real`/`REAL()`. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
 Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 

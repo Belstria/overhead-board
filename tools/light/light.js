@@ -117,33 +117,9 @@ function radarStatic(){
 //@L:end
 
 //@L:cockpit
-// The light version's Settings: the app's, without the flaps (speed, quick flaps, worn hardware, realistic look, board
-// style) and with the sound switch for the buttons and switches.
-const COCKPIT = [
-  {title: ["Location", "Standort"], cols: 2, items: [
-    {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
-    {k: "place", type: "lcd", label: "City", max: 24},
-    {k: "home", type: "lcd", label: "Airport", max: 3},
-    {k: "lat", type: "lcd", label: "Latitude", max: 12},
-    {k: "lon", type: "lcd", label: "Longitude", max: 12},
-    {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
-    {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    {type: "update", label: "Update location", span: 2},
-    {type: "places", label: "Saved places", span: 2},
-    {type: "search", label: "Find an address", span: 2}]},
-  {title: ["Traffic", "Verkehr"], cols: 2, items: [
-    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
-    {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]}]},
-  {title: ["Display", "Anzeige"], cols: 2, items: [
-    {k: "lang", type: "rotary", label: "Language", opts: LANGS, span: 2},
-    {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
-    {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
-  {title: ["Sounds", ""], cols: 2, items: [
-    {k: "sound", type: "switch", label: "Button sounds"},
-    {k: "chimes", type: "switch", label: "Chimes"},
-    {k: "ding", type: "switch", label: "New plane ding"},
-    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", span: 2}]}];
+// The light version's Settings: the app's, without the flap settings (`flaps: true` in the board's COCKPIT) and with the
+// changes its `light: {…}` entries make (Sounds for the buttons and switches, wider cells).
+const COCKPIT_FOR = "light";
 //@L:end
 
 //@L:taps

@@ -5680,6 +5680,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.53.2", date: "2026-10-18", notes: [
+    "Settings on the board and in the app are now built from one shared layout; they look and work as before.",
+  ]},
   {v: "1.53.1", date: "2026-10-18", notes: [
     "The board opens faster after the first visit: its sounds and translations are kept as separate files.",
   ]},
@@ -6063,50 +6066,74 @@ function nvTick(){
 /* ---------- settings: a cockpit panel ----------
    Rotary selectors, flip switches, thumbwheels and amber read-outs on painted plates. Nothing changes until Save. */
 NV.busy = () => view === "settings" && cockpitUnsaved();   // 1.51: the new-version notice never refreshes over unsaved Settings
-// Each plate is a grid of `cols` cells; `span` widens a control to several cells, `wide` to the whole plate.
+const COCKPIT_FOR = "tv";            // which of the Settings below this page shows (the app: "phone", the light version: "light")
+/* Settings, once for every screen (1.53.2): the board (tv), the phone app (phone) and its light version (light) show these
+   plates; tools/app/build.py copies this part into the app. Each plate is a grid of `cols` cells (two on a phone); `span`
+   widens a control to several cells, `wide` to the whole plate. `for: "tv"` or `"phone"` keeps a plate or a control to
+   that screen, `flaps: true` leaves it out of the light version (it has no flaps), and `phone: {…}` / `light: {…}`
+   change it there (a label, a width, or `plate`/`before` to move it to another plate). */
 const COCKPIT = [
-  {title: ["Location", "Standort"], cols: 4, items: [
+  {id: "loc", title: ["Location", "Standort"], cols: 4, items: [
     {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
     {k: "place", type: "lcd", label: "City", max: 24},
     {k: "home", type: "lcd", label: "Airport", max: 3},
-    {k: "lat", type: "lcd", label: "Latitude", span: 2, max: 12},
-    {k: "lon", type: "lcd", label: "Longitude", span: 2, max: 12},
+    {k: "lat", type: "lcd", label: "Latitude", span: 2, max: 12, phone: {span: 1}},
+    {k: "lon", type: "lcd", label: "Longitude", span: 2, max: 12, phone: {span: 1}},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
     // the board's plates have a fixed height: Saved places and the address search share the Update location cell
-    {type: "update", label: "Update location", span: 2, places: true, search: true}]},
-  {title: ["Traffic", "Verkehr"], cols: 3, items: [
+    {type: "update", label: "Update location", span: 2, places: true, search: true, phone: {places: false, search: false}},
+    {type: "places", label: "Saved places", span: 2, for: "phone"},
+    {type: "search", label: "Find an address", span: 2, for: "phone"}]},
+  {id: "traffic", title: ["Traffic", "Verkehr"], cols: 3, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
-    {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]]},
+    {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]], for: "tv"},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
-    {k: "favs", type: "favs", label: "Favourites"},
-    {k: "ding", type: "switch", label: "New plane ding"},
-    {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF"}]},
-  {title: ["Display", "Anzeige"], cols: 4, items: [
-    {k: "lang", type: "rotary", label: "Language", opts: LANGS},
-    {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]]},
-    {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]]},
-    {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]]},
+    {k: "favs", type: "favs", label: "Favourites", for: "tv"},
+    {k: "ding", type: "switch", label: "New plane ding", phone: {plate: "flaps", before: "bell"}},
+    {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF", for: "tv"}]},
+  {id: "display", title: ["Display", "Anzeige"], cols: 4, items: [
+    {k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}},
+    {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]], flaps: true},
+    {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]], dflt: "auto", for: "tv"},
+    {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]], for: "tv"},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "logos", type: "switch", label: "Airline logos"},
-    {k: "real", type: "switch", label: "Realistic look"},
+    {k: "real", type: "switch", label: "Realistic look", flaps: true},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
-  {title: ["Flaps & sound", "Klappen & Klang"], cols: 3, items: [
-    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5},
-    {k: "quick", type: "switch", label: "Quick flaps"},
-    {k: "imperfect", type: "switch", label: "Worn hardware"},
-    {k: "sound", type: "switch", label: "Flap sound"},
+  {id: "flaps", title: ["Flaps & sound", "Klappen & Klang"], cols: 3, light: {title: ["Sounds", ""]}, items: [
+    {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, flaps: true},
+    {k: "quick", type: "switch", label: "Quick flaps", flaps: true},
+    {k: "imperfect", type: "switch", label: "Worn hardware", flaps: true},
+    {k: "sound", type: "switch", label: "Flap sound", light: {label: "Button sounds"}},
     {k: "chimes", type: "switch", label: "Chimes"},
-    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]},
-  {title: ["Control", "Steuerung"], actions: true},
-  {title: ["Night", "Nacht"], cols: 3, items: [
+    {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", light: {span: 2}}]},
+  {id: "control", title: ["Control", "Steuerung"], actions: true, for: "tv"},
+  {id: "night", title: ["Night", "Nacht"], cols: 3, for: "tv", items: [
     {k: "night", type: "switch", label: "Night mode"},
     {k: "nightFrom", type: "time", label: "Dim from"},
     {k: "nightTo", type: "time", label: "Until"},
     {k: "nightView", type: "switch", label: "At night", on: "view", off: "dim", upText: "NIGHT VIEW", downText: "DIM"},
     {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
+// The plates as one screen shows them: its plates and controls, with its changes made, the moved controls in place.
+function cockpitFor(target){
+  const phone = target !== "tv", light = target === "light";
+  const mine = o => (!o.for || o.for === (phone ? "phone" : "tv")) && !(light && o.flaps);
+  const mod = o => ({...o, ...(phone && o.phone), ...(light && o.light)});
+  const plates = COCKPIT.filter(mine).map(p => ({...mod(p), ...(phone && !(p.phone && p.phone.cols) ? {cols: 2} : {}), items: p.items && []}));
+  const moved = [];
+  for (const p of COCKPIT) for (const it of mine(p) && p.items || []) if (mine(it)) {
+    const o = mod(it);
+    if (o.plate) moved.push(o); else plates.find(q => q.id === p.id).items.push(o);
+  }
+  for (const o of moved) {
+    const list = plates.find(q => q.id === o.plate).items, i = list.findIndex(x => x.k === o.before);
+    list.splice(i < 0 ? list.length : i, 0, o);
+  }
+  return plates;
+}
+const PLATES = cockpitFor(COCKPIT_FOR), ITEMS = PLATES.flatMap(p => p.items || []).filter(it => it.k);
 let draft = null;
-const ITEMS = COCKPIT.flatMap(p => p.items || []).filter(it => it.k);
 function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
 function rotaryIndex(it){
   const v = draft[it.k], i = it.opts.findIndex(o => String(o[0]) === String(v));
@@ -6202,6 +6229,73 @@ function itemHtml(it){
   if (it.type === "wheel") return cell("", wheel(""));
   return cell("", `<div class="wheels">${wheel("h")}<em>:</em>${wheel("m")}</div>`);
 }
+function wheelStep(it, part, d){
+  if (it.type === "time") {
+    const [h, m] = String(draft[it.k] || "00:00").split(":").map(Number);
+    const nh = part === "h" ? (h + d + 24) % 24 : h, nm = part === "m" ? (Math.round(m / 5) * 5 + d * 5 + 60) % 60 : m;
+    draft[it.k] = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+  } else draft[it.k] = Math.min(it.max, Math.max(it.min, Math.round((+draft[it.k] || it.min) / it.step) * it.step + d * it.step));
+}
+// What Settings start from: the settings as they are, with the value a control shows for one never set (`dflt`).
+function cockpitDraft(){
+  const d = {...S};
+  for (const it of ITEMS) if (it.dflt != null) d[it.k] = S[it.k] || it.dflt;
+  return d;
+}
+// The controls' handlers, the same on every screen. On the board a mouse wheel turns the knobs and thumbwheels (its
+// Settings never scroll); on a phone it scrolls the page.
+function wireCockpit(box){
+  const turnByWheel = COCKPIT_FOR === "tv";
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k);
+    if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
+    else if (el.classList.contains("rotary")) {
+      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
+      el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
+      if (turnByWheel) el.onwheel = e => { e.preventDefault(); const i = rotaryIndex(it), j = i + (e.deltaY > 0 ? 1 : -1); if (j >= 0 && j < it.opts.length) turn(j); };
+      el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
+    } else if (el.classList.contains("toggle")) el.onclick = () => {
+      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
+      if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
+      if (it.k === "ding" && draft.ding) { audioInit(); setTimeout(() => seatbeltDing(true), 250); }
+    };
+    else if (el.classList.contains("wheel")) {
+      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
+      el.querySelector(".inc").onclick = () => roll(1);
+      el.querySelector(".dec").onclick = () => roll(-1);
+      if (turnByWheel) el.onwheel = e => { e.preventDefault(); roll(e.deltaY < 0 ? 1 : -1); };
+      el.onkeydown = e => { const d = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0; if (d) { e.preventDefault(); roll(d); } };
+    }
+  }
+  wireLocation(box);
+  const fb = box.querySelector("[data-favs]");
+  if (fb) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(); };
+}
+// Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
+function cockpitShow(rolled, dir){
+  const box = $("cockpit");
+  for (const el of box.querySelectorAll("[data-k]")) {
+    const it = ITEMS.find(x => x.k === el.dataset.k), v = draft[it.k];
+    if (el.classList.contains("rotary")) {
+      const i = rotaryIndex(it);
+      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(it.opts.length)[i] + "deg");
+      el.querySelectorAll("b").forEach((b, j) => b.classList.toggle("on", j === i));
+      el.setAttribute("aria-valuetext", it.opts[i][1]);
+    } else if (el.classList.contains("toggle")) el.setAttribute("aria-pressed", String(it.on ? v === it.on : !!v));
+    else if (el.classList.contains("wheel")) {
+      const b = el.querySelector(".win b"), [h, m] = String(v || "00:00").split(":");
+      b.textContent = it.type === "time" ? (el.dataset.part === "h" ? h : m) : String(v);
+      if (el === rolled) { b.className = ""; void b.offsetWidth; b.className = dir > 0 ? "up" : "down"; }
+    }
+  }
+  cockpitDirty();
+}
+const cockpitUnsaved = () => !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.dflt != null ? S[it.k] || it.dflt : S[it.k]) ?? ""));
+// Save, Cancel and the mark for unsaved changes, the same everywhere: the board's Save is a button on the Control plate,
+// the phone's a bar along the bottom. Each page says what comes next (cockpitDone) and how it marks changes (cockpitMark).
+function cockpitDirty(){ cockpitMark(cockpitUnsaved()); }
+function cockpitSave(){ applySettings(draft); placeCheck(); cockpitDone(true); }
+function cockpitCancel(){ cockpitDone(false); }
 function plateHtml(p){
   const body = p.actions
     ? `<p>${escH(T("Press Save to apply. Each screen keeps its own settings."))}</p>` +
@@ -6215,44 +6309,27 @@ function plateHtml(p){
   return `<div class="plate"${p.cols ? ` style="--cols:${p.cols}"` : ""}><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${body}</div>`;
 }
 function cockpitOpen(){
-  draft = {...S, quality: S.quality || "auto"};
+  draft = cockpitDraft();
   const box = $("cockpit");
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
-  box.innerHTML = COCKPIT.map(plateHtml).join("");
+  box.innerHTML = PLATES.map(plateHtml).join("");
   box.onclick = e => e.stopPropagation();
-  for (const el of box.querySelectorAll("[data-k]")) {
-    const it = ITEMS.find(x => x.k === el.dataset.k);
-    if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
-    else if (el.classList.contains("rotary")) {
-      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
-      el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
-      el.onwheel = e => { e.preventDefault(); const i = rotaryIndex(it), j = i + (e.deltaY > 0 ? 1 : -1); if (j >= 0 && j < it.opts.length) turn(j); };
-      el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
-    } else if (el.classList.contains("toggle")) el.onclick = () => {
-      draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
-      if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
-      if (it.k === "ding" && draft.ding) { audioInit(); setTimeout(() => seatbeltDing(true), 250); }
-    };
-    else if (el.classList.contains("wheel")) {
-      const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
-      el.querySelector(".inc").onclick = () => roll(1);
-      el.querySelector(".dec").onclick = () => roll(-1);
-      el.onwheel = e => { e.preventDefault(); roll(e.deltaY < 0 ? 1 : -1); };
-      el.onkeydown = e => { const d = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0; if (d) { e.preventDefault(); roll(d); } };
-    }
-  }
-  wireLocation(box);
-  const fb = box.querySelector("[data-favs]");
-  if (fb) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(); };
+  wireCockpit(box);
   for (const b of box.querySelectorAll("[data-act]")) b.onclick = () => {
     ctlSound.press();
-    if (b.dataset.act === "save") { applySettings(draft); placeCheck(); switchView(null); }
+    if (b.dataset.act === "save") cockpitSave();
     else if (b.dataset.act === "about") { aboutTap(); switchView("about"); }
     else if (b.dataset.act === "account") switchView("account");
     else if (b.dataset.act === "tips") { tipsReset(); b.textContent = T("Tips will show again."); return; }
-    else switchView(null);
+    else cockpitCancel();
   };
   cockpitShow();
+}
+// The board: Save and Cancel both go back to the board; the Save button lights up while there is something to save.
+function cockpitDone(){ switchView(null); }
+function cockpitMark(dirty){
+  const b = $("cockpit").querySelector('[data-act="save"]');
+  if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
 }
 /* About: the patch notes on a tall plate, the keys, and who made it, with a way back to Settings. */
 const KEYS = [["1 – 3", "The pages of the lower half"], ["← →", "Turn the page (in Spotted today: its pages)"],
@@ -6329,38 +6406,6 @@ function legendHtml(){
   return legendGroups().map(([h, items]) => `<h4 class="lg">${escH(h)}</h4><ul class="legend">` +
     items.map(([r, t]) => `<li>${remarkChip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
     `<p>${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
-}
-function wheelStep(it, part, d){
-  if (it.type === "time") {
-    const [h, m] = String(draft[it.k] || "00:00").split(":").map(Number);
-    const nh = part === "h" ? (h + d + 24) % 24 : h, nm = part === "m" ? (Math.round(m / 5) * 5 + d * 5 + 60) % 60 : m;
-    draft[it.k] = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
-  } else draft[it.k] = Math.min(it.max, Math.max(it.min, Math.round((+draft[it.k] || it.min) / it.step) * it.step + d * it.step));
-}
-// Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
-function cockpitShow(rolled, dir){
-  const box = $("cockpit");
-  for (const el of box.querySelectorAll("[data-k]")) {
-    const it = ITEMS.find(x => x.k === el.dataset.k), v = draft[it.k];
-    if (el.classList.contains("rotary")) {
-      const i = rotaryIndex(it);
-      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(it.opts.length)[i] + "deg");
-      el.querySelectorAll("b").forEach((b, j) => b.classList.toggle("on", j === i));
-      el.setAttribute("aria-valuetext", it.opts[i][1]);
-    } else if (el.classList.contains("toggle")) el.setAttribute("aria-pressed", String(it.on ? v === it.on : !!v));
-    else if (el.classList.contains("wheel")) {
-      const b = el.querySelector(".win b"), [h, m] = String(v || "00:00").split(":");
-      b.textContent = it.type === "time" ? (el.dataset.part === "h" ? h : m) : String(v);
-      if (el === rolled) { b.className = ""; void b.offsetWidth; b.className = dir > 0 ? "up" : "down"; }
-    }
-  }
-  cockpitDirty();
-}
-const cockpitUnsaved = () => !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "quality" ? S.quality || "auto" : S[it.k]) ?? ""));
-function cockpitDirty(){
-  const dirty = cockpitUnsaved();
-  const b = $("cockpit").querySelector('[data-act="save"]');
-  if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
 }
 /* ---------- Settings: the sounds of the controls ----------
    Synthesised like the flaps: a rotary selector clicks once for every detent it passes, a toggle switch snaps and its
