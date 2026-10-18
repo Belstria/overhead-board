@@ -429,15 +429,15 @@ async function loadFullDay(){
   fullDay.busy = true; fullDay.at = now;
   try {
     const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
-    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
-    if (j.stats) relayStats = j.stats;
+    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
+    if (j.stats && !allPlaces) relayStats = j.stats;
     renderToday();
   } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
   finally { fullDay.busy = false; }
 }
 function dayList(){
   const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay || fullDay.all) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
   return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
 }
@@ -492,8 +492,7 @@ function rowHtml(e){
   const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
-  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time>` +
-    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</div>` +
+  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time></div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
@@ -578,8 +577,15 @@ function paintRwy(){
 
 /* Spotted today */
 let svFilter = "all", svSig = "";
+// Today's list: this place (as Now), or every place once the whole day has come in for them (1.42: until then it
+// stays empty instead of showing this place's planes and jumping).
+function todayList(){
+  if (!allPlaces) return dayList();
+  if (!fullDay.all || !fullDay.list) return [];
+  return userLists.hide.length ? fullDay.list.filter(e => !isHidden(e)) : fullDay.list;
+}
 function svData(){
-  const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
   const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
   const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
@@ -603,7 +609,7 @@ function legendHtml(){
     `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
 function todayNumbers(){
-  const st = relayV5() && relayStats, list = dayList(), OVK = overKm();
+  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList(), OVK = overKm();
   if (st) {
     const name = x => x ? fromRelay(x).flight : "";
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
@@ -649,9 +655,11 @@ function renderToday(){
   $("svSum").textContent = spottedSummary();
   const ap = $("svPlaces");
   if (ap) {
-    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
-    ap.textContent = allPlaces ? T("All places") : placeLabel();
-    ap.setAttribute("aria-pressed", String(allPlaces));
+    const seenFrom = ((lbData() || {}).places || []).filter(([k, n]) => n > 0).length;
+    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home" && seenFrom < 2;
+    const [one, all] = ap.children;
+    one.textContent = placeLabel(); all.textContent = T("All places");
+    one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
@@ -666,10 +674,16 @@ function renderLists(){
 
 /* Logbook */
 //@E28
+// The logbook by place (1.42, relay 37): All, or one of the places planes were seen from (lbPlace).
+let lbPlace = "", lbPlaceData = {};
+const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
 async function fetchLogbook(){
   if (!S.demo && relayV5()) {
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
+    if (lbPlace && lbPlaceOk() && tab === "logbook") {
+      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+    }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
   achCheck((lbData() || {}).game);
@@ -679,15 +693,31 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
-  $("lbSum").textContent = logbookSummary();
-  const b = lbData() || {}, has = !!lbData();
+  const all = lbData() || {}, pl = (all.places || []).filter(([k, n]) => n > 0);
+  if (lbPlace && !pl.some(([k]) => k === lbPlace)) lbPlace = "";
+  const chips = $("lbPlaces");
+  chips.hidden = !lbPlaceOk() || pl.length < 2 && !(pl.length === 1 && pl[0][0] !== "home");
+  const want = [["", T("All")], ...pl.map(([k, n]) => [k, placeName(k), n])];
+  const csig = JSON.stringify([want, lbPlace, LANG]);
+  if (chips.dataset.sig !== csig) {
+    chips.dataset.sig = csig;
+    chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
+    for (const btn of chips.children) btn.onclick = async () => {
+      if (btn.dataset.p === lbPlace) return;
+      ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+    };
+  }
+  const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
+  $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
+  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -706,7 +736,7 @@ function renderLogbook(){
   if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
   if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
   if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
-  const g0 = b.game;
+  const g0 = lbPlace ? null : b.game;              // the collection, bingo and trophies count every place
   if (g0) {                                          // the game: points, tiers and the collections
     const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
     const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
@@ -736,7 +766,7 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
   }
-  html = yearHtml() + html;
+  if (!lbPlace) html = yearHtml() + html;
   $("lbLists").innerHTML = html;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
@@ -1375,10 +1405,7 @@ function plateHtml(p){
 function cockpitOpen(){
   draft = {...S};
   const box = $("cockpit");
-  box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  box.innerHTML = COCKPIT.map(plateHtml).join("");
   $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
   $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
@@ -1460,7 +1487,13 @@ function settingsExtra(){
       `<p class="muted">${escH(T("Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link."))}</p></div>` : "") + `</div>`;
   box.innerHTML = acct +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +
+      `<div class="acts"><button class="cap small" type="button" id="tipsBtn">${T("Show the tips again")}</button></div></div>` +
+    // About last (1.42): the version, then the page with the patch notes, the legend and who made it
+    `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
+  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -1506,7 +1539,11 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 //@L:end
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
-$("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
+for (const b of $("svPlaces").children) b.onclick = () => {
+  const want = b.dataset.all === "1";
+  if (want === allPlaces) return;
+  ctlSound.press(); allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+};
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
@@ -1645,16 +1682,24 @@ async function accountBox(el, onChange, plate){
     el.innerHTML = !a.user
       ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
         `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
-      : (plate ? "" : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>`) +
+      : plate ? (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        // compact (1.42): a line per sign-in method, small buttons
+        `<div class="acSec"><h4>${escH(T("Passkeys"))}</h4>${pk ? `<button class="cap small" type="button" id="acKey">${T("Add")}</button>` : ""}</div>` +
+        (a.passkeys.length ? `<ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>`
+          : `<p class="muted">${escH(T(pk ? "No passkeys yet." : "Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<div class="acSec"><h4>${escH(T("Password"))}</h4><button class="cap small" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
+        `<p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>`
+      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
         (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
-        (plate ? `<h4>${escH(T("Passkeys"))}</h4>` + (a.passkeys.length ? "" : `<p class="muted">${escH(T("No passkeys yet."))}</p>`) : "") +
         (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        (plate ? `<h4>${escH(T("Password"))}</h4><p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>` : `<p><b>${escH(T("Password"))}</b></p>`) +
-        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
-        `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
+        `<p><b>${escH(T("Password"))}</b></p>` +
+        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>`;
+    if (a.user) el.insertAdjacentHTML("beforeend", `<p class="muted acNew">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`);
+
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
     const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
     const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
@@ -1941,6 +1986,27 @@ function buildTabs(){
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
+// The tips for a tab (1.42): what the tab is, the first time, then what can be done on it.
+const TAB_TIPS = {now: "Now: the plane over you right now, its photo, and today's planes below. Tap the board for its card.",
+  today: "Spotted today: every plane that came within your radius today, with the day's numbers.",
+  logbook: "Logbook: everything you've ever spotted: types, airlines, records, the collection, trophies and the weekly bingo.",
+  radar: "Radar: the planes around you right now. Tap one for its card.",
+  settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
+function appTips(t){
+  if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
+  const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
+  tip("tab-" + t, () => $("tabRow").querySelector(`[data-tab="${t}"]`), T(TAB_TIPS[t]));
+  if (t === "now") {
+    tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane to the right to make it a favourite, or to the left to hide it."));
+    tip("taps", () => $("recent").querySelector(".tap"), T("Tap an airline, a place or an aircraft type for more about it."));
+  }
+  if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
+  if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
+  if (t === "settings") {
+    tip("setlabel", () => document.querySelector("#cockpit .lblF"), T("Give the place you're watching a name and press its Save to keep it in your saved places."));
+    tip("setlive", () => document.querySelector("#cockpit [data-live]"), T("Live location follows this phone while the app is open."));
+  }
+}
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
 function aboutShow(){
   if (tab !== "settings") showTab("settings");
@@ -1973,6 +2039,7 @@ function showTab(t){
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
+  setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
 addEventListener("hashchange", () => showTab(location.hash.slice(1)));
