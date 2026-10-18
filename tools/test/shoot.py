@@ -28,17 +28,23 @@ import sys
 
 from playwright.async_api import async_playwright
 
+FAKE = None   # the fake data source: one port below the test relay's (8095 for 8096), or env FAKE_PORT
+
 
 async def route(r):
     url = r.request.url
     if "api.adsbdb.com" in url:
-        res = await r.fetch(url=url.replace("https://api.adsbdb.com", "http://127.0.0.1:8095"))
+        res = await r.fetch(url=url.replace("https://api.adsbdb.com", FAKE))
         return await r.fulfill(response=res)
     return await r.continue_()
 
 
 async def main():
+    global FAKE
     url, out, steps = sys.argv[1], sys.argv[2], sys.argv[3:]
+    hostport = url.split("//", 1)[-1].split("/", 1)[0]
+    port = int(hostport.split(":")[1]) if ":" in hostport else 8096
+    FAKE = f"http://127.0.0.1:{os.environ.get('FAKE_PORT') or port - 1}"
     phone = os.environ.get("PHONE")
     if phone:
         w, h = (int(v) for v in phone.lower().split("x"))

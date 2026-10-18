@@ -1,4 +1,5 @@
-"""Made-up flight data for testing the relay and the boards, on http://127.0.0.1:8095. Started by run_test_relay.py.
+"""Made-up flight data for testing the relay and the boards, on http://127.0.0.1:8095 (env FAKE_PORT for another
+port). Started by run_test_relay.py.
 
 It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey") and Vienna Airport's
 flight lists. The planes sit around central Vienna (the boards' default location) and include the special cases:
@@ -38,7 +39,8 @@ ROUTES = {"AUA411": ("OS411", "Austrian Airlines", "OS", "FRA", "Frankfurt am Ma
           "AUA802": ("OS802", "Austrian Airlines", "OS", "ATH", "Athens", "VIE", "Vienna"),
           "LDM5AB": ("OE215", "Lauda Europe", "OE", "VIE", "Vienna", "PMI", "Palma de Mallorca"),
           "SWR1514": ("LX1514", "Swiss", "LX", "ZRH", "Zurich", "VIE", "Vienna")}
-PHOTO = "http://127.0.0.1:8095/photo/{}.svg"
+PORT = int(os.environ.get("FAKE_PORT") or 8095)
+PHOTO = f"http://127.0.0.1:{PORT}/photo/{{}}.svg"
 AIRCRAFT = {"440b11": {"type": "A320 271N", "icao_type": "A20N", "manufacturer": "Airbus SAS", "registration": "OE-LBW",
                        "registered_owner": "Austrian Airlines", "registered_owner_country_name": "Austria", "url_photo": PHOTO.format("440b11")},
             "440a01": {"type": "A320 214", "icao_type": "A320", "manufacturer": "Airbus SAS", "registration": "OE-LBN",
@@ -158,4 +160,4 @@ class H(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", 8095), H).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()

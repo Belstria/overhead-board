@@ -364,6 +364,30 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   after the sighting) gives `done` in `fromRelay`; Recent flights rows carry `done` from `fillEntry` (missing = done).
   Times need `timesSettled(info)` too, This aircraft `detailsDone(hex)` (adsbdb answered; not found is `{}`).
   `DRUM_DIGIT` has "/" for the time flaps.
+- Relay 45 / 1.51 (to-do #43), fewer Flightradar24 credits: `fr24_info` keeps an answer (key `hex|callsign`) for
+  the rest of the local day or `FR24_REUSE_S` (6 h); `fr24_overlay(entries, radius, over_km)` skips sightings whose
+  `minDist` stayed above `max(over_km, radius * FR24_EDGE)` (0.75) and counts each sighting once in `_fr24_saved`
+  (`e.fr24Saved`, `usage.savedReuse/savedEdge` and `...Today`; shown in `fr24_admin_html`). The board does the same
+  for its own `/flightinfo` asks: `enrich(ac, far)` from `logPlanes` (`edgeKm()`), `info.far`/`info.apiLater`, looked
+  up when a later `enrich(ac)` comes (closer, or `setFeat`).
+- Relay 45 (to-do #49), health watch: `_health_watch` thread writes `data/alive.json` every minute (`clean` true on a
+  SIGTERM/Ctrl+C stop) and runs `health_check()`: "sources" (`_health_seen.posFail` set by `aircraft()` when every
+  source failed, last `last_ok` over 15 min ago), "fr24" (`_fr24_state` refused), "disk" (`shutil.disk_usage`, 90%,
+  back under 88%), and "restart" at start (not clean; `restartSent` keeps it to one an hour across restarts).
+  `_health_set` alerts at most once an hour per kind and once on recovery after an alert; `_health_say` logs and
+  pushes to `_owner_push()` (HOME_OWNER's subscriptions). `/status` has `health`.
+- Relay 45 / 1.51 (to-do #41): `/pageversion?p=<sub>` gives the newest published version of a board (`board_html`,
+  first `{v: "` in the page). The shared `watchVersion()` (patch-notes block) asks it every 2 min (older relays: the
+  page every 10 min) and calls `nvShow`: `#nvBox` with a 60 s countdown; `nvInput` (capture keydown/pointerdown/
+  touchstart/wheel) stops it, Enter on the focused button or body reloads; `nvTick` reloads at the end or after 30 min
+  without input, never while `nvBusy()` (card, text field, `NV.busy`: the board's unsaved Settings via
+  `cockpitUnsaved()`, the app's Settings tab).
+- 1.51 (to-do #48), the first picture: `snapLoad`/`snapSave`/`snapLive` (E15 block, after `relayStats`), key
+  `od.snap.<profile>:<path>`: feat (last 30 min), spotted (40, same `boardDay`), relayStats, nearbyCount; saved after
+  `process` at most every 20 s; `snapLive` on the first positions drops the stored plane and `#snapTag`.
+- Tools (1.51): `run_test_relay.py --port` (env `PORT`; the fake source on port-1 via `FAKE_PORT`), `smoke.py --port`,
+  `shoot.py` takes the fake source's port from the URL. smoke.py kills the test relay's process tree (a plain
+  terminate left its two children running on Windows, answering later runs on the same port).
 - Behind a proxy on the same computer, the relay (14+) takes a screen's address from `X-Forwarded-For`.
 - It serves the published boards from GitHub Pages (refreshed at most once a minute), so pushing to `main` reaches
   the screens a minute or two later, when they reload. `--local-root <repo>` serves a local checkout instead.
@@ -371,7 +395,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## Ideas Dave hasn't picked yet (Oct 2026)
 
-Screens update themselves when a new version is published; wake The Frame and reopen the board when it drops off,
+Wake The Frame and reopen the board when it drops off,
 Art Mode at night (Samsung's local TV API); a spotter's
 collection page and weekly bingo of rare planes; rarity marks ("first time ever", "seen 4 times"); worth going to
 the window (cloud base vs altitude, sunset, which window); runways in use at Vienna; a day in review at night; a Hue

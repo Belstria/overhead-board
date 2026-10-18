@@ -375,8 +375,10 @@ h3 span{color:var(--label2);margin-left:.6em}
 .sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
 .status{display:none}
 body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
-#newVer{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));z-index:7;transform:translateX(-50%);padding:9px 16px;border:0;border-radius:20px;background:#f2c44e;color:#17140e;font:700 13px var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6);cursor:pointer}
-#newVer[hidden]{display:none}
+#snapTag{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;padding:5px 12px;border:1px solid #f2c44e;border-radius:12px;background:rgba(20,18,14,.92);color:#f2c44e;font:700 12px var(--f-board);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+#nvBox{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:99;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:10px 10px 10px 16px;border-radius:14px;background:#f2c44e;color:#17140e;font:700 14px/1.3 var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6)}
+#nvBox span{flex:1}
+#nvBox button{flex:none;border:0;border-radius:10px;padding:9px 14px;background:#17140e;color:#f2c44e;font:inherit;cursor:pointer}
 .pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
 .pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
 /* the account panel (About, and the welcome) */
@@ -1104,7 +1106,6 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   <p class="brandline">Fallblatt Light</p>
 </main>
 <p id="sideAlert" role="status" hidden></p>
-<button id="newVer" type="button" hidden></button>
 <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wHi" hidden><div class="wbox">
   <div class="wmark" aria-hidden="true"><svg viewBox="0 0 100 100"><g transform="translate(50 50) rotate(45) scale(.847) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g></svg></div>
   <div class="panel" id="wHello" aria-hidden="true"></div>
@@ -1617,6 +1618,10 @@ const I18N_ROWS = [
   ["Not now", "Jetzt nicht", "Pas maintenant", "Ahora no", "Nu niet"],
   ["Notifications are on.", "Benachrichtigungen sind an.", "Les notifications sont activées.", "Las notificaciones están activadas.", "Meldingen staan aan."],
   ["New version · tap to update", "Neue Version · zum Aktualisieren tippen", "Nouvelle version · touchez pour mettre à jour", "Nueva versión · toca para actualizar", "Nieuwe versie · tik om bij te werken"],
+  ["A new version is available.", "Eine neue Version ist da.", "Une nouvelle version est disponible.", "Hay una nueva versión.", "Er is een nieuwe versie."],
+  ["It refreshes automatically in {n} s.", "Sie lädt in {n} s automatisch neu.", "Actualisation automatique dans {n} s.", "Se actualiza sola en {n} s.", "Wordt over {n} s vanzelf vernieuwd."],
+  ["Refresh now", "Jetzt neu laden", "Actualiser", "Actualizar ahora", "Nu vernieuwen"],
+  ["Last known board · not live yet", "Zuletzt bekannte Tafel · noch nicht live", "Dernier tableau connu · pas encore en direct", "Último panel conocido · aún no en directo", "Laatst bekende bord · nog niet live"],
   ["Notifications", "Benachrichtigungen", "Notifications", "Notificaciones", "Meldingen"],
   ["Turn on notifications", "Benachrichtigungen einschalten", "Activer les notifications", "Activar notificaciones", "Meldingen aanzetten"],
   ["Turn off", "Ausschalten", "Désactiver", "Desactivar", "Uitzetten"],
@@ -3899,11 +3904,19 @@ function infoChanged(info){
   if (airportMode()) scheduleAirport();
   if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }
 }
-function enrich(ac){
+// 1.51: a plane that so far only grazes the edge of the radius (`far`) isn't looked up on Flightradar24 (credits);
+// it is once it comes closer or is on the board.
+const edgeKm = () => Math.max(overKm(), (+S.radiusKm || 15) * .75);
+function enrich(ac, far = false){
   const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
-  if (infoCache.has(key)) return infoCache.get(key);
+  if (infoCache.has(key)) {
+    const p = infoCache.get(key);
+    if (!far && p.info.far) { p.info.far = false; if (p.info.apiLater) { p.info.apiLater = false; apiLookup(cs, ac.hex, p.info); } }
+    return p;
+  }
   const info = baseInfo(ac);
   info.hex = ac.hex;
+  info.far = far;
   const p = (async () => {
     if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); info.done = true; return info; }
     const jobs = [];
@@ -3911,8 +3924,8 @@ function enrich(ac){
     if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
     if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
     await Promise.all(jobs);
-    if (apiOn()) apiLookup(cs, ac.hex, info);       // the free answer shows first; Flightradar24's replaces it
-    else info.done = true;
+    if (apiOn() && !info.far) apiLookup(cs, ac.hex, info);   // the free answer shows first; Flightradar24's replaces it
+    else { info.apiLater = apiOn(); info.done = true; }
     return info;
   })();
   p.info = info;
@@ -3995,6 +4008,43 @@ function rollDay(){
 }
 /* With relay version 5 the relay records every sighting; the board just mirrors its list. */
 let sightRev = null, sightBusy = false, relayStats = null, sightDay = null;   // relayStats: Today in numbers over the whole day
+/* The first picture (1.51): the last known board (the plane on top, Spotted today, Today in numbers) is kept in the
+   browser, per profile and page, and shown at once on the next load, marked as not live yet, until fresh data comes.
+   The plane only if it was on the board in the last half hour; the lists only from the same day. */
+const SNAP_KEY = "od.snap." + (GUEST ? GUEST.id : "local") + ":" + location.pathname;
+let snapShown = false, snapAt = 0;
+function snapLoad(){
+  if (S.demo) return false;
+  let j = null;
+  try { j = JSON.parse(localStorage.getItem(SNAP_KEY) || "null"); } catch {}
+  if (!j || !j.t || Date.now() - j.t > 12 * 3600000) return false;
+  if (j.day === boardDay() && Array.isArray(j.spotted)) { spotted = j.spotted; relayStats = j.stats || null; }
+  if (j.feat && j.feat.o && Date.now() - j.t < 30 * 60000) feat = {...j.feat, since: Date.now(), logged: true, snap: true};
+  if (j.nearby != null) nearbyCount = j.nearby;
+  snapShown = true;
+  document.body.dataset.snap = "1";
+  const tag = document.createElement("div");
+  tag.id = "snapTag";
+  tag.textContent = T("Last known board · not live yet");
+  document.body.appendChild(tag);
+  dlog("info", `Showing the last known board from ${new Date(j.t).toLocaleTimeString(LOC())} until fresh data comes`);
+  return true;
+}
+// The first fresh positions: the stored picture makes way (the plane on top is picked again from live data).
+function snapLive(){
+  snapShown = false;
+  delete document.body.dataset.snap;
+  const tag = $("snapTag");
+  if (tag) tag.remove();
+  if (feat && feat.snap) feat = null;
+}
+function snapSave(){
+  const now = Date.now();
+  if (S.demo || snapShown || now - snapAt < 20000) return;
+  snapAt = now;
+  const f = feat && feat.o && !feat.snap ? {hex: feat.hex, mode: feat.mode, o: feat.o, info: feat.info} : null;
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify({t: now, day: boardDay(), feat: f, spotted: spotted.slice(0, 40), stats: relayStats, nearby: nearbyCount})); } catch {}
+}
 function fromRelay(r){
   const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
   const tn = typeName(r.typeCode, r.desc);
@@ -5762,6 +5812,7 @@ function cockpitShow(rolled, dir){
   }
   cockpitDirty();
 }
+const cockpitUnsaved = () => !!draft && ITEMS.some(it => String(draft[it.k] ?? "") !== String((it.k === "quality" ? S.quality || "auto" : S[it.k]) ?? ""));
 /* ---------- Settings: the sounds of the controls ----------
    Synthesised like the flaps: a rotary selector clicks once for every detent it passes, a toggle switch snaps and its
    body thunks, a thumbwheel ticks, a push button thocks. They play when the flap sound or the chimes are on. */
@@ -6419,6 +6470,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.51", date: "2026-10-18", notes: [
+    "When a new version is out, a notice says so and the screen refreshes by itself after a minute; touch anything to stay, then Refresh now when you like.",
+    "The board shows the last known picture at once while it loads, marked as not live yet.",
+    "Fewer Flightradar24 lookups: one per flight and day, and none for planes that only pass the edge of the radius.",
+    "The relay's owner gets a notification when the relay has a problem, and when it is fixed.",
+  ]},
   {v: "1.50", date: "2026-10-18", notes: [
     "Spotted today has a filter: type an airline, flight, city, airport, aircraft type or registration; separate words with commas to combine them (in the app, and on the board on a computer).",
     "The weekly bingo says when the next card comes.",
@@ -6715,6 +6772,68 @@ function siteLinks(html){
   const a = k => `<a href="${SITE_LINKS[k]}" target="_blank" rel="noopener">${k}</a>`;
   return html.replace(/AvioADSB \(CC BY 4\.0\)/g, () => `${a("AvioADSB")} (${a("CC BY 4.0")})`)
     .replace(/(adsb\.lol|adsb\.fi|airplanes\.live)/g, m => a(m));
+}
+
+/* A newer version published (1.51): a notice says so and counts a minute down, then the page refreshes by itself.
+   Any key, tap or click stops the countdown (the notice stays, with Refresh now; OK on a remote presses it), and a
+   screen nobody has touched for half an hour refreshes then. Never while a card, Settings or a text field is open
+   (`NV.busy`, set by the page). Relay 45 names the newest version cheaply (/pageversion); with an older one the page
+   itself is fetched now and then. */
+const NV = {v: "", until: 0, touched: Date.now(), el: null, busy: () => false};
+function watchVersion(show){
+  const sub = location.pathname.split("/").filter(x => x && !/\.html?$/.test(x))[0] || "";
+  const check = async () => {
+    try {
+      let v = "";
+      if ((window.OVERHEAD_RELAY_VERSION || 0) >= 45) v = (await fetchJSON(`${relay()}/pageversion?p=${encodeURIComponent(sub)}`, {}, 8000)).v || "";
+      else {
+        const r = await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"});
+        v = (/\{v: "(\d[\d.]*)"/.exec(await r.text()) || [])[1] || "";
+      }
+      if (v && v !== VERSION) { if (show) show(v); nvShow(v); }
+    } catch {}
+  };
+  setTimeout(check, 60000);
+  setInterval(check, ((window.OVERHEAD_RELAY_VERSION || 0) >= 45 ? 2 : 10) * 60000);
+}
+function nvBusy(){
+  const a = document.activeElement;
+  return (typeof cardOpenNow === "function" && cardOpenNow()) || !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || NV.busy();
+}
+function nvDraw(){
+  const left = Math.max(0, Math.ceil((NV.until - Date.now()) / 1000));
+  NV.el.firstChild.textContent = T("A new version is available.") + (NV.until ? " " + T("It refreshes automatically in {n} s.", {n: left}) : "");
+}
+function nvShow(v){
+  if (NV.v === v) return;
+  NV.v = v;
+  if (!NV.el) {
+    const el = NV.el = document.createElement("div");
+    el.id = "nvBox";
+    el.setAttribute("role", "status");
+    el.innerHTML = `<span></span><button type="button"></button>`;
+    el.lastChild.textContent = T("Refresh now");
+    el.lastChild.onclick = e => { e.stopPropagation(); location.reload(); };
+    document.body.appendChild(el);
+    for (const t of ["keydown", "pointerdown", "touchstart", "wheel"]) addEventListener(t, nvInput, {capture: true, passive: t !== "keydown"});
+    setInterval(nvTick, 1000);
+  }
+  NV.until = Date.now() + 60000;
+  nvDraw();
+  try { NV.el.lastChild.focus({preventScroll: true}); } catch {}
+}
+function nvInput(e){
+  NV.touched = Date.now();
+  if (!NV.v) return;
+  const a = document.activeElement;
+  if (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13) && (a === NV.el.lastChild || a === document.body || !a)) {
+    e.preventDefault(); e.stopPropagation(); location.reload(); return;
+  }
+  if (NV.until) { NV.until = 0; nvDraw(); }
+}
+function nvTick(){
+  if (NV.until) { if (Date.now() < NV.until) nvDraw(); else if (!nvBusy()) location.reload(); }
+  else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) location.reload();
 }
 function plateHtml(p){
   return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
@@ -7250,6 +7369,7 @@ function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
   if (isOffline()) return T("No flight data for over a minute · retrying");
+  if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});
   if (!lastOk) return T("Connecting…");
   const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
@@ -7258,7 +7378,7 @@ function statusLine(){
 }
 function updateFooter(){
   const dot = $("dot");
-  dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
+  dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures || snapShown ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
   document.body.dataset.health = dot.dataset.state || "";          // the line under the lists only shows when it matters
@@ -7328,6 +7448,7 @@ async function poll(force){
     if (failures) dlog("info", `Position data back after ${failures} failed attempt${failures > 1 ? "s" : ""}`);
     if (wasOffline) dlog("info", "Back online");
     failures = 0; lastOk = Date.now(); wasOffline = false;
+    if (snapShown) snapLive();
   } catch (e) {
     if (seq !== pollSeq) return;
     failures++;
@@ -7347,7 +7468,7 @@ async function poll(force){
     }
   }
   if (!list) return;
-  try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); }
+  try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
   catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }
 }
 
@@ -7369,18 +7490,8 @@ addEventListener("resize", () => {
 });
 
 // A newer version published: a banner above the tabs, tap to update.
-function watchVersion(show){             // as on the board: ask for this page now and then, nothing reloads by itself
-  const check = async () => {
-    try {
-      const r = await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"});
-      const m = /\{v: "(\d[\d.]*)"/.exec(await r.text());
-      if (m && m[1] !== VERSION) show(m[1]);
-    } catch {}
-  };
-  setTimeout(check, 60000);
-  setInterval(check, 10 * 60000);
-}
-watchVersion(v => { const b = $("newVer"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
+watchVersion();                          // the board's notice (with the patch notes); no reload while Settings is open
+NV.busy = () => tab === "settings";
 async function start(){
   try {
     await Promise.race([
@@ -7411,6 +7522,7 @@ function run(){
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
   tickClock(); setInterval(tickClock, 1000);
+  snapLoad();                                      // the last known board at once, until fresh data comes (1.51)
   renderFeatured(); renderLists(); updateFooter();
   if (relayV5()) syncSightings();
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
