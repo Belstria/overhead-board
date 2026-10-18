@@ -41,15 +41,20 @@ function saveMe(changed, now){
   return Promise.resolve();
 }
 const located = () => !GUEST || !!S.located;
+// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
+// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
+const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
+S.logos = true;                                      // airline logos are always on (1.54: the switch went)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };

@@ -23,13 +23,12 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `radius` | Spotting radius in km: planes within it are added to Spotted today (default 15) | `radius=8` |
 | `over` | Counts as directly overhead within this many km (default 3) | `over=2` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
-| `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
+| `maxalt` | Ignore planes above this altitude in feet (Settings shows metres when the units are metric) | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
 | `speed` | Flap speed in percent: 100 is fastest, 10 is ten times slower (default 85) | `speed=50` |
 | `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
-| `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `theme` | `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
 | `rotate` | seconds per page, `0` to stay on one page (default 30) | `rotate=0` |
 | `favs` | favourites, separated by commas | `favs=Austrian,A380` |

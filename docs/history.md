@@ -425,6 +425,19 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   copies, made by `tools/push_main.py`. Measured at 960x540 on the test relay: first load 888 KB as before (875),
   later loads 486 KB; first flap at 5 Mbps 1.57 s before, 1.19 s first / 0.90 s later after (20 Mbps: 0.50 s →
   0.44 / 0.31 s). AIRPORTS, AIRLINES, TYPES, FLEET stay in the board (a few KB together).
+- 1.54 (to-do #53, #56-#64): `saveSettings` (board, app, light) always sends and keeps every key of this screen's
+  Settings (`cockpitKeys()`: `ITEMS` without the place keys, which go by `locSet`), so a setting back at its default
+  overrides the profile's merged old value. Favicon: an inline SVG data URI in the board (the app and light use
+  icon-192.png). Cards scale with the board through `--ck` (`max(.5, K)`, set in `resize()`; the app leaves it 1):
+  all `#cardBox` px are `calc(Npx*var(--ck,1))`. Card music (`cardMusicStart`): with Web Audio, `musicBuf(name)`
+  fetches the first `MUSIC_BYTES` (900 KB, ~45 s) in one Range request, decodes and plays an AudioBufferSource
+  (cached per name); the audio element (which read the fragmented m4a in ~15 small range requests, seconds through
+  the tunnel) is the fallback. `S.logos` is forced true (switch, hint, `?logos` gone). Hints with a mouse or remote:
+  one `#hintTip` (fixed, `--tipK`), placed above the control or below it, clamped to the screen; touch keeps the
+  in-cell `::after`. Rotary labels sit at `--r` per position (at least 44: 32 + 5.5·|cos a| + 3.15·chars·|sin a|); toggles
+  are 96 tall (was 90). `maxAltFt` has `metric` steps (8200/16400/24600 ft shown as 2.5K M/5K/7.5K; `rotOpts(it)` by `draft.units`,
+  labels swap in `cockpitShow`). The Control plate (`.plate.ctl`) centres its texts; the app's favourites Add is a
+  `.cap` inside a plate.
 - Relay 47 (to-do #46): `window_check` split into `window_planes(who, centre, spot, st)` (the planes worth a look with
   `kinds`, `airline`) and the alerts. `hue_check` (thread `_hue_watch`, every 15 s) takes the owner profile's place,
   pulses for the first plane with kind special/fav not in `_hue_seen` (3 h), at most every `HUE_GAP_S` (60 s), not in
