@@ -9,7 +9,8 @@ Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at home)
 
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
-answers "too many requests" or "forbidden" is rested for a while and the next one is used.
+answers "too many requests" or "forbidden" is rested for a while and the next one is used. AvioADSB is the
+emergency backup: asked only when all of those fail or rest, at most every 15 s and 90 times a day.
 If every source fails, the board keeps getting the last good answer for up to two minutes.
 
 The relay also keeps the shared history: every plane that comes within the spotting radius is
@@ -54,13 +55,18 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 35
+RELAY_VERSION = 36
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
     {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
-    {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{nm}"},
+    {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v3/lat/{lat}/lon/{lon}/dist/{nm}"},
     {"key": "airplaneslive", "name": "airplanes.live", "url": "https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}"},
+    # Emergency only (relay 36): its free anonymous tier allows 1 request per 10 s and 100 a day per network, for
+    # personal, non-commercial use (data CC BY 4.0, credited in the boards' About). Asked only once every source above
+    # has failed or rests; within its gap it is skipped (not waited for) and the last good answer is served instead.
+    {"key": "avioadsb", "name": "AvioADSB", "url": "https://avioadsb.org/v1/point/{lat}/{lon}/{nm}",
+     "gap": 15, "day_cap": 90, "max_nm": 100},
 ]
 ROUTESET = "https://api.adsb.lol/api/0/routeset"
 USER_AGENT = "overhead-board home relay (github.com/Belstria/overhead-board)"
@@ -96,7 +102,7 @@ ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "
 ARGS = None
 STARTED = time.time()
 STATE = {s["key"]: {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None,
-                    "last_error": "", "last_ok": 0.0, "last_call": 0.0} for s in SOURCES}
+                    "last_error": "", "last_ok": 0.0, "last_call": 0.0, "day": "", "used": 0} for s in SOURCES}
 EVENTS = collections.deque(maxlen=200)
 _event_id = 0
 _positions = {}            # key -> (time, body, source name)
@@ -194,12 +200,27 @@ def aircraft(lat, lon, nm):
             if now < st["cooldown_until"]:
                 tried.append(f"{src['name']} resting {int(st['cooldown_until'] - now)} s")
                 continue
-            wait = st.get("last_call", 0.0) + SOURCE_GAP_S - time.time()
+            cap = src.get("day_cap")
+            if cap:                               # a daily allowance (AvioADSB counts its day in UTC)
+                day = time.strftime("%Y-%m-%d", time.gmtime())
+                if st.get("day") != day:
+                    st["day"], st["used"] = day, 0
+                if st["used"] >= cap:
+                    tried.append(f"{src['name']} used up for today")
+                    continue
+            wait = st.get("last_call", 0.0) + src.get("gap", SOURCE_GAP_S) - time.time()
+            if wait > 0 and src.get("gap"):       # a slow backup: don't hold every screen up, try again later
+                tried.append(f"{src['name']} waiting {int(wait) + 1} s")
+                continue
             if wait > 0:                          # another place was just asked for; space the calls out
                 time.sleep(wait)
+            if cap:
+                st["used"] += 1
             t0 = time.time()
-            status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=nm))
+            status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=min(int(nm), src.get("max_nm", 999))))
             st["last_call"] = time.time()
+            if cap and headers and str(headers.get("X-RateLimit-Remaining", "")).strip() == "0":
+                st["used"] = cap                  # its own count says the day's allowance is gone
             ms = int((time.time() - t0) * 1000)
             count, problem = None, ""
             if 200 <= status < 300:
@@ -2003,6 +2024,7 @@ def status_json():
             "state": "resting" if resting else ("ok" if st["ok"] and not st["strikes"] else ("failing" if st["strikes"] else "untried")),
             "resting_s": resting, "ok": st["ok"], "fail": st["fail"], "last_status": st["last_status"],
             "last_error": st["last_error"], "last_ok_age_s": int(now - st["last_ok"]) if st["last_ok"] else None,
+            **({"backup": True, "used_today": st.get("used", 0), "day_cap": src["day_cap"]} if src.get("day_cap") else {}),
         })
     with _lock:
         events = list(EVENTS)[-80:]
@@ -3803,7 +3825,7 @@ def main():
         SOURCES[:] = [{"key": "custom", "name": re.sub(r"^https?://([^/]+).*$", r"\1", ARGS.source), "url": ARGS.source}]
         STATE.clear()
         STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0,
-                           "last_call": 0.0}   # relay 35: without it, relay 34 failed every request to a --source
+                           "last_call": 0.0, "day": "", "used": 0}   # relay 35: without it, relay 34 failed every request to a --source
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()

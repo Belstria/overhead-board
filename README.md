@@ -383,7 +383,9 @@ the remote).
 
 ## Data
 
-- Live aircraft positions: [adsb.lol](https://adsb.lol), with [airplanes.live](https://airplanes.live) as a fallback.
+- Live aircraft positions: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi) and [airplanes.live](https://airplanes.live)
+  (ODbL), tried in that order, with [AvioADSB](https://avioadsb.org) (data [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
+  as an emergency backup. The boards' About links to each of them, as their terms ask.
 - Routes, airlines and aircraft details: [adsbdb](https://www.adsbdb.com) and the adsb.lol route service.
   These are looked up by callsign, and airlines reuse callsigns (Ryanair especially), so a listed route is only
   shown when the plane is actually along it and heading towards its destination; otherwise the route stays blank.
@@ -443,7 +445,9 @@ to the board when the page loads, so nothing personal lives in this repository.
 
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that answers
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
-the relay keeps serving the last good data for up to two minutes. Problems are printed in the relay's
+the relay keeps serving the last good data for up to two minutes. Only when all three fail or rest does it ask
+AvioADSB, the emergency backup: its free tier allows one request every 10 seconds and 100 a day, so the relay asks it
+at most every 15 seconds and 90 times a day (its day starts at midnight UTC) and serves the last good data in between. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.
 
 **Friends and family (relay version 19).** The phone app can be shared with friends and family over the internet,
