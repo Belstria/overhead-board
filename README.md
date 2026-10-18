@@ -160,7 +160,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
   the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
   a thin dotted line runs under those flaps (1.38).
-  On the board a plane on the radar opens its card and the airline field the airline, and the **+** at the end of a row
+  On the board a plane on the radar opens its card and the airline field the airline, and the **⋮** (three dots, 1.55; a + before) at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
 - **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the

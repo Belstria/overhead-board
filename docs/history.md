@@ -28,6 +28,8 @@ The repository is public: no addresses, keys or personal data here either.
     Esri's dark grey base has region names baked in, so neither was used.
   - #69 statuses APPROACHING / LEAVING (keys renamed, REMARKS drum order unchanged), `RADAR_COL.away` #c8645c,
     LEAVING flap soft red. #72 app `renderToday` keeps the old list dimmed (`#svList.wait`) until All places arrives.
+    #70 `plusBtn(g, x, y, w, h, on)` draws three grey dots, amber while `plusOn` (the entry whose sheet `plusOpen`
+    opened; `cardClose` clears it); Recent flights rows: pitch 40, flap ratio 1.3 (was 39, 1.45).
     #73 `spotMatch` also matches `remarkFor`, special, watch, NEW TYPE/AIRLINE, FAVOURITE and their `T()` words.
 
 - Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,

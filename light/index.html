@@ -1385,7 +1385,7 @@ function cardOpen(html, wire){
   if (wire) wire(box.querySelector(".cardIn"));
   return ++cardTok;
 }
-function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; cardMusicStop(); }
+function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; cardMusicStop(); if (typeof plusOn !== "undefined" && plusOn) { plusOn = null; drawStatic(); } }
 // Music for a card (1.49, relay 42): the Emirates airline card plays the first 30 seconds of the boarding music,
 // fading in briefly and out over the last four; closing the card fades it out at once. The recording is copyrighted,
 // so it is never in the repository: the relay serves it from its own data folder (/media/), and without it the card
@@ -6177,6 +6177,7 @@ const CHANGELOG = [
     "The Spotted today filter also finds remarks, such as Jumbo or New airline.",
     "In the app's Today, switching to All places keeps the list on show until the new one is ready.",
     "Airline logos that didn't load are tried again, and a few more airlines are known.",
+    "The board's list rows open Favourite / Hide from three quiet dots instead of a +, and the rows have a little more room.",
   ]},
   {v: "1.53.2", date: "2026-10-18", notes: [
     "Settings on the board and in the app are now built from one shared layout; they look and work as before.",

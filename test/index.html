@@ -817,7 +817,7 @@ function placeRow(ids, gaps, y, step, ratio, x0 = M){
   });
 }
 const BIG = IW / 30, MID = IW / 56.5, PLUS_W = 58;
-const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:39, rail:972};
+const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:40, rail:972};
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
@@ -828,7 +828,7 @@ function layout(){
     fields[`l${i}logo`].hidden = !lg;
     const ids = [`l${i}time`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`];
     if (lg) ids.splice(1, 0, `l${i}logo`);
-    placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.45);
+    placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.3);     // 1.55: lower flaps, more gap
   }
   const L0 = Y.list0;
   placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [4, 4, 4, 4], L0, IW / 34, 1.45);
@@ -1460,14 +1460,15 @@ function tapLine(g, x, y, w){
   g.save(); g.strokeStyle = "rgba(240,200,120,.38)"; g.lineWidth = 1.4; g.setLineDash([2, 4]);
   g.beginPath(); g.moveTo(x, y); g.lineTo(x + w, y); g.stroke(); g.restore();
 }
-function plusBtn(g, x, y, w, h){
-  const bg = g.createLinearGradient(0, y, 0, y + h);
-  bg.addColorStop(0, "#2a2c30"); bg.addColorStop(1, "#18191c");
-  g.fillStyle = bg; rr(g, x, y, w, h, 6); g.fill();
-  g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.14)"; rr(g, x + .5, y + .5, w - 1, h - 1, 5.5); g.stroke();
-  const c = x + w / 2, m = y + h / 2, a = Math.min(w, h) * .26;
-  g.fillStyle = COL.amber; g.fillRect(c - a, m - 1.3, 2 * a, 2.6); g.fillRect(c - 1.3, m - a, 2.6, 2 * a);
+// 1.55 (to-do #70): the row's Favourite / Hide button is three quiet grey dots (like Tabler's dots-vertical), amber
+// while that row's sheet is open (`plusOn`, the entry's id); the tap area stays the whole box.
+let plusOn = null;
+function plusBtn(g, x, y, w, h, on){
+  const c = x + w / 2, m = y + h / 2, r = Math.max(1.8, Math.min(w, h) * .075), d = Math.min(h * .24, r * 3.4);
+  g.fillStyle = on ? COL.amber : "rgba(200,196,186,.5)";
+  for (const k of [-1, 0, 1]) { g.beginPath(); g.arc(c, m + k * d, r, 0, Math.PI * 2); g.fill(); }
 }
+const plusOpen = e => { plusOn = e.id || e.hex; drawStatic(); listSheet(e); };
 const plusBox = i => { const f = fields[`l${i}time`]; return {x: W - M - PLUS_W + 10, y: f.y - 2, w: PLUS_W - 10, h: f.ch + 4}; };
 function listHints(g){
   plusRows = plusN();
@@ -1478,7 +1479,7 @@ function listHints(g){
       const pad = Math.max(3, f.step * .11), w = f.kind === "chars" ? (f.n - 1) * f.step + f.cw : f.wordW;
       tapLine(g, f.x, f.y + f.ch + pad + 1.5, w);
     }
-    if (listsOk()) { const b = plusBox(i); plusBtn(g, b.x, b.y, b.w, b.h); }
+    if (listsOk()) { const b = plusBox(i), e = recentShown()[i]; plusBtn(g, b.x, b.y, b.w, b.h, !!plusOn && e && (e.id || e.hex) === plusOn); }
   }
 }
 // What to say on a page that has nothing to show (the page buttons always work; the rotation skips empty pages).
@@ -3773,7 +3774,7 @@ function drawSpottedTable(g){
     place(e.from, SV_X.from); place(e.to, SV_X.to);
     g.font = `500 19px ${FONT}`; g.fillStyle = COL.ink; fitText(g, orNA(e.type, e.done !== false), SV_X.type, y, 250);
     if (e.type) tapLine(g, SV_X.type, y + 6, tw(e.type, 250));
-    if (listsOk()) plusBtn(g, SV_X.plus, y - 23, 40, 30);
+    if (listsOk()) plusBtn(g, SV_X.plus, y - 23, 40, 30, !!plusOn && (e.id || e.hex) === plusOn);
     if (e.reg) { g.font = `500 16px ${FONT}`; g.fillStyle = COL.muted; fitText(g, e.reg, SV_X.type + 262, y, 90); }
     g.font = `600 20px ${FONT}`; g.fillStyle = COL.ink; g.textAlign = "right";
     if (e.minDist != null) g.fillText(+e.minDist < 10 ? (+e.minDist).toFixed(1) : String(Math.round(e.minDist)), SV_X.dist, y);
@@ -4728,7 +4729,7 @@ function cardOpen(html, wire){
   if (wire) wire(box.querySelector(".cardIn"));
   return ++cardTok;
 }
-function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; cardMusicStop(); }
+function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; cardMusicStop(); if (typeof plusOn !== "undefined" && plusOn) { plusOn = null; drawStatic(); } }
 // Music for a card (1.49, relay 42): the Emirates airline card plays the first 30 seconds of the boarding music,
 // fading in briefly and out over the last four; closing the card fades it out at once. The recording is copyrighted,
 // so it is never in the repository: the relay serves it from its own data folder (/media/), and without it the card
@@ -5869,6 +5870,7 @@ const CHANGELOG = [
     "The Spotted today filter also finds remarks, such as Jumbo or New airline.",
     "In the app's Today, switching to All places keeps the list on show until the new one is ready.",
     "Airline logos that didn't load are tried again, and a few more airlines are known.",
+    "The board's list rows open Favourite / Hide from three quiet dots instead of a +, and the rows have a little more room.",
   ]},
   {v: "1.53.2", date: "2026-10-18", notes: [
     "Settings on the board and in the app are now built from one shared layout; they look and work as before.",
@@ -7054,7 +7056,7 @@ function boardTap(x, y){
   if (view === "spotted" && !svLegend) {
     const {part} = svPart(), i = Math.floor((y - 305) / 36), e = part[i];
     if (i < 0 || !e || x < M - 10 || x > W - M + 10) return;
-    if (x >= SV_X.plus - 8) return listsOk() ? listSheet(e) : undefined;
+    if (x >= SV_X.plus - 8) return listsOk() ? plusOpen(e) : undefined;
     if (x >= SV_X.airline && x < SV_X.from) return e.airline ? airlineCard(e) : undefined;
     if (x >= SV_X.from && x < SV_X.to) return e.from ? placeCard(e.from) : undefined;
     if (x >= SV_X.to && x < SV_X.type) return e.to ? placeCard(e.to) : undefined;
@@ -7074,7 +7076,7 @@ function boardTap(x, y){
     for (let i = 0; i < LIST_ROWS; i++) {
       const e = recentShown()[i], b = plusBox(i);
       if (!e) continue;
-      if (listsOk() && x >= b.x - 6 && x <= b.x + b.w + 8 && y >= b.y - 4 && y <= b.y + b.h + 4) return listSheet(e);
+      if (listsOk() && x >= b.x - 6 && x <= b.x + b.w + 8 && y >= b.y - 4 && y <= b.y + b.h + 4) return plusOpen(e);
       const id = fieldAt([`l${i}logo`, `l${i}from`, `l${i}to`, `l${i}type`], x, y);
       if (!id) continue;
       if (id.endsWith("logo")) return airlineCard(e);
