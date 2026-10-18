@@ -2261,7 +2261,7 @@ function achNext(){
     list.map(a => `<h3>${escH(a.title)}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
     `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
   confetti();
-  chime("special");
+  fanfare();
   achTimer = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); achTimer = setTimeout(achNext, 1500); }, ACH_MS);
 }
 // A short burst of paper bits over the page (fewer and shorter on the weaker TVs; none with reduced motion).
@@ -3366,7 +3366,7 @@ function airportBell(out, t0){
 // The chime for a kind of plane; `opts.force` plays it even with chimes off or at night (a preview), `opts.set` picks
 // the bell (Settings → Special bell) before it is saved.
 function chime(kind, opts = {}){
-  if ((!opts.force && (!S.chimes || nightOn || !onMainPage())) || !actx || actx.state !== "running") return;
+  if ((!opts.force && (!S.chimes || nightOn)) || !actx || actx.state !== "running") return;
   const t0 = actx.currentTime + .03, out = actx.createGain();
   out.gain.value = .55; out.connect(sfxOut());
   if (kind === "special" && (opts.set || S.bell || "airport") === "airport") return airportBell(out, t0);
@@ -3379,6 +3379,25 @@ function chime(kind, opts = {}){
       o.connect(g).connect(out); o.start(t); o.stop(t + 1.9);
     }
   }
+}
+
+// The achievement's sound (1.45): a short festive flourish, a quick rising arpeggio of bright bells, a sparkle on top
+// and a held major chord under the last note, so it doesn't sound like the airport bell.
+function fanfare(){
+  if (!S.chimes || nightOn || !actx || actx.state !== "running") return;
+  const t0 = actx.currentTime + .03, out = actx.createGain();
+  out.gain.value = .5; out.connect(sfxOut());
+  const bell = (f, t, amp, dec) => {
+    for (const [mult, a] of [[1, 1], [2, .32], [3, .12], [4.2, .05]]) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = mult === 1 ? "triangle" : "sine"; o.frequency.value = f * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp * a, t + .008); g.gain.exponentialRampToValueAtTime(amp * a * .002, t + dec / mult ** .5);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dec + .05);
+    }
+  };
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => bell(f, t0 + i * .085, .2, .6));          // C E G C, quick
+  for (const f of [523.25, 659.25, 783.99, 1046.5]) bell(f, t0 + .38, .085, 1.9);                // the chord, held
+  [2093, 2637, 3136, 2637, 3520].forEach((f, i) => bell(f, t0 + .42 + i * .06, .035, .35));    // sparkle
 }
 
 // The seat-belt ding (1.43): one soft cabin chime when a new plane comes on top (not for a special plane, which has its
@@ -6163,7 +6182,8 @@ setInterval(() => {
 const CHANGELOG = [
   {v: "1.45", date: "2026-10-18", notes: [
     "The new plane ding is a real cabin chime now.",
-    "Chimes and the ding only sound on the main page, not while you are in Settings or another view."]},
+    "The ding only sounds where the plane on top is shown, not in Settings, the radar or the lists.",
+    "Achievements celebrate with a sound of their own."]},
   {v: "1.44", date: "2026-10-18", notes: [
     "The full board has Account & device in Settings (who's signed in, passkeys, password, sign out, the phone app and the light version).",
     "The full board's Spotted today switches between this place and all places, and its Logbook shows one place's numbers and offers the CSV.",
@@ -6919,7 +6939,7 @@ const TAB_ICONS = {
 };
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
-// 1.45: the plane's chimes and the ding only sound on Now, not in Settings or another tab.
+// 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
 function onMainPage(){ return tab === "now"; }
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");

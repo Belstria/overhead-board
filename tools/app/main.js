@@ -1902,7 +1902,7 @@ const TAB_ICONS = {
 };
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
-// 1.45: the plane's chimes and the ding only sound on Now, not in Settings or another tab.
+// 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
 function onMainPage(){ return tab === "now"; }
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
