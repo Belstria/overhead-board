@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 37
+RELAY_VERSION = 38
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -324,6 +324,9 @@ class Spot:
             if self.logbook.get("trophiesV") != 1:
                 self.ensure_day()
                 _backfill_trophies(self)
+            if self.logbook.get("flightsV") != 1:
+                self.ensure_day()
+                _backfill_flights(self)
         return self.logbook
 
     def changed(self, *what):
@@ -554,6 +557,7 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                 m = re.match(r"^([A-Z]{3})\d", cs)
                 if m:
                     _note_first(book["airlines"], m.group(1), "", e, "newAirline", learning)
+                    _note_first(book.setdefault("flights", {}), cs, "", e, "newFlight", learning)   # relay 38
                 score(book, e, self.day)
                 note_records(book, e)
                 hrs = set(book.get("hours", []))
@@ -715,6 +719,27 @@ def trophy_pass(book, e, got=None, won=None):
             got[k] = ts
             if won is not None:
                 won.append(k)
+
+
+def _backfill_flights(spot):
+    """Relay 38 counts airline flight numbers (callsigns) like types and aircraft; an older logbook learns them once
+    from its saved days, so "first time" for a flight means it."""
+    b = spot.logbook
+    flights = b["flights"] = {}
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        for e in reversed(spot.entries if day == spot.day else _load(f, [])):
+            cs = str(e.get("callsign") or "").strip().upper()
+            if re.match(r"^[A-Z]{3}\d", cs):
+                it = flights.get(cs)
+                ts = e.get("ts") or 0
+                if it is None:
+                    flights[cs] = {"name": "", "first": ts, "count": 1, "last": ts}
+                else:
+                    it["count"] += 1
+                    it["prev"], it["last"] = it["last"], ts
+    b["flightsV"] = 1
+    spot.changed("book")
 
 
 def _backfill_trophies(spot):
@@ -1715,10 +1740,11 @@ def logbook_csv(spot):
     return buf.getvalue().encode("utf-8-sig")
 
 
-def seen_json(spot, reg):
-    """What the logbook knows of one airframe (relay 28): how often it was seen here, first, last and the one before."""
+def seen_json(spot, reg, part="regs"):
+    """What the logbook knows of one airframe (relay 28), or of one flight number (`part` "flights", relay 38): how
+    often it was seen here, first, last and the one before."""
     with _data_lock:
-        it = spot.book().get("regs", {}).get(reg)
+        it = spot.book().get(part, {}).get(reg)
         if not it:
             return {"reg": reg, "count": 0}
         return {"reg": reg, "count": it.get("count", 0), "first": it.get("first"), "last": it.get("last"), "prev": it.get("prev")}
@@ -3654,9 +3680,12 @@ class Handler(BaseHTTPRequestHandler):
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/seen":
+            cs = re.sub(r"[^A-Z0-9]", "", ((self.query().get("cs") or [""])[0]).upper())[:8]
+            if cs:
+                return self.reply(200, "application/json", json.dumps(seen_json(self.spot, cs, "flights")).encode())
             reg = re.sub(r"[^A-Z0-9-]", "", ((self.query().get("reg") or [""])[0]).upper())[:10]
             if not reg:
-                return self.reply(400, "text/plain", b"reg=... is required")
+                return self.reply(400, "text/plain", b"reg=... or cs=... is required")
             return self.reply(200, "application/json", json.dumps(seen_json(self.spot, reg)).encode())
         if path == "/watch":
             hexes = [h for h in ((self.query().get("hex") or [""])[0]).lower().split(",") if re.fullmatch(r"[0-9a-f]{6}", h)][:80]

@@ -12,7 +12,7 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
 const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
@@ -134,7 +134,7 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-def(HERO, "seen",    {kind:"chars", n:17, dur:60, style:"amber", label:["Remarks",""]});
+def(HERO, "seen",    {kind:"chars", n:19, dur:60, style:"amber", label:["Remarks",""]});
 def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
 fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
@@ -157,7 +157,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
-  placeRow(["seen"], [], 411, 19.36, 1.45, UM);
+  placeRow(["seen"], [], 411, 17.4, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -446,6 +446,7 @@ function dayList(){
 function setFeat(o, mode, alert = false){
   const now = Date.now();
   if (!feat || feat.hex !== o.ac.hex) {
+    if (!alert) seatbeltDing();                        // a new plane on top: look up
     const p = enrich(o.ac);
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
     p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
@@ -525,7 +526,8 @@ function renderAircraftInfo(){
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
-  $("screen").querySelector(".credit").textContent = isModelPic(src) ? T("Photo of this model (Wikimedia Commons)") : "airport-data.com";
+  $("screen").querySelector(".credit").textContent = isModelPic(src) ? "Wikimedia Commons" : "airport-data.com";
+  $("screen").classList.toggle("model", isModelPic(src));
   if (src !== shownPhoto) {
     shownPhoto = src;
     const scr = $("screen"), img = $("photo");
@@ -664,7 +666,9 @@ function renderToday(){
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   svSig = sig;
-  $("svList").innerHTML = d.rows.length ? d.rows.map(rowHtml).join("")
+  const waiting = allPlaces && !(fullDay.all && fullDay.list);
+  if (!waiting) $("svList").style.minHeight = "";
+  $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
     : `<li class="empty">${svFilter === "all" ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
 }
 function renderLists(){
@@ -1247,6 +1251,7 @@ const COCKPIT = [
     {k: "imperfect", type: "switch", label: "Worn hardware"},
     {k: "sound", type: "switch", label: "Flap sound"},
     {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "ding", type: "switch", label: "New plane ding"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC"}]}];
 //@L:end
 let draft = null;
@@ -1542,7 +1547,11 @@ $("dot").onclick = statusCard;
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;
-  ctlSound.press(); allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+  ctlSound.press();
+  const L = $("svList"), y = scrollY;
+  L.style.minHeight = L.offsetHeight + "px";              // the list keeps its height while the other one loads (1.43)
+  allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+  scrollTo(0, y);
 };
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the

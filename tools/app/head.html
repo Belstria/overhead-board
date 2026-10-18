@@ -141,6 +141,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
 .screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
 .screen.has .none,.screen:not(.has) .credit{display:none}
+/* 1.43: a picture of the model, not of this aircraft */
+.screen .mtag{position:absolute;z-index:3;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
+  font:700 11.5px/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
+.screen.has.model .mtag{display:block}
+.screen.rwyOn .mtag{display:none}
 .screen.on{animation:screenOn .95s ease-out both}
 @keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
 .bezel.plain{padding:0;background:none;box-shadow:none}
@@ -546,7 +551,7 @@ body.arOpen{overflow:hidden}
         <div class="groove"></div>
         <h2 id="acTitle" data-t="This aircraft">This aircraft</h2>
         <div class="bezel" id="bezel"><i></i><i></i><i></i><i></i>
-          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
+          <div class="screen" id="screen"><img id="photo" alt="" referrerpolicy="no-referrer"><canvas class="rwy" id="rwyCv" aria-hidden="true"></canvas><span class="none" data-t="No picture">No picture</span><span class="mtag" data-t="Model photo · not this aircraft">Model photo · not this aircraft</span><span class="credit">airport-data.com</span><span class="glass"></span></div>
           <b class="led"></b>
         </div>
         <div class="look" id="look" hidden>

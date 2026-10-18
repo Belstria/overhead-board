@@ -228,6 +228,16 @@ The main board has everything below. New features are tried on `/test/` first; o
   skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
   it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
+- **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
+  (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
+  (board) or Sounds (app) → **New plane ding**.
+- **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
+  with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
+  picked).
+- **Model photos** (1.43) carry an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT" on the board, in the app and in cards.
+- **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST
+  EVER: TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
+  flight numbers since relay 38 and learned the old ones from the saved days). Nothing during a new logbook's first day.
 - **Tips** (1.42): the first time you open each page (and for the less obvious things: swiping a row, tapping an
   airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
   and gently fades the rest; tap anywhere to close it. Each shows once per device; Settings → Device (the board: the

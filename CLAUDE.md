@@ -309,6 +309,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   all-places day, `relayStats` only from this place; `#svPlaces` is a two-button switch. The app's rows have no `+`
   (`.tc` holds only the time); the swipe's favourite side is grey until `.armed`. About is the last plate of Settings
   (in `settingsExtra`), with Show the tips again under Device.
+- 1.43 (relay 38): `seatbeltDing()` (sound block, synthesised E6 bell, gain .16) from both `setFeat`s for a new plane on
+  top unless it rang the special chime (`S.ding`, not at night, 15 s apart, not in the first 8 s). The overhead rotation
+  no longer has `stats`: `nextPage()` puts Today in numbers after every tenth round (`rotLoops`, `statsTurn`,
+  `S.statsPage`). `modelTag()` on the board's photo, `.mtag` on the app's screen (`.screen.model`), `.cTag` in plane
+  cards. Remarks: `seenGet(kind, key)` (relay `/seen?reg=` or `?cs=`, the latter from `book["flights"]`, counted in
+  `_record` and backfilled once by `_backfill_flights`, `flightsV`), `firstLines()` names the first (type, plane,
+  airline, flight) and is skipped while the logbook is learning; the app's `seen` flap is 19 cells. Today's switch keeps
+  the list's height and the scroll position while the other list loads.
   The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in

@@ -142,6 +142,7 @@ const COCKPIT = [
   {title: ["Sounds", ""], cols: 2, items: [
     {k: "sound", type: "switch", label: "Button sounds"},
     {k: "chimes", type: "switch", label: "Chimes"},
+    {k: "ding", type: "switch", label: "New plane ding"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", span: 2}]}];
 //@L:end
 
