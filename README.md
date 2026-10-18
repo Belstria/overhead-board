@@ -228,6 +228,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
   it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
+- **The full board has what the app has** (1.44), except what needs a phone (Sky view, compass, notifications):
+  Settings → Control → **Account & device** (who the screen is signed in as, passkeys, password, Sign out of this device,
+  links to the phone app and its light version, the tips again, the privacy note); Spotted today's **This place / All
+  places** button; the Logbook's place buttons (All · Home · …) and a **CSV** download. Nothing on the board needs
+  scrolling (TVs can't): address results and airport choices open as a window, Update location fits its cell, and
+  About's patch notes and legend move with **▲ ▼** buttons.
 - **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
   (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
   (board) or Sounds (app) → **New plane ding**.

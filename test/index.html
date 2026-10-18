@@ -350,9 +350,13 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .apList [data-ap] b{color:#f0b429;margin-right:6px}
 .apList [data-ap].on{border-color:#f0b429;background:rgba(240,180,41,.1)}
 .inst.loc{min-width:0}
-.inst.updAll{overflow-y:auto}
-.inst.updAll .upd .cap{padding-left:12px;padding-right:12px}
-.inst.updAll .geoQ{margin-top:8px}
+.inst.updAll{overflow:hidden}
+.inst.updAll{justify-content:flex-start;padding-top:6px}
+.inst.updAll .upd{gap:5px}
+.inst.updAll .upd .cap,.inst.updAll .geoQ .cap{height:28px;margin:0;padding:0 9px;font-size:10px;white-space:nowrap}
+.inst.updAll .geoQ{margin-top:6px;gap:6px}
+.inst.updAll .geoQ input{padding:4px 8px;font-size:12px;height:28px}
+.inst.updAll .note{display:none}                 /* the board: City and Airport show the result, choices open as a pop-up */
 #tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .38s ease;cursor:pointer}
 #tipLayer.on{opacity:1}
 #tipLayer .tipShade{position:absolute;inset:0;transition:background .3s ease}
@@ -373,6 +377,28 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cPicW,.cardish .cPicW{position:relative}
 #cardBox .cTag,.cardish .cTag{position:absolute;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
   font:700 11.5px/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.acIn{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:#f3f0e8;font:500 15px "Archivo Narrow",sans-serif}
+.acHead{display:flex;align-items:center;gap:14px;margin:2px 0 8px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
+.acAv{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 22px/1 "Archivo Narrow",sans-serif}
+.acWho{min-width:0;text-align:left}
+.acWho b{display:block;font:700 20px/1.2 "Archivo Narrow",sans-serif;color:#f3f0e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acWho small{display:block;margin-top:2px;font-size:13px;color:#959aa3}
+.acctPlate h4{margin:0;font:700 12px/1 "Archivo Narrow",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
+.acctPlate .acSec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 2px}
+.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:11px}
+.acctPlate .acList{list-style:none;margin:4px 0 0;padding:0}
+.acctPlate .acList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font-size:15px}
+.acctPlate .acList small{color:#959aa3;margin-left:4px}
+.acctPlate p.muted,.acctPlate .muted{margin:4px 0 0;font-size:13px;color:#959aa3}
+.acctPlate .warn{color:#f6be35}
+.acOut{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+.cap.danger{color:#ff9d92}
+/* 1.44: long pages on the board (patch notes, legend) move with ▲ / ▼ buttons: a TV can't scroll */
+.scrollBtns{display:flex;gap:6px;margin-left:auto}
+.scrollBtns .cap{width:auto;padding:0 14px}
+#cardBox .pickList,.cardish .pickList{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+#cardBox .pickList .cBtn small,.cardish .pickList .cBtn small{display:block;font-weight:500;opacity:.7;margin-top:2px;letter-spacing:0}
+#cockpit .acOut .cap{width:auto;white-space:nowrap;padding:0 22px}
 </style>
 </head>
 <body>
@@ -639,7 +665,7 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime","toGo","seen"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], radar: [], settings: [], about: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], radar: [], settings: [], about: [], account: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -2175,8 +2201,8 @@ async function loadFullDay(){
   fullDay.busy = true; fullDay.at = now;
   try {
     const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
-    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
-    if (j.stats) relayStats = j.stats;
+    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
+    if (j.stats && !allPlaces) relayStats = j.stats;
     renderSpottedBoard(); updateFooter();
   } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
   finally { fullDay.busy = false; }
@@ -2184,9 +2210,15 @@ async function loadFullDay(){
 // The newest sightings from the regular sync, then the rest of the day from the last full copy.
 function dayList(){
   const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay || fullDay.all) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
   return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
+}
+// Spotted today's list: this place, or every place once their whole day is in (1.44, as in the app).
+function todayList(){
+  if (!allPlaces) return dayList();
+  if (!fullDay.all || !fullDay.list) return [];
+  return userLists.hide.length ? fullDay.list.filter(e => !isHidden(e)) : fullDay.list;
 }
 
 /* ---------- special aircraft and favourites ---------- */
@@ -3168,7 +3200,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
    the view on the board itself: lists and numbers on split flaps, the rest engraved into the panel. Pressing the
    button again (or Esc, or a page button) turns it back. Left alone for five minutes, it goes back by itself. */
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -3215,6 +3247,7 @@ function switchView(next, opts = {}){
   switching = false;
   if (view === "settings") cockpitOpen();
   if (view === "about") aboutOpen();
+  if (view === "account") accountOpen();
   drawStatic();
   snapping = true;
   try { if (view) renderView(); else { renderFeatured(); renderPage(); } } finally { snapping = false; }
@@ -3231,7 +3264,7 @@ function switchView(next, opts = {}){
 const toggleView = v => switchView(view === v ? null : v);
 function viewLanded(){
   if (view === "radar") startRadar();
-  $("cockpit").hidden = view !== "settings" && view !== "about";
+  $("cockpit").hidden = view !== "settings" && view !== "about" && view !== "account";
   $("viewTools").hidden = !buildViewTools();
 }
 function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; }
@@ -3246,6 +3279,8 @@ setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_I
 ["pointerdown", "keydown", "wheel", "input"].forEach(ev => addEventListener(ev, () => { viewTouched = Date.now(); }, {passive: true, capture: true}));
 function viewSubtitle(){
   if (view === "spotted") return spottedSummary();
+  if (view === "logbook" && lbPlace) { const b = lbPlaceData[lbPlace];
+    return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
   if (view === "logbook") return logbookSummary();
   if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
   if (view === "records") return T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.");
@@ -3253,6 +3288,7 @@ function viewSubtitle(){
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
   if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
   if (view === "about") return T("Version {v} · what changed in each version, the keys, and who made it", {v: VERSION});
+  if (view === "account") return T("Who this screen is signed in as, and Fallblatt's other versions.");
   return "";
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
@@ -3284,7 +3320,7 @@ function airportChanged(){ renderAirport(); }
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
 let svFilter = "all", svPageNo = 0, svLegend = false;
 let svSig = "";function svData(){
-  const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
   const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
   const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
@@ -3295,7 +3331,7 @@ function spottedSummary(){
   if (!real.length) return T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15});
   const airlines = new Set(real.map(e => e.airlineCode || clean(e.airline)).filter(Boolean)).size;
   const types = new Set(real.map(e => e.typeCode || clean(e.type)).filter(Boolean)).size;
-  const st = relayV5() && relayStats, n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
+  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), n = st ? st.planes : real.length, na = st ? st.airlines : airlines, nt = st ? st.types : types;
   const pl = (k, one, many) => T(k === 1 ? one : many, {n: k});
   return [pl(n, "{n} plane", "{n} planes"), pl(na, "{n} airline", "{n} airlines"), pl(nt, "{n} aircraft type", "{n} aircraft types"),
     T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
@@ -3474,19 +3510,32 @@ function buildViewTools(){
   const box = $("viewTools");
   if (view === "logbook" || view === "collection" || view === "records") {
     const to = ["logbook", "collection", "records"].filter(v => v !== view);
-    box.innerHTML = to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records"}[v])}</button>`).join("");
-    for (const b of box.children) b.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(b.dataset.v); };
+    const pl = view === "logbook" && lbPlaceOk() ? ((lbData() || {}).places || []).filter(([k, n]) => n > 0) : [];
+    const chips = pl.length > 1 || (pl.length === 1 && pl[0][0] !== "home") ? [["", T("All")], ...pl.map(([k, n]) => [k, `${placeName(k)} ${nf.format(n)}`])] : [];
+    box.innerHTML = chips.map(([k, t]) => `<button class="cap small" type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(t)}</button>`).join("") +
+      to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records"}[v])}</button>`).join("") +
+      (view === "logbook" && !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cap small" href="${relay()}/logbook.csv" download>${T("CSV")}</a>` : "");
+    for (const b of box.querySelectorAll("[data-v]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(b.dataset.v); };
+    for (const b of box.querySelectorAll("[data-p]")) b.onclick = async e => {
+      e.stopPropagation(); ctlSound.press();
+      lbPlace = b.dataset.p; buildViewTools(); drawStatic(); renderLogbookBoard();
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} drawStatic(); renderLogbookBoard(); }
+    };
     box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
     return true;
   }
   if (view !== "spotted") { box.innerHTML = ""; return false; }
+  const seenFrom = ((lbData() || {}).places || []).filter(([k, n]) => n > 0).length;
+  const placesOn = placesRelay() && (places.list.length || S.live || placeKeyNow() !== "home" || seenFrom > 1);
+  if (box.children.length && !!box.querySelector('[data-t="places"]') !== !!placesOn) box.innerHTML = "";
   if (!box.children.length) {
-    box.innerHTML = SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
+    box.innerHTML = (placesOn ? [["places", "All places"]] : []).concat(SV_TOOLS).map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
     for (const b of box.children) b.onclick = e => {
       e.stopPropagation(); ctlSound.press();
       const k = b.dataset.t;
       if (k === "prev" || k === "next") return svStep(k === "next" ? 1 : -1);
       if (k === "legend") return setLegend(!svLegend), updateViewTools();
+      if (k === "places") { allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svPageNo = 0; loadFullDay(); renderSpottedBoard(); return updateViewTools(); }
       if (svLegend) setLegend(false);
       svFilter = k; svPageNo = 0; renderSpottedBoard();
     };
@@ -3502,7 +3551,8 @@ function updateViewTools(){
   for (const b of box.children) {
     const k = b.dataset.t, n = counts[k];
     if (n != null) b.textContent = `${T(SV_TOOLS.find(t => t[0] === k)[1])} ${nf.format(n)}`;
-    const on = k === "legend" ? svLegend : k === svFilter && !svLegend;
+    if (k === "places") b.textContent = allPlaces ? T("All places") : placeLabel();
+    const on = k === "places" ? allPlaces : k === "legend" ? svLegend : k === svFilter && !svLegend;
     if (k !== "prev" && k !== "next" && b.getAttribute("aria-pressed") !== String(on)) b.setAttribute("aria-pressed", String(on));
   }
 }
@@ -3621,10 +3671,16 @@ function demoLogbook(){
     categories: {passenger: 2104, bizjet: 71, private: 58, cargo: 36, helicopter: 27, military: 9, other: 9}};
 }
 const lbData = () => S.demo ? demoLogbook() : lbCache;
+// The Logbook by place (1.44 on the board, relay 37): All, or one place's own numbers.
+let lbPlace = "", lbPlaceData = {};
+const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
 async function fetchLogbook(){
   if (!S.demo && relayV5()) {
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
+    if (lbPlace && lbPlaceOk() && view === "logbook") {
+      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+    }
   }
   renderLogbookBoard(); renderCollection(); renderRecords();
   achCheck(game());
@@ -3650,9 +3706,9 @@ function logbookSummary(){
 function renderLogbookBoard(){
   if (view !== "logbook") return;
   if (!snapping && viewSubtitle() !== staticSub) drawStatic();
-  const b = lbData() || {};
+  const b = (lbPlace ? lbPlaceData[lbPlace] : lbData()) || {};
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
-  const types = byCount(b.types), airlines = byCount(b.airlines), has = !!lbData();
+  const types = byCount(b.types), airlines = byCount(b.airlines), has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvTypes", has ? nf.format(types.length) : "", 60);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 120);
@@ -3971,7 +4027,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || (view === "about" && b.dataset.view === "settings") || ((view === "collection" || view === "records") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "collection" || view === "records") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -4521,6 +4577,15 @@ const I18N_ROWS = [
   ["EVERY 10TH", "JEDE 10.", "UNE SUR 10", "CADA 10", "ELKE 10E"],
   ["A soft cabin ding when a new plane comes on top, so you know when to look up.", "Ein leises Kabinen-Ding, wenn ein neues Flugzeug oben erscheint, damit du weißt, wann du hochschauen sollst.", "Un léger ding de cabine quand un nouvel avion arrive en haut, pour savoir quand lever les yeux.", "Un suave ding de cabina cuando aparece un avión nuevo arriba, para saber cuándo mirar.", "Een zachte cabine-ding als er een nieuw toestel bovenaan komt, zodat je weet wanneer je moet kijken."],
   ["Today in numbers comes round every tenth turn of the pages; off: only when you pick it.", "Heute in Zahlen kommt bei jeder zehnten Runde der Seiten; aus: nur wenn du es wählst.", "Aujourd'hui en chiffres revient tous les dix tours des pages ; désactivé : seulement si vous le choisissez.", "Hoy en números aparece cada diez vueltas de páginas; apagado: solo cuando lo eliges.", "Vandaag in cijfers komt elke tiende ronde van de pagina's; uit: alleen als je het kiest."],
+  ["Account & device", "Konto & Gerät", "Compte et appareil", "Cuenta y dispositivo", "Account & apparaat"],
+  ["Who this screen is signed in as, and Fallblatt's other versions.", "Als wer dieser Bildschirm angemeldet ist, und Fallblatts andere Versionen.", "Sous quel nom cet écran est connecté, et les autres versions de Fallblatt.", "Con qué cuenta está conectada esta pantalla, y las otras versiones de Fallblatt.", "Als wie dit scherm is ingelogd, en de andere versies van Fallblatt."],
+  ["Fallblatt also comes as a phone app, and as a light version of it without split flaps.", "Fallblatt gibt es auch als Handy-App und als leichte Version ohne Fallblätter.", "Fallblatt existe aussi en application pour téléphone, et en version légère sans palettes.", "Fallblatt también existe como app para el móvil, y en versión ligera sin paletas.", "Fallblatt bestaat ook als telefoon-app, en als lichte versie zonder klapbordjes."],
+  ["Light version", "Leichte Version", "Version légère", "Versión ligera", "Lichte versie"],
+  ["Back to Settings", "Zurück zu den Einstellungen", "Retour aux réglages", "Volver a los ajustes", "Terug naar instellingen"],
+  ["Privacy", "Datenschutz", "Confidentialité", "Privacidad", "Privacy"],
+  ["Up", "Hoch", "Haut", "Arriba", "Omhoog"],
+  ["Down", "Runter", "Bas", "Abajo", "Omlaag"],
+  ["CSV", "CSV", "CSV", "CSV", "CSV"],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -5200,6 +5265,93 @@ function confetti(){
   requestAnimationFrame(step);
 }
 
+/* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
+   The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
+   the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
+   relay's /signin page, linked from its "private" page. */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const ub64 = t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((t.length + 3) % 4)), c => c.charCodeAt(0));
+const accountsOk = () => !!GUEST && (window.OVERHEAD_RELAY_VERSION || 0) >= 30;
+const passkeysHere = () => window.isSecureContext && !!window.PublicKeyCredential;
+async function acctPost(path, body){
+  const r = await fetch(`${relay()}${path}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+const deviceName = () => { const u = navigator.userAgent;
+  return /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Macintosh/.test(u) ? "Mac" : /Windows/.test(u) ? "Windows" : "Device"; };
+async function passkeyAdd(){
+  const o = await acctPost("/account/passkey/begin");
+  const c = await navigator.credentials.create({publicKey: {...o, challenge: ub64(o.challenge), user: {...o.user, id: ub64(o.user.id)},
+    excludeCredentials: (o.excludeCredentials || []).map(x => ({...x, id: ub64(x.id)}))}});
+  return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
+    attestationObject: b64u(c.response.attestationObject), name: deviceName()});
+}
+// Set or change the password in a window of its own: the current one (if there is one) and the new one twice.
+function pwCard(a, done){
+  const field = (id, ph, ac = "new-password") => `<input class="acIn" id="${id}" type="password" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+  cardOpen(`<h3>${escH(T(a.password ? "Change password" : "Set a password"))}</h3><form data-pw>` +
+    `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` +
+    (a.password ? field("pwCur", "Current password", "current-password") : "") + field("pwNew", "New password") + field("pwNew2", "Repeat the new password") +
+    `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
+    `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
+    const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.onsubmit = async ev => {
+      ev.preventDefault(); ctlSound.press();
+      if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
+      try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
+      catch (e) { say((e && e.message) || String(e)); }
+    };
+    setTimeout(() => { const i = f.querySelector("input:not([hidden])"); if (i) i.focus(); }, 50);
+  });
+}
+// The account panel, in About and in the welcome: create (a username), then passkeys and a password.
+async function accountBox(el, onChange, plate){
+  let a = null;
+  try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
+  if (!a || a.home) { el.innerHTML = ""; return; }
+  const draw = (note = "") => {
+    const has = a.passkeys.length || a.password, pk = passkeysHere() && a.passkeysOk, field = (id, ph, type = "password", ac = "new-password") =>
+      `<input class="acIn" id="${id}" type="${type}" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
+    el.innerHTML = !a.user
+      ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
+        `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
+      : plate ? (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        // compact (1.42): a line per sign-in method, small buttons
+        `<div class="acSec"><h4>${escH(T("Passkeys"))}</h4>${pk ? `<button class="cap small" type="button" id="acKey">${T("Add")}</button>` : ""}</div>` +
+        (a.passkeys.length ? `<ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>`
+          : `<p class="muted">${escH(T(pk ? "No passkeys yet." : "Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<div class="acSec"><h4>${escH(T("Password"))}</h4><button class="cap small" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
+        `<p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>`
+      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
+        (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
+        (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
+          : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<p><b>${escH(T("Password"))}</b></p>` +
+        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>`;
+    if (a.user) el.insertAdjacentHTML("beforeend", `<p class="muted acNew">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`);
+
+    el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
+    const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
+    const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
+    const q = id => el.querySelector("#" + id);
+    if (q("acUser")) {
+      q("acUser").value = String(GUEST.name || "").toLowerCase().replace(/[^a-z0-9._-]+/g, ".").replace(/^[._-]+|[._-]+$/g, "");
+      q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
+    }
+    if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
+    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); pwCard(a, next => { a = next; draw(T("Password saved.")); if (onChange) onChange(a); }); };
+    for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
+  };
+  draw();
+  if (onChange) onChange(a);
+}
+
 /* ---------- tips (1.42) ----------
    Short pop-ups for what isn't obvious at first: each one rings the thing it explains and fades the rest gently,
    shows once on this device (Settings brings them back), and on the full board closes by itself after a while. */
@@ -5672,6 +5824,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.44", date: "2026-10-18", notes: [
+    "The full board has Account & device in Settings (who's signed in, passkeys, password, sign out, the phone app and the light version).",
+    "The full board's Spotted today switches between this place and all places, and its Logbook shows one place's numbers and offers the CSV.",
+    "On TVs nothing needs scrolling any more: address results and airport choices open as a window, and long pages have ▲ ▼ buttons."]},
   {v: "1.43", date: "2026-10-18", notes: [
     "A soft cabin ding when a new plane comes on top, so you know when to look up (Settings, can be turned off).",
     "Today in numbers comes round only every tenth turn of the pages, and can be turned off.",
@@ -6072,7 +6228,8 @@ function plateHtml(p){
     ? `<p>${escH(T("Press Save to apply. Each screen keeps its own settings."))}</p>` +
       `<div class="acts"><button class="cap big" type="button" data-act="cancel">${T("Cancel")}</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">${T("Save")}</button>` +
       `<button class="cap big" type="button" data-act="about">${T("About")}</button></div>` +
-      `<div class="acts"><button class="cap small" type="button" data-act="tips">${T("Show the tips again")}</button></div>` +
+      `<div class="acts"><button class="cap small" type="button" data-act="account">${T("Account & device")}</button>` +
+      `<button class="cap small" type="button" data-act="tips">${T("Show the tips again")}</button></div>` +
       `<p>${escH(T("About shows what's new in each version, the keys, and who made it."))}</p>` +
       `<p class="ver">${escH(versionLine())}</p>`
     : p.items.map(itemHtml).join("");
@@ -6111,6 +6268,7 @@ function cockpitOpen(){
     ctlSound.press();
     if (b.dataset.act === "save") { applySettings(draft); placeCheck(); switchView(null); }
     else if (b.dataset.act === "about") switchView("about");
+    else if (b.dataset.act === "account") switchView("account");
     else if (b.dataset.act === "tips") { tipsReset(); b.textContent = T("Tips will show again."); return; }
     else switchView(null);
   };
@@ -6120,13 +6278,50 @@ function cockpitOpen(){
 const KEYS = [["1 – 3", "The pages of the lower half"], ["← →", "Turn the page (in Spotted today: its pages)"],
   ["T", "Spotted today"], ["L", "Logbook"], ["R", "Radar"], ["S", "Settings"], ["A", "About"], ["D", "Connection log"],
   ["F", "Full screen (or double-click the board)"], ["", "Click a row, a logo, a place or a plane on the radar for more"], ["Esc", "Back to the board"]];
+// Account & device (1.44, as in the app's Settings): who this screen is signed in as (a guest's name and account, or
+// Home), the sign-in methods and Sign out; the phone app and its light version; the tips again.
+function accountOpen(){
+  const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
+  Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
+  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Home");
+  box.innerHTML =
+    `<div class="plate acctPlate" style="--cols:1;grid-row:1 / span 2">${screws}<h3>${T("Account")}</h3>` +
+      `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
+      `<small id="acSub">${escH(GUEST ? T("Signed in on this device") : T("This device uses the home profile (your home network or a linked device)."))}</small></div></div>` +
+      (accountsOk() ? `<div id="acctBox"></div>` : "") +
+      (GUEST ? `<div class="acOut"><button class="cap big danger" type="button" id="signOut">${T("Sign out of this device")}</button>` +
+        `<p class="muted">${escH(T("Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link."))}</p></div>` : "") + `</div>` +
+    `<div class="plate" style="--cols:1;grid-row:1 / span 2">${screws}<h3>${T("Device")}</h3>` +
+      `<p>${escH(T("Fallblatt also comes as a phone app, and as a light version of it without split flaps."))}</p>` +
+      `<div class="acts"><a class="cap big" href="../app/">${T("Phone app")}</a><a class="cap big" href="../light/">${T("Light version")}</a></div>` +
+      `<div class="acts"><button class="cap small" type="button" id="acTips">${T("Show the tips again")}</button>` +
+      `<button class="cap small" type="button" id="acBack">${T("Back to Settings")}</button></div></div>` +
+    `<div class="plate" style="--cols:1;grid-row:1 / span 2">${screws}<h3>${T("Privacy")}</h3>` +
+      `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>` +
+      `<p class="ver">${escH(versionLine())}</p></div>`;
+  box.onclick = e => e.stopPropagation();
+  if (accountsOk()) accountBox($("acctBox"), a => {
+    const sub = $("acSub");
+    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
+  }, true);
+  if (GUEST) $("signOut").onclick = async () => {
+    ctlSound.press();
+    if (!confirm(T("Sign out of this device? Your profile stays; sign back in with your account."))) return;
+    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
+    try { localStorage.removeItem(SKEY); } catch {}
+    location.reload();
+  };
+  $("acTips").onclick = () => { ctlSound.press(); tipsReset(); $("acTips").textContent = T("Tips will show again."); };
+  $("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
+}
 function aboutOpen(){
   const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML =
     `<div class="plate notes">${screws}<h3 id="abTitle">${T("Patch notes")}</h3>` +
       `<div class="tabs"><button class="cap small" type="button" data-ab="notes" aria-pressed="true">${T("Patch notes")}</button>` +
-      `<button class="cap small" type="button" data-ab="legend" aria-pressed="false">${T("Legend")}</button></div>` +
+      `<button class="cap small" type="button" data-ab="legend" aria-pressed="false">${T("Legend")}</button>` +
+      `<span class="scrollBtns"><button class="cap small" type="button" data-sc="-1" aria-label="${escH(T("Up"))}">▲</button><button class="cap small" type="button" data-sc="1" aria-label="${escH(T("Down"))}">▼</button></span></div>` +
       `<div class="log" id="abLog" tabindex="0">${changelogHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Keys")}</h3><dl class="keys">${KEYS.map(([k, t]) => `<dt>${escH(T(k))}</dt><dd>${escH(T(t))}</dd>`).join("")}</dl>` +
       `<p>${escH(T("Browsers only allow sound after a first click or key press."))}</p></div>` +
@@ -6139,6 +6334,10 @@ function aboutOpen(){
     $("abTitle").textContent = T(legend ? "Legend" : "Patch notes");
     $("abLog").innerHTML = legend ? legendHtml() : changelogHtml();
     $("abLog").scrollTop = 0;
+  };
+  for (const b of box.querySelectorAll("[data-sc]")) b.onclick = () => {
+    ctlSound.press(); const L = $("abLog");
+    L.scrollBy({top: +b.dataset.sc * L.clientHeight * .85, behavior: "smooth"});
   };
 }
 // The remarks and what they mean, with each one in its colours as on the flaps.
@@ -6309,6 +6508,18 @@ async function locatedAt(box, lat, lon, name, why){
   try { list = (await nearbyAirports(+lat, +lon)).filter(a => a.km <= 100); } catch {}
   if (ask) { ask.innerHTML = ""; ask.hidden = true; }
   if (!list.length) return say(T("Press Save to watch this spot."));
+  if (box.querySelector(".updAll")) {                     // the board: a pop-up to pick from
+    if (list.length === 1) { putDraft(box, "home", list[0].code); cockpitDirty(); return say(T("Airport: {name} ({code}). Press Save to watch this spot.", {name: list[0].city || list[0].name, code: list[0].code})); }
+    say(T("Pick the airport for this place, then press Save:"));
+    cardOpen(`<h3>${escH(T("Airport"))}</h3><p class="note">${escH(T("Pick the airport for this place, then press Save:"))}</p><div class="pickList">` +
+      list.map((a, i) => `<button class="cBtn" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)}<small>${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</small></button>`).join("") + `</div>`, el => {
+      for (const btn of el.querySelectorAll("[data-ap]")) btn.onclick = () => {
+        const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty(); cardClose();
+        say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
+      };
+    });
+    return;
+  }
   if (list.length === 1 || !ask) {
     putDraft(box, "home", list[0].code); cockpitDirty();
     return say(T("Airport: {name} ({code}). Press Save to watch this spot.", {name: list[0].city || list[0].name, code: list[0].code}));
@@ -6412,6 +6623,14 @@ function wireSearch(box){
     busy = true; ctlSound.press(); note.textContent = T("Searching …");
     try {
       const hits = await geoSearch(q.value.trim());
+      if (q.closest(".updAll")) {                         // the board: the results in a pop-up
+        note.textContent = "";
+        cardOpen(`<h3>${escH(T("Find an address"))}</h3>` + (hits.length ? `<div class="pickList">` + hits.map((h, i) => `<button class="cBtn" type="button" data-hit="${i}">` +
+          `<b>${escH(h.short || h.name.split(",")[0])}</b><small>${escH(h.name)}</small></button>`).join("") + `</div>` : `<p class="note">${escH(T("Nothing found. Try a street and town, or a landmark."))}</p>`), el => {
+          for (const b of el.querySelectorAll("[data-hit]")) b.onclick = async () => { const h = hits[+b.dataset.hit]; ctlSound.press(); cardClose(); await locatedAt(box, h.lat, h.lon, "", T("Location set.")); };
+        });
+        return;
+      }
       res.innerHTML = hits.map((h, i) => `<button type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b> ${escH(h.name)}</button>`).join("");
       note.textContent = hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark.");
       for (const b of res.querySelectorAll("[data-hit]")) b.onclick = async () => {

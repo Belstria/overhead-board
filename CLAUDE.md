@@ -317,6 +317,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `_record` and backfilled once by `_backfill_flights`, `flightsV`), `firstLines()` names the first (type, plane,
   airline, flight) and is skipped while the logbook is learning; the app's `seen` flap is 19 cells. Today's switch keeps
   the list's height and the scroll position while the other list loads.
+- 1.44 (the board catches up with the app): the account code (`accountBox`, `pwCard`, `passkeyAdd`, `acctPost`,
+  `accountsOk`, …) moved from main.js into the board's shared block; the board's `account` view (`accountOpen`, from
+  Settings' Control plate) shows the Account, Device and Privacy plates (each `grid-row: 1 / span 2`). The board's
+  `todayList()`/`fullDay.all` and the `places` button in Spotted today's view tools; `lbPlace`/`lbPlaceData`/
+  `lbPlaceOk` now live in the board's code (copied by the app) with place buttons and a CSV link in the Logbook's view
+  tools. No scrolling on the board (TVs): `locatedAt`/`wireSearch` open a pick card when the cell is `.updAll`, and About
+  has ▲ ▼ (`[data-sc]`, `scrollBy`) for the log.
   The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
