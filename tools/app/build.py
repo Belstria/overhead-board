@@ -9,6 +9,9 @@ tools/light/build.py builds the light version (no split flaps) from the same pie
 
 Don't edit app/index.html by hand: change head.html or main.js here (or the board), then build again. If a marker
 string below is no longer in the board, the build stops and says which one; update the marker.
+
+The translations and the sounds aren't copied (1.53.1): the app loads the test board's i18n.js and sounds.js
+(../test/, with the versions tools/assets.py stamps into the board first).
 """
 import re
 import sys
@@ -16,6 +19,8 @@ from pathlib import Path
 
 SP = Path(__file__).parent
 REPO = SP.parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+import assets  # noqa: E402  (tools/assets.py)
 board = ""
 
 
@@ -50,7 +55,8 @@ def extract(text):
         "E6": ex("function drawPlane(g, cx, cy, size, color){", "const metalCache = "),
         "E8": ex("const shadowSprites = new Map();", "function slots(g){"),
         "E9": ex("function screw(g, x, y, r){", "/* ---------- the aircraft photo"),
-        "E10": ex("/* ---------- sound: recorded flap clatter", "/* ---------- board styles and night mode ---------- */"),
+        "E10": patched(ex("/* ---------- sound: recorded flap clatter", "/* ---------- board styles and night mode ---------- */"),
+                       ('const SOUNDS_JS = "sounds.js?v=', 'const SOUNDS_JS = "../test/sounds.js?v=')),
         "E11": ex("/* ---------- reference tables ---------- */", "/* ---------- network ---------- */"),
         "E12": patched(ex("/* ---------- network ---------- */", "/* ---------- demo traffic (clearly sample data) ---------- */"),
                        ("  if (feat && feat.info === info) { renderFeatured(); if (isAc(page)) renderAircraft(); }\n}",
@@ -105,6 +111,11 @@ def assemble(head, js, E, css, out, regions=None, extra_css=""):
             raise SystemExit(f"The light version has no code for main.js's region {m.group(1)!r}")
         return regions[m.group(1)]
     js = REGION.sub(region, js)
+    m = re.search(r'<script src="i18n\.js\?v=[0-9a-f]+"></script>', board)
+    if not m:
+        raise SystemExit("The board doesn't load i18n.js (<script src=\"i18n.js?v=...\">)")
+    i = head.rindex("<script>\n")              # the translations before the app's own script, from the test board
+    head = head[:i] + m.group(0).replace('src="', 'src="../test/') + "\n" + head[i:]
     assert "//@L:" not in js, "an unclosed //@L region in main.js"
     head = head.replace("/*CAPS_AND_COCKPIT*/\n", extra_css).replace("<style>\n", "<style>\n" + css.replace("body.lite", "body.no-lite"), 1)
     for k, v in E.items():
@@ -118,6 +129,7 @@ def assemble(head, js, E, css, out, regions=None, extra_css=""):
 
 
 if __name__ == "__main__":
+    assets.stamp()
     E, css = extract(Path(sys.argv[1] if len(sys.argv) > 1 else REPO / "test" / "index.html").read_text(encoding="utf-8"))
     assemble((SP / "head.html").read_text(encoding="utf-8"), (SP / "main.js").read_text(encoding="utf-8"), E, css,
              Path(sys.argv[2] if len(sys.argv) > 2 else REPO / "app" / "index.html"))

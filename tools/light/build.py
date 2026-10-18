@@ -24,6 +24,7 @@ def patched(text, *pairs):
     return text
 
 
+app.assets.stamp()
 E, css = app.extract((REPO / "test" / "index.html").read_text(encoding="utf-8"))
 head = (REPO / "tools" / "app" / "head.html").read_text(encoding="utf-8")
 ui = head[head.index("<script>/*@ui*/"):]

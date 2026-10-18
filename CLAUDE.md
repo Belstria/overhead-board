@@ -26,7 +26,7 @@ area.** Where it and the code disagree, the code wins.
   short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
   versions (guests read them too). Settings → About shows them. Bump `RELAY_VERSION` with every relay change.
 - **Every visible text goes through `T()`** (test board and app): `T("English text", {vars})`, `{name}` placeholders.
-  Add a row to `I18N_ROWS` (English, German, French, Spanish, Dutch) for every new text; a missing row shows English.
+  Add a row to `test/i18n.js` (English, German, French, Spanish, Dutch) for every new text; a missing row shows English.
   Flap status words stay English inside (key for colours and drum order) and are translated when drawn. No German
   second lines under labels; a second label word is only kept for units. Patch notes and the connection log stay English.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
@@ -45,18 +45,20 @@ area.** Where it and the code disagree, the code wins.
 
 | Path | What it is |
 |------|------------|
-| `index.html` | Main board (PROD): a copy of `test/index.html` (only the title "Fallblatt" and one comment differ), made when Dave says "push to main". |
+| `index.html` | Main board (PROD): a copy of `test/index.html` (only the title "Fallblatt" and one comment differ), made when Dave says "push to main" by `py tools/push_main.py` (also copies `i18n.js`, `sounds.js` to the root). |
 | `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, ...). |
+| `test/i18n.js`, `test/sounds.js` | The translations (`I18N_ROWS`) and recorded sounds (`SOUND_DATA`), loaded by the board, app and light by version (`?v=`, stamped by `tools/assets.py`; 1.53.1). |
 | `test-api/index.html` | Forwards to `/test/`. |
 | `keys/index.html` | Remote key test for the TVs. |
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (47 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (48 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
-| `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into the boards' `@sounds-begin` block. |
+| `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
+| `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js` into the boards (the app build does it first); make the main board. |
 | `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |
 
@@ -65,7 +67,7 @@ area.** Where it and the code disagree, the code wins.
 **Board** (`test/index.html`, single file, copied to `index.html`): fixed 1920x1080 layout in board units, scaled to
 the screen. Two canvases: `bg` (static: metal, wear, engraved labels; `drawStatic()`) and `fx` (the flaps). Flap
 engine: `def()` fields of cells, `tile()` pre-renders flap faces, `setChars`/`setWord` queue the drum path, `frame()`
-animates, `paintCell()` draws a flap mid-flip; drums are `DRUM_*` tables. Sounds: recordings in `SOUND_DATA` (made by
+animates, `paintCell()` draws a flap mid-flip; drums are `DRUM_*` tables. Sounds: recordings in `SOUND_DATA` (`test/sounds.js`, fetched when sound is on; made by
 `build_sounds.py`), played by `sample()`; flaps always clack synthesised. Top half: the plane overhead (`process()`
 picks it: alerts, overhead, inbound, flying by) via `renderFeatured()`/`renderTimes()`. Lower half: rotating pages
 (Recent flights, This aircraft, Today in numbers) turned by a giant falling flap; views (Spotted today, Logbook,
@@ -99,7 +101,7 @@ build stops. Settings under `od.light.settings`; Settings → Device switches (`
 `main` reaches screens within minutes; `--local-root <repo>` serves a checkout), positions (`SOURCES` tried in order:
 adsb.lol, adsb.fi, airplanes.live, AvioADSB emergency only), sightings, logbook and game, Web Push, Flightradar24
 (Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search, a health watch that pushes the owner (relay 45), week/month review (`/review`, push; relay 46),
-photos for the share picture (`/photo`) and the owner's Hue light pulse (`data/hue.json`, admin page; relay 47), QR sign-in. Credit links are in About.
+photos for the share picture (`/photo`) and the owner's Hue light pulse (`data/hue.json`, admin page; relay 47), QR sign-in, and since relay 48 board files named by version (`i18n.js?v=<sha256 start>`) with a year's cache when the copy matches. Credit links are in About.
 
 **Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite
 link, an account sign-in, or a QR pairing) or a stranger (only the private page with the QR sign-in, `/health`, the app's

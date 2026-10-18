@@ -50,7 +50,7 @@ These are suggestions; the owner chooses.
 |------|----------------------|
 | `tools/app/head.html` | The phone app's markup and CSS (colour tokens on `:root`, the welcome, the splash, tabs, lists). |
 | `tools/app/main.js` | The phone app's layout and glue (`heroLayout`, `fitSideways`, `buildTabs`, `welcome`, the logbook lists). |
-| `test/index.html` | The whole board in one file (about 400 KB): flap engine (`tile`, `paintCell`, `frame`), `drawStatic`, `THEMES`, `REMARK_LOOK`, `drawRadar`, `COCKPIT`, translations (`I18N_ROWS`), patch notes (`CHANGELOG`). |
+| `test/index.html` | The whole board in one file (about 400 KB): flap engine (`tile`, `paintCell`, `frame`), `drawStatic`, `THEMES`, `REMARK_LOOK`, `drawRadar`, `COCKPIT`, patch notes (`CHANGELOG`); the translations (`I18N_ROWS`) and sounds are in `test/i18n.js` and `test/sounds.js` next to it. |
 | `app/index.html` | **Generated** by `py tools/app/build.py` from the three files above. Never edit it by hand. |
 | `index.html` | The main board. **Don't touch**: changes reach it only when the owner says so. |
 
@@ -60,7 +60,7 @@ closure, so its variables aren't reachable from the browser console.
 ## Rules
 
 1. **Test boards first.** Change `test/` (and the app sources), never `index.html`.
-2. **Every visible text goes through `T("English text", {vars})`**, with a row in `I18N_ROWS` for English, German,
+2. **Every visible text goes through `T("English text", {vars})`**, with a row in `I18N_ROWS` (`test/i18n.js`) for English, German,
    French, Spanish and Dutch. New text without a row shows English.
 3. **TVs are weak.** Fire TV and LG run at 1080p and 30 fps (`WEAK_TV`, `LITE()`). Anything heavy (blur, big
    shadows, per-frame gradients, filters on canvas) needs a light path there. Flap faces are pre-rendered and cached
