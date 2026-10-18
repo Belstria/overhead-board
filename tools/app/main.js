@@ -1404,7 +1404,7 @@ setInterval(() => {
 }, 1000);
 //@E31
 function plateHtml(p){
-  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();
@@ -1453,49 +1453,12 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
 }
-let hasAccount = false;
-// Under Settings' plates: the account, notifications and this device (the full board, signing out, the relay).
+// Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
-  const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
+  const box = $("setExtra");
   if (!box) return;
-  // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
-  const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
-    `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
-  const dev = ui + `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a>` +
-    (ANDROID ? `<button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button>` : "") + `</div>`;
-  // 1.41: the Account plate says plainly who this device is signed in as (the profile's name and account), with the
-  // sign-in methods under it and Sign out of this device in its header.
-  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
-  const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
-    `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
-    `<small id="acSub">${escH(T(GUEST ? "Signed in on this device" : "Not signed in"))}</small></div>` +
-    (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +      // 1.46: in the header
-    (accountsOk() ? `<div id="acctBox"></div>` : "") + `</div>`;
-  box.innerHTML = acct +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +
-      `<div class="acts"><button class="cap small" type="button" id="tipsBtn">${T("Show the tips again")}</button></div></div>` +
-    // About last (1.42): the version, then the page with the patch notes, the legend and who made it
-    `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
-  $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
-  if (GUEST) $("signOut").onclick = async () => {
-    ctlSound.press();
-    if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
-      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
-    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
-    try { localStorage.removeItem(SKEY); } catch {}
-    location.reload();
-  };
-  $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
-  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  renderPush();
-  if (accountsOk()) accountBox($("acctBox"), a => {
-    hasAccount = !!(a && a.user && (a.passkeys.length || a.password));
-    const sub = $("acSub");
-    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
-  }, true);
+  box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
+  wireViews(box);
 }
 //@L:taps
 $("hero").addEventListener("click", e => {

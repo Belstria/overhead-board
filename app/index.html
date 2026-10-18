@@ -314,6 +314,32 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .acctPlate p.muted,.acctPlate .muted{margin:calc(4px*var(--k)) 0 0;font-size:calc(13px*var(--k));color:#959aa3}
 .acctPlate .warn{color:#f6be35}
 .cap.danger{color:#ff9d92}
+/* 1.56 (#74): the sign-in methods as a checklist */
+.acCheck{list-style:none;margin:calc(14px*var(--k)) 0 0;padding:0;border-radius:calc(12px*var(--k));background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.acCheck>li{display:flex;align-items:center;gap:calc(12px*var(--k));padding:calc(12px*var(--k)) calc(12px*var(--k)) calc(12px*var(--k)) calc(14px*var(--k));text-align:left}
+.acCheck>li+li{border-top:1px solid rgba(255,255,255,.07)}
+.acCheck>li>div{flex:1;min-width:0}
+.acCheck b{display:block;font:700 calc(16px*var(--k))/1.2 var(--f-board);color:#f3f0e8}
+.acCheck small{display:block;margin-top:calc(2px*var(--k));font:500 calc(13px*var(--k))/1.3 var(--f-board);color:#959aa3}
+.acTick{flex:none;width:calc(24px*var(--k));height:calc(24px*var(--k));box-sizing:border-box;border-radius:50%;border:calc(2px*var(--k)) solid rgba(214,208,194,.4);display:grid;place-items:center;font:700 calc(14px*var(--k))/1 Arial,sans-serif;color:#fff}
+.acCheck li.done .acTick{border-color:#2fb36b;background:#2fb36b}
+.acGo{flex:none;display:flex;align-items:center;gap:calc(6px*var(--k));border:0;background:none;padding:calc(8px*var(--k)) calc(4px*var(--k)) calc(8px*var(--k)) calc(10px*var(--k));cursor:pointer;font:700 calc(14px*var(--k))/1 var(--f-board);letter-spacing:.04em;color:#f0b429}
+.acGo span{font-size:calc(20px*var(--k));line-height:calc(14px*var(--k));margin-top:calc(-2px*var(--k))}
+.acGo:focus-visible{outline:calc(2px*var(--k)) solid #f0b429;outline-offset:calc(2px*var(--k));border-radius:calc(6px*var(--k))}
+.acCheck li.acKeysRow{display:block;padding:0 calc(12px*var(--k)) calc(6px*var(--k)) calc(50px*var(--k))}
+.acCheck li.acKeysRow .acList{margin:0}
+/* 1.56 (#75): the other versions as two tiles, the tips as a small link under them */
+.devTiles{display:grid;grid-template-columns:1fr 1fr;gap:calc(12px*var(--k));margin:calc(6px*var(--k)) 0 0}
+.devTile{display:flex;flex-direction:column;align-items:flex-start;gap:calc(6px*var(--k));min-width:0;box-sizing:border-box;padding:calc(16px*var(--k)) calc(14px*var(--k)) calc(14px*var(--k));border-radius:calc(12px*var(--k));text-decoration:none;
+  background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);color:#f3f0e8}
+.devTile:hover,.devTile:focus-visible{border-color:#f0b429;outline:none}
+.devIco{display:grid;place-items:center;width:calc(40px*var(--k));height:calc(40px*var(--k));border-radius:calc(10px*var(--k));background:rgba(240,180,41,.14);color:#f0b429}
+.devIco svg{width:calc(24px*var(--k));height:calc(24px*var(--k))}
+.devTile b{font:700 calc(17px*var(--k))/1.15 var(--f-board)}
+.devTile small{font:500 calc(13px*var(--k))/1.3 var(--f-board);color:#a9a69c}
+.devLinks{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(6px*var(--k)) calc(22px*var(--k));margin-top:calc(14px*var(--k))}
+.devLinks .lnk{border:0;background:none;padding:calc(6px*var(--k)) calc(4px*var(--k));cursor:pointer;font:600 calc(13px*var(--k))/1.2 var(--f-board);color:#f0b429;text-decoration:underline;text-underline-offset:calc(3px*var(--k))}
+.devLinks .lnk:focus-visible{outline:calc(2px*var(--k)) solid #f0b429;border-radius:calc(4px*var(--k))}
 /* 1.44: long pages on the board (patch notes, legend) move with ▲ / ▼ buttons: a TV can't scroll */
 .scrollBtns{display:flex;gap:calc(6px*var(--k));margin-left:auto}
 .scrollBtns .cap{width:auto;padding:0 calc(14px*var(--k))}
@@ -409,6 +435,35 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acctPlate p.muted,.acctPlate .note{margin:4px 0 0;font-size:13px}
 .acctPlate .acNew{margin-top:10px}
 .acctPlate .acHead{margin-bottom:6px}
+/* 1.56 (#74): the sign-in methods as a checklist */
+.acCheck{list-style:none;margin:14px 0 0;padding:0;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.acCheck>li{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;text-align:left}
+.acCheck>li+li{border-top:1px solid rgba(255,255,255,.07)}
+.acCheck>li>div{flex:1;min-width:0}
+.acCheck b{display:block;font:700 16px/1.2 var(--f-board);color:#f3f0e8}
+.acCheck small{display:block;margin-top:2px;font:500 13px/1.3 var(--f-board);color:#959aa3}
+.acTick{flex:none;width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(214,208,194,.4);display:grid;place-items:center;font:700 14px/1 Arial,sans-serif;color:#fff}
+.acCheck li.done .acTick{border-color:#2fb36b;background:#2fb36b}
+.acGo{flex:none;display:flex;align-items:center;gap:6px;border:0;background:none;padding:8px 4px 8px 10px;cursor:pointer;font:700 14px/1 var(--f-board);letter-spacing:.04em;color:#f0b429}
+.acGo span{font-size:20px;line-height:14px;margin-top:-2px}
+.acGo:focus-visible{outline:2px solid #f0b429;outline-offset:2px;border-radius:6px}
+.acCheck li.acKeysRow{display:block;padding:0 12px 6px 50px}
+.acCheck li.acKeysRow .acList{margin:0}
+/* 1.56 (#75): the other versions as two tiles, the tips as a small link under them */
+.devTiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 0}
+.devTile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;box-sizing:border-box;padding:16px 14px 14px;border-radius:12px;text-decoration:none;
+  background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);color:#f3f0e8}
+.devTile:hover,.devTile:focus-visible{border-color:#f0b429;outline:none}
+.devIco{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:rgba(240,180,41,.14);color:#f0b429}
+.devIco svg{width:24px;height:24px}
+.devTile b{font:700 17px/1.15 var(--f-board)}
+.devTile small{font:500 13px/1.3 var(--f-board);color:#a9a69c}
+.devLinks{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-top:14px}
+.devLinks .lnk{border:0;background:none;padding:6px 4px;cursor:pointer;font:600 13px/1.2 var(--f-board);color:#f0b429;text-decoration:underline;text-underline-offset:3px}
+.devLinks .lnk:focus-visible{outline:2px solid #f0b429;border-radius:4px}
+/* 1.56 (#71): Recent flights on Now, a clear line between the flights and more room */
+#recent li{padding-top:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.13);box-shadow:none}
+#recent li:last-child{border-bottom:0}
 .cap.danger{color:#ff9d92}
 #acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
 .acKeys li{align-items:center}
@@ -973,7 +1028,7 @@ body.arOpen{overflow:hidden}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=0620f3b2af"></script>
+<script src="../test/i18n.js?v=69bebf58fc"></script>
 <script>
 (() => {
 "use strict";
@@ -1834,6 +1889,9 @@ function pwCard(a, done){
   });
 }
 // The account panel, in About and in the welcome: create (a username), then passkeys and a password.
+// One row of the sign-in checklist (1.56): done or not, the method, what it is, its button.
+const acRow = (done, name, line, btn) => `<li class="${done ? "done" : ""}"><span class="acTick" aria-hidden="true">${done ? "✓" : ""}</span>` +
+  `<div><b>${escH(T(name))}</b><small>${escH(T(line))}</small></div>${btn}</li>`;
 async function accountBox(el, onChange, plate){
   let a = null;
   try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
@@ -1845,14 +1903,16 @@ async function accountBox(el, onChange, plate){
       ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
         `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
       : plate ? (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
-        // compact (1.42); 1.46: a row per sign-in method, its name and state on the left and its button beside them
-        `<div class="acSec"><div><h4>${escH(T("Passkeys"))}</h4><small>${escH(a.passkeys.length ? T("{n} saved", {n: a.passkeys.length})
-          : T(pk ? "No passkeys yet." : "Passkeys need the https address (the one in your invite link)."))}</small></div>` +
-          `${pk ? `<button class="cap small" type="button" id="acKey">${T("Add")}</button>` : ""}</div>` +
-        (a.passkeys.length ? `<ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
-          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
-        `<div class="acSec"><div><h4>${escH(T("Password"))}</h4><small>${escH(T(a.password ? "A password is set." : "No password yet."))}</small></div>` +
-          `<button class="cap small" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>`
+        // 1.56 (#74): a checklist, a row per sign-in method: an empty circle or a green tick, its name and a line on
+        // what it is, and Add / Change with a chevron on the right; the saved passkeys under their row
+        `<ul class="acCheck">` +
+          acRow(a.passkeys.length, "Passkey", pk ? "Sign in with Face ID or a fingerprint" : "Passkeys need the https address (the one in your invite link).",
+            pk ? `<button class="acGo" type="button" id="acKey">${T("Add")}<span aria-hidden="true">›</span></button>` : "") +
+          (a.passkeys.length ? `<li class="acKeysRow"><ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
+            `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul></li>` : "") +
+          acRow(a.password, "Password", a.password ? "Set · backup sign-in" : "Not set · backup sign-in",
+            `<button class="acGo" type="button" id="acSetPw">${T(a.password ? "Change" : "Add")}<span aria-hidden="true">›</span></button>`) +
+        `</ul>`
       : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
         (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
         (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
@@ -5183,13 +5243,21 @@ const COCKPIT = [
     {k: "nightFrom", type: "time", label: "Dim from"},
     {k: "nightTo", type: "time", label: "Until"},
     {k: "nightView", type: "switch", label: "At night", on: "view", off: "dim", upText: "NIGHT VIEW", downText: "DIM"},
-    {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]}];
+    {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]},
+  // 1.56 (#47 step 3): who this screen is signed in as, notifications, this device, privacy and About. `view: true`
+  // plates are no part of Settings' own grid: the board shows them as a view of their own (Account & device, from the
+  // Control plate), a phone as plates under its Settings (VIEW_PLATES). Their items are whole blocks (viewItemHtml).
+  {id: "account", title: ["Account", ""], view: true, cols: 1, cls: "acctPlate", items: [{type: "account"}]},
+  {id: "push", title: ["Notifications", ""], view: true, cols: 1, for: "phone", items: [{type: "push"}]},
+  {id: "device", title: ["Device", ""], view: true, cols: 1, items: [{type: "device"}]},
+  {id: "privacy", title: ["Privacy", ""], view: true, cols: 1, for: "tv", items: [{type: "privacy"}]},
+  {id: "about", title: ["About", ""], view: true, cols: 1, for: "phone", cls: "about", items: [{type: "about"}]}];
 // The plates as one screen shows them: its plates and controls, with its changes made, the moved controls in place.
 function cockpitFor(target){
   const phone = target !== "tv", light = target === "light";
   const mine = o => (!o.for || o.for === (phone ? "phone" : "tv")) && !(light && o.flaps);
   const mod = o => ({...o, ...(phone && o.phone), ...(light && o.light)});
-  const plates = COCKPIT.filter(mine).map(p => ({...mod(p), ...(phone && !(p.phone && p.phone.cols) ? {cols: 2} : {}), items: p.items && []}));
+  const plates = COCKPIT.filter(mine).map(p => ({...mod(p), ...(phone && !(p.phone && p.phone.cols) && !p.view ? {cols: 2} : {}), items: p.items && []}));
   const moved = [];
   for (const p of COCKPIT) for (const it of mine(p) && p.items || []) if (mine(it)) {
     const o = mod(it);
@@ -5201,7 +5269,8 @@ function cockpitFor(target){
   }
   return plates;
 }
-const PLATES = cockpitFor(COCKPIT_FOR), ITEMS = PLATES.flatMap(p => p.items || []).filter(it => it.k);
+const PLATES = cockpitFor(COCKPIT_FOR).filter(p => !p.view), VIEW_PLATES = cockpitFor(COCKPIT_FOR).filter(p => p.view);
+const ITEMS = PLATES.flatMap(p => p.items || []).filter(it => it.k);
 let draft = null;
 function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
 const rotOpts = it => it.metric && draft.units === "metric" ? it.metric : it.opts;   // a knob with metric steps (altitude)
@@ -5289,7 +5358,66 @@ const HINTS = {
   addEventListener("touchend", off, {passive: true});
   addEventListener("touchmove", off, {passive: true});
 })();
+// The Account & device plates' blocks (1.56), the same on every screen; #74: the sign-in methods as a checklist
+// (accountBox), #75: the other versions as two tiles with the tips as a small link under them.
+const DEV_ICON = {
+  phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  light: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9.5h10M7 13h7M7 16.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  flaps: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="8.5" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="5.5" width="8.5" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 12h8.5M13 12h8.5" stroke="currentColor" stroke-width="1.8"/></svg>',
+  board: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="12.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 20.5h8M12 17v3.5M2.5 10.75h19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'};
+function viewItemHtml(it){
+  const tv = COCKPIT_FOR === "tv", light = COCKPIT_FOR === "light";
+  if (it.type === "account") {
+    const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
+    return `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
+      `<small id="acSub">${escH(T(GUEST ? "Signed in on this device" : "Not signed in"))}</small></div>` +
+      (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +
+      (accountsOk() ? `<div id="acctBox"></div>` : "");
+  }
+  if (it.type === "push") return `<div id="pushBox"></div>`;
+  if (it.type === "device") {
+    const tiles = tv ? [["../app/", "Phone app", "Planes on your phone, with notifications.", "phone"], ["../light/", "Light version", "The phone app without split flaps.", "light"]]
+      : [[light ? "../app/" : "../light/", light ? "Full app" : "Light version", light ? "The plane on split flaps, like the board." : "Plain and quick, without split flaps.", light ? "flaps" : "light", "uiBtn"],
+        ["../", "Full board", "The big board, for a TV or a computer.", "board"]];
+    const android = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
+    return `<div class="devTiles">${tiles.map(([href, name, line, ico, id]) => `<a class="devTile" href="${href}"${id ? ` id="${id}"` : ""}>` +
+        `<span class="devIco">${DEV_ICON[ico]}</span><b>${escH(T(name))}</b><small>${escH(T(line))}</small></a>`).join("")}</div>` +
+      `<div class="devLinks"><button class="lnk" type="button" id="tipsBtn">${T("Show the tips again")}</button>` +
+      (android && !tv ? `<button class="lnk" type="button" id="relayBtn">${T("Change relay")}</button>` : "") +
+      (tv ? `<button class="lnk" type="button" id="acBack">${T("Back to Settings")}</button>` : "") + `</div>`;
+  }
+  if (it.type === "privacy") return `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>` +
+    `<p class="ver">${escH(versionLine())}</p>`;
+  return `<p class="ver">${escH(versionLine())}</p><p>${escH(T("What's new in each version, the relay and who made it."))}</p>` +
+    `<div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div>`;
+}
+// Their buttons, on every screen; each part only where it is shown (the board has no notifications, a phone no
+// Back to Settings).
+let acctHas = false;
+function wireViews(box){
+  const q = id => box.querySelector("#" + id);
+  if (q("aboutBtn")) q("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
+  if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
+  if (q("acBack")) q("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
+  if (q("uiBtn")) q("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", COCKPIT_FOR === "light" ? "app" : "light"); } catch {} };
+  if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  if (q("signOut")) q("signOut").onclick = async () => {
+    ctlSound.press();
+    if (!confirm(accountsOk() && acctHas ? T("Sign out of this device? Your profile stays; sign back in with your account.")
+      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
+    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
+    try { localStorage.removeItem(SKEY); } catch {}
+    location.reload();
+  };
+  if (q("pushBox")) renderPush();
+  if (q("acctBox")) accountBox(q("acctBox"), a => {
+    acctHas = !!(a && a.user && (a.passkeys.length || a.password));
+    const sub = q("acSub");
+    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
+  }, true);
+}
 function itemHtml(it){
+  if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
   const cap = `<span>${escH(T(it.label))}</span>`, hint = HINTS[it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
@@ -6051,6 +6179,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.56", date: "2026-10-19", notes: [
+    "Account: passkey and password as a checklist, each with a tick when it is set and its Add or Change button.",
+    "Device: the other versions as two tiles, with Show the tips again as a small link under them.",
+    "The app's Recent flights have a clear line between the flights and more room.",
+    "The account, device and about plates are now built from the same layout as the rest of Settings on every screen.",
+  ]},
   {v: "1.54", date: "2026-10-19", notes: [
     "Settings switched back to their default now stay that way on all your devices.",
     "The boards show the Fallblatt logo in the browser tab.",
@@ -6445,7 +6579,7 @@ function nvTick(){
   else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) location.reload();
 }
 function plateHtml(p){
-  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();
@@ -6494,49 +6628,12 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
 }
-let hasAccount = false;
-// Under Settings' plates: the account, notifications and this device (the full board, signing out, the relay).
+// Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
-  const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
+  const box = $("setExtra");
   if (!box) return;
-  // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
-  const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
-    `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
-  const dev = ui + `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a>` +
-    (ANDROID ? `<button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button>` : "") + `</div>`;
-  // 1.41: the Account plate says plainly who this device is signed in as (the profile's name and account), with the
-  // sign-in methods under it and Sign out of this device in its header.
-  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
-  const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
-    `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
-    `<small id="acSub">${escH(T(GUEST ? "Signed in on this device" : "Not signed in"))}</small></div>` +
-    (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +      // 1.46: in the header
-    (accountsOk() ? `<div id="acctBox"></div>` : "") + `</div>`;
-  box.innerHTML = acct +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +
-      `<div class="acts"><button class="cap small" type="button" id="tipsBtn">${T("Show the tips again")}</button></div></div>` +
-    // About last (1.42): the version, then the page with the patch notes, the legend and who made it
-    `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
-  $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
-  if (GUEST) $("signOut").onclick = async () => {
-    ctlSound.press();
-    if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
-      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
-    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
-    try { localStorage.removeItem(SKEY); } catch {}
-    location.reload();
-  };
-  $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
-  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  renderPush();
-  if (accountsOk()) accountBox($("acctBox"), a => {
-    hasAccount = !!(a && a.user && (a.passkeys.length || a.password));
-    const sub = $("acSub");
-    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
-  }, true);
+  box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
+  wireViews(box);
 }
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;

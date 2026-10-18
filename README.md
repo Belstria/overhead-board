@@ -301,7 +301,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
-  red **Sign out** next to the name, and Passkeys and Password each a row with its button beside it). **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
+  red **Sign out** next to the name; since 1.56 Passkey and Password as a checklist: an empty circle or a green tick,
+  a line on what each is, and **Add** / **Change** on the right). **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
   scrolls, and closing it leaves Settings as it was.
 - **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
   - **Place name** is the name of the place being watched (Home, Parents, Vacation …). Type a new one and a **Save**
@@ -455,7 +456,8 @@ flaps (speed, quick flaps, worn hardware, realistic look, board style); Sounds k
 Special bell. It keeps its own settings on the device, but a guest's place still goes to their profile as in the
 app. On its side it is laid out like the app's, with the fields in place of the flaps.
 
-Switch to it in Settings → Device → **Switch to the light version**, and back with **Back to the full app**. The
+Switch to it in Settings → Device → the **Light version** tile, and back with the **Full app** tile (1.56: two tiles,
+the other being the Full board, with **Show the tips again** as a small link under them). The
 choice stays on the device: `/app/` (and so the Android app and a phone's home-screen icon) then opens the light
 version. Notifications are shared with the app.
 
