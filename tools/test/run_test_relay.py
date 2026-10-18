@@ -7,6 +7,8 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake)
+    py tools/test/run_test_relay.py --hue      a fake Hue Bridge (fakehue.py, two ports below the relay) for the admin
+                                               page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --port 8296   other ports (the fake source then on 8295), so test relays of
                                                   several checkouts don't answer for each other (or env PORT)
 
@@ -40,6 +42,7 @@ def main():
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
+    p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
     fake_port = a.port - 1
@@ -51,6 +54,12 @@ def main():
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")
         src = src.replace(real, fake)
+    # the share picture's photos: the fake source draws them (SVG, at 127.0.0.1), so this copy lets those through
+    for real, fake in [('PHOTO_HOSTS = (', 'PHOTO_HOSTS = ("127.0.0.1", '), ('PHOTO_TYPES = (', 'PHOTO_TYPES = ("image/svg+xml", '),
+                       ("https://discovery.meethue.com", f"http://127.0.0.1:{a.port - 2}/discovery")]:
+        if real not in src:
+            raise SystemExit(f"relay/serve.py no longer has {real}; update run_test_relay.py")
+        src = src.replace(real, fake, 1)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
     # A page that sets a test profile's cookie (only in this copy of the relay).
     hook = '        if path == "/signin":'
@@ -85,6 +94,7 @@ def main():
     env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", PYTHONIOENCODING="utf-8",
                FAKE_PORT=str(fake_port))
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
+    hue = subprocess.Popen([sys.executable, str(HERE / "fakehue.py"), str(a.port - 2)], env=env) if a.hue else None
     cmd = [sys.executable, "serve.py", "--port", str(a.port), "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
            "--home", "VIE", "--local-root", str(REPO), "--source", FAKE + "/ac/{lat}/{lon}/{nm}"]
     if a.fr24:
@@ -97,8 +107,8 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        for proc in (relay, fake):
-            if proc.poll() is None:
+        for proc in (relay, fake, hue):
+            if proc and proc.poll() is None:
                 proc.terminate()
                 try:
                     proc.wait(5)

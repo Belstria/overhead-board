@@ -339,6 +339,25 @@ class MainActivity : Activity() {
                 else requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), REQ_LOCATION)
             }
         }
+
+        /** A plane card's Share (1.53): the picture (base64 PNG) to the share sheet, through [ShareProvider]. */
+        @JavascriptInterface
+        fun shareImage(b64: String, name: String) {
+            val bytes = try { android.util.Base64.decode(b64, android.util.Base64.DEFAULT) } catch (e: Exception) { return }
+            if (bytes.isEmpty() || bytes.size > 15_000_000) return
+            val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "").removeSuffix(".png").ifEmpty { "fallblatt" } + ".png"
+            val dir = java.io.File(cacheDir, "share")
+            dir.mkdirs()
+            dir.listFiles()?.forEach { it.delete() }
+            java.io.File(dir, safe).writeBytes(bytes)
+            val uri = Uri.parse("content://$packageName.share/$safe")
+            main.post {
+                val send = Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                send.clipData = android.content.ClipData.newRawUri("", uri)
+                try { startActivity(Intent.createChooser(send, null)) } catch (e: Exception) { }
+            }
+        }
     }
 
     private fun hasLocationPermission() =
