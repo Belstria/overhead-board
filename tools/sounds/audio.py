@@ -106,3 +106,26 @@ def wav_bytes(x, rate):
     data = struct.pack(f"<{len(x)}h", *[max(-32768, min(32767, int(round(v * 32767)))) for v in x])
     return (b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
             + b"data" + struct.pack("<I", len(data)) + data)
+
+
+def gate(x, rate, thresh, floor=0.2, ratio=2.0, attack_ms=4, release_ms=80):
+    """A gentle noise gate (a downward expander): quieter than `thresh` (the level between the sounds worth keeping),
+    the background is turned down by up to `floor`, smoothly, so the room is softened rather than cut out."""
+    att, rel = math.exp(-1 / (rate * attack_ms / 1000)), math.exp(-1 / (rate * release_ms / 1000))
+    env, gain, y = 0.0, 1.0, []
+    for v in x:
+        a = abs(v)
+        env = att * env + (1 - att) * a if a > env else rel * env + (1 - rel) * a
+        g = 1.0 if env >= thresh else max(floor, (env / thresh) ** (ratio - 1))
+        gain = g if g > gain else .999 * gain + .001 * g      # opens at once, closes slowly
+        y.append(v * gain)
+    return y
+
+
+def fade_out(x, rate, ms):
+    """A long, smooth fade to silence over the last `ms`."""
+    n = min(len(x), int(rate * ms / 1000))
+    y = list(x)
+    for i in range(n):
+        y[len(y) - n + i] *= math.cos(i / n * math.pi / 2) ** 2
+    return y

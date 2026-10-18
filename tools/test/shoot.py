@@ -12,7 +12,9 @@ OUT is a file name prefix (shot:now writes OUT-now.png). Steps run in order:
     shot:NAME        screenshot                full:NAME    whole-page screenshot (the phone app scrolls)
     clip:X,Y,W,H,NAME  screenshot of part of the page
     seq:SECONDS      watch which page button is lit, once a second, and print the order
-Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080.
+Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080; SIZE=960x540
+and DPR=2 for the Fire TV. The test relay's "Test" profile is signed in (COOKIE=test-device; COOKIE=new-device is the
+new guest, COOKIE= nobody).
 Prints page errors and console errors at the end. Route and aircraft lookups (adsbdb) go to the fake data source
 from run_test_relay.py, so names and routes match the made-up planes.
 
@@ -43,10 +45,15 @@ async def main():
         opts = {"viewport": {"width": w, "height": h}, "device_scale_factor": 3, "is_mobile": True, "has_touch": True,
                 "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"}
     else:
-        opts = {"viewport": {"width": 1920, "height": 1080}}
+        w, h = (int(v) for v in os.environ.get("SIZE", "1920x1080").lower().split("x"))
+        opts = {"viewport": {"width": w, "height": h}, "device_scale_factor": float(os.environ.get("DPR", "1"))}
     async with async_playwright() as p:
         browser = await p.chromium.launch(args=["--autoplay-policy=no-user-gesture-required"])
         ctx = await browser.new_context(**opts)
+        cookie = os.environ.get("COOKIE", "test-device")
+        if cookie:
+            host = url.split("//", 1)[-1].split("/", 1)[0].split(":")[0]
+            await ctx.add_cookies([{"name": "overhead", "value": cookie, "domain": host, "path": "/"}])
         page = await ctx.new_page()
         errors, console = [], []
         page.on("pageerror", lambda e: errors.append(str(e)))

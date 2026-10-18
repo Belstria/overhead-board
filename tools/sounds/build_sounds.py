@@ -44,6 +44,17 @@ def whole(name, start_s=0.0, end_s=None, to=.7):
     return [audio.halve(audio.normalise(audio.trim_tail(clip, rate), to))], rate // 2
 
 
+def barks(name, start_s, end_s, fade_ms, gate_at):
+    """The Airbus "barking dog" (1.49): the PTU's bark-bark-bark with the cabin's hum between the barks turned down
+    (a high-pass for the rumble, then a gentle gate), faded out at the end, at a quarter of the rate (11 kHz: it is all
+    below 4 kHz) to keep the board small."""
+    x, rate = audio.read_mono(SRC / name)
+    clip = x[int(start_s * rate):int(end_s * rate)]
+    clip = audio.gate(audio.highpass(clip, rate, 150), rate, gate_at, floor=.15)
+    clip = audio.normalise(audio.fade_out(audio.cut(clip, rate, 0, pre_ms=0, length_ms=(end_s - start_s) * 1000, fade_ms=6), rate, fade_ms), .7)
+    return [audio.halve(audio.halve(clip))], rate // 4
+
+
 def main():
     sets = {
         # the flaps clack synthesised (1.19.1: chosen over the Pragotron recording, 174056 by matucha)
@@ -52,6 +63,7 @@ def main():
         "wheel": whole("139061__joedeshon__push_button_switch_07.wav"),
         "button": whole("eaglaxle-switching-button-2.wav", .06, .32),
         "ding": whole("arunangshubanerjee-airbus-cabin-pa-beep.wav", .45, 2.5),    # both tones (1.46, Dave's choice)
+        "dog": barks("arunangshubanerjee-airbus-ptu-barking-dog.wav", 3.9, 7.25, 1000, .12),   # About, tapped 7 times
     }
     OUT.mkdir(exist_ok=True)
     lines, total = [], 0

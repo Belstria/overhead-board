@@ -473,11 +473,10 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
 //@E26
 
 /* ---------- what the lists look like ---------- */
-const PLANE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>';
 function chip(r){                        // the status word in this language; its colours by the English name
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
-  const icon = AP_ICON[r] ? `<i class="apic ${AP_ICON[r]}">${PLANE_SVG}</i>` : "";        // taking off or landing, as on the flaps
+  const icon = AP_ICON[r] ? `<i class="apic">${apSvg(AP_ICON[r])}</i>` : "";        // taking off or landing, as on the flaps (1.49: the board's pictograms)
   return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
@@ -1308,6 +1307,7 @@ function setMode(md){
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
   poll(true);                                       // the new style picks its plane from fresh positions
+  setTimeout(() => appTips("now"), 900);            // the first time in this style: its pages
 }
 function showModes(){ for (const b of document.querySelectorAll("#modes [data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === (S.mode || "overhead"))); }
 // Which of the two the Now tab shows.
@@ -1413,6 +1413,7 @@ function cockpitOpen(){
   const box = $("cockpit");
   box.innerHTML = COCKPIT.map(plateHtml).join("");
   $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
+  $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
@@ -1463,8 +1464,7 @@ function aboutOpen(){
         `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>`
     : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>`
       : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
-        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`) +
-    `<p>${escH(T("It needs your home Wi-Fi, because the flight data comes through the relay on your computer. The big board:"))} <a href="../">${escH(location.host)}/</a></p>`) +
+        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`)) +
     aboutHtml() + `</div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
@@ -1480,15 +1480,14 @@ function settingsExtra(){
   // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
   const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
     `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
-  const dev = ui + (GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a></div>`
-    : ANDROID ? `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
-    : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`);
-  // 1.41: the Account plate says plainly who this device is signed in as (a guest's name and account, or Home), with
-  // the sign-in methods under it and Sign out of this device at its foot.
-  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Home");
+  const dev = ui + `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a>` +
+    (ANDROID ? `<button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button>` : "") + `</div>`;
+  // 1.41: the Account plate says plainly who this device is signed in as (the profile's name and account), with the
+  // sign-in methods under it and Sign out of this device in its header.
+  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
   const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
     `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
-    `<small id="acSub">${escH(GUEST ? T("Signed in on this device") : T("This device uses the home profile (your home network or a linked device)."))}</small></div>` +
+    `<small id="acSub">${escH(T(GUEST ? "Signed in on this device" : "Not signed in"))}</small></div>` +
     (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +      // 1.46: in the header
     (accountsOk() ? `<div id="acctBox"></div>` : "") + `</div>`;
   box.innerHTML = acct +
@@ -1498,7 +1497,7 @@ function settingsExtra(){
     // About last (1.42): the version, then the page with the patch notes, the legend and who made it
     `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
     `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  $("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
   $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
@@ -1509,7 +1508,7 @@ function settingsExtra(){
     location.reload();
   };
   $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
-  if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   renderPush();
   if (accountsOk()) accountBox($("acctBox"), a => {
     hasAccount = !!(a && a.user && (a.passkeys.length || a.password));
@@ -1827,8 +1826,9 @@ function welcome(){
   box.hidden = false;
   try { greetFlaps(); } catch {}
   $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
+  const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // relay 42: the relay's own place to start from
   for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
-    if (GUEST.settings && GUEST.settings[k] != null) $(id).value = GUEST.settings[k];
+    if (start[k] != null) $(id).value = start[k];
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {
     soundForced = true; audioInit();
@@ -1917,11 +1917,19 @@ const TAB_TIPS = {now: "Now: the plane over you right now, its photo, and today'
   logbook: "Logbook: everything you've ever spotted: types, airlines, records, the collection, trophies and the weekly bingo.",
   radar: "Radar: the planes around you right now. Tap one for its card.",
   settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
+// 1.49 (to-do #29): the first time on Now, a walk through the styles, the page buttons and every tab; the first time in
+// the Airport style, through its pages.
 function appTips(t){
   if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
   const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
-  tip("tab-" + t, () => $("tabRow").querySelector(`[data-tab="${t}"]`), T(TAB_TIPS[t]));
+  const tabBtn = x => () => $("tabRow").querySelector(`[data-tab="${x}"]`);
+  tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
+    tip("mode", () => $("modes"), T(MODE_TIP));
+    const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
+    if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(PAGE_TIPS[k]));
+    else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(PAGE_TIPS[k]));
+    for (const [x] of TABS) if (x !== "now") tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
     tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane to the right to make it a favourite, or to the left to hide it."));
     tip("taps", () => $("recent").querySelector(".tap"), T("Tap an airline, a place or an aircraft type for more about it."));
   }

@@ -57,7 +57,8 @@ def pages():
         ac = []
         for _ in range(10):
             try:
-                ac = json.loads(urllib.request.urlopen("http://localhost:8096/aircraft/48.2085/16.3731/25", timeout=10).read()).get("ac") or []
+                req = urllib.request.Request("http://localhost:8096/aircraft/48.2085/16.3731/25", headers={"Cookie": "overhead=test-device"})
+                ac = json.loads(urllib.request.urlopen(req, timeout=10).read()).get("ac") or []
             except (OSError, ValueError):
                 ac = []
             if ac:
@@ -70,10 +71,20 @@ def pages():
         errors = []
         with sync_playwright() as p:
             b = p.chromium.launch()
+            # relay 42: every screen is signed in; without a cookie the relay shows the private page (checked too)
+            ctx = b.new_context()
+            pg = ctx.new_page()
+            pg.goto("http://localhost:8096/test/")
+            if "This board is private" not in pg.content():
+                errors.append("without a cookie /test/ didn't show the private page")
+            ctx.close()
+            ctx = b.new_context()
+            ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
             for url, size in [("http://localhost:8096/", (1920, 1080)), ("http://localhost:8096/test/", (1920, 1080)), ("http://localhost:8096/app/", (390, 844)),
                               ("http://localhost:8096/app/", (844, 390)),
                               ("http://localhost:8096/light/", (390, 844)), ("http://localhost:8096/light/", (844, 390)), ("http://localhost:8096/test-api/", (1280, 720))]:
-                pg = b.new_page(viewport={"width": size[0], "height": size[1]})
+                pg = ctx.new_page()
+                pg.set_viewport_size({"width": size[0], "height": size[1]})
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))
                 pg.goto(url)
                 pg.wait_for_timeout(8000)
