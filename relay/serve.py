@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 38
+RELAY_VERSION = 39
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2321,6 +2321,241 @@ def redeem(code, ua):
     return inv["profile"], token
 
 
+# ---------- QR codes (relay 39): a small encoder for the TV's sign-in code (byte mode, error correction M, versions
+# 1-10, which hold up to 213 bytes), drawn as SVG. After Project Nayuki's reference implementation of ISO/IEC 18004.
+_QR_ECC = (10, 16, 26, 18, 24, 16, 18, 22, 22, 26)      # error correction codewords per block, level M, versions 1-10
+_QR_BLOCKS = (1, 1, 1, 2, 2, 4, 4, 4, 5, 5)
+
+
+def _qr_raw_modules(ver):
+    n = (16 * ver + 128) * ver + 64
+    if ver >= 2:
+        na = ver // 7 + 2
+        n -= (25 * na - 10) * na - 55
+        if ver >= 7:
+            n -= 36
+    return n
+
+
+def _rs_mul(x, y):
+    z = 0
+    for i in range(7, -1, -1):
+        z = (z << 1) ^ ((z >> 7) * 0x11D)
+        z ^= ((y >> i) & 1) * x
+    return z & 0xFF
+
+
+def _rs_ecc(data, degree):
+    div = [0] * (degree - 1) + [1]
+    root = 1
+    for _ in range(degree):
+        for j in range(degree):
+            div[j] = _rs_mul(div[j], root)
+            if j + 1 < degree:
+                div[j] ^= div[j + 1]
+        root = _rs_mul(root, 0x02)
+    res = [0] * degree
+    for b in data:
+        f = b ^ res.pop(0)
+        res.append(0)
+        for i, c in enumerate(div):
+            res[i] ^= _rs_mul(c, f)
+    return res
+
+
+def qr_matrix(text):
+    data = text.encode("utf-8")
+    for ver in range(1, 11):
+        cap = _qr_raw_modules(ver) // 8 - _QR_ECC[ver - 1] * _QR_BLOCKS[ver - 1]
+        if 4 + (8 if ver < 10 else 16) + 8 * len(data) <= cap * 8:
+            break
+    else:
+        raise ValueError("too long for a QR code here")
+    bits = []
+    put = lambda v, n: bits.extend((v >> i) & 1 for i in range(n - 1, -1, -1))
+    put(4, 4); put(len(data), 8 if ver < 10 else 16)
+    for b in data:
+        put(b, 8)
+    put(0, min(4, cap * 8 - len(bits)))
+    put(0, -len(bits) % 8)
+    cw = [int("".join(map(str, bits[i:i + 8])), 2) for i in range(0, len(bits), 8)]
+    pad = 0xEC
+    while len(cw) < cap:
+        cw.append(pad); pad ^= 0xEC ^ 0x11
+    nb, ecc, raw = _QR_BLOCKS[ver - 1], _QR_ECC[ver - 1], _qr_raw_modules(ver) // 8
+    short, slen = nb - raw % nb, raw // nb
+    blocks, k = [], 0
+    for i in range(nb):
+        d = cw[k:k + slen - ecc + (0 if i < short else 1)]
+        k += len(d)
+        e = _rs_ecc(d, ecc)
+        if i < short:
+            d = d + [None]
+        blocks.append(d + e)
+    final = [b[i] for i in range(len(blocks[0])) for b in blocks if b[i] is not None]
+    size = ver * 4 + 17
+    M = [[False] * size for _ in range(size)]
+    F = [[False] * size for _ in range(size)]
+
+    def fn(x, y, dark):
+        M[y][x] = dark; F[y][x] = True
+    for i in range(size):
+        fn(6, i, i % 2 == 0); fn(i, 6, i % 2 == 0)
+    for cx, cy in ((3, 3), (size - 4, 3), (3, size - 4)):
+        for dy in range(-4, 5):
+            for dx in range(-4, 5):
+                x, y = cx + dx, cy + dy
+                if 0 <= x < size and 0 <= y < size:
+                    fn(x, y, max(abs(dx), abs(dy)) not in (2, 4))
+    if ver > 1:
+        na = ver // 7 + 2
+        step = (ver * 4 + na * 2 + 1) // (na * 2 - 2) * 2
+        pos = [6] + sorted(size - 7 - i * step for i in range(na - 1))
+        for i, ax in enumerate(pos):
+            for j, ay in enumerate(pos):
+                if (i, j) in ((0, 0), (0, na - 1), (na - 1, 0)):
+                    continue
+                for dy in range(-2, 3):
+                    for dx in range(-2, 3):
+                        fn(ax + dx, ay + dy, max(abs(dx), abs(dy)) != 1)
+
+    def format_bits(mask):
+        d = mask                                      # level M is 00
+        rem = d
+        for _ in range(10):
+            rem = (rem << 1) ^ ((rem >> 9) * 0x537)
+        b = (d << 10 | rem) ^ 0x5412
+        bit = lambda i: (b >> i) & 1 == 1
+        for i in range(6):
+            fn(8, i, bit(i))
+        fn(8, 7, bit(6)); fn(8, 8, bit(7)); fn(7, 8, bit(8))
+        for i in range(9, 15):
+            fn(14 - i, 8, bit(i))
+        for i in range(8):
+            fn(size - 1 - i, 8, bit(i))
+        for i in range(8, 15):
+            fn(8, size - 15 + i, bit(i))
+        fn(8, size - 8, True)
+    format_bits(0)
+    if ver >= 7:
+        rem = ver
+        for _ in range(12):
+            rem = (rem << 1) ^ ((rem >> 11) * 0x1F25)
+        b = ver << 12 | rem
+        for i in range(18):
+            dark = (b >> i) & 1 == 1
+            a, c = size - 11 + i % 3, i // 3
+            fn(a, c, dark); fn(c, a, dark)
+    i = 0
+    right = size - 1
+    while right >= 1:
+        if right == 6:
+            right = 5
+        for vert in range(size):
+            for j in range(2):
+                x = right - j
+                y = size - 1 - vert if ((right + 1) & 2) == 0 else vert
+                if not F[y][x] and i < len(final) * 8:
+                    M[y][x] = (final[i >> 3] >> (7 - (i & 7))) & 1 == 1
+                    i += 1
+        right -= 2
+    masks = (lambda x, y: (x + y) % 2 == 0, lambda x, y: y % 2 == 0, lambda x, y: x % 3 == 0, lambda x, y: (x + y) % 3 == 0,
+             lambda x, y: (x // 3 + y // 2) % 2 == 0, lambda x, y: x * y % 2 + x * y % 3 == 0,
+             lambda x, y: (x * y % 2 + x * y % 3) % 2 == 0, lambda x, y: ((x + y) % 2 + x * y % 3) % 2 == 0)
+
+    def apply(m):
+        for y in range(size):
+            for x in range(size):
+                if not F[y][x] and masks[m](x, y):
+                    M[y][x] = not M[y][x]
+
+    def penalty():
+        p = 0
+        for rows in (M, list(zip(*M))):
+            for row in rows:
+                run, prev = 0, None
+                for v in row:
+                    run = run + 1 if v == prev else 1
+                    prev = v
+                    if run == 5:
+                        p += 3
+                    elif run > 5:
+                        p += 1
+        for y in range(size - 1):
+            for x in range(size - 1):
+                if M[y][x] == M[y][x + 1] == M[y + 1][x] == M[y + 1][x + 1]:
+                    p += 3
+        dark = sum(map(sum, M))
+        p += abs(dark * 20 - size * size * 10) // (size * size) * 10
+        return p
+    best = None
+    for m in range(8):
+        apply(m); format_bits(m)
+        sc = penalty()
+        if best is None or sc < best[0]:
+            best = (sc, m)
+        apply(m)
+    apply(best[1]); format_bits(best[1])
+    return M
+
+
+def qr_svg(text, px=6):
+    M = qr_matrix(text)
+    n, q = len(M), 4
+    path = "".join(f"M{x + q},{y + q}h1v1h-1z" for y in range(n) for x in range(n) if M[y][x])
+    w = n + 2 * q
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {w}" width="{w * px}" height="{w * px}" '
+            f'shape-rendering="crispEdges"><rect width="{w}" height="{w}" fill="#fff"/><path d="{path}" fill="#000"/></svg>')
+
+
+# ---------- sign in a TV from a phone (relay 39): the private page on a screen that isn't signed in asks for a pairing
+# (/pair/new: a short code and a secret), shows the code as a QR code and waits (/pair/wait). A signed-in phone opens
+# /pair/<code> (scanning it), says yes, and the screen's next wait gets a new device of that profile and its cookie.
+PAIR_ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+PAIR_S = 600
+_pairs = {}                  # code -> {"secret": hash, "t": created, "pid": None or the profile that said yes, "device"}
+
+
+def pair_new(ua):
+    now = time.time()
+    with _lock:
+        for k in [k for k, v in _pairs.items() if now - v["t"] > PAIR_S]:
+            del _pairs[k]
+        if len(_pairs) > 300:
+            return None, None
+        code = "".join(secrets.choice(PAIR_ALPHA) for _ in range(6))
+        while code in _pairs:
+            code = "".join(secrets.choice(PAIR_ALPHA) for _ in range(6))
+        secret = secrets.token_urlsafe(24)
+        _pairs[code] = {"secret": _hash(secret), "t": now, "pid": None, "device": device_of(ua)}
+    return code, secret
+
+
+def pair_find(code):
+    with _lock:
+        pr = _pairs.get(code)
+        return pr if pr and time.time() - pr["t"] <= PAIR_S else None
+
+
+def pair_html(body):
+    return plain_page("Fallblatt: sign in a screen", f"<h1>Sign in a screen</h1>{body}")
+
+
+def pair_page_js():
+    """The private page's part that pairs: asks for a code, shows it, waits for a phone to say yes, then reloads."""
+    return ("<div id=qrBox style='margin:22px 0 6px;display:flex;gap:22px;align-items:center;flex-wrap:wrap'></div>"
+            "<p id=qrMsg class=muted></p><script>(function(){var box=document.getElementById('qrBox'),msg=document.getElementById('qrMsg'),s='';"
+            "function post(u,o){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})}).then(function(r){return r.json()})}"
+            "function start(){post('/pair/new').then(function(j){if(!j.code){msg.textContent=j.error||'';setTimeout(start,60000);return}s=j.secret;"
+            "box.innerHTML='<div style=\"background:#fff;padding:8px;border-radius:10px;line-height:0\">'+j.svg+'</div>'+"
+            "'<div style=\"max-width:300px\"><p style=\"margin:0 0 6px\">Scan this with your phone, where you are signed in to Fallblatt, to sign in this screen.</p>'+"
+            "'<p style=\"margin:0;color:#8d887d\">Or open <b style=\"color:#e8e2d0\">'+j.host+'/pair</b> on your phone and type</p>'+"
+            "'<p style=\"margin:4px 0 0;font:700 34px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#f2b134\">'+j.code+'</p></div>';"
+            "setTimeout(wait,2500)}).catch(function(){setTimeout(start,15000)})}"
+            "function wait(){post('/pair/wait',{secret:s}).then(function(j){if(j.ok){msg.textContent='Signed in. Opening the board…';location.reload();return}"
+            "if(j.gone){start();return}setTimeout(wait,2500)}).catch(function(){setTimeout(wait,5000)})}start()})();</script>")
+
+
 # ---------- accounts (relay 30): a guest's profile can get a username and a way to sign in on a new phone or computer
 # without a new invite link: passkeys first (Face ID, a fingerprint, the phone's screen lock; nothing secret is kept
 # here, only each passkey's public key), and a password as a backup (kept as a salted scrypt hash). An invite still
@@ -2506,7 +2741,8 @@ def add_device(pid, ua, how):
     """A device signing in to an account: a new device of that profile. Returns the cookie value."""
     token = secrets.token_urlsafe(32)
     with _data_lock:
-        p = profiles()["profiles"][pid]
+        P = profiles()
+        p = P.setdefault("home", {"name": "Home", "devices": [], "push": []}) if pid == "home" else P["profiles"][pid]
         p["devices"].append({"token": _hash(token), "device": device_of(ua), "added": time.time(), "lastSeen": time.time(), "via": how})
         del p["devices"][:-20]
         p["lastSeen"] = time.time()
@@ -2515,7 +2751,7 @@ def add_device(pid, ua, how):
     return token
 
 
-def signin_html():
+def signin_html(next_url="/app/"):
     return plain_page("Fallblatt: sign in", (
         "<h1>Sign in</h1><p>With your Fallblatt account: your place, logbook and settings come with you to this phone or computer.</p>"
         "<p><button class='go big' type=button id=pk>Sign in with a passkey</button></p>"
@@ -2524,7 +2760,7 @@ def signin_html():
         "style='background:#16171a;color:#e8e2d0;border:1px solid #34363b;border-radius:6px;padding:9px 10px;font:inherit;width:210px'> "
         "<button type=submit>Sign in</button></p></form><p id=msg class=muted></p>"
         "<p class=muted>No account yet? Ask the person who runs this board for an invite link, then create one in the app's About.</p>"
-        "<script>" + SIGNIN_JS + "</script>"))
+        "<script>var NEXT=" + json.dumps(next_url).replace("<", "\\u003c") + ";" + SIGNIN_JS + "</script>"))
 
 
 SIGNIN_JS = (
@@ -2532,7 +2768,7 @@ SIGNIN_JS = (
     "var ub64=function(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)})};"
     "var msg=document.getElementById('msg');"
     "var post=function(u,o){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j})})};"
-    "var done=function(){msg.textContent='Signed in.';location.href='/app/'};"
+    "var done=function(){msg.textContent='Signed in.';location.href=NEXT};"
     "var pk=document.getElementById('pk');"
     "if(!window.PublicKeyCredential||!window.isSecureContext){pk.disabled=true;pk.textContent='Passkeys need the https address'}"
     "pk.onclick=function(){msg.textContent='';post('/signin/begin').then(function(o){return navigator.credentials.get({publicKey:{challenge:ub64(o.challenge),rpId:o.rpId,userVerification:'preferred',timeout:120000}})})"
@@ -3354,7 +3590,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", (
                 "<h1>This board is private</h1><p>Fallblatt shows the planes flying over your home on a split-flap board, for friends and family. "
                 "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
-                "<p><a href='/signin'>Sign in with your account</a></p>"
+                "<p><a href='/signin'>Sign in with your account</a></p>" + pair_page_js() +
                 "<p class=muted>Already in, but on a new device without an account? Ask for a new link.</p>")))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
 
@@ -3487,6 +3723,80 @@ class Handler(BaseHTTPRequestHandler):
             return self.jerr(404, "Not found")
         return self.reply(200, "application/json", json.dumps(account_json(pid, self.secure())).encode())
 
+    def pair_who(self):
+        """Who a phone would sign a screen in as: (profile id, name), or None for a phone that isn't signed in."""
+        if self.guest:
+            return self.guest[0], self.guest[1]["name"]
+        if self.homelinked or self.at_home():
+            return "home", "Home"
+        return None
+
+    def pair_page(self, path):
+        if not allow("pair:" + self.client_ip(), 0.5, 20):
+            return self.reply(429, "text/plain", b"Too many requests")
+        if path == "/pair":                                  # typing the code
+            return self.reply(200, "text/html; charset=utf-8", pair_html(
+                "<p>Type the code the screen shows.</p><form onsubmit=\"location.href='/pair/'+this.c.value.trim().toUpperCase();return false\">"
+                "<p><input name=c maxlength=6 autocapitalize=characters autocomplete=off required "
+                "style='background:#16171a;color:#f2b134;border:1px solid #34363b;border-radius:6px;padding:9px 10px;"
+                "font:700 24px ui-monospace,monospace;letter-spacing:.18em;width:170px;text-transform:uppercase'> "
+                "<button class=go type=submit>Next</button></p></form>"))
+        code = path[len("/pair/"):].upper()
+        pr = pair_find(code) if re.fullmatch(f"[{PAIR_ALPHA}]{{6}}", code) else None
+        if not pr:
+            return self.reply(404, "text/html; charset=utf-8", pair_html(
+                "<p>That code isn't waiting any more. Codes last ten minutes; the screen shows a new one by itself.</p>"
+                "<p><a href='/pair'>Type the code again</a></p>"))
+        who = self.pair_who()
+        if not who:
+            return self.reply(200, "text/html; charset=utf-8", signin_html("/pair/" + code))
+        if pr["pid"]:
+            return self.reply(200, "text/html; charset=utf-8", pair_html("<p>Done: the screen signs itself in now.</p>"))
+        return self.reply(200, "text/html; charset=utf-8", pair_html(
+            f"<p>Sign in the screen showing <b style='color:#f2b134;letter-spacing:.12em'>{code}</b> ({html.escape(pr['device'])}) as "
+            f"<b>{html.escape(who[1])}</b>?</p><p class=muted>Only for a screen in front of you: it gets your place, logbook and settings.</p>"
+            f"<form method=post action='/pair/{code}'><button class='go big' type=submit>Sign in the screen</button></form>"))
+
+    def pair_post(self, path):
+        if not self.same_origin():
+            return self.jerr(403, "Only from this site")
+        ip = self.client_ip()
+        if path == "/pair/new":
+            if not allow("pairnew:" + ip, 0.05, 6):
+                return self.jerr(429, "Too many codes; wait a minute")
+            code, secret = pair_new(self.headers.get("User-Agent") or "")
+            if not code:
+                return self.jerr(503, "Busy; try again in a few minutes")
+            host = (urllib.parse.urlsplit(ARGS.public_url).netloc if ARGS.public_url else "") or self.headers.get("Host") or ""
+            base = (ARGS.public_url or "").rstrip("/") or f"{'https' if self.https() else 'http'}://{host}"
+            return self.reply(200, "application/json", json.dumps({"code": code, "secret": secret, "host": host,
+                                                                   "svg": qr_svg(f"{base}/pair/{code}")}).encode())
+        if path == "/pair/wait":
+            if not allow("pairwait:" + ip, 1, 30):
+                return self.jerr(429, "Too many requests")
+            h = _hash(str(self.json_body().get("secret") or ""))
+            with _lock:
+                hit = next(((c, pr) for c, pr in _pairs.items() if secrets.compare_digest(pr["secret"], h)), None)
+                if hit and time.time() - hit[1]["t"] > PAIR_S:
+                    del _pairs[hit[0]]
+                    hit = None
+                if hit and hit[1]["pid"]:
+                    del _pairs[hit[0]]
+            if not hit:
+                return self.reply(200, "application/json", b'{"gone":true}')
+            if not hit[1]["pid"]:
+                return self.reply(200, "application/json", b'{"wait":true}')
+            return self.signed_in(hit[1]["pid"], "a phone (QR code)")
+        code = path[len("/pair/"):].upper()
+        who = self.pair_who()
+        pr = pair_find(code) if re.fullmatch(f"[{PAIR_ALPHA}]{{6}}", code) else None
+        if not who or not pr:
+            return self.pair_page("/pair/" + code)
+        with _lock:
+            pr["pid"] = pr["pid"] or who[0]
+        event("info", f"{who[1]} signed in a {pr['device']} with a QR code")
+        return self.reply(200, "text/html; charset=utf-8", pair_html("<p>Done: the screen signs itself in now.</p>"))
+
     def join_page(self, code):
         """The invite link opened: a page with a button that takes the invite (a POST). Chat apps fetch the link for
         its preview; they see this page and the link stays unused."""
@@ -3553,6 +3863,8 @@ class Handler(BaseHTTPRequestHandler):
             if not allow("stranger:" + self.client_ip(), 1, 20):
                 return self.reply(429, "text/plain", b"Too many requests")
             return self.reply(200, "text/html; charset=utf-8", signin_html())
+        if path == "/pair" or path.startswith("/pair/"):
+            return self.pair_page(path)
         if path == "/health" or BOARD_FILE.match(path):
             pass                                  # the app's icons and manifest (fetched without cookies) and the check
         elif self.stranger:
@@ -3751,6 +4063,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.join(m.group(1))
         if path.startswith("/signin/") or path.startswith("/account/"):
             return self.account_post(path)
+        if path == "/pair" or path.startswith("/pair/"):
+            return self.pair_post(path)
         if self.stranger:
             return self.refuse(path)
         if self.guest and not allow("guest:" + self.guest[0], 4, 60):

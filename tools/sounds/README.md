@@ -13,7 +13,7 @@ instead (they stay in the code as the fallback, also while the recordings are st
 | Rotary knobs | [Clicky Knob Turning.wav](https://freesound.org/people/shewbox/sounds/30827/) | shewbox | CC BY 3.0 |
 | Thumbwheels | [push_button_switch_07.wav](https://freesound.org/people/joedeshon/sounds/139061/) | joedeshon | CC BY 4.0 |
 | Page and view buttons | [Switching button 2](https://pixabay.com/sound-effects/switching-button-2-461629/) | EAGLAXLE | Pixabay Content License |
-| New plane ding (1.45; its first tone) | [Airbus Cabin PA Beep Tone](https://pixabay.com/sound-effects/film-special-effects-airbus-cabin-pa-beep-tone-passenger-announcement-chime-358248/) | arunangshubanerjee | Pixabay Content License |
+| New plane ding (1.45; both tones since 1.46) | [Airbus Cabin PA Beep Tone](https://pixabay.com/sound-effects/film-special-effects-airbus-cabin-pa-beep-tone-passenger-announcement-chime-358248/) | arunangshubanerjee | Pixabay Content License |
 
 All are credited in About.
 

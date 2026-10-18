@@ -237,7 +237,7 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
   (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
   (board) or Sounds (app) → **New plane ding**; switching it on plays it. Since 1.45 it is a recorded Airbus cabin
-  chime (its first tone), and it only sounds where the plane on top shows (the board without a view open, the app's
+  chime (its first tone; both tones since 1.46), and it only sounds where the plane on top shows (the board without a view open, the app's
   Now), not in Settings, the radar or the lists; the chimes for special planes and favourites still sound everywhere.
   Achievements have their own short festive flourish (1.45).
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
@@ -259,7 +259,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
-  the passkeys and the password, and **Sign out of this device** at the foot (it was under Device). A device at home
+  the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
+  red **Sign out** next to the name, and Passkeys and Password each a row with its button beside it). A device at home
   shows "Home". **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
   scrolls, and closing it leaves Settings as it was.
 - **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
@@ -504,7 +505,7 @@ tap), then turn to their name letter by letter, with sound, within about two sec
 (the fields show an example), or let **Use my location**
 fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
 (which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
-settings follow them between the two and to other devices. About → **Sign out of this device** forgets a device again
+settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser stays home. The admin page lists everyone with their devices and when they were last seen, removes a profile with
 its sightings, and turns Flightradar24 on for someone (at most 150 lookups a day each; off by default).
 Screens at home are the home profile as always; anyone else without a profile only sees "Overhead is private".
@@ -528,7 +529,14 @@ own choice on top: at the end of the welcome, or in the app's About → Account,
 often signs in with one tap) and, as a backup, a **password**. On a new phone or computer they open `<public
 address>/signin` (the "private" page links to it) and sign in with either: their place, logbook and settings are
 there. The relay keeps only each passkey's public key and a salted scrypt hash of the password; sign-in tries are
-rate-limited. Passkeys need the https address. The admin page shows who has an account and **Reset sign-in** removes
+rate-limited. Passkeys need the https address.
+
+**Sign in a TV with your phone** (1.46, relay 39): a TV (or any screen) that opens the public address without being
+signed in shows the "private" page with a **QR code** and a six-letter code. Scan it with a phone that is signed in
+(or type the code at `<public address>/pair`), confirm "Sign in the screen as …", and the TV opens the board by
+itself within a few seconds, as a device of that profile. A phone that isn't signed in is asked to sign in first; a
+phone at home signs the screen in as Home. Codes last ten minutes (the screen shows a new one by itself) and are
+rate-limited; only confirm a code on a screen in front of you. The admin page shows who has an account and **Reset sign-in** removes
 someone's passkeys and password (they set new ones from a device that is still signed in, or come back through a
 new invite link).
 
