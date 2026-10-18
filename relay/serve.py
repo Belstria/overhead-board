@@ -80,7 +80,7 @@ PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the 
 BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
 FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript", "wav": "audio/wav"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
-SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "public_url", "allow_host")
+SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "fr24_budget_promo", "fr24_promo_until", "public_url", "allow_host")
 DATA_DIR = Path(__file__).with_name("data")
 LOGBOOK_FILE = DATA_DIR / "logbook.json"
 SAME_PASS_S = 45 * 60       # the same aircraft within 45 minutes is one pass
@@ -1214,11 +1214,27 @@ def _fr24_usage():
     return u
 
 
-def _fr24_budget():
+def _fr24_base_budget():
     try:
         return int(ARGS.fr24_budget) if ARGS.fr24_budget is not None else FR24_BUDGET
     except (TypeError, ValueError):
         return FR24_BUDGET
+
+
+def _fr24_promo():
+    """(budget, last day) of a temporary higher budget still running (relay 40: Dave's plan is doubled until the
+    billing month starting 9 Dec 2026), or None."""
+    try:
+        until = datetime.date.fromisoformat(str(ARGS.fr24_promo_until))
+        n = int(ARGS.fr24_budget_promo)
+    except (TypeError, ValueError):
+        return None
+    return (n, until) if n > 0 and datetime.date.today() <= until else None
+
+
+def _fr24_budget():
+    p = _fr24_promo()
+    return p[0] if p else _fr24_base_budget()
 
 
 def fr24_paced(priority):
@@ -3049,6 +3065,9 @@ def fr24_admin_html():
     col = "#3c3" if pace <= budget else "#f2b134" if pace <= budget * 1.1 else "#e0372c"
     st = fr24_status()
     left = (nxt - now).days
+    promo = _fr24_promo()
+    promo_line = (f"<p class=muted>{promo[0]:,} a month until {promo[1].day} {promo[1].strftime('%b %Y')}, then {_fr24_base_budget():,}.</p>"
+                  if promo else "")
     by = sorted((u.get("by") or {}).items(), key=lambda kv: -kv[1]["credits"])
     rows = "".join(f"<tr><td>{html.escape(w)}</td><td style='text-align:right'>{b['credits']:,}</td>"
                    f"<td style='text-align:right'>{b['lookups']:,}</td><td style='text-align:right'>{round(b['credits'] / max(1, used) * 100)}%</td></tr>"
@@ -3059,15 +3078,17 @@ def fr24_admin_html():
     return (f"<h2>Flightradar24</h2><p><b>{used:,}</b> of {budget:,} credits this month · <b>{max(0, budget - used):,}</b> left · "
             f"{today:,} today · on pace for <b style='color:{col}'>{pace:,}</b></p>"
             f"<p>Renews on <b>{nxt.day} {nxt.strftime('%b %Y')}</b> ({left} day{'s' if left != 1 else ''} to go; the month runs from the "
-            f"{start.day}{'st' if start.day in (1, 21) else 'nd' if start.day in (2, 22) else 'rd' if start.day in (3, 23) else 'th'}).</p>"
+            f"{start.day}{'st' if start.day in (1, 21) else 'nd' if start.day in (2, 22) else 'rd' if start.day in (3, 23) else 'th'}).</p>" + promo_line +
             f"<div style='height:10px;border-radius:5px;background:#16171a;border:1px solid #34363b;overflow:hidden'>"
             f"<div style='height:100%;width:{pct}%;background:{col}'></div></div>"
             f"<p class=muted>{u.get('lookups', 0):,} lookups · {u.get('found', 0):,} flights found · "
             f"{u.get('wetLease', 0):,} in another airline's livery · {u.get('diverted', 0):,} diverted · "
             f"state: {html.escape(str(st.get('state', '')))}</p>" + table +
             f"<form method=post action='/admin/fr24plan'><p>Plan renews on day <input type=number name=day min=1 max=28 value={_fr24_reset_day()} "
-            f"style='width:64px'> · spend at most <input type=number name=budget min=0 max=1000000 step=500 value={budget} style='width:110px'> credits "
-            f"a month <button>Save</button></p></form>")
+            f"style='width:64px'> · spend at most <input type=number name=budget min=0 max=1000000 step=500 value={_fr24_base_budget()} style='width:110px'> credits "
+            f"a month</p><p>For a while: <input type=number name=promo min=0 max=1000000 step=500 value={ARGS.fr24_budget_promo or ''} style='width:110px'> "
+            f"credits a month until <input type=date name=until value={html.escape(str(ARGS.fr24_promo_until or ''), quote=True)}> "
+            f"(empty: none) <button>Save</button></p></form>")
 
 
 def save_config():
@@ -4141,8 +4162,16 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     ARGS.fr24_reset_day = min(28, max(1, int(f.get("day") or 1)))
                     ARGS.fr24_budget = min(1000000, max(0, int(f.get("budget") or FR24_BUDGET)))
+                    promo, until = (f.get("promo") or "").strip(), (f.get("until") or "").strip()
+                    if promo and until:
+                        ARGS.fr24_budget_promo = min(1000000, max(0, int(promo)))
+                        ARGS.fr24_promo_until = datetime.date.fromisoformat(until).isoformat()
+                    else:
+                        ARGS.fr24_budget_promo = ARGS.fr24_promo_until = None
                     save_config()
-                    event("info", f"Flightradar24: the plan renews on day {ARGS.fr24_reset_day}, at most {ARGS.fr24_budget:,} credits a month")
+                    p = _fr24_promo()
+                    event("info", f"Flightradar24: the plan renews on day {ARGS.fr24_reset_day}, at most {_fr24_budget():,} credits a month"
+                                  + (f" until {p[1].isoformat()}, then {_fr24_base_budget():,}" if p else ""))
                 except (ValueError, OSError) as e:
                     event("warn", f"Couldn't save the Flightradar24 plan: {e}")
             elif path == "/admin/homelink":
@@ -4298,6 +4327,8 @@ def main():
     p.add_argument("--fr24-key", help="Flightradar24 API key, for boards that use it (the test-api board); 'off' turns it off")
     p.add_argument("--fr24-budget", type=int, help=f"most Flightradar24 credits to spend a month (default {FR24_BUDGET:,})")
     p.add_argument("--fr24-reset-day", type=int, help="the day of the month the Flightradar24 plan renews (default 1)")
+    p.add_argument("--fr24-budget-promo", type=int, help="a higher monthly budget for a while (a promotion), until --fr24-promo-until")
+    p.add_argument("--fr24-promo-until", help="the last day (YYYY-MM-DD) the promotion's budget applies; then --fr24-budget again")
     p.add_argument("--source", help="use this position source instead of the public ones: a URL with {lat} {lon} {nm} placeholders, or a local receiver's aircraft.json")
     p.add_argument("--public-url", help="the address friends and family reach the relay at (https://overhead.example.com), for invite links")
     p.add_argument("--allow-host", help="other names screens use to reach the relay, comma-separated (IP addresses, names without a dot and .local/.lan names always work)")

@@ -346,7 +346,10 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `_fr24_usage` keyed by the period's first day (an older calendar-month or other-day count carries over while it
   started within the period), `usage["by"]` per asker (`fr24_want(..., who)`; /flightinfo passes name · device,
   else "Lists and alerts"), the admin page's renewal line, breakdown table and `/admin/fr24plan` form (`save_config()`
-  writes overhead.json the way `--save` does).
+  writes overhead.json the way `--save` does). A temporary budget: `fr24_budget_promo` until `fr24_promo_until`
+  (`_fr24_promo()`; `_fr24_budget()` returns it while it runs, else `_fr24_base_budget()`). Dave's Explorer plan is
+  30,000 a month, doubled to 60,000 for billing months starting up to 31 Dec 2026 (9 Oct, 9 Nov, 9 Dec); nothing rolls
+  over. His choice: 54,000 until 2027-01-08, then 27,000.
 - 1.45.1: board CSS inside the cockpit and views must scale with `calc(Npx*var(--k))`: the Fire TV lays out at
   960×540 (K = .5), so fixed px came out twice as big (Update location's buttons, the Place name's Save padding).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291

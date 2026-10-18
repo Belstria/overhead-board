@@ -88,7 +88,9 @@ py serve.py --fr24-key YOUR_KEY --save
 - The admin page (relay 40) shows the credits used and left this month, the day the plan renews and a breakdown of
   who used them (each account and device, plus "Lists and alerts" for the lookups the relay makes for Spotted today).
   Set the day your plan renews and the monthly budget there (**Plan renews on day … · spend at most …**); the month
-  then runs from that day (`--fr24-reset-day 9 --save` does the same).
+  then runs from that day (`--fr24-reset-day 9 --save` does the same). **For a while** sets a higher budget until a
+  date (a promotion, e.g. 54,000 until 8 Jan 2027); after that day the normal budget applies again by itself
+  (`--fr24-budget-promo 54000 --fr24-promo-until 2027-01-08 --save`).
 - The budget is spread over the month (relay 13 or newer): each day may spend its share of what is left, and unspent
   credits carry over. Past the day's share only the plane on the top half is still looked up; past one and a half
   shares nothing is, until the next day. A busy day can't use up the month, and the free sources fill in meanwhile.
