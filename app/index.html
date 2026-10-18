@@ -256,6 +256,23 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .inst.updAll{overflow-y:auto}
 .inst.updAll .upd .cap{padding-left:12px;padding-right:12px}
 .inst.updAll .geoQ{margin-top:8px}
+#tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .38s ease;cursor:pointer}
+#tipLayer.on{opacity:1}
+#tipLayer .tipShade{position:absolute;inset:0;transition:background .3s ease}
+#tipLayer .tipRing{position:absolute;border-radius:14px;border:2px solid #f0b429;pointer-events:none;
+  box-shadow:0 0 0 4px rgba(240,180,41,.16),0 0 26px 6px rgba(240,180,41,.32);animation:tipPulse 1.8s ease-in-out infinite}
+@keyframes tipPulse{50%{box-shadow:0 0 0 8px rgba(240,180,41,.07),0 0 36px 12px rgba(240,180,41,.42)}}
+#tipLayer .tipBub{position:absolute;box-sizing:border-box;width:max-content;max-width:min(340px,calc(100vw - 24px));padding:14px 16px 12px;border-radius:14px;
+  background:linear-gradient(#25272c,#18191c);border:1px solid rgba(240,180,41,.45);box-shadow:0 14px 40px rgba(0,0,0,.6);
+  color:#f3f0e8;font:500 15.5px/1.4 "Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;transform:translateY(6px);transition:transform .38s ease}
+#tipLayer.on .tipBub{transform:none}
+#tipLayer .tipBub p{margin:0}
+#tipLayer .tipOk{all:unset;cursor:pointer;display:inline-block;margin-top:10px;padding:7px 14px;border-radius:8px;background:#f0b429;color:#141414;
+  font:700 12.5px/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){#tipLayer .tipRing{animation:none}}
+#cardBox .cLoad{display:flex;align-items:center;gap:12px;min-height:90px;justify-content:center;color:#b9b3a3;font:500 16px/1.2 "Archivo Narrow",sans-serif}
+#cardBox .cSpin{width:22px;height:22px;border-radius:50%;border:3px solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
+@keyframes cSpin{to{transform:rotate(360deg)}}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -334,8 +351,17 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acWho{min-width:0}
 .acWho b{display:block;font:700 20px/1.2 var(--f-board);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acWho small{display:block;margin-top:2px;font-size:13px;color:var(--muted)}
-.acctPlate h4{margin:14px 0 4px;font:700 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
-.acOut{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+.acctPlate h4{margin:0;font:700 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.acctPlate .acSec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 2px}
+.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:11px}
+.acctPlate .acList{list-style:none;margin:4px 0 0;padding:0}
+.acctPlate .acList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font-size:15px}
+.acctPlate .acList small{color:var(--muted);margin-left:4px}
+.acctPlate p.muted,.acctPlate .note{margin:4px 0 0;font-size:13px}
+.acctPlate .acNew{margin-top:10px}
+.acctPlate .acHead{margin-bottom:6px}
+.acOut{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+.acOut .cap{height:40px}
 .acOut .acts{margin:0}
 .acOut .cap{width:100%;white-space:nowrap}
 .acOut .muted{margin-top:10px}
@@ -494,8 +520,8 @@ body.aboutOpen{overflow:hidden}
 .fl > *{transition:transform .18s ease-out}
 .fl.swiping::after{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 16px;font:700 13px/1 var(--f-board);
   letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
-.fl.swiping[data-swipe=fav]::after{content:"★ " var(--swFav,"Favourite");left:0;color:#f0b429;
-  background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(240,180,41,0));width:50%}
+.fl.swiping[data-swipe=fav]::after{content:"★ " var(--swFav,"Favourite");left:0;color:#c9ced6;
+  background:linear-gradient(90deg,rgba(150,160,175,.22),rgba(150,160,175,0));width:50%}
 .fl.swiping[data-swipe=hide]::after{content:var(--swHide,"Hide") " ⊘";right:0;justify-content:flex-end;color:#c9ced6;
   background:linear-gradient(270deg,rgba(150,160,175,.22),rgba(150,160,175,0));width:50%}
 .fl.swiping.armed[data-swipe=fav]::after{background:linear-gradient(90deg,rgba(240,180,41,.42),rgba(240,180,41,0));color:#ffd36b}
@@ -614,7 +640,16 @@ body.arOpen{overflow:hidden}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
 #t-now.ap .apPick{display:flex}
 .title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.svPlaces{margin:0 0 10px;width:auto!important;padding:0 14px}
+.lbPlaces{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.lbPlaces[hidden]{display:none}
+.lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 13.5px/1 var(--f-board)}
+.lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
+.lbPlaces button[aria-pressed=true]{border-color:#f0b429;background:rgba(240,180,41,.12)}
+.seg.svPlaces{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden]{display:none}
+.seg.svPlaces button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
+.seg.svPlaces button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -804,7 +839,7 @@ body.arOpen{overflow:hidden}
       <div class="groove"></div>
       <div class="tools" id="svTools"></div>
       <p class="sum" id="svSum"></p>
-      <button class="cap small svPlaces" type="button" id="svPlaces" hidden></button>
+      <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
       <ol class="flights" id="svList"></ol>
       <p class="status statusText"></p>
     </div>
@@ -813,6 +848,7 @@ body.arOpen{overflow:hidden}
     <div class="lcol">
       <h2 data-t="Logbook">Logbook</h2>
       <p class="sum" id="lbSum"></p>
+      <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
       <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
       <p class="model" id="lbModel"></p>
     </div>
@@ -1502,6 +1538,26 @@ const I18N_ROWS = [
   ["No passkeys yet.", "Noch keine Passkeys.", "Pas encore de clé d'accès.", "Aún no hay llaves de acceso.", "Nog geen passkeys."],
   ["A password is set.", "Ein Passwort ist festgelegt.", "Un mot de passe est défini.", "Hay una contraseña.", "Er is een wachtwoord ingesteld."],
   ["No password yet.", "Noch kein Passwort.", "Pas encore de mot de passe.", "Aún no hay contraseña.", "Nog geen wachtwoord."],
+  ["Got it", "Verstanden", "Compris", "Entendido", "Begrepen"],
+  ["Show the tips again", "Tipps wieder zeigen", "Revoir les astuces", "Volver a mostrar los consejos", "Tips opnieuw tonen"],
+  ["Tips will show again.", "Die Tipps erscheinen wieder.", "Les astuces réapparaîtront.", "Los consejos volverán a aparecer.", "De tips verschijnen weer."],
+  ["Now: the plane over you right now, its photo, and today's planes below. Tap the board for its card.", "Jetzt: das Flugzeug gerade über dir, sein Foto und darunter die Flugzeuge von heute. Tippe auf die Tafel für seine Karte.", "Maintenant : l'avion au-dessus de vous, sa photo et, dessous, les avions du jour. Touchez le tableau pour sa fiche.", "Ahora: el avión que pasa sobre ti, su foto y debajo los aviones de hoy. Toca el panel para ver su ficha.", "Nu: het vliegtuig dat nu boven je vliegt, de foto en daaronder de vliegtuigen van vandaag. Tik op het bord voor de kaart."],
+  ["Spotted today: every plane that came within your radius today, with the day's numbers.", "Heute gesichtet: jedes Flugzeug, das heute in deinen Umkreis kam, mit den Zahlen des Tages.", "Vus aujourd'hui : chaque avion passé dans votre rayon aujourd'hui, avec les chiffres du jour.", "Vistos hoy: cada avión que pasó por tu radio hoy, con los números del día.", "Vandaag gezien: elk vliegtuig dat vandaag binnen je straal kwam, met de cijfers van de dag."],
+  ["Logbook: everything you've ever spotted: types, airlines, records, the collection, trophies and the weekly bingo.", "Logbuch: alles, was du je gesichtet hast: Typen, Airlines, Rekorde, die Sammlung, Trophäen und das Wochen-Bingo.", "Carnet : tout ce que vous avez repéré : types, compagnies, records, la collection, les trophées et le bingo de la semaine.", "Cuaderno: todo lo que has visto: tipos, aerolíneas, récords, la colección, trofeos y el bingo semanal.", "Logboek: alles wat je ooit zag: types, maatschappijen, records, de verzameling, trofeeën en de bingo van de week."],
+  ["Radar: the planes around you right now. Tap one for its card.", "Radar: die Flugzeuge gerade um dich herum. Tippe auf eins für seine Karte.", "Radar : les avions autour de vous en ce moment. Touchez-en un pour sa fiche.", "Radar: los aviones a tu alrededor ahora. Toca uno para ver su ficha.", "Radar: de vliegtuigen nu om je heen. Tik er een aan voor de kaart."],
+  ["Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them.", "Einstellungen: dein Ort, was als überfliegend zählt, das Aussehen und die Töne. Speichern, um sie zu behalten.", "Réglages : votre lieu, ce qui compte comme au-dessus, l'apparence et les sons. Enregistrez pour les garder.", "Ajustes: tu lugar, qué cuenta como encima, el aspecto y los sonidos. Pulsa Guardar para mantenerlos.", "Instellingen: je plaats, wat als overvliegend telt, het uiterlijk en de geluiden. Druk op Bewaren om ze te houden."],
+  ["Swipe a plane to the right to make it a favourite, or to the left to hide it.", "Wische ein Flugzeug nach rechts für einen Favoriten oder nach links, um es auszublenden.", "Glissez un avion vers la droite pour en faire un favori, ou vers la gauche pour le masquer.", "Desliza un avión a la derecha para hacerlo favorito, o a la izquierda para ocultarlo.", "Veeg een vliegtuig naar rechts voor een favoriet, of naar links om het te verbergen."],
+  ["Tap an airline, a place or an aircraft type for more about it.", "Tippe auf eine Airline, einen Ort oder einen Flugzeugtyp für mehr dazu.", "Touchez une compagnie, un lieu ou un type d'avion pour en savoir plus.", "Toca una aerolínea, un lugar o un tipo de avión para saber más.", "Tik op een maatschappij, plaats of vliegtuigtype voor meer."],
+  ["Switch between the place you're watching and all your places.", "Wechsle zwischen dem Ort, den du beobachtest, und all deinen Orten.", "Passez du lieu surveillé à tous vos lieux.", "Cambia entre el lugar que vigilas y todos tus lugares.", "Wissel tussen de plaats die je volgt en al je plaatsen."],
+  ["Pick a place to see its own numbers, or All for everything.", "Wähle einen Ort für seine eigenen Zahlen oder Alle für alles.", "Choisissez un lieu pour ses propres chiffres, ou Tous pour l'ensemble.", "Elige un lugar para ver sus números, o Todos para todo.", "Kies een plaats voor zijn eigen cijfers, of Alle voor alles."],
+  ["Give the place you're watching a name and press its Save to keep it in your saved places.", "Gib dem Ort, den du beobachtest, einen Namen und drück dort auf Speichern, um ihn bei deinen Orten zu behalten.", "Donnez un nom au lieu surveillé et appuyez sur son Enregistrer pour le garder dans vos lieux.", "Ponle un nombre al lugar que vigilas y pulsa su Guardar para tenerlo en tus lugares.", "Geef de plaats die je volgt een naam en druk op Bewaren om hem bij je plaatsen te houden."],
+  ["Live location follows this phone while the app is open.", "Der Live-Standort folgt diesem Handy, solange die App offen ist.", "La position en direct suit ce téléphone tant que l'application est ouverte.", "La ubicación en vivo sigue a este teléfono mientras la app está abierta.", "Live locatie volgt deze telefoon zolang de app open is."],
+  ["Click the plane, an airline or a place for more about it. Double-click for full screen.", "Klicke auf das Flugzeug, eine Airline oder einen Ort für mehr dazu. Doppelklick für Vollbild.", "Cliquez sur l'avion, une compagnie ou un lieu pour en savoir plus. Double-clic pour le plein écran.", "Haz clic en el avión, una aerolínea o un lugar para saber más. Doble clic para pantalla completa.", "Klik op het vliegtuig, een maatschappij of een plaats voor meer. Dubbelklik voor volledig scherm."],
+  ["Spotted today: every plane that came within your radius today, page by page. Click a row's + to make it a favourite or hide it.", "Heute gesichtet: jedes Flugzeug, das heute in deinen Umkreis kam, Seite für Seite. Klicke auf das + einer Zeile für Favorit oder Ausblenden.", "Vus aujourd'hui : chaque avion passé dans votre rayon, page par page. Cliquez sur le + d'une ligne pour un favori ou pour le masquer.", "Vistos hoy: cada avión que pasó por tu radio, página a página. Haz clic en el + de una fila para favorito u ocultar.", "Vandaag gezien: elk vliegtuig binnen je straal, pagina per pagina. Klik op de + van een rij voor favoriet of verbergen."],
+  ["Logbook: everything you've spotted: types, airlines, records, the collection and the weekly bingo.", "Logbuch: alles, was du gesichtet hast: Typen, Airlines, Rekorde, die Sammlung und das Wochen-Bingo.", "Carnet : tout ce que vous avez repéré : types, compagnies, records, la collection et le bingo de la semaine.", "Cuaderno: todo lo que has visto: tipos, aerolíneas, récords, la colección y el bingo semanal.", "Logboek: alles wat je zag: types, maatschappijen, records, de verzameling en de bingo van de week."],
+  ["Radar: the planes around you right now. Click one for its card.", "Radar: die Flugzeuge gerade um dich herum. Klicke auf eins für seine Karte.", "Radar : les avions autour de vous en ce moment. Cliquez-en un pour sa fiche.", "Radar: los aviones a tu alrededor ahora. Haz clic en uno para ver su ficha.", "Radar: de vliegtuigen nu om je heen. Klik er een aan voor de kaart."],
+  ["{n} planes seen from {place} since {d}.", "{n} Flugzeuge von {place} aus gesehen seit {d}.", "{n} avions vus depuis {place} depuis le {d}.", "{n} aviones vistos desde {place} desde el {d}.", "{n} vliegtuigen gezien vanaf {place} sinds {d}."],
+  ["1 plane seen from {place} since {d}.", "1 Flugzeug von {place} aus gesehen seit {d}.", "1 avion vu depuis {place} depuis le {d}.", "1 avión visto desde {place} desde el {d}.", "1 vliegtuig gezien vanaf {place} sinds {d}."],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -1812,6 +1868,18 @@ function cardOpen(html, wire){
   return ++cardTok;
 }
 function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; }
+// 1.42: a card that needs to look things up opens as a short loading window and shows itself once everything (the
+// words, the airport, the pictures) is in, or after a few seconds with what there is, so nothing jumps about.
+const cardWait = (p, ms) => Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(() => r(null), ms))]);
+const cardLoading = () => cardOpen(`<div class="cLoad"><span class="cSpin" aria-hidden="true"></span>${escH(T("Loading …"))}</div>`);
+function imgsReady(html, ms = 3000){
+  const srcs = [...String(html).matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => m[1].replace(/&amp;/g, "&"));
+  return cardWait(Promise.all(srcs.map(s => new Promise(r => { const i = new Image(); i.referrerPolicy = "no-referrer"; i.onload = i.onerror = r; i.src = s; }))), ms);
+}
+async function cardWhenReady(tok, html, wire){
+  await imgsReady(html);
+  if (tok === cardTok && cardOpenNow()) cardOpen(html, wire);
+}
 const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden; };
 addEventListener("keydown", e => {
   if (cardOpenNow() && (e.key === "Escape" || e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461)) { e.preventDefault(); e.stopPropagation(); cardClose(); }
@@ -1984,13 +2052,13 @@ async function airlineCard(x){
   const today = a.icao ? dayList().filter(e => airlineOf(e).icao === a.icao).length : 0;
   const L = a.iata ? logo(a.iata) : null, src = L && L.state === "ok" ? L.img.src : "";
   const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
-  const draw = w => cardOpen(`<div class="cHead">${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
+  const draw = w => (`<div class="cHead">${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
     factsHtml([["Codes", escH([a.iata, a.icao].filter(Boolean).join(" · "))], ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
       ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
     (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
-  const tok = draw(null);
-  const w = await wikiFind([a.name + " (airline)", a.name, a.name + " Airlines", a.name + " Air Lines"], /airline|carrier/i);
-  if (w && tok === cardTok) draw(w);
+  const tok = cardLoading();
+  const w = await cardWait(wikiFind([a.name + " (airline)", a.name, a.name + " Airlines", a.name + " Air Lines"], /airline|carrier/i), 4500);
+  cardWhenReady(tok, draw(w));
 }
 // A place a plane comes from or flies to: its airport (the relay's list: name, codes, runways), the distance from
 // here and Wikipedia's words about the airport.
@@ -2007,19 +2075,19 @@ async function placeCard(p){
       const km = gcKm(S.lat, S.lon, lat, lon), brg = (Math.atan2((lon - S.lon) * Math.cos(S.lat * Math.PI / 180), lat - S.lat) * 180 / Math.PI + 360) % 360;
       dist = `${nf.format(Math.round(km))} km ${DIR8[Math.round(brg / 45) % 8]}`;
     }
-    return cardOpen(`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer">` : ""}` +
+    return (`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer">` : ""}` +
       `<div class="cHead"><div><h3>${escH(ap && ap.name || (w && w.title) || p.city || code)}</h3><span>${escH(T("Airport"))}</span></div></div>` +
       factsHtml([["City", escH(ap && ap.city || p.city || "")], ["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Distance", escH(dist)],
         ["Runways", ap && ap.runways && ap.runways.length ? String(ap.runways.length) : ""], ["Today", today ? escH(today === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: today})) : "", true]]) + wikiHtml(w));
   };
-  let tok = draw();
+  const tok = cardLoading();
   if (code.length === 3 && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
-    try { const j = await fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000); if (j.status === "ok") ap = j; } catch {}
-    if (tok !== cardTok) return;
-    tok = draw();
+    const j = await cardWait(fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000), 5000);
+    if (j && j.status === "ok") ap = j;
   }
-  w = await wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"], /airport|aerodrome|airfield/i);
-  if (w && tok === cardTok) draw();
+  if (tok !== cardTok) return;
+  w = await cardWait(wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"], /airport|aerodrome|airfield/i), 4500);
+  cardWhenReady(tok, draw());
 }
 // A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
 // with the airline and places to tap and Favourite / Hide.
@@ -2065,23 +2133,29 @@ async function typeCard(x){
   const tier = LEGENDARY.has(t.code) ? "legendary" : n != null ? fleetTier(t.code) : "";
   const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
   const c = t.code ? {k: "type", v: t.code, n: t.name} : null;
-  const draw = w => cardOpen((w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+  const draw = w => ((w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
     `<div class="cHead"><div><h3>${escH(t.name)}</h3><span>${escH(T("Aircraft model"))}</span></div></div>` +
     factsHtml([["Code", escH(t.code)], ["In service", n ? escH(T("About {n} worldwide", {n: nf.format(n)})) : ""], ["Rarity", tier ? escH(T(TIER_NAME[tier])) : ""],
       ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
       ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
     (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
-  const tok = draw(null);
-  const w = await modelWiki([t.name, x.type]);
-  if (w && tok === cardTok) draw(w);
+  const tok = cardLoading();
+  const w = await cardWait(modelWiki([t.name, x.type]), 4500);
+  cardWhenReady(tok, draw(w));
 }
 let planeShown = null;
-function planeCard(o){
+async function planeCard(o){
   if (!o || !o.ac) return;
   ctlSound.press();
   planeShown = o;
+  const tok = cardLoading(), hex = o.ac.hex, until = async (ok, ms) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms && tok === cardTok) await new Promise(r => setTimeout(r, 150)); };
+  planeBody(o);                                          // asks for its details and its model's picture
+  await until(() => acDetails.get(hex) !== null, 2500);
+  const d = detailsOf(hex) || {};
+  if (!d.photo) await until(() => /<img/.test(planeBody(o).html), 2500);
+  if (tok !== cardTok) return;
   const b = planeBody(o);
-  cardOpen(b.html, b.wire);
+  cardWhenReady(tok, b.html, b.wire);
 }
 
 /* ---------- achievements (1.38) ----------
@@ -2160,6 +2234,62 @@ function confetti(){
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+
+/* ---------- tips (1.42) ----------
+   Short pop-ups for what isn't obvious at first: each one rings the thing it explains and fades the rest gently,
+   shows once on this device (Settings brings them back), and on the full board closes by itself after a while. */
+const TIPS_KEY = "od.tips" + (GUEST ? ".g." + GUEST.id : "");
+let tipsSeen = {};
+try { tipsSeen = JSON.parse(localStorage.getItem(TIPS_KEY) || "{}") || {}; } catch {}
+const tipQueue = [];
+let tipCur = null;
+function tipsReset(){ tipsSeen = {}; try { localStorage.removeItem(TIPS_KEY); } catch {} }
+function tip(id, target, text, auto){
+  if (tipsSeen[id] || (tipCur && tipCur.id === id) || tipQueue.some(t => t.id === id)) return;
+  tipQueue.push({id, target, text, auto});
+  setTimeout(tipNext, 60);
+}
+function tipNext(){
+  if (tipCur || !tipQueue.length) return;
+  if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
+  const t = tipQueue.shift();
+  const el = typeof t.target === "function" ? t.target() : t.target;
+  if (t.target && (!el || !el.getClientRects().length)) { setTimeout(tipNext, 60); return; }     // not on screen now: another time
+  tipCur = t;
+  if (el) { const r = el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 90) el.scrollIntoView({block: "center"}); }
+  const L = document.createElement("div");
+  L.id = "tipLayer";
+  L.innerHTML = `<div class="tipShade"></div>${el ? '<div class="tipRing"></div>' : ""}<div class="tipBub" role="dialog" aria-live="polite"><p></p><button class="tipOk" type="button"></button></div>`;
+  L.querySelector("p").textContent = t.text;
+  L.querySelector(".tipOk").textContent = T("Got it");
+  document.body.appendChild(L);
+  const bub = L.querySelector(".tipBub"), ring = L.querySelector(".tipRing"), shade = L.querySelector(".tipShade");
+  const place = () => {
+    const bw = bub.offsetWidth, bh = bub.offsetHeight;
+    if (!el) { shade.style.background = "rgba(6,6,8,.32)"; Object.assign(bub.style, {left: "16px", top: `${innerHeight - bh - 24}px`}); return; }
+    const r = el.getBoundingClientRect(), pad = 6, x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
+    Object.assign(ring.style, {left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`});
+    const cx = x + w / 2, cy = y + h / 2;
+    shade.style.background = `radial-gradient(ellipse ${w / 2 + 90}px ${h / 2 + 90}px at ${cx}px ${cy}px, rgba(6,6,8,0) 0%, rgba(6,6,8,0) 52%, rgba(6,6,8,.6) 100%)`;
+    const below = y + h + 14 + bh < innerHeight - 8;
+    Object.assign(bub.style, {left: `${Math.max(12, Math.min(innerWidth - bw - 12, cx - bw / 2))}px`, top: `${below ? y + h + 14 : Math.max(8, y - bh - 14)}px`});
+  };
+  const done = () => {
+    if (tipCur !== t) return;
+    tipsSeen[t.id] = Date.now();
+    try { localStorage.setItem(TIPS_KEY, JSON.stringify(tipsSeen)); } catch {}
+    tipCur = null;
+    L.style.pointerEvents = "none";                        // fading out: a second tap goes nowhere
+    removeEventListener("resize", place); removeEventListener("scroll", place, true); removeEventListener("keydown", key, true);
+    L.classList.remove("on"); setTimeout(() => L.remove(), 380);
+    setTimeout(tipNext, 700);
+  };
+  const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
+  L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
+  addEventListener("resize", place); addEventListener("scroll", place, {passive: true, capture: true}); addEventListener("keydown", key, true);
+  setTimeout(() => { place(); L.classList.add("on"); }, el ? 280 : 30);
+  if (t.auto) setTimeout(done, t.auto);
 }
 
 /* ---------- places (relay 33; simpler since 1.38) ----------
@@ -3538,15 +3668,15 @@ async function loadFullDay(){
   fullDay.busy = true; fullDay.at = now;
   try {
     const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
-    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay)};
-    if (j.stats) relayStats = j.stats;
+    fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
+    if (j.stats && !allPlaces) relayStats = j.stats;
     renderToday();
   } catch (e) { dlog("warn", `Couldn't read the whole day from the relay: ${netError(e, "relay")}`); }
   finally { fullDay.busy = false; }
 }
 function dayList(){
   const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
-  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay) return shown(spotted);
+  if (!relayV5() || !fullDay.list || fullDay.date !== sightDay || fullDay.all) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
   return shown(spotted.concat(fullDay.list.filter(e => !ids.has(e.id))));
 }
@@ -4285,8 +4415,7 @@ function rowHtml(e){
   const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
   const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
-  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time>` +
-    (listsOk() ? `<button class="flAdd" type="button" data-add aria-label="${escH(T("Favourite"))} / ${escH(T("Hide"))}">+</button>` : "") + `</div>` +
+  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time></div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
     `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
@@ -4371,8 +4500,15 @@ function paintRwy(){
 
 /* Spotted today */
 let svFilter = "all", svSig = "";
+// Today's list: this place (as Now), or every place once the whole day has come in for them (1.42: until then it
+// stays empty instead of showing this place's planes and jumping).
+function todayList(){
+  if (!allPlaces) return dayList();
+  if (!fullDay.all || !fullDay.list) return [];
+  return userLists.hide.length ? fullDay.list.filter(e => !isHidden(e)) : fullDay.list;
+}
 function svData(){
-  const real = dayList().filter(e => !e.sample || S.demo), OVK = overKm();
+  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm();
   const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
   const counts = {all: real.length, over: real.filter(isOver).length, special: real.filter(isSpecial).length};
   const rows = real.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
@@ -4406,7 +4542,7 @@ function legendHtml(){
     `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
 function todayNumbers(){
-  const st = relayV5() && relayStats, list = dayList(), OVK = overKm();
+  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList(), OVK = overKm();
   if (st) {
     const name = x => x ? fromRelay(x).flight : "";
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
@@ -4452,9 +4588,11 @@ function renderToday(){
   $("svSum").textContent = spottedSummary();
   const ap = $("svPlaces");
   if (ap) {
-    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home";
-    ap.textContent = allPlaces ? T("All places") : placeLabel();
-    ap.setAttribute("aria-pressed", String(allPlaces));
+    const seenFrom = ((lbData() || {}).places || []).filter(([k, n]) => n > 0).length;
+    ap.hidden = !placesRelay() || !places.list.length && !S.live && placeKeyNow() === "home" && seenFrom < 2;
+    const [one, all] = ap.children;
+    one.textContent = placeLabel(); all.textContent = T("All places");
+    one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
   const sig = svFilter + S.units + allPlaces + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
@@ -4471,10 +4609,16 @@ function renderLists(){
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
   ["private", "Private, light", "Privat", "#9aa4ae"], ["helicopter", "Helicopters", "Heli", "#22b0ae"], ["military", "Military", "Militär", "#8fa05a"],
   ["other", "Other", "Andere", "#6b6e75"]];
+// The logbook by place (1.42, relay 37): All, or one of the places planes were seen from (lbPlace).
+let lbPlace = "", lbPlaceData = {};
+const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
 async function fetchLogbook(){
   if (!S.demo && relayV5()) {
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
     catch (e) { lbError = netError(e, "relay"); }
+    if (lbPlace && lbPlaceOk() && tab === "logbook") {
+      try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {}
+    }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
   achCheck((lbData() || {}).game);
@@ -4484,15 +4628,31 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
-  $("lbSum").textContent = logbookSummary();
-  const b = lbData() || {}, has = !!lbData();
+  const all = lbData() || {}, pl = (all.places || []).filter(([k, n]) => n > 0);
+  if (lbPlace && !pl.some(([k]) => k === lbPlace)) lbPlace = "";
+  const chips = $("lbPlaces");
+  chips.hidden = !lbPlaceOk() || pl.length < 2 && !(pl.length === 1 && pl[0][0] !== "home");
+  const want = [["", T("All")], ...pl.map(([k, n]) => [k, placeName(k), n])];
+  const csig = JSON.stringify([want, lbPlace, LANG]);
+  if (chips.dataset.sig !== csig) {
+    chips.dataset.sig = csig;
+    chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
+    for (const btn of chips.children) btn.onclick = async () => {
+      if (btn.dataset.p === lbPlace) return;
+      ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
+      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(`${relay()}/logbook?place=${encodeURIComponent(lbPlace)}`, {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+    };
+  }
+  const b = lbPlace ? lbPlaceData[lbPlace] || {} : all, has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
+  $("lbSum").textContent = !lbPlace ? logbookSummary() : !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: placeName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
+  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -4511,7 +4671,7 @@ function renderLogbook(){
   if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
   if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
   if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
-  const g0 = b.game;
+  const g0 = lbPlace ? null : b.game;              // the collection, bingo and trophies count every place
   if (g0) {                                          // the game: points, tiers and the collections
     const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
     const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
@@ -4541,7 +4701,7 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
   }
-  html = yearHtml() + html;
+  if (!lbPlace) html = yearHtml() + html;
   $("lbLists").innerHTML = html;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
@@ -5779,6 +5939,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.42", date: "2026-10-18", notes: [
+    "Short tips point out what each page does and the less obvious taps and swipes; Settings can show them again.",
+    "The Logbook can show one place's own numbers, top lists and records.",
+    "Today has a clear This place | All places switch, and its numbers no longer jump when switching.",
+    "Cards wait until everything has loaded and then appear at once.",
+    "In the app a swipe turns yellow only when letting go makes a favourite; the + on rows is gone (the boards keep it).",
+    "About sits at the bottom of Settings, and the Account section is more compact."]},
   {v: "1.41", date: "2026-10-18", notes: [
     "Swipe a row right to make a favourite, left to hide it.",
     "About opens over Settings with a close button that stays at the top; closing it leaves Settings as it was.",
@@ -6028,10 +6195,7 @@ function plateHtml(p){
 function cockpitOpen(){
   draft = {...S};
   const box = $("cockpit");
-  box.innerHTML = COCKPIT.map(plateHtml).join("") +
-    `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  box.innerHTML = COCKPIT.map(plateHtml).join("");
   $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
   $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
@@ -6113,7 +6277,13 @@ function settingsExtra(){
       `<p class="muted">${escH(T("Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link."))}</p></div>` : "") + `</div>`;
   box.innerHTML = acct +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
+    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +
+      `<div class="acts"><button class="cap small" type="button" id="tipsBtn">${T("Show the tips again")}</button></div></div>` +
+    // About last (1.42): the version, then the page with the patch notes, the legend and who made it
+    `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
+    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
+  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
   if (GUEST) $("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -6157,7 +6327,11 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 });
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
-$("svPlaces").onclick = () => { ctlSound.press(); allPlaces = !allPlaces; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = ""; renderToday(); };
+for (const b of $("svPlaces").children) b.onclick = () => {
+  const want = b.dataset.all === "1";
+  if (want === allPlaces) return;
+  ctlSound.press(); allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
+};
 $("lookCv").onclick = () => { if (!lookOn && window.isSecureContext && typeof DeviceOrientationEvent !== "undefined") lookStart(); };
 // The compass turns with the phone by itself where no permission is asked (Android): it starts at once, or on the
 // first tap where the browser wants one; on an iPhone, tapping the dial asks.
@@ -6296,16 +6470,24 @@ async function accountBox(el, onChange, plate){
     el.innerHTML = !a.user
       ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
         `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
-      : (plate ? "" : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>`) +
+      : plate ? (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        // compact (1.42): a line per sign-in method, small buttons
+        `<div class="acSec"><h4>${escH(T("Passkeys"))}</h4>${pk ? `<button class="cap small" type="button" id="acKey">${T("Add")}</button>` : ""}</div>` +
+        (a.passkeys.length ? `<ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
+          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>`
+          : `<p class="muted">${escH(T(pk ? "No passkeys yet." : "Passkeys need the https address (the one in your invite link)."))}</p>`) +
+        `<div class="acSec"><h4>${escH(T("Password"))}</h4><button class="cap small" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
+        `<p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>`
+      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
         (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
-        (plate ? `<h4>${escH(T("Passkeys"))}</h4>` + (a.passkeys.length ? "" : `<p class="muted">${escH(T("No passkeys yet."))}</p>`) : "") +
         (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        (plate ? `<h4>${escH(T("Password"))}</h4><p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>` : `<p><b>${escH(T("Password"))}</b></p>`) +
-        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
-        `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
+        `<p><b>${escH(T("Password"))}</b></p>` +
+        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>`;
+    if (a.user) el.insertAdjacentHTML("beforeend", `<p class="muted acNew">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`);
+
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
     const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
     const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
@@ -6590,6 +6772,27 @@ function buildTabs(){
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
+// The tips for a tab (1.42): what the tab is, the first time, then what can be done on it.
+const TAB_TIPS = {now: "Now: the plane over you right now, its photo, and today's planes below. Tap the board for its card.",
+  today: "Spotted today: every plane that came within your radius today, with the day's numbers.",
+  logbook: "Logbook: everything you've ever spotted: types, airlines, records, the collection, trophies and the weekly bingo.",
+  radar: "Radar: the planes around you right now. Tap one for its card.",
+  settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
+function appTips(t){
+  if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
+  const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
+  tip("tab-" + t, () => $("tabRow").querySelector(`[data-tab="${t}"]`), T(TAB_TIPS[t]));
+  if (t === "now") {
+    tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane to the right to make it a favourite, or to the left to hide it."));
+    tip("taps", () => $("recent").querySelector(".tap"), T("Tap an airline, a place or an aircraft type for more about it."));
+  }
+  if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
+  if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
+  if (t === "settings") {
+    tip("setlabel", () => document.querySelector("#cockpit .lblF"), T("Give the place you're watching a name and press its Save to keep it in your saved places."));
+    tip("setlive", () => document.querySelector("#cockpit [data-live]"), T("Live location follows this phone while the app is open."));
+  }
+}
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
 function aboutShow(){
   if (tab !== "settings") showTab("settings");
@@ -6622,6 +6825,7 @@ function showTab(t){
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
+  setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
 addEventListener("hashchange", () => showTab(location.hash.slice(1)));

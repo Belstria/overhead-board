@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 36
+RELAY_VERSION = 37
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1546,7 +1546,99 @@ def logbook_json(spot):
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
                 "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day())},
-                "records": b.get("records", {})}
+                "records": b.get("records", {}),
+                "places": sorted(([k, p["n"]] for k, p in place_logbook(spot).items()), key=lambda kp: -kp[1])}
+
+
+# The logbook by place (relay 37): one logbook keeps every place's planes together; for one place the relay works its
+# numbers out from the saved days. A past day never changes, so its per-place summary is kept in memory once made;
+# today's is made fresh.
+_place_days = {}             # (spot folder, day) -> {place: summary}
+
+
+def _place_summary(entries):
+    out = {}
+    for e in entries:
+        k = e.get("place") or "home"
+        p = out.setdefault(k, {"n": 0, "types": {}, "airlines": {}, "regs": {}, "cats": {}, "book": {}, "first": None})
+        p["n"] += 1
+        ts = e.get("ts") or 0
+        p["first"] = ts if p["first"] is None else min(p["first"], ts)
+        def note(d, key, name):
+            if not key:
+                return
+            it = d.get(key)
+            if it is None:
+                it = d[key] = {"name": name or "", "first": ts, "count": 0, "last": ts}
+            it["count"] += 1
+            it["first"], it["last"] = min(it["first"], ts), max(it["last"], ts)
+            if name and not it["name"]:
+                it["name"] = name
+        note(p["types"], e.get("typeCode"), e.get("aircraftType") or e.get("desc"))
+        m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+        note(p["airlines"], m.group(1) if m else "", e.get("airlineName"))
+        note(p["regs"], e.get("reg"), e.get("typeCode"))
+        c = category_of(e)
+        p["cats"][c] = p["cats"].get(c, 0) + 1
+        note_records(p["book"], e)
+    return out
+
+
+def _merge_items(into, items):
+    for key, it in items.items():
+        cur = into.get(key)
+        if cur is None:
+            into[key] = dict(it)
+        else:
+            cur["count"] += it["count"]
+            cur["first"], cur["last"] = min(cur["first"], it["first"]), max(cur["last"], it["last"])
+            cur["name"] = cur["name"] or it["name"]
+
+
+def place_logbook(spot, place=None):
+    """{place: merged summary} over all saved days (or just `place`)."""
+    with _data_lock:
+        spot.ensure_day()
+        days = sorted(f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json"))
+        today = spot.day
+        merged = {}
+        for day in days:
+            key = (str(spot.dir), day)
+            if day == today:
+                summ = _place_summary(spot.entries)
+            else:
+                summ = _place_days.get(key)
+                if summ is None:
+                    summ = _place_days[key] = _place_summary(_load(spot.dir / f"sightings-{day}.json", []))
+            for k, p in summ.items():
+                if place is not None and k != place:
+                    continue
+                m = merged.setdefault(k, {"n": 0, "types": {}, "airlines": {}, "regs": {}, "cats": {}, "records": {}, "first": None, "since": day})
+                m["n"] += p["n"]
+                m["first"] = p["first"] if m["first"] is None else min(m["first"], p["first"] or m["first"])
+                for part in ("types", "airlines", "regs"):
+                    _merge_items(m[part], p[part])
+                for c, n in p["cats"].items():
+                    m["cats"][c] = m["cats"].get(c, 0) + n
+                for rk, rv in (p["book"].get("records") or {}).items():
+                    cur = m["records"].get(rk)
+                    lower = rk in ("closest", "lowest")
+                    if cur is None or (rv["v"] < cur["v"] if lower else rv["v"] > cur["v"]):
+                        m["records"][rk] = rv
+        return merged
+
+
+def place_logbook_json(spot, place):
+    m = place_logbook(spot, place).get(place)
+    if not m:
+        return {"version": RELAY_VERSION, "place": place, "sightings": 0, "types": {}, "airlines": {}, "regsCount": 0,
+                "regsTop": [], "regsRecent": [], "categories": {}, "records": {}}
+    regs = m["regs"]
+    return {"version": RELAY_VERSION, "place": place, "since": m["since"], "sightings": m["n"], "categories": m["cats"],
+            "types": m["types"], "airlines": m["airlines"], "regsCount": len(regs),
+            "regsTop": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1]["count"])[:15]],
+            "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1]["first"])[:15]],
+            "records": m["records"]}
 
 
 def _days_of(spot, prefix=""):
@@ -3558,7 +3650,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(400, "text/plain", b"Out of range")
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
         if path == "/logbook":
-            return self.reply(200, "application/json", json.dumps(logbook_json(self.spot)).encode())
+            place = place_key((self.query().get("place") or [""])[0])
+            body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
+            return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/seen":
             reg = re.sub(r"[^A-Z0-9-]", "", ((self.query().get("reg") or [""])[0]).upper())[:10]
             if not reg:

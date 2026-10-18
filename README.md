@@ -153,8 +153,9 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
   Commons), credited as such.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
-  **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘; let go past the mark and that half of the
-  sheet opens), or the small **+** ring under a row's time (1.40; 1.38 had a big + at the row's end), or
+  **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘ in grey, turning yellow or red once letting
+  go will do it; that half of the sheet opens; the + ring on the app's rows is gone since 1.42, the boards keep their
+  +), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
@@ -227,7 +228,18 @@ The main board has everything below. New features are tried on `/test/` first; o
   skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
   it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
-- **Settings → Account** (1.41): who this device is signed in as, plainly at the top (initial, name, account), then
+- **Tips** (1.42): the first time you open each page (and for the less obvious things: swiping a row, tapping an
+  airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
+  and gently fades the rest; tap anywhere to close it. Each shows once per device; Settings → Device (the board: the
+  Control plate) → **Show the tips again** brings them back. On the full board they close by themselves after 11 seconds.
+- **Logbook by place** (1.42, relay 37; the app and the light version): when planes were seen from more than one place,
+  chips above the Logbook pick **All** or one place (with its count); a place shows its own numbers, top types, airlines
+  and aircraft and its records (the collection, bingo, trophies and the year card count every place, so they show
+  under All).
+- **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
+- **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
+  in (at most a few seconds), instead of filling in piece by piece.
+- **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device). A device at home
   shows "Home". **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
   scrolls, and closing it leaves Settings as it was.

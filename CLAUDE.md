@@ -297,6 +297,18 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `applyLang`); `listSheet(x, only)` can show one half. Cards' `.cLink` are outlined pills. The Account plate
   (`settingsExtra`: `.acHead` with `.acAv` initial, `#acSub`, `accountBox(el, onChange, plate=true)` with Passkeys and
   Password headings, `#signOut` in `.acOut`) replaced the sign-out button under Device.
+- 1.42 (relay 37): tips (shared block before the places: `tip(id, target, text, auto)` queues one, `tipNext` shows
+  `#tipLayer` with `.tipShade` (a radial gradient around the target), `.tipRing` and `.tipBub`; seen ids in `od.tips`
+  (per guest `.g.<id>`), `tipsReset()`; the app's `appTips(tab)` from `showTab`, the board's `boardTips(view)` from
+  `switchView` and once 20 s after start, auto-closing after 11 s). Cards: `cardLoading()` then `cardWhenReady(tok,
+  html, wire)` (waits for the pictures, `imgsReady`); airline, place, type and plane cards build their HTML first.
+  Logbook by place: relay `place_logbook(spot, place)` sums per-place summaries of each saved day (`_place_summary`,
+  past days cached in `_place_days`), `/logbook?place=` (`place_logbook_json`), `/logbook`'s `places` ([key, count]);
+  the app's `lbPlace`/`lbPlaceData`, `#lbPlaces` chips, the game/year parts only under All. Today: `fullDay.all` and
+  `fullDay.stats`; `todayList()` for Today (empty until the whole day of all places is in), `dayList()` ignores an
+  all-places day, `relayStats` only from this place; `#svPlaces` is a two-button switch. The app's rows have no `+`
+  (`.tc` holds only the time); the swipe's favourite side is grey until `.armed`. About is the last plate of Settings
+  (in `settingsExtra`), with Show the tips again under Device.
   The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in
