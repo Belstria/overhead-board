@@ -51,6 +51,7 @@ def main():
         "switch": whole("119415__joedeshon__rocker_switch.wav"),
         "wheel": whole("139061__joedeshon__push_button_switch_07.wav"),
         "button": whole("eaglaxle-switching-button-2.wav", .06, .32),
+        "ding": whole("arunangshubanerjee-airbus-cabin-pa-beep.wav", .45, 1.47),   # the first of the two tones only
     }
     OUT.mkdir(exist_ok=True)
     lines, total = [], 0

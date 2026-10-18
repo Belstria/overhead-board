@@ -236,7 +236,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   About's patch notes and legend move with **▲ ▼** buttons.
 - **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
   (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
-  (board) or Sounds (app) → **New plane ding**.
+  (board) or Sounds (app) → **New plane ding**; switching it on plays it. Since 1.45 it is a recorded Airbus cabin
+  chime (its first tone), and it and the chimes only sound on the main page (the board without a view open, the
+  app's Now), not while you are in Settings or another view.
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
   picked).
