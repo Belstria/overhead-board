@@ -10,6 +10,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.59 / relay 51 (to-do #66, stacked on 1.55): `STYLES` ([kind, name, [[id, name, rule]]], rules `{pts}`/`{tr}`/
+  `{cards}`), `styleOk(rule, g0)` with `styleGame()` (lbData's game), `PALETTES` laid over the theme by `themeNow()`
+  (both applyThemes), `THEMES.frankfurt70`/`tokyo`, `FINISH()` in `tile()` (key includes it; `WHITE_FLAP`, enamel
+  `mix`, brass frame, `ledText` samples the text at 6x into an 11-row dot grid), `drawBadge(g, id, x, y, s)` after
+  the title's second word and on the app's `#badge` canvas (drawMark). Settings: the Display plate's `theme` knob became
+  `{type: "styles"}` (itemHtml + `[data-styles]` → `stylesCard()`, which also sets `draft[k]`); `styleKinds()` drops
+  theme/finish when `LIGHT`. `achList` adds "style:<id>" when a rule is met. Relay 51: `_bingo_week`, `book.bingoCards`
+  {monday: ts} (bingo_json; `_backfill_cards`, `cardsV`), game_json `bingoCards`.
 - 1.55 / relay 50 (build G):
   - #54 `lbChips()`: chips are `places.list` labels and "live" only; the unnamed "home" key (sightings before any
     saved place) joins a label called Home/home/T("Home") (`id` "Home\nhome"), else only All counts it.

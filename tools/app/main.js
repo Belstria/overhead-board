@@ -12,10 +12,10 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
-const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
+const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", finish: "", soundSet: "recorded"};
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
@@ -375,13 +375,15 @@ function drawMark(){
   const g = cv.getContext("2d");
   g.setTransform(d, 0, 0, d, 0, 0);
   pictogram(g, 0, 0, s);
+  const b = $("badge");                                  // 1.59: the title badge (Settings → Styles)
+  if (b) { b.hidden = !S.badge; if (S.badge) { b.width = b.height = Math.round(22 * d); const c = b.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0); drawBadge(c, S.badge, 0, 0, 22); } }
 }
 //@E10
 
 /* ---------- board styles ---------- */
 function applyTheme(){
   applyLook();
-  const T = THEMES[S.theme] || THEMES.classic;
+  const T = themeNow();
   FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
   COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
   const root = document.documentElement.style;

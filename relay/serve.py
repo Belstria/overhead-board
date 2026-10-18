@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 50
+RELAY_VERSION = 51
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -317,7 +317,7 @@ class Spot:
         if self.logbook is None:
             self.logbook = _load(self.dir / "logbook.json", None) or {"since": time.strftime("%Y-%m-%d"), "startedTs": time.time(),
                                                                        "sightings": 0, "types": {}, "airlines": {}, "regs": {},
-                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": TROPHIES_V}
+                                                                       "gameV": GAME_V, "recordsV": 1, "trophiesV": TROPHIES_V, "cardsV": 1}
             if self.logbook.get("gameV") != GAME_V:
                 self.ensure_day()
                 _rescore(self)
@@ -327,6 +327,9 @@ class Spot:
             if self.logbook.get("trophiesV") != TROPHIES_V:
                 self.ensure_day()
                 _backfill_trophies(self)
+            if self.logbook.get("cardsV") != 1:
+                self.ensure_day()
+                _backfill_cards(self)
             if self.logbook.get("flightsV") != 1:
                 self.ensure_day()
                 _backfill_flights(self)
@@ -851,13 +854,8 @@ BINGO = {
 BINGO_LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
 
 
-def bingo_json(spot, day):
-    """This week's card: its nine goals, which are done (and when), and how many lines are complete."""
-    monday = datetime.date.fromisoformat(day) - datetime.timedelta(days=datetime.date.fromisoformat(day).weekday())
-    key = (monday.isoformat(), day, spot.rev)
-    cached = getattr(spot, "_bingo", None)
-    if cached and cached[0] == key:
-        return cached[1]
+def _bingo_week(spot, monday, day):
+    """A week's card and which of its goals were done (and when), up to `day`."""
     card = random.Random("fallblatt-" + monday.isoformat()).sample(sorted(BINGO), 9)
     done = {}
     for i in range(7):
@@ -873,8 +871,37 @@ def bingo_json(spot, day):
                             done[g] = e.get("ts")
                     except Exception:
                         pass
+    return card, done
+
+
+def _backfill_cards(spot):
+    """Relay 51 (to-do #66): the weeks whose bingo card was full, counted once from the saved days (they unlock the
+    title badges)."""
+    b = spot.logbook
+    cards = b.setdefault("bingoCards", {})
+    days = sorted(f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json"))
+    mondays = sorted({(datetime.date.fromisoformat(d) - datetime.timedelta(days=datetime.date.fromisoformat(d).weekday())) for d in days})
+    for monday in mondays:
+        _, done = _bingo_week(spot, monday, (monday + datetime.timedelta(days=6)).isoformat())
+        if len(done) == 9 and monday.isoformat() not in cards:
+            cards[monday.isoformat()] = max(v or 0 for v in done.values())
+    b["cardsV"] = 1
+    spot.changed("book")
+
+
+def bingo_json(spot, day):
+    """This week's card: its nine goals, which are done (and when), and how many lines are complete."""
+    monday = datetime.date.fromisoformat(day) - datetime.timedelta(days=datetime.date.fromisoformat(day).weekday())
+    key = (monday.isoformat(), day, spot.rev)
+    cached = getattr(spot, "_bingo", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    card, done = _bingo_week(spot, monday, day)
     lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
     book = spot.book()
+    if len(done) == 9 and monday.isoformat() not in book.setdefault("bingoCards", {}):     # relay 51: full cards
+        book["bingoCards"][monday.isoformat()] = max(v or 0 for v in done.values())
+        spot.changed("book")
     got = book.setdefault("trophies", {})
     now = int(time.time() * 1000)
     for k, ok in (("bingo", lines >= 1), ("fullcard", len(done) == 9)):
@@ -895,7 +922,8 @@ def game_json(book, day):
     return {"points": book.get("points", 0), "today": days.get(day, 0), "best": {"day": best[0], "points": best[1]} if best else None,
             "streak": streak, "tiers": {t: book.get("tiers", {}).get(t, 0) for t in TIERS},
             "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS],
-            "trophies": book.get("trophies", {}), "trophyCounts": trophy_counts(book, day=day)}
+            "trophies": book.get("trophies", {}), "trophyCounts": trophy_counts(book, day=day),
+            "bingoCards": len(book.get("bingoCards", {}))}
 
 
 # ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
