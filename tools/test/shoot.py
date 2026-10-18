@@ -12,7 +12,7 @@ OUT is a file name prefix (shot:now writes OUT-now.png). Steps run in order:
     shot:NAME        screenshot                full:NAME    whole-page screenshot (the phone app scrolls)
     clip:X,Y,W,H,NAME  screenshot of part of the page
     seq:SECONDS      watch which page button is lit, once a second, and print the order
-Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080; SIZE=960x540
+Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080 (UA= sets the user agent, e.g. a Fire TV's); SIZE=960x540
 and DPR=2 for the Fire TV. The test relay's "Test" profile is signed in (COOKIE=test-device; COOKIE=new-device is the
 new guest, COOKIE= nobody).
 Prints page errors and console errors at the end. Route and aircraft lookups (adsbdb) go to the fake data source
@@ -47,6 +47,8 @@ async def main():
     else:
         w, h = (int(v) for v in os.environ.get("SIZE", "1920x1080").lower().split("x"))
         opts = {"viewport": {"width": w, "height": h}, "device_scale_factor": float(os.environ.get("DPR", "1"))}
+        if os.environ.get("UA"):          # e.g. a Fire TV's, for WEAK_TV
+            opts["user_agent"] = os.environ["UA"]
     async with async_playwright() as p:
         browser = await p.chromium.launch(args=["--autoplay-policy=no-user-gesture-required"])
         ctx = await browser.new_context(**opts)

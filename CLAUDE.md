@@ -52,7 +52,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (42 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (43 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
@@ -105,7 +105,9 @@ QR sign-in. Credit links are in About.
 link, an account sign-in, or a QR pairing) or a stranger (only the private page with the QR sign-in, `/health`, the app's
 icons and manifest). A profile has its own spot (sightings, logbook, places, lists, settings under `data/profiles/<id>/`)
 and may have an account (user, scrypt password, passkeys). `at_home()` only opens the admin paths (`/admin`, `/screens`,
-`/status`, `/admin/*` POSTs) for anyone on the home network. `/admin` makes invites, accounts and limits. Screens name
+`/status`, `/admin/*` POSTs), and since relay 43 `owner_ok()` only for the one profile named `HOME_OWNER` (David)
+or a device without a profile (other guests: 403). A guest not yet `located` gets the relay's place and airport in
+`OVERHEAD_DEFAULTS`, never its lat/lon (Dave's home). `/admin` makes invites, accounts and limits. Screens name
 their place on each position request. `host_ok()` refuses foreign Host names; loopback (the tunnel) always passes.
 
 ## The relay's home and how to update it
@@ -133,7 +135,7 @@ their place on each position request. `host_ok()` refuses foreign Host names; lo
 1. `py tools/test/run_test_relay.py` (`--fr24` for Flightradar24 features, `--quiet` without special planes, `--hover`
    for a hovering helicopter, `--far` a landing 32 km out). It runs a copy of the relay against made-up flights and serves
    this checkout at `http://localhost:8096/` (`/test/`, `/app/`); Dave's real relay and data are untouched. Profiles:
-   "Test" (cookie `overhead=test-device`; a browser gets it from `/test-signin`) and "New guest" (`?as=new`, the welcome).
+   "Test" (cookie `overhead=test-device`; a browser gets it from `/test-signin`) "New guest" (`?as=new`, the welcome) and "David" (`overhead=owner-device`, the owner: the admin pages).
    Flights play out in the first minutes (restart for the Airport style).
 2. Look at it: a browser, or `py tools/test/shoot.py URL OUT steps...` (`PHONE=390x844` for the app, `SIZE=960x540 DPR=2`
    for the Fire TV, `COOKIE=` for another profile). Check the page errors it prints and look at the screenshots.

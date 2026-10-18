@@ -532,14 +532,15 @@ settings follow them between the two and to other devices. Settings → Account 
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser keeps its profile.
 
 **Every screen is a profile's (relay 42, 1.49).** There is no "Home" any more: a screen at home without a profile
-gets the private page with its QR code too (sign it in with your phone, below). The home network only opens the admin
-pages (`/admin`, `/screens`, `/status`), signed in or not. On its first start relay 42 merges the old Home into the
+gets the private page with its QR code too (sign it in with your phone, below). The admin pages (`/admin`, `/screens`,
+`/status`) open only on the home network, and since relay 43 only for the profile named David or a device that isn't
+signed in at all (so a new relay can make its first invite); other guests get "Only for the owner". On its first start relay 42 merges the old Home into the
 profile named David, once: its days of sightings are joined with his (a plane both recorded in the same pass counts
 once), the logbook is counted again from the joined days (scores, records, trophies, flights), and Home's saved places,
 favourites and hidden planes, notification subscriptions and linked devices move to his profile, with the relay's own
 location filling in what his settings lack. The old files stay in `data/home-before-merge/`. If there isn't exactly one
 profile of that name, nothing changes and the relay's log says so. A new profile's welcome starts from the relay's
-own location.
+city and airport (since relay 43 never its coordinates: the guest sets their own spot).
 
 **The admin page (relay 42).** Each profile is a **Guest** (no account yet: **New invite link** brings in another
 device) or an **Account** (its username; there is no invite link any more, its devices sign in with the account, and
