@@ -678,9 +678,7 @@ function renderLists(){
 
 /* Logbook */
 //@E28
-// The logbook by place (1.42, relay 37): All, or one of the places planes were seen from (lbPlace).
-let lbPlace = "", lbPlaceData = {};
-const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 37;
+// The logbook by place (1.42, relay 37): lbPlace, lbPlaceData and lbPlaceOk come with the board's code.
 async function fetchLogbook(){
   if (!S.demo && relayV5()) {
     try { lbCache = await fetchJSON(`${relay()}/logbook`, {}, 8000); lbError = ""; }
@@ -1636,93 +1634,6 @@ function renderFavBox(){
   box.hidden = false;
   box.innerHTML = `<div class="plate cardish" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3><div data-fm></div></div>`;
   favManager(box.querySelector("[data-fm]"));
-}
-
-/* ---------- accounts (relay 30): a username, passkeys and a password, to sign in on a new device ----------
-   The guest's profile is made by their invite link; the account is extra and their own choice (About, or the end of
-   the welcome). Passkeys need https (the public address); a password works anywhere. Signing in on a new device is the
-   relay's /signin page, linked from its "private" page. */
-const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const ub64 = t => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((t.length + 3) % 4)), c => c.charCodeAt(0));
-const accountsOk = () => !!GUEST && (window.OVERHEAD_RELAY_VERSION || 0) >= 30;
-const passkeysHere = () => window.isSecureContext && !!window.PublicKeyCredential;
-async function acctPost(path, body){
-  const r = await fetch(`${relay()}${path}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
-  return j;
-}
-const deviceName = () => { const u = navigator.userAgent;
-  return /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Macintosh/.test(u) ? "Mac" : /Windows/.test(u) ? "Windows" : "Device"; };
-async function passkeyAdd(){
-  const o = await acctPost("/account/passkey/begin");
-  const c = await navigator.credentials.create({publicKey: {...o, challenge: ub64(o.challenge), user: {...o.user, id: ub64(o.user.id)},
-    excludeCredentials: (o.excludeCredentials || []).map(x => ({...x, id: ub64(x.id)}))}});
-  return acctPost("/account/passkey/finish", {id: c.id, clientDataJSON: b64u(c.response.clientDataJSON),
-    attestationObject: b64u(c.response.attestationObject), name: deviceName()});
-}
-// Set or change the password in a window of its own: the current one (if there is one) and the new one twice.
-function pwCard(a, done){
-  const field = (id, ph, ac = "new-password") => `<input class="acIn" id="${id}" type="password" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
-  cardOpen(`<h3>${escH(T(a.password ? "Change password" : "Set a password"))}</h3><form data-pw>` +
-    `<input type="text" autocomplete="username" value="${escH(a.user)}" hidden>` +
-    (a.password ? field("pwCur", "Current password", "current-password") : "") + field("pwNew", "New password") + field("pwNew2", "Repeat the new password") +
-    `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
-    `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
-    const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
-    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
-    f.onsubmit = async ev => {
-      ev.preventDefault(); ctlSound.press();
-      if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
-      try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
-      catch (e) { say((e && e.message) || String(e)); }
-    };
-    setTimeout(() => { const i = f.querySelector("input:not([hidden])"); if (i) i.focus(); }, 50);
-  });
-}
-// The account panel, in About and in the welcome: create (a username), then passkeys and a password.
-async function accountBox(el, onChange, plate){
-  let a = null;
-  try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
-  if (!a || a.home) { el.innerHTML = ""; return; }
-  const draw = (note = "") => {
-    const has = a.passkeys.length || a.password, pk = passkeysHere() && a.passkeysOk, field = (id, ph, type = "password", ac = "new-password") =>
-      `<input class="acIn" id="${id}" type="${type}" autocomplete="${ac}" placeholder="${escH(T(ph))}">`;
-    el.innerHTML = !a.user
-      ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
-        `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
-      : plate ? (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
-        // compact (1.42): a line per sign-in method, small buttons
-        `<div class="acSec"><h4>${escH(T("Passkeys"))}</h4>${pk ? `<button class="cap small" type="button" id="acKey">${T("Add")}</button>` : ""}</div>` +
-        (a.passkeys.length ? `<ul class="acList">${a.passkeys.map(k => `<li><span>${escH(k.name)} <small>${escH(fmtDay(k.added))}</small></span>` +
-          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>`
-          : `<p class="muted">${escH(T(pk ? "No passkeys yet." : "Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<div class="acSec"><h4>${escH(T("Password"))}</h4><button class="cap small" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
-        `<p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>`
-      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
-        (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
-        (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
-          `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
-        (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
-          : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<p><b>${escH(T("Password"))}</b></p>` +
-        `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>`;
-    if (a.user) el.insertAdjacentHTML("beforeend", `<p class="muted acNew">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`);
-
-    el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
-    const say = t => { const n = el.querySelector("#acNote"); if (n) n.textContent = t; };
-    const run = async (fn, ok) => { try { a = await fn(); draw(ok ? T(ok) : ""); if (onChange) onChange(a); } catch (e) { say(e && e.name === "NotAllowedError" ? T("Cancelled.") : (e && e.message) || String(e)); } };
-    const q = id => el.querySelector("#" + id);
-    if (q("acUser")) {
-      q("acUser").value = String(GUEST.name || "").toLowerCase().replace(/[^a-z0-9._-]+/g, ".").replace(/^[._-]+|[._-]+$/g, "");
-      q("acMake").onclick = () => { ctlSound.press(); run(() => acctPost("/account/user", {user: q("acUser").value})); };
-    }
-    if (q("acKey")) q("acKey").onclick = () => { ctlSound.press(); run(passkeyAdd, "Passkey added."); };
-    if (q("acSetPw")) q("acSetPw").onclick = () => { ctlSound.press(); pwCard(a, next => { a = next; draw(T("Password saved.")); if (onChange) onChange(a); }); };
-    for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => { ctlSound.press(); run(() => acctPost("/account/passkey/remove", {id: b.dataset.rm})); };
-  };
-  draw();
-  if (onChange) onChange(a);
 }
 
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
