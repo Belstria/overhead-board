@@ -1421,6 +1421,7 @@ function cockpitOpen(){
     } else if (el.classList.contains("toggle")) el.onclick = () => {
       draft[it.k] = it.on ? (draft[it.k] === it.on ? it.off : it.on) : !draft[it.k]; cockpitShow(); ctlSound.toggle(el.getAttribute("aria-pressed") === "true");
       if (it.k === "bell") { audioInit(); setTimeout(() => chime("special", {force: true, set: draft.bell}), 250); }   // hear it
+      if (it.k === "ding" && draft.ding) { audioInit(); setTimeout(() => seatbeltDing(true), 250); }
     };
     else if (el.classList.contains("wheel")) {
       const roll = d => { const was = draft[it.k]; wheelStep(it, el.dataset.part, d); cockpitShow(el, d); if (draft[it.k] !== was) ctlSound.wheel(); };
@@ -1901,6 +1902,8 @@ const TAB_ICONS = {
 };
 const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 let tab = "now", tabTimer = null;
+// 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
+function onMainPage(){ return tab === "now"; }
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };

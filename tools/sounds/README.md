@@ -13,6 +13,7 @@ instead (they stay in the code as the fallback, also while the recordings are st
 | Rotary knobs | [Clicky Knob Turning.wav](https://freesound.org/people/shewbox/sounds/30827/) | shewbox | CC BY 3.0 |
 | Thumbwheels | [push_button_switch_07.wav](https://freesound.org/people/joedeshon/sounds/139061/) | joedeshon | CC BY 4.0 |
 | Page and view buttons | [Switching button 2](https://pixabay.com/sound-effects/switching-button-2-461629/) | EAGLAXLE | Pixabay Content License |
+| New plane ding (1.45; its first tone) | [Airbus Cabin PA Beep Tone](https://pixabay.com/sound-effects/film-special-effects-airbus-cabin-pa-beep-tone-passenger-announcement-chime-358248/) | arunangshubanerjee | Pixabay Content License |
 
 All are credited in About.
 
@@ -28,6 +29,7 @@ py tools/sounds/build_sounds.py
 It finds the single clicks in the long recordings (the cleanest: loud, quiet just before, not overlapping the next),
 cuts them with short fades, evens out their level, halves the sample rate (22 kHz mono is plenty: everything above
 6.5 kHz is filtered on playback anyway) and writes them into `test/`, plus listening copies in
-`sounds-src/out/`. The Pixabay file is an MP3: decode it to `sounds-src/eaglaxle-switching-button-2.wav` first (the
+`sounds-src/out/`. The Pixabay file is an MP3: decode it to `sounds-src/eaglaxle-switching-button-2.wav` first (and the cabin chime to
+`sounds-src/arunangshubanerjee-airbus-cabin-pa-beep.wav`) (the
 script `audio.py` has no MP3 decoder; Chromium's `decodeAudioData` was used). Then rebuild the app
 (`py tools/app/build.py`).
