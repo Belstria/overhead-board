@@ -208,11 +208,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   (relay 27: chat apps' link previews used links up; `PREVIEW_BOT`); from an account's sign-in; or from a QR pairing;
   profiles, invite and cookie hashes in `data/profiles.json`) or a stranger (only the "private" page with the QR
   sign-in, `/health`, the app's icons and manifest). `at_home()` now only opens `ADMIN_PATHS` (`/admin`, `/screens`,
-  `/status`, and the `/admin/*` POSTs), for anyone on the home network, signed in or not. Each profile has a `Spot`
+  `/status`, and the `/admin/*` POSTs), and since relay 43 `owner_ok()` limits them to the one profile named
+  `HOME_OWNER` or a device without a profile (other guests: 403 "Only for the owner"). Each profile has a `Spot`
   (sightings and logbook in `data/profiles/<id>/`), and
   a screen's positions are recorded into its own spot (`Spot.take`) if they cover the spot's place. Profiles get
-  `OVERHEAD_GUEST` (id, name, settings) and, until they are `located`, the relay's own location in `OVERHEAD_DEFAULTS`
-  (the welcome starts from it, relay 42), their settings back via `/me`
+  `OVERHEAD_GUEST` (id, name, settings) and, until they are `located`, the relay's place, home and radius in `OVERHEAD_DEFAULTS`
+  (the welcome starts from them; relay 43 leaves out lat/lon: Dave's home never reaches a guest), their settings back via `/me`
   (merged, so the app and the board don't wipe each other's), the boards too (1.16; the welcome's "Phone app / Full
   board" choice; a board sends a guest without `located` to the app's welcome), per-guest storage keys
   (`od.app.settings.g.<id>`, `od.settings.g.<id>`), `/signout` (About), rate limits (`allow`; per profile `guest:` 8/s,

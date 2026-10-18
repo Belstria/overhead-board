@@ -1826,8 +1826,8 @@ function welcome(){
   box.hidden = false;
   try { greetFlaps(); } catch {}
   $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
-  const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // relay 42: the relay's own place to start from
-  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
+  const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // 1.49.1: only the relay's city and airport, the spot is the guest's own
+  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"]])
     if (start[k] != null) $(id).value = start[k];
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {

@@ -6328,6 +6328,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.49.1", date: "2026-10-18", notes: [
+    "The admin pages are only for the board's owner.",
+    "A new guest's welcome suggests a city and airport and leaves the exact spot to them.",
+    "The footer is sized like the rest of the board on smaller screens such as the Fire TV.",
+  ]},
   {v: "1.49", date: "2026-10-18", notes: [
     "Every screen now belongs to a profile: a new screen shows a QR code to sign it in from your phone.",
     "New pictograms for take-off and landing: a plane climbing away from, coming down to or rolling along the runway.",
@@ -6990,8 +6995,8 @@ function welcome(){
   box.hidden = false;
   try { greetFlaps(); } catch {}
   $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
-  const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // relay 42: the relay's own place to start from
-  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"], ["wLat", "lat"], ["wLon", "lon"]])
+  const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // 1.49.1: only the relay's city and airport, the spot is the guest's own
+  for (const [id, k] of [["wPlace", "place"], ["wHome", "home"]])
     if (start[k] != null) $(id).value = start[k];
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {

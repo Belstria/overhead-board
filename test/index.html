@@ -34,14 +34,15 @@ html{touch-action:manipulation}
 
 footer{
   position:absolute;left:0;right:0;bottom:0;
-  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  display:flex;align-items:center;justify-content:space-between;gap:calc(16px*var(--k));
   padding:0 calc(64px*var(--k)) calc(20px*var(--k));
-  font-size:max(11px,calc(17px*var(--k)));letter-spacing:.03em;color:var(--muted);
+  font-size:calc(17px*var(--k));letter-spacing:.03em;color:var(--muted);
   transition:opacity .6s;
 }
 body.idle footer{opacity:0;pointer-events:none}
 footer{background:linear-gradient(transparent,rgba(0,0,0,.6));padding-top:calc(6px*var(--k));padding-bottom:calc(10px*var(--k));z-index:4;pointer-events:none}
 footer #status,footer .actions{pointer-events:auto}
+footer button{border-radius:calc(6px*var(--k))}
 body.tiny footer{font-size:max(7px,calc(17px*var(--k)))}
 body.tiny #btnDiag{display:none}
 #btnNew{color:#17140e;background:#f2c44e;border:0;border-radius:calc(4px*var(--k));padding:calc(4px*var(--k)) calc(10px*var(--k));margin-right:calc(16px*var(--k));font-weight:700;cursor:pointer;animation:lampOn .55s linear}
@@ -6064,6 +6065,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.49.1", date: "2026-10-18", notes: [
+    "The admin pages are only for the board's owner.",
+    "A new guest's welcome suggests a city and airport and leaves the exact spot to them.",
+    "The footer is sized like the rest of the board on smaller screens such as the Fire TV.",
+  ]},
   {v: "1.49", date: "2026-10-18", notes: [
     "Every screen now belongs to a profile: a new screen shows a QR code to sign it in from your phone.",
     "New pictograms for take-off and landing: a plane climbing away from, coming down to or rolling along the runway.",

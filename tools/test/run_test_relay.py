@@ -12,7 +12,8 @@ Then open http://localhost:8096/ (or /test/, /app/, /screens). Ctrl+C stops both
 
 Since relay 42 every screen is a signed-in profile. The test relay starts with two: "Test" (watching central Vienna;
 its device cookie is overhead=test-device, which shoot.py and smoke.py send) and "New guest" (no place yet, for the
-welcome: overhead=new-device). In a browser, open http://localhost:8096/test-signin once for the Test cookie (or
+welcome: overhead=new-device); since relay 43 also "David", the owner, the only profile the admin pages open for
+(overhead=owner-device). In a browser, open http://localhost:8096/test-signin once for the Test cookie (or
 /test-signin?as=new). sounds-src/emirates-boarding.m4a, if there, is served as /media/emirates-boarding.m4a.
 """
 import argparse
@@ -69,7 +70,9 @@ def main():
     (tmp / "data" / "profiles.json").write_text(json.dumps({"homeMerged": {"v": 1, "at": now, "into": None}, "invites": {}, "profiles": {
         "test0001": {"name": "Test", "created": now, "lastSeen": now, "fr24": True, "devices": dev("test-device"),
                      "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}},
-        "new00001": {"name": "New guest", "created": now, "lastSeen": 0, "fr24": False, "devices": dev("new-device"), "settings": None}}}),
+        "new00001": {"name": "New guest", "created": now, "lastSeen": 0, "fr24": False, "devices": dev("new-device"), "settings": None},
+        "own00001": {"name": "David", "created": now, "lastSeen": now, "fr24": True, "devices": dev("owner-device"),
+                     "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}}}}),
         encoding="utf-8")
     music = REPO / "sounds-src" / "emirates-boarding.m4a"
     if music.is_file():

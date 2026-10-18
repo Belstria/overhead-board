@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 42
+RELAY_VERSION = 43
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2282,6 +2282,9 @@ def board_html(sub="", guest=None):
     fr24 = fr24_on() and (guest is None or bool(guest.get("fr24")))
     if guest is not None and (guest.get("settings") or {}).get("located"):     # their own settings come with their profile
         defaults = {"units": ARGS.units} if ARGS.units else {}
+    elif guest is not None:     # relay 43: a new guest's welcome starts from the city and airport, never the relay's own point
+        defaults.pop("lat", None)
+        defaults.pop("lon", None)
     config = json.dumps(defaults).replace("<", "\\u003c")
     who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
@@ -3726,7 +3729,7 @@ def _push_watch():
                 event("warn", f"Notification check failed for {who}: {e}", echo=False)
 
 
-ADMIN_PATHS = ("/admin", "/screens", "/status")     # the home network only (and for anyone there, signed in or not)
+ADMIN_PATHS = ("/admin", "/screens", "/status")     # the home network only, and only for HOME_OWNER or a device without a profile (relay 43)
 MEDIA_DIR = DATA_DIR / "media"
 MEDIA = {"emirates-boarding.m4a": "audio/mp4"}     # relay 42: the Emirates airline card's boarding music (copyrighted: never in the repository)
 
@@ -3776,6 +3779,16 @@ class Handler(BaseHTTPRequestHandler):
             return a.is_private or a.is_loopback
         except ValueError:
             return False
+
+    def owner_ok(self):
+        """The admin pages are Dave's (relay 43): a device of the one profile named HOME_OWNER, or a device without a
+        profile (so a fresh relay can still make its first invite). Other guests are turned away, even at home."""
+        if not self.guest:
+            return True
+        with _data_lock:
+            hits = [pid for pid, p in profiles()["profiles"].items()
+                    if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower()]
+        return hits == [self.guest[0]]
 
     def identify(self):
         """Who is asking: self.guest = (id, profile) for a signed-in device; anyone else is a stranger (relay 42: there
@@ -4165,7 +4178,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health" or BOARD_FILE.match(path):
             pass                                  # the app's icons and manifest (fetched without cookies) and the check
         elif path in ADMIN_PATHS and self.at_home():
-            pass                                  # the admin pages: the home network, signed in or not
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
         elif self.stranger:
             return self.refuse(path)
         elif not allow("guest:" + self.guest[0], 8, 120):
@@ -4365,6 +4379,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/admin/"):
             if not self.at_home() or not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from the admin page at home")
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
             return self.admin_post(path)
         if self.stranger:
             return self.refuse(path)
