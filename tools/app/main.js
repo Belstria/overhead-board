@@ -24,13 +24,16 @@ function loadSettings(){
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
+// The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
+// so the profile's old one came back on the next load).
 let meQ = 0;
+const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
-  const settings = S.located ? {...changed, lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, located: true} : changed;
+  const settings = S.located ? {...changed, ...locSet(), located: true} : changed;
   const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
   clearTimeout(meQ);
   if (now) return send();
@@ -41,6 +44,7 @@ const located = () => !GUEST || !!S.located;
 function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
 }
