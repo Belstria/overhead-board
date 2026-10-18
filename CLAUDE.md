@@ -290,6 +290,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   rows; `.tap` is an outlined pill. About has `#aboutX`. `html,body{overflow-x:clip}` and the status dot's tap area no
   longer reaching past the screen fixed the sideways scroll; the light hero's stat rows (`data-r` reg, speed, depTime)
   are a three-column grid. The "Save the bell" download is gone (the wav file stays).
+- 1.41: About is an overlay over Settings (`aboutShow`/`aboutHide`; `showTab("about")` calls aboutShow; `#t-about` is
+  fixed with a sticky `.tabHead`), Settings stays rendered and scrolled underneath. Rows swipe (main.js, touch events on
+  `.flights li.fl[data-more]`: past `SWIPE_AT` 72 px right opens `listSheet(x, "fav")`, left `listSheet(x, "hide")`;
+  `.swiping` slides the row's children by `--dx`, `::after` shows the label from `--swFav`/`--swHide` set in
+  `applyLang`); `listSheet(x, only)` can show one half. Cards' `.cLink` are outlined pills. The Account plate
+  (`settingsExtra`: `.acHead` with `.acAv` initial, `#acSub`, `accountBox(el, onChange, plate=true)` with Passkeys and
+  Password headings, `#signOut` in `.acOut`) replaced the sign-out button under Device.
   The status word flaps turn faster (1.38: `dur` 70 for the plane on top, 60 in the lists and the radar list).
 - Notifications (relay 25, app 1.22): Web Push with the relay's VAPID key (`data/vapid.pem`), encrypted per RFC 8291
   (`push_send`, needs the `cryptography` package, `PUSH_OK`); subscriptions per profile (`p["push"]`, home in

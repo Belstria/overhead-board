@@ -296,7 +296,9 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .cWiki,.cardish .cWiki{margin:8px 0;color:#c9c4b6;font-size:14px}
 #cardBox .cWiki a,.cardish .cWiki a{color:#f0b429}
 #cardBox .cChip,.cardish .cChip{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:5px;font:700 12px var(--f-board);letter-spacing:.06em;vertical-align:middle}
-#cardBox .cLink,.cardish .cLink{all:unset;cursor:pointer;color:#f0b429;text-decoration:underline;text-decoration-color:rgba(240,180,41,.4);text-underline-offset:3px}
+#cardBox .cLink,.cardish .cLink{all:unset;cursor:pointer;display:inline-block;box-sizing:border-box;border:1px solid #44474d;border-radius:12px;padding:2px 9px;line-height:1.3;color:#f3eee0;vertical-align:middle}
+#cardBox .cLink:active,.cardish .cLink:active{background:rgba(255,255,255,.1)}
+#cardBox .cRoute .cLink,.cardish .cRoute .cLink{margin:2px 0}
 #cardBox .cBtns,.cardish .cBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 #cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:42px;padding:8px 14px;border-radius:8px;background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
   font:700 13px/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 2px 0 #000,0 0 0 2px #050505}
@@ -4385,6 +4387,15 @@ const I18N_ROWS = [
   ["The town of the place being watched, shown under the title. It fills itself in when the location changes.", "Der Ort, der beobachtet wird, unter dem Titel. Er füllt sich selbst aus, wenn sich der Standort ändert.", "La ville surveillée, affichée sous le titre. Elle se remplit seule quand la position change.", "La ciudad que se vigila, bajo el título. Se rellena sola cuando cambia la ubicación.", "De plaats die gevolgd wordt, onder de titel. Vult zichzelf in als de locatie verandert."],
   ["Use this device's location once, or follow it while the app is open.", "Den Standort dieses Geräts einmal nehmen oder ihm folgen, solange die App offen ist.", "Utiliser la position de cet appareil une fois, ou la suivre tant que l'application est ouverte.", "Usar la ubicación de este dispositivo una vez, o seguirla mientras la app está abierta.", "De locatie van dit apparaat één keer gebruiken, of volgen zolang de app open is."],
   ["Your saved places: tap one to watch it.", "Deine gespeicherten Orte: tippe einen an, um ihn zu beobachten.", "Vos lieux enregistrés : touchez-en un pour le surveiller.", "Tus lugares guardados: toca uno para vigilarlo.", "Je bewaarde plaatsen: tik er een aan om hem te volgen."],
+  ["Guest", "Gast", "Invité", "Invitado", "Gast"],
+  ["Signed in on this device", "Auf diesem Gerät angemeldet", "Connecté sur cet appareil", "Sesión iniciada en este dispositivo", "Ingelogd op dit apparaat"],
+  ["This device uses the home profile (your home network or a linked device).", "Dieses Gerät nutzt das Zuhause-Profil (dein Heimnetz oder ein verknüpftes Gerät).", "Cet appareil utilise le profil Domicile (votre réseau ou un appareil lié).", "Este dispositivo usa el perfil Casa (tu red de casa o un dispositivo vinculado).", "Dit apparaat gebruikt het profiel Thuis (je thuisnetwerk of een gekoppeld apparaat)."],
+  ["Account {user} · signed in on this device", "Konto {user} · auf diesem Gerät angemeldet", "Compte {user} · connecté sur cet appareil", "Cuenta {user} · sesión iniciada en este dispositivo", "Account {user} · ingelogd op dit apparaat"],
+  ["No account yet: create one to sign in on your other devices.", "Noch kein Konto: lege eins an, um dich auf deinen anderen Geräten anzumelden.", "Pas encore de compte : créez-en un pour vous connecter sur vos autres appareils.", "Aún no hay cuenta: crea una para iniciar sesión en tus otros dispositivos.", "Nog geen account: maak er een om op je andere apparaten in te loggen."],
+  ["Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link.", "Dein Profil, deine Orte und dein Logbuch bleiben auf dem Relais; melde dich mit deinem Konto oder einem neuen Einladungslink wieder an.", "Votre profil, vos lieux et votre carnet restent sur le relais ; reconnectez-vous avec votre compte ou un nouveau lien d'invitation.", "Tu perfil, lugares y cuaderno se quedan en el relé; vuelve a entrar con tu cuenta o un nuevo enlace de invitación.", "Je profiel, plaatsen en logboek blijven op de relay; log weer in met je account of een nieuwe uitnodigingslink."],
+  ["No passkeys yet.", "Noch keine Passkeys.", "Pas encore de clé d'accès.", "Aún no hay llaves de acceso.", "Nog geen passkeys."],
+  ["A password is set.", "Ein Passwort ist festgelegt.", "Un mot de passe est défini.", "Hay una contraseña.", "Er is een wachtwoord ingesteld."],
+  ["No password yet.", "Noch kein Passwort.", "Pas encore de mot de passe.", "Aún no hay contraseña.", "Nog geen wachtwoord."],
   ["NO PICTURE", "KEIN BILD", "PAS D'IMAGE", "SIN IMAGEN", "GEEN FOTO"],
   ["No picture", "Kein Bild", "Pas d'image", "Sin imagen", "Geen foto"],
   ["PHOTO", "FOTO", "PHOTO", "FOTO", "FOTO"],
@@ -4783,12 +4794,13 @@ async function cardToggle(e){
   try { await listFlip(b.dataset.tog, c); } catch (err) { const n = $("cardBox").querySelector(".note"); if (n) n.textContent = err.message; return; }
   for (const o of $("cardBox").querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v}));
 }
-function listSheet(x){
+function listSheet(x, only){
   if (!listsOk() || !x) return;
   ctlSound.press();
   const ch = listChoices(x), row = w => `<div class="shRow">${ch.map(c => togBtn(w, c)).join("")}</div>`;
   cardOpen(`<h3>${escH(x.flight || x.reg || x.callsign || "")}</h3><p class="note">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
-    `<p class="shH">★ ${escH(T("Make a favourite"))}</p>${row("fav")}<p class="shH">⊘ ${escH(T("Hide from now on"))}</p>${row("hide")}` +
+    (only !== "hide" ? `<p class="shH">★ ${escH(T("Make a favourite"))}</p>${row("fav")}` : "") +
+    (only !== "fav" ? `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p>${row("hide")}` : "") +
     `<p class="note"></p><div class="cBtns"><button class="cBtn go" type="button" data-done>${T("Done")}</button></div>`,
     el => { el.querySelector("[data-done]").onclick = () => { ctlSound.press(); cardClose(); }; });
 }
@@ -4914,7 +4926,7 @@ function planeBody(o){
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
-  const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}">${escH(code3(p) || p.code || "")} ${escH(p.city || "")}</button>` : "";
+  const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
   const html = (pic ? `<img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` + (isModelPic(pic) ? `<p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
@@ -5460,6 +5472,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.41", date: "2026-10-18", notes: [
+    "Swipe a row right to make a favourite, left to hide it.",
+    "About opens over Settings with a close button that stays at the top; closing it leaves Settings as it was.",
+    "The links in a plane's card (airline, places, type) are outlined buttons, like in the lists.",
+    "Settings → Account shows clearly who is signed in, with Sign out of this device in the same place."]},
   {v: "1.40", date: "2026-10-18", notes: [
     "Settings → Location: Place name saves the place you're watching under a name, City fills itself in, and Airport offers the airports nearby.",
     "Update location puts the current location and live location side by side; picking a saved place updates Settings at once.",

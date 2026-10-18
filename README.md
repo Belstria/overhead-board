@@ -152,8 +152,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
   Commons), credited as such.
-- **Favourites and hidden planes** (1.31, relay 31): in the phone app, the small **+** ring under a row's time (1.40;
-  1.38 had a big + at the row's end; before, a tap anywhere on the row), or
+- **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
+  **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘; let go past the mark and that half of the
+  sheet opens), or the small **+** ring under a row's time (1.40; 1.38 had a big + at the row's end), or
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
@@ -226,6 +227,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   skips it). The two styles sit in the title as a switch: tap the other one to change. Each device remembers the style
   it was last left in (1.40; it no longer follows your other devices), Overhead the first time. Set the home airport first (Use current location offers the nearest one). Vienna works with any relay;
   other airports need relay 18 or newer. In the app, Now shows the plane, its details and the two lists.
+- **Settings → Account** (1.41): who this device is signed in as, plainly at the top (initial, name, account), then
+  the passkeys and the password, and **Sign out of this device** at the foot (it was under Device). A device at home
+  shows "Home". **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
+  scrolls, and closing it leaves Settings as it was.
 - **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
   - **Place name** is the name of the place being watched (Home, Parents, Vacation …). Type a new one and a **Save**
     appears inside the field: it saves the location being watched under that name. A name that is saved already

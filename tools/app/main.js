@@ -1257,6 +1257,8 @@ function airportChanged(){ apSig = ""; renderAirport(); }
 // The page's fixed texts are marked data-t with their English; this puts them in the language chosen.
 function applyLang(){
   pickLang();
+  document.documentElement.style.setProperty("--swFav", JSON.stringify(T("Favourite")));
+  document.documentElement.style.setProperty("--swHide", JSON.stringify(T("Hide")));
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   buildTabs(); buildSvTools(); buildRadarLegend();
   if (tab) showTab(tab);
@@ -1376,8 +1378,8 @@ function cockpitOpen(){
   box.innerHTML = COCKPIT.map(plateHtml).join("") +
     `<div class="plate about" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
     `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); showTab("about"); };
-  $("aboutX").onclick = () => { ctlSound.press(); showTab("settings"); };
+  $("aboutBtn").onclick = () => { ctlSound.press(); aboutShow(); };
+  $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
   $("aboutX").setAttribute("aria-label", T("Close"));
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k);
@@ -1444,10 +1446,19 @@ function settingsExtra(){
   // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
   const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
     `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
-  const dev = ui + (GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a><button class="cap big" type="button" id="signOut">${T("Sign out of this device")}</button></div>`
+  const dev = ui + (GUEST ? `<div class="acts"><a class="cap big" href="/">${T("Full board")}</a></div>`
     : ANDROID ? `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a><button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button></div>`
     : `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a></div>`);
-  box.innerHTML = (accountsOk() ? `<div class="plate" style="--cols:1">${screws}<h3>${T("Account")}</h3><div id="acctBox"></div></div>` : "") +
+  // 1.41: the Account plate says plainly who this device is signed in as (a guest's name and account, or Home), with
+  // the sign-in methods under it and Sign out of this device at its foot.
+  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Home");
+  const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
+    `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
+    `<small id="acSub">${escH(GUEST ? T("Signed in on this device") : T("This device uses the home profile (your home network or a linked device)."))}</small></div></div>` +
+    (accountsOk() ? `<div id="acctBox"></div>` : "") +
+    (GUEST ? `<div class="acOut"><button class="cap big danger" type="button" id="signOut">${T("Sign out of this device")}</button>` +
+      `<p class="muted">${escH(T("Your profile, places and logbook stay on the relay; sign back in with your account or a new invite link."))}</p></div>` : "") + `</div>`;
+  box.innerHTML = acct +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}</div>`;
   if (GUEST) $("signOut").onclick = async () => {
@@ -1461,7 +1472,11 @@ function settingsExtra(){
   $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
   if (ANDROID && !GUEST) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   renderPush();
-  if (accountsOk()) accountBox($("acctBox"), a => { hasAccount = !!(a && a.user && (a.passkeys.length || a.password)); });
+  if (accountsOk()) accountBox($("acctBox"), a => {
+    hasAccount = !!(a && a.user && (a.passkeys.length || a.password));
+    const sub = $("acSub");
+    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
+  }, true);
 }
 //@L:taps
 $("hero").addEventListener("click", e => {
@@ -1522,6 +1537,49 @@ document.addEventListener("click", e => {
   if (pl) return placeCard(x[pl.dataset.pl]);
   if (e.target.closest("[data-add]") && listsOk()) listSheet(x);
 }, true);
+/* Swipe a row (1.41): right for a favourite, left to hide. While it moves the row's content slides and a label shows
+   what letting go will do; past the threshold it opens that half of the sheet. A mostly vertical move stays a scroll. */
+const SWIPE_AT = 72;
+let swipe = null, swipeEnded = 0;
+const swipeRow = t => t && t.closest && t.closest(".flights li.fl[data-more]");
+document.addEventListener("touchstart", e => {
+  const li = swipeRow(e.target);
+  if (!li || !listsOk() || e.touches.length !== 1 || e.target.closest("button")) { swipe = null; return; }
+  swipe = {li, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false};
+}, {passive: true});
+document.addEventListener("touchmove", e => {
+  if (!swipe) return;
+  const dx = e.touches[0].clientX - swipe.x, dy = e.touches[0].clientY - swipe.y;
+  if (!swipe.on) {
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; }      // a scroll
+    if (Math.abs(dx) < 12) return;
+    swipe.on = true; swipe.li.classList.add("swiping");
+  }
+  e.preventDefault();
+  swipe.dx = Math.max(-140, Math.min(140, dx));
+  const li = swipe.li, past = Math.abs(swipe.dx) >= SWIPE_AT;
+  li.style.setProperty("--dx", swipe.dx + "px");
+  li.dataset.swipe = swipe.dx > 0 ? "fav" : "hide";
+  li.classList.toggle("armed", past);
+  if (past && !swipe.buzzed) { swipe.buzzed = true; if (navigator.vibrate) try { navigator.vibrate(12); } catch {} }
+  if (!past) swipe.buzzed = false;
+}, {passive: false});
+function swipeDone(){
+  if (!swipe) return;
+  const {li, dx, on} = swipe;
+  swipe = null;
+  if (!on) return;
+  swipeEnded = Date.now();
+  li.classList.remove("swiping", "armed");
+  li.style.removeProperty("--dx"); delete li.dataset.swipe;
+  if (Math.abs(dx) < SWIPE_AT) return;
+  const x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === li.dataset.more);
+  if (x) listSheet(x, dx > 0 ? "fav" : "hide");
+}
+document.addEventListener("touchend", swipeDone, {passive: true});
+document.addEventListener("touchcancel", swipeDone, {passive: true});
+// a swipe isn't also a tap on what it started on
+document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
@@ -1577,7 +1635,7 @@ function pwCard(a, done){
   });
 }
 // The account panel, in About and in the welcome: create (a username), then passkeys and a password.
-async function accountBox(el, onChange){
+async function accountBox(el, onChange, plate){
   let a = null;
   try { a = await (await fetch(`${relay()}/account`, {cache: "no-store"})).json(); } catch {}
   if (!a || a.home) { el.innerHTML = ""; return; }
@@ -1587,13 +1645,14 @@ async function accountBox(el, onChange){
     el.innerHTML = !a.user
       ? `<p>${escH(T("Create an account to sign in on a new phone or computer and find your place, logbook and settings there: with a passkey (Face ID, a fingerprint or the screen lock), and a password as a backup."))}</p>` +
         `${field("acUser", "Username", "text", "username")}<div class="acts"><button class="cap big go" type="button" id="acMake">${T("Create account")}</button></div>`
-      : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>` +
+      : (plate ? "" : `<p><b>${escH(T("Your account: {user}", {user: a.user}))}</b></p>`) +
         (has ? "" : `<p class="warn">${escH(T("Add a passkey or a password, or the account can't be used to sign in yet."))}</p>`) +
+        (plate ? `<h4>${escH(T("Passkeys"))}</h4>` + (a.passkeys.length ? "" : `<p class="muted">${escH(T("No passkeys yet."))}</p>`) : "") +
         (a.passkeys.length ? `<ul class="ranks plain acKeys">${a.passkeys.map(k => `<li><span class="name">${escH(k.name)}<span class="s">${escH(fmtDay(k.added))}</span></span>` +
           `<button class="cap small" type="button" data-rm="${escH(k.id)}">${T("Remove")}</button></li>`).join("")}</ul>` : "") +
         (pk ? `<div class="acts"><button class="cap big${a.passkeys.length ? "" : " go"}" type="button" id="acKey">${T("Add a passkey")}</button></div>`
           : `<p class="muted">${escH(T("Passkeys need the https address (the one in your invite link)."))}</p>`) +
-        `<p><b>${escH(T("Password"))}</b></p>` +
+        (plate ? `<h4>${escH(T("Password"))}</h4><p class="muted">${escH(T(a.password ? "A password is set." : "No password yet."))}</p>` : `<p><b>${escH(T("Password"))}</b></p>`) +
         `<div class="acts"><button class="cap big" type="button" id="acSetPw">${T(a.password ? "Change password" : "Set a password")}</button></div>` +
         `<p class="muted">${escH(T("On a new phone or computer, open {url} and sign in.", {url: location.origin + "/signin"}))}</p>`;
     el.insertAdjacentHTML("beforeend", `<p class="note" id="acNote" aria-live="polite">${escH(note)}</p>`);
@@ -1882,13 +1941,27 @@ function buildTabs(){
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
+// About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
+function aboutShow(){
+  if (tab !== "settings") showTab("settings");
+  $("t-about").hidden = false; $("t-about").scrollTop = 0;
+  document.body.classList.add("aboutOpen");
+  aboutOpen();
+}
+function aboutHide(){
+  if ($("t-about").hidden) return;
+  $("t-about").hidden = true;
+  document.body.classList.remove("aboutOpen");
+}
+addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-about").hidden && !cardOpenNow()) aboutHide(); });
 function showTab(t){
-  if (!TABS.some(x => x[0] === t) && t !== "about" || SIDEWAYS.matches) t = "now";
+  if (t === "about") { aboutShow(); return; }
+  aboutHide();
+  if (!TABS.some(x => x[0] === t) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
-  $("t-about").hidden = t !== "about";
-  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "about" ? "settings" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
@@ -1898,7 +1971,6 @@ function showTab(t){
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
-  else if (t === "about") aboutOpen();
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   if (was !== t) window.scrollTo(0, 0);
@@ -1925,7 +1997,7 @@ function updateFooter(){
   const bad = ["off", "warn", "demo"].includes(dot.dataset.state), al = $("sideAlert");     // on its side: only when something is wrong
   al.hidden = !bad; al.dataset.state = dot.dataset.state;
   if (bad && al.textContent !== line) al.textContent = line;
-  if (tab === "about") renderAbout();
+  if (!$("t-about").hidden) renderAbout();
 }
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
 function statusCard(){
