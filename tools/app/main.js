@@ -410,8 +410,8 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
-    if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
     relayStats = j.stats || null;
@@ -428,7 +428,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
     if (j.stats && !allPlaces) relayStats = j.stats;
     renderToday();

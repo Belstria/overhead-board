@@ -1911,8 +1911,17 @@ const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 
 // This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
 // relay (version 8 or newer, with an API key). Without that, everything falls back to the free sources.
 const USE_API = true;
-let apiLive = true;     // turns off when the relay says Flightradar24 isn't available (key refused, budget used up)
-const apiOn = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true && apiLive;
+// The relay may use Flightradar24 for this board; the lists then come with its answers (from the relay's cache).
+const apiWanted = () => USE_API && relayV5() && window.OVERHEAD_FR24 === true;
+// Lookups stop for ten minutes when the relay says Flightradar24 isn't available (key refused, budget used up), then
+// the board asks again (1.47.0.1; before, they stayed off until the page was reloaded).
+let apiOffAt = 0;
+const API_PAUSE_MS = 10 * 60000;
+const apiOn = () => apiWanted() && Date.now() - apiOffAt > API_PAUSE_MS;
+function apiOff(){
+  if (apiOn()) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources");
+  apiOffAt = Date.now(); updateFooter();
+}
 const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
@@ -2055,7 +2064,7 @@ async function aircraftLookup(hex){
 function apiLookup(cs, hex, info, tries = 0){
   if (!cs || !hex || !/^[A-Z0-9]{3,8}$/.test(cs) || !apiOn()) return;
   fetchJSON(`${relay()}/flightinfo?cs=${encodeURIComponent(cs)}&hex=${encodeURIComponent(hex)}`, {}, 6000).then(d => {
-    if (d.status === "off") { if (apiLive) dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); apiLive = false; updateFooter(); return; }
+    if (d.status === "off") { apiOff(); return; }
     if (d.status === "queued") { if (tries < 8) setTimeout(() => apiLookup(cs, hex, info, tries + 1), 7000); return; }
     if (d.status !== "ok") return;
     const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
@@ -2080,14 +2089,17 @@ function liveryShort(info){
   return lv && op && lv !== op ? T("IN {a} COLOURS", {a: shortAirline((AIRLINES[lv] || [])[1] || lv)}).slice(0, 20) : "";
 }
 const infoCache = new Map();
-// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board.
+// A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board, and bring its row in
+// Recent flights up to date (1.47.0.1: an answer that came after the plane had left the top half was never shown).
 function infoChanged(info){
+  if (typeof recentInfo === "function") recentInfo(info);
   if (feat && feat.info === info) { renderFeatured(); if (isAc(page)) renderAircraft(); }
 }
 function enrich(ac){
   const cs = (ac.flight || "").trim().toUpperCase(), key = ac.hex + "|" + cs;
   if (infoCache.has(key)) return infoCache.get(key);
   const info = baseInfo(ac);
+  info.hex = ac.hex;
   const p = (async () => {
     if (S.demo) { const d = DEMO.find(x => x.hex === ac.hex); if (d) Object.assign(info, d.info); return info; }
     const jobs = [];
@@ -2207,8 +2219,8 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
-    if (apiOn() && j.fr24 === false) { apiLive = false; dlog("warn", "Flightradar24 isn't available on the relay right now; using the free sources"); }
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    if (j.fr24 === false) apiOff();
     const first = sightRev === null, known = new Set(spotted.map(e => e.id));
     spotted = (j.entries || []).map(fromRelay);
     relayStats = j.stats || null;
@@ -2231,7 +2243,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiOn() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
     if (j.stats && !allPlaces) relayStats = j.stats;
     renderSpottedBoard(); updateFooter();
@@ -2393,7 +2405,7 @@ function remarkFor(e){
   if (home && f === home) return "DEPARTING";
   return f && t ? "OVERFLIGHT" : "";
 }
-function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg}); }
+function fillEntry(e, info){ Object.assign(e, {flight: info.flightNo, airline: info.airline, airlineCode: airlineCodeOf(info), from: info.from, to: info.to, type: info.type, reg: info.reg, fr24: !!info.fr24}); }
 
 /* ---------- tracking ---------- */
 let feat = null, nearbyCount = null, failures = 0, lastOk = 0, wasOffline = false;
@@ -2852,10 +2864,22 @@ function noteFeatured(){
   if (JSON.stringify(e) !== before) { saveRecent(); if (page === "spotted" && !switching) renderSpotted(); }
   if (added) dlog("debug", `${e.flight || e.hex} added to Recent flights`);
 }
-// The shared list knows things one screen doesn't (NEW TYPE, NEW AIRLINE); borrow them for the remark.
+// Flightradar24 answered for a plane after it left the top half: its Recent flights row gets the answer too.
+function recentInfo(info){
+  if (!info.hex || S.demo || (feat && feat.info === info)) return;      // the plane on top is noted by noteFeatured
+  const cs = info.callsign || "", e = recentFlights.find(x => x.hex === info.hex && (x.callsign || "") === cs);
+  if (!e) return;
+  const before = JSON.stringify(e);
+  fillEntry(e, info);
+  Object.assign(e, {category: info.category || e.category, divertedTo: info.divertedTo || e.divertedTo});
+  if (JSON.stringify(e) !== before) { saveRecent(); if (page === "spotted" && !switching && !view) renderSpotted(); }
+}
+// The shared list knows things one screen doesn't (NEW TYPE, NEW AIRLINE, and Flightradar24's flight number and route
+// when this screen didn't get them); borrow them.
 function withShared(r){
   const s = spotted.find(x => x.hex === r.hex && Math.abs(entryTime(x) - r.ts) < SAME_PASS_MS);
-  return s ? {...r, newType: s.newType, newAirline: s.newAirline, emergency: r.emergency || s.emergency,
+  const fr = s && s.fr24 && !r.fr24 && s.from && s.to ? {flight: s.flight, airline: s.airline, airlineCode: s.airlineCode, from: s.from, to: s.to} : {};
+  return s ? {...r, ...fr, newType: s.newType, newAirline: s.newAirline, emergency: r.emergency || s.emergency,
     minDist: Math.min(r.minDist ?? 999, s.minDist ?? 999)} : r;
 }
 const recentShown = () => userLists.hide.length ? recentFlights.filter(e => !isHidden(e)) : recentFlights;
@@ -5886,6 +5910,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.47.0.1", date: "2026-10-18", notes: [
+    "Recent flights fill in the flight number and route when Flightradar24 answers after the plane has passed.",
+    "Flightradar24 details already looked up keep showing after a guest's daily lookups are used up, and lookups resume by themselves."]},
   {v: "1.47", date: "2026-10-18", notes: [
     "The title shows the style you're in, in amber, with a swap sign to the other one.",
     "The logbook's place buttons only show the places you still have; removed ones count under All."]},

@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 40
+RELAY_VERSION = 41
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1264,16 +1264,18 @@ def fr24_info(cs, hx):
 
 def fr24_want(cs, hx, priority, who="Lists and alerts"):
     """Queue a lookup for a flight with a callsign (airline, cargo, business or private). `who` asked for it (relay 40:
-    the admin page shows the credits by account and device)."""
+    the admin page shows the credits by account and device). True when it was queued now (relay 41: a guest's daily
+    count goes by that, not by every time a board asks again while it waits)."""
     if not fr24_on() or not cs or not hx or not re.match(r"^[A-Z0-9]{3,8}$", cs) or fr24_info(cs, hx) or fr24_paced(priority):
-        return
+        return False
     key = f"{hx}|{cs}"
     with _fr24_cv:
         if key in _fr24_queued or len(_fr24_q) > 300:
-            return
+            return False
         _fr24_queued.add(key)
         heapq.heappush(_fr24_q, (priority, next(_fr24_order), key, cs, hx, who))
         _fr24_cv.notify()
+    return True
 
 
 def _airport(iata, icao):
@@ -4030,20 +4032,22 @@ class Handler(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
             cs = (q.get("cs") or [""])[0].strip().upper()[:8]
             hx = (q.get("hex") or [""])[0].strip().lower()[:6]
-            if not fr24_on() or (self.guest and not guest_fr24(self.guest[1])):
+            # Relay 41: what is already in the cache costs nothing, so it is handed out even past a guest's daily share
+            # or the budget; "off" (the board stops asking for a while) only without a key or for guests without it.
+            info = fr24_info(cs, hx) if fr24_key() else None
+            if not fr24_key() or (self.guest and not self.guest[1].get("fr24")):
                 body = {"status": "off"}
+            elif info:
+                body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
+            elif not fr24_on():
+                body = {"status": "off"}
+            elif fr24_paced(0) or (self.guest and not guest_fr24(self.guest[1])):
+                body = {"status": "none"}
             else:
-                info = fr24_info(cs, hx)
-                if info:
-                    body = {"status": "none"} if info.get("none") else {"status": "ok", **info}
-                elif fr24_paced(0):
-                    body = {"status": "none"}
-                else:
-                    fr24_want(cs, hx, 0, f"{self.guest[1]['name'] if self.guest else 'Home'} · {device_of(self.headers.get('User-Agent') or '')}")
-                    if self.guest:
-                        with _data_lock:
-                            self.guest[1]["fr24Count"] = self.guest[1].get("fr24Count", 0) + 1
-                    body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
+                if fr24_want(cs, hx, 0, f"{self.guest[1]['name'] if self.guest else 'Home'} · {device_of(self.headers.get('User-Agent') or '')}") and self.guest:
+                    with _data_lock:
+                        self.guest[1]["fr24Count"] = self.guest[1].get("fr24Count", 0) + 1
+                body = {"status": "queued" if re.match(r"^[A-Z0-9]{3,8}$", cs) else "none"}
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/times":
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
