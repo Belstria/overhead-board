@@ -1105,6 +1105,7 @@ def _enricher():
         info = _aircraft_for(hx) if hx else None
         w = watch_of(hx) if hx else None
         with _data_lock:
+            e["looked"] = True                        # relay 41: route and aircraft looked up (boards show "/" for what's missing)
             if w and not e.get("watch"):              # the watchlist may have arrived after the sighting
                 e["watch"], e["watchOp"] = w
             if airline:
@@ -1484,6 +1485,9 @@ def _fr24_worker():
                     by["lookups"] += 1
                 if info:
                     _fr24_data()["flights"][key] = info
+                    for sp in all_spots():            # relay 41: lists showing this flight fetch again for the answer
+                        if any(x.get("hex") == hx and x.get("callsign") == cs for x in sp.entries[:400]):
+                            sp.rev += 1
                     if not info.get("none"):
                         usage["found"] = usage.get("found", 0) + 1
                         if info.get("divertedTo"):
@@ -1551,6 +1555,10 @@ def fr24_overlay(entries):
                       "livery": info.get("livery"), "divertedTo": info.get("divertedTo")})
         elif not info and now - e.get("ts", 0) / 1000 < 3 * 3600:
             fr24_want(cs, hx, 1)
+            with _fr24_cv:
+                waiting = f"{hx}|{cs}" in _fr24_queued
+            if waiting:                               # relay 41: still to answer, so boards don't show "/" yet
+                e = {**e, "fr24Wait": True}
         out.append(e)
     return out
 

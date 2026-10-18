@@ -482,23 +482,24 @@ function chip(r){                        // the status word in this language; it
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
-function placeHtml(a){
-  if (!a) return `<span class="no">–</span>`;
+function placeHtml(a, done){
+  if (!a) return `<span class="no">${done ? NA : "–"}</span>`;
   const c = code3(a) || a.code || "";
   return `${c ? `<b>${escH(c)}</b>` : ""}${escH(a.city || "")}`;
 }
 function rowHtml(e){
   const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
   const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
+  const done = e.done !== false;
+  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : done ? NA : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
   const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k])}</span>`;
+  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k], done)}</span>`;
   return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time></div>` +
     `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
+    `${r ? chip(r) : "<span></span>"}${e.from || e.to || done ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
     `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
 }
-const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e)].join("|");
+const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e), e.done].join("|");
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
@@ -513,9 +514,10 @@ function renderRecent(){
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
     setChars(id("time"), e ? e.time || "" : "", d);
     setChars(id("flight"), e ? e.flight || String(e.hex || "").toUpperCase() : "", d + 60);
-    setChars(id("from"), e && e.from ? e.from.city || e.from.code || "" : "", d + 120);
-    setChars(id("to"), e && e.to ? e.to.city || e.to.code || "" : "", d + 180);
-    setChars(id("type"), e ? e.type || "" : "", d + 240);
+    const done = !!e && e.done !== false;
+    setChars(id("from"), e ? orNA(e.from && (e.from.city || e.from.code), done) : "", d + 120);
+    setChars(id("to"), e ? orNA(e.to && (e.to.city || e.to.code), done) : "", d + 180);
+    setChars(id("type"), e ? orNA(e.type, done) : "", d + 240);
     setWord(id("remarks"), e ? remarkFor(e) : "", d + 300);
   }
 }
@@ -543,13 +545,14 @@ function renderAircraftInfo(){
     } else img.removeAttribute("src");
   }
   paintRwy();
-  setChars("naReg", info.reg || d.reg || "");
+  const done = !!info.done && detailsDone(feat.hex);           // "/": looked up, not known (1.48)
+  setChars("naReg", orNA(info.reg || d.reg, done));
   setChars("naHex", feat.hex.toUpperCase(), 60);
   setChars("naFlight", info.flightNo || "", 120);
-  setChars("naType", d.type || info.type || "", 180);
-  setChars("naOwner", liveryLine(info) || d.owner || info.airline || "", 240);
-  setChars("naCountry", d.country || "", 300);
-  setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : "", 360);
+  setChars("naType", orNA(d.type || info.type, done), 180);
+  setChars("naOwner", orNA(liveryLine(info) || d.owner || info.airline, done), 240);
+  setChars("naCountry", orNA(d.country, done), 300);
+  setChars("naRoute", info.from && info.to ? `${code3(info.from)} - ${code3(info.to)}` : done ? NA : "", 360);
 }
 
 // The runway screen of the Take-off and Landing pages, as on the board: the runways, the plane and its track, the photo

@@ -102,6 +102,9 @@ py serve.py --fr24-key YOUR_KEY --save
 
 The main board has everything below. New features are tried on `/test/` first; open them through the relay at `http://<computer-name>:8080/test/`.
 
+- **Not known: /** (1.48): a detail that isn't known (no route, no departure time, no operator ...) shows a "/"
+  instead of blank flaps, on the plane on top, in Recent flights, Spotted today and the airport lists, and in the app.
+  It appears only once every lookup for that plane has answered or given up, so while they run the field stays blank.
 - **Flight times** in a fourth row of the top half: departure, arrival and the flight time (1.35.1: the whole
   flight, departure to arrival, once both are known; before, the time since take-off). Vienna Airport
   publishes its arrivals and departures with planned and expected times, and the relay (version 11 or newer) reads
