@@ -76,16 +76,17 @@ class H(BaseHTTPRequestHandler):
         if path.startswith("/jart/prj3/va/data/flights/"):
             import datetime as _dt
             iso = lambda m: (_dt.datetime.utcnow() + _dt.timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:00Z")
-            def row(fn, s, a, code, text, cs=()):
+            def row(fn, s, a, code, text, cs=(), **more):
                 return {"fn": fn, "scheduledatetime": iso(s), "actualdatetime": iso(a) if a is not None else None,
-                        "status": {"code": code, "description": text}, "codeshares": [{"fn": c} for c in cs]}
+                        "status": {"code": code, "description": text}, "codeshares": [{"fn": c} for c in cs], **more}
             if path.endswith("inc.json"):
                 rows = [row("OS 411", 5, 17, "EST", "expected"), row("EK 127", 20, 18, "APP", "approaching", ["QF 8127"]),
                         row("LX 1514", 30, 24, "EST", "expected", ["OS 7151"]), row("OS 802", -10, 25, "APP", "approaching"),
                         row("OS 411", 1445, None, "PLN", None)]
             else:
-                rows = [row("W6 4307", -40, -12, "AIR", "airborne"), row("FR 22", -20, -18, "AIR", "airborne"),
-                        row("FR 6203", -30, -22, "AIR", "airborne", ["OE 215"])]
+                rows = [row("W6 4307", -40, -12, "AIR", "airborne", gate="D21", gateArea="D"),
+                        row("FR 22", -20, -18, "AIR", "airborne", gate=None, gateArea="C"),
+                        row("FR 6203", -30, -22, "AIR", "airborne", ["OE 215"], gate="C36", gateArea="C")]
             return self.send(200, "application/json", json.dumps({"monitor": {"type": "json", "departure": rows}}).encode())
         if path == "/api/flight-summary/full":
             if self.headers.get("Authorization") != "Bearer goodkey" or self.headers.get("Accept-Version") != "v1":

@@ -52,7 +52,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (45 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (46 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
@@ -98,7 +98,7 @@ build stops. Settings under `od.light.settings`; Settings → Device switches (`
 **Relay** (`relay/serve.py`): serves the published boards from GitHub Pages (refreshed at most once a minute; pushing to
 `main` reaches screens within minutes; `--local-root <repo>` serves a checkout), positions (`SOURCES` tried in order:
 adsb.lol, adsb.fi, airplanes.live, AvioADSB emergency only), sightings, logbook and game, Web Push, Flightradar24
-(Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search, a health watch that pushes the owner (relay 45),
+(Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search, a health watch that pushes the owner (relay 45), week/month review (`/review`, push; relay 46),
 QR sign-in. Credit links are in About.
 
 **Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite

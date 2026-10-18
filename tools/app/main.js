@@ -702,6 +702,7 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
+  if (!lbPlace) fetchReview(() => { lbSig = ""; renderLogbook(); });
   const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
   if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const chips = $("lbPlaces");
@@ -726,7 +727,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
+  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -775,7 +776,7 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
   }
-  if (!lbPlace) html = yearHtml() + html;
+  if (!lbPlace) html = reviewHtml() + yearHtml() + html;
   $("lbLists").innerHTML = html;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
@@ -818,6 +819,26 @@ function yearHtml(){
     `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
 }
+// Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
+function reviewHtml(){
+  if (!reviewOk()) return "";
+  const r = reviewData(), bt = (a, t, on, x = "") => `<button class="cap small" type="button" ${a}${on != null ? ` aria-pressed="${on}"` : ""}${x}>${t}</button>`;
+  const tools = `<div class="rvTools">${bt('data-rs="week"', escH(T("Week")), review.span === "week")}${bt('data-rs="month"', escH(T("Month")), review.span === "month")}` +
+    `<span></span>${bt('data-rb="1"', "◀", null, ` aria-label="${escH(T("Earlier"))}"`)}${bt('data-rb="-1"', "▶", null, ` aria-label="${escH(T("Later"))}"${review.back ? "" : " disabled"}`)}</div>`;
+  const head = `<h3>${escH(reviewTitle())}</h3>${tools}<p class="sum">${escH(reviewSummary(r))}</p>`;
+  if (!r || !r.planes) return `<div class="yearCard reviewCard">${head}</div>`;
+  const nums = REVIEW_NUMS.map(([k, l]) => `<div><b>${nf.format(r[k] || 0)}</b><span>${escH(T(l))}</span></div>`).join("");
+  const facts = reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]]).filter(x => x[1]);
+  return `<div class="yearCard reviewCard">${head}<div class="yNums">${nums}</div><dl class="yFacts">` +
+    facts.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-rs], [data-rb]");
+  if (!b || b.disabled) return;
+  ctlSound.press();
+  if (b.dataset.rs) { review.span = b.dataset.rs; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.rb));
+  lbSig = ""; renderLogbook();
+});
 // The year card as a picture to share (or save where sharing pictures isn't possible).
 function yearPicture(){
   const y = yearData, cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350;
@@ -1675,7 +1696,7 @@ async function enablePush(){
       try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
       catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
     }
-    let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
+    let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
     try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
     const r = await sendSub(sub, prefs, "subscribe");
     return r.ok ? "" : `HTTP ${r.status}`;
@@ -1691,12 +1712,13 @@ async function renderPush(){
     box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
   }
   if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
-  let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
+  let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
-    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") +
+    ((window.OVERHEAD_RELAY_VERSION || 0) >= 46 ? sw("review", "Week and month in review") + `<p class="sum">${escH(T("Your week on Sunday at 20:00, your month on the 1st at 9:00."))}</p>` : "") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
       PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
     `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
@@ -1960,6 +1982,8 @@ function aboutHide(){
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-about").hidden && !cardOpenNow()) aboutHide(); });
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
+  const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
+  if (rv) { review.span = rv[1]; review.back = +rv[2]; t = "logbook"; }
   aboutHide();
   if (!TABS.some(x => x[0] === t) || SIDEWAYS.matches) t = "now";
   const was = tab;
