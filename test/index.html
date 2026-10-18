@@ -704,7 +704,7 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime","toGo","seen"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], radar: [], settings: [], about: [], account: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], review: [], radar: [], settings: [], about: [], account: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
 const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
@@ -756,6 +756,12 @@ vdef("records", "rcClose", {kind:"chars", n:24, dur:60, label:["Closest ever", "
 vdef("records", "rcLow",   {kind:"chars", n:24, dur:60, label:["Lowest ever", ""]});
 vdef("records", "rcFast",  {kind:"chars", n:24, dur:60, label:["Fastest ever", ""]});
 vdef("records", "rcFar",   {kind:"chars", n:24, dur:60, style:"amber", label:["Farthest route", ""]});
+// Week and month in review (1.52): the numbers, eight facts in two columns and the new types.
+for (const [k, en] of [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]])
+  vdef("review", `rw_${k}`, {kind:"chars", n: {planes: 5, airframes: 5, points: 6, newTypeCount: 3}[k] || 4, drum:DRUM_ALT, align:"right", dur:70, label:[en, ""]});
+["Busiest day", "Rarest", "Most seen airline", "Most seen aircraft", "Farthest route", "Lowest pass", "Closest", "Fastest"]
+  .forEach((en, i) => vdef("review", `rwf${i}`, {kind:"chars", n:24, dur:60, style: i < 2 ? "amber" : "ink", label:[en, ""]}));
+vdef("review", "rwNew", {kind:"chars", n:50, dur:55, label:["New types", ""]});
 for (let i = 0; i < CV_SETS; i++) {
   vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Collections", ""] : null});
   vdef("collection", `cs${i}n`,    {kind:"chars", n:7, dur:55, loud:.4});
@@ -824,6 +830,10 @@ function layout(){
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
+  // the week and month in review
+  placeRow(["planes", "types", "airlines", "airframes", "newTypeCount", "rare", "points"].map(k => `rw_${k}`), [1.7, 1.7, 1.7, 1.7, 1.7, 1.7], 310, IW / 42, 1.45);
+  for (let i = 0; i < 4; i++) placeRow([`rwf${i * 2}`, `rwf${i * 2 + 1}`], [2], 446 + i * 94, IW / 50, 1.45);
+  placeRow(["rwNew"], [], 446 + 4 * 94, IW / 50, 1.45);
   // the collection view
   placeRow(["cvPoints", "cvToday", "cvBest", "cvStreak"], [3, 3, 3], 300, IW / 40, 1.45);
   placeRow(CV_TIERS.flatMap(t => [`cvl_${t}`, `cvn_${t}`]), CV_TIERS.slice(1).flatMap(() => [.3, 2.4]).concat([.3]), 412, IW / 50, 1.45);
@@ -2903,9 +2913,21 @@ function firstLines(ac, info){
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
 // airline's colours (Flightradar24), who flies it when it is on the watchlist, and how few of its type there are.
+// 1.52 (to-do #50): a flight to or from Vienna shows its delay (planned against expected or actual time) and, leaving
+// Vienna, its gate (or pier until the gate is given out) from Vienna Airport's lists (relay /times; gates since relay
+// 46), "/" where unknown. Arrivals have no gate in the lists. Two remark lines: the flaps have no "+".
+function vieLines(info){
+  if (!info || !(code3(info.from) === "VIE" || code3(info.to) === "VIE")) return [];
+  const t = timesFor(info);
+  if (!t) return [];
+  const d = t.delay, out = [d == null ? T("DELAY {m}", {m: NA}) : d <= 4 ? T("ON TIME") : T("DELAY {m} MIN", {m: d})];
+  if (t.kind === "dep") out.push(T("GATE {g}", {g: t.gate || t.gateArea || NA}));
+  return out;
+}
 function remarkLines(ac, info){
   info = info || {};
   const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
+  if (!S.demo) out.push(...vieLines(info));
   const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
   if (aboveCloud(alt) && windowWorthy(ac, info)) out.push(T("ABOVE CLOUD"));      // 1.49: a remark, no longer the status
   const firsts = firstLines(ac, info);
@@ -3406,7 +3428,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
 // 1.45: the ding for a new plane on top only sounds where the top half shows (no view open); the chimes play anywhere.
 function onMainPage(){ return !view; }
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -3470,6 +3492,7 @@ function switchView(next, opts = {}){
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
   else if (view === "logbook" || view === "collection" || view === "records") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
+  else if (view === "review") { reviewFetch(); viewTimer = setInterval(reviewFetch, 60000); }
   viewLanded();
   placePhoto();
   dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
@@ -3485,6 +3508,7 @@ function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
   else if (view === "collection") renderCollection();
+  else if (view === "review") renderReview();
   else if (view === "records") renderRecords();
   else if (view === "radar") renderRadarList();
 }
@@ -3495,6 +3519,7 @@ function viewSubtitle(){
   if (view === "logbook" && lbPlace) { const b = lbPlaceData[lbPlace];
     return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
   if (view === "logbook") return logbookSummary();
+  if (view === "review") return reviewSummary(reviewData());
   if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
   if (view === "records") return T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.");
   if (view === "radar" && radarCentre().ap) return T("Centred on {ap} · rings every 5 km · dashed: {n} km around the airport · the logo: your place", {ap: clean(S.home), n: +S.radiusKm || 15});
@@ -3506,7 +3531,7 @@ function viewSubtitle(){
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
 function viewStatic(g){
-  const t1 = T(VIEW_NAMES[view][0]);
+  const t1 = view === "review" ? reviewTitle() : T(VIEW_NAMES[view][0]);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, 214);
   staticSub = viewSubtitle();
@@ -3743,15 +3768,22 @@ function drawLegend(g){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
-  if (view === "logbook" || view === "collection" || view === "records") {
-    const to = ["logbook", "collection", "records"].filter(v => v !== view);
+  if (view === "logbook" || view === "collection" || view === "records" || view === "review") {
+    const to = ["logbook", "collection", "records"].concat(reviewOk() ? ["review"] : []).filter(v => v !== view);
     const pl = view === "logbook" && lbPlaceOk() ? lbChips() : [];
     if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
     const chips = pl.length ? [["", T("All")], ...pl.map(c => [c.id, `${c.name} ${nf.format(c.n)}`])] : [];
     box.innerHTML = chips.map(([k, t]) => `<button class="cap small" type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(t)}</button>`).join("") +
-      to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records"}[v])}</button>`).join("") +
+      (view === "review" ? [["week", "Week"], ["month", "Month"]].map(([k, t]) => `<button class="cap small" type="button" data-s="${k}" aria-pressed="${review.span === k}">${T(t)}</button>`).join("") +
+        `<button class="cap small" type="button" data-b="1" aria-label="${escH(T("Earlier"))}">◀</button><button class="cap small" type="button" data-b="-1" aria-label="${escH(T("Later"))}"${review.back ? "" : " disabled"}>▶</button>` : "") +
+      to.map(v => `<button class="cap small" type="button" data-v="${v}">${T({logbook: "Logbook", collection: "Collection", records: "Records", review: "Week & month"}[v])}</button>`).join("") +
       (view === "logbook" && !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cap small" href="${relay()}/logbook.csv" download>${T("CSV")}</a>` : "");
     for (const b of box.querySelectorAll("[data-v]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); switchView(b.dataset.v); };
+    for (const b of box.querySelectorAll("[data-s], [data-b]")) b.onclick = e => {
+      e.stopPropagation(); ctlSound.press();
+      if (b.dataset.s) { review.span = b.dataset.s; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.b));
+      buildViewTools(); drawStatic(); renderReview(); reviewFetch();
+    };
     for (const b of box.querySelectorAll("[data-p]")) b.onclick = async e => {
       e.stopPropagation(); ctlSound.press();
       lbPlace = b.dataset.p; buildViewTools(); drawStatic(); renderLogbookBoard();
@@ -3855,6 +3887,20 @@ function renderRecords(){
   setChars("rcFar", r.farthest ? `${who(r.farthest)} - ${p ? p.code || p.city : ""} ${nf.format(r.farthest.v)} KM` : "-", 180);
 }
 
+/* ---------- Week and month in review (1.52) ---------- */
+const reviewFetch = () => fetchReview(() => { if (view === "review") { drawStatic(); renderReview(); } });
+let rwSig = "";
+function renderReview(){
+  if (view !== "review") return;
+  const r = reviewData(), sig = JSON.stringify([r && r.start, r && r.planes, review.span, review.back, LANG]);
+  if (!snapping && sig !== rwSig) { rwSig = sig; drawStatic(); }
+  rwSig = sig;
+  REVIEW_NUMS.forEach(([k], i) => setChars(`rw_${k}`, r ? nf.format(r[k] || 0) : "", i * 60));
+  const facts = r ? reviewFacts(r) : [];
+  for (let i = 0; i < 8; i++) setChars(`rwf${i}`, facts[i] ? (facts[i][1] || "-").replace(/ · /g, " - ") : "", 420 + i * 60);   // the flaps have no "·"
+  setChars("rwNew", r ? reviewNewTypes(r) || "-" : "", 900);
+}
+
 /* ---------- the Collection view ---------- */
 const game = () => (lbData() || {}).game || null;
 const SET_NAMES = ["Airbus narrowbodies", "Airbus widebodies", "Boeing narrowbodies", "Boeing widebodies", "Regional jets", "Turboprops", "Giants", "Helicopters", "Business jets"];
@@ -3954,6 +4000,63 @@ function logbookSummary(){
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
     (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
+/* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
+   or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
+const review = {span: "week", back: 0, data: {}, at: {}};
+const reviewOk = () => S.demo || relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 46;
+const reviewKey = () => review.span + review.back;
+function fetchReview(done){
+  const k = reviewKey();
+  if (S.demo || !reviewOk() || Date.now() - (review.at[k] || 0) < 60000) return;
+  review.at[k] = Date.now();
+  fetchJSON(`${relay()}/review?span=${review.span}&back=${review.back}`, {}, 12000)
+    .then(j => { review.data[k] = j; if (done) done(); }).catch(() => { review.at[k] = 0; });
+}
+function demoReview(){
+  const week = review.span === "week", d = new Date(Date.now() - 3 * 3600e3), iso = x => x.toISOString().slice(0, 10);
+  const s = week ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * review.back) * 86400e3) : new Date(d.getFullYear(), d.getMonth() - review.back, 1, 12);
+  const e = week ? new Date(s.getTime() + 6 * 86400e3) : new Date(s.getFullYear(), s.getMonth() + 1, 0, 12), k = week ? 1 : 4.3;
+  return {sample: true, span: review.span, back: review.back, start: iso(s), end: iso(e), planes: Math.round(612 * k), prevPlanes: Math.round(560 * k),
+    days: week ? 7 : 30, types: week ? 41 : 63, airlines: week ? 37 : 52, airframes: Math.round(430 * k), points: Math.round(1180 * k), rare: week ? 6 : 19,
+    newTypes: [{type: "A124", name: "Antonov An-124"}, {type: "B748", name: ""}], newTypeCount: 2, newAircraft: Math.round(212 * k), newAirlines: 1,
+    busiest: {day: iso(new Date(s.getTime() + 2 * 86400e3)), planes: 118}, topAirline: {code: "AUA", name: "Austrian", count: Math.round(190 * k)},
+    mostSeen: {reg: "OE-LBN", count: week ? 9 : 31}, rarest: {reg: "UR-82008", type: "A124", tier: "legendary"},
+    records: {closest: {v: .31, callsign: "AUA411"}, lowest: {v: 1650, callsign: "OEXEN"}, fastest: {v: 541, callsign: "UAE127"},
+      farthest: {v: 7120, callsign: "UAE127", place: {code: "DXB", city: "Dubai"}}}};
+}
+const reviewData = () => S.demo ? demoReview() : review.data[reviewKey()] || null;
+function reviewTitle(span = review.span, back = review.back){
+  const w = span === "week";
+  if (back === 0) return T(w ? "This week" : "This month");
+  if (back === 1) return T(w ? "Last week" : "Last month");
+  return T(w ? "{n} weeks ago" : "{n} months ago", {n: back});
+}
+const reviewDay = (d, o) => new Date(d + "T12:00:00").toLocaleDateString(LOC(), o || {day: "numeric", month: "short"});
+function reviewSummary(r){
+  if (!reviewOk()) return T("Needs a newer home relay (version 46).");
+  if (!r) return T("Loading …");
+  // a period still under way runs to today, and is only compared with the one before once it is over
+  const open = r.complete === false, w = r.span === "week", more = r.prevPlanes && !open ? Math.round((r.planes / r.prevPlanes - 1) * 100) : null;
+  return (r.sample ? T("Sample numbers (demo mode)") + " · " : "") + `${reviewDay(r.start)} – ${open ? T("today") : reviewDay(r.end)} · ` +
+    T(r.days === 1 ? "{n} planes on 1 day" : "{n} planes on {d} days", {n: nf.format(r.planes), d: r.days}) +
+    (more == null || !r.planes ? "" : " · " + (more === 0 ? T(w ? "as many as the week before" : "as many as the month before")
+      : T(more > 0 ? (w ? "{p}% more than the week before" : "{p}% more than the month before") : (w ? "{p}% fewer than the week before" : "{p}% fewer than the month before"), {p: Math.abs(more)})));
+}
+// [label, value] for each fact; values in mixed case (the board's flaps show them in capitals).
+function reviewFacts(r){
+  const rc = r.records || {}, who = x => x.callsign || x.reg || x.type || "", b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
+  const fp = f && f.place;
+  return [["Busiest day", b ? `${reviewDay(b.day, {weekday: "short", day: "numeric", month: "short"})} · ${nf.format(b.planes)}` : ""],
+    ["Rarest", ra ? `${ra.type || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
+    ["Most seen airline", al ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],
+    ["Most seen aircraft", m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    ["Farthest route", f ? `${who(f)} · ${fp ? fp.code || fp.city : ""} ${nf.format(f.v)} km` : ""],
+    ["Lowest pass", rc.lowest ? `${who(rc.lowest)} · ${altitudeStr(rc.lowest.v).toLowerCase()}` : ""],
+    ["Closest", rc.closest ? `${who(rc.closest)} · ${rc.closest.v < 10 ? rc.closest.v.toFixed(2) : Math.round(rc.closest.v)} km` : ""],
+    ["Fastest", rc.fastest ? `${who(rc.fastest)} · ${speedStr(rc.fastest.v).toLowerCase()}` : ""]].map(([k, v]) => [T(k), v]);
+}
+const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.newTypeCount > (r.newTypes || []).length ? " …" : "");
+const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 function renderLogbookBoard(){
   if (view !== "logbook") return;
   if (!snapping && viewSubtitle() !== staticSub) drawStatic();
@@ -4288,7 +4391,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "collection" || view === "records") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "collection" || view === "records" || view === "review") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -4359,6 +4462,36 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["DELAY {m}", "VERSPÄTUNG {m}", "RETARD {m}", "RETRASO {m}", "VERTRAGING {m}"],
+  ["DELAY {m} MIN", "VERSPÄTUNG {m} MIN", "RETARD {m} MIN", "RETRASO {m} MIN", "VERTRAGING {m} MIN"],
+  ["ON TIME", "PÜNKTLICH", "À L'HEURE", "A TIEMPO", "OP TIJD"],
+  ["GATE {g}", "GATE {g}", "PORTE {g}", "PUERTA {g}", "GATE {g}"],
+  ["In review", "Rückblick", "Bilan", "Resumen", "Terugblik"],
+  ["Week", "Woche", "Semaine", "Semana", "Week"],
+  ["today", "heute", "aujourd'hui", "hoy", "vandaag"],
+  ["Month", "Monat", "Mois", "Mes", "Maand"],
+  ["Earlier", "Früher", "Avant", "Antes", "Eerder"],
+  ["Later", "Später", "Après", "Después", "Later"],
+  ["Week & month", "Woche & Monat", "Semaine et mois", "Semana y mes", "Week en maand"],
+  ["New types", "Neue Typen", "Nouveaux types", "Tipos nuevos", "Nieuwe types"],
+  ["This week", "Diese Woche", "Cette semaine", "Esta semana", "Deze week"],
+  ["This month", "Dieser Monat", "Ce mois-ci", "Este mes", "Deze maand"],
+  ["Last week", "Letzte Woche", "La semaine dernière", "La semana pasada", "Vorige week"],
+  ["Last month", "Letzter Monat", "Le mois dernier", "El mes pasado", "Vorige maand"],
+  ["{n} weeks ago", "Vor {n} Wochen", "Il y a {n} semaines", "Hace {n} semanas", "{n} weken geleden"],
+  ["{n} months ago", "Vor {n} Monaten", "Il y a {n} mois", "Hace {n} meses", "{n} maanden geleden"],
+  ["Needs a newer home relay (version 46).", "Braucht ein neueres Heim-Relay (Version 46).", "Nécessite un relais plus récent (version 46).", "Necesita un relé más reciente (versión 46).", "Heeft een nieuwere relay nodig (versie 46)."],
+  ["Sample numbers (demo mode)", "Beispielzahlen (Demomodus)", "Chiffres d'exemple (mode démo)", "Cifras de ejemplo (modo demo)", "Voorbeeldcijfers (demomodus)"],
+  ["{n} planes on 1 day", "{n} Flugzeuge an 1 Tag", "{n} avions en 1 jour", "{n} aviones en 1 día", "{n} vliegtuigen op 1 dag"],
+  ["{n} planes on {d} days", "{n} Flugzeuge an {d} Tagen", "{n} avions en {d} jours", "{n} aviones en {d} días", "{n} vliegtuigen op {d} dagen"],
+  ["as many as the week before", "so viele wie die Woche davor", "autant que la semaine d'avant", "tantos como la semana anterior", "evenveel als de week ervoor"],
+  ["as many as the month before", "so viele wie der Monat davor", "autant que le mois d'avant", "tantos como el mes anterior", "evenveel als de maand ervoor"],
+  ["{p}% more than the week before", "{p} % mehr als die Woche davor", "{p} % de plus que la semaine d'avant", "{p} % más que la semana anterior", "{p}% meer dan de week ervoor"],
+  ["{p}% more than the month before", "{p} % mehr als der Monat davor", "{p} % de plus que le mois d'avant", "{p} % más que el mes anterior", "{p}% meer dan de maand ervoor"],
+  ["{p}% fewer than the week before", "{p} % weniger als die Woche davor", "{p} % de moins que la semaine d'avant", "{p} % menos que la semana anterior", "{p}% minder dan de week ervoor"],
+  ["{p}% fewer than the month before", "{p} % weniger als der Monat davor", "{p} % de moins que le mois d'avant", "{p} % menos que el mes anterior", "{p}% minder dan de maand ervoor"],
+  ["Week and month in review", "Wochen- und Monatsrückblick", "Bilan de la semaine et du mois", "Resumen de la semana y del mes", "Terugblik op week en maand"],
+  ["Your week on Sunday at 20:00, your month on the 1st at 9:00.", "Deine Woche am Sonntag um 20:00, dein Monat am 1. um 9:00.", "Votre semaine le dimanche à 20 h, votre mois le 1er à 9 h.", "Tu semana el domingo a las 20:00, tu mes el día 1 a las 9:00.", "Je week op zondag om 20:00, je maand op de 1e om 9:00."],
   // 1.50
   ["Country", "Land", "Pays", "País", "Land"],
   ["Radio callsign", "Funkrufname", "Indicatif radio", "Indicativo de radio", "Roepnaam"],
@@ -6203,6 +6336,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.52", date: "2026-10-18", notes: [
+    "Week and month in review: the busiest day, the rarest plane, new types, airlines, the farthest route and more, for any past week or month (Logbook → Week & month; in the app at the top of the Logbook).",
+    "A notification with your week on Sunday at 20:00 and your month on the 1st at 9:00 (can be turned off with the other notifications).",
+    "Flights to and from Vienna show their delay and, when leaving, their gate in the Remarks.",
+    "The admin page shows each profile's numbers: planes today, this week and in all, what the logbook gained and the rare planes.",
+  ]},
   {v: "1.51", date: "2026-10-18", notes: [
     "When a new version is out, a notice says so and the screen refreshes by itself after a minute; touch anything to stay, then Refresh now when you like.",
     "The board shows the last known picture at once while it loads, marked as not live yet.",

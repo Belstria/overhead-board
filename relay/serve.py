@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 45
+RELAY_VERSION = 46
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1806,6 +1806,97 @@ def year_json(spot, year):
     return out
 
 
+# Week and month in review (relay 46, to-do #44): like Today in numbers, over a calendar week (Monday to Sunday, board
+# days) or month, from the saved days. A finished period never changes, so its numbers are kept once made; the current
+# one is made again when a sighting comes in (like year_json).
+REVIEW_SPANS = ("week", "month")
+REVIEW_WEEK_AT = (6, "20:00")     # Sunday evening: the week
+REVIEW_MONTH_AT = (1, "09:00")    # the 1st of the month, morning: the month before
+_reviews = {}                     # (spot folder, span, start) -> numbers of a finished period
+
+
+def review_range(span, back=0, day=None):
+    """(first day, last day) of the week or month `back` periods before the one holding `day` (today)."""
+    d = datetime.date.fromisoformat(day or board_day())
+    if span == "week":
+        start = d - datetime.timedelta(days=d.weekday(), weeks=back)
+        return start.isoformat(), (start + datetime.timedelta(days=6)).isoformat()
+    y, m = d.year, d.month - back
+    while m < 1:
+        y, m = y - 1, m + 12
+    nxt = datetime.date(y + m // 12, m % 12 + 1, 1)
+    return datetime.date(y, m, 1).isoformat(), (nxt - datetime.timedelta(days=1)).isoformat()
+
+
+def review_json(spot, span, back=0, prev=True):
+    span = span if span in REVIEW_SPANS else "week"
+    back = max(0, min(60, int(back or 0)))
+    with _data_lock:
+        spot.ensure_day()
+        today = spot.day
+        start, end = review_range(span, back, today)
+        done = end < today
+        key = (str(spot.dir), span, start)
+        out = _reviews.get(key) if done else None
+        cached = getattr(spot, "_review", {}).get(key)
+        if out is None and cached and cached[0] == spot.rev:
+            out = cached[1]
+        if out is None:
+            days = {f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json")}
+            if spot.entries:
+                days.add(today)
+            n, pts, rare, types, airlines, regs, per_day, rec, rarest = 0, 0, 0, set(), {}, collections.Counter(), {}, {}, None
+            new_types, new_regs, new_al = {}, 0, 0
+            order = {t: i for i, t in enumerate(TIERS)}
+            centre = spot.center() if spot.center else None
+            for day in sorted(d for d in days if start <= d <= end):
+                entries = spot.entries if day == today else _load(spot.dir / f"sightings-{day}.json", [])
+                per_day[day] = len(entries)
+                for e in entries:
+                    n += 1
+                    pts += TIER_POINTS.get(e.get("tier"), 0)
+                    rare += order.get(e.get("tier"), -1) >= order["rare"]
+                    if e.get("typeCode"):
+                        types.add(e["typeCode"])
+                        if e.get("newType"):
+                            new_types.setdefault(e["typeCode"], e.get("aircraftType") or e.get("desc") or "")
+                    al = _al(e)
+                    if al:
+                        a = airlines.setdefault(al, {"code": al, "name": e.get("airlineName") or "", "count": 0})
+                        a["count"] += 1
+                        a["name"] = a["name"] or e.get("airlineName") or ""
+                    if e.get("reg"):
+                        regs[e["reg"]] += 1
+                    new_regs += bool(e.get("newReg"))
+                    new_al += bool(e.get("newAirline"))
+                    note_records(rec, e, centre)
+                    k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
+                    if rarest is None or k > rarest[0]:
+                        rarest = (k, e)
+            busiest = max(per_day.items(), key=lambda kv: (kv[1], kv[0])) if per_day else None
+            top_al = max(airlines.values(), key=lambda a: a["count"]) if airlines else None
+            top = regs.most_common(1)
+            who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "",
+                             "callsign": e.get("callsign") or "", "tier": e.get("tier") or "", "ts": e.get("ts")}
+            out = {"span": span, "start": start, "end": end, "complete": done, "planes": n, "days": sum(1 for v in per_day.values() if v),
+                   "types": len(types), "airlines": len(airlines), "airframes": len(regs), "points": pts, "rare": rare,
+                   "newTypes": [{"type": t, "name": nm} for t, nm in list(new_types.items())[:12]], "newTypeCount": len(new_types),
+                   "newAircraft": new_regs, "newAirlines": new_al,
+                   "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest and busiest[1] else None,
+                   "topAirline": top_al, "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
+                   "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
+            if done:
+                _reviews[key] = out
+            else:
+                if not hasattr(spot, "_review"):
+                    spot._review = {}
+                spot._review[key] = (spot.rev, out)
+    res = {"version": RELAY_VERSION, "back": back, **out}
+    if prev:
+        res["prevPlanes"] = review_json(spot, span, back + 1, prev=False)["planes"]
+    return res
+
+
 CSV_COLS = ["date", "time", "place", "callsign", "flight", "registration", "type", "aircraft", "airline", "from", "to",
             "closest_km", "altitude_ft", "max_speed_kt", "rarity", "category", "watchlist"]
 
@@ -1920,6 +2011,10 @@ def _vie_load():
                 st = r.get("status") or {}
                 e = {"kind": kind, "fn": r.get("fn") or "", "sched": _iso_ms(r.get("scheduledatetime")),
                      "actual": _iso_ms(r.get("actualdatetime")), "code": st.get("code") or "", "text": st.get("description") or ""}
+                if kind == "dep":           # relay 46: departures have a gate (once it is given out) in a pier
+                    e.update(gate=str(r.get("gate") or ""), gateArea=str(r.get("gateArea") or ""))
+                else:                       # arrivals have no gate in the list, only the baggage belt
+                    e["belt"] = str((r.get("belt") or {}).get("belt") or "") if isinstance(r.get("belt"), dict) else ""
                 for fn in [r.get("fn")] + [c.get("fn") for c in (r.get("codeshares") or []) if isinstance(c, dict)]:
                     k = fn_key(fn)
                     if k:
@@ -3186,7 +3281,7 @@ ADMIN_CSS = ("<style>.prof{border:1px solid #26272b;border-radius:10px;padding:1
              ".prof .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 0;font-size:14px}"
              ".prof input[type=text],.prof input[type=password],.prof input[type=number]{background:#16171a;color:#e8e2d0;border:1px solid #34363b;"
              "border-radius:6px;padding:6px 8px;font:inherit;font-size:14px;width:150px}.prof input[type=number]{width:90px}"
-             "button.sm{padding:3px 8px;font-size:12px}details summary{cursor:pointer;color:#b9b3a3;font-size:14px;margin-top:8px}</style>")
+             ".prof .stats{margin:6px 0;font-size:14px;line-height:1.5;color:#cfc9b8}button.sm{padding:3px 8px;font-size:12px}details summary{cursor:pointer;color:#b9b3a3;font-size:14px;margin-top:8px}</style>")
 
 
 def _pform(action, pid, inner, confirm=None):
@@ -3195,12 +3290,32 @@ def _pform(action, pid, inner, confirm=None):
     return f"<form method=post action='{action}'{guard}><input type=hidden name=pid value='{esc(pid, quote=True)}'>{inner}</form>"
 
 
+def admin_stats(pid, p, live):
+    """One profile's numbers for the admin page (relay 46, to-do #44/#45): planes today, this week and in all, what the
+    logbook gained this week and month, the rare planes, and its screens on now. No ranking between profiles."""
+    esc = html.escape
+    try:
+        sp = guest_spot(pid)
+        w, m = review_json(sp, "week", 0, prev=False), review_json(sp, "month", 0, prev=False)
+        b = sp.book()
+    except Exception as e:                  # a damaged file must not take the admin page down
+        return f"<p class=muted>Numbers unavailable ({esc(str(e))})</p>"
+    ra = m["rarest"] or {}
+    rare = f"{m['rare']:,} rare this month" + (f" (rarest {esc(ra.get('type') or ra.get('reg') or '')})" if ra.get("tier") in ("rare", "epic", "legendary") else "")
+    on = [i for i in live if i["name"] == p["name"]]
+    scr = ", ".join(esc(f"{i['device']} ({i['board'] or 'main'} board)") for i in on) or "none"
+    return (f"<p class=stats><b>{len(sp.entries):,}</b> planes today · <b>{w['planes']:,}</b> this week · <b>{b.get('sightings', 0):,}</b> in all"
+            f"<br>New this week: {w['newAircraft']:,} aircraft, {w['newTypeCount']:,} types · this month: {m['newAircraft']:,} aircraft, "
+            f"{m['newTypeCount']:,} types · {len(b.get('types', {})):,} types in the logbook<br>{rare} · screens on now: {scr}</p>")
+
+
 def admin_html(host, made=None):
     """Relay 42 (to-do #34): every profile is a Guest (no account yet: an invite link brings in a device) or an Account
     (a username: devices sign in with it, so there is no link any more), with its devices, Flightradar24 use and limit."""
     esc = html.escape
     base = (ARGS.public_url or "").rstrip("/") or f"http://{host}"
     cards = []
+    live = screens_list()[0]
     with _data_lock:
         by = (_fr24_usage().get("by") or {})
         items = sorted(profiles()["profiles"].items(), key=lambda kv: -kv[1].get("lastSeen", 0))
@@ -3238,6 +3353,7 @@ def admin_html(host, made=None):
                             f"Remove {p['name']}'s passkeys and password? They can set them again from a signed-in device.") + "</div>" if user else "") +
                     "</details>")
             cards.append(f"<div class=prof><h3>{head}</h3><p class=muted style='margin:4px 0'>{where} · seen {_ago(p.get('lastSeen'))}</p>"
+                         + admin_stats(pid, p, live) +
                          f"<ul>{dl or '<li class=muted>not joined yet</li>'}</ul><div class=row>{link}</div><div class=row>{fr}</div>{acct}"
                          "<div class=row>" + _pform("/admin/remove", pid, "<button class=sm>Remove</button>", f"Remove {p['name']} and their sightings?") +
                          "</div></div>")
@@ -3412,6 +3528,12 @@ PUSH_TEXT = {
             "es": "{n} aviones · {p} puntos{best}{rare}{low}", "nl": "{n} vliegtuigen · {p} punten{best}{rare}{low}"},
     "rarest": {"en": " · rarest: {x}", "de": " · am seltensten: {x}", "fr": " · le plus rare : {x}", "es": " · el más raro: {x}", "nl": " · zeldzaamste: {x}"},
     "lowest": {"en": " · lowest: {x}", "de": " · am tiefsten: {x}", "fr": " · le plus bas : {x}", "es": " · el más bajo: {x}", "nl": " · laagste: {x}"},
+    "week": {"en": "Your week in planes", "de": "Deine Woche in Flugzeugen", "fr": "Votre semaine en avions", "es": "Tu semana en aviones", "nl": "Je week in vliegtuigen"},
+    "month": {"en": "Your month in planes", "de": "Dein Monat in Flugzeugen", "fr": "Votre mois en avions", "es": "Tu mes en aviones", "nl": "Je maand in vliegtuigen"},
+    "rsum": {"en": "{n} planes · {t} types · {a} airlines{new}{rare}", "de": "{n} Flugzeuge · {t} Typen · {a} Airlines{new}{rare}",
+             "fr": "{n} avions · {t} types · {a} compagnies{new}{rare}", "es": "{n} aviones · {t} tipos · {a} aerolíneas{new}{rare}",
+             "nl": "{n} vliegtuigen · {t} types · {a} maatschappijen{new}{rare}"},
+    "newtypes": {"en": " · {x} new types", "de": " · {x} neue Typen", "fr": " · {x} nouveaux types", "es": " · {x} tipos nuevos", "nl": " · {x} nieuwe types"},
     "record": {"en": " · a new best day!", "de": " · ein neuer Bestwert!", "fr": " · un nouveau record !", "es": " · ¡un nuevo récord!", "nl": " · een nieuw record!"},
 }
 DIRS = {"en": "N NE E SE S SW W NW", "de": "N NO O SO S SW W NW", "fr": "N NE E SE S SO O NO", "es": "N NE E SE S SO O NO", "nl": "N NO O ZO Z ZW W NW"}
@@ -3628,6 +3750,7 @@ _last_window = {}            # subscription endpoint -> time of its last window 
 def _push_prefs(p):
     p = p if isinstance(p, dict) else {}
     out = {"summary": p.get("summary") is not False, "window": p.get("window") is not False, "quiet": p.get("quiet") is not False}
+    out["review"] = p.get("review") is not False          # relay 46: the week and month in review
     for k, d in PUSH_KINDS.items():
         out[k] = bool(p[k]) if k in p else d
     return out
@@ -3752,6 +3875,41 @@ def summary_check(who, subs, spot, st):
     event("info", f"Evening summary sent to {who}")
 
 
+def review_check(who, subs, spot, st):
+    """The week in review on Sunday at 20:00 and the month before on the 1st at 9:00 (local time; relay 46). Both are
+    outside the quiet hours. A period without a plane sends nothing."""
+    now = time.localtime()
+    hm = time.strftime("%H:%M", now)
+    due = []
+    if now.tm_wday == REVIEW_WEEK_AT[0] and hm >= REVIEW_WEEK_AT[1]:
+        due.append(("week", 0))
+    if now.tm_mday == REVIEW_MONTH_AT[0] and hm >= REVIEW_MONTH_AT[1]:
+        due.append(("month", 1))
+    for span, back in due:
+        r = None
+        mark = "review" + span.capitalize()
+        for sub in subs:
+            if not (sub.get("prefs") or {}).get("review", True):
+                continue
+            if r is None:
+                r = review_json(spot, span, back, prev=False)
+            if sub.get(mark) == r["start"]:
+                continue
+            sub[mark] = r["start"]
+            if not r["planes"]:
+                continue
+            lang = sub.get("lang") or "en"
+            ra = r["rarest"] or {}
+            body = ptext("rsum", lang, n=r["planes"], t=r["types"], a=r["airlines"],
+                         new=ptext("newtypes", lang, x=r["newTypeCount"]) if r["newTypeCount"] else "",
+                         rare=ptext("rarest", lang, x=ra.get("type") or ra.get("reg")) if ra.get("tier") in ("rare", "epic", "legendary") else "")
+            _deliver([sub], {"title": ptext(span, lang), "body": body, "tag": "review", "url": f"/app/#review-{span}-{back}"})
+            event("info", f"The {span} in review sent to {who}")
+        if r is not None:
+            with _data_lock:
+                _dirty.add("profiles")
+
+
 # Health watch (relay 45): Dave (the profile named HOME_OWNER) gets a notification when something breaks, and once when
 # it is fine again; at most one alert an hour for each kind. Each is in the journal too.
 HEALTH_FILE = DATA_DIR / "alive.json"      # {"t": last minute alive, "clean": stopped on purpose}
@@ -3853,6 +4011,7 @@ def _push_watch():
             try:
                 window_check(who, subs, centre, spot, st)
                 summary_check(who, subs, spot, st)
+                review_check(who, subs, spot, st)
             except Exception as e:
                 event("warn", f"Notification check failed for {who}: {e}", echo=False)
 
@@ -4349,7 +4508,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists", "/places", "/pageversion"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -4461,6 +4620,13 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 y = int(time.strftime("%Y"))
             return self.reply(200, "application/json", json.dumps(year_json(self.spot, max(2000, min(2100, y)))).encode())
+        if path == "/review":                   # relay 46: the week or month in review
+            q = self.query()
+            try:
+                back = int((q.get("back") or ["0"])[0])
+            except ValueError:
+                back = 0
+            return self.reply(200, "application/json", json.dumps(review_json(self.spot, (q.get("span") or ["week"])[0], back)).encode())
         if path == "/logbook.csv":
             name = "fallblatt-logbook-" + time.strftime("%Y-%m-%d") + ".csv"
             return self.reply(200, "text/csv; charset=utf-8", logbook_csv(self.spot), {"Content-Disposition": f'attachment; filename="{name}"'})

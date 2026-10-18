@@ -376,6 +376,21 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   back under 88%), and "restart" at start (not clean; `restartSent` keeps it to one an hour across restarts).
   `_health_set` alerts at most once an hour per kind and once on recovery after an alert; `_health_say` logs and
   pushes to `_owner_push()` (HOME_OWNER's subscriptions). `/status` has `health`.
+- Relay 46 / 1.52 (to-do #44): `review_range(span, back, day)` (calendar week Mon-Sun or month, board days) and
+  `review_json(spot, span, back)` (`/review?span=week|month&back=N`): counts, `newTypes`/`newAircraft` (the entries'
+  newType/newReg flags), `rare`, busiest day, top airline, most seen reg, rarest, `note_records` with the spot's centre
+  (so `farthest`), `prevPlanes` (the period before). Finished periods cached in `_reviews`, the current one per
+  `spot.rev` in `spot._review`. `review_check()` in `_push_watch`: week Sunday >= 20:00, month (back 1) on the 1st
+  >= 9:00, once per subscription (`reviewWeek`/`reviewMonth` = the period's start), pref `review` (default on), url
+  `/app/#review-<span>-<back>` (the app's `showTab` opens the Logbook there). Board: view `review` (fields `rw_*`,
+  `rwf0-7`, `rwNew`; Logbook tools button "Week & month", Week/Month/◀▶ via `data-s`/`data-b`), shared helpers after
+  `logbookSummary()` (E24: `review`, `fetchReview`, `reviewData`, `demoReview`, `reviewTitle`, `reviewSummary`,
+  `reviewFacts`, `REVIEW_NUMS`); app `reviewHtml()` above the year card.
+- Relay 46 (to-do #45): `admin_stats(pid, p, live)` per profile card on `/admin`: today/week/total, new aircraft and
+  types this week/month (from `review_json`), rare this month, live screens whose hello name is the profile's.
+- Relay 46 / 1.52 (to-do #50): `_vie_load` keeps `gate`/`gateArea` (departures) and `belt` (arrivals) from Vienna's
+  lists; the board's `vieLines(info)` adds "DELAY n MIN"/"ON TIME"/"DELAY /" and, for departures, "GATE x" to
+  `remarkLines` (two lines: `clean()` drops "+"; the old Delay flap stays gone). Fake source departures have gates.
 - Relay 45 / 1.51 (to-do #41): `/pageversion?p=<sub>` gives the newest published version of a board (`board_html`,
   first `{v: "` in the page). The shared `watchVersion()` (patch-notes block) asks it every 2 min (older relays: the
   page every 10 min) and calls `nvShow`: `#nvBox` with a 60 s countdown; `nvInput` (capture keydown/pointerdown/

@@ -115,6 +115,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
   take-off time for any flight. When there is no arrival time but the destination is
   known, the board estimates one from the distance still to fly and the plane's speed, plus a few minutes to land.
+  **Delay and gate** (1.52, relay 46): a flight to or from Vienna shows in the Remarks DELAY 25 MIN or ON TIME (within
+  four minutes; planned against expected or actual time, from Vienna Airport) and, when leaving Vienna, GATE F07 (the
+  pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no gate in its lists.
   Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
   often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
   been away for two months or more. The phone app shows both under This aircraft.
@@ -205,6 +208,10 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
+- **Week & month** (from the Logbook's buttons, 1.52, relay 46): the week (Monday to Sunday) or month in review, like
+  Today in numbers: planes, types, airlines, aircraft, new types, rare planes and points; the busiest day, the rarest
+  plane, the most seen airline and aircraft, the farthest route, the lowest, closest and fastest pass, and the new types.
+  **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
   Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
   it says when, and how long until then), and **17 trophies** (Century, Type
@@ -399,6 +406,7 @@ Five buttons along the bottom:
   At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Further down the records, this week's bingo and the trophies.
+  Above it (1.52, relay 46), **this week or month in review** (as on the board's Week & month), with Week / Month and ◀ ▶.
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
   points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
@@ -551,7 +559,9 @@ location filling in what his settings lack. The old files stay in `data/home-bef
 profile of that name, nothing changes and the relay's log says so. A new profile's welcome starts from the relay's
 city and airport (since relay 43 never its coordinates: the guest sets their own spot).
 
-**The admin page (relay 42).** Each profile is a **Guest** (no account yet: **New invite link** brings in another
+**The admin page (relay 42).** Since relay 46 each profile also shows its numbers: planes today, this week and in all,
+the aircraft and types new this week and this month, its rare planes this month and its screens on now (no ranking).
+Each profile is a **Guest** (no account yet: **New invite link** brings in another
 device) or an **Account** (its username; there is no invite link any more, its devices sign in with the account, and
 creating the account voids any unused link). For each: the devices with how they joined and when they were last seen
 (each with **Sign out**), Flightradar24 on or off, the credits it used today and this month and its daily limit (an
@@ -591,7 +601,8 @@ someone's passkeys and password (they set new ones from a device that is still s
 new invite link).
 
 **Notifications (relay version 25).** Through the public https address, the phone app can send an evening summary
-(22:30: planes, points, the rarest and the lowest) and a "worth going to the window" nudge when something special, a
+(22:30: planes, points, the rarest and the lowest), the week in review (relay 46: Sunday at 20:00) and the month before
+(the 1st at 9:00; tapping either opens it in the Logbook; its own switch), and a "worth going to the window" nudge when something special, a
 first-ever type, a favourite or a very low plane will pass within about 5 km in the next three minutes; the relay
 watches for these even when no screen is open. Turn them on in the app under About → Notifications (Chrome on Android
 and computers; on an iPhone after adding Fallblatt to the home screen). The relay needs the `cryptography` package for

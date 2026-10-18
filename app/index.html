@@ -532,6 +532,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 14px/1.3 var(--f-board)}
 .yFacts dt{color:var(--amber);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .yFacts dd{margin:0;color:var(--ink);text-align:right}
+.reviewCard .yNums{grid-template-columns:repeat(4,1fr)}
+.rvTools{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.rvTools span{flex:1}
 .yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
 /* where to look */
@@ -1161,6 +1163,36 @@ function T(en, vars){
 }
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row.
 const I18N_ROWS = [
+  ["DELAY {m}", "VERSPÄTUNG {m}", "RETARD {m}", "RETRASO {m}", "VERTRAGING {m}"],
+  ["DELAY {m} MIN", "VERSPÄTUNG {m} MIN", "RETARD {m} MIN", "RETRASO {m} MIN", "VERTRAGING {m} MIN"],
+  ["ON TIME", "PÜNKTLICH", "À L'HEURE", "A TIEMPO", "OP TIJD"],
+  ["GATE {g}", "GATE {g}", "PORTE {g}", "PUERTA {g}", "GATE {g}"],
+  ["In review", "Rückblick", "Bilan", "Resumen", "Terugblik"],
+  ["Week", "Woche", "Semaine", "Semana", "Week"],
+  ["today", "heute", "aujourd'hui", "hoy", "vandaag"],
+  ["Month", "Monat", "Mois", "Mes", "Maand"],
+  ["Earlier", "Früher", "Avant", "Antes", "Eerder"],
+  ["Later", "Später", "Après", "Después", "Later"],
+  ["Week & month", "Woche & Monat", "Semaine et mois", "Semana y mes", "Week en maand"],
+  ["New types", "Neue Typen", "Nouveaux types", "Tipos nuevos", "Nieuwe types"],
+  ["This week", "Diese Woche", "Cette semaine", "Esta semana", "Deze week"],
+  ["This month", "Dieser Monat", "Ce mois-ci", "Este mes", "Deze maand"],
+  ["Last week", "Letzte Woche", "La semaine dernière", "La semana pasada", "Vorige week"],
+  ["Last month", "Letzter Monat", "Le mois dernier", "El mes pasado", "Vorige maand"],
+  ["{n} weeks ago", "Vor {n} Wochen", "Il y a {n} semaines", "Hace {n} semanas", "{n} weken geleden"],
+  ["{n} months ago", "Vor {n} Monaten", "Il y a {n} mois", "Hace {n} meses", "{n} maanden geleden"],
+  ["Needs a newer home relay (version 46).", "Braucht ein neueres Heim-Relay (Version 46).", "Nécessite un relais plus récent (version 46).", "Necesita un relé más reciente (versión 46).", "Heeft een nieuwere relay nodig (versie 46)."],
+  ["Sample numbers (demo mode)", "Beispielzahlen (Demomodus)", "Chiffres d'exemple (mode démo)", "Cifras de ejemplo (modo demo)", "Voorbeeldcijfers (demomodus)"],
+  ["{n} planes on 1 day", "{n} Flugzeuge an 1 Tag", "{n} avions en 1 jour", "{n} aviones en 1 día", "{n} vliegtuigen op 1 dag"],
+  ["{n} planes on {d} days", "{n} Flugzeuge an {d} Tagen", "{n} avions en {d} jours", "{n} aviones en {d} días", "{n} vliegtuigen op {d} dagen"],
+  ["as many as the week before", "so viele wie die Woche davor", "autant que la semaine d'avant", "tantos como la semana anterior", "evenveel als de week ervoor"],
+  ["as many as the month before", "so viele wie der Monat davor", "autant que le mois d'avant", "tantos como el mes anterior", "evenveel als de maand ervoor"],
+  ["{p}% more than the week before", "{p} % mehr als die Woche davor", "{p} % de plus que la semaine d'avant", "{p} % más que la semana anterior", "{p}% meer dan de week ervoor"],
+  ["{p}% more than the month before", "{p} % mehr als der Monat davor", "{p} % de plus que le mois d'avant", "{p} % más que el mes anterior", "{p}% meer dan de maand ervoor"],
+  ["{p}% fewer than the week before", "{p} % weniger als die Woche davor", "{p} % de moins que la semaine d'avant", "{p} % menos que la semana anterior", "{p}% minder dan de week ervoor"],
+  ["{p}% fewer than the month before", "{p} % weniger als der Monat davor", "{p} % de moins que le mois d'avant", "{p} % menos que el mes anterior", "{p}% minder dan de maand ervoor"],
+  ["Week and month in review", "Wochen- und Monatsrückblick", "Bilan de la semaine et du mois", "Resumen de la semana y del mes", "Terugblik op week en maand"],
+  ["Your week on Sunday at 20:00, your month on the 1st at 9:00.", "Deine Woche am Sonntag um 20:00, dein Monat am 1. um 9:00.", "Votre semaine le dimanche à 20 h, votre mois le 1er à 9 h.", "Tu semana el domingo a las 20:00, tu mes el día 1 a las 9:00.", "Je week op zondag om 20:00, je maand op de 1e om 9:00."],
   // 1.50
   ["Country", "Land", "Pays", "País", "Land"],
   ["Radio callsign", "Funkrufname", "Indicatif radio", "Indicativo de radio", "Roepnaam"],
@@ -4595,9 +4627,21 @@ function firstLines(ac, info){
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
 // airline's colours (Flightradar24), who flies it when it is on the watchlist, and how few of its type there are.
+// 1.52 (to-do #50): a flight to or from Vienna shows its delay (planned against expected or actual time) and, leaving
+// Vienna, its gate (or pier until the gate is given out) from Vienna Airport's lists (relay /times; gates since relay
+// 46), "/" where unknown. Arrivals have no gate in the lists. Two remark lines: the flaps have no "+".
+function vieLines(info){
+  if (!info || !(code3(info.from) === "VIE" || code3(info.to) === "VIE")) return [];
+  const t = timesFor(info);
+  if (!t) return [];
+  const d = t.delay, out = [d == null ? T("DELAY {m}", {m: NA}) : d <= 4 ? T("ON TIME") : T("DELAY {m} MIN", {m: d})];
+  if (t.kind === "dep") out.push(T("GATE {g}", {g: t.gate || t.gateArea || NA}));
+  return out;
+}
 function remarkLines(ac, info){
   info = info || {};
   const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
+  if (!S.demo) out.push(...vieLines(info));
   const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
   if (aboveCloud(alt) && windowWorthy(ac, info)) out.push(T("ABOVE CLOUD"));      // 1.49: a remark, no longer the status
   const firsts = firstLines(ac, info);
@@ -4782,6 +4826,63 @@ function logbookSummary(){
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
     (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
+/* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
+   or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
+const review = {span: "week", back: 0, data: {}, at: {}};
+const reviewOk = () => S.demo || relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 46;
+const reviewKey = () => review.span + review.back;
+function fetchReview(done){
+  const k = reviewKey();
+  if (S.demo || !reviewOk() || Date.now() - (review.at[k] || 0) < 60000) return;
+  review.at[k] = Date.now();
+  fetchJSON(`${relay()}/review?span=${review.span}&back=${review.back}`, {}, 12000)
+    .then(j => { review.data[k] = j; if (done) done(); }).catch(() => { review.at[k] = 0; });
+}
+function demoReview(){
+  const week = review.span === "week", d = new Date(Date.now() - 3 * 3600e3), iso = x => x.toISOString().slice(0, 10);
+  const s = week ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * review.back) * 86400e3) : new Date(d.getFullYear(), d.getMonth() - review.back, 1, 12);
+  const e = week ? new Date(s.getTime() + 6 * 86400e3) : new Date(s.getFullYear(), s.getMonth() + 1, 0, 12), k = week ? 1 : 4.3;
+  return {sample: true, span: review.span, back: review.back, start: iso(s), end: iso(e), planes: Math.round(612 * k), prevPlanes: Math.round(560 * k),
+    days: week ? 7 : 30, types: week ? 41 : 63, airlines: week ? 37 : 52, airframes: Math.round(430 * k), points: Math.round(1180 * k), rare: week ? 6 : 19,
+    newTypes: [{type: "A124", name: "Antonov An-124"}, {type: "B748", name: ""}], newTypeCount: 2, newAircraft: Math.round(212 * k), newAirlines: 1,
+    busiest: {day: iso(new Date(s.getTime() + 2 * 86400e3)), planes: 118}, topAirline: {code: "AUA", name: "Austrian", count: Math.round(190 * k)},
+    mostSeen: {reg: "OE-LBN", count: week ? 9 : 31}, rarest: {reg: "UR-82008", type: "A124", tier: "legendary"},
+    records: {closest: {v: .31, callsign: "AUA411"}, lowest: {v: 1650, callsign: "OEXEN"}, fastest: {v: 541, callsign: "UAE127"},
+      farthest: {v: 7120, callsign: "UAE127", place: {code: "DXB", city: "Dubai"}}}};
+}
+const reviewData = () => S.demo ? demoReview() : review.data[reviewKey()] || null;
+function reviewTitle(span = review.span, back = review.back){
+  const w = span === "week";
+  if (back === 0) return T(w ? "This week" : "This month");
+  if (back === 1) return T(w ? "Last week" : "Last month");
+  return T(w ? "{n} weeks ago" : "{n} months ago", {n: back});
+}
+const reviewDay = (d, o) => new Date(d + "T12:00:00").toLocaleDateString(LOC(), o || {day: "numeric", month: "short"});
+function reviewSummary(r){
+  if (!reviewOk()) return T("Needs a newer home relay (version 46).");
+  if (!r) return T("Loading …");
+  // a period still under way runs to today, and is only compared with the one before once it is over
+  const open = r.complete === false, w = r.span === "week", more = r.prevPlanes && !open ? Math.round((r.planes / r.prevPlanes - 1) * 100) : null;
+  return (r.sample ? T("Sample numbers (demo mode)") + " · " : "") + `${reviewDay(r.start)} – ${open ? T("today") : reviewDay(r.end)} · ` +
+    T(r.days === 1 ? "{n} planes on 1 day" : "{n} planes on {d} days", {n: nf.format(r.planes), d: r.days}) +
+    (more == null || !r.planes ? "" : " · " + (more === 0 ? T(w ? "as many as the week before" : "as many as the month before")
+      : T(more > 0 ? (w ? "{p}% more than the week before" : "{p}% more than the month before") : (w ? "{p}% fewer than the week before" : "{p}% fewer than the month before"), {p: Math.abs(more)})));
+}
+// [label, value] for each fact; values in mixed case (the board's flaps show them in capitals).
+function reviewFacts(r){
+  const rc = r.records || {}, who = x => x.callsign || x.reg || x.type || "", b = r.busiest, ra = r.rarest, al = r.topAirline, m = r.mostSeen, f = rc.farthest;
+  const fp = f && f.place;
+  return [["Busiest day", b ? `${reviewDay(b.day, {weekday: "short", day: "numeric", month: "short"})} · ${nf.format(b.planes)}` : ""],
+    ["Rarest", ra ? `${ra.type || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
+    ["Most seen airline", al ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],
+    ["Most seen aircraft", m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    ["Farthest route", f ? `${who(f)} · ${fp ? fp.code || fp.city : ""} ${nf.format(f.v)} km` : ""],
+    ["Lowest pass", rc.lowest ? `${who(rc.lowest)} · ${altitudeStr(rc.lowest.v).toLowerCase()}` : ""],
+    ["Closest", rc.closest ? `${who(rc.closest)} · ${rc.closest.v < 10 ? rc.closest.v.toFixed(2) : Math.round(rc.closest.v)} km` : ""],
+    ["Fastest", rc.fastest ? `${who(rc.fastest)} · ${speedStr(rc.fastest.v).toLowerCase()}` : ""]].map(([k, v]) => [T(k), v]);
+}
+const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.newTypeCount > (r.newTypes || []).length ? " …" : "");
+const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map(), rep: new Map(), sel: ""};
 const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#7166b8", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae"};
@@ -5159,6 +5260,7 @@ let lbSig = "";
 function renderLogbook(){
   if (tab !== "logbook") return;
   fetchYear();
+  if (!lbPlace) fetchReview(() => { lbSig = ""; renderLogbook(); });
   const all = lbData() || {}, pl = lbPlaceOk() ? lbChips() : [];
   if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const chips = $("lbPlaces");
@@ -5183,7 +5285,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, LANG]);
+  const sig = JSON.stringify([lbPlace, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, b.game, b.records, yearData, reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -5232,7 +5334,7 @@ function renderLogbook(){
     const k = html.indexOf(`<h3>${escH(T("Categories"))}</h3>`);
     html = k >= 0 ? html.slice(0, k) + more + html.slice(k) : html + more;
   }
-  if (!lbPlace) html = yearHtml() + html;
+  if (!lbPlace) html = reviewHtml() + yearHtml() + html;
   $("lbLists").innerHTML = html;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
 }
@@ -5275,6 +5377,26 @@ function yearHtml(){
     `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
 }
+// Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
+function reviewHtml(){
+  if (!reviewOk()) return "";
+  const r = reviewData(), bt = (a, t, on, x = "") => `<button class="cap small" type="button" ${a}${on != null ? ` aria-pressed="${on}"` : ""}${x}>${t}</button>`;
+  const tools = `<div class="rvTools">${bt('data-rs="week"', escH(T("Week")), review.span === "week")}${bt('data-rs="month"', escH(T("Month")), review.span === "month")}` +
+    `<span></span>${bt('data-rb="1"', "◀", null, ` aria-label="${escH(T("Earlier"))}"`)}${bt('data-rb="-1"', "▶", null, ` aria-label="${escH(T("Later"))}"${review.back ? "" : " disabled"}`)}</div>`;
+  const head = `<h3>${escH(reviewTitle())}</h3>${tools}<p class="sum">${escH(reviewSummary(r))}</p>`;
+  if (!r || !r.planes) return `<div class="yearCard reviewCard">${head}</div>`;
+  const nums = REVIEW_NUMS.map(([k, l]) => `<div><b>${nf.format(r[k] || 0)}</b><span>${escH(T(l))}</span></div>`).join("");
+  const facts = reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]]).filter(x => x[1]);
+  return `<div class="yearCard reviewCard">${head}<div class="yNums">${nums}</div><dl class="yFacts">` +
+    facts.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-rs], [data-rb]");
+  if (!b || b.disabled) return;
+  ctlSound.press();
+  if (b.dataset.rs) { review.span = b.dataset.rs; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.rb));
+  lbSig = ""; renderLogbook();
+});
 // The year card as a picture to share (or save where sharing pictures isn't possible).
 function yearPicture(){
   const y = yearData, cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350;
@@ -6495,6 +6617,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.52", date: "2026-10-18", notes: [
+    "Week and month in review: the busiest day, the rarest plane, new types, airlines, the farthest route and more, for any past week or month (Logbook → Week & month; in the app at the top of the Logbook).",
+    "A notification with your week on Sunday at 20:00 and your month on the 1st at 9:00 (can be turned off with the other notifications).",
+    "Flights to and from Vienna show their delay and, when leaving, their gate in the Remarks.",
+    "The admin page shows each profile's numbers: planes today, this week and in all, what the logbook gained and the rare planes.",
+  ]},
   {v: "1.51", date: "2026-10-18", notes: [
     "When a new version is out, a notice says so and the screen refreshes by itself after a minute; touch anything to stay, then Refresh now when you like.",
     "The board shows the last known picture at once while it loads, marked as not live yet.",
@@ -7123,7 +7251,7 @@ async function enablePush(){
       try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
       catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
     }
-    let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
+    let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
     try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
     const r = await sendSub(sub, prefs, "subscribe");
     return r.ok ? "" : `HTTP ${r.status}`;
@@ -7139,12 +7267,13 @@ async function renderPush(){
     box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
   }
   if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
-  let prefs = {summary: true, window: true, ...PUSH_KIND_DEFAULTS};
+  let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
-    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") + sw("window", "Worth going to the window") +
+    (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") +
+    ((window.OVERHEAD_RELAY_VERSION || 0) >= 46 ? sw("review", "Week and month in review") + `<p class="sum">${escH(T("Your week on Sunday at 20:00, your month on the 1st at 9:00."))}</p>` : "") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
       PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
     `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
@@ -7406,6 +7535,8 @@ function aboutHide(){
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-about").hidden && !cardOpenNow()) aboutHide(); });
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
+  const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
+  if (rv) { review.span = rv[1]; review.back = +rv[2]; t = "logbook"; }
   aboutHide();
   if (!TABS.some(x => x[0] === t) || SIDEWAYS.matches) t = "now";
   const was = tab;
