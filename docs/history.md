@@ -425,6 +425,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   copies, made by `tools/push_main.py`. Measured at 960x540 on the test relay: first load 888 KB as before (875),
   later loads 486 KB; first flap at 5 Mbps 1.57 s before, 1.19 s first / 0.90 s later after (20 Mbps: 0.50 s →
   0.44 / 0.31 s). AIRPORTS, AIRLINES, TYPES, FLEET stay in the board (a few KB together).
+- 1.58 (to-do #47 step 5): Location's last cell is one item, `{type: "location", layout: "combined", phone: {layout:
+  "split"}}`: `itemHtml` makes it the board's combined Update location cell (`update` with `places`/`search`, pop-ups)
+  or a phone's three cells (`update`, `places`, `search`), the same markup as before (golden list and app/light HTML
+  hashes unchanged). Clean-up: plate titles are plain strings (the unused German second titles went; `plateHtml` reads
+  `p.title`), the unused `locate` control and its hint went. `tools/test/plates.py`: `OVERFLOW_JS` (plates whose
+  children end past the plate) and `FIRE_TV` (960x540 @2x, a Fire TV's user agent); smoke.py opens the board's
+  Settings and Account & device at that size and fails on any overflow; shoot.py has a `plates` step.
 - 1.57 (to-do #47 step 4, settings on both sides only where it makes sense): the Night plate is on both; on a phone
   Night mode, Quiet from (`phone: {label}`) and Until, with its own hint (`phone: {hint}`; `itemHtml` takes `it.hint`
   first); At night and Brightness `for: "tv"`. main.js: `nightCheck()` sets `nightOn` (which the copied sound code

@@ -12,6 +12,7 @@ OUT is a file name prefix (shot:now writes OUT-now.png). Steps run in order:
     shot:NAME        screenshot                full:NAME    whole-page screenshot (the phone app scrolls)
     clip:X,Y,W,H,NAME  screenshot of part of the page
     seq:SECONDS      watch which page button is lit, once a second, and print the order
+    plates           print the Settings plates whose content runs past their edge (1.58; none: "plates fit")
 Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080 (UA= sets the user agent, e.g. a Fire TV's); SIZE=960x540
 and DPR=2 for the Fire TV. The test relay's "Test" profile is signed in (COOKIE=test-device; COOKIE=new-device is the
 new guest, COOKIE= nobody).
@@ -98,6 +99,10 @@ async def main():
                         seen.append((t, cur))
                     await page.wait_for_timeout(1000)
                 print("pages:", " → ".join(f"{c}@{t}s" for t, c in seen))
+            elif kind == "plates":
+                from plates import OVERFLOW_JS
+                over = await page.evaluate(OVERFLOW_JS)
+                print("plates:", "; ".join(over) if over else "plates fit")
             else:
                 raise SystemExit(f"Unknown step: {st}")
         status = await page.evaluate("(document.querySelector('#statusText') || document.querySelector('.statusText') || {}).textContent")

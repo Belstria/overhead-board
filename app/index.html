@@ -5208,9 +5208,9 @@ const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/down
    plates; tools/app/build.py copies this part into the app. Each plate is a grid of `cols` cells (two on a phone); `span`
    widens a control to several cells, `wide` to the whole plate. `for: "tv"` or `"phone"` keeps a plate or a control to
    that screen, `flaps: true` leaves it out of the light version (it has no flaps), and `phone: {…}` / `light: {…}`
-   change it there (a label, a width, or `plate`/`before` to move it to another plate). */
+   change it there (a label, a width, a hint, `layout`, or `plate`/`before` to move it to another plate). */
 const COCKPIT = [
-  {id: "loc", title: ["Location", "Standort"], cols: 4, items: [
+  {id: "loc", title: "Location", cols: 4, items: [
     {k: "placeKey", type: "label", label: "Place name", span: 2, max: 24},
     {k: "place", type: "lcd", label: "City", max: 24},
     {k: "home", type: "lcd", label: "Airport", max: 3},
@@ -5218,11 +5218,11 @@ const COCKPIT = [
     {k: "lon", type: "lcd", label: "Longitude", span: 2, max: 12, phone: {span: 1}},
     {k: "radiusKm", type: "wheel", label: "Radius km", min: 1, max: 20, step: 1},
     {k: "overKm", type: "rotary", label: "Overhead within", opts: [[1, "1"], [2, "2"], [3, "3"], [5, "5 KM"]]},
-    // the board's plates have a fixed height: Saved places and the address search share the Update location cell
-    {type: "update", label: "Update location", span: 2, places: true, search: true, phone: {places: false, search: false}},
-    {type: "places", label: "Saved places", span: 2, for: "phone"},
-    {type: "search", label: "Find an address", span: 2, for: "phone"}]},
-  {id: "traffic", title: ["Traffic", "Verkehr"], cols: 3, items: [
+    // 1.58 (#47 step 5): one Location item that lays itself out: "combined" on the board (its plates have a fixed
+    // height: Saved places and the address search share the Update location cell and open as pop-ups), "split" on a
+    // phone (Update location, Saved places and Find an address, three cells)
+    {type: "location", label: "Update location", span: 2, layout: "combined", phone: {layout: "split"}}]},
+  {id: "traffic", title: "Traffic", cols: 3, items: [
     {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]],
       metric: [[8200, "2.5K M"], [16400, "5K"], [24600, "7.5K"], [60000, "ALL"]]},       // stored in feet, shown in metres when metric
     {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]], for: "tv"},
@@ -5230,7 +5230,7 @@ const COCKPIT = [
     {k: "favs", type: "favs", label: "Favourites", for: "tv"},
     {k: "ding", type: "switch", label: "New plane ding", phone: {plate: "flaps", before: "bell"}},
     {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF", for: "tv"}]},
-  {id: "display", title: ["Display", "Anzeige"], cols: 4, items: [
+  {id: "display", title: "Display", cols: 4, items: [
     {k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}},
     {k: "theme", type: "rotary", label: "Board style", opts: [["classic", "CLASSIC"], ["frankfurt", "FRANKFURT"], ["blue", "BLUE"]], flaps: true},
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]], dflt: "auto", for: "tv"},
@@ -5238,17 +5238,17 @@ const COCKPIT = [
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "real", type: "switch", label: "Realistic look", flaps: true},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
-  {id: "flaps", title: ["Flaps & sound", "Klappen & Klang"], cols: 3, light: {title: ["Sounds", ""]}, items: [
+  {id: "flaps", title: "Flaps & sound", cols: 3, light: {title: "Sounds"}, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, flaps: true},
     {k: "quick", type: "switch", label: "Quick flaps", flaps: true},
     {k: "imperfect", type: "switch", label: "Worn hardware", flaps: true},
     {k: "sound", type: "switch", label: "Flap sound", light: {label: "Button sounds"}},
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", light: {span: 2}}]},
-  {id: "control", title: ["Control", "Steuerung"], actions: true, for: "tv"},
+  {id: "control", title: "Control", actions: true, for: "tv"},
   // 1.57 (#47 step 4): on a phone Night mode is quiet hours only (no sounds while the app is open); dimming a phone in
   // your hand and the night view are the board's
-  {id: "night", title: ["Night", "Nacht"], cols: 3, items: [
+  {id: "night", title: "Night", cols: 3, items: [
     {k: "night", type: "switch", label: "Night mode", phone: {hint: "Quiet at night while the app is open: no chimes, dings or flap sounds."}},
     {k: "nightFrom", type: "time", label: "Dim from", phone: {label: "Quiet from"}},
     {k: "nightTo", type: "time", label: "Until"},
@@ -5257,11 +5257,11 @@ const COCKPIT = [
   // 1.56 (#47 step 3): who this screen is signed in as, notifications, this device, privacy and About. `view: true`
   // plates are no part of Settings' own grid: the board shows them as a view of their own (Account & device, from the
   // Control plate), a phone as plates under its Settings (VIEW_PLATES). Their items are whole blocks (viewItemHtml).
-  {id: "account", title: ["Account", ""], view: true, cols: 1, cls: "acctPlate", items: [{type: "account"}]},
-  {id: "push", title: ["Notifications", ""], view: true, cols: 1, for: "phone", items: [{type: "push"}]},
-  {id: "device", title: ["Device", ""], view: true, cols: 1, items: [{type: "device"}]},
-  {id: "privacy", title: ["Privacy", ""], view: true, cols: 1, for: "tv", items: [{type: "privacy"}]},
-  {id: "about", title: ["About", ""], view: true, cols: 1, for: "phone", cls: "about", items: [{type: "about"}]}];
+  {id: "account", title: "Account", view: true, cols: 1, cls: "acctPlate", items: [{type: "account"}]},
+  {id: "push", title: "Notifications", view: true, cols: 1, for: "phone", items: [{type: "push"}]},
+  {id: "device", title: "Device", view: true, cols: 1, items: [{type: "device"}]},
+  {id: "privacy", title: "Privacy", view: true, cols: 1, for: "tv", items: [{type: "privacy"}]},
+  {id: "about", title: "About", view: true, cols: 1, for: "phone", cls: "about", items: [{type: "about"}]}];
 // The plates as one screen shows them: its plates and controls, with its changes made, the moved controls in place.
 function cockpitFor(target){
   const phone = target !== "tv", light = target === "light";
@@ -5302,7 +5302,6 @@ const HINTS = {
   lat: "Where to watch the sky. Use current location fills it in.",
   radiusKm: "Planes within this distance count as spotted.",
   overKm: "Closer than this counts as directly overhead.",
-  locate: "Uses this device's location and suggests the nearest airport.",
   maxAltFt: "Planes higher than this are left out.",
   refreshS: "How often new positions are fetched.",
   airtimeMin: "How long a hovering helicopter or circling plane may stay on top, per hour.",
@@ -5430,6 +5429,9 @@ function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
   const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
+  if (it.type === "location") return it.layout === "split"
+    ? [{...it, type: "update"}, {type: "places", label: "Saved places", span: 2}, {type: "search", label: "Find an address", span: 2}].map(itemHtml).join("")
+    : itemHtml({...it, type: "update", places: true, search: true});
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
@@ -5458,8 +5460,6 @@ function itemHtml(it){
   if (it.type === "search") return cell("loc", `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T(it.label))}" ` +
     `placeholder="${escH(T("Address or place"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div>` +
     `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the town, latitude and longitude."))}</p>`);
-  if (it.type === "locate") return cell("loc", `<button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
-    `<p class="note">${escH(T("Fills in latitude and longitude, then finds the nearest airport."))}</p><div class="ask" hidden></div>`);
   const wheel = part => `<div class="wheel" tabindex="0" data-k="${it.k}"${part ? ` data-part="${part}"` : ""}><button type="button" class="inc" tabindex="-1" aria-label="Up">▲</button>` +
     `<span class="win"><b></b></span><button type="button" class="dec" tabindex="-1" aria-label="Down">▼</button></div>`;
   if (it.type === "wheel") return cell("", wheel(""));
@@ -6189,6 +6189,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.58", date: "2026-10-19", notes: [
+    "Settings' location part is built from one definition for the board and the phone; it looks and works as before.",
+  ]},
   {v: "1.57", date: "2026-10-19", notes: [
     "Night mode in the app: quiet hours without chimes, dings or flap sounds while the app is open (Settings → Night).",
   ]},
@@ -6592,7 +6595,7 @@ function nvTick(){
   else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) location.reload();
 }
 function plateHtml(p){
-  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();

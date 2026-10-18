@@ -118,6 +118,23 @@ def pages():
                     errors.append(f"{url} {size}: no translations (i18n.js didn't load)")
                 print(f"{pg.url} at {size[0]}x{size[1]}: loaded")
                 pg.close()
+            # 1.58 (#47 step 5): at a Fire TV's size every Settings and Account & device plate must fit (a TV can't scroll)
+            from plates import OVERFLOW_JS, FIRE_TV
+            ctx = b.new_context(**FIRE_TV)
+            ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+            pg = ctx.new_page()
+            pg.goto(BASE + "/test/")
+            pg.wait_for_timeout(6000)
+            pg.keyboard.press("s")
+            pg.wait_for_timeout(1500)
+            for o in pg.evaluate(OVERFLOW_JS):
+                errors.append(f"Fire TV Settings: plate {o}")
+            pg.evaluate("document.querySelector('#cockpit [data-act=account]').click()")
+            pg.wait_for_timeout(2000)
+            for o in pg.evaluate(OVERFLOW_JS):
+                errors.append(f"Fire TV Account & device: plate {o}")
+            print("plates fit at 960x540 (Fire TV)" if not any(e.startswith("Fire TV") for e in errors) else "plates overflow at 960x540")
+            ctx.close()
             b.close()
         for e in errors:
             print("page error:", e)
