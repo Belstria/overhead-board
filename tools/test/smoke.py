@@ -4,11 +4,15 @@ check.yml), and handy before a commit.
     py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps parse (needs Node)
     py tools/test/smoke.py             the test relay with made-up flights, then /, /test/, /app/, /light/ and /test-api/ in a
                                        headless browser (needs Playwright); fails on any page error
+    py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
+                                       checkouts don't test each other's relay
 
 The test relay is the one from run_test_relay.py, started here and stopped at the end.
 """
+import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -17,6 +21,8 @@ import urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
+PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
+BASE = f"http://localhost:{PORT}"
 PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html"]
 
 
@@ -41,12 +47,12 @@ def syntax():
 
 def pages():
     from playwright.sync_api import sync_playwright
-    relay = subprocess.Popen([sys.executable, str(REPO / "tools" / "test" / "run_test_relay.py"), "--fr24"],
+    relay = subprocess.Popen([sys.executable, str(REPO / "tools" / "test" / "run_test_relay.py"), "--fr24", "--port", str(PORT)],
                              stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     try:
         for _ in range(60):
             try:
-                if urllib.request.urlopen("http://localhost:8096/health", timeout=2).status == 200:
+                if urllib.request.urlopen(BASE + "/health", timeout=2).status == 200:
                     break
             except OSError:
                 time.sleep(1)
@@ -57,7 +63,7 @@ def pages():
         ac = []
         for _ in range(10):
             try:
-                req = urllib.request.Request("http://localhost:8096/aircraft/48.2085/16.3731/25", headers={"Cookie": "overhead=test-device"})
+                req = urllib.request.Request(BASE + "/aircraft/48.2085/16.3731/25", headers={"Cookie": "overhead=test-device"})
                 ac = json.loads(urllib.request.urlopen(req, timeout=10).read()).get("ac") or []
             except (OSError, ValueError):
                 ac = []
@@ -74,15 +80,15 @@ def pages():
             # relay 42: every screen is signed in; without a cookie the relay shows the private page (checked too)
             ctx = b.new_context()
             pg = ctx.new_page()
-            pg.goto("http://localhost:8096/test/")
+            pg.goto(BASE + "/test/")
             if "This board is private" not in pg.content():
                 errors.append("without a cookie /test/ didn't show the private page")
             ctx.close()
             ctx = b.new_context()
             ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
-            for url, size in [("http://localhost:8096/", (1920, 1080)), ("http://localhost:8096/test/", (1920, 1080)), ("http://localhost:8096/app/", (390, 844)),
-                              ("http://localhost:8096/app/", (844, 390)),
-                              ("http://localhost:8096/light/", (390, 844)), ("http://localhost:8096/light/", (844, 390)), ("http://localhost:8096/test-api/", (1280, 720))]:
+            for url, size in [(BASE + "/", (1920, 1080)), (BASE + "/test/", (1920, 1080)), (BASE + "/app/", (390, 844)),
+                              (BASE + "/app/", (844, 390)),
+                              (BASE + "/light/", (390, 844)), (BASE + "/light/", (844, 390)), (BASE + "/test-api/", (1280, 720))]:
                 pg = ctx.new_page()
                 pg.set_viewport_size({"width": size[0], "height": size[1]})
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))
@@ -96,7 +102,15 @@ def pages():
         print("no page errors" if not errors else f"{len(errors)} page error(s)")
         return not errors
     finally:
-        relay.terminate()
+        # the test relay's own two processes go with it (a plain terminate left them running on Windows)
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(relay.pid)], capture_output=True)
+        else:
+            relay.send_signal(signal.SIGINT)
+            try:
+                relay.wait(10)
+            except subprocess.TimeoutExpired:
+                relay.kill()
 
 
 if __name__ == "__main__":

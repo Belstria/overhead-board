@@ -44,6 +44,7 @@ import random
 import re
 import secrets
 import shutil
+import signal
 import socket
 import struct
 import sys
@@ -55,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 44
+RELAY_VERSION = 45
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -91,6 +92,8 @@ FR24_FILE = DATA_DIR / "fr24.json"
 FR24_KEEP_S = 2 * 86400     # only today's flights are needed (Flightradar24 allows keeping its data 30 days at most)
 FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
 FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
+FR24_REUSE_S = 6 * 3600     # relay 45: an answer serves the same aircraft and callsign all day, or this long past midnight
+FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quarter of the radius isn't looked up
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
 AIRPORTS_FILE = DATA_DIR / "airports.json"
 RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
@@ -255,6 +258,7 @@ def aircraft(lat, lon, nm):
             st["cooldown_until"] = time.time() + rest
             event("warn", f"{src['name']} failed ({problem}); resting it for {rest} s")
             tried.append(f"{src['name']} {problem}")
+        _health_seen["posFail"] = time.time()     # relay 45: every source failed (or rested) for this request
         if hit and time.time() - hit[0] < STALE_S:
             age = int(time.time() - hit[0])
             event("warn", f"All sources failed; serving last good data ({age} s old)")
@@ -1203,7 +1207,7 @@ def _fr24_usage():
             u.clear()
             u.update({"month": month, "credits": 0, "lookups": 0})
     if u.get("day") != day:
-        u.update({"day": day, "creditsToday": 0, "lookupsToday": 0})
+        u.update({"day": day, "creditsToday": 0, "lookupsToday": 0, "savedReuseToday": 0, "savedEdgeToday": 0})
         _fr24_prune()
     return u
 
@@ -1253,7 +1257,24 @@ def fr24_info(cs, hx):
     age = time.time() - info.get("t", 0)
     if info.get("none") and age > 3 * 3600:     # nothing found: worth another try later
         return None
-    return info if age < 14 * 3600 else None
+    # Relay 45: the same aircraft under the same callsign is the same flight for the rest of the day (or a few hours
+    # past midnight); another aircraft with this callsign has its own key, so it is never handed this answer.
+    same_day = time.strftime("%Y-%m-%d", time.localtime(info.get("t", 0))) == time.strftime("%Y-%m-%d")
+    return info if same_day or age < FR24_REUSE_S else None
+
+
+def _fr24_saved(e, why):
+    """Count a lookup the relay didn't need (relay 45, for the admin page): `why` is "reuse" (an answer from an earlier
+    sighting of the same flight) or "edge" (the plane only grazed the edge of the radius). Once per sighting."""
+    if e.get("fr24Saved"):
+        return
+    e["fr24Saved"] = why
+    with _data_lock:
+        u = _fr24_usage()
+        k = "saved" + why.capitalize()
+        u[k] = u.get(k, 0) + 1
+        u[k + "Today"] = u.get(k + "Today", 0) + 1
+        _dirty.add("fr24")
 
 
 def fr24_want(cs, hx, priority, who="Lists and alerts", pid=None):
@@ -1540,12 +1561,22 @@ def fr24_status():
             "queue": len(_fr24_q), "airports": len((_airports or {}).get("iata") or {})}
 
 
-def fr24_overlay(entries):
-    """Spotted today for boards that use Flightradar24: its flight numbers and routes over the free ones."""
+def fr24_overlay(entries, radius=15.0, over_km=3.0):
+    """Spotted today for boards that use Flightradar24: its flight numbers and routes over the free ones. Relay 45:
+    planes that stay in the outer quarter of the radius (and outside the overhead distance) aren't looked up, until
+    they come closer."""
     out, now = [], time.time()
+    edge = max(over_km, radius * FR24_EDGE)
     for e in entries:
         cs, hx = e.get("callsign") or "", e.get("hex") or ""
         info = fr24_info(cs, hx) if cs else None
+        if info and not info.get("none") and info.get("t", 0) < e.get("ts", 0) / 1000 - 1800 and fr24_key():
+            _fr24_saved(e, "reuse")               # answered for an earlier sighting of this flight
+        if not info and cs and (e.get("minDist") or 0) > edge:
+            if now - e.get("lastSeen", now) > 300 and fr24_key():
+                _fr24_saved(e, "edge")            # passed by at the edge without coming closer
+            out.append(e)
+            continue
         if info and not info.get("none"):
             e = dict(e)
             if info.get("flight"):
@@ -1612,7 +1643,7 @@ def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=
         everything = [e for e in spot.entries if place is None or (e.get("place") or "home") == place]
         day, rev = spot.day, spot.rev
     if api:
-        everything = fr24_overlay(everything)
+        everything = fr24_overlay(everything, spot.radius(), over_km)
     return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
             "stats": day_stats(everything, over_km)}
 
@@ -2209,6 +2240,7 @@ def status_json():
         events = list(EVENTS)[-80:]
     live, _ = screens_list()
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status(),
+            "health": {k: v["down"] for k, v in _health.items()},
             "vie": vie_status(), "screens": live}
 
 
@@ -3267,7 +3299,10 @@ def fr24_admin_html():
             f"<div style='height:100%;width:{pct}%;background:{col}'></div></div>"
             f"<p class=muted>{u.get('lookups', 0):,} lookups · {u.get('found', 0):,} flights found · "
             f"{u.get('wetLease', 0):,} in another airline's livery · {u.get('diverted', 0):,} diverted · "
-            f"state: {html.escape(str(st.get('state', '')))}</p>" + table +
+            f"state: {html.escape(str(st.get('state', '')))}</p>"
+            f"<p class=muted>Lookups saved this month: <b>{u.get('savedReuse', 0) + u.get('savedEdge', 0):,}</b> "
+            f"({u.get('savedReuseToday', 0) + u.get('savedEdgeToday', 0):,} today) · {u.get('savedReuse', 0):,} answered from an "
+            f"earlier sighting of the same flight · {u.get('savedEdge', 0):,} only passed the edge of the radius</p>" + table +
             f"<form method=post action='/admin/fr24plan'><p>Plan renews on day <input type=number name=day min=1 max=28 value={_fr24_reset_day()} "
             f"style='width:64px'> · spend at most <input type=number name=budget min=0 max=1000000 step=500 value={_fr24_base_budget()} style='width:110px'> credits "
             f"a month</p><p>For a while: <input type=number name=promo min=0 max=1000000 step=500 value={ARGS.fr24_budget_promo or ''} style='width:110px'> "
@@ -3715,6 +3750,98 @@ def summary_check(who, subs, spot, st):
     with _data_lock:
         _dirty.add("profiles")
     event("info", f"Evening summary sent to {who}")
+
+
+# Health watch (relay 45): Dave (the profile named HOME_OWNER) gets a notification when something breaks, and once when
+# it is fine again; at most one alert an hour for each kind. Each is in the journal too.
+HEALTH_FILE = DATA_DIR / "alive.json"      # {"t": last minute alive, "clean": stopped on purpose}
+HEALTH_REPEAT_S = 3600
+HEALTH_SOURCES_S = 15 * 60                 # every position source failing this long
+HEALTH_DISK = 0.90                         # the data disk this full
+_health_seen = {"posFail": 0.0}
+_health = {}                               # kind -> {"down": bool, "sent": time of the last alert}
+HEALTH_TEXT = {"sources": ("No flight positions: every source has failed for {m} minutes", "Flight positions are back"),
+               "fr24": ("Flightradar24 refused the key: the boards use the free sources", "Flightradar24 lookups work again"),
+               "disk": ("The relay's disk is {pct}% full", "The relay's disk has room again ({pct}% full)"),
+               "restart": ("The relay restarted unexpectedly (last alive at {at}); it is running again", "")}
+
+
+def _owner_push():
+    """The owner's push subscriptions (the list itself, so gone ones can be removed), or []."""
+    with _data_lock:
+        for p in profiles()["profiles"].values():
+            if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower():
+                return p.setdefault("push", [])
+    return []
+
+
+def _health_say(kind, down, **kw):
+    text = HEALTH_TEXT[kind][0 if down else 1].format(**kw)
+    event("warn" if down else "info", f"Health: {text}")
+    subs = _owner_push() if PUSH_OK else []
+    if subs:
+        _deliver(subs, {"title": "Fallblatt relay", "body": text, "tag": "health-" + kind, "url": "/admin"}, urgent=down)
+
+
+def _health_set(kind, down, **kw):
+    """Note a kind's state; alert on going down (not twice within the hour) and once on coming back after an alert."""
+    h = _health.setdefault(kind, {"down": False, "sent": 0.0, "alerted": False})
+    if down == h["down"]:
+        return
+    h["down"] = down
+    now = time.time()
+    if down and now - h["sent"] >= HEALTH_REPEAT_S:
+        h["sent"], h["alerted"] = now, True
+        _health_say(kind, True, **kw)
+    elif not down and h["alerted"]:
+        h["alerted"] = False
+        _health_say(kind, False, **kw)
+
+
+def _health_alive(clean=False):
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        HEALTH_FILE.write_text(json.dumps({"t": time.time(), "clean": clean, "restartSent": _health_seen.get("restartSent", 0)}),
+                               encoding="utf-8")
+    except OSError:
+        pass
+
+
+def health_check():
+    now = time.time()
+    last_ok = max([STARTED] + [st.get("last_ok", 0.0) for st in STATE.values()])
+    failing = now - _health_seen["posFail"] < 300 and _health_seen["posFail"] > last_ok
+    _health_set("sources", failing and now - last_ok > HEALTH_SOURCES_S, m=int((now - last_ok) / 60))
+    if fr24_key():
+        _health_set("fr24", _fr24_state["state"] == "refused")
+    try:
+        du = shutil.disk_usage(DATA_DIR if DATA_DIR.exists() else DATA_DIR.parent)
+        used = du.used / max(1, du.total)
+        h = _health.get("disk") or {}
+        _health_set("disk", used > HEALTH_DISK or (h.get("down") and used > HEALTH_DISK - .02), pct=round(used * 100))
+    except OSError:
+        pass
+
+
+def _health_watch():
+    try:
+        was = json.loads(HEALTH_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        was = None
+    _health_seen["restartSent"] = (was or {}).get("restartSent", 0)
+    _health_alive()
+    if was and not was.get("clean") and time.time() - _health_seen["restartSent"] >= HEALTH_REPEAT_S:
+        _health_seen["restartSent"] = time.time()
+        _health_alive()
+        time.sleep(20)                        # the owner's subscriptions and the push key are loaded by then
+        _health_say("restart", True, at=time.strftime("%d %b %H:%M", time.localtime(was.get("t", 0))))
+    while True:
+        time.sleep(60)
+        _health_alive()
+        try:
+            health_check()
+        except Exception as e:
+            event("warn", f"Health check failed: {e}", echo=False)
 
 
 def _push_watch():
@@ -4222,7 +4349,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists", "/places"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/account", "/signin", "/lists", "/places", "/pageversion"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -4237,6 +4364,12 @@ class Handler(BaseHTTPRequestHandler):
             if html is None:
                 return self.reply(502, "text/plain; charset=utf-8", b"Couldn't download the board from GitHub yet. Check the internet connection and reload.")
             return self.reply(200, "text/html; charset=utf-8", html.encode("utf-8"))
+        if path == "/pageversion":          # relay 45: the newest published version of a board, for its update notice
+            sub = (self.query().get("p") or [""])[0]
+            html = board_html(sub) if re.fullmatch(r"[a-z0-9-]{0,40}", sub) else None
+            m = re.search(r'\{v: "(\d[\d.]*)"', html or "")
+            body = {"v": m.group(1) if m else None, "date": _board_date.get(sub)}
+            return self.reply(200, "application/json", json.dumps(body).encode(), {"Cache-Control": "no-store"})
         if path == "/health":
             return self.reply(200, "text/plain", b"ok")
         if path == "/hello":
@@ -4638,6 +4771,7 @@ def main():
     threading.Thread(target=_fr24_worker, daemon=True).start()
     threading.Thread(target=_screen_watch, daemon=True).start()
     threading.Thread(target=_push_watch, daemon=True).start()
+    threading.Thread(target=_health_watch, daemon=True).start()
     with _data_lock:
         _fr24_data()
         profiles()
@@ -4657,10 +4791,18 @@ def main():
     print("Notifications: " + ("on (through the public https address)" if PUSH_OK else "off: install the cryptography package (Debian: python3-cryptography)"))
     print(f"Press Enter for the screens using the relay (also at http://localhost:{ARGS.port}/screens). Press Ctrl+C to stop.", flush=True)
     threading.Thread(target=_console, daemon=True).start()
+
+    def stop(*_):                             # systemd stops with SIGTERM: a stop on purpose, not a crash (relay 45)
+        raise KeyboardInterrupt
+    try:
+        signal.signal(signal.SIGTERM, stop)
+    except (ValueError, OSError):
+        pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
+    _health_alive(clean=True)
 
 
 if __name__ == "__main__":

@@ -97,6 +97,10 @@ py serve.py --fr24-key YOUR_KEY --save
 - If the key is refused (the subscription ended) or the budget is used up, the boards quietly use the free sources.
 - To turn it off: `py serve.py --fr24-key off --save`.
 - Flightradar24 data is kept for two days at most (their terms allow 30); the lifetime logbook doesn't use it.
+- Fewer credits (1.51, relay 45): an answer serves every later sighting of the same aircraft under the same callsign
+  that day (another aircraft with that callsign is looked up on its own), and planes that only pass through the outer
+  quarter of the spotting radius aren't looked up unless they come closer or are on the top half. The admin page
+  shows how many lookups this saved.
 
 ## Board features
 
@@ -600,8 +604,20 @@ Since 1.32 only one notification shows at a time (a new one replaces the last), 
 group with its own icon. With the app open, an alert plays the airport bell instead of the phone's sound; with the app
 closed the phone plays its own notification sound (the "Save the bell" download was removed in 1.40).
 
-**New versions.** When a newer version has been published, the board's footer and the app show a lamp; tap it to
-update. Nothing reloads by itself.
+**New versions (1.51).** When a newer version has been published (the relay checks GitHub at most once a minute and
+screens ask it every two minutes), a notice says so and counts down a minute, then the screen refreshes by itself.
+Any key, tap or click stops the countdown; the notice then stays with **Refresh now** (on a TV, OK on the remote
+presses it), and a screen nobody touches for half an hour refreshes then. It never refreshes while a card is open or
+Settings has unsaved changes. The board's footer lamp stays too.
+
+**The first picture (1.51).** Each screen keeps the last known board in the browser (the plane on top if it was there
+in the last half hour, Spotted today and Today in numbers of the same day), per profile, and shows it at once when it
+loads, marked **Last known board · not live yet**, until fresh data comes a moment later.
+
+**Health watch (relay 45).** The relay sends its owner (the profile named David) a notification when every position
+source has failed for more than 15 minutes, Flightradar24 refuses the key, the data disk is over 90% full, or the relay
+restarted unexpectedly (not after a normal stop or update), and once when the problem is gone; at most one alert an
+hour of each kind. Each is in the relay's log too, and `/status` lists the state under `health`.
 
 **Screens (relay version 12).** The relay keeps track of which screens are using it and prints them in its window
 as they connect, reload the board and go away, with what it knows about each: the screen's name, the device (Samsung
@@ -628,7 +644,8 @@ copy of this repository, `--source URL` to read positions from your own receiver
 `CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
 `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
 test profile: open `http://localhost:8096/test-signin` once in a browser; the made-up flights play out in the first few
-minutes after it starts);
+minutes after it starts; `--port 8296` runs it on other ports, so test relays of several checkouts don't answer for
+each other, and `smoke.py` takes `--port` too);
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with

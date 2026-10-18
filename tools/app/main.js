@@ -1987,6 +1987,7 @@ function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
   if (isOffline()) return T("No flight data for over a minute · retrying");
+  if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});
   if (!lastOk) return T("Connecting…");
   const age = Math.round((Date.now() - lastOk) / 1000), stale = lastFreshness.startsWith("stale");
@@ -1995,7 +1996,7 @@ function statusLine(){
 }
 function updateFooter(){
   const dot = $("dot");
-  dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
+  dot.dataset.state = S.demo ? "demo" : !relay() || isOffline() ? "off" : !lastOk ? (failures || snapShown ? "warn" : "") : failures || lastFreshness.startsWith("stale") ? "warn" : "live";
   const line = statusLine();
   for (const el of document.querySelectorAll(".statusText")) if (el.textContent !== line) el.textContent = line;
   document.body.dataset.health = dot.dataset.state || "";          // the line under the lists only shows when it matters
@@ -2066,18 +2067,8 @@ addEventListener("resize", () => {
 });
 
 // A newer version published: a banner above the tabs, tap to update.
-function watchVersion(show){             // as on the board: ask for this page now and then, nothing reloads by itself
-  const check = async () => {
-    try {
-      const r = await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"});
-      const m = /\{v: "(\d[\d.]*)"/.exec(await r.text());
-      if (m && m[1] !== VERSION) show(m[1]);
-    } catch {}
-  };
-  setTimeout(check, 60000);
-  setInterval(check, 10 * 60000);
-}
-watchVersion(v => { const b = $("newVer"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
+watchVersion();                          // the board's notice (with the patch notes); no reload while Settings is open
+NV.busy = () => tab === "settings";
 async function start(){
   try {
     await Promise.race([
@@ -2108,6 +2099,7 @@ function run(){
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
   tickClock(); setInterval(tickClock, 1000);
+  snapLoad();                                      // the last known board at once, until fresh data comes (1.51)
   renderFeatured(); renderLists(); updateFooter();
   if (relayV5()) syncSightings();
   dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);

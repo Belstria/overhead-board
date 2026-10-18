@@ -52,7 +52,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (44 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (45 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
@@ -98,7 +98,7 @@ build stops. Settings under `od.light.settings`; Settings → Device switches (`
 **Relay** (`relay/serve.py`): serves the published boards from GitHub Pages (refreshed at most once a minute; pushing to
 `main` reaches screens within minutes; `--local-root <repo>` serves a checkout), positions (`SOURCES` tried in order:
 adsb.lol, adsb.fi, airplanes.live, AvioADSB emergency only), sightings, logbook and game, Web Push, Flightradar24
-(Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search,
+(Explorer plan, pacing and per-profile daily limits; boards fall back to free sources when off), cards' data, geo search, a health watch that pushes the owner (relay 45),
 QR sign-in. Credit links are in About.
 
 **Profiles and access (relay 42+)**: there is no Home. Every visitor is a profile's device (cookie from a personal invite
@@ -136,7 +136,8 @@ their place on each position request. `host_ok()` refuses foreign Host names; lo
    for a hovering helicopter, `--far` a landing 32 km out). It runs a copy of the relay against made-up flights and serves
    this checkout at `http://localhost:8096/` (`/test/`, `/app/`); Dave's real relay and data are untouched. Profiles:
    "Test" (cookie `overhead=test-device`; a browser gets it from `/test-signin`) "New guest" (`?as=new`, the welcome) and "David" (`overhead=owner-device`, the owner: the admin pages).
-   Flights play out in the first minutes (restart for the Airport style).
+   Flights play out in the first minutes (restart for the Airport style). `--port N` (and `smoke.py --port N`; the
+   fake source runs on N-1) when another checkout may be testing at the same time: use your own, e.g. 8296.
 2. Look at it: a browser, or `py tools/test/shoot.py URL OUT steps...` (`PHONE=390x844` for the app, `SIZE=960x540 DPR=2`
    for the Fire TV, `COOKIE=` for another profile). Check the page errors it prints and look at the screenshots.
 3. Syntax check: extract the inline `<script>` and `node --check` it if Node is installed.

@@ -7,6 +7,8 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --hover    adds a police helicopter hovering overhead
     py tools/test/run_test_relay.py --far      the landing starts 32 km out (its photo, then the runway radar)
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake)
+    py tools/test/run_test_relay.py --port 8296   other ports (the fake source then on 8295), so test relays of
+                                                  several checkouts don't answer for each other (or env PORT)
 
 Then open http://localhost:8096/ (or /test/, /app/, /screens). Ctrl+C stops both.
 
@@ -30,7 +32,6 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-FAKE = "http://127.0.0.1:8095"
 
 
 def main():
@@ -39,7 +40,10 @@ def main():
     p.add_argument("--hover", action="store_true", help="add a helicopter hovering overhead")
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
+    p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
+    fake_port = a.port - 1
+    FAKE = f"http://127.0.0.1:{fake_port}"
     tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
     src = (REPO / "relay" / "serve.py").read_text(encoding="utf-8")
     for real, fake in [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
@@ -78,14 +82,15 @@ def main():
     if music.is_file():
         (tmp / "data" / "media").mkdir()
         shutil.copy(music, tmp / "data" / "media" / music.name)
-    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", PYTHONIOENCODING="utf-8",
+               FAKE_PORT=str(fake_port))
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
-    cmd = [sys.executable, "serve.py", "--port", "8096", "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
+    cmd = [sys.executable, "serve.py", "--port", str(a.port), "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
            "--home", "VIE", "--local-root", str(REPO), "--source", FAKE + "/ac/{lat}/{lon}/{nm}"]
     if a.fr24:
         cmd += ["--fr24-key", "goodkey"]
     relay = subprocess.Popen(cmd, cwd=tmp, stdin=subprocess.DEVNULL, env=env)  # utf-8: piped output would be cp1252
-    print(f"Test relay on http://localhost:8096/ (data in {tmp}). Ctrl+C to stop.", flush=True)
+    print(f"Test relay on http://localhost:{a.port}/ (data in {tmp}). Ctrl+C to stop.", flush=True)
     try:
         while fake.poll() is None and relay.poll() is None:
             time.sleep(.5)
