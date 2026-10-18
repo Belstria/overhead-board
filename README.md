@@ -359,6 +359,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Quick flaps** (Settings → Display, 1.14): every flap still turns through its letters and words, but as a blur,
   and the whole board lands on the new text in about 1.5 seconds. Flap speed % doesn't apply while it is on.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+  In the app and the light version (1.57) it is quiet hours: no chimes, dings or flap sounds while the app is open
+  (Settings → Night: Night mode, Quiet from, Until); the screen isn't dimmed.
   **At night** (Settings → Night, 1.53) picks DIM (the dimmed board) or NIGHT VIEW: during those hours a black page
   with just the clock, the plane on top (flight, route, type) and today's count in dark red, so it doesn't light up
   the room. Any key, tap or click brings back the (dimmed) board for a minute; that first input does nothing else.

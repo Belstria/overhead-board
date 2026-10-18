@@ -1028,7 +1028,7 @@ body.arOpen{overflow:hidden}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=69bebf58fc"></script>
+<script src="../test/i18n.js?v=982018939f"></script>
 <script>
 (() => {
 "use strict";
@@ -1124,7 +1124,8 @@ const REMARK_LOOK = {
 const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
 const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
@@ -1192,7 +1193,14 @@ function dlog(level, msg){
   if (DIAG.log.length > 200) DIAG.log.length = 200;
 }
 const scheduleDiag = () => {};
-let nightOn = false;          // the board's night mode; a phone doesn't need it
+// Night mode (1.57): on a phone quiet hours only, the sounds check nightOn as on the board; no dimming.
+let nightOn = false;
+function nightCheck(){
+  const mins = v => { const [h, m] = String(v || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+  const d = new Date(), n = d.getHours() * 60 + d.getMinutes(), a = mins(S.nightFrom), b = mins(S.nightTo);
+  nightOn = !!S.night && a !== b && (a < b ? n >= a && n < b : n >= a || n < b);
+}
+nightCheck(); setInterval(() => nightCheck(), 30000);
 /* ---------- text helpers ---------- */
 function clean(s){
   return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "SS").replace(/[Øø]/g, "O").replace(/[Łł]/g, "L")
@@ -5238,12 +5246,14 @@ const COCKPIT = [
     {k: "chimes", type: "switch", label: "Chimes"},
     {k: "bell", type: "switch", label: "Special bell", on: "airport", off: "classic", upText: "AIRPORT", downText: "CLASSIC", light: {span: 2}}]},
   {id: "control", title: ["Control", "Steuerung"], actions: true, for: "tv"},
-  {id: "night", title: ["Night", "Nacht"], cols: 3, for: "tv", items: [
-    {k: "night", type: "switch", label: "Night mode"},
-    {k: "nightFrom", type: "time", label: "Dim from"},
+  // 1.57 (#47 step 4): on a phone Night mode is quiet hours only (no sounds while the app is open); dimming a phone in
+  // your hand and the night view are the board's
+  {id: "night", title: ["Night", "Nacht"], cols: 3, items: [
+    {k: "night", type: "switch", label: "Night mode", phone: {hint: "Quiet at night while the app is open: no chimes, dings or flap sounds."}},
+    {k: "nightFrom", type: "time", label: "Dim from", phone: {label: "Quiet from"}},
     {k: "nightTo", type: "time", label: "Until"},
-    {k: "nightView", type: "switch", label: "At night", on: "view", off: "dim", upText: "NIGHT VIEW", downText: "DIM"},
-    {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]]}]},
+    {k: "nightView", type: "switch", label: "At night", on: "view", off: "dim", upText: "NIGHT VIEW", downText: "DIM", for: "tv"},
+    {k: "nightDim", type: "rotary", label: "Brightness", opts: [[25, "25"], [40, "40"], [55, "55"], [70, "70 %"]], for: "tv"}]},
   // 1.56 (#47 step 3): who this screen is signed in as, notifications, this device, privacy and About. `view: true`
   // plates are no part of Settings' own grid: the board shows them as a view of their own (Account & device, from the
   // Control plate), a phone as plates under its Settings (VIEW_PLATES). Their items are whole blocks (viewItemHtml).
@@ -5418,7 +5428,7 @@ function wireViews(box){
 }
 function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
-  const cap = `<span>${escH(T(it.label))}</span>`, hint = HINTS[it.k || it.type];
+  const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
@@ -6179,6 +6189,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.57", date: "2026-10-19", notes: [
+    "Night mode in the app: quiet hours without chimes, dings or flap sounds while the app is open (Settings → Night).",
+  ]},
   {v: "1.56", date: "2026-10-19", notes: [
     "Account: passkey and password as a checklist, each with a tick when it is set and its Add or Change button.",
     "Device: the other versions as two tiles, with Show the tips again as a small link under them.",
@@ -6855,7 +6868,7 @@ function applySettings(n){
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
-  saveSettings(); audioInit();
+  saveSettings(); audioInit(); nightCheck();
   pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {

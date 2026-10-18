@@ -425,6 +425,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   copies, made by `tools/push_main.py`. Measured at 960x540 on the test relay: first load 888 KB as before (875),
   later loads 486 KB; first flap at 5 Mbps 1.57 s before, 1.19 s first / 0.90 s later after (20 Mbps: 0.50 s →
   0.44 / 0.31 s). AIRPORTS, AIRLINES, TYPES, FLEET stay in the board (a few KB together).
+- 1.57 (to-do #47 step 4, settings on both sides only where it makes sense): the Night plate is on both; on a phone
+  Night mode, Quiet from (`phone: {label}`) and Until, with its own hint (`phone: {hint}`; `itemHtml` takes `it.hint`
+  first); At night and Brightness `for: "tv"`. main.js: `nightCheck()` sets `nightOn` (which the copied sound code
+  already checks) at load, every 30 s and in `applySettings`; DEFAULTS night/nightFrom/nightTo as the board's. Kept
+  as they were, decided item by item: Today in numbers and Change pages TV-only (the app has no turning pages; its
+  Today tab always shows the day's numbers); Update every and Drawing quality TV-only (Dave); the Favourites cell
+  TV-only (a phone has the Favourites & hidden plate); Notifications and About plates phone-only, Privacy TV-only
+  (a phone has it in About); the Control plate TV-only (a phone's Save bar); dimming and the night view TV-only.
 - 1.56 (to-do #47 step 3, #71, #74, #75): Account, Notifications, Device, Privacy and About are `view: true` plates in
   the shared `COCKPIT` (items `{type: "account"|"push"|"device"|"privacy"|"about"}`, `cls`, `cols: 1`; `push` and
   `about` phone-only, `privacy` TV-only). `cockpitFor()` keeps them (phone: no 2 columns); `PLATES` leaves them out,
