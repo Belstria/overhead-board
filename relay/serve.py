@@ -55,7 +55,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 43
+RELAY_VERSION = 44
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -834,7 +834,8 @@ def bingo_json(spot, day):
         if ok and k not in got:
             got[k] = now
             spot.changed("book")
-    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines}
+    nxt = datetime.datetime.combine(monday + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
+    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
     spot._bingo = (key, out)
     return out
 

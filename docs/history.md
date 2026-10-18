@@ -34,6 +34,11 @@ The repository is public: no addresses, keys or personal data here either.
   routeset (through the relay), Spotted today and the logbook from the relay (`/sightings`, `/logbook`), times from
   Vienna Airport via the relay (`/times`), Flightradar24 via the relay (`/flightinfo`). Features check
   `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints.
+- 1.50 (to-do #36-#40): Spotted today's filter (`svQuery`, `spotMatch`, `svFindHtml`/`svFindWire`; the board shows it
+  only where `HAS_KEYS`, a computer, not the TVs; the app and light always); the bingo's next card (`bingoReset`, from
+  the relay's `bingo.resets` since relay 44, else the Monday after `week` at 03:00); airline cards look further on
+  Wikipedia (`airlineWiki`: shorter names via `AIRLINE_TAIL`, then Wikipedia's search) and show adsbdb's country and
+  radio callsign (`airlineInfo`), and wait for the logo (`logoReady`); tips follow each other within ~60 ms (fade .18 s).
 
 ## The phone app
 
