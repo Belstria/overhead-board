@@ -153,6 +153,11 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
 .cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
 .cap:disabled{cursor:default;filter:brightness(.6)}
+.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:100%;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
+.cap.favCap span{flex:1;min-width:0;overflow:hidden;text-overflow:clip}
+.cap.favCap .fIco{flex:none;width:calc(15px*var(--k));height:calc(15px*var(--k));opacity:.8}
+.cap.favCap .favN{flex:none;width:auto;min-width:calc(24px*var(--k));padding:calc(3px*var(--k)) calc(5px*var(--k));font-size:calc(13px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
+.inst.favs{gap:calc(12px*var(--k))}
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
 /* 1.50: the filter above Spotted today (the board on a computer, the app) */
@@ -292,6 +297,13 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
 .plate.ctl p{text-align:center}
+.ctlCap{display:flex;align-items:center;justify-content:center;gap:calc(9px*var(--k));padding:0 calc(10px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
+.ctlCap .ico{flex:none;width:calc(22px*var(--k));height:calc(22px*var(--k));opacity:.8}
+.ctlTop .ctlCap{flex:1 1 0;min-width:0}
+.plate .acts.ctlTop{gap:calc(18px*var(--k));padding:calc(10px*var(--k)) calc(6px*var(--k))}
+.plate .acts.ctlBot{gap:calc(18px*var(--k));padding:calc(8px*var(--k)) calc(34px*var(--k))}
+.ctlBot .ctlCap[data-act=cancel]{flex:1 1 0}
+.ctlBot .ctlCap[data-act=save]{flex:1.6 1 0}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 /* About: patch notes, keys and information, on the same plates as Settings */
 #cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
@@ -411,9 +423,17 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .inst.updAll{overflow:hidden}
 .inst.updAll{justify-content:flex-start;padding-top:calc(6px*var(--k))}
 .inst.updAll .upd{gap:calc(5px*var(--k))}
-.inst.updAll .upd .cap,.inst.updAll .geoQ .cap{height:calc(28px*var(--k));margin:0;padding:0 calc(9px*var(--k));font-size:calc(10px*var(--k));white-space:nowrap}
-.inst.updAll .geoQ{margin-top:calc(6px*var(--k));gap:calc(6px*var(--k))}
-.inst.updAll .geoQ input{padding:calc(4px*var(--k)) calc(8px*var(--k));font-size:calc(12px*var(--k));height:calc(28px*var(--k))}
+.upd{flex-wrap:nowrap;gap:calc(10px*var(--k));width:100%}
+.upd .cap{flex:1 1 0;width:auto;min-width:0;margin:0;height:calc(36px*var(--k));padding:0 calc(6px*var(--k));display:flex;align-items:center;justify-content:center;gap:calc(6px*var(--k));font-size:calc(11px*var(--k));white-space:nowrap}
+.upd .cap .ico{flex:none;width:calc(16px*var(--k));height:calc(16px*var(--k));opacity:.8}
+.geoQ{position:relative;margin-top:calc(14px*var(--k));width:100%}
+.geoQ .ico{position:absolute;left:calc(10px*var(--k));top:50%;width:calc(16px*var(--k));height:calc(16px*var(--k));margin-top:calc(-8px*var(--k));color:#8d8a80;pointer-events:none}
+.geoQ input{height:calc(34px*var(--k));padding:0 calc(46px*var(--k)) 0 calc(34px*var(--k));font-size:calc(13px*var(--k))}
+.geoQ .go{all:unset;box-sizing:border-box;position:absolute;right:calc(4px*var(--k));top:50%;transform:translateY(-50%);cursor:pointer;padding:calc(5px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));font:800 calc(12px*var(--k))/1 var(--f-board);letter-spacing:.08em;color:#f0b429}
+.geoQ .go:hover:not(:disabled){background:rgba(240,180,41,.14)}
+.geoQ .go:disabled{opacity:.4;cursor:default}
+.inst.updAll .geoQ{margin-top:calc(8px*var(--k))}
+.inst.updAll .upd{justify-content:center}
 .inst.updAll .note{display:none}                 /* the board: City and Airport show the result, choices open as a pop-up */
 #tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .18s ease;cursor:pointer}
 #tipLayer.on{opacity:1}
@@ -524,7 +544,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=8415d410a0"></script>
+<script src="i18n.js?v=e22caec86d"></script>
 <script>
 (() => {
 "use strict";
@@ -5097,11 +5117,17 @@ function favManager(el){
     listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
   };
 }
-function favCard(){
+function favCard(side){
   if (!listsOk()) return;
   ctlSound.press();
-  cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => favManager(el.querySelector("[data-fm]")));
+  cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => {
+    const fm = el.querySelector("[data-fm]"); favManager(fm);
+    const h = side === "hide" && [...fm.querySelectorAll(".shH")][1];
+    if (h) h.scrollIntoView({block: "start"});
+  });
 }
+// The counts on the Favourites cell's caps (Settings, TV).
+function favCounts(){ for (const n of document.querySelectorAll("[data-favn]")) n.textContent = (userLists[n.dataset.favn] || []).length; }
 // What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
 function parseListEntry(t){
   t = String(t || "").trim();
@@ -6095,6 +6121,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.60.3", date: "2026-10-19", notes: [
+    "Settings: Favourites and Hidden are now two buttons with a small counter each, opening the list straight on that side.",
+  ]},
+  {v: "1.60.2", date: "2026-10-19", notes: [
+    "Settings → Control: About, Account and Reset tips as three buttons with icons, Cancel and a wider green Save below."]},
+  {v: "1.60.1", date: "2026-10-19", notes: [
+    "Settings → Location: Here, Live and Saved are three wide buttons with icons, and the address search is one field with GO inside.",
+  ]},
   {v: "1.60", date: "2026-10-19", notes: [
     "Settings → Display: the Styles cell shows a progress ring of how many styles are unlocked; tap it to open them.",
     "Styles can also be unlocked by hand for a profile.",
@@ -6749,9 +6783,7 @@ function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
   const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
-  if (it.type === "location") return it.layout === "split"
-    ? [{...it, type: "update"}, {type: "places", label: "Saved places", span: 2}, {type: "search", label: "Find an address", span: 2}].map(itemHtml).join("")
-    : itemHtml({...it, type: "update", places: true, search: true});
+  if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
@@ -6774,19 +6806,31 @@ function itemHtml(it){
       `<span class="ro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.84 2-2 2h-2a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 15 21z"/><circle cx="7.5" cy="10.5" r=".5"/><circle cx="12" cy="7.5" r=".5"/><circle cx="16.5" cy="10.5" r=".5"/></svg>${escH(T("Open styles"))}</span></button>` +
       `<p class="note stLock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>${escH(g0 ? (t > n ? T("{n} still locked", {n: t - n}) : T("All unlocked")) : T("Colours, flaps, badges and board styles to unlock."))}</p>`);
   }
-  if (it.type === "favs") return cell("loc" + (it.wide ? " wide" : ""), `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
-    `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
+  if (it.type === "favs") {
+    const hint = escH(T("Airlines, types, aircraft and flights to light up or leave out.")), svg = p => `<svg class="fIco" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+    const star = svg('<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>');
+    const off = svg('<path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/><path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"/><path d="M3 3l18 18"/>');
+    const row = (w, ico, name) => `<button class="cap favCap" type="button" data-favs="${w}" title="${hint}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
+      `<b class="lcd favN" data-favn="${w}" aria-hidden="true">${userLists[w].length}</b></button>`;
+    return cell("loc favs" + (it.wide ? " wide" : ""), row("fav", star, "Favourites") + row("hide", off, "Hidden"));
+  }
   if (it.type === "label") return cell("label", `<div class="lblF"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 24}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" placeholder="${escH(T(S.live ? "On the go" : "Home, Parents …"))}" value="${escH(S.live ? "" : String(draft[it.k] ?? ""))}"${S.live ? " disabled" : ""}>` +
     `<button class="lblSave" type="button" data-lsave hidden>${T("Save")}</button><span class="lblOk" data-lok hidden aria-label="${escH(T("Saved"))}">✓</span></div>`);
   if (it.type === "places") return cell("loc", `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` +
     `<p class="note">${escH(T("Tap one to watch it."))}</p>`);
-  if (it.type === "update") return cell("loc" + (it.search ? " updAll" : ""), `<div class="upd"><button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
-    `<button class="cap small" type="button" data-live aria-pressed="${!!S.live}">${T(S.live ? "Live location on" : "Live location")}</button>` +
-    (it.places ? `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` : "") + `</div>` +
-    (it.search ? `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T("Find an address"))}" ` +
-      `placeholder="${escH(T("Find an address"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div><span data-gn hidden></span>` : "") +
-    `<p class="note" data-lnote>${escH(T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports."))}</p><div class="ask apList" data-lask hidden></div>`);
+  if (it.type === "update") {
+    // 1.60.1: three wide caps with a line icon, then one dark search field with GO inside (the same on every layout)
+    const ic = d => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const cp = (a, d, w, h) => `<button class="cap small" type="button" ${a} title="${escH(T(h))}" aria-label="${escH(T(h))}">${ic(d)}<span>${escH(T(w))}</span></button>`;
+    return cell("loc" + (it.inline ? "" : " updAll"), `<div class="upd">` +
+      cp("data-loc", '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M20 12h2M2 12h2"/>', "Here", "Use current location") +
+      cp(`data-live aria-pressed="${!!S.live}"`, '<circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M11 19h5.5a3.5 3.5 0 0 0 0-7h-8a3.5 3.5 0 0 1 0-7H13"/>', "Live", S.live ? "Live location on" : "Live location") +
+      cp("data-places", '<path d="M18 7v14l-6-4-6 4V7a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4z"/>', "Saved", "Saved places") + `</div>` +
+      `<div class="geoQ">${ic('<circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/>')}<input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T("Find an address"))}" ` +
+      `placeholder="${escH(T("Find an address"))}"><button class="go" type="button" data-gs title="${escH(T("Search"))}" aria-label="${escH(T("Search"))}">${T("GO")}</button></div><div class="geoRes" data-gr></div><span data-gn${it.inline ? ' class="note"' : " hidden"}></span>` +
+      `<p class="note" data-lnote>${escH(T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports."))}</p><div class="ask apList" data-lask hidden></div>`);
+  }
   if (it.type === "search") return cell("loc", `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T(it.label))}" ` +
     `placeholder="${escH(T("Address or place"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div>` +
     `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the town, latitude and longitude."))}</p>`);
@@ -6836,8 +6880,7 @@ function wireCockpit(box){
   wireLocation(box);
   const sb = box.querySelector("[data-styles]");
   if (sb) sb.onclick = e => { e.stopPropagation(); stylesCard(); };
-  const fb = box.querySelector("[data-favs]");
-  if (fb) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(); };
+  for (const fb of box.querySelectorAll("[data-favs]")) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(fb.dataset.favs); };
 }
 // Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
 function cockpitShow(rolled, dir){
@@ -6864,14 +6907,16 @@ const cockpitUnsaved = () => !!draft && ITEMS.some(it => String(draft[it.k] ?? "
 function cockpitDirty(){ cockpitMark(cockpitUnsaved()); }
 function cockpitSave(){ applySettings(draft); placeCheck(); cockpitDone(true); }
 function cockpitCancel(){ cockpitDone(false); }
+// A Control plate cap: a line icon (Tabler outline) left of the word; `hint` is the full name for the tooltip and screen readers.
+const ctlCap = (act, d, label, hint, cls, attr) => `<button class="cap ctlCap${cls || ""}" type="button" data-act="${act}"${attr || ""}${hint ? ` title="${escH(hint)}" aria-label="${escH(hint)}"` : ""}>` +
+  `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg><span>${escH(label)}</span></button>`;
 function plateHtml(p){
   const body = p.actions
     ? `<p>${escH(T("Press Save to apply. Each screen keeps its own settings."))}</p>` +
-      `<div class="acts"><button class="cap big" type="button" data-act="cancel">${T("Cancel")}</button><button class="cap big go" type="button" data-act="save" aria-pressed="false">${T("Save")}</button>` +
-      `<button class="cap big" type="button" data-act="about">${T("About")}</button></div>` +
-      `<div class="acts"><button class="cap small" type="button" data-act="account">${T("Account & device")}</button>` +
-      `<button class="cap small" type="button" data-act="tips">${T("Show the tips again")}</button></div>` +
-      `<p>${escH(T("About shows what's new in each version, the keys, and who made it."))}</p>` +
+      `<div class="acts ctlTop">${ctlCap("about", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 9h.01M11 12h1v4h1", T("About"))}` +
+      `${ctlCap("account", "M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2", T("Account"), T("Account & device"))}` +
+      `${ctlCap("tips", "M3 12h1M12 3v1M20 12h1M5.6 5.6l.7 .7M18.4 5.6l-.7 .7M9 16a5 5 0 1 1 6 0a3.5 3.5 0 0 0 -1 3a2 2 0 0 1 -4 0a3.5 3.5 0 0 0 -1 -3M9.7 17h4.6", T("Reset tips"), T("Show the tips again"))}</div>` +
+      `<div class="acts ctlBot">${ctlCap("cancel", "M18 6l-12 12M6 6l12 12", T("Cancel"))}${ctlCap("save", "M5 12l5 5l10 -10", T("Save"), "", " go", ' aria-pressed="false"')}</div>` +
       `<p class="ver">${escH(versionLine())}</p>`
     : p.items.map(itemHtml).join("");
   return `<div class="plate${p.actions ? " ctl" : ""}${p.cls ? " " + p.cls : ""}"${p.cols ? ` style="--cols:${p.cols}${p.view ? ";grid-row:1 / span 2" : ""}"` : ""}><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${body}</div>`;
@@ -6888,7 +6933,7 @@ function cockpitOpen(){
     if (b.dataset.act === "save") cockpitSave();
     else if (b.dataset.act === "about") { aboutTap(); switchView("about"); }
     else if (b.dataset.act === "account") switchView("account");
-    else if (b.dataset.act === "tips") { tipsReset(); b.textContent = T("Tips will show again."); return; }
+    else if (b.dataset.act === "tips") { tipsReset(); (b.querySelector("span") || b).textContent = T("Tips will show again."); return; }
     else cockpitCancel();
   };
   cockpitShow();
@@ -7167,7 +7212,7 @@ function settingsSync(){
     if (el && document.activeElement !== el) el.value = draft[k];
   }
   const live = box && box.querySelector("[data-live]");
-  if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.textContent = T(S.live ? "Live location on" : "Live location"); }
+  if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.title = live.ariaLabel = T(S.live ? "Live location on" : "Live location"); }
   const n = box && box.querySelector("[data-lnote]");
   if (n && liveOk()) n.textContent = T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports.");
   const li = box && box.querySelector('.lcd[data-k="placeKey"]');
@@ -7451,7 +7496,7 @@ function boardTap(x, y){
   }
 }
 // The lists changed (a favourite, a hidden plane): draw what depends on them.
-function listsChanged(){ if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }
+function listsChanged(){ favCounts(); if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }
 function planeAgain(){ if (planeShown && cardOpenNow()) { const b = planeBody(planeShown); const el = $("cardBox").querySelector(".cardIn"); if (el) { el.innerHTML = `<button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; el.querySelector(".cardX").onclick = cardClose; b.wire(el); } } }
 ["pointerdown", "keydown", "touchstart", "touchend"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
