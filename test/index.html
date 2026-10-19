@@ -225,6 +225,16 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .inst.loc .ask{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(10px*var(--k))}
 .inst.loc .ask[hidden],.inst.loc .cap[hidden]{display:none}
 .inst.loc .ask .cap{margin:0}
+.stRing{display:grid;justify-items:center;gap:calc(5px*var(--k));width:100%;padding:calc(4px*var(--k)) 0;background:none;border:0;border-radius:calc(8px*var(--k));cursor:pointer;color:inherit;font:inherit}
+.stRing .ring{grid-area:1/1;width:calc(66px*var(--k));height:calc(66px*var(--k))}
+.stRing .rn{grid-area:1/1;align-self:center;font:500 calc(12px*var(--k))/1 var(--f-board);color:rgba(214,208,194,.7)}
+.stRing .rn b{font-weight:800;font-size:calc(20px*var(--k));color:#eee9dc}
+.stRing .ro{grid-area:2/1;display:flex;align-items:center;gap:calc(5px*var(--k));font:800 calc(11.5px*var(--k))/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#f0b429}
+.stRing .ro svg{width:calc(15px*var(--k));height:calc(15px*var(--k));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stRing:hover,.stRing:focus-visible{border:0;outline:none}
+.stRing:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
+.inst.loc .stLock{display:flex;align-items:center;justify-content:center;gap:calc(5px*var(--k))}
+.stLock svg{width:calc(13px*var(--k));height:calc(13px*var(--k));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .lcd{font:600 calc(20px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
   border:0;border-radius:calc(4px*var(--k));padding:calc(6px*var(--k)) calc(10px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #050505,0 1px 0 calc(3px*var(--k)) rgba(255,255,255,.05);-webkit-user-select:text;user-select:text}
@@ -522,7 +532,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=0d6a435d6b"></script>
+<script src="i18n.js?v=e5d2f52e7e"></script>
 <script>
 (() => {
 "use strict";
@@ -562,7 +572,8 @@ const STYLES = [
   ["theme", "Board style", [["classic", "Classic"], ["frankfurt", "Frankfurt"], ["blue", "Blue"],
     ["frankfurt70", "Frankfurt 1970s", {tr: "streak30"}], ["tokyo", "Tokyo night", {tr: "allsets"}]]]];
 const styleGame = () => (typeof lbData === "function" && lbData() || {}).game || null;
-const styleOk = (rule, g0) => !rule || !!g0 && (rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : (g0.bingoCards || 0) >= rule.cards);
+// 1.60: a style the owner granted by hand (g0.styleGrants: "all" or a list of ids) counts like an earned one; pass no id for earned only.
+const styleOk = (rule, g0, id) => !rule || !!g0 && ((id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : (g0.bingoCards || 0) >= rule.cards));
 // The board style, with a palette laid over it.
 function themeNow(){
   const T = THEMES[S.theme] || THEMES.classic, P = PALETTES[S.palette];
@@ -5423,14 +5434,14 @@ function styleRuleShort(rule){
 }
 function stylesNote(){
   const g0 = styleGame(), all = styleKinds().flatMap(([, , o]) => o.filter(x => x[2]));
-  return g0 ? T("{n} of {t} unlocked", {n: all.filter(x => styleOk(x[2], g0)).length, t: all.length}) : T("Colours, flaps, badges and board styles to unlock.");
+  return g0 ? T("{n} of {t} unlocked", {n: all.filter(x => styleOk(x[2], g0, x[0])).length, t: all.length}) : T("Colours, flaps, badges and board styles to unlock.");
 }
 // Settings → Styles: every choice of each kind; the unlocked ones apply at once, the locked ones say how to get them.
 function stylesCard(){
   const g0 = styleGame();
   const draw = () => cardOpen(`<h3>${escH(T("Styles"))}</h3><p class="note">${escH(stylesNote())} · ${escH(T("Locked ones say what unlocks them."))}</p>` + styleKinds().map(([k, name, opts]) =>
     `<h4 class="stH">${escH(T(name))}</h4><div class="stRow">` + opts.map(([id, nm, rule]) => {
-      const ok = styleOk(rule, g0), on = String(S[k] || (k === "theme" ? "classic" : "")) === id;
+      const ok = styleOk(rule, g0, id), on = String(S[k] || (k === "theme" ? "classic" : "")) === id;
       return `<button class="cap small stOpt" type="button" data-sk="${k}" data-sv="${escH(id)}" aria-pressed="${on}"${ok ? "" : " disabled"}` +
         `${ok ? "" : ` title="${escH(styleRuleText(rule))}"`}>${k === "badge" && id ? `<canvas data-badge="${id}" width="40" height="40"></canvas>` : ""}` +
         `<span>${escH(T(nm))}${ok ? "" : `<small>🔒 ${escH(styleRuleShort(rule))}</small>`}</span></button>`;
@@ -6095,6 +6106,10 @@ const CHANGELOG = [
   {v: "1.60.1", date: "2026-10-19", notes: [
     "Settings → Location: Here, Live and Saved are three wide buttons with icons, and the address search is one field with GO inside.",
   ]},
+  {v: "1.60", date: "2026-10-19", notes: [
+    "Settings → Display: the Styles cell shows a progress ring of how many styles are unlocked; tap it to open them.",
+    "Styles can also be unlocked by hand for a profile.",
+  ]},
   {v: "1.59", date: "2026-10-19", notes: [
     "Styles to unlock (Settings → Styles): colour palettes for points, flap finishes for trophies, a badge by the title for each full bingo card, and two board styles for the rarest trophies. Locked ones say how to get them.",
   ]},
@@ -6758,8 +6773,16 @@ function itemHtml(it){
   }
   if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
-  if (it.type === "styles") return cell("loc", `<button class="cap small" type="button" data-styles>${T("Styles")}</button>` +
-    `<p class="note">${escH(stylesNote())}</p>`);
+  if (it.type === "styles") {   // 1.59.1: a progress ring; the ring and its label are the button
+    const g0 = styleGame(), all = styleKinds().flatMap(([, , o]) => o.filter(x => x[2])), t = all.length, n = g0 ? all.filter(x => styleOk(x[2], g0, x[0])).length : 0;
+    const C = 2 * Math.PI * 30;
+    return cell("loc", `<button class="stRing" type="button" data-styles aria-label="${escH(T("Open styles"))}">` +
+      `<svg class="ring" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="#3a3c40" stroke-width="6"/>` +
+      `<circle cx="36" cy="36" r="30" fill="none" stroke="#f0b429" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C * n / (t || 1)).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"${n ? "" : " opacity=\"0\""}/></svg>` +
+      `<span class="rn"><b>${n}</b>/${t}</span>` +
+      `<span class="ro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.84 2-2 2h-2a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 15 21z"/><circle cx="7.5" cy="10.5" r=".5"/><circle cx="12" cy="7.5" r=".5"/><circle cx="16.5" cy="10.5" r=".5"/></svg>${escH(T("Open styles"))}</span></button>` +
+      `<p class="note stLock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>${escH(g0 ? (t > n ? T("{n} still locked", {n: t - n}) : T("All unlocked")) : T("Colours, flaps, badges and board styles to unlock."))}</p>`);
+  }
   if (it.type === "favs") return cell("loc" + (it.wide ? " wide" : ""), `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
     `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
   if (it.type === "label") return cell("label", `<div class="lblF"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 24}" spellcheck="false" autocomplete="off" ` +
