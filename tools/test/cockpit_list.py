@@ -2,6 +2,8 @@
 each plate's title and columns, then each cell's label, width and controls (data-k and the special hooks such as
 data-loc, data-live, data-places, data-gq, data-lsave, data-favs, data-act). Made for #47 (1.53.2): run it before and
 after a change to the shared COCKPIT definition and compare (no difference = nothing got lost on the way).
+Since 1.56 also the Account plates (the board's Account & device view, the app's plates under Settings): each plate's
+title, then its buttons, links and fields (id, data-*, text).
 
     py tools/test/cockpit_list.py [--port 8696] [--html DIR] > before.txt
 
@@ -45,6 +47,21 @@ DUMP = r"""() => {
 }"""
 
 
+VIEW = r"""(sel) => {
+  const out = [];
+  for (const p of document.querySelectorAll(sel + " .plate")) {
+    const h = p.querySelector("h3");
+    out.push(`VIEW ${h ? h.textContent : "?"}`);
+    for (const el of p.querySelectorAll("button, a, input, [id]")) {
+      if (el.matches("i, h3")) continue;
+      const ds = Object.keys(el.dataset).map(k => el.dataset[k] ? `${k}=${el.dataset[k]}` : k).join(" ");
+      out.push(`  ${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${ds ? " " + ds : ""}${el.href ? " href=" + el.getAttribute("href") : ""} "${(el.matches("button, a") ? el.textContent : "").trim().replace(/\s+/g, " ").slice(0, 40)}"`);
+    }
+  }
+  return out;
+}"""
+
+
 async def dump(p, name, url, open_settings, phone):
     opts = {"viewport": {"width": 390, "height": 844}, "is_mobile": True, "has_touch": True} if phone else {"viewport": {"width": 1920, "height": 1080}}
     ctx = await p.new_context(**opts)
@@ -61,6 +78,13 @@ async def dump(p, name, url, open_settings, phone):
     if HTML_DIR:
         (Path(HTML_DIR) / f"{name}.html").write_text(html.replace("><", ">\n<"), encoding="utf-8")
     lines.append("HTML sha1 " + hashlib.sha1(html.encode()).hexdigest())
+    if phone:
+        await page.wait_for_timeout(1500)
+        lines += await page.evaluate(VIEW, "#setExtra")
+    else:
+        await page.evaluate("document.querySelector('#cockpit [data-act=account]').click()")
+        await page.wait_for_timeout(2000)
+        lines += await page.evaluate(VIEW, "#cockpit")
     print(f"=== {name}")
     print("\n".join(lines))
     if errors:

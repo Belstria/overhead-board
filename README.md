@@ -23,13 +23,12 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `radius` | Spotting radius in km: planes within it are added to Spotted today (default 15) | `radius=8` |
 | `over` | Counts as directly overhead within this many km (default 3) | `over=2` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
-| `maxalt` | Ignore planes above this altitude in feet | `maxalt=15000` |
+| `maxalt` | Ignore planes above this altitude in feet (Settings shows metres when the units are metric) | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
 | `refresh` | Seconds between position updates (default 10) | `refresh=15` |
 | `speed` | Flap speed in percent: 100 is fastest, 10 is ten times slower (default 85) | `speed=50` |
 | `hd` | Render at 4K even if the screen reports a lower resolution | `hd` |
 | `sound` | Flap sound on (`1`, the default) or off (`0`) | `sound=0` |
-| `logos` | Airline logos on (`1`) or off (`0`) | `logos=0` |
 | `theme` | `classic`, `frankfurt` or `blue` | `theme=frankfurt` |
 | `rotate` | seconds per page, `0` to stay on one page (default 30) | `rotate=0` |
 | `favs` | favourites, separated by commas | `favs=Austrian,A380` |
@@ -314,7 +313,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
-  red **Sign out** next to the name, and Passkeys and Password each a row with its button beside it). **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
+  red **Sign out** next to the name; since 1.56 Passkey and Password as a checklist: an empty circle or a green tick,
+  a line on what each is, and **Add** / **Change** on the right). **About** (from Settings) opens as a page over Settings: its close button stays at the top while it
   scrolls, and closing it leaves Settings as it was.
 - **Settings → Location** (reworked in 1.40; relay 33 for the place and address parts):
   - **Place name** is the name of the place being watched (Home, Parents, Vacation …). Type a new one and a **Save**
@@ -382,6 +382,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Quick flaps** (Settings → Display, 1.14): every flap still turns through its letters and words, but as a blur,
   and the whole board lands on the new text in about 1.5 seconds. Flap speed % doesn't apply while it is on.
 - **Night mode**: dims the board and mutes it between set times (22:30 to 07:00 by default; `?night=0` turns it off).
+  In the app and the light version (1.57) it is quiet hours: no chimes, dings or flap sounds while the app is open
+  (Settings → Night: Night mode, Quiet from, Until); the screen isn't dimmed.
   **At night** (Settings → Night, 1.53) picks DIM (the dimmed board) or NIGHT VIEW: during those hours a black page
   with just the clock, the plane on top (flight, route, type) and today's count in dark red, so it doesn't light up
   the room. Any key, tap or click brings back the (dimmed) board for a minute; that first input does nothing else.
@@ -483,7 +485,8 @@ badges); Sounds keeps Button sounds, Chimes and the
 Special bell. It keeps its own settings on the device, but a guest's place still goes to their profile as in the
 app. On its side it is laid out like the app's, with the fields in place of the flaps.
 
-Switch to it in Settings → Device → **Switch to the light version**, and back with **Back to the full app**. The
+Switch to it in Settings → Device → the **Light version** tile, and back with the **Full app** tile (1.56: two tiles,
+the other being the Full board, with **Show the tips again** as a small link under them). The
 choice stays on the device: `/app/` (and so the Android app and a phone's home-screen icon) then opens the light
 version. Notifications are shared with the app.
 

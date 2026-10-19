@@ -72,9 +72,11 @@ animates, `paintCell()` draws a flap mid-flip; drums are `DRUM_*` tables. Sounds
 picks it: alerts, overhead, inbound, flying by) via `renderFeatured()`/`renderTimes()`. Lower half: rotating pages
 (Recent flights, This aircraft, Today in numbers) turned by a giant falling flap; views (Spotted today, Logbook,
 Radar, Settings) take over below the header (`switchView`). The rail buttons and Settings cockpit are DOM; Settings
-are one `COCKPIT` for board, app and light (`for`/`flaps`/`phone`/`light` flags, `cockpitFor()`; 1.53.2), checked with
-`tools/test/cockpit_list.py`. The radar's optional map (1.55) is OpenFreeMap vector tiles drawn by the board itself (`radarMapBuild`, `mvtRead`;
-no text, no key); trophies are mostly tiers (`TROPHY_LADDERS`, relay `TROPHY_LADDER`, progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()`, flap finishes in `tile()`.
+are one `COCKPIT` for board, app and light (`for`/`flaps`/`phone`/`light` flags, `cockpitFor()`; 1.53.2; Account, Device and
+About too as `view` plates, 1.56), checked with
+`tools/test/cockpit_list.py`; smoke.py fails when a plate overflows at Fire TV size (`tools/test/plates.py`, 1.58). The radar's optional map (1.55) is OpenFreeMap vector tiles drawn by the board
+itself (`radarMapBuild`, `mvtRead`; no text, no key); trophies are mostly tiers (`TROPHY_LADDERS`, relay `TROPHY_LADDER`,
+progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()`, flap finishes in `tile()`.
 Realistic look is `S.real`/`REAL()`. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
 Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 
