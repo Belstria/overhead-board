@@ -10,6 +10,9 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.61 additions (to-do #76 and Dave's feedback): the board's `cockpitDone(saved)` keeps Settings open after Save
+  (`cockpitOpen()` again, "Saved" on the Save cap for 1.6 s); Cancel still goes back to the board. Favourites and Styles
+  caps are 30 px tall and 86% wide (Styles 100% with smaller text, as the Display cell is narrow).
 - 1.61 / relay 53 (Styles redesign): the Styles cell is two `favCap` caps (`data-styles="theme"|"badge"`, `palette` in
   the light version via `lookKind()`; `.stN` display from `styleShort()`/`STYLE_SHORT`) and a count (`.stCnt`;
   `stylesCellRefresh()`, also called by `achCheck`). `stylesCard(focusKind)`: `STYLE_ROWS` (theme, palette, finish,

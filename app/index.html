@@ -41,11 +41,11 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
 .cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
 .cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
 .cap:disabled{cursor:default;filter:brightness(.6)}
-.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:100%;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
+.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:86%;height:calc(30px*var(--k));align-self:center;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
 .cap.favCap span{flex:1;min-width:0;overflow:hidden;text-overflow:clip}
 .cap.favCap .fIco{flex:none;width:calc(15px*var(--k));height:calc(15px*var(--k));opacity:.8}
-.cap.favCap .favN{flex:none;width:auto;min-width:calc(24px*var(--k));padding:calc(3px*var(--k)) calc(5px*var(--k));font-size:calc(13px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
-.inst.favs{gap:calc(12px*var(--k))}
+.cap.favCap .favN{flex:none;width:auto;min-width:calc(22px*var(--k));padding:calc(2px*var(--k)) calc(5px*var(--k));font-size:calc(12px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
+.inst.favs{gap:calc(14px*var(--k));justify-content:center}   /* 1.61: smaller caps with room around them */
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
 /* 1.50: the filter above Spotted today (the board on a computer, the app) */
@@ -206,7 +206,8 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
    the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
 /* 1.61: Settings → Styles. The cell: Look and Badge caps like the Favourites cell's, the count under them. The card: a
    preview strip, then a row per kind (label, ◀, the choice on an amber display, ▶), what unlocks a locked one under it. */
-.inst.styl .stN{min-width:calc(52px*var(--k));text-align:center}
+.inst.styl .cap.favCap{width:100%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
+.inst.styl .stN{min-width:0;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center}   /* 1.61: the narrow Display cell keeps both words */
 .inst.styl .stCnt{margin:0}
 #cardBox .styles .stPrev{display:block;width:100%;height:calc(64px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(12px*var(--ck,1));border-radius:calc(8px*var(--ck,1))}
 #cardBox .styles .stRows{display:grid;gap:calc(6px*var(--ck,1))}
@@ -6746,6 +6747,8 @@ setInterval(() => {
    page, which changes with every push. */
 const CHANGELOG = [
   {v: "1.61", date: "2026-10-19", notes: [
+    "Saving Settings keeps you in Settings.",
+    "The Favourites and Styles buttons in Settings are a little smaller.",
     "Settings → Styles redesigned: a live preview on top and one row each for board, colours, flaps and badge, stepped through with ◀ ▶. The Settings cell shows your look and badge.",
     "Colours and flap finishes now only apply with the Classic board style; your choice is kept for when you switch back.",
     "LED dots flaps are now clearly readable.",
