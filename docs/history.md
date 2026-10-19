@@ -10,6 +10,26 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.61 additions (to-do #76 and Dave's feedback): the board's `cockpitDone(saved)` keeps Settings open after Save
+  (`cockpitOpen()` again, "Saved" on the Save cap for 1.6 s); Cancel still goes back to the board. Favourites and Styles
+  caps are 30 px tall and 86% wide (Styles 100% with smaller text, as the Display cell is narrow).
+- 1.61 / relay 53 (Styles redesign): the Styles cell is two `favCap` caps (`data-styles="theme"|"badge"`, `palette` in
+  the light version via `lookKind()`; `.stN` display from `styleShort()`/`STYLE_SHORT`) and a count (`.stCnt`;
+  `stylesCellRefresh()`, also called by `achCheck`). `stylesCard(focusKind)`: `STYLE_ROWS` (theme, palette, finish,
+  badge) as `.stLine` rows (tabindex 0; arrows are tabindex -1 so a remote moves row to row; Left/Right/Enter step,
+  Up/Down move, Up from the top focuses the ×); locked choices are stepped onto and shown dimmed with a lock and
+  `styleRuleText` under the row, but never applied; `stylesPreview(cv)` draws the logo, title word and three `tile()`
+  flaps. `classicLook()`: `themeNow()` lays a palette and `FINISH()` returns a finish only with the Classic board (or
+  LIGHT). LED dots: `LED_FONT` (5x7, hex per row), `ledText()` lays the hinge between rows 3 and 4, `LED_FLAP` dark
+  faces, glow when the pitch is ≥ 4 px, square dots below 3.2 px; text with other letters is sampled into the same grid.
+  Badge: `badgeGlyph(g, id, k)` (the silhouette; jumbo nose up), `pictogram(g, x, y, s, badge)` draws it instead of the
+  plane (board title, app/light `drawMark`; the title roundel and the app's `#badge` canvas went), `badgeIcons()` sets
+  the favicon (canvas PNG via `iconDraw`) and the apple-touch-icon (`apple-touch-icon-<id>.png`).
+  `tools/app/make_icons.py` (Playwright) renders `app/icon-192|512|maskable-512-<id>.png` and `apple-touch-icon-<id>.png`
+  with the board's own `badgeGlyph`/`iconDraw`. Relay 53: `BADGES`, `badge_manifest()`: `/app/manifest.webmanifest`
+  for a profile whose settings have a badge names those icons (no-cache, Vary: Cookie); the app's manifest link has
+  `crossorigin="use-credentials"` so the cookie goes along; the manifest got `"id": "./"` so the installed app keeps
+  its identity. The Android APK's launcher icon can't change without a new APK (activity-alias), so it stays.
 - 1.60 / relay 52: the Styles cell is a progress ring (`.stRing`, built in `itemHtml` for `type: "styles"`). Styles granted by hand: profile field `styleGrants` ("all" or ids, `STYLE_GRANTS`, `style_grants()`), set from the admin card's Styles line (`POST /admin/styles`: `pid`, `mode` = `all` | `earned` | `pick`, `grant` = ids, repeated or comma-separated), sent in `/logbook` as `game.styleGrants`; `styleOk(rule, g0, id)` counts them, `achList` calls it without an id so grants raise no pop-up.
 - 1.59 / relay 51 (to-do #66, stacked on 1.55): `STYLES` ([kind, name, [[id, name, rule]]], rules `{pts}`/`{tr}`/
   `{cards}`), `styleOk(rule, g0)` with `styleGame()` (lbData's game), `PALETTES` laid over the theme by `themeNow()`

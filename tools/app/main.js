@@ -387,9 +387,8 @@ function drawMark(){
   cv.width = cv.height = Math.round(s * d);
   const g = cv.getContext("2d");
   g.setTransform(d, 0, 0, d, 0, 0);
-  pictogram(g, 0, 0, s);
-  const b = $("badge");                                  // 1.59: the title badge (Settings → Styles)
-  if (b) { b.hidden = !S.badge; if (S.badge) { b.width = b.height = Math.round(22 * d); const c = b.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0); drawBadge(c, S.badge, 0, 0, 22); } }
+  pictogram(g, 0, 0, s, S.badge);                        // 1.61: the title badge takes the plane's place
+  badgeIcons();                                          // and the browser tab's icon
 }
 //@E10
 

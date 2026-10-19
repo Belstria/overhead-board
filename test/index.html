@@ -153,11 +153,11 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 .cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
 .cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
 .cap:disabled{cursor:default;filter:brightness(.6)}
-.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:100%;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
+.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:86%;height:calc(30px*var(--k));align-self:center;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
 .cap.favCap span{flex:1;min-width:0;overflow:hidden;text-overflow:clip}
 .cap.favCap .fIco{flex:none;width:calc(15px*var(--k));height:calc(15px*var(--k));opacity:.8}
-.cap.favCap .favN{flex:none;width:auto;min-width:calc(24px*var(--k));padding:calc(3px*var(--k)) calc(5px*var(--k));font-size:calc(13px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
-.inst.favs{gap:calc(12px*var(--k))}
+.cap.favCap .favN{flex:none;width:auto;min-width:calc(22px*var(--k));padding:calc(2px*var(--k)) calc(5px*var(--k));font-size:calc(12px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
+.inst.favs{gap:calc(14px*var(--k));justify-content:center}   /* 1.61: smaller caps with room around them */
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
 /* 1.50: the filter above Spotted today (the board on a computer, the app) */
@@ -230,16 +230,6 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .inst.loc .ask{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(10px*var(--k))}
 .inst.loc .ask[hidden],.inst.loc .cap[hidden]{display:none}
 .inst.loc .ask .cap{margin:0}
-.stRing{display:grid;justify-items:center;gap:calc(5px*var(--k));width:100%;padding:calc(4px*var(--k)) 0;background:none;border:0;border-radius:calc(8px*var(--k));cursor:pointer;color:inherit;font:inherit}
-.stRing .ring{grid-area:1/1;width:calc(66px*var(--k));height:calc(66px*var(--k))}
-.stRing .rn{grid-area:1/1;align-self:center;font:500 calc(12px*var(--k))/1 var(--f-board);color:rgba(214,208,194,.7)}
-.stRing .rn b{font-weight:800;font-size:calc(20px*var(--k));color:#eee9dc}
-.stRing .ro{grid-area:2/1;display:flex;align-items:center;gap:calc(5px*var(--k));font:800 calc(11.5px*var(--k))/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#f0b429}
-.stRing .ro svg{width:calc(15px*var(--k));height:calc(15px*var(--k));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.stRing:hover,.stRing:focus-visible{border:0;outline:none}
-.stRing:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
-.inst.loc .stLock{display:flex;align-items:center;justify-content:center;gap:calc(5px*var(--k))}
-.stLock svg{width:calc(13px*var(--k));height:calc(13px*var(--k));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .lcd{font:600 calc(20px*var(--k))/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f6c54a;background:linear-gradient(#0b0e09,#151b10);
   border:0;border-radius:calc(4px*var(--k));padding:calc(6px*var(--k)) calc(10px*var(--k));text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.45);
   box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 0 calc(2px*var(--k)) #050505,0 1px 0 calc(3px*var(--k)) rgba(255,255,255,.05);-webkit-user-select:text;user-select:text}
@@ -334,6 +324,28 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 
 /* Cards (1.34): a plane, an airline or a place, the favourite/hide sheet and the favourites manager; over the board or
    the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
+/* 1.61: Settings → Styles. The cell: Look and Badge caps like the Favourites cell's, the count under them. The card: a
+   preview strip, then a row per kind (label, ◀, the choice on an amber display, ▶), what unlocks a locked one under it. */
+.inst.styl .cap.favCap{width:100%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
+.inst.styl .stN{min-width:0;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center}   /* 1.61: the narrow Display cell keeps both words */
+.inst.styl .stCnt{margin:0}
+#cardBox .styles .stPrev{display:block;width:100%;height:calc(64px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(12px*var(--ck,1));border-radius:calc(8px*var(--ck,1))}
+#cardBox .styles .stRows{display:grid;gap:calc(6px*var(--ck,1))}
+#cardBox .styles .stLine{display:grid;grid-template-columns:calc(82px*var(--ck,1)) calc(42px*var(--ck,1)) minmax(0,1fr) calc(42px*var(--ck,1));align-items:center;
+  gap:calc(4px*var(--ck,1)) calc(8px*var(--ck,1));padding:calc(5px*var(--ck,1)) calc(6px*var(--ck,1));border-radius:calc(8px*var(--ck,1));outline:none;transition:opacity .2s}
+#cardBox .styles .stLine:focus-visible{box-shadow:0 0 0 calc(2px*var(--ck,1)) #f6c54a;background:rgba(246,197,74,.06)}
+#cardBox .styles .stL{font:700 calc(13px*var(--ck,1))/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#c9c4b6}
+#cardBox .styles .stArr{width:100%;height:calc(38px*var(--ck,1));margin:0;padding:0;font-size:calc(14px*var(--ck,1));line-height:1}
+#cardBox .styles .stVal{display:flex;align-items:center;justify-content:center;gap:calc(6px*var(--ck,1));min-width:0;height:calc(38px*var(--ck,1));box-sizing:border-box;
+  padding:0 calc(8px*var(--ck,1));font-size:calc(16px*var(--ck,1));letter-spacing:.06em;white-space:nowrap;overflow:hidden}
+#cardBox .styles .stVal svg{flex:none;width:calc(14px*var(--ck,1));height:calc(14px*var(--ck,1));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#cardBox .styles .locked .stVal{color:rgba(246,197,74,.42);text-shadow:none}
+#cardBox .styles .stWhy{grid-column:2/5;margin:0;font:500 calc(12px*var(--ck,1))/1.25 var(--f-board);color:#a9a49a;text-align:center}
+#cardBox .styles .stWhy[hidden]{display:none}
+#cardBox .styles .stLine.off{opacity:.32}
+#cardBox .styles .stLine.off .stArr{cursor:default}
+#cardBox .styles .stClassic{margin:calc(10px*var(--ck,1)) 0 0;text-align:center;color:#c9c4b6;font-size:calc(13px*var(--ck,1))}
+#cardBox .styles .stCnt{margin:calc(10px*var(--ck,1)) 0 0;text-align:center;color:#959aa3;font-size:calc(13px*var(--ck,1))}
 #cardBox{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);font-family:var(--f-board)}
 #cardBox[hidden]{display:none}
 @media (min-width:700px){#cardBox{align-items:center}}
@@ -360,15 +372,6 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .cRoute .cLink,.cardish .cRoute .cLink{margin:calc(2px*var(--ck,1)) 0}
 #cardBox .cBtns,.cardish .cBtns{display:flex;gap:calc(8px*var(--ck,1));flex-wrap:wrap;margin-top:calc(12px*var(--ck,1))}
 /* 1.59: Settings → Styles */
-#cardBox .styles h4.stH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(12px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--accent,#f0b429)}
-#cardBox .styles .stRow{display:flex;flex-wrap:wrap;gap:calc(8px*var(--ck,1))}
-#cardBox .styles .stOpt{display:inline-flex;flex-direction:row;gap:calc(7px*var(--ck,1))!important;align-items:center;justify-content:center;gap:calc(2px*var(--ck,1));width:auto;height:auto;min-height:calc(38px*var(--ck,1));padding:calc(5px*var(--ck,1)) calc(10px*var(--ck,1));margin:0;text-transform:none;letter-spacing:.02em}
-#cardBox .styles .stOpt canvas{width:calc(20px*var(--ck,1));height:calc(20px*var(--ck,1))}
-#cardBox .styles .stOpt span{font:700 calc(14px*var(--ck,1))/1.15 var(--f-board);display:flex;flex-direction:column;align-items:flex-start}
-#cardBox .styles .stOpt canvas{flex:none}
-#cardBox .styles .stOpt small{font:500 calc(11px*var(--ck,1))/1.15 var(--f-board);opacity:.85;text-transform:none}
-#cardBox .styles .stRow{gap:calc(6px*var(--ck,1))}#cardBox .styles h4.stH{margin:calc(10px*var(--ck,1)) 0 calc(5px*var(--ck,1))}
-#cardBox .styles .stOpt:disabled{filter:brightness(.55)}
 #cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:calc(42px*var(--ck,1));padding:calc(8px*var(--ck,1)) calc(14px*var(--ck,1));border-radius:calc(8px*var(--ck,1));background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
   font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
@@ -544,7 +547,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=e22caec86d"></script>
+<script src="i18n.js?v=8fe612ccfe"></script>
 <script>
 (() => {
 "use strict";
@@ -583,15 +586,36 @@ const STYLES = [
     ["jumbo", "Jumbo", {cards: 4}], ["jet", "Fighter jet", {cards: 5}], ["concorde", "Concorde", {cards: 6}]]],
   ["theme", "Board style", [["classic", "Classic"], ["frankfurt", "Frankfurt"], ["blue", "Blue"],
     ["frankfurt70", "Frankfurt 1970s", {tr: "streak30"}], ["tokyo", "Tokyo night", {tr: "allsets"}]]]];
+const BADGE_IDS = STYLES.find(x => x[0] === "badge")[2].map(x => x[0]).filter(Boolean);
 const styleGame = () => (typeof lbData === "function" && lbData() || {}).game || null;
 // 1.60: a style the owner granted by hand (g0.styleGrants: "all" or a list of ids) counts like an earned one; pass no id for earned only.
 const styleOk = (rule, g0, id) => !rule || !!g0 && ((id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : (g0.bingoCards || 0) >= rule.cards));
+// 1.61: Colours and flap finishes apply only with the Classic board; another board style keeps its own (the choice
+// stays saved, so going back to Classic brings it back). The light version has no board styles.
+const classicLook = () => (typeof LIGHT !== "undefined" && LIGHT) || !S.theme || S.theme === "classic";
 // The board style, with a palette laid over it.
 function themeNow(){
-  const T = THEMES[S.theme] || THEMES.classic, P = PALETTES[S.palette];
+  const T = THEMES[S.theme] || THEMES.classic, P = classicLook() && PALETTES[S.palette];
   return P ? {...T, ink: P.ink, accent: P.accent} : T;
 }
-// A title badge: a little roundel with a silhouette, by the logo (drawn at x, y, s across).
+// A title badge's silhouette, centred on 0,0 and about 2k across, in the current fill colour (1.61: drawn in the logo
+// square instead of the plane, in the browser tab's icon and in the app icons; tools/app/make_icons.py uses it too).
+function badgeGlyph(g, id, k){
+  g.save(); g.strokeStyle = g.fillStyle; g.lineCap = "round"; g.lineJoin = "round";
+  g.beginPath();
+  if (id === "star") { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? k * .42 : k; g.lineTo(Math.cos(a) * r, Math.sin(a) * r + k * .08); } g.closePath(); g.fill(); }
+  else if (id === "prop") { for (let i = 0; i < 3; i++) { g.save(); g.rotate(i * Math.PI * 2 / 3); g.beginPath(); g.ellipse(0, -k * .52, k * .2, k * .5, 0, 0, Math.PI * 2); g.fill(); g.restore(); } g.beginPath(); g.arc(0, 0, k * .2, 0, Math.PI * 2); g.fill(); }
+  else if (id === "heli") { g.lineWidth = k * .16; g.moveTo(-k, -k * .55); g.lineTo(k, -k * .55); g.moveTo(0, -k * .55); g.lineTo(0, -k * .3); g.stroke();
+    g.beginPath(); g.ellipse(-k * .15, 0, k * .48, k * .32, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.moveTo(k * .25, 0); g.lineTo(k, -k * .12); g.stroke();
+    g.beginPath(); g.moveTo(-k * .5, k * .45); g.lineTo(k * .25, k * .45); g.stroke(); }
+  else if (id === "jet") { g.moveTo(0, -k); g.lineTo(k * .2, -k * .2); g.lineTo(k * .85, k * .45); g.lineTo(k * .2, k * .4); g.lineTo(k * .32, k * .85);
+    g.lineTo(-k * .32, k * .85); g.lineTo(-k * .2, k * .4); g.lineTo(-k * .85, k * .45); g.lineTo(-k * .2, -k * .2); g.closePath(); g.fill(); }
+  else if (id === "concorde") { g.moveTo(0, -k * 1.05); g.lineTo(k * .1, -k * .4); g.quadraticCurveTo(k * .75, k * .45, k * .7, k * .7); g.lineTo(k * .1, k * .6);
+    g.lineTo(0, k * .9); g.lineTo(-k * .1, k * .6); g.lineTo(-k * .7, k * .7); g.quadraticCurveTo(-k * .75, k * .45, -k * .1, -k * .4); g.closePath(); g.fill(); }
+  else if (id === "jumbo") drawPlaneShape(g, k * 2);      // nose up: the logo's own plane flies at 45°
+  g.restore();
+}
+// The badge as a little roundel (the Styles card's badge row), at x, y, s across.
 function drawBadge(g, id, x, y, s){
   if (!id) return;
   const c = s / 2;
@@ -599,20 +623,31 @@ function drawBadge(g, id, x, y, s){
   const rim = g.createLinearGradient(0, -c, 0, c); rim.addColorStop(0, "#f2c64c"); rim.addColorStop(1, "#a9791c");
   g.fillStyle = rim; g.beginPath(); g.arc(0, 0, c, 0, Math.PI * 2); g.fill();
   g.fillStyle = "#17140e"; g.beginPath(); g.arc(0, 0, c * .84, 0, Math.PI * 2); g.fill();
-  g.fillStyle = g.strokeStyle = "#f2c64c"; g.lineCap = "round"; g.lineJoin = "round";
-  const k = c * .62;
-  g.beginPath();
-  if (id === "star") { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? k * .42 : k; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); }
-  else if (id === "prop") { for (let i = 0; i < 3; i++) { g.save(); g.rotate(i * Math.PI * 2 / 3); g.beginPath(); g.ellipse(0, -k * .52, k * .2, k * .5, 0, 0, Math.PI * 2); g.fill(); g.restore(); } g.beginPath(); g.arc(0, 0, k * .2, 0, Math.PI * 2); g.fill(); }
-  else if (id === "heli") { g.lineWidth = c * .1; g.moveTo(-k, -k * .55); g.lineTo(k, -k * .55); g.moveTo(0, -k * .55); g.lineTo(0, -k * .3); g.stroke();
-    g.beginPath(); g.ellipse(-k * .15, 0, k * .48, k * .32, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.moveTo(k * .25, 0); g.lineTo(k, -k * .12); g.stroke();
-    g.beginPath(); g.moveTo(-k * .5, k * .45); g.lineTo(k * .25, k * .45); g.stroke(); }
-  else if (id === "jet") { g.moveTo(0, -k); g.lineTo(k * .2, -k * .2); g.lineTo(k * .85, k * .45); g.lineTo(k * .2, k * .4); g.lineTo(k * .32, k * .85);
-    g.lineTo(-k * .32, k * .85); g.lineTo(-k * .2, k * .4); g.lineTo(-k * .85, k * .45); g.lineTo(-k * .2, -k * .2); g.closePath(); g.fill(); }
-  else if (id === "concorde") { g.moveTo(0, -k * 1.05); g.lineTo(k * .1, -k * .4); g.quadraticCurveTo(k * .75, k * .45, k * .7, k * .7); g.lineTo(k * .1, k * .6);
-    g.lineTo(0, k * .9); g.lineTo(-k * .1, k * .6); g.lineTo(-k * .7, k * .7); g.quadraticCurveTo(-k * .75, k * .45, -k * .1, -k * .4); g.closePath(); g.fill(); }
-  else if (id === "jumbo") { g.rotate(-Math.PI / 4); drawPlaneShape(g, k * 1.8); }
+  g.fillStyle = "#f2c64c"; badgeGlyph(g, id, c * .62);
   g.restore();
+}
+// The app icon's look (app/icon-*.png): a yellow split flap with the plane or the badge. 1.61: the browser tab shows
+// the badge too (board, app, light); without one the page's own icon stays.
+function iconDraw(g, n, id, glyph = .3){
+  g.fillStyle = "#f2b632"; g.fillRect(0, 0, n, n / 2); g.fillStyle = "#dca32a"; g.fillRect(0, n / 2, n, n / 2);
+  g.fillStyle = "#141414"; g.fillRect(0, n * 31 / 64, n, n * 2 / 64);
+  g.save(); g.translate(n / 2, n / 2); badgeGlyph(g, id, n * glyph); g.restore();
+}
+let favDefault = null;
+function badgeIcons(){
+  const fav = document.querySelector('link[rel="icon"]'), apple = document.querySelector('link[rel="apple-touch-icon"]');
+  if (!fav) return;
+  if (favDefault == null) favDefault = [fav.getAttribute("href"), fav.getAttribute("type"), apple && apple.getAttribute("href")];
+  const id = BADGE_IDS.includes(S.badge) ? S.badge : "";
+  if (fav.dataset.badge === id) return;
+  fav.dataset.badge = id;
+  if (!id) { fav.setAttribute("href", favDefault[0]); if (favDefault[1]) fav.setAttribute("type", favDefault[1]); if (apple) apple.setAttribute("href", favDefault[2]); return; }
+  try {
+    const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+    const g = cv.getContext("2d"); g.beginPath(); rr(g, 0, 0, 64, 64, 12); g.clip(); iconDraw(g, 64, id, .34);
+    fav.setAttribute("type", "image/png"); fav.setAttribute("href", cv.toDataURL("image/png"));
+  } catch {}
+  if (apple) apple.setAttribute("href", favDefault[2].replace(/apple-touch-icon\.png$/, `apple-touch-icon-${id}.png`));   // made by make_icons.py
 }
 // A four-engined airliner from above (the badge's jumbo), centred, `s` long.
 function drawPlaneShape(g, s){
@@ -1035,29 +1070,45 @@ function resize(){
 }
 
 /* ---------- tiles: each flap face pre-rendered once ---------- */
-// 1.59: the flap finish picked in Styles (the light version has no flaps)
-const FINISH = () => S.finish || "";
+// 1.59: the flap finish picked in Styles (the light version has no flaps); 1.61: only with the Classic board
+const FINISH = () => classicLook() && S.finish || "";
 const WHITE_FLAP = ["#f3f1ea", "#e9e6dd", "#dfdbd0", "#d4d0c4"];
 const mix = (a, b, t) => { const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16), c = s => Math.round(((x >> s) & 255) * (1 - t) + ((y >> s) & 255) * t);
   return "#" + [16, 8, 0].map(s => c(s).toString(16).padStart(2, "0")).join(""); };
-// LED dot-matrix: the text set in dots, lit and unlit, like a station's LED board.
-function ledText(g, text, w, h, ax, aw, fg, size, sx){
-  const rows = 11, q = 6, d = h * .82 / rows, cols = Math.max(1, Math.floor(aw / d)), cv = document.createElement("canvas");
-  cv.width = cols * q; cv.height = rows * q;                     // the text drawn finely, then read cell by cell
-  const c = cv.getContext("2d");
-  c.font = `700 ${rows * q * .92}px ${FONT}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#fff";
-  const tw = c.measureText(text).width, k = Math.min(1, cols * q * .94 / Math.max(1, tw));
-  c.save(); c.translate(cols * q / 2, rows * q / 2 + q * .4); c.scale(k, 1); c.fillText(text, 0, 0); c.restore();
-  let px; try { px = c.getImageData(0, 0, cols * q, rows * q).data; } catch { return; }
-  const x0 = ax + (aw - cols * d) / 2, y0 = (h - rows * d) / 2;
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-    let a = 0;
-    for (let y = 0; y < q; y++) for (let x = 0; x < q; x++) a += px[((j * q + y) * cols * q + i * q + x) * 4 + 3];
-    const on = a / (q * q) > 95;
-    g.fillStyle = on ? fg : "rgba(255,255,255,.05)";
-    g.beginPath(); g.arc(x0 + (i + .5) * d, y0 + (j + .5) * d, d * (on ? .4 : .3), 0, Math.PI * 2); g.fill();
+// LED dot-matrix: the text set in dots, lit and unlit, like a station's LED board. 1.61: a real 5x7 dot font (each
+// letter 7 rows of 5 dots, hex per row) on a dark face with a glow, the hinge between the third and fourth row, so the
+// letters read even on a Fire TV; text with a letter outside it is sampled into the same 7-row grid.
+const LED_FONT = {"A":"0e1111111f1111","B":"1e11111e11111e","C":"0e11101010110e","D":"1c12111111121c","E":"1f10101e10101f","F":"1f10101e101010","G":"0e11101711110f","H":"1111111f111111","I":"0e04040404040e","J":"0702020202120c","K":"11121418141211","L":"1010101010101f","M":"111b1515111111","N":"11111915131111","O":"0e11111111110e","P":"1e11111e101010","Q":"0e11111115120d","R":"1e11111e141211","S":"0f10100e01011e","T":"1f040404040404","U":"1111111111110e","V":"11111111110a04","W":"1111111515150a","X":"11110a040a1111","Y":"1111110a040404","Z":"1f01020408101f","0":"0e11131519110e","1":"040c040404040e","2":"0e11010204081f","3":"1f02040201110e","4":"02060a121f0202","5":"1f101e0101110e","6":"0608101e11110e","7":"1f010204080808","8":"0e11110e11110e","9":"0e11110f01020c",".":"00000000000c0c","-":"0000001f000000","/":"00010204081000",":":"000c0c000c0c00",",":"000000000c0408","'":"0c040800000000","&":"0c12140815120d","(":"02040808080402",")":"08040202020408","+":"0004041f040400","!":"04040404040004","?":"0e110102040004","#":"0a0a1f0a1f0a0a","°":"0c12120c000000"," ":"00000000000000","Ä":"0a000e111f1111","Ö":"0a000e1111110e","Ü":"0a00111111110e","É":"02041f101e101f","È":"08041f101e101f","À":"08040e111f1111","Ç":"0e111010110e04","Ñ":"0d121119151311"};
+function ledText(g, text, w, h, ax, aw, fg){
+  const ch = [...String(text).toUpperCase()], known = ch.every(c => LED_FONT[c]);
+  let bits;                                              // bits[row][col]: which dots are lit
+  if (known) {
+    bits = Array.from({length: 7}, (_, j) => ch.flatMap((c, i) => { const r = parseInt(LED_FONT[c].substr(j * 2, 2), 16);
+      return (i ? [0] : []).concat([16, 8, 4, 2, 1].map(m => r & m ? 1 : 0)); }));
+  } else {                                               // another script: the text drawn finely, then read cell by cell
+    const q = 6, cols = Math.max(5, Math.round(ch.length * 6)), cv = document.createElement("canvas");
+    cv.width = cols * q; cv.height = 7 * q;
+    const c = cv.getContext("2d");
+    c.font = `700 ${7 * q}px ${FONT}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#fff";
+    const k = Math.min(1, cols * q / Math.max(1, c.measureText(text).width));
+    c.save(); c.translate(cols * q / 2, 7 * q / 2 + q * .3); c.scale(k, 1); c.fillText(String(text).toUpperCase(), 0, 0); c.restore();
+    let px; try { px = c.getImageData(0, 0, cols * q, 7 * q).data; } catch { return; }
+    bits = Array.from({length: 7}, (_, j) => Array.from({length: cols}, (_, i) => {
+      let a = 0; for (let y = 0; y < q; y++) for (let x = 0; x < q; x++) a += px[((j * q + y) * cols * q + i * q + x) * 4 + 3];
+      return a / (q * q) > 110 ? 1 : 0; }));
   }
+  const n = bits[0].length, p = Math.min(h * .76 / 7, aw * .9 / Math.max(5, n));   // the dot pitch
+  const all = Math.max(n, Math.floor(aw * .94 / p)), x0 = ax + (aw - all * p) / 2, y0 = h / 2 - 3 * p, off = Math.floor((all - n) / 2);
+  const round = p >= 3.2, rOn = p * .4, rOff = p * .3;
+  const dot = (x, y, r) => { if (round) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); } else g.fillRect(Math.round(x - r), Math.round(y - r), Math.max(1, Math.round(r * 2)), Math.max(1, Math.round(r * 2))); };
+  g.fillStyle = "rgba(255,255,255,.07)";                // the unlit dots
+  for (let j = 0; j < 7; j++) for (let i = 0; i < all; i++) if (!(bits[j][i - off])) dot(x0 + (i + .5) * p, y0 + (j + .5) * p, rOff);
+  g.save(); g.fillStyle = fg;
+  if (p >= 4) { g.shadowColor = fg; g.shadowBlur = p * .7; }           // a soft glow where the dots are big enough
+  for (let j = 0; j < 7; j++) for (let i = 0; i < n; i++) if (bits[j][i]) dot(x0 + (i + off + .5) * p, y0 + (j + .5) * p, rOn);
+  g.restore();
 }
+const LED_FLAP = ["#151517", "#121214", "#0e0e10", "#0b0b0d"];
 const tiles = new Map();
 let tileBytes = 0;
 const clearTiles = () => { tiles.clear(); tileBytes = 0; };
@@ -1156,7 +1207,7 @@ function tile(f, value, variant = 0){
   cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const g = cv.getContext("2d");
   const r = Math.max(1.5, Math.min(w, h) * .045);
-  const base = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : fin === "white" ? WHITE_FLAP
+  const base = look.fill ? [look.fill[0], look.fill[0], look.fill[1], look.fill[1]] : (isLogo && logoOk ? IVORY : fin === "white" ? WHITE_FLAP : fin === "led" && plain ? LED_FLAP
     : fin === "enamel" ? FLAP.map(c => mix(c, "#3a2f24", .35)) : FLAP);
   const tint = look.fill || (isLogo && logoOk) ? 0 : [0, .06, -.05][variant];
   const body = base.map(c => tint ? shade(c, tint) : c);
@@ -1222,7 +1273,7 @@ function tile(f, value, variant = 0){
     try { const m = g.measureText("H"); if (m.actualBoundingBoxAscent) asc = m.actualBoundingBoxAscent; } catch {}
     const tw = g.measureText(text).width, max = aw * (f.kind === "chars" ? .88 : .86);
     const sx = tw > max ? Math.max(.55, max / tw) : 1;
-    if (fin === "led" && plain) { ledText(g, text, w, h, ax, aw, fg, size, sx); text = ""; }
+    if (fin === "led" && plain) { ledText(g, text, w, h, ax, aw, fg); text = ""; }
     const print = (y0, y1, dx) => {
       if (!text) return;
       g.save(); g.beginPath(); g.rect(0, y0, w, y1 - y0); g.clip();
@@ -1432,9 +1483,11 @@ function drawPlane(g, cx, cy, size, color){
   g.beginPath(); g.moveTo(50, 76); g.lineTo(67, 86); g.lineTo(67, 91); g.lineTo(50, 87); g.lineTo(33, 91); g.lineTo(33, 86); g.closePath(); g.fill();
   g.restore();
 }
-function pictogram(g, x, y, s){
+// The logo square; 1.61: with a title badge (Settings → Styles) its silhouette takes the plane's place.
+function pictogram(g, x, y, s, badge){
   g.fillStyle = COL.amber; rr(g, x, y, s, s, s * .12); g.fill();
-  drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
+  if (badge) { g.save(); g.translate(x + s / 2, y + s / 2); g.fillStyle = COL.housing; badgeGlyph(g, badge, s * .34); g.restore(); }
+  else drawPlane(g, x + s / 2, y + s / 2, s * 100 / 118, COL.housing);
 }
 const metalCache = {key: "", cv: null};
 function metal(g){
@@ -1581,7 +1634,7 @@ function drawStatic(){
   engravedSrc = "";
   if (view) viewStatic(g);
   else if (isAc(page)) { const st = photoStyle(); if (st === "screen") drawBezel(g); else if (st === "engraved") drawPlaque(g); }
-  pictogram(g, M, 40, 88);
+  pictogram(g, M, 40, 88, S.badge);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   // The two styles in the title: the one showing in amber, the other faded, a swap sign between them (1.47; a slash
   // before). Tapping either switches (modeSw, buttons laid over the words).
@@ -1596,7 +1649,6 @@ function drawStatic(){
   swapSign(g, x1 + w1 + gap / 2, 75);
   const w2 = word(t2, x2, ap);
   placeModeSwitch(x1, w1, x2, w2);
-  drawBadge(g, S.badge, x2 + w2 + 26, 46, 52);                         // 1.59: the title badge (Styles)
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted; g.fillText(`${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -2065,6 +2117,7 @@ function applyTheme(){
   COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
   const root = document.documentElement.style;
   root.setProperty("--f-board", T.font); root.setProperty("--accent", T.accent);
+  badgeIcons();
   const redraw = () => { clearTiles(); geometry(); drawStatic(); redrawAll(); };
   try {
     Promise.race([Promise.all(["700 40px", "600 20px", "400 40px"].map(w => document.fonts.load(`${w} ${T.font}`))), new Promise(r => setTimeout(r, 2500))])
@@ -5450,30 +5503,121 @@ function styleRuleShort(rule){
   if (rule.tr) return trophyText(rule.tr)[0];
   return T(rule.cards === 1 ? "1 full bingo card" : "{n} full bingo cards", {n: rule.cards});
 }
-function stylesNote(){
+// The Styles count: how many of the locked-at-first styles this profile has (null: no game from the relay yet).
+function stylesCount(){
   const g0 = styleGame(), all = styleKinds().flatMap(([, , o]) => o.filter(x => x[2]));
-  return g0 ? T("{n} of {t} unlocked", {n: all.filter(x => styleOk(x[2], g0, x[0])).length, t: all.length}) : T("Colours, flaps, badges and board styles to unlock.");
+  return g0 ? {n: all.filter(x => styleOk(x[2], g0, x[0])).length, t: all.length} : null;
 }
-// Settings → Styles: every choice of each kind; the unlocked ones apply at once, the locked ones say how to get them.
-function stylesCard(){
-  const g0 = styleGame();
-  const draw = () => cardOpen(`<h3>${escH(T("Styles"))}</h3><p class="note">${escH(stylesNote())} · ${escH(T("Locked ones say what unlocks them."))}</p>` + styleKinds().map(([k, name, opts]) =>
-    `<h4 class="stH">${escH(T(name))}</h4><div class="stRow">` + opts.map(([id, nm, rule]) => {
-      const ok = styleOk(rule, g0, id), on = String(S[k] || (k === "theme" ? "classic" : "")) === id;
-      return `<button class="cap small stOpt" type="button" data-sk="${k}" data-sv="${escH(id)}" aria-pressed="${on}"${ok ? "" : " disabled"}` +
-        `${ok ? "" : ` title="${escH(styleRuleText(rule))}"`}>${k === "badge" && id ? `<canvas data-badge="${id}" width="40" height="40"></canvas>` : ""}` +
-        `<span>${escH(T(nm))}${ok ? "" : `<small>🔒 ${escH(styleRuleShort(rule))}</small>`}</span></button>`;
-    }).join("") + `</div>`).join(""), el => {
+function stylesNote(){
+  const c = stylesCount();
+  return c ? T("{n} of {t} unlocked", c) : T("Colours, flaps, badges and board styles to unlock.");
+}
+// 1.61: the rows of the Styles card, top to bottom, and the short names on the Settings cell's displays.
+const STYLE_ROWS = [["theme", "Board"], ["palette", "Colours"], ["finish", "Flaps"], ["badge", "Badge"]];
+const STYLE_SHORT = {classic: "Classic", frankfurt: "Frankfurt", blue: "Blue", frankfurt70: "1970s", tokyo: "Tokyo",
+  heathrow: "Heathrow", solari: "Solari", ice: "Ice", sunset: "Sunset", star: "Star", prop: "Prop", heli: "Heli",
+  jumbo: "Jumbo", jet: "Jet", concorde: "Concorde"};
+const styleVal = k => String(S[k] || (k === "theme" ? "classic" : ""));
+// What the Settings cell's Look display shows: the board style (the colours in the light version, which has none).
+const lookKind = () => styleKinds().some(([k]) => k === "theme") ? "theme" : "palette";
+const styleShort = k => { const v = styleVal(k); return T(STYLE_SHORT[v] || (k === "badge" ? "None" : "Standard")); };
+function stylesCellRefresh(){
+  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.textContent = styleShort(b.dataset.styles); }
+  for (const p of document.querySelectorAll(".inst.styl .stCnt")) p.textContent = stylesNote();
+}
+// Settings → Styles (1.61): a preview of the look on top, then one row per kind: ◀, the choice on an amber display, ▶.
+// Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
+// is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
+// style their rows are greyed out (the choice stays saved). Remote and keyboard: Up/Down move between rows, Left/Right
+// (or ◀ ▶) step, OK steps on.
+function stylesCard(focusKind){
+  const g0 = styleGame(), kinds = new Map(styleKinds().map(([k, , o]) => [k, o]));
+  const rows = STYLE_ROWS.filter(([k]) => kinds.has(k)), pos = {};
+  for (const [k] of rows) pos[k] = Math.max(0, kinds.get(k).findIndex(x => x[0] === styleVal(k)));
+  const lock = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  const c = stylesCount();
+  cardOpen(`<h3>${escH(T("Styles"))}</h3><canvas class="stPrev" data-prev aria-hidden="true"></canvas><div class="stRows">` + rows.map(([k, label]) =>
+    `<div class="stLine" tabindex="0" role="group" data-row="${k}" aria-label="${escH(T(label))}"><span class="stL">${escH(T(label))}</span>` +
+    `<button class="cap stArr" type="button" tabindex="-1" data-step="-1" aria-label="${escH(T("Previous"))}">◀</button>` +
+    `<b class="lcd stVal" data-val></b><button class="cap stArr" type="button" tabindex="-1" data-step="1" aria-label="${escH(T("Next"))}">▶</button>` +
+    `<p class="stWhy" data-why hidden></p></div>`).join("") + `</div>` +
+    `<p class="note stClassic" data-classic hidden>${escH(T("Colours and flaps only change with the Classic board."))}</p>` +
+    `<p class="note stCnt">${escH(c ? T("{n} of {t} unlocked", c) : stylesNote())}</p>`, el => {
     el.classList.add("styles");
-    for (const cv of el.querySelectorAll("[data-badge]")) drawBadge(cv.getContext("2d"), cv.dataset.badge, 2, 2, 36);
-    for (const b of el.querySelectorAll("[data-sk]")) b.onclick = e => {
-      e.stopPropagation(); if (b.disabled) return; ctlSound.press();
-      const k = b.dataset.sk, v = b.dataset.sv;
-      if (typeof draft !== "undefined" && draft) draft[k] = v;          // an open Settings keeps it on Save
-      applySettings({...S, [k]: v}); draw();
+    const line = k => el.querySelector(`[data-row="${k}"]`);
+    const off = k => (k === "palette" || k === "finish") && !classicLook();
+    const show = () => {
+      for (const [k] of rows) {
+        const [id, nm, rule] = kinds.get(k)[pos[k]], ok = styleOk(rule, g0, id), L = line(k), v = L.querySelector("[data-val]"), why = L.querySelector("[data-why]");
+        v.innerHTML = (ok ? "" : lock) + escH(T(nm));
+        L.classList.toggle("locked", !ok); L.classList.toggle("off", off(k)); L.setAttribute("aria-disabled", off(k) ? "true" : "false");
+        for (const b of L.querySelectorAll("[data-step]")) b.disabled = off(k);
+        why.textContent = ok || off(k) ? "" : styleRuleText(rule); why.hidden = !why.textContent;
+      }
+      el.querySelector("[data-classic]").hidden = !rows.some(([k]) => off(k));
+      stylesPreview(el.querySelector("[data-prev]"));
+      stylesCellRefresh();
     };
+    const step = (k, d) => {
+      if (off(k)) return;
+      const opts = kinds.get(k);
+      pos[k] = (pos[k] + d + opts.length) % opts.length; ctlSound.press();
+      const [id, , rule] = opts[pos[k]];
+      if (styleOk(rule, g0, id) && styleVal(k) !== id) {
+        if (typeof draft !== "undefined" && draft) draft[k] = id;          // an open Settings keeps it on Save
+        applySettings({...S, [k]: id});
+      }
+      show();
+    };
+    const go = (from, d) => {                             // the next row that isn't greyed out (Up from the top: the ×)
+      const ks = rows.map(([k]) => k);
+      for (let i = ks.indexOf(from) + d; i >= 0 && i < ks.length; i += d) if (!off(ks[i])) return line(ks[i]).focus();
+      if (d < 0) el.querySelector(".cardX").focus();
+    };
+    for (const [k] of rows) {
+      const L = line(k);
+      for (const b of L.querySelectorAll("[data-step]")) b.onclick = e => { e.stopPropagation(); step(k, +b.dataset.step); };
+      L.onkeydown = e => {
+        const d = {ArrowLeft: -1, ArrowRight: 1, Enter: 1}[e.key], v = {ArrowUp: -1, ArrowDown: 1}[e.key];
+        if (!d && !v) return;
+        e.preventDefault(); e.stopPropagation();
+        if (d) step(k, d); else go(k, v);
+      };
+    }
+    el.querySelector(".cardX").onkeydown = e => { if (e.key === "ArrowDown") { e.preventDefault(); e.stopPropagation(); go(null, 1); } };
+    show();
+    for (const ms of [350, 1200]) setTimeout(() => el.isConnected && stylesPreview(el.querySelector("[data-prev]")), ms);   // once the style's font is in
+    const first = rows.find(([k]) => k === focusKind && !off(k)) || rows.find(([k]) => !off(k));
+    if (first && focusKind) line(first[0]).focus();
   });
-  draw();
+}
+// The Styles card's preview strip: the logo square (with the badge), the title word in the board's font and colours,
+// and three flaps in the chosen finish (not in the light version, which has no flaps). Drawn in CSS pixels times the
+// screen's pixel ratio; on the board the card is scaled by --ck, so the canvas is too.
+function stylesPreview(cv){
+  if (!cv) return;
+  const r = cv.getBoundingClientRect(), w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  const d = Math.min(3, window.devicePixelRatio || 1) * r.width / w;         // device pixels per layout pixel
+  cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+  const g = cv.getContext("2d");
+  g.setTransform(d, 0, 0, d, 0, 0);
+  const Th = themeNow(), m = Th.metal, bg = g.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, m[0]); bg.addColorStop(.5, m[1]); bg.addColorStop(1, m[2]);
+  g.fillStyle = bg; rr(g, 0, 0, w, h, h * .12); g.fill();
+  const u = h / 64, flaps = typeof tile === "function" && !(typeof LIGHT !== "undefined" && LIGHT);
+  pictogram(g, 12 * u, 12 * u, 40 * u, S.badge);
+  const word = T("Overhead (board style)");
+  g.font = `700 ${Math.round(32 * u)}px ${Th.font}`; g.fillStyle = Th.accent; g.textBaseline = "middle"; g.textAlign = "left";
+  const room = w - 64 * u - (flaps ? 3 * 30 * u + 18 * u : 12 * u), tw = g.measureText(word).width, sx = Math.min(1, room / Math.max(1, tw));
+  g.save(); g.translate(64 * u, h / 2 + 1.5 * u); g.scale(sx, 1); g.fillText(word, 0, 0); g.restore();
+  if (!flaps) return;
+  const fw = 26 * u, fh = 40 * u, x0 = w - 12 * u - 3 * fw - 2 * 4 * u;
+  [..."747"].forEach((ch, i) => {
+    const f = {kind: "chars", n: 1, style: "", pw: Math.round(fw * d), ph: Math.round(fh * d), cw: fw, ch: fh};
+    g.fillStyle = "#060607"; rr(g, x0 + i * (fw + 4 * u) - 2 * u, (h - fh) / 2 - 2 * u, fw + 4 * u, fh + 4 * u, 3 * u); g.fill();
+    g.drawImage(tile(f, ch), x0 + i * (fw + 4 * u), (h - fh) / 2, fw, fh);
+  });
 }
 function achList(g0){
   const out = [];
@@ -5495,6 +5639,7 @@ function achList(g0){
   return out;
 }
 function achCheck(g0){
+  stylesCellRefresh();                                   // 1.61: the Styles cell's count, once the game is in
   if (!g0 || S.demo) return;
   let seen = null;
   try { seen = JSON.parse(localStorage.getItem(ACH_KEY) || "null"); } catch {}
@@ -6121,6 +6266,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.61", date: "2026-10-19", notes: [
+    "Saving Settings keeps you in Settings.",
+    "The Favourites and Styles buttons in Settings are a little smaller.",
+    "Settings → Styles redesigned: a live preview on top and one row each for board, colours, flaps and badge, stepped through with ◀ ▶. The Settings cell shows your look and badge.",
+    "Colours and flap finishes now only apply with the Classic board style; your choice is kept for when you switch back.",
+    "LED dots flaps are now clearly readable.",
+    "The title badge now shows in the logo, in the browser tab and on the app's home-screen icon.",
+  ]},
   {v: "1.60.3", date: "2026-10-19", notes: [
     "Settings: Favourites and Hidden are now two buttons with a small counter each, opening the list straight on that side.",
   ]},
@@ -6796,15 +6949,13 @@ function itemHtml(it){
   }
   if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
-  if (it.type === "styles") {   // 1.59.1: a progress ring; the ring and its label are the button
-    const g0 = styleGame(), all = styleKinds().flatMap(([, , o]) => o.filter(x => x[2])), t = all.length, n = g0 ? all.filter(x => styleOk(x[2], g0, x[0])).length : 0;
-    const C = 2 * Math.PI * 30;
-    return cell("loc", `<button class="stRing" type="button" data-styles aria-label="${escH(T("Open styles"))}">` +
-      `<svg class="ring" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="30" fill="none" stroke="#3a3c40" stroke-width="6"/>` +
-      `<circle cx="36" cy="36" r="30" fill="none" stroke="#f0b429" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C * n / (t || 1)).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 36 36)"${n ? "" : " opacity=\"0\""}/></svg>` +
-      `<span class="rn"><b>${n}</b>/${t}</span>` +
-      `<span class="ro"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.84 2-2 2h-2a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 15 21z"/><circle cx="7.5" cy="10.5" r=".5"/><circle cx="12" cy="7.5" r=".5"/><circle cx="16.5" cy="10.5" r=".5"/></svg>${escH(T("Open styles"))}</span></button>` +
-      `<p class="note stLock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>${escH(g0 ? (t > n ? T("{n} still locked", {n: t - n}) : T("All unlocked")) : T("Colours, flaps, badges and board styles to unlock."))}</p>`);
+  if (it.type === "styles") {   // 1.61: two caps like the Favourites cell (the look and the badge), the count under them
+    const svg = d => `<svg class="fIco" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const pal = svg('<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.47 2.08-1.32 2.83-.84.75-1.99 1.17-3.18 1.17H14a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r=".6"/><circle cx="12" cy="7.5" r=".6"/><circle cx="16.5" cy="10.5" r=".6"/>');
+    const award = svg('<circle cx="12" cy="9" r="6"/><path d="M12 15l3.4 5.89 1.6-3.23 3.6.23-3.4-5.89"/><path d="M6.8 12l-3.4 5.89 3.6-.23 1.6 3.23 3.4-5.89"/>');
+    const cap = (k, ico, name) => `<button class="cap favCap stCap" type="button" data-styles="${k}" title="${escH(T("Open styles"))}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
+      `<b class="lcd favN stN" aria-hidden="true">${escH(styleShort(k))}</b></button>`;
+    return cell("loc favs styl", cap(lookKind(), pal, "Look") + cap("badge", award, "Badge") + `<p class="note stCnt">${escH(stylesNote())}</p>`);
   }
   if (it.type === "favs") {
     const hint = escH(T("Airlines, types, aircraft and flights to light up or leave out.")), svg = p => `<svg class="fIco" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -6878,8 +7029,7 @@ function wireCockpit(box){
     }
   }
   wireLocation(box);
-  const sb = box.querySelector("[data-styles]");
-  if (sb) sb.onclick = e => { e.stopPropagation(); stylesCard(); };
+  for (const sb of box.querySelectorAll("[data-styles]")) sb.onclick = e => { e.stopPropagation(); stylesCard(sb.dataset.styles); };
   for (const fb of box.querySelectorAll("[data-favs]")) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(fb.dataset.favs); };
 }
 // Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
@@ -6939,7 +7089,18 @@ function cockpitOpen(){
   cockpitShow();
 }
 // The board: Save and Cancel both go back to the board; the Save button lights up while there is something to save.
-function cockpitDone(){ switchView(null); }
+// 1.61: Save keeps Settings open (shown again with the saved values, "Saved" on the Save cap for a moment); Cancel
+// goes back to the board.
+let savedFlash = 0;
+function cockpitDone(saved){
+  if (!saved) return switchView(null);
+  cockpitOpen();
+  const b = $("cockpit").querySelector('[data-act="save"]'), w = b && b.querySelector("span");
+  if (!w) return;
+  w.textContent = T("Saved"); clearTimeout(savedFlash);
+  savedFlash = setTimeout(() => { w.textContent = T("Save"); }, 1600);
+  try { b.focus({preventScroll: true}); } catch {}
+}
 function cockpitMark(dirty){
   const b = $("cockpit").querySelector('[data-act="save"]');
   if (b && b.getAttribute("aria-pressed") !== String(dirty)) b.setAttribute("aria-pressed", String(dirty));
