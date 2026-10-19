@@ -359,7 +359,18 @@ The main board has everything below. New features are tried on `/test/` first; o
   landing; close in, the photo slides into a corner and the radar shows the runways up close (1.26). Home airports
   other than Vienna need relay 23.
 - **Board styles**: classic white on black, Frankfurt yellow on black, or white on blue, each with its own typeface
-  (Settings, or `?theme=frankfurt` / `?theme=blue`).
+  (Settings → Styles, or `?theme=frankfurt` / `?theme=blue`).
+- **Styles to unlock** (1.59, relay 51; Settings → Styles on the board, in the app and the light version): every choice
+  shows, the locked ones with what unlocks them, and picking an unlocked one applies at once. The default look stays
+  until someone picks something. Unlocks are the profile's own, from its logbook's game:
+  - **Colours** for points: Heathrow yellow 5,000, Solari green 25,000, Ice blue 50,000, Sunset 100,000.
+  - **Flaps** for trophies: Black on white (Type collector), Brass trim (Rare breed), Worn enamel (Regular), LED dots
+    (Around the clock). Not in the light version.
+  - **Title badge** by the title, one more for each full bingo card (all nine in a week): Star, Propeller, Helicopter,
+    Jumbo, Fighter jet, Concorde. The relay counts the full cards, older weeks once from the saved days.
+  - **Board styles** for the rarest trophies: Frankfurt 1970s (Unstoppable) and Tokyo night (Completionist), next to
+    Classic, Frankfurt and Blue. Not in the light version.
+  A new unlock pops up like an achievement.
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
   switch, a thumbwheel and a push button; the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
@@ -469,7 +480,8 @@ Settings, in the app's colours and fonts but as a plain, modern display. The pla
 fields (the label in amber, the value under it); a new value slides in with a quick fade instead of flapping. Status
 words are coloured pills, the airline shows its logo, the tier its sign. No metal, screws, glass or lamps: flat
 cards, flat buttons, and Settings as segmented switches and steppers. Its Settings leave out everything about the
-flaps (speed, quick flaps, worn hardware, realistic look, board style); Sounds keeps Button sounds, Chimes and the
+flaps (speed, quick flaps, worn hardware, realistic look, board style and flap finish; its Styles offer colours and
+badges); Sounds keeps Button sounds, Chimes and the
 Special bell. It keeps its own settings on the device, but a guest's place still goes to their profile as in the
 app. On its side it is laid out like the app's, with the fields in place of the flaps.
 

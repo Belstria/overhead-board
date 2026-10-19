@@ -52,6 +52,8 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
   box-shadow:0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.7),0 8px 18px rgba(0,0,0,.38)}
 #top .wrap{display:flex;align-items:center;gap:11px;padding-top:10px;padding-bottom:11px}
 #mark{width:40px;height:40px;flex:none}
+#badge{width:22px;height:22px;flex:none;align-self:flex-end;margin:0 4px 0 -14px;position:relative}
+#badge[hidden]{display:none}
 .title{min-width:0;flex:1}
 .title h1{margin:0;overflow:hidden;font:700 clamp(20px,6.4vw,25px)/1 var(--f-board);letter-spacing:.01em;color:var(--ink);white-space:nowrap;text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 /* Overhead / Airport: the style showing in amber, the other faded, a swap sign between them (1.47) */
@@ -574,7 +576,7 @@ body.arOpen{overflow:hidden}
 </script>
 <header id="top">
   <div class="wrap">
-    <canvas id="mark" aria-hidden="true"></canvas>
+    <canvas id="mark" aria-hidden="true"></canvas><canvas id="badge" aria-hidden="true" hidden></canvas>
     <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><svg class="sl" viewBox="0 -2 40 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h34M29 -1l8 8-8 8M37 23H3M11 15l-8 8 8 8"/></svg><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection"></button></div>
