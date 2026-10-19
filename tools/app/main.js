@@ -12,7 +12,8 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
 const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
@@ -41,15 +42,20 @@ function saveMe(changed, now){
   return Promise.resolve();
 }
 const located = () => !GUEST || !!S.located;
+// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
+// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
+const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
+S.logos = true;                                      // airline logos are always on (1.54: the switch went)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -75,7 +81,14 @@ function dlog(level, msg){
   if (DIAG.log.length > 200) DIAG.log.length = 200;
 }
 const scheduleDiag = () => {};
-let nightOn = false;          // the board's night mode; a phone doesn't need it
+// Night mode (1.57): on a phone quiet hours only, the sounds check nightOn as on the board; no dimming.
+let nightOn = false;
+function nightCheck(){
+  const mins = v => { const [h, m] = String(v || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+  const d = new Date(), n = d.getHours() * 60 + d.getMinutes(), a = mins(S.nightFrom), b = mins(S.nightTo);
+  nightOn = !!S.night && a !== b && (a < b ? n >= a && n < b : n >= a || n < b);
+}
+nightCheck(); setInterval(() => nightCheck(), 30000);
 //@E2
 //@E33
 
@@ -1441,7 +1454,7 @@ setInterval(() => {
 }, 1000);
 //@E31
 function plateHtml(p){
-  return `<div class="plate" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();
@@ -1490,49 +1503,12 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   renderAbout();
 }
-let hasAccount = false;
-// Under Settings' plates: the account, notifications and this device (the full board, signing out, the relay).
+// Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
-  const box = $("setExtra"), screws = "<i></i><i></i><i></i><i></i>";
+  const box = $("setExtra");
   if (!box) return;
-  // The light version (no split flaps) and back: the choice is kept on this device, so the app opens in it next time.
-  const ui = `<div class="acts"><a class="cap big" href="../${LIGHT ? "app" : "light"}/" id="uiBtn">${T(LIGHT ? "Back to the full app" : "Switch to the light version")}</a></div>` +
-    `<p>${escH(T(LIGHT ? "The full app shows the plane on split flaps, like the board." : "The same planes, lists and cards in a plain, modern display without split flaps."))}</p>`;
-  const dev = ui + `<div class="acts"><a class="cap big" href="../">${T("Full board")}</a>` +
-    (ANDROID ? `<button class="cap big" type="button" id="relayBtn">${T("Change relay")}</button>` : "") + `</div>`;
-  // 1.41: the Account plate says plainly who this device is signed in as (the profile's name and account), with the
-  // sign-in methods under it and Sign out of this device in its header.
-  const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
-  const acct = `<div class="plate acctPlate" style="--cols:1">${screws}<h3>${T("Account")}</h3>` +
-    `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
-    `<small id="acSub">${escH(T(GUEST ? "Signed in on this device" : "Not signed in"))}</small></div>` +
-    (GUEST ? `<button class="acOutBtn" type="button" id="signOut">${T("Sign out")}</button>` : "") + `</div>` +      // 1.46: in the header
-    (accountsOk() ? `<div id="acctBox"></div>` : "") + `</div>`;
-  box.innerHTML = acct +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Notifications")}</h3><div id="pushBox"></div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Device")}</h3>${dev}` +
-      `<div class="acts"><button class="cap small" type="button" id="tipsBtn">${T("Show the tips again")}</button></div></div>` +
-    // About last (1.42): the version, then the page with the patch notes, the legend and who made it
-    `<div class="plate about" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver">${escH(versionLine())}</p>` +
-    `<p>${escH(T("What's new in each version, the relay and who made it."))}</p><div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div></div>`;
-  $("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
-  $("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); $("tipsBtn").textContent = T("Tips will show again."); };
-  if (GUEST) $("signOut").onclick = async () => {
-    ctlSound.press();
-    if (!confirm(accountsOk() && hasAccount ? T("Sign out of this device? Your profile stays; sign back in with your account.")
-      : T("Sign out of this device? Your profile stays, but you'll need a new link to come back on it."))) return;
-    try { await fetch(`${relay()}/signout`, {method: "POST"}); } catch {}
-    try { localStorage.removeItem(SKEY); } catch {}
-    location.reload();
-  };
-  $("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", LIGHT ? "app" : "light"); } catch {} };
-  if (ANDROID) $("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  renderPush();
-  if (accountsOk()) accountBox($("acctBox"), a => {
-    hasAccount = !!(a && a.user && (a.passkeys.length || a.password));
-    const sub = $("acSub");
-    if (sub && a && !a.home) sub.textContent = a.user ? T("Account {user} · signed in on this device", {user: a.user}) : T("No account yet: create one to sign in on your other devices.");
-  }, true);
+  box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
+  wireViews(box);
 }
 //@L:taps
 $("hero").addEventListener("click", e => {
@@ -1757,7 +1733,7 @@ function applySettings(n){
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
-  saveSettings(); audioInit();
+  saveSettings(); audioInit(); nightCheck();
   pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {
