@@ -401,9 +401,17 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 .inst.updAll{overflow:hidden}
 .inst.updAll{justify-content:flex-start;padding-top:calc(6px*var(--k))}
 .inst.updAll .upd{gap:calc(5px*var(--k))}
-.inst.updAll .upd .cap,.inst.updAll .geoQ .cap{height:calc(28px*var(--k));margin:0;padding:0 calc(9px*var(--k));font-size:calc(10px*var(--k));white-space:nowrap}
-.inst.updAll .geoQ{margin-top:calc(6px*var(--k));gap:calc(6px*var(--k))}
-.inst.updAll .geoQ input{padding:calc(4px*var(--k)) calc(8px*var(--k));font-size:calc(12px*var(--k));height:calc(28px*var(--k))}
+.upd{flex-wrap:nowrap;gap:calc(10px*var(--k));width:100%}
+.upd .cap{flex:1 1 0;width:auto;min-width:0;margin:0;height:calc(36px*var(--k));padding:0 calc(6px*var(--k));display:flex;align-items:center;justify-content:center;gap:calc(6px*var(--k));font-size:calc(11px*var(--k));white-space:nowrap}
+.upd .cap .ico{flex:none;width:calc(16px*var(--k));height:calc(16px*var(--k));opacity:.8}
+.geoQ{position:relative;margin-top:calc(14px*var(--k));width:100%}
+.geoQ .ico{position:absolute;left:calc(10px*var(--k));top:50%;width:calc(16px*var(--k));height:calc(16px*var(--k));margin-top:calc(-8px*var(--k));color:#8d8a80;pointer-events:none}
+.geoQ input{height:calc(34px*var(--k));padding:0 calc(46px*var(--k)) 0 calc(34px*var(--k));font-size:calc(13px*var(--k))}
+.geoQ .go{all:unset;box-sizing:border-box;position:absolute;right:calc(4px*var(--k));top:50%;transform:translateY(-50%);cursor:pointer;padding:calc(5px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));font:800 calc(12px*var(--k))/1 var(--f-board);letter-spacing:.08em;color:#f0b429}
+.geoQ .go:hover:not(:disabled){background:rgba(240,180,41,.14)}
+.geoQ .go:disabled{opacity:.4;cursor:default}
+.inst.updAll .geoQ{margin-top:calc(8px*var(--k))}
+.inst.updAll .upd{justify-content:center}
 .inst.updAll .note{display:none}                 /* the board: City and Airport show the result, choices open as a pop-up */
 #tipLayer{position:fixed;inset:0;z-index:95;opacity:0;transition:opacity .18s ease;cursor:pointer}
 #tipLayer.on{opacity:1}
@@ -514,7 +522,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=3749ed979b"></script>
+<script src="i18n.js?v=0d6a435d6b"></script>
 <script>
 (() => {
 "use strict";
@@ -6084,6 +6092,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.60.1", date: "2026-10-19", notes: [
+    "Settings → Location: Here, Live and Saved are three wide buttons with icons, and the address search is one field with GO inside.",
+  ]},
   {v: "1.59", date: "2026-10-19", notes: [
     "Styles to unlock (Settings → Styles): colour palettes for points, flap finishes for trophies, a badge by the title for each full bingo card, and two board styles for the rarest trophies. Locked ones say how to get them.",
   ]},
@@ -6734,9 +6745,7 @@ function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
   const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
-  if (it.type === "location") return it.layout === "split"
-    ? [{...it, type: "update"}, {type: "places", label: "Saved places", span: 2}, {type: "search", label: "Find an address", span: 2}].map(itemHtml).join("")
-    : itemHtml({...it, type: "update", places: true, search: true});
+  if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
@@ -6758,12 +6767,18 @@ function itemHtml(it){
     `<button class="lblSave" type="button" data-lsave hidden>${T("Save")}</button><span class="lblOk" data-lok hidden aria-label="${escH(T("Saved"))}">✓</span></div>`);
   if (it.type === "places") return cell("loc", `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` +
     `<p class="note">${escH(T("Tap one to watch it."))}</p>`);
-  if (it.type === "update") return cell("loc" + (it.search ? " updAll" : ""), `<div class="upd"><button class="cap small" type="button" data-loc>${T("Use current location")}</button>` +
-    `<button class="cap small" type="button" data-live aria-pressed="${!!S.live}">${T(S.live ? "Live location on" : "Live location")}</button>` +
-    (it.places ? `<button class="cap small" type="button" data-places>${T("Saved places")}</button>` : "") + `</div>` +
-    (it.search ? `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T("Find an address"))}" ` +
-      `placeholder="${escH(T("Find an address"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div><span data-gn hidden></span>` : "") +
-    `<p class="note" data-lnote>${escH(T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports."))}</p><div class="ask apList" data-lask hidden></div>`);
+  if (it.type === "update") {
+    // 1.60.1: three wide caps with a line icon, then one dark search field with GO inside (the same on every layout)
+    const ic = d => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const cp = (a, d, w, h) => `<button class="cap small" type="button" ${a} title="${escH(T(h))}" aria-label="${escH(T(h))}">${ic(d)}<span>${escH(T(w))}</span></button>`;
+    return cell("loc" + (it.inline ? "" : " updAll"), `<div class="upd">` +
+      cp("data-loc", '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M20 12h2M2 12h2"/>', "Here", "Use current location") +
+      cp(`data-live aria-pressed="${!!S.live}"`, '<circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M11 19h5.5a3.5 3.5 0 0 0 0-7h-8a3.5 3.5 0 0 1 0-7H13"/>', "Live", S.live ? "Live location on" : "Live location") +
+      cp("data-places", '<path d="M18 7v14l-6-4-6 4V7a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4z"/>', "Saved", "Saved places") + `</div>` +
+      `<div class="geoQ">${ic('<circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/>')}<input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T("Find an address"))}" ` +
+      `placeholder="${escH(T("Find an address"))}"><button class="go" type="button" data-gs title="${escH(T("Search"))}" aria-label="${escH(T("Search"))}">${T("GO")}</button></div><div class="geoRes" data-gr></div><span data-gn${it.inline ? ' class="note"' : " hidden"}></span>` +
+      `<p class="note" data-lnote>${escH(T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports."))}</p><div class="ask apList" data-lask hidden></div>`);
+  }
   if (it.type === "search") return cell("loc", `<div class="geoQ"><input type="text" data-gq maxlength="120" autocomplete="off" aria-label="${escH(T(it.label))}" ` +
     `placeholder="${escH(T("Address or place"))}"><button class="cap small" type="button" data-gs>${T("Search")}</button></div><div class="geoRes" data-gr></div>` +
     `<p class="note" data-gn>${escH(T("Type an address or a place and pick it: fills in the town, latitude and longitude."))}</p>`);
@@ -7144,7 +7159,7 @@ function settingsSync(){
     if (el && document.activeElement !== el) el.value = draft[k];
   }
   const live = box && box.querySelector("[data-live]");
-  if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.textContent = T(S.live ? "Live location on" : "Live location"); }
+  if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.title = live.ariaLabel = T(S.live ? "Live location on" : "Live location"); }
   const n = box && box.querySelector("[data-lnote]");
   if (n && liveOk()) n.textContent = T(S.live ? "Following this device's location while the app is open." : "Fills in the location, its town and nearby airports.");
   const li = box && box.querySelector('.lcd[data-k="placeKey"]');
