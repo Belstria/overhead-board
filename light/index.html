@@ -38,6 +38,11 @@ body.no-lite .cap[aria-current=page],body.no-lite .cap[aria-pressed=true]{animat
 .cap:hover:not([aria-current]):not([aria-pressed=true]):not(:disabled){filter:brightness(1.12)}
 .cap:active:not(:disabled){transform:translateY(calc(3.5px*var(--k)))}
 .cap:disabled{cursor:default;filter:brightness(.6)}
+.cap.favCap{display:flex;align-items:center;gap:calc(5px*var(--k));width:100%;box-sizing:border-box;margin:0;padding:0 calc(6px*var(--k)) 0 calc(7px*var(--k));text-align:left;font-size:calc(11px*var(--k));letter-spacing:.03em}
+.cap.favCap span{flex:1;min-width:0;overflow:hidden;text-overflow:clip}
+.cap.favCap .fIco{flex:none;width:calc(15px*var(--k));height:calc(15px*var(--k));opacity:.8}
+.cap.favCap .favN{flex:none;width:auto;min-width:calc(24px*var(--k));padding:calc(3px*var(--k)) calc(5px*var(--k));font-size:calc(13px*var(--k));text-align:right;letter-spacing:.04em;pointer-events:none}
+.inst.favs{gap:calc(12px*var(--k))}
 .cap.small{width:auto;min-width:calc(64px*var(--k));height:calc(34px*var(--k));padding:0 calc(12px*var(--k));font-size:calc(12px*var(--k))}
 .cap.big{width:calc(150px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
 /* 1.50: the filter above Spotted today (the board on a computer, the app) */
@@ -1740,11 +1745,17 @@ function favManager(el){
     listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
   };
 }
-function favCard(){
+function favCard(side){
   if (!listsOk()) return;
   ctlSound.press();
-  cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => favManager(el.querySelector("[data-fm]")));
+  cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => {
+    const fm = el.querySelector("[data-fm]"); favManager(fm);
+    const h = side === "hide" && [...fm.querySelectorAll(".shH")][1];
+    if (h) h.scrollIntoView({block: "start"});
+  });
 }
+// The counts on the Favourites cell's caps (Settings, TV).
+function favCounts(){ for (const n of document.querySelectorAll("[data-favn]")) n.textContent = (userLists[n.dataset.favn] || []).length; }
 // What was typed: "Austrian (AUA)" from the list, an airline or type code, a registration, a flight, or a name.
 function parseListEntry(t){
   t = String(t || "").trim();
@@ -5785,8 +5796,14 @@ function itemHtml(it){
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
   if (it.type === "styles") return cell("loc", `<button class="cap small" type="button" data-styles>${T("Styles")}</button>` +
     `<p class="note">${escH(stylesNote())}</p>`);
-  if (it.type === "favs") return cell("loc" + (it.wide ? " wide" : ""), `<button class="cap small" type="button" data-favs>${T("Favourites & hidden")}</button>` +
-    `<p class="note">${escH(T("Airlines, types, aircraft and flights to light up or leave out."))}</p>`);
+  if (it.type === "favs") {
+    const hint = escH(T("Airlines, types, aircraft and flights to light up or leave out.")), svg = p => `<svg class="fIco" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+    const star = svg('<path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>');
+    const off = svg('<path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/><path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"/><path d="M3 3l18 18"/>');
+    const row = (w, ico, name) => `<button class="cap favCap" type="button" data-favs="${w}" title="${hint}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
+      `<b class="lcd favN" data-favn="${w}" aria-hidden="true">${userLists[w].length}</b></button>`;
+    return cell("loc favs" + (it.wide ? " wide" : ""), row("fav", star, "Favourites") + row("hide", off, "Hidden"));
+  }
   if (it.type === "label") return cell("label", `<div class="lblF"><input class="lcd" data-k="${it.k}" maxlength="${it.max || 24}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" placeholder="${escH(T(S.live ? "On the go" : "Home, Parents …"))}" value="${escH(S.live ? "" : String(draft[it.k] ?? ""))}"${S.live ? " disabled" : ""}>` +
     `<button class="lblSave" type="button" data-lsave hidden>${T("Save")}</button><span class="lblOk" data-lok hidden aria-label="${escH(T("Saved"))}">✓</span></div>`);
@@ -5847,8 +5864,7 @@ function wireCockpit(box){
   wireLocation(box);
   const sb = box.querySelector("[data-styles]");
   if (sb) sb.onclick = e => { e.stopPropagation(); stylesCard(); };
-  const fb = box.querySelector("[data-favs]");
-  if (fb) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(); };
+  for (const fb of box.querySelectorAll("[data-favs]")) fb.onclick = e => { e.stopPropagation(); if (listsOk()) favCard(fb.dataset.favs); };
 }
 // Show the draft on the controls: knob positions, switch levers, wheel numbers. A wheel that just turned rolls.
 function cockpitShow(rolled, dir){
@@ -6532,6 +6548,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.60.3", date: "2026-10-19", notes: [
+    "Settings: Favourites and Hidden are now two buttons with a small counter each, opening the list straight on that side.",
+  ]},
   {v: "1.59", date: "2026-10-19", notes: [
     "Styles to unlock (Settings → Styles): colour palettes for points, flap finishes for trophies, a badge by the title for each full bingo card, and two board styles for the rarest trophies. Locked ones say how to get them.",
   ]},
