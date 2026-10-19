@@ -12,7 +12,8 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto"};
+  logos:true, overKm:3, demo:false, theme:"classic", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
 const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classic", soundSet: "recorded"};
@@ -80,7 +81,14 @@ function dlog(level, msg){
   if (DIAG.log.length > 200) DIAG.log.length = 200;
 }
 const scheduleDiag = () => {};
-let nightOn = false;          // the board's night mode; a phone doesn't need it
+// Night mode (1.57): on a phone quiet hours only, the sounds check nightOn as on the board; no dimming.
+let nightOn = false;
+function nightCheck(){
+  const mins = v => { const [h, m] = String(v || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+  const d = new Date(), n = d.getHours() * 60 + d.getMinutes(), a = mins(S.nightFrom), b = mins(S.nightTo);
+  nightOn = !!S.night && a !== b && (a < b ? n >= a && n < b : n >= a || n < b);
+}
+nightCheck(); setInterval(() => nightCheck(), 30000);
 //@E2
 //@E33
 
@@ -1682,7 +1690,7 @@ function applySettings(n){
     maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
-  saveSettings(); audioInit();
+  saveSettings(); audioInit(); nightCheck();
   pickLang(); if (LANG !== langWas) applyLang();
   AP.code = "";                                               // the home airport may have changed
   if (wasDemo !== S.demo) {

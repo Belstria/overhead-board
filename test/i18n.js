@@ -863,4 +863,6 @@ window.I18N_ROWS = [
   ["The plane on split flaps, like the board.", "Das Flugzeug auf Fallblättern, wie auf der Tafel.", "L'avion sur des volets, comme le tableau.", "El avión en paletas, como el panel.", "Het vliegtuig op klapletters, zoals het bord."],
   ["Plain and quick, without split flaps.", "Schlicht und schnell, ohne Fallblätter.", "Simple et rapide, sans volets.", "Sencilla y rápida, sin paletas.", "Eenvoudig en snel, zonder klapletters."],
   ["The big board, for a TV or a computer.", "Die große Tafel, für Fernseher oder Computer.", "Le grand tableau, pour une télé ou un ordinateur.", "El panel grande, para una tele o un ordenador.", "Het grote bord, voor een tv of een computer."],
+  ["Quiet from", "Ruhig ab", "Calme dès", "Silencio desde", "Stil vanaf"],
+  ["Quiet at night while the app is open: no chimes, dings or flap sounds.", "Nachts ruhig, solange die App offen ist: keine Gongs, Dings oder Klappgeräusche.", "Calme la nuit tant que l'application est ouverte : ni carillons, ni dings, ni bruits de volets.", "Silencio de noche con la app abierta: sin campanas, avisos ni sonido de paletas.", "'s Nachts stil zolang de app open is: geen gongen, dings of klapgeluiden."],
 ];
