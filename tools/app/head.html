@@ -256,6 +256,14 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .cups li:not(.on) .name{color:rgba(243,240,232,.5)}
 .cups .name{white-space:normal}
 .cups .s{display:block;margin:2px 0 0}
+.cups.ladders{margin-bottom:10px}
+.cups .tl{grid-column:2/4;display:flex;align-items:center;gap:8px;margin-top:2px}
+.cups .pips{display:flex;gap:4px}
+.cups .pips b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
+.cups .pips b.on{background:#e0aa1f}
+.cups .tl .bar{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden}
+.cups .tl .bar i{display:block;height:100%;background:#c99a2e}
+.cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:#e0aa1f}
 /* the year in planes */
 .yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
 .yearCard h3{margin-top:0}
@@ -373,6 +381,8 @@ body.arOpen{overflow:hidden}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
+.rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
+.rvMap small{font:500 11px/1.2 var(--f-board);color:var(--muted);text-align:right}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -424,11 +434,13 @@ body.arOpen{overflow:hidden}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 13.5px/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:#f0b429;background:rgba(240,180,41,.12)}
-.seg.svPlaces{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
-.seg.svPlaces[hidden]{display:none}
-.seg.svPlaces button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
+.seg.svPlaces,.seg.lbViews{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
+.seg.svPlaces button,.seg.lbViews button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
-.seg.svPlaces button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.lbViews{margin:10px 0 0}
+.seg.lbViews button{height:40px;padding:0 4px;font-size:13px;line-height:1.1;white-space:normal}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -524,6 +536,7 @@ body.arOpen{overflow:hidden}
   #sideAlert[data-state=off]{border-color:#c7372d}
 }
 /*CAPS_AND_COCKPIT*/
+#svList.wait{opacity:.55;transition:opacity .2s}
 </style>
 </head>
 <body>
@@ -627,6 +640,7 @@ body.arOpen{overflow:hidden}
   <section class="wrap tab cols" id="t-logbook" hidden>
     <div class="lcol">
       <h2 data-t="Logbook">Logbook</h2>
+      <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
       <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
@@ -640,6 +654,7 @@ body.arOpen{overflow:hidden}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
+      <div class="rvMap"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button><small id="rvCredit" hidden></small></div>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>

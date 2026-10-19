@@ -47,11 +47,11 @@ values you changed are kept, so new defaults from the relay still reach that scr
 The top half shows one plane and how it relates to you, worked out from its position, heading and speed:
 
 - **Overhead**: directly above, within the overhead distance (3 km by default).
-- **Inbound**: on course to pass over within three minutes; Position counts down to the pass.
+- **Approaching** (called Inbound before 1.55): on course to pass over within three minutes; Position counts down to the pass.
 - **Flying by**: getting closer, but its closest approach will be further than the overhead distance.
-- **Outbound**: moving away. **Passed** is shown for a little while after an overhead pass.
+- **Leaving** (Outbound before 1.55): moving away, soft red on the radar. **Passed** is shown for a little while after an overhead pass.
 
-Planes that are overhead or inbound always take the top spot; otherwise the board shows the plane in the
+Planes that are overhead or approaching always take the top spot; otherwise the board shows the plane in the
 spotting radius that is coming closer. Every plane that enters the spotting radius is added to
 **Spotted today** once per pass. The list marks the ones that flew directly overhead and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
@@ -159,7 +159,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
   the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
   a thin dotted line runs under those flaps (1.38).
-  On the board a plane on the radar opens its card and the airline field the airline, and the **+** at the end of a row
+  On the board a plane on the radar opens its card and the airline field the airline, and the **⋮** (three dots, 1.55; a + before) at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
 - **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
@@ -199,13 +199,18 @@ The main board has everything below. New features are tried on `/test/` first; o
   closest distance, altitude and remarks. Special planes get a lamp and a tinted row in the remark's colour. Buttons above it filter to overhead or special planes, turn the pages (or the arrow keys), and
   show the **Legend** of every remark. It covers the whole day (relay 10 or newer; older relays send the newest 400).
   On a computer (not on the TVs) a **filter** box sits beside the buttons (1.50): type an airline, flight number, city
-  or airport (name or code), aircraft type or registration; words separated by commas must all match ("Austrian, VIE"
+  or airport (name or code), aircraft type, registration or remark (OVERFLIGHT, JUMBO, NEW AIRLINE ..., in English or the
+  board's language; 1.55); words separated by commas must all match ("Austrian, VIE"
   is Austrian's flights from or to Vienna). × clears it; it is per device and empty again after a reload.
 - **Logbook** (press **L**): totals, the most seen model, the categories, and the top aircraft types, airlines and
   individual aircraft, with the newest ones, all on flaps. How many were passenger, cargo, business jet, private and light, helicopter,
   military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
   relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
   marked NEW TYPE or NEW AIRLINE on the board.
+- **The Logbook's buttons** (1.55): one row at the top right, always in the same order (Logbook, Collection, Records,
+  Week & month), the view on show lit; under it what that view offers: the place buttons and CSV under Logbook, Week /
+  Month and ◀ ▶ under Week & month. The place buttons are your saved places and On the go; planes seen from a removed
+  place, or from the unnamed spot before you saved places, count under All (that spot joins a saved place called Home).
 - **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
@@ -215,9 +220,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
   Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
-  it says when, and how long until then), and **17 trophies** (Century, Type
-  hunter, Odd couple: a 747 and a helicopter on the same day, Night owl, Bullseye ...) that are won once and kept for
-  good; nothing ever resets. An older logbook wins its trophies once from its saved days, on the day they were earned.
+  it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
+  10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
+  in, points, special planes, planes in one day, the same aircraft again, days running with something rare. The others
+  are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
+  (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
+  from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
 - **Achievements** (1.38; boards and phone app): when a collection is complete, a bingo line is made or a trophy is won,
   a card pops up with a little confetti and the bell (if chimes are on), and closes by itself after 10 seconds (or tap
   ×). Each one shows once on each screen; a screen opening the board for the first time doesn't celebrate everything
@@ -232,6 +241,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   the spotting radius and the airport's runways, and the planes within the spotting radius on flaps beside it. In the
   Airport style (1.33) it is centred on the home airport, with the spotting radius around the airport and the logo
   marking your place, and the list gives distances from the airport and the airport statuses (TAKE-OFF, FINAL ...).
+  **Map** (1.55; board, app and light) puts a plain dark map underneath: built-up areas, water, rivers, main roads and
+  runways, no text, from [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles, © OpenStreetMap contributors, credited
+  under the radar). Each screen remembers it.
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -259,7 +271,7 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **The full board has what the app has** (1.44), except what needs a phone (Sky view, compass, notifications):
   Settings → Control → **Account & device** (who the screen is signed in as, passkeys, password, Sign out of this device,
   links to the phone app and its light version, the tips again, the privacy note); Spotted today's **This place / All
-  places** button; the Logbook's place buttons (All · Home · …) and a **CSV** download. Nothing on the board needs
+  places** button; the Logbook's place buttons (All and your saved places) and a **CSV** download. Nothing on the board needs
   scrolling (TVs can't): address results and airport choices open as a window, Update location fits its cell, and
   About's patch notes and legend move with **▲ ▼** buttons.
 - **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
@@ -416,11 +428,13 @@ Five buttons along the bottom:
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
   airline), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
-- **Logbook**: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+- **Logbook** (1.55): a switch at the top for the same four views as the board (Logbook, Collection, Records, Week &
+  month); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
   At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
-  logbook (CSV)**, every sighting as a spreadsheet. Further down the records, this week's bingo and the trophies.
-  Above it (1.52, relay 46), **this week or month in review** (as on the board's Week & month), with Week / Month and ◀ ▶.
+  logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the
+  records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in
+  review**, with Week / Month and ◀ ▶.
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
   points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
@@ -434,7 +448,8 @@ Five buttons along the bottom:
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
-  Hide… (1.33). Outbound planes are violet (1.38), apart from the dark grey of the ones too high to count.
+  Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**
+  under the radar shows the map (as on the board).
 - **Connection** (1.38): the small dot by the clock is green while live, amber when the data is late or a demo, red when
   there is none. Tap it for a card: connected to the relay or not, the position source and whether its data is live or
   the last good copy, when the last update came, failed attempts, planes in range, Flightradar24 on or off and the

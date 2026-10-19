@@ -10,6 +10,28 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.55 / relay 50 (build G):
+  - #54 `lbChips()`: chips are `places.list` labels and "live" only; the unnamed "home" key (sightings before any
+    saved place) joins a label called Home/home/T("Home") (`id` "Home\nhome"), else only All counts it.
+  - #55 `TROPHY_LADDERS` ([key, description template, [[id, at, name]...]]) + `TROPHY_SINGLES` make `TROPHY_IDS`;
+    `trophyLadder(g0, L)` (done, next, have from `g0.trophyCounts[key]`, or `g0.trophyToday` for "today"). Relay:
+    `TROPHY_LADDER` {id: (count, n)}, `trophy_counts()` (game_json's `trophyCounts`), `TROPHIES_V = 2` reruns
+    `_backfill_trophies` keeping won ones and building `book["countries"]` (ownerCountry, also counted in `_enricher`,
+    which re-runs `trophy_check`). streak7/streak30 are now also won live (before only in the backfill).
+  - #65 board `buildViewTools`: `#viewTools.two` (column) with `.vtRow`s: `LB_VIEWS` (aria-current) and the view's
+    options. App `lbView` + `lbViewsBar()` (`#lbViews`, `.seg`), `renderLogbook` builds one view; `trophiesHtml(g0)`.
+  - #67 `logo(code, any)`: a failed logo retries after 10 min; cards load logos even with flap logos off and add a
+    slow one when it arrives. AIRLINES gained CAI/CXI/CND (Corendon), FHY, TOM, TFL, EXS, BOX, HFY, NOS, MAC, SBI.
+  - #68 `radarMapDraw/radarMapBuild/mvtRead/mvtPath`, `RADAR_MAP_LOOK` (shared via the app's E25 block): OpenFreeMap
+    vector tiles (TileJSON `tiles.openfreemap.org/planet`, then `.pbf`), decoded and drawn into one offscreen canvas per
+    centre/range/size; `od.radarMap` per device. CARTO raster tiles need a key now ("API KEY REQUIRED" images) and
+    Esri's dark grey base has region names baked in, so neither was used.
+  - #69 statuses APPROACHING / LEAVING (keys renamed, REMARKS drum order unchanged), `RADAR_COL.away` #c8645c,
+    LEAVING flap soft red. #72 app `renderToday` keeps the old list dimmed (`#svList.wait`) until All places arrives.
+    #70 `plusBtn(g, x, y, w, h, on)` draws three grey dots, amber while `plusOn` (the entry whose sheet `plusOpen`
+    opened; `cardClose` clears it); Recent flights rows: pitch 40, flap ratio 1.3 (was 39, 1.45).
+    #73 `spotMatch` also matches `remarkFor`, special, watch, NEW TYPE/AIRLINE, FAVOURITE and their `T()` words.
+
 - Fixed 1920x1080 layout in board units, scaled to the screen. Two canvases: `bg` (static: metal, wear, slots,
   engraved labels; `drawStatic()`) and `fx` (the flaps).
 - Flap engine: `def()` fields with cells; `tile()` pre-renders each flap face (cached, byte-budgeted);
