@@ -159,6 +159,13 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
 .plate.ctl p{text-align:center}
+.ctlCap{display:flex;align-items:center;justify-content:center;gap:calc(9px*var(--k));padding:0 calc(10px*var(--k));height:calc(56px*var(--k));font-size:calc(16px*var(--k))}
+.ctlCap .ico{flex:none;width:calc(22px*var(--k));height:calc(22px*var(--k));opacity:.8}
+.ctlTop .ctlCap{flex:1 1 0;min-width:0}
+.plate .acts.ctlTop{gap:calc(18px*var(--k));padding:calc(10px*var(--k)) calc(6px*var(--k))}
+.plate .acts.ctlBot{gap:calc(18px*var(--k));padding:calc(8px*var(--k)) calc(34px*var(--k))}
+.ctlBot .ctlCap[data-act=cancel]{flex:1 1 0}
+.ctlBot .ctlCap[data-act=save]{flex:1.6 1 0}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 /* About: patch notes, keys and information, on the same plates as Settings */
 #cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
@@ -1234,7 +1241,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=3749ed979b"></script>
+<script src="../test/i18n.js?v=181b68cf8f"></script>
 <script>
 (() => {
 "use strict";
@@ -5875,6 +5882,9 @@ const cockpitUnsaved = () => !!draft && ITEMS.some(it => String(draft[it.k] ?? "
 function cockpitDirty(){ cockpitMark(cockpitUnsaved()); }
 function cockpitSave(){ applySettings(draft); placeCheck(); cockpitDone(true); }
 function cockpitCancel(){ cockpitDone(false); }
+// A Control plate cap: a line icon (Tabler outline) left of the word; `hint` is the full name for the tooltip and screen readers.
+const ctlCap = (act, d, label, hint, cls, attr) => `<button class="cap ctlCap${cls || ""}" type="button" data-act="${act}"${attr || ""}${hint ? ` title="${escH(hint)}" aria-label="${escH(hint)}"` : ""}>` +
+  `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg><span>${escH(label)}</span></button>`;
 /* ---------- Settings: the sounds of the controls ----------
    Synthesised like the flaps: a rotary selector clicks once for every detent it passes, a toggle switch snaps and its
    body thunks, a thumbwheel ticks, a push button thocks. They play when the flap sound or the chimes are on. */
@@ -6532,6 +6542,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.60.2", date: "2026-10-19", notes: [
+    "Settings → Control: About, Account and Reset tips as three buttons with icons, Cancel and a wider green Save below."]},
   {v: "1.59", date: "2026-10-19", notes: [
     "Styles to unlock (Settings → Styles): colour palettes for points, flap finishes for trophies, a badge by the title for each full bingo card, and two board styles for the rarest trophies. Locked ones say how to get them.",
   ]},
