@@ -1412,7 +1412,7 @@ setInterval(() => {
 }, 1000);
 //@E31
 function plateHtml(p){
-  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title[0]))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();
