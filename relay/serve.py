@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 51
+RELAY_VERSION = 52
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -912,6 +912,22 @@ def bingo_json(spot, day):
     out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
     spot._bingo = (key, out)
     return out
+
+
+# Styles the owner can grant by hand (relay 52): the ones with an unlock rule on the board, [id, name].
+STYLE_GRANTS = [("heathrow", "Heathrow yellow"), ("solari", "Solari green"), ("ice", "Ice blue"), ("sunset", "Sunset"),
+                ("white", "Black on white"), ("brass", "Brass trim"), ("enamel", "Worn enamel"), ("led", "LED dots"),
+                ("star", "Star"), ("prop", "Propeller"), ("heli", "Helicopter"), ("jumbo", "Jumbo"), ("jet", "Fighter jet"),
+                ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night")]
+
+
+def style_grants(p):
+    """A profile's hand-granted styles: "all", or a list of ids (relay 52); the board counts them like earned ones."""
+    g = (p or {}).get("styleGrants")
+    if g == "all":
+        return "all"
+    ids = {i for i, _ in STYLE_GRANTS}
+    return [i for i in g if i in ids] if isinstance(g, list) else []
 
 
 def game_json(book, day):
@@ -3442,6 +3458,14 @@ def admin_html(host, made=None):
                   _pform("/admin/limit", pid, f"<label class=muted>limit a day <input type=number name=limit min=0 max=100000 step=50 "
                          f"value='{lim if own else ''}' placeholder='{lim}'></label> <button class=sm>Set</button>") +
                   (" <span class=muted>(set here)</span>" if own else " <span class=muted>(automatic)</span>"))
+            sg = style_grants(p)
+            st = (_pform("/admin/styles", pid, "<input type=hidden name=mode value=all><button class=sm>Unlock all</button>") + " " +
+                  _pform("/admin/styles", pid, "<input type=hidden name=mode value=earned><button class=sm>Back to earned only</button>") +
+                  " <span class=muted>" + ("all granted" if sg == "all" else f"{len(sg)} granted" if sg else "earned only") + "</span>" +
+                  "<details><summary>Pick styles</summary>" +
+                  _pform("/admin/styles", pid, "<input type=hidden name=mode value=pick>" + " ".join(
+                      f"<label><input type=checkbox name=grant value='{i}'{' checked' if sg == 'all' or i in sg else ''}> {esc(n)}</label>"
+                      for i, n in STYLE_GRANTS) + " <button class=sm>Save</button>") + "</details>")
             acct = ("<details><summary>Account</summary><div class=row>" +
                     _pform("/admin/username", pid, f"<input type=text name=user maxlength=30 placeholder='username' value='{esc(user, quote=True)}' "
                            "autocomplete=off> <button class=sm>" + ("Change username" if user else "Create account") + "</button>") + "</div>" +
@@ -3452,7 +3476,7 @@ def admin_html(host, made=None):
                     "</details>")
             cards.append(f"<div class=prof><h3>{head}</h3><p class=muted style='margin:4px 0'>{where} · seen {_ago(p.get('lastSeen'))}</p>"
                          + admin_stats(pid, p, live) +
-                         f"<ul>{dl or '<li class=muted>not joined yet</li>'}</ul><div class=row>{link}</div><div class=row>{fr}</div>{acct}"
+                         f"<ul>{dl or '<li class=muted>not joined yet</li>'}</ul><div class=row>{link}</div><div class=row>{fr}</div><div class=row><span class=muted>Styles</span> {st}</div>{acct}"
                          "<div class=row>" + _pform("/admin/remove", pid, "<button class=sm>Remove</button>", f"Remove {p['name']} and their sightings?") +
                          "</div></div>")
     made_html = ""
@@ -4626,7 +4650,7 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if length > 4096:
             return {}
-        return {k: v[0] for k, v in urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).items()}
+        return {k: ",".join(v) if k == "grant" else v[0] for k, v in urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", "replace")).items()}
 
     def refuse(self, path):
         """No profile: a friendly page with the QR sign-in for people, a short answer for scripts."""
@@ -5094,6 +5118,8 @@ class Handler(BaseHTTPRequestHandler):
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
             place = (raw[0] if len(raw) == 1 else tuple(raw)) if all(raw) else None   # relay 40: place=a&place=b, merged
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
+            if not place and self.guest and isinstance(body.get("game"), dict):
+                body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/seen":
             cs = re.sub(r"[^A-Z0-9]", "", ((self.query().get("cs") or [""])[0]).upper())[:8]
@@ -5234,6 +5260,21 @@ class Handler(BaseHTTPRequestHandler):
                     p.pop("fr24Limit", None)
                 _dirty.add("profiles")
             event("info", f"Flightradar24 for {p['name']}: at most {fr24_limit(p):,} credits a day" + ("" if v.isdigit() else " (automatic)"))
+        elif path == "/admin/styles" and f.get("pid") in profiles()["profiles"]:
+            with _data_lock:              # relay 52: styles granted by hand: mode all | earned | pick (grant = ids, repeated or comma-separated)
+                p = profiles()["profiles"][f["pid"]]
+                mode = (f.get("mode") or "").strip()
+                if mode == "all":
+                    p["styleGrants"] = "all"
+                elif mode == "pick":
+                    ids = {i for i, _ in STYLE_GRANTS}
+                    p["styleGrants"] = [i for i in (f.get("grant") or "").split(",") if i in ids]
+                else:
+                    p.pop("styleGrants", None)
+                if p.get("styleGrants") == []:
+                    p.pop("styleGrants", None)
+                _dirty.add("profiles")
+            event("info", f"Styles for {p['name']}: " + ("earned only" if "styleGrants" not in p else "all granted" if p["styleGrants"] == "all" else f"{len(p['styleGrants'])} granted"))
         elif path == "/admin/username" and f.get("pid") in profiles()["profiles"]:
             user = (f.get("user") or "").strip().lower()
             other = account_of(user)

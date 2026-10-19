@@ -10,6 +10,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.60 / relay 52: the Styles cell is a progress ring (`.stRing`, built in `itemHtml` for `type: "styles"`). Styles granted by hand: profile field `styleGrants` ("all" or ids, `STYLE_GRANTS`, `style_grants()`), set from the admin card's Styles line (`POST /admin/styles`: `pid`, `mode` = `all` | `earned` | `pick`, `grant` = ids, repeated or comma-separated), sent in `/logbook` as `game.styleGrants`; `styleOk(rule, g0, id)` counts them, `achList` calls it without an id so grants raise no pop-up.
 - 1.59 / relay 51 (to-do #66, stacked on 1.55): `STYLES` ([kind, name, [[id, name, rule]]], rules `{pts}`/`{tr}`/
   `{cards}`), `styleOk(rule, g0)` with `styleGame()` (lbData's game), `PALETTES` laid over the theme by `themeNow()`
   (both applyThemes), `THEMES.frankfurt70`/`tokyo`, `FINISH()` in `tile()` (key includes it; `WHITE_FLAP`, enamel

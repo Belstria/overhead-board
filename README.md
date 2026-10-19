@@ -363,6 +363,7 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Styles to unlock** (1.59, relay 51; Settings → Styles on the board, in the app and the light version): every choice
   shows, the locked ones with what unlocks them, and picking an unlocked one applies at once. The default look stays
   until someone picks something. Unlocks are the profile's own, from its logbook's game:
+  - The owner can also unlock styles by hand for a profile on the admin page (relay 52: Unlock all, Back to earned only, or pick styles); they count like earned ones, without a pop-up.
   - **Colours** for points: Heathrow yellow 5,000, Solari green 25,000, Ice blue 50,000, Sunset 100,000.
   - **Flaps** for trophies: Black on white (Type collector), Brass trim (Rare breed), Worn enamel (Regular), LED dots
     (Around the clock). Not in the light version.
