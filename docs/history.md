@@ -425,6 +425,18 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   copies, made by `tools/push_main.py`. Measured at 960x540 on the test relay: first load 888 KB as before (875),
   later loads 486 KB; first flap at 5 Mbps 1.57 s before, 1.19 s first / 0.90 s later after (20 Mbps: 0.50 s →
   0.44 / 0.31 s). AIRPORTS, AIRLINES, TYPES, FLEET stay in the board (a few KB together).
+- 1.56 (to-do #47 step 3, #71, #74, #75): Account, Notifications, Device, Privacy and About are `view: true` plates in
+  the shared `COCKPIT` (items `{type: "account"|"push"|"device"|"privacy"|"about"}`, `cls`, `cols: 1`; `push` and
+  `about` phone-only, `privacy` TV-only). `cockpitFor()` keeps them (phone: no 2 columns); `PLATES` leaves them out,
+  `VIEW_PLATES` has them. `itemHtml` hands these types to `viewItemHtml(it)` (no `.inst` cell); `wireViews(box)` wires
+  Sign out (`acctHas`), the tips link, Back to Settings (TV), `uiBtn` (`od.ui`), Change relay (Android), `renderPush`
+  (phone) and `accountBox`. The board's `accountOpen()` and the app's `settingsExtra()` are now three lines each;
+  the board's `plateHtml` adds `cls` and `grid-row: 1 / span 2` for view plates. #74: `accountBox` (plate) draws
+  `.acCheck` rows with `acRow(done, name, line, button)`, `.acTick`, `.acGo` (Add / Change ›), saved passkeys in
+  `.acKeysRow`. #75: `.devTiles` of two `.devTile` links (`DEV_ICON` SVGs; TV: Phone app + Light version; app: Light
+  version + Full board; light: Full app + Full board), `.devLinks` of `.lnk` buttons. #71: `#recent li` in head.html
+  (14 px padding, a white line at .13). `tools/test/cockpit_list.py` also lists the view plates (`VIEW` lines: the
+  board's Account & device view, the app's and light's `#setExtra`).
 - 1.54 (to-do #53, #56-#64): `saveSettings` (board, app, light) always sends and keeps every key of this screen's
   Settings (`cockpitKeys()`: `ITEMS` without the place keys, which go by `locSet`), so a setting back at its default
   overrides the profile's merged old value. Favicon: an inline SVG data URI in the board (the app and light use
