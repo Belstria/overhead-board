@@ -82,7 +82,10 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
   border-radius:calc(5px*var(--k));background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 calc(1px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.05)}
 .inst[data-hint]{position:relative}
 .inst[data-hint]::after{content:attr(data-hint);position:absolute;left:50%;bottom:calc(100% + 8px*var(--k));z-index:30;width:max-content;max-width:calc(240px*var(--k));padding:calc(7px*var(--k)) calc(10px*var(--k));border-radius:calc(6px*var(--k));background:rgba(12,13,15,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 calc(6px*var(--k)) calc(18px*var(--k)) rgba(0,0,0,.6);color:#e9e5da;font:500 calc(13px*var(--k))/1.35 var(--f-board);letter-spacing:0;text-transform:none;text-align:left;white-space:normal;pointer-events:none;opacity:0;transform:translate(-50%,calc(4px*var(--k)));transition:opacity .15s,transform .15s}
-.inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:1;transform:translate(-50%,0);transition-delay:.35s}
+#hintTip{position:fixed;z-index:96;box-sizing:border-box;width:max-content;max-width:min(calc(260px*var(--tipK,1)),calc(100vw - 16px));padding:calc(7px*var(--tipK,1)) calc(10px*var(--tipK,1));border-radius:calc(6px*var(--tipK,1));
+  background:rgba(12,13,15,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 calc(6px*var(--tipK,1)) calc(18px*var(--tipK,1)) rgba(0,0,0,.6);color:#e9e5da;font:500 calc(13px*var(--tipK,1))/1.35 var(--f-board);
+  pointer-events:none;opacity:0;transition:opacity .15s}
+#hintTip.on{opacity:1}
 @media (pointer:coarse){   /* a phone: inside the control's own cell (plates clip what sticks out), after a tap */
   .inst[data-hint]::after{left:calc(6px*var(--k));right:calc(6px*var(--k));bottom:calc(6px*var(--k));width:auto;max-width:none;transform:none;text-align:center}
   .inst[data-hint]:hover::after,.inst[data-hint]:focus-within::after{opacity:0;transform:none}
@@ -112,11 +115,11 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .rotary .knob::after{content:"";position:absolute;left:50%;top:7%;width:calc(3px*var(--k));height:38%;margin-left:calc(-1.5px*var(--k));border-radius:2px;background:#f3f0e8;box-shadow:0 0 calc(4px*var(--k)) rgba(255,255,255,.4)}
 .rotary:focus-visible .knob{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
 .rotary b{position:absolute;left:50%;top:calc(58px*var(--k));font:600 calc(11px*var(--k))/1 var(--f-board);letter-spacing:.06em;color:rgba(214,208,194,.55);white-space:nowrap;
-  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-46px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(var(--r,46)*-1px*var(--k))) rotate(calc(-1*var(--a)));transition:color .2s,text-shadow .2s}
 .rotary b.on{color:#f6c54a;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55)}
 /* flip switch: an aircraft toggle. A chrome bat handle with a ball tip sticks out of a knurled bushing in a hex nut and
    snaps between tilted up (on) and tilted down (off), swinging through the middle in 3D. */
-.toggle{position:relative;width:calc(72px*var(--k));height:calc(90px*var(--k));padding:0;border:0;background:none;cursor:pointer;outline:none;
+.toggle{position:relative;width:calc(72px*var(--k));height:calc(96px*var(--k));padding:0;border:0;background:none;cursor:pointer;outline:none;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;font:700 calc(10.5px*var(--k))/1 var(--f-board);letter-spacing:.12em;color:rgba(214,208,194,.36)}
 .toggle .sw{position:relative;width:calc(40px*var(--k));height:calc(40px*var(--k));perspective:calc(150px*var(--k))}
 .toggle .sw::before{content:"";position:absolute;inset:0;clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0 50%);
@@ -155,6 +158,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 @keyframes rollUp{0%{transform:translateY(60%);opacity:.2}100%{transform:none;opacity:1}}
 @keyframes rollDown{0%{transform:translateY(-60%);opacity:.2}100%{transform:none;opacity:1}}
 .plate p{grid-column:1/-1;margin:0;font:500 calc(14px*var(--k))/1.35 var(--f-board);color:rgba(214,208,194,.6)}
+.plate.ctl p{text-align:center}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 /* About: patch notes, keys and information, on the same plates as Settings */
 #cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
@@ -184,61 +188,61 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate p.ver{color:#f6c54a;font-weight:600;letter-spacing:.02em;text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.35)}
 
 /* Cards (1.34): a plane, an airline or a place, the favourite/hide sheet and the favourites manager; over the board or
-   the phone app, sized in screen pixels (not with the board) so they read the same everywhere. */
+   the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
 #cardBox{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);font-family:var(--f-board)}
 #cardBox[hidden]{display:none}
 @media (min-width:700px){#cardBox{align-items:center}}
-#cardBox .cardIn{position:relative;width:100%;max-width:560px;max-height:88vh;overflow:auto;box-sizing:border-box;padding:18px 18px calc(env(safe-area-inset-bottom) + 16px);
-  border-radius:16px 16px 0 0;background:linear-gradient(#1b1c1f,#111214);border:1px solid rgba(255,255,255,.08);color:#f3f0e8;font-size:15px;line-height:1.4;text-align:left}
+#cardBox .cardIn{position:relative;width:100%;max-width:calc(560px*var(--ck,1));max-height:88vh;overflow:auto;box-sizing:border-box;padding:calc(18px*var(--ck,1)) calc(18px*var(--ck,1)) calc(env(safe-area-inset-bottom) + calc(16px*var(--ck,1)));
+  border-radius:calc(16px*var(--ck,1)) calc(16px*var(--ck,1)) 0 0;background:linear-gradient(#1b1c1f,#111214);border:1px solid rgba(255,255,255,.08);color:#f3f0e8;font-size:calc(15px*var(--ck,1));line-height:1.4;text-align:left}
 @media (min-width:700px){#cardBox .cardIn{border-radius:16px}}
-#cardBox .cardX{all:unset;position:absolute;right:10px;top:8px;width:34px;height:34px;text-align:center;font:600 26px/34px var(--f-board);color:#959aa3;cursor:pointer}
-#cardBox h3{margin:0;font:700 22px/1.2 var(--f-board);color:#f3f0e8;padding-right:34px}
-#cardBox .cHead,.cardish .cHead{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-#cardBox .cHead span,.cardish .cHead span{color:#959aa3;font:600 12px var(--f-board);letter-spacing:.12em;text-transform:uppercase}
-#cardBox .cLogo,.cardish .cLogo{height:38px;max-width:120px;object-fit:contain;background:#f3f0e8;border-radius:6px;padding:4px 6px}
-#cardBox .cPic,.cardish .cPic{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 4px}
-#cardBox .cCredit,.cardish .cCredit{margin:0 0 10px;color:#959aa3;font-size:11px}
-#cardBox .cFacts,.cardish .cFacts{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin:10px 0}
+#cardBox .cardX{all:unset;position:absolute;right:calc(10px*var(--ck,1));top:calc(8px*var(--ck,1));width:calc(34px*var(--ck,1));height:calc(34px*var(--ck,1));text-align:center;font:600 calc(26px*var(--ck,1))/calc(34px*var(--ck,1)) var(--f-board);color:#959aa3;cursor:pointer}
+#cardBox h3{margin:0;font:700 calc(22px*var(--ck,1))/1.2 var(--f-board);color:#f3f0e8;padding-right:calc(34px*var(--ck,1))}
+#cardBox .cHead,.cardish .cHead{display:flex;align-items:center;gap:calc(12px*var(--ck,1));margin-bottom:calc(8px*var(--ck,1))}
+#cardBox .cHead span,.cardish .cHead span{color:#959aa3;font:600 calc(12px*var(--ck,1)) var(--f-board);letter-spacing:.12em;text-transform:uppercase}
+#cardBox .cLogo,.cardish .cLogo{height:calc(38px*var(--ck,1));max-width:calc(120px*var(--ck,1));object-fit:contain;background:#f3f0e8;border-radius:calc(6px*var(--ck,1));padding:calc(4px*var(--ck,1)) calc(6px*var(--ck,1))}
+#cardBox .cPic,.cardish .cPic{display:block;width:100%;max-height:calc(220px*var(--ck,1));object-fit:cover;border-radius:calc(10px*var(--ck,1));margin:0 0 calc(4px*var(--ck,1))}
+#cardBox .cCredit,.cardish .cCredit{margin:0 0 calc(10px*var(--ck,1));color:#959aa3;font-size:calc(11px*var(--ck,1))}
+#cardBox .cFacts,.cardish .cFacts{display:grid;grid-template-columns:1fr 1fr;gap:calc(8px*var(--ck,1)) calc(14px*var(--ck,1));margin:calc(10px*var(--ck,1)) 0}
 #cardBox .cFacts div.w,.cardish .cFacts div.w{grid-column:1/3}
-#cardBox .cFacts dt,.cardish .cFacts dt{color:#f0b429;font:600 11px var(--f-board);letter-spacing:.12em;text-transform:uppercase}
-#cardBox .cFacts dd,.cardish .cFacts dd{margin:2px 0 0;font:600 15px var(--f-board);color:#f3f0e8}
-#cardBox .cRoute,.cardish .cRoute{margin:4px 0 8px;font:600 15px var(--f-board);color:#f0b429}
-#cardBox .cWiki,.cardish .cWiki{margin:8px 0;color:#c9c4b6;font-size:14px}
+#cardBox .cFacts dt,.cardish .cFacts dt{color:#f0b429;font:600 calc(11px*var(--ck,1)) var(--f-board);letter-spacing:.12em;text-transform:uppercase}
+#cardBox .cFacts dd,.cardish .cFacts dd{margin:calc(2px*var(--ck,1)) 0 0;font:600 calc(15px*var(--ck,1)) var(--f-board);color:#f3f0e8}
+#cardBox .cRoute,.cardish .cRoute{margin:calc(4px*var(--ck,1)) 0 calc(8px*var(--ck,1));font:600 calc(15px*var(--ck,1)) var(--f-board);color:#f0b429}
+#cardBox .cWiki,.cardish .cWiki{margin:calc(8px*var(--ck,1)) 0;color:#c9c4b6;font-size:calc(14px*var(--ck,1))}
 #cardBox .cWiki a,.cardish .cWiki a{color:#f0b429}
-#cardBox .cChip,.cardish .cChip{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:5px;font:700 12px var(--f-board);letter-spacing:.06em;vertical-align:middle}
-#cardBox .cLink,.cardish .cLink{all:unset;cursor:pointer;display:inline-block;box-sizing:border-box;border:1px solid #44474d;border-radius:12px;padding:2px 9px;line-height:1.3;color:#f3eee0;vertical-align:middle}
+#cardBox .cChip,.cardish .cChip{display:inline-block;margin-left:calc(6px*var(--ck,1));padding:calc(2px*var(--ck,1)) calc(8px*var(--ck,1));border-radius:calc(5px*var(--ck,1));font:700 calc(12px*var(--ck,1)) var(--f-board);letter-spacing:.06em;vertical-align:middle}
+#cardBox .cLink,.cardish .cLink{all:unset;cursor:pointer;display:inline-block;box-sizing:border-box;border:1px solid #44474d;border-radius:calc(12px*var(--ck,1));padding:calc(2px*var(--ck,1)) calc(9px*var(--ck,1));line-height:1.3;color:#f3eee0;vertical-align:middle}
 #cardBox .cLink:active,.cardish .cLink:active{background:rgba(255,255,255,.1)}
-#cardBox .cRoute .cLink,.cardish .cRoute .cLink{margin:2px 0}
-#cardBox .cBtns,.cardish .cBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-#cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:42px;padding:8px 14px;border-radius:8px;background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
-  font:700 13px/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 2px 0 #000,0 0 0 2px #050505}
-#cardBox .cBtn.on,.cardish .cBtn.on{outline:3px solid #f0b429;outline-offset:1px}
+#cardBox .cRoute .cLink,.cardish .cRoute .cLink{margin:calc(2px*var(--ck,1)) 0}
+#cardBox .cBtns,.cardish .cBtns{display:flex;gap:calc(8px*var(--ck,1));flex-wrap:wrap;margin-top:calc(12px*var(--ck,1))}
+#cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:calc(42px*var(--ck,1));padding:calc(8px*var(--ck,1)) calc(14px*var(--ck,1));border-radius:calc(8px*var(--ck,1));background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
+  font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
+#cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
-#cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
-#cardBox .shH,.cardish .shH{margin:14px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
+#cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+#cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
 #cardBox .cPic.shImg{max-height:60vh;object-fit:contain;background:#111214}
-#cardBox .shRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-#cardBox .shRow .cBtn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:7px 8px;font-size:12px}
-#cardBox .note,.cardish .note{min-height:1.2em;color:#959aa3;font-size:13px;margin:8px 0 0}
-#cardBox .chips,.cardish .chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-#cardBox .chips li,.cardish .chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board)}
-#cardBox .chips small,.cardish .chips small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#959aa3}
-#cardBox .chips button,.cardish .chips button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;color:#959aa3}
-#cardBox .favAdd,.cardish .favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-#cardBox .favAdd select,#cardBox .favAdd input,.cardish .favAdd select,.cardish .favAdd input{background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
-#cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:160px}
-#cardBox .plRow{display:flex;gap:8px;margin:8px 0}
-#cardBox .plGo{flex:1;display:flex;flex-direction:column;gap:2px}
+#cardBox .shRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(6px*var(--ck,1))}
+#cardBox .shRow .cBtn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:calc(7px*var(--ck,1)) calc(8px*var(--ck,1));font-size:calc(12px*var(--ck,1))}
+#cardBox .note,.cardish .note{min-height:1.2em;color:#959aa3;font-size:calc(13px*var(--ck,1));margin:calc(8px*var(--ck,1)) 0 0}
+#cardBox .chips,.cardish .chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:calc(6px*var(--ck,1))}
+#cardBox .chips li,.cardish .chips li{display:flex;align-items:center;gap:calc(6px*var(--ck,1));padding:calc(5px*var(--ck,1)) calc(6px*var(--ck,1)) calc(5px*var(--ck,1)) calc(10px*var(--ck,1));border-radius:calc(16px*var(--ck,1));background:rgba(255,255,255,.07);font:600 calc(13px*var(--ck,1)) var(--f-board)}
+#cardBox .chips small,.cardish .chips small{font-size:calc(9px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;color:#959aa3}
+#cardBox .chips button,.cardish .chips button{all:unset;cursor:pointer;width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));border-radius:50%;text-align:center;line-height:calc(22px*var(--ck,1));color:#959aa3}
+#cardBox .favAdd,.cardish .favAdd{display:flex;gap:calc(8px*var(--ck,1));margin-top:calc(12px*var(--ck,1));flex-wrap:wrap}
+#cardBox .favAdd select,#cardBox .favAdd input,.cardish .favAdd select,.cardish .favAdd input{background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.12);border-radius:calc(8px*var(--ck,1));padding:calc(9px*var(--ck,1)) calc(10px*var(--ck,1));font:600 calc(14px*var(--ck,1)) var(--f-board)}
+#cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:calc(160px*var(--ck,1))}
+#cardBox .plRow{display:flex;gap:calc(8px*var(--ck,1));margin:calc(8px*var(--ck,1)) 0}
+#cardBox .plGo{flex:1;display:flex;flex-direction:column;gap:calc(2px*var(--ck,1))}
 #cardBox .plGo small{font-weight:500;opacity:.7;letter-spacing:0}
-#cardBox .plRm{flex:none;width:46px;text-align:center}
-#cardBox .plUp{flex:none;padding-left:12px;padding-right:12px}
+#cardBox .plRm{flex:none;width:calc(46px*var(--ck,1));text-align:center}
+#cardBox .plUp{flex:none;padding-left:calc(12px*var(--ck,1));padding-right:calc(12px*var(--ck,1))}
 /* achievements (1.38): the card, its badge, the bar running down to the close, and the confetti over everything */
-#cardBox .cardIn.ach{text-align:center;border-top:2px solid #f2c44e}
-#cardBox .achBadge{width:64px;height:64px;margin:4px auto 6px;border-radius:50%;display:grid;place-items:center;font:700 32px/1 var(--f-board);color:#2a1d02;
-  background:radial-gradient(circle at 35% 30%,#fff1b8,#f2c44e 45%,#b8861a);box-shadow:0 0 24px rgba(242,196,78,.45)}
-#cardBox .ach h3{padding:0 34px;margin-top:6px}
-#cardBox .achTx{margin:4px 0 10px;font:500 15px/1.4 var(--f-board);color:#cfc9bb}
-#cardBox .achBar{height:3px;margin:12px auto 0;max-width:240px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+#cardBox .cardIn.ach{text-align:center;border-top:calc(2px*var(--ck,1)) solid #f2c44e}
+#cardBox .achBadge{width:calc(64px*var(--ck,1));height:calc(64px*var(--ck,1));margin:calc(4px*var(--ck,1)) auto calc(6px*var(--ck,1));border-radius:50%;display:grid;place-items:center;font:700 calc(32px*var(--ck,1))/1 var(--f-board);color:#2a1d02;
+  background:radial-gradient(circle at 35% 30%,#fff1b8,#f2c44e 45%,#b8861a);box-shadow:0 0 calc(24px*var(--ck,1)) rgba(242,196,78,.45)}
+#cardBox .ach h3{padding:0 calc(34px*var(--ck,1));margin-top:calc(6px*var(--ck,1))}
+#cardBox .achTx{margin:calc(4px*var(--ck,1)) 0 calc(10px*var(--ck,1));font:500 calc(15px*var(--ck,1))/1.4 var(--f-board);color:#cfc9bb}
+#cardBox .achBar{height:calc(3px*var(--ck,1));margin:calc(12px*var(--ck,1)) auto 0;max-width:calc(240px*var(--ck,1));border-radius:calc(2px*var(--ck,1));background:rgba(255,255,255,.08);overflow:hidden}
 #cardBox .achBar i{display:block;height:100%;background:#f2c44e;transform-origin:left;animation:achDown linear forwards}
 @keyframes achDown{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;pointer-events:none}
@@ -282,12 +286,12 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #tipLayer .tipOk{all:unset;cursor:pointer;display:inline-block;margin-top:calc(10px*var(--tipK,1));padding:calc(7px*var(--tipK,1)) calc(14px*var(--tipK,1));border-radius:calc(8px*var(--tipK,1));background:#f0b429;color:#141414;
   font:700 calc(12.5px*var(--tipK,1))/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
 @media (prefers-reduced-motion:reduce){#tipLayer .tipRing{animation:none}}
-#cardBox .cLoad{display:flex;align-items:center;gap:12px;min-height:90px;justify-content:center;color:#b9b3a3;font:500 16px/1.2 "Archivo Narrow",sans-serif}
-#cardBox .cSpin{width:22px;height:22px;border-radius:50%;border:3px solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
+#cardBox .cLoad{display:flex;align-items:center;gap:calc(12px*var(--ck,1));min-height:calc(90px*var(--ck,1));justify-content:center;color:#b9b3a3;font:500 calc(16px*var(--ck,1))/1.2 "Archivo Narrow",sans-serif}
+#cardBox .cSpin{width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));border-radius:50%;border:calc(3px*var(--ck,1)) solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
 @keyframes cSpin{to{transform:rotate(360deg)}}
 #cardBox .cPicW,.cardish .cPicW{position:relative}
-#cardBox .cTag,.cardish .cTag{position:absolute;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
-  font:700 11.5px/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+#cardBox .cTag,.cardish .cTag{position:absolute;left:calc(10px*var(--ck,1));top:calc(10px*var(--ck,1));padding:calc(5px*var(--ck,1)) calc(9px*var(--ck,1));border-radius:calc(6px*var(--ck,1));background:rgba(240,180,41,.94);color:#141414;
+  font:700 calc(11.5px*var(--ck,1))/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
 .acIn{display:block;width:100%;box-sizing:border-box;margin:calc(8px*var(--k)) 0;padding:calc(10px*var(--k)) calc(12px*var(--k));border-radius:calc(8px*var(--k));border:1px solid rgba(255,255,255,.12);background:#0f1012;color:#f3f0e8;font:500 calc(15px*var(--k)) "Archivo Narrow",sans-serif}
 .acHead{display:flex;align-items:center;gap:calc(14px*var(--k));margin:calc(2px*var(--k)) 0 calc(8px*var(--k));padding:calc(12px*var(--k)) calc(14px*var(--k));border-radius:calc(12px*var(--k));background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
 .acAv{flex:none;width:calc(46px*var(--k));height:calc(46px*var(--k));border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 calc(22px*var(--k))/1 "Archivo Narrow",sans-serif}
@@ -310,8 +314,8 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 /* 1.44: long pages on the board (patch notes, legend) move with ▲ / ▼ buttons: a TV can't scroll */
 .scrollBtns{display:flex;gap:calc(6px*var(--k));margin-left:auto}
 .scrollBtns .cap{width:auto;padding:0 calc(14px*var(--k))}
-#cardBox .pickList,.cardish .pickList{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-#cardBox .pickList .cBtn small,.cardish .pickList .cBtn small{display:block;font-weight:500;opacity:.7;margin-top:2px;letter-spacing:0}
+#cardBox .pickList,.cardish .pickList{display:flex;flex-direction:column;gap:calc(8px*var(--ck,1));margin-top:calc(10px*var(--ck,1))}
+#cardBox .pickList .cBtn small,.cardish .pickList .cBtn small{display:block;font-weight:500;opacity:.7;margin-top:calc(2px*var(--ck,1));letter-spacing:0}
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
@@ -603,7 +607,7 @@ body.aboutOpen{overflow:hidden}
 .favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .favAdd select,.favAdd input{background:#0f1012;color:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
 .favAdd input{flex:1;min-width:160px}
-.favAdd .cap{width:auto;padding:0 14px}
+.favAdd .cap{width:auto;height:auto;min-height:40px;margin:0;padding:0 16px}
 .pushKinds{margin:6px 0 0 4px}
 .acts a.cap{text-decoration:none;display:grid;place-items:center}
 /* the radar: a tapped plane's card */
@@ -1148,7 +1152,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=c6af3b2fff"></script>
+<script src="../test/i18n.js?v=0620f3b2af"></script>
 <script>
 (() => {
 "use strict";
@@ -1273,15 +1277,20 @@ function saveMe(changed, now){
   return Promise.resolve();
 }
 const located = () => !GUEST || !!S.located;
+// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
+// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
+const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
 }
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
+S.logos = true;                                      // airline logos are always on (1.54: the switch went)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -1377,24 +1386,31 @@ function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++;
 // stays silent. A card keeps its music while it shows a `data-music` mark (its loading window and then the card).
 const MUSIC_S = 30, MUSIC_FADE_S = 4;
 let cardMusic = null;
-function cardMusicStart(name){
+// 1.54: where Web Audio runs, only the first ~45 seconds come, in one request, and play from memory (kept for the next
+// time): the audio element read the file in many small pieces first, which took seconds through the tunnel.
+const MUSIC_BYTES = 900000, musicBufs = new Map();
+function musicBuf(name){
+  let p = musicBufs.get(name);
+  if (!p) {
+    p = fetch(`${relay()}/media/${name}`, {credentials: "include", headers: {Range: `bytes=0-${MUSIC_BYTES - 1}`}})
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(ab => new Promise((ok, no) => actx.decodeAudioData(ab, ok, no)));
+    musicBufs.set(name, p);
+    p.catch(() => musicBufs.delete(name));
+  }
+  return p;
+}
+function cardMusicStart(name, noBuf){
   cardMusicStop(true);
   if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 42) return;
   const was = soundForced;
   soundForced = true; audioInit(); soundForced = was;
-  const el = new Audio(), m = cardMusic = {el, gain: null, timers: []};
-  el.preload = "auto"; el.crossOrigin = "use-credentials"; el.src = `${relay()}/media/${name}`;
-  const vol = v => { if (m.gain) m.gain.gain.value = v; else el.volume = Math.max(0, Math.min(1, v)); };
-  try {
-    if (actx) { m.gain = actx.createGain(); m.gain.gain.value = 0; actx.createMediaElementSource(el).connect(m.gain).connect(actx.destination); }
-  } catch { m.gain = null; }
-  vol(0);
-  el.onerror = () => { if (cardMusic === m) cardMusicStop(true); };
+  const m = cardMusic = {el: null, src: null, gain: null, timers: []};
+  const vol = v => { if (m.gain) m.gain.gain.value = v; else if (m.el) m.el.volume = Math.max(0, Math.min(1, v)); };
   const ramp = (from, to, s) => {                       // a few small steps (also where only el.volume works)
     const n = Math.max(1, Math.round(s * 20));
     for (let i = 1; i <= n; i++) m.timers.push(setTimeout(() => vol(from + (to - from) * i / n), i * 50));
   };
-  const p = el.play();
   const begin = () => {
     if (cardMusic !== m) return;
     const peak = .55;
@@ -1402,6 +1418,26 @@ function cardMusicStart(name){
     m.timers.push(setTimeout(() => ramp(peak, 0, MUSIC_FADE_S), (MUSIC_S - MUSIC_FADE_S) * 1000));
     m.timers.push(setTimeout(() => { if (cardMusic === m) cardMusicStop(true); }, MUSIC_S * 1000 + 100));
   };
+  if (actx && !noBuf) {
+    try { m.gain = actx.createGain(); m.gain.gain.value = 0; m.gain.connect(actx.destination); } catch { m.gain = null; }
+    if (m.gain) {
+      musicBuf(name).then(buf => {
+        if (cardMusic !== m) return;
+        const src = m.src = actx.createBufferSource();
+        src.buffer = buf; src.connect(m.gain); src.start();
+        begin();
+      }, () => { if (cardMusic === m) cardMusicStart(name, true); });   // not decodable here: the audio element
+      return;
+    }
+  }
+  const el = m.el = new Audio();
+  el.preload = "auto"; el.crossOrigin = "use-credentials"; el.src = `${relay()}/media/${name}`;
+  try {
+    if (actx) { m.gain = actx.createGain(); m.gain.gain.value = 0; actx.createMediaElementSource(el).connect(m.gain).connect(actx.destination); }
+  } catch { m.gain = null; }
+  vol(0);
+  el.onerror = () => { if (cardMusic === m) cardMusicStop(true); };
+  const p = el.play();
   if (p && p.then) p.then(begin, () => { if (cardMusic === m) cardMusicStop(true); }); else begin();
 }
 function cardMusicStop(now){
@@ -1409,10 +1445,14 @@ function cardMusicStop(now){
   if (!m) return;
   cardMusic = null;
   m.timers.forEach(clearTimeout);
-  const end = () => { try { m.el.pause(); m.el.removeAttribute("src"); m.el.load(); } catch {} };
+  const end = () => {
+    try { if (m.src) m.src.stop(); } catch {}
+    try { if (m.gain && !m.el) m.gain.disconnect(); } catch {}
+    try { if (m.el) { m.el.pause(); m.el.removeAttribute("src"); m.el.load(); } } catch {}
+  };
   if (now) return end();
-  const g = m.gain ? m.gain.gain.value : m.el.volume;
-  for (let i = 1; i <= 8; i++) setTimeout(() => { if (m.gain) m.gain.gain.value = g * (1 - i / 8); else m.el.volume = g * (1 - i / 8); if (i === 8) end(); }, i * 50);
+  const g = m.gain ? m.gain.gain.value : m.el ? m.el.volume : 0;
+  for (let i = 1; i <= 8; i++) setTimeout(() => { if (m.gain) m.gain.gain.value = g * (1 - i / 8); else if (m.el) m.el.volume = g * (1 - i / 8); if (i === 8) end(); }, i * 50);
 }
 // 1.42: a card that needs to look things up opens as a short loading window and shows itself once everything (the
 // words, the airport, the pictures) is in, or after a few seconds with what there is, so nothing jumps about.
@@ -1532,7 +1572,7 @@ function favManager(el){
     `<p class="shH">★ ${escH(T("Favourites"))}</p>${chips("fav")}<p class="shH">⊘ ${escH(T("Hidden"))}</p>${chips("hide")}` +
     `<div class="favAdd"><select data-fw><option value="fav">★ ${escH(T("Favourites"))}</option><option value="hide">⊘ ${escH(T("Hidden"))}</option></select>` +
     `<input data-fi list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
-    `<button class="cBtn" type="button" data-fa>${T("Add")}</button></div><p class="note" data-fn></p>` +
+    `<button class="${el.closest(".plate") ? "cap" : "cBtn"}" type="button" data-fa>${T("Add")}</button></div><p class="note" data-fn></p>` +
     `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
     `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
   const note = t => { el.querySelector("[data-fn]").textContent = t; };
@@ -5097,7 +5137,8 @@ const COCKPIT = [
     {type: "places", label: "Saved places", span: 2, for: "phone"},
     {type: "search", label: "Find an address", span: 2, for: "phone"}]},
   {id: "traffic", title: ["Traffic", "Verkehr"], cols: 3, items: [
-    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]]},
+    {k: "maxAltFt", type: "rotary", label: "Ignore planes above", opts: [[8000, "8K FT"], [15000, "15K"], [25000, "25K"], [60000, "ALL"]],
+      metric: [[8200, "2.5K M"], [16400, "5K"], [24600, "7.5K"], [60000, "ALL"]]},       // stored in feet, shown in metres when metric
     {k: "refreshS", type: "rotary", label: "Update every", opts: [[5, "5"], [10, "10"], [15, "15"], [30, "30 S"]], for: "tv"},
     {k: "airtimeMin", type: "rotary", label: "Hovering, min/hour", opts: [[2, "2"], [3, "3"], [5, "5"], [10, "10"], [0, "OFF"]]},
     {k: "favs", type: "favs", label: "Favourites", for: "tv"},
@@ -5109,7 +5150,6 @@ const COCKPIT = [
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]], dflt: "auto", for: "tv"},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]], for: "tv"},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
-    {k: "logos", type: "switch", label: "Airline logos"},
     {k: "real", type: "switch", label: "Realistic look", flaps: true},
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
   {id: "flaps", title: ["Flaps & sound", "Klappen & Klang"], cols: 3, light: {title: ["Sounds", ""]}, items: [
@@ -5146,11 +5186,12 @@ function cockpitFor(target){
 const PLATES = cockpitFor(COCKPIT_FOR), ITEMS = PLATES.flatMap(p => p.items || []).filter(it => it.k);
 let draft = null;
 function rotaryAngles(n){ const spread = n === 2 ? 80 : n === 3 ? 120 : n === 4 ? 180 : 240; return [...Array(n)].map((_, i) => -spread / 2 + (n > 1 ? i * spread / (n - 1) : 0)); }
+const rotOpts = it => it.metric && draft.units === "metric" ? it.metric : it.opts;   // a knob with metric steps (altitude)
 function rotaryIndex(it){
-  const v = draft[it.k], i = it.opts.findIndex(o => String(o[0]) === String(v));
+  const opts = rotOpts(it), v = draft[it.k], i = opts.findIndex(o => String(o[0]) === String(v));
   if (i >= 0) return i;
   let best = 0;
-  it.opts.forEach((o, j) => { if (Math.abs(+o[0] - +v) < Math.abs(+it.opts[best][0] - +v)) best = j; });
+  opts.forEach((o, j) => { if (Math.abs(+o[0] - +v) < Math.abs(+opts[best][0] - +v)) best = j; });
   return best;
 }
 // One control in its cell. The name comes last in the markup and is shown above the control (CSS order).
@@ -5176,7 +5217,6 @@ const HINTS = {
   statsPage: "Today in numbers comes round every tenth turn of the pages; off: only when you pick it.",
   ding: "A soft cabin ding when a new plane comes on top, so you know when to look up.",
   units: "Metres and km/h, or feet and knots.",
-  logos: "Airline logos next to the airline name.",
   real: "Printed flaps, glass and brushed metal, like a real board.",
   imperfect: "Slightly uneven modules and the odd hesitating flap, like a well-used board.",
   demo: "Sample flights instead of live data.",
@@ -5193,6 +5233,32 @@ const HINTS = {
   nightView: "DIM keeps the board, dimmed. NIGHT VIEW shows only the clock, the plane on top and today's count in dark red; any key or tap brings the board back for a minute.",
   lon: "Where to watch the sky. Use current location fills it in.",
 };
+// With a mouse or a remote the description floats above the control (below it at the top of the screen), always
+// inside the screen (1.54: the plates cut it off); on a phone it shows while a control is held for a moment.
+(() => {
+  let tip = null, t = 0, on = null;
+  const hide = () => { clearTimeout(t); on = null; if (tip) tip.classList.remove("on"); };
+  const show = c => {
+    if (!c.isConnected) return;
+    if (!tip) { tip = document.createElement("div"); tip.id = "hintTip"; tip.setAttribute("aria-hidden", "true"); document.body.appendChild(tip); }
+    tip.textContent = c.dataset.hint;
+    const r = c.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    const x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), y = r.top - h - 8 >= 8 ? r.top - h - 8 : Math.min(innerHeight - h - 8, r.bottom + 8);
+    Object.assign(tip.style, {left: x + "px", top: y + "px"});
+    tip.classList.add("on");
+  };
+  const at = (e, ms) => {
+    if (matchMedia("(pointer:coarse)").matches) return;
+    const c = e.target.closest && e.target.closest(".inst[data-hint]");
+    if (c === on) return;
+    hide();
+    if (c) { on = c; t = setTimeout(() => show(c), ms); }
+  };
+  addEventListener("mouseover", e => at(e, 350));
+  addEventListener("focusin", e => at(e, 150));
+  addEventListener("focusout", hide);
+  addEventListener("click", e => { if (!(e.target.closest && e.target.closest(".inst[data-hint]"))) hide(); }, true);
+})();
 // On a phone a description shows while a control is held for a moment (a tap just works the control).
 (() => {
   let t = 0, el = null;
@@ -5211,9 +5277,12 @@ function itemHtml(it){
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
     `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
   if (it.type === "rotary") {
-    const ang = rotaryAngles(it.opts.length);
+    const ang = rotaryAngles(it.opts.length), opts = rotOpts(it);
+    // 1.54: each position sits clear of the knob's ring (27 + 5): a long word at the side moves out by half its width
+    const len = i => Math.max(T(opts[i][1]).length, it.metric ? T(it.opts[i][1]).length : 0, it.metric ? T(it.metric[i][1]).length : 0);
+    const r = i => Math.max(44, Math.round(32 + 5.5 * Math.abs(Math.cos(ang[i] * Math.PI / 180)) + len(i) * 3.15 * Math.abs(Math.sin(ang[i] * Math.PI / 180))));
     return cell("", `<div class="rotary" tabindex="0" role="slider" aria-label="${escH(T(it.label))}" data-k="${it.k}">` +
-      it.opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg">${escH(T(o[1]))}</b>`).join("") + `<span class="knob"></span></div>`);
+      opts.map((o, i) => `<b data-i="${i}" style="--a:${ang[i]}deg;--r:${r(i)}">${escH(T(o[1]))}</b>`).join("") + `<span class="knob"></span></div>`);
   }
   if (it.type === "switch") return cell("", `<button class="toggle${it.guard ? " guard" : ""}" type="button" data-k="${it.k}" aria-label="${escH(T(it.label))}">` +
     `<span class="up">${escH(T(it.upText || "ON"))}</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down">${escH(T(it.downText || "OFF"))}</span></button>`);
@@ -5261,7 +5330,7 @@ function wireCockpit(box){
     const it = ITEMS.find(x => x.k === el.dataset.k);
     if (el.classList.contains("lcd")) el.oninput = () => { draft[it.k] = el.value; cockpitDirty(); };
     else if (el.classList.contains("rotary")) {
-      const turn = i => { const was = rotaryIndex(it); draft[it.k] = it.opts[(i + it.opts.length) % it.opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
+      const turn = i => { const was = rotaryIndex(it), opts = rotOpts(it); draft[it.k] = opts[(i + opts.length) % opts.length][0]; cockpitShow(); ctlSound.rotary(Math.abs(rotaryIndex(it) - was)); };
       el.onclick = e => { const b = e.target.closest("b"); turn(b ? +b.dataset.i : rotaryIndex(it) + 1); };
       if (turnByWheel) el.onwheel = e => { e.preventDefault(); const i = rotaryIndex(it), j = i + (e.deltaY > 0 ? 1 : -1); if (j >= 0 && j < it.opts.length) turn(j); };
       el.onkeydown = e => { const d = /Right|Up/.test(e.key) ? 1 : /Left|Down/.test(e.key) ? -1 : 0; if (d) { e.preventDefault(); const j = rotaryIndex(it) + d; if (j >= 0 && j < it.opts.length) turn(j); } };
@@ -5288,10 +5357,10 @@ function cockpitShow(rolled, dir){
   for (const el of box.querySelectorAll("[data-k]")) {
     const it = ITEMS.find(x => x.k === el.dataset.k), v = draft[it.k];
     if (el.classList.contains("rotary")) {
-      const i = rotaryIndex(it);
-      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(it.opts.length)[i] + "deg");
-      el.querySelectorAll("b").forEach((b, j) => b.classList.toggle("on", j === i));
-      el.setAttribute("aria-valuetext", it.opts[i][1]);
+      const i = rotaryIndex(it), opts = rotOpts(it);
+      el.querySelector(".knob").style.setProperty("--rot", rotaryAngles(opts.length)[i] + "deg");
+      el.querySelectorAll("b").forEach((b, j) => { b.classList.toggle("on", j === i); if (it.metric) b.textContent = T(opts[j][1]); });
+      el.setAttribute("aria-valuetext", opts[i][1]);
     } else if (el.classList.contains("toggle")) el.setAttribute("aria-pressed", String(it.on ? v === it.on : !!v));
     else if (el.classList.contains("wheel")) {
       const b = el.querySelector(".win b"), [h, m] = String(v || "00:00").split(":");
@@ -5964,6 +6033,17 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.54", date: "2026-10-19", notes: [
+    "Settings switched back to their default now stay that way on all your devices.",
+    "The boards show the Fallblatt logo in the browser tab.",
+    "Cards fit the screen on TVs.",
+    "The Emirates card's music starts at once.",
+    "Airline logos are always on; their switch is gone.",
+    "Setting descriptions are no longer cut off.",
+    "The words around knobs and switches have more room.",
+    "Ignore planes above shows metres when the units are metric.",
+    "The Control plate's texts are centred, and the Add button for favourites matches the others.",
+  ]},
   {v: "1.53.2", date: "2026-10-18", notes: [
     "Settings on the board and in the app are now built from one shared layout; they look and work as before.",
   ]},
