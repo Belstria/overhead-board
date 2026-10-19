@@ -56,7 +56,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 52
+RELAY_VERSION = 53
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2474,6 +2474,22 @@ def board_file(sub, name, ext, want=""):
         body = copy.read_bytes()
         return 200, body, bool(want) and file_version(body).startswith(want)
     return (404 if status == 404 else 502), b"Not found", False
+
+
+BADGES = ("star", "prop", "heli", "jumbo", "jet", "concorde")   # the board's title badges (STYLES), relay 53
+
+
+def badge_manifest(body, badge):
+    """The phone app's manifest for a profile with a title badge (relay 53): the icons with that badge
+    (app/icon-192-<badge>.png ..., tools/app/make_icons.py). A phone picks the new icon up when it next refreshes the
+    installed app's manifest (the browser decides when; Chrome on Android checks about once a day while the app is used)."""
+    try:
+        m = json.loads(body)
+        for ic in m.get("icons") or []:
+            ic["src"] = re.sub(r"^((?:icon(?:-maskable)?-\d+)|apple-touch-icon)\.png$", lambda x: f"{x.group(1)}-{badge}.png", ic.get("src", ""))
+        return json.dumps(m, indent=2).encode()
+    except (ValueError, AttributeError, TypeError):
+        return body
 
 
 def board_html(sub="", guest=None):
@@ -4978,7 +4994,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/pair" or path.startswith("/pair/"):
             return self.pair_page(path)
         if path == "/health" or BOARD_FILE.match(path):
-            pass                                  # the app's icons and manifest (fetched without cookies) and the check
+            pass                                  # the app's icons and manifest (the manifest with cookies since relay 53) and the check
         elif path in ADMIN_PATHS and self.at_home():
             if not self.owner_ok():
                 return self.reply(403, "text/plain", b"Only for the owner")
@@ -5038,6 +5054,9 @@ class Handler(BaseHTTPRequestHandler):
             want = (self.query().get("v") or [""])[0]
             want = want.lower() if re.fullmatch(r"[0-9a-fA-F]{8,64}", want) else ""
             status, body, exact = board_file(bf.group(1) or "", bf.group(2), bf.group(3), want)
+            badge = ((self.guest[1].get("settings") or {}).get("badge") if self.guest else "") or ""
+            if status == 200 and bf.group(2) == "manifest.webmanifest" and badge in BADGES:   # relay 53: the profile's badge
+                return self.reply(200, FILE_TYPES["webmanifest"], badge_manifest(body, badge), {"Cache-Control": "no-cache", "Vary": "Cookie"})
             # relay 48: a file the board names by its version (i18n.js?v=...) is that version for good: kept a year
             keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact else None
             return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body, keep)

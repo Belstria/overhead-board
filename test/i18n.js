@@ -3,6 +3,21 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Look", "Look", "Look", "Estilo", "Look"],
+  ["Badge", "Abzeichen", "Insigne", "Insignia", "Badge"],
+  ["Board", "Tafel", "Tableau", "Panel", "Bord"],
+  ["Previous", "Zurück", "Précédent", "Anterior", "Vorige"],
+  ["Next", "Weiter", "Suivant", "Siguiente", "Volgende"],
+  ["Standard", "Standard", "Standard", "Estándar", "Standaard"],
+  ["1970s", "70er", "Années 70", "Años 70", "Jaren 70"],
+  ["Tokyo", "Tokio", "Tokyo", "Tokio", "Tokio"],
+  ["Heathrow", "Heathrow", "Heathrow", "Heathrow", "Heathrow"],
+  ["Solari", "Solari", "Solari", "Solari", "Solari"],
+  ["Ice", "Eis", "Glace", "Hielo", "IJs"],
+  ["Prop", "Propeller", "Hélice", "Hélice", "Propeller"],
+  ["Heli", "Heli", "Hélico", "Helicóptero", "Heli"],
+  ["Jet", "Jet", "Jet", "Caza", "Jet"],
+  ["Colours and flaps only change with the Classic board.", "Farben und Klappen ändern sich nur mit der klassischen Tafel.", "Les couleurs et les palettes ne changent qu'avec le tableau Classique.", "Los colores y las paletas solo cambian con el panel Clásico.", "Kleuren en kleppen veranderen alleen met het klassieke bord."],
   ["DELAY {m}", "VERSPÄTUNG {m}", "RETARD {m}", "RETRASO {m}", "VERTRAGING {m}"],
   ["DELAY {m} MIN", "VERSPÄTUNG {m} MIN", "RETARD {m} MIN", "RETRASO {m} MIN", "VERTRAGING {m} MIN"],
   ["ON TIME", "PÜNKTLICH", "À L'HEURE", "A TIEMPO", "OP TIJD"],

@@ -2,6 +2,7 @@
   "name": "Fallblatt",
   "short_name": "Fallblatt",
   "description": "The planes flying over you, on split flaps.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
