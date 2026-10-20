@@ -411,13 +411,17 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   --housing:#0b0b0c;
   --metal:#141517;
   --ink:#f3f0e8;
-  --amber:#f0b429;
+  --amber:var(--c-gold);
   --muted:#959aa3;
   --label2:#6d7179;
   --line:#26272b;
   --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
   --k:1;
   --gut:14px;
+  /* 1.68: the type scale (tools/test/tokens.py keeps new CSS on it). tag: uppercase letter-spaced kickers only */
+  --fs-tag:11px;--fs-xs:12px;--fs-s:13px;--fs-m:14px;--fs-base:15px;--fs-input:16px;--fs-l:17px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;--fs-hero:36px;
+  /* fixed colours, the same in every board style (the themed ones are --amber, --ink, --muted ...) */
+  --c-gold:#f0b429;--c-paper:#f3f0e8;--c-good:#22a058;--c-bad:#c7372d;--c-warn:#f6be35;--c-night:#17140e;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -443,10 +447,10 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 .title h1 button[aria-pressed=true]{font-weight:700;color:var(--amber);opacity:1}
 .title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
-.title p{margin:5px 0 0;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title p{margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
-@media (max-width:400px){.title h1{font-size:22px}}
-@media (max-width:374px){.title h1{font-size:20px}}
+@media (max-width:400px){.title h1{font-size:var(--fs-2xl)}}
+@media (max-width:374px){.title h1{font-size:var(--fs-xl)}}
 #clockP{width:112px}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
 .dot::after{content:"";position:absolute;inset:-16px -4px -16px -16px}   /* a bigger tap area, kept inside the screen (1.40) */
@@ -458,39 +462,39 @@ main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-
 .panel{position:relative;width:100%;aspect-ratio:var(--w)/var(--h)}
 .panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* engraved headings and grooves */
-h2{margin:22px 0 12px;font:700 21px/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
+h2{margin:22px 0 12px;font:700 var(--fs-xl)/1.1 var(--f-board);color:var(--ink);text-shadow:0 -1px 0 rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05)}
 h2 span{font-weight:400;color:var(--muted);margin-left:.3em}
 h2:first-child{margin-top:4px}
-h3{margin:22px 0 8px;font:600 12px/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+h3{margin:22px 0 8px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 h3 span{color:var(--label2);margin-left:.6em}
 .groove{height:3px;margin:26px 0 0;background:linear-gradient(rgba(0,0,0,.7) 0 2px,rgba(255,255,255,.06) 2px 3px)}
-.sum,.status{margin:8px 0 0;font:500 13.5px/1.45 var(--f-board);color:var(--muted)}
+.sum,.status{margin:8px 0 0;font:500 var(--fs-s)/1.45 var(--f-board);color:var(--muted)}
 .status{display:none}
 body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
-#snapTag{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;padding:5px 12px;border:1px solid #f2c44e;border-radius:12px;background:rgba(20,18,14,.92);color:#f2c44e;font:700 12px var(--f-board);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
-#nvBox{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:99;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:10px 10px 10px 16px;border-radius:14px;background:#f2c44e;color:#17140e;font:700 14px/1.3 var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6)}
+#snapTag{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;padding:5px 12px;border:1px solid #f2c44e;border-radius:12px;background:rgba(20,18,14,.92);color:#f2c44e;font:700 var(--fs-xs) var(--f-board);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+#nvBox{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:99;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:10px 10px 10px 16px;border-radius:14px;background:#f2c44e;color:#17140e;font:700 var(--fs-m)/1.3 var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6)}
 #nvBox span{flex:1}
 #nvBox button{flex:none;border:0;border-radius:10px;padding:9px 14px;background:#17140e;color:#f2c44e;font:inherit;cursor:pointer}
-.pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 15px var(--f-board);color:var(--ink)}
+.pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 var(--fs-base) var(--f-board);color:var(--ink)}
 .pushOpt input{width:20px;height:20px;accent-color:var(--amber)}
 /* the account panel (About, and the welcome) */
 .acIn{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);
-  background:#0f1012;color:var(--ink);font:600 15px var(--f-board)}
+  background:#0f1012;color:var(--ink);font:600 var(--fs-base) var(--f-board)}
 #acctBox p.warn,#wAcctBox p.warn{color:#f6be35}
 /* 1.41: the Account plate: who this device is signed in as, then the sign-in methods, then Sign out */
 .acHead{display:flex;align-items:center;gap:14px;margin:2px 0 14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
-.acAv{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 22px/1 var(--f-board)}
+.acAv{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--c-gold);color:#141414;font:700 var(--fs-2xl)/1 var(--f-board)}
 .acWho{min-width:0}
-.acWho b{display:block;font:700 20px/1.2 var(--f-board);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.acWho small{display:block;margin-top:2px;font-size:13px;color:var(--muted)}
-.acctPlate h4{margin:0;font:700 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.acWho b{display:block;font:700 var(--fs-xl)/1.2 var(--f-board);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acWho small{display:block;margin-top:2px;font-size:var(--fs-s);color:var(--muted)}
+.acctPlate h4{margin:0;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .acctPlate .acSec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 2px}
-.acctPlate .acSec small{display:block;margin-top:3px;font-size:13px;color:var(--muted)}
-.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:12px}
+.acctPlate .acSec small{display:block;margin-top:3px;font-size:var(--fs-s);color:var(--muted)}
+.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:var(--fs-xs)}
 .acctPlate .acList{list-style:none;margin:4px 0 0;padding:0}
-.acctPlate .acList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font-size:15px}
+.acctPlate .acList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font-size:var(--fs-base)}
 .acctPlate .acList small{color:var(--muted);margin-left:4px}
-.acctPlate p.muted,.acctPlate .note{margin:4px 0 0;font-size:13px}
+.acctPlate p.muted,.acctPlate .note{margin:4px 0 0;font-size:var(--fs-s)}
 .acctPlate .acNew{margin-top:10px}
 .acctPlate .acHead{margin-bottom:6px}
 /* 1.56 (#74): the sign-in methods as a checklist */
@@ -498,40 +502,40 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acCheck>li{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;text-align:left}
 .acCheck>li+li{border-top:1px solid rgba(255,255,255,.07)}
 .acCheck>li>div{flex:1;min-width:0}
-.acCheck b{display:block;font:700 16px/1.2 var(--f-board);color:#f3f0e8}
-.acCheck small{display:block;margin-top:2px;font:500 13px/1.3 var(--f-board);color:#959aa3}
-.acTick{flex:none;width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(214,208,194,.4);display:grid;place-items:center;font:700 14px/1 Arial,sans-serif;color:#fff}
+.acCheck b{display:block;font:700 var(--fs-input)/1.2 var(--f-board);color:var(--c-paper)}
+.acCheck small{display:block;margin-top:2px;font:500 var(--fs-s)/1.3 var(--f-board);color:#959aa3}
+.acTick{flex:none;width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(214,208,194,.4);display:grid;place-items:center;font:700 var(--fs-m)/1 Arial,sans-serif;color:#fff}
 .acCheck li.done .acTick{border-color:#2fb36b;background:#2fb36b}
-.acGo{flex:none;display:flex;align-items:center;gap:6px;border:0;background:none;padding:8px 4px 8px 10px;cursor:pointer;font:700 14px/1 var(--f-board);letter-spacing:.04em;color:#f0b429}
-.acGo span{font-size:20px;line-height:14px;margin-top:-2px}
-.acGo:focus-visible{outline:2px solid #f0b429;outline-offset:2px;border-radius:6px}
+.acGo{flex:none;display:flex;align-items:center;gap:6px;border:0;background:none;padding:8px 4px 8px 10px;cursor:pointer;font:700 var(--fs-m)/1 var(--f-board);letter-spacing:.04em;color:var(--c-gold)}
+.acGo span{font-size:var(--fs-xl);line-height:14px;margin-top:-2px}
+.acGo:focus-visible{outline:2px solid var(--c-gold);outline-offset:2px;border-radius:6px}
 .acCheck li.acKeysRow{display:block;padding:0 12px 6px 50px}
 .acCheck li.acKeysRow .acList{margin:0}
 /* 1.56 (#75): the other versions as two tiles, the tips as a small link under them */
 .devTiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 0}
 .devTile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;box-sizing:border-box;padding:16px 14px 14px;border-radius:12px;text-decoration:none;
-  background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);color:#f3f0e8}
-.devTile:hover,.devTile:focus-visible{border-color:#f0b429;outline:none}
-.devIco{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:rgba(240,180,41,.14);color:#f0b429}
+  background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);color:var(--c-paper)}
+.devTile:hover,.devTile:focus-visible{border-color:var(--c-gold);outline:none}
+.devIco{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:rgba(240,180,41,.14);color:var(--c-gold)}
 .devIco svg{width:24px;height:24px}
-.devTile b{font:700 17px/1.15 var(--f-board)}
-.devTile small{font:500 13px/1.3 var(--f-board);color:#a9a69c}
+.devTile b{font:700 var(--fs-l)/1.15 var(--f-board)}
+.devTile small{font:500 var(--fs-s)/1.3 var(--f-board);color:#a9a69c}
 .devLinks{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-top:14px}
-.devLinks .lnk{border:0;background:none;padding:6px 4px;cursor:pointer;font:600 13px/1.2 var(--f-board);color:#f0b429;text-decoration:underline;text-underline-offset:3px}
-.devLinks .lnk:focus-visible{outline:2px solid #f0b429;border-radius:4px}
+.devLinks .lnk{border:0;background:none;padding:6px 4px;cursor:pointer;font:600 var(--fs-s)/1.2 var(--f-board);color:var(--c-gold);text-decoration:underline;text-underline-offset:3px}
+.devLinks .lnk:focus-visible{outline:2px solid var(--c-gold);border-radius:4px}
 /* 1.56 (#71): Recent flights on Now, a clear line between the flights and more room */
 #recent li{padding-top:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.13);box-shadow:none}
 #recent li:last-child{border-bottom:0}
 .cap.danger{color:#ff9d92}
-#acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:13px}
+#acctBox .muted,#wAcctBox .muted{color:var(--muted);font-size:var(--fs-s)}
 .acKeys li{align-items:center}
 .acKeys .cap{width:auto;padding:0 10px;height:30px}
-#acctBox .note,#wAcctBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
-#welcome #wAcctBox input{text-align:left;font-size:15px;margin:8px 0}
+#acctBox .note,#wAcctBox .note{min-height:1.2em;color:var(--muted);font-size:var(--fs-s)}
+#welcome #wAcctBox input{text-align:left;font-size:var(--fs-base);margin:8px 0}
 #welcome #wAcctBox{text-align:left;max-height:52vh;overflow:auto}
-#pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
-.brandline{margin:34px 0 0;text-align:center;font:700 12px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
-.status{margin-top:20px;font-size:12.5px}
+#pushBox .note{min-height:1.2em;color:var(--muted);font-size:var(--fs-s)}
+.brandline{margin:34px 0 0;text-align:center;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
+.status{margin-top:20px;font-size:var(--fs-xs)}
 /* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
 .bezel{position:relative;padding:12px;border-radius:10px;background:linear-gradient(#2a2b2f,#1c1d20 50%,#141518);
   box-shadow:0 6px 16px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.5)}
@@ -547,13 +551,13 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .screen::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 52%,rgba(0,0,0,.42))}
 .screen .glass{position:absolute;inset:0;z-index:2;background:linear-gradient(115deg,rgba(255,255,255,.07),rgba(255,255,255,.022) 44%,rgba(255,255,255,0) 44.5%),
   linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0) 12px)}
-.screen .none,.screen .credit{position:absolute;z-index:3;font:600 12px/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
+.screen .none,.screen .credit{position:absolute;z-index:3;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
 .screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
 .screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
 .screen.has .none,.screen:not(.has) .credit{display:none}
 /* 1.43: a picture of the model, not of this aircraft */
 .screen .mtag{position:absolute;z-index:3;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
-  font:700 12px/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
+  font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
 .screen.has.model .mtag{display:block}
 .screen.rwyOn .mtag{display:none}
 .screen.on{animation:screenOn .95s ease-out both}
@@ -565,63 +569,63 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* engraved facts: a label in amber, the value below */
 .facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:16px 0 0}
 .facts div{min-width:0}
-.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .facts dt span{color:var(--label2);margin-left:.5em}
-.facts dd{margin:5px 0 0;font:600 16px/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
+.facts dd{margin:5px 0 0;font:600 var(--fs-input)/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
 .facts .wide{grid-column:1/-1}
 /* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
 .flights{list-style:none;margin:6px -10px 0;padding:0}
 .flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
-.flights li.empty{color:var(--muted);padding-left:10px;font-size:14px;border:0;box-shadow:none}
+.flights li.empty{color:var(--muted);padding-left:10px;font-size:var(--fs-m);border:0;box-shadow:none}
 .fl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;column-gap:10px;row-gap:3px;align-items:center}
-.fl time{font:600 14px/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+.fl time{font:600 var(--fs-m)/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
 .fl .who{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
-.fl .who strong{font:700 16.5px/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
-.fl .who span{font:500 13.5px/1 var(--f-board);color:var(--muted);margin-left:.45em}
+.fl .who strong{font:700 var(--fs-l)/1 var(--f-board);color:var(--ink);letter-spacing:.02em}
+.fl .who span{font:500 var(--fs-s)/1 var(--f-board);color:var(--muted);margin-left:.45em}
 .fl .rt,.fl .meta{grid-column:2/4;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fl .rt{font:500 14.5px/1.25 var(--f-board);color:var(--ink)}
+.fl .rt{font:500 var(--fs-m)/1.25 var(--f-board);color:var(--ink)}
 .fl .rt b{font-weight:700;color:var(--amber);margin-right:.25em}
 .fl .rt i{font-style:normal;color:var(--muted);margin:0 .4em}
 .fl .rt .no{color:rgba(255,255,255,.25)}
-.fl .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
+.fl .meta{display:flex;justify-content:space-between;align-items:center;gap:10px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
 .fl .meta span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
 .flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
 .chip{position:relative;display:inline-grid;place-items:center;min-width:86px;height:23px;padding:0 8px;border-radius:3px;
-  font:700 12px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
+  font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
 .chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5)}
 /* radar list */
 .rv{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
-.rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 12px/1 var(--f-board);color:var(--amber)}
+.rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 var(--fs-xs)/1 var(--f-board);color:var(--amber)}
 .rvLogo.ok{background:linear-gradient(#f4f1ea,#dad6ca)}
 .rvLogo img{max-width:40px;max-height:16px;object-fit:contain}
-.rv strong{font:700 15.5px/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rv strong span{font-weight:500;color:var(--muted);font-size:13px;margin-left:.4em}
-.rv .num{font:600 13.5px/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rv strong{font:700 var(--fs-base)/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv strong span{font-weight:500;color:var(--muted);font-size:var(--fs-s);margin-left:.4em}
+.rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
 .rv .chip{min-width:78px}
 /* buttons above lists, and the tab bar: the board's push buttons */
 .tools{display:flex;flex-wrap:wrap;gap:12px 14px;margin:14px 0 4px;padding:3px;--k:.86}
 .tools .cap{margin:0}
 .tools .svFind{flex:1 1 100%;--k:1}
-.tools .svFind input{width:100%;height:40px;font-size:16px}
+.tools .svFind input{width:100%;height:40px;font-size:var(--fs-input)}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
 #tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
-#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:54px;margin:0;font-size:12px;letter-spacing:.03em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
-@media (max-width:380px){#tabs .cap{font-size:11px;letter-spacing:.02em}}   /* 1.64: 12 px where five tabs fit it */
+#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:54px;margin:0;font-size:var(--fs-xs);letter-spacing:.03em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+@media (max-width:380px){#tabs .cap{font-size:var(--fs-tag);letter-spacing:.02em}}   /* 1.64: 12 px where five tabs fit it */
 #tabs .cap .ico{width:19px;height:19px;opacity:.85}
 .cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
 @keyframes ping{50%{opacity:.35}}
 /* logbook */
 .ranks{list-style:none;margin:0;padding:0;counter-reset:r}
-.ranks li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03);font:600 15px/1.2 var(--f-board)}
-.ranks li::before{counter-increment:r;content:counter(r);color:var(--label2);font-weight:600;font-size:13px}
+.ranks li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03);font:600 var(--fs-base)/1.2 var(--f-board)}
+.ranks li::before{counter-increment:r;content:counter(r);color:var(--label2);font-weight:600;font-size:var(--fs-s)}
 .ranks.plain li{grid-template-columns:minmax(0,1fr) auto}
 .ranks.plain li::before{display:none}
 .ranks .n{color:var(--amber);font-variant-numeric:tabular-nums}
-.ranks .s{color:var(--muted);font-weight:500;font-size:13px;margin-left:.4em}
+.ranks .s{color:var(--muted);font-weight:500;font-size:var(--fs-s);margin-left:.4em}
 .ranks .name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cats li{grid-template-columns:12px minmax(0,1fr) auto}
 .cats li::before{display:none}
@@ -633,11 +637,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* the weekly bingo and the trophies */
 .bingo{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 4px}
 .bingo .bc{position:relative;min-height:74px;padding:9px 9px 8px 24px;border-radius:7px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.06);
-  font:600 13px/1.2 var(--f-board);color:rgba(243,240,232,.55)}
+  font:600 var(--fs-s)/1.2 var(--f-board);color:rgba(243,240,232,.55)}
 .bingo .bc i{position:absolute;left:9px;top:12px;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}
 .bingo .bc.on{background:rgba(240,180,41,.14);border-color:rgba(240,180,41,.7);color:var(--ink)}
 .bingo .bc.on i{background:var(--amber);box-shadow:0 0 6px var(--amber)}
-.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:12px}
+.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:var(--fs-xs)}
 .ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
 .cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
 .cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}
@@ -656,11 +660,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
 .yearCard h3{margin-top:0}
 .yNums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin:8px 0 10px}
-.yNums b{display:block;font:700 24px/1 var(--f-board);color:var(--ink)}
-.yNums span{font:600 12px/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.yNums b{display:block;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink)}
+.yNums span{font:600 var(--fs-xs)/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .yFacts{margin:0}
-.yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 14px/1.3 var(--f-board)}
-.yFacts dt{color:var(--amber);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 var(--fs-m)/1.3 var(--f-board)}
+.yFacts dt{color:var(--amber);font-size:var(--fs-xs);letter-spacing:.06em;text-transform:uppercase}
 .yFacts dd{margin:0;color:var(--ink);text-align:right}
 .reviewCard .yNums{grid-template-columns:repeat(4,1fr)}
 .rvTools{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.rvTools span{flex:1}
@@ -670,9 +674,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .look{display:flex;gap:12px;align-items:center;margin:10px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
 .look canvas{width:96px;height:96px;flex:none}
 .lookTxt{min-width:0}
-.lookTxt small{display:block;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
-.lookTxt b{display:block;font:700 19px/1.15 var(--f-board);color:var(--ink)}
-.lookTxt span{display:block;margin-top:4px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
+.lookTxt small{display:block;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.lookTxt b{display:block;font:700 var(--fs-xl)/1.15 var(--f-board);color:var(--ink)}
+.lookTxt span{display:block;margin-top:4px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
@@ -695,7 +699,7 @@ body.aboutOpen{overflow:hidden}
 .fl.swiping{overflow:hidden;touch-action:pan-y}
 .fl.swiping > *{transform:translateX(var(--dx,0));transition:none}
 .fl > *{transition:transform .18s ease-out}
-.fl.swiping::after{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 16px;font:700 13px/1 var(--f-board);
+.fl.swiping::after{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 16px;font:700 var(--fs-s)/1 var(--f-board);
   letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
 .fl.swiping[data-swipe=fav]::after{content:"★ " var(--swFav,"Favourite");left:0;color:#c9ced6;
   background:linear-gradient(90deg,rgba(150,160,175,.22),rgba(150,160,175,0));width:50%}
@@ -707,33 +711,33 @@ body.aboutOpen{overflow:hidden}
 .fl{row-gap:5px}
 .fl .tc{grid-column:1;grid-row:1/4;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}
 .fl .flAdd{position:relative;width:28px;height:28px;margin:0;padding:0;border:1.5px solid #4a4c52;border-radius:50%;background:none;color:#a39d8f;
-  font:600 19px/1 Arial,sans-serif;display:grid;place-items:center;cursor:pointer}
+  font:600 var(--fs-xl)/1 Arial,sans-serif;display:grid;place-items:center;cursor:pointer}
 .fl .flAdd::before{content:"";position:absolute;inset:-9px}
 .fl .flAdd:active{background:rgba(255,255,255,.1)}
 /* what opens a card: the airline, the places and the type, each in a thin grey outline */
 .fl .tap{display:inline-block;cursor:pointer;border:1px solid #44474d;border-radius:12px;padding:2px 8px;line-height:1.25;text-decoration:none;vertical-align:middle}
-.fl .who .tap{color:#d9d4c6;margin-left:.45em;font-size:13px}
+.fl .who .tap{color:#d9d4c6;margin-left:.45em;font-size:var(--fs-s)}
 .fl .rt{line-height:1.6}
 .fl .rt .tap{color:#f3eee0}
-.fl .meta .tap{color:#d9d4c6;font-size:12.5px;padding:1px 7px}
+.fl .meta .tap{color:#d9d4c6;font-size:var(--fs-xs);padding:1px 7px}
 .fl .tap:active{background:rgba(255,255,255,.1)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
   background:linear-gradient(#1a1b1e,#111214);border-top:1px solid rgba(255,255,255,.08)}
-#sheet h3{margin:0 0 4px;font:700 20px var(--f-board);color:var(--ink)}
-.shH{margin:12px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#sheet h3{margin:0 0 4px;font:700 var(--fs-xl) var(--f-board);color:var(--ink)}
+.shH{margin:12px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .shRow{display:flex;flex-wrap:wrap;gap:8px}
-.shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:13px}
-.shRow .cap small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:var(--fs-s)}
+.shRow .cap small{font-size:var(--fs-tag);letter-spacing:.1em;text-transform:uppercase;opacity:.7}
 .shRow .cap.on{outline:2px solid var(--amber);outline-offset:1px}
 #favBox{margin-top:14px}
 .chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 13px var(--f-board);color:var(--ink)}
-.chips small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chips li{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border-radius:16px;background:rgba(255,255,255,.07);font:600 var(--fs-s) var(--f-board);color:var(--ink)}
+.chips small{font-size:var(--fs-tag);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .chips button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;color:var(--muted)}
 .favAdd{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.favAdd select,.favAdd input{background:#0f1012;color:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 14px var(--f-board)}
+.favAdd select,.favAdd input{background:#0f1012;color:var(--ink);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 10px;font:600 var(--fs-m) var(--f-board)}
 .favAdd input{flex:1;min-width:160px}
 .favAdd .cap{width:auto;height:auto;min-height:40px;margin:0;padding:0 16px}
 .pushKinds{margin:6px 0 0 4px}
@@ -741,12 +745,12 @@ body.aboutOpen{overflow:hidden}
 /* the radar: a tapped plane's card */
 #lookCv{cursor:pointer}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
-.rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 24px/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
+.rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 var(--fs-2xl)/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
 .rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
 .rcHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:28px}
-.rcHead strong{font:700 20px var(--f-board);color:var(--ink)}
-.rcHead span{color:var(--muted);font:600 14px var(--f-board)}
-.rcRoute{margin:6px 0 2px;font:600 14px var(--f-board);color:var(--amber)}
+.rcHead strong{font:700 var(--fs-xl) var(--f-board);color:var(--ink)}
+.rcHead span{color:var(--muted);font:600 var(--fs-m) var(--f-board)}
+.rcRoute{margin:6px 0 2px;font:600 var(--fs-m) var(--f-board);color:var(--amber)}
 .rvCard .acts{margin-top:8px}
 .rvCard .acts .cap{width:auto;padding:0 12px}
 .flights .rv{cursor:pointer}
@@ -756,36 +760,36 @@ body.aboutOpen{overflow:hidden}
 #arView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #arView canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
 #arView .arTop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;
-  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0));color:#f3f0e8;font:600 14px var(--f-board)}
-#arView .arTop b{font-size:17px;color:var(--amber)}
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0));color:var(--c-paper);font:600 var(--fs-m) var(--f-board)}
+#arView .arTop b{font-size:var(--fs-l);color:var(--amber)}
 #arView .arTop span{flex:1;color:#d6d2c6}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
-  background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
+  background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
 #arView .arCal{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
-  background:rgba(15,16,18,.85);color:#f3f0e8;font:500 14px/1.35 var(--f-board)}
+  background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
 body.arOpen #sheet{z-index:75}
-.model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
-.model small{display:block;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
-.model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
+.model{margin:14px 0 0;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.model small{display:block;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.model span{color:var(--muted);font-weight:500;font-size:var(--fs-m);margin-left:.4em}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
 .rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
 .rvBtns{display:flex;gap:10px}
 .rvBtns[hidden]{display:none}
-.rvMap small{font:500 12px/1.2 var(--f-board);color:var(--muted);text-align:right}
-.rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
+.rvMap small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted);text-align:right}
+.rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
 /* legend */
 .legend{list-style:none;margin:0;padding:0}
-.legend li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0;font:500 14px/1.3 var(--f-board)}
+.legend li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;padding:6px 0;font:500 var(--fs-m)/1.3 var(--f-board)}
 .legend .chip{min-width:96px}
 /* settings */
 #cockpit{position:static;display:flex;flex-direction:column;gap:14px;--k:1}
@@ -799,13 +803,13 @@ body.arOpen #sheet{z-index:75}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
 #aboutBox .plate{padding:14px 16px 16px;gap:10px}
 #aboutBox .lgbox{grid-column:1/-1}
-#aboutBox .lgbox h3{margin:14px 0 6px;font:700 13px/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
+#aboutBox .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
 #aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
 #aboutBox ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
-#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 14px/1.3 var(--f-board);color:rgba(232,227,214,.84)}
+#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 var(--fs-m)/1.3 var(--f-board);color:rgba(232,227,214,.84)}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
-.syncNote{color:#f0b429;margin-top:6px}
+.syncNote{color:var(--c-gold);margin-top:6px}
 #toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
 /* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
 html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
@@ -831,11 +835,11 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
-#lbFound .lbfHead{margin:10px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
-#lbFound li b{display:block;font:700 17px/1.25 var(--f-board);color:var(--ink)}
-#lbFound li span{display:block;margin-top:3px;font:500 14px/1.35 var(--f-board);color:var(--muted)}
+#lbFound li b{display:block;font:700 var(--fs-l)/1.25 var(--f-board);color:var(--ink)}
+#lbFound li span{display:block;margin-top:3px;font:500 var(--fs-m)/1.35 var(--f-board);color:var(--muted)}
 @media (orientation:landscape) and (max-height:500px){#toasts{--toast-b:12px}}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
@@ -855,23 +859,23 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .screen.rwyOn .rwy{display:block}
 .screen.rwyOn .none,.screen.rwyOn .credit{display:none}
 .apPick{display:none;gap:12px;margin:2px 0 14px}
-.apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
+.apPick .cap{flex:1;height:40px;margin:0;font-size:var(--fs-xs)}
 #t-now.ap .apPick{display:flex}
-.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lbPlaces{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
 .lbPlaces[hidden]{display:none}
-.lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 13.5px/1 var(--f-board)}
+.lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
-.lbPlaces button[aria-pressed=true]{border-color:#f0b429;background:rgba(240,180,41,.12)}
+.lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
 .seg.svPlaces,.seg.lbViews{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 14px/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
-.seg.lbViews button{height:40px;padding:0 4px;font-size:13px;line-height:1.1;white-space:normal}
+.seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
 .seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
-#t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:17px;font-weight:600}
-#t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
+#t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
+#t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
 /* a guest's first visit: where to watch the sky */
 #welcome{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:var(--housing)}   /* the board isn't shown behind it */
@@ -879,25 +883,25 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #welcome[hidden]{display:none}
 #welcome .wbox{width:min(420px,100%);padding:26px 22px 18px;border-radius:14px;text-align:center;background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 18px 50px rgba(0,0,0,.7)}
-#welcome .wmark{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:11px;background:var(--amber);color:#111;font-size:28px}
+#welcome .wmark{display:inline-grid;place-items:center;width:52px;height:52px;border-radius:11px;background:var(--amber);color:#111;font-size:var(--fs-3xl)}
 #welcome .wmark svg{width:100%;height:100%;fill:var(--housing)}
-#welcome h2{margin:14px 0 6px;font-size:24px}
+#welcome h2{margin:14px 0 6px;font-size:var(--fs-2xl)}
 #welcome #wHello{margin:16px auto 10px}
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #welcome p{margin:0 0 16px;color:var(--muted);line-height:1.45}
 #welcome .cap{margin:0 auto 6px}
-#welcome .note{min-height:1.4em;font-size:14px}
-#welcome .wlab{display:block;margin:4px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
-#welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 17px var(--f-board);text-align:center}
+#welcome .note{min-height:1.4em;font-size:var(--fs-m)}
+#welcome .wlab{display:block;margin:4px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 var(--fs-l) var(--f-board);text-align:center}
 #welcome #wPick .cap{margin-top:6px}
-#welcome #wPick .sub{margin:6px 0 14px;font-size:13px}
+#welcome #wPick .sub{margin:6px 0 14px;font-size:var(--fs-s)}
 #welcome #wOpen{all:unset;cursor:pointer;display:block;margin:6px auto 4px;padding:14px 22px;border-radius:10px;border:1px dashed rgba(242,177,52,.55);
-  color:var(--ink);font:600 17px var(--f-board);animation:wPulse 2.2s ease-in-out infinite}
-#welcome #wOpen b{display:block;margin-top:4px;color:var(--amber);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+  color:var(--ink);font:600 var(--fs-l) var(--f-board);animation:wPulse 2.2s ease-in-out infinite}
+#welcome #wOpen b{display:block;margin-top:4px;color:var(--amber);font-size:var(--fs-s);letter-spacing:.14em;text-transform:uppercase}
 @keyframes wPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,177,52,0)}50%{box-shadow:0 0 0 6px rgba(242,177,52,.12)}}
 #welcome .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:14px 0 6px;text-align:left}
 #welcome .wgrid .wlab span{display:block;margin-bottom:4px}
-#welcome .wgrid input{margin:0;font-size:15px;padding:9px 10px}
+#welcome .wgrid input{margin:0;font-size:var(--fs-base);padding:9px 10px}
 #welcome input::placeholder{color:rgba(243,240,232,.26);font-weight:500}
 #welcome .wIn{animation:wIn .5s .1s cubic-bezier(.22,.8,.24,1) both}
 @keyframes wIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -914,7 +918,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 }
 #splash.fly .sp-pl{animation:spFly .85s cubic-bezier(.5,0,.8,.3) both}
 #splash.fly .sp-name{animation:spSink .5s .45s ease-in forwards}
-#splash .sp-name{display:flex;gap:.16em;font:700 30px var(--f-board);letter-spacing:.06em;color:var(--ink)}
+#splash .sp-name{display:flex;gap:.16em;font:700 var(--fs-3xl) var(--f-board);letter-spacing:.06em;color:var(--ink)}
 #splash .sp-name span{display:inline-block;animation:spUp .5s calc(.3s + var(--i) * 45ms) cubic-bezier(.2,.8,.3,1) both}
 @keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
 @keyframes spUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -923,7 +927,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 @keyframes spSink{to{opacity:0;transform:scale(.9)}}
 @keyframes spOut{to{opacity:0;visibility:hidden}}
 @media (prefers-reduced-motion: reduce){#splash *,#splash.fly *{animation:none!important}#splash.fly{animation:spOut .35s forwards}}
-#welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:14px;text-decoration:underline}
+#welcome .wlater{all:unset;cursor:pointer;margin-top:10px;color:var(--muted);font-size:var(--fs-m);text-decoration:underline}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
   .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
@@ -932,10 +936,10 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
   #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
   #mark{width:28px;height:28px}
   .title{flex:0 1 auto}
-  .title h1{font-size:18px}
-  .title p,.title .where{margin-top:3px;font-size:9.5px}
+  .title h1{font-size:var(--fs-l)}
+  .title p,.title .where{margin-top:3px;font-size:var(--fs-tag)}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
-  #top .pages .cap{width:104px;height:30px;margin:0;font-size:9.5px;letter-spacing:.05em}
+  #top .pages .cap{width:104px;height:30px;margin:0;font-size:var(--fs-tag);letter-spacing:.05em}
   #clockP{width:84px}
   #top .clockbox{margin-right:16px}          /* clear of the screen's rounded corner */
   main{padding:6px 0 0}
@@ -947,21 +951,21 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
   /* the pages are flaps, like the board's lower half: the text lists and facts are for upright */
   #t-now .lsOnly{display:block}
   #t-now #recent,#t-now #apSub,#t-now .ptOnly{display:none}
-  #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:18px;font-weight:600}
-  #t-now .pageEmpty small{display:block;margin-top:4px;font-size:14px;font-weight:500}
+  #t-now .pageEmpty:not([hidden]){display:block;margin:22px 0 8px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
+  #t-now .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
   #t-now #acSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
   #t-now #acP{width:calc(var(--lowH,190px) * 560 / 192)}
   #t-now #bezel{box-sizing:border-box;height:var(--lowH,190px)}
   #t-now #bezel .screen{aspect-ratio:auto;height:100%}
   #t-now #apSec:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
-  #t-now #apSec h2{font-size:17px;line-height:20px;margin:0 0 6px}
+  #t-now #apSec h2{font-size:var(--fs-l);line-height:20px;margin:0 0 6px}
   #t-now #apSec h2:nth-of-type(1){grid-column:1;grid-row:1}
   #t-now #apSec h2:nth-of-type(2){grid-column:2;grid-row:1}
   #t-now #apP{grid-column:1/-1;grid-row:2}
   #t-now .apPick{display:none!important}
   #t-now[data-page=lists] #acSec,#t-now[data-page=ac] #recentSec,#t-now[data-page=ac] #apSec,#t-now[data-page=dep] #apSec,#t-now[data-page=land] #apSec{display:none}   /* last: wins over the grids */
   #sideAlert:not([hidden]){display:block;position:fixed;left:50%;bottom:10px;z-index:6;transform:translateX(-50%);max-width:70vw;padding:8px 14px;
-    border:1px solid var(--amber);border-radius:8px;background:rgba(11,11,12,.92);box-shadow:0 6px 18px rgba(0,0,0,.6);color:var(--ink);font:600 13px/1.35 var(--f-board);text-align:center}
+    border:1px solid var(--amber);border-radius:8px;background:rgba(11,11,12,.92);box-shadow:0 6px 18px rgba(0,0,0,.6);color:var(--ink);font:600 var(--fs-s)/1.35 var(--f-board);text-align:center}
   #sideAlert[data-state=off]{border-color:#c7372d}
 }
 #svList.wait{opacity:.55;transition:opacity .2s}
@@ -1347,10 +1351,7 @@ function loadSettings(){
   return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
-// set one), so the relay knows where to count their planes even when it happens to be the default spot.
-// The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
-// so the profile's old one came back on the next load).
-const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
+// set one), so the relay knows where to count their planes even when it happens to be the default spot (locSet, E12).
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, daylight, ...rest} = changed;   // following the phone, the style and Daylight are this device's own
@@ -1359,16 +1360,8 @@ function saveMe(changed, now){
   return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
-// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
-// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
-const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
-  const changed = {};
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
-  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
-  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
-  meBase = {...S};
+  const changed = settingsChanged({});                // 1.68: the board's own rules, shared (E12)
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -3635,6 +3628,21 @@ const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 /* 1.64: a profile's settings reach the relay even when the network drops or the app is closed right after a change: they
    wait on this device (od.mePending.<profile>) until the relay has them, are sent again with growing pauses, and at once
    when the page is hidden (keepalive) or the network is back. Before, a failed or cut-off save was lost without a word. */
+// What a save stores and sends (1.68: one copy for the board and the app; their saveSettings add their own few keys).
+// Every setting not at its default; every setting this screen's Settings show, also at the default (1.54: one switched
+// back was left out, so the profile's old value came back on the next load); the styles (1.63.1); anything changed
+// since the last save (1.64, meBase). The place goes along whole by locSet (1.49.1: an airport chosen back to the
+// relay's own was left out, so the profile's old one came back).
+function settingsChanged(changed){
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
+  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";
+  meBase = {...S};
+  return changed;
+}
+function locSet(){ return {lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null}; }
+function cockpitKeys(){ try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } }
 const ME_KEY = "od.mePending." + ((window.OVERHEAD_GUEST || {}).id || "");
 let mePending = (() => { try { return JSON.parse(localStorage.getItem(ME_KEY) || "null"); } catch { return null; } })();
 let meTimer = 0, meFails = 0, meBusy = null;
@@ -3699,7 +3707,6 @@ const FEEDS = [
 ];
 let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
-const POLL_MS = 10000;
 async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
@@ -4429,7 +4436,7 @@ function estArrival(info, o){
 }
 function renderTimes(){
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
-  const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
+  const info = feat.info || baseInfo(feat.o.ac);
   let dep = utcMs(info.takeoff), arr = null;
   const done = !!info.done && timesSettled(info);
   if (S.demo) ({dep, arr} = demoTimes(feat.hex));
@@ -5106,6 +5113,90 @@ function ringLabels(g, tags, boxes, size){
     if (boxes.some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h)) continue;
     g.fillText(t.text, t.x, t.y);
   }
+}
+/* 1.68: the radar's picture, once for the board and the phone app (it was two copies of these lines): the scope at
+   cx, cy with radius R, every size times z (the phone draws at 1, the board at 1.5). o.engrave: the range engraved in
+   the rim and the map's credit under it (the board; the app has them as page text). */
+function paintRadar(g, cx, cy, R, z, t, o = {}){
+  const now = Date.now(), range = radarRange(), k = R / range, TAU = Math.PI * 2, px = n => n * z;
+  const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
+  const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
+  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+  radarMapDraw(g, cx, cy, R, range, C, radar.px);
+  const a0 = (t / 7000) * TAU;                                  // slow sweep
+  for (let i = 0; i < 28; i++) {
+    g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
+    g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
+  }
+  if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
+  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
+  g.font = `600 ${px(10.5)}px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const ringTags = [], ringStep = radarRing(range);
+  for (let r = ringStep; r <= range; r += ringStep) {
+    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = px(.8); g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
+    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + px(4), y: cy - Math.cos(.42) * r * k + px(11)});
+  }
+  g.setLineDash([px(8), px(6)]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = px(1.4);
+  g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
+  airportPos();
+  const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
+  radar.apBox = null;
+  if (ap) {
+    const u = rwyInUse();
+    g.lineCap = "round"; g.lineWidth = px(2.1);
+    for (const r of ap.rwys) {
+      const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
+      g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
+      const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    }
+    const [ax, ay] = toXY(ap.lat, ap.lon);
+    g.font = `700 ${px(11)}px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = px(2.4); g.lineJoin = "round";
+    if (Math.hypot(ax - cx, ay - cy) < R - px(27)) {
+      g.strokeText(S.home, ax + px(10.5), ay + px(16)); g.fillText(S.home, ax + px(10.5), ay + px(16));
+      radar.apBox = {x: ax + px(9.5), y: ay + px(5.5), w: px(31), h: px(14.5)};
+    }
+    g.lineCap = "butt";
+  }
+  const shown = [];
+  for (const o_ of radar.planes) {
+    const ac = o_.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o_, now, kx, ky);
+    const [x, y] = toXY(pos.lat, pos.lon);
+    if (Math.hypot(x - cx, y - cy) > R + px(7)) continue;
+    const col = radarColor(o_), tr = radar.trails.get(ac.hex);
+    if (tr && tr.length > 1) {
+      g.strokeStyle = rgba(col, .35); g.lineWidth = px(1.7); g.beginPath();
+      tr.forEach((p, i) => { const [qx, qy] = toXY(p.lat, p.lon); i ? g.lineTo(qx, qy) : g.moveTo(qx, qy); });
+      g.lineTo(x, y); g.stroke();
+    }
+    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);        // drawPlane points north-east; this turns it to the track
+    drawPlane(g, 0, 0, px(radarZoomed() ? (ac.alt_baro === "ground" ? 17.5 : 21.5) : o_.kind ? 19.5 : 14.5), col);
+    g.restore();
+    if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = px(2); g.beginPath(); g.arc(x, y, px(17), 0, TAU); g.stroke(); }
+    shown.push({o: o_, x, y, col});
+  }
+  radar.hits = shown.map(s_ => ({o: s_.o, hex: s_.o.ac.hex, x: s_.x, y: s_.y}));   // for a tap on a plane
+  const centre = {x: cx - px(12), y: cy - px(12), w: px(24), h: px(24)}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
+    return {x: cx + Math.sin(a) * (R - px(12)) - px(9.5), y: cy - Math.cos(a) * (R - px(12)) - px(9.5), w: px(19), h: px(19)}; });   // N E S W stay readable
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), px(10.5));
+  g.restore();
+  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = px(1.4); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+  const glass = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
+  glass.addColorStop(0, "rgba(255,255,255,.06)"); glass.addColorStop(.5, "rgba(255,255,255,.015)"); glass.addColorStop(.501, "rgba(255,255,255,0)");
+  g.fillStyle = glass; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
+  g.font = `700 ${px(13)}px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - px(12)), cy - Math.cos(a) * (R - px(12))); });
+  { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
+    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - px(8), hy - px(8), px(16)); }
+  if (o.engrave && radarZoomed()) {                // 1.62.1: the range, engraved in the dial's rim at the bottom (1.68: zoomed in either style)
+    g.font = `700 ${px(8.7)}px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = px(1.3) + "px";
+    const txt = `${nf.format(range)} KM`;
+    g.fillStyle = "rgba(0,0,0,.55)"; g.fillText(txt, cx, cy + R + px(9.3));
+    g.fillStyle = "rgba(225,220,205,.42)"; g.fillText(txt, cx, cy + R + px(8.7));
+    if ("letterSpacing" in g) g.letterSpacing = "0px";
+  }
+  if (o.engrave && radarMapOn) { g.font = `500 ${px(8)}px ${FONT}`; g.fillStyle = "rgba(200,196,186,.55)"; g.textAlign = "right"; g.fillText(RADAR_MAP_CREDIT, cx + R + px(22.7), cy + R + px(21.3)); }
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
 }
 const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
 function altNum(ft){
@@ -5991,75 +6082,9 @@ function startRadar(){
 }
 function stopRadar(){ cancelAnimationFrame(radar.raf); }
 function drawRadar(t){
-  const g = $("radarCv").getContext("2d"), now = Date.now(), {cx, cy, R} = RG, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+  const g = $("radarCv").getContext("2d");
   g.setTransform(radar.px, 0, 0, radar.px, 0, 0); g.clearRect(0, 0, RG.S, RG.S);
-  const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
-  const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
-  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
-  radarMapDraw(g, cx, cy, R, range, C, radar.px);
-  const a0 = (t / 7000) * TAU;                                  // slow sweep
-  for (let i = 0; i < 28; i++) {
-    g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
-    g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
-  }
-  if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
-  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
-  g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-  g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
-  const ringTags = [];
-  const ringStep = radarRing(range);
-  for (let r = ringStep; r <= range; r += ringStep) {
-    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + 4, y: cy - Math.cos(.42) * r * k + 11});
-  }
-  g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
-  g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
-  airportPos();
-  const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
-  if (ap) {
-    const u = rwyInUse();
-    g.lineCap = "round"; g.lineWidth = 2.2;
-    for (const r of ap.rwys) {
-      const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
-      g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
-      const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-    }
-    const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3; g.lineJoin = "round";
-    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.strokeText(S.home, ax + 10, ay + 16); g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
-    g.lineCap = "butt";
-  } else radar.apBox = null;
-  const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
-  for (const o of radar.planes) {
-    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
-    const [x, y] = toXY(pos.lat, pos.lon);
-    if (Math.hypot(x - cx, y - cy) > R + 8) continue;
-    const col = radarColor(o), tr = radar.trails.get(ac.hex);
-    if (tr && tr.length > 1) {
-      g.strokeStyle = rgba(col, .35); g.lineWidth = 1.8; g.beginPath();
-      tr.forEach((p, i) => { const [px, py] = toXY(p.lat, p.lon); i ? g.lineTo(px, py) : g.moveTo(px, py); });
-      g.lineTo(x, y); g.stroke();
-    }
-    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 17 : 21) : o.kind ? 19 : 14, col);
-    g.restore();
-    if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 17, 0, Math.PI * 2); g.stroke(); }
-    shown.push({o, x, y, col});
-  }
-  const centre = {x: cx - 12, y: cy - 12, w: 24, h: 24}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
-    return {x: cx + Math.sin(a) * (R - 12) - 10, y: cy - Math.cos(a) * (R - 12) - 10, w: 20, h: 20}; });   // N E S W stay readable
-  radar.hits = shown.map(s_ => ({hex: s_.o.ac.hex, x: s_.x, y: s_.y}));
-  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 10.5);
-  g.restore();
-  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
-  const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
-  gl.addColorStop(0, "rgba(255,255,255,.06)"); gl.addColorStop(.5, "rgba(255,255,255,.015)"); gl.addColorStop(.501, "rgba(255,255,255,0)");
-  g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
-  g.font = `700 13px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
-  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 12), cy - Math.cos(a) * (R - 12)); });
-  { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
-    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - 8, hy - 8, 16); }
-  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  paintRadar(g, RG.cx, RG.cy, RG.R, 1, t);              // 1.68: the board's own drawing (E25), at the phone's size
 }
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
@@ -6739,7 +6764,6 @@ function airportPos(){
 }
 // Where to ask for positions: around the home airport in airport mode, around the board's location otherwise.
 const queryCenter = () => (airportMode() && airportPos()) || [S.lat, S.lon];
-const apName = () => AP.code ? `${AP.city || AP.name || AP.code} (${AP.code})` : "";
 function airportProcess(list){
   const at = airportPos(), now = Date.now();
   if (!at) { AP.deps = []; AP.arrs = []; renderAirport(); return; }
@@ -7112,6 +7136,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.68", date: "2026-10-20", notes: [
+    "App: text sizes follow one scale, so the look stays even.",
+    "Board: the radar's range is engraved in the dial whenever it is zoomed in, in either style.",
+  ]},
   {v: "1.67", date: "2026-10-20", notes: [
     "Notifications for a plane worth a look count down until it's there, with a bar, and ring again when it's time to look up (Settings → Notifications).",
     "Android app: two home-screen widgets with the plane overhead, a flap card and a single line.",

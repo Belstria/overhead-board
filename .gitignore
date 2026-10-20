@@ -3,3 +3,4 @@ relay/board-cache*.html
 __pycache__/
 relay/data/
 sounds-src/
+.cache/

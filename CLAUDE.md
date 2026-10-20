@@ -150,7 +150,9 @@ their place on each position request. `host_ok()` refuses foreign Host names; lo
    fake source runs on N-1) when another checkout may be testing at the same time: use your own, e.g. 8296.
 2. Look at it: a browser, or `py tools/test/shoot.py URL OUT steps...` (`PHONE=390x844` for the app, `SIZE=960x540 DPR=2`
    for the Fire TV, `COOKIE=` for another profile). Check the page errors it prints and look at the screenshots.
-3. Syntax check: extract the inline `<script>` and `node --check` it if Node is installed.
+3. Syntax check: `py tools/test/smoke.py --syntax` (Node): the scripts parse, ESLint finds no undefined names
+   (`tools/test/lint.py`; a name only one page has, reached behind a guard, goes in its OPTIONAL list) and the app's
+   CSS keeps to the type scale (`tools/test/tokens.py`; use the `--fs-*` tokens).
 4. For the TVs, the real screens are the test: open the relay's `/test/` on them.
 
 Then commit (what changed and why), push, and tell Dave which boards changed and whether the relay needs an update.

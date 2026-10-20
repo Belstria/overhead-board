@@ -24,10 +24,7 @@ function loadSettings(){
   return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
-// set one), so the relay knows where to count their planes even when it happens to be the default spot.
-// The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
-// so the profile's old one came back on the next load).
-const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
+// set one), so the relay knows where to count their planes even when it happens to be the default spot (locSet, E12).
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, daylight, ...rest} = changed;   // following the phone, the style and Daylight are this device's own
@@ -36,16 +33,8 @@ function saveMe(changed, now){
   return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
-// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
-// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
-const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
-  const changed = {};
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
-  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
-  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
-  meBase = {...S};
+  const changed = settingsChanged({});                // 1.68: the board's own rules, shared (E12)
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -1348,75 +1337,9 @@ function startRadar(){
 }
 function stopRadar(){ cancelAnimationFrame(radar.raf); }
 function drawRadar(t){
-  const g = $("radarCv").getContext("2d"), now = Date.now(), {cx, cy, R} = RG, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+  const g = $("radarCv").getContext("2d");
   g.setTransform(radar.px, 0, 0, radar.px, 0, 0); g.clearRect(0, 0, RG.S, RG.S);
-  const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
-  const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
-  g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
-  radarMapDraw(g, cx, cy, R, range, C, radar.px);
-  const a0 = (t / 7000) * TAU;                                  // slow sweep
-  for (let i = 0; i < 28; i++) {
-    g.fillStyle = rgba(COL.amber, .075 * (1 - i / 28));
-    g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, a0 - (i + 1) * .028 - Math.PI / 2, a0 - i * .028 - Math.PI / 2); g.closePath(); g.fill();
-  }
-  if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
-  g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
-  g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-  g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
-  const ringTags = [];
-  const ringStep = radarRing(range);
-  for (let r = ringStep; r <= range; r += ringStep) {
-    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + 4, y: cy - Math.cos(.42) * r * k + 11});
-  }
-  g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
-  g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
-  airportPos();
-  const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
-  if (ap) {
-    const u = rwyInUse();
-    g.lineCap = "round"; g.lineWidth = 2.2;
-    for (const r of ap.rwys) {
-      const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
-      g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
-      const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-    }
-    const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 11px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3; g.lineJoin = "round";
-    if (Math.hypot(ax - cx, ay - cy) < R - 28) { g.strokeText(S.home, ax + 10, ay + 16); g.fillText(S.home, ax + 10, ay + 16); radar.apBox = {x: ax + 9, y: ay + 6, w: 30, h: 14}; } else radar.apBox = null;
-    g.lineCap = "butt";
-  } else radar.apBox = null;
-  const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
-  for (const o of radar.planes) {
-    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
-    const [x, y] = toXY(pos.lat, pos.lon);
-    if (Math.hypot(x - cx, y - cy) > R + 8) continue;
-    const col = radarColor(o), tr = radar.trails.get(ac.hex);
-    if (tr && tr.length > 1) {
-      g.strokeStyle = rgba(col, .35); g.lineWidth = 1.8; g.beginPath();
-      tr.forEach((p, i) => { const [px, py] = toXY(p.lat, p.lon); i ? g.lineTo(px, py) : g.moveTo(px, py); });
-      g.lineTo(x, y); g.stroke();
-    }
-    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 17 : 21) : o.kind ? 19 : 14, col);
-    g.restore();
-    if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 17, 0, Math.PI * 2); g.stroke(); }
-    shown.push({o, x, y, col});
-  }
-  const centre = {x: cx - 12, y: cy - 12, w: 24, h: 24}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
-    return {x: cx + Math.sin(a) * (R - 12) - 10, y: cy - Math.cos(a) * (R - 12) - 10, w: 20, h: 20}; });   // N E S W stay readable
-  radar.hits = shown.map(s_ => ({hex: s_.o.ac.hex, x: s_.x, y: s_.y}));
-  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 11.5, alt: 10, gap: 11}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 10.5);
-  g.restore();
-  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
-  const gl = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
-  gl.addColorStop(0, "rgba(255,255,255,.06)"); gl.addColorStop(.5, "rgba(255,255,255,.015)"); gl.addColorStop(.501, "rgba(255,255,255,0)");
-  g.fillStyle = gl; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
-  g.font = `700 13px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
-  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 12), cy - Math.cos(a) * (R - 12)); });
-  { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
-    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - 8, hy - 8, 16); }
-  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  paintRadar(g, RG.cx, RG.cy, RG.R, 1, t);              // 1.68: the board's own drawing (E25), at the phone's size
 }
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)

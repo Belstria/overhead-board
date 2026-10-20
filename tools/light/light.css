@@ -16,8 +16,8 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .lrow+.lrow{margin-top:12px}
 .lf{flex:var(--n) 1 0;min-width:0}
 .lf[hidden]{display:none}
-.lf .ll{display:block;margin:0 0 5px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lf .lv{display:block;min-height:1.25em;font:600 18px/1.25 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.lf .ll{display:block;margin:0 0 5px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf .lv{display:block;min-height:1.25em;font:600 var(--fs-l)/1.25 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .lf.nil .lv::before{content:"–";color:rgba(255,255,255,.16)}
 .lf.amb .lv{color:var(--amber)}
 .lf.r{text-align:right}
@@ -25,24 +25,24 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .lf.w-remarks,.lf.w-tier,.lf.w-trend{flex:0 0 auto}
 .lf.w-remarks.nil .lv::before,.lf.w-tier.nil .lv::before,.lf.w-trend.nil .lv::before{content:""}
 .lf .chip{vertical-align:middle}
-.trend{display:inline-block;font:700 20px/1 var(--f-board);color:var(--muted)}
+.trend{display:inline-block;font:700 var(--fs-xl)/1 var(--f-board);color:var(--muted)}
 .trend.t-up{color:#5fd08a}.trend.t-down{color:#f08a5d}
 .tierP{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 3px;border-radius:12px;background:color-mix(in srgb,var(--c) 20%,transparent);
-  color:var(--ink);font:700 12px/1 var(--f-board);letter-spacing:.04em}
+  color:var(--ink);font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.04em}
 .tierP img{width:18px;height:18px;border-radius:9px}
 .lf.w-airline .lv{display:flex;align-items:center;gap:10px}
 .lf.w-airline .lv span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .alogo{flex:none;height:28px;max-width:96px;object-fit:contain;padding:3px 6px;border-radius:7px;background:#f3f0e8}
 /* the plane overhead: one card */
 #hero.lp{padding:16px 16px 18px;border-radius:18px;background:var(--card);border:1px solid var(--edge);cursor:pointer}
-#hero .lf[data-f=flight] .lv{font-size:36px;font-weight:700;line-height:1.05;letter-spacing:.01em}
-#hero .lf.w-remarks .chip{height:28px;min-width:0;padding:0 12px;font-size:12px}
-#hero .lf[data-f=airline] .lv{font-size:21px}
+#hero .lf[data-f=flight] .lv{font-size:var(--fs-hero);font-weight:700;line-height:1.05;letter-spacing:.01em}
+#hero .lf.w-remarks .chip{height:28px;min-width:0;padding:0 12px;font-size:var(--fs-xs)}
+#hero .lf[data-f=airline] .lv{font-size:var(--fs-xl)}
 #hero .lf[data-f=fromCode],#hero .lf[data-f=toCode]{flex:0 0 3.3em}
-#hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:28px;font-weight:700;line-height:1.05}
-#hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:23px;line-height:1.1}
+#hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:var(--fs-3xl);font-weight:700;line-height:1.05}
+#hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:var(--fs-2xl);line-height:1.1}
 #hero .lrow[data-r=toCode]{margin-top:8px}
-#hero .lf[data-f=seen] .lv{font-size:15px;white-space:normal}
+#hero .lf[data-f=seen] .lv{font-size:var(--fs-base);white-space:normal}
 #hero .lrow[data-r=seen]{padding-top:12px;border-top:1px solid var(--edge)}
 /* 1.40: the stat rows share three columns, so Reg., Speed and Departure, Altitude, Position and Arrival line up */
 #hero .lrow[data-r=reg],#hero .lrow[data-r=speed],#hero .lrow[data-r=depTime]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px;align-items:end}
@@ -50,7 +50,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .lf[data-f=trend] .lv{min-height:0}
 /* the clock */
 #clockP.lp{width:auto;min-width:64px}
-#clockP .lv{font:700 24px/1 var(--f-board);letter-spacing:.02em;text-align:right}
+#clockP .lv{font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.02em;text-align:right}
 #clockP .lf.nil .lv::before{content:""}
 /* the photo, plainly */
 .bezel{padding:0;background:none;box-shadow:none}
@@ -63,7 +63,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #todayP .lrow,#lbP .lrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;align-items:stretch}
 #lbP .lrow+.lrow{margin-top:8px}
 #todayP .lf,#lbP .lf{padding:11px 12px 12px;border-radius:14px;background:var(--card);border:1px solid var(--edge);text-align:left}
-#todayP .lf .lv,#lbP .lf .lv{font-size:28px;font-weight:700;line-height:1.05}
+#todayP .lf .lv,#lbP .lf .lv{font-size:var(--fs-3xl);font-weight:700;line-height:1.05}
 #todayP{margin-top:6px}
 /* lists drawn as fields: take-offs and landings (upright), and the pages on its side */
 #apDP.lp,#apAP.lp,#recentP.lp,#apP.lp,#acP.lp{padding:12px 14px;border-radius:16px;background:var(--card);border:1px solid var(--edge)}
@@ -71,9 +71,9 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #apDP .lrow+.lrow,#apAP .lrow+.lrow,#recentP .lrow+.lrow,#apP .lrow+.lrow{margin-top:0;padding-top:9px;padding-bottom:9px;border-top:1px solid var(--edge)}
 #apDP .lrow:first-child,#apAP .lrow:first-child,#recentP .lrow:first-child,#apP .lrow:first-child{padding-bottom:9px}
 #apDP .lrow:first-child,#apAP .lrow:first-child,#recentP .lrow:first-child{align-items:flex-end}
-#apDP .lf .lv,#apAP .lf .lv,#recentP .lf .lv,#apP .lf .lv{font-size:16px}
+#apDP .lf .lv,#apAP .lf .lv,#recentP .lf .lv,#apP .lf .lv{font-size:var(--fs-input)}
 #apDP .lf.w-remarks,#apAP .lf.w-remarks,#recentP .lf.w-remarks,#apP .lf.w-remarks{flex:0 0 112px;text-align:right}
-#apDP .chip,#apAP .chip,#recentP .chip,#apP .chip{min-width:0;height:22px;font-size:12px;letter-spacing:.06em;padding:0 9px}
+#apDP .chip,#apAP .chip,#recentP .chip,#apP .chip{min-width:0;height:22px;font-size:var(--fs-xs);letter-spacing:.06em;padding:0 9px}
 #apDP,#apAP{cursor:pointer}
 .lrow:not(:has(.lf:not([hidden]))){display:none}
 .lrow:not(:first-child):not(:has(.lf:not(.nil):not([hidden]))){display:none}   /* no empty rows in the lists */
@@ -92,55 +92,55 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 /* buttons: flat */
 .cap{width:auto;min-width:0;height:auto;min-height:40px;margin:0;padding:8px 14px;border:1px solid var(--edge);border-radius:11px;
   background:var(--card2);color:var(--ink);box-shadow:none;text-shadow:none;transform:none!important;animation:none!important;filter:none!important;
-  font:600 13px/1.15 var(--f-board);letter-spacing:.04em;text-transform:none;transition:background .15s,border-color .15s,color .15s}
+  font:600 var(--fs-s)/1.15 var(--f-board);letter-spacing:.04em;text-transform:none;transition:background .15s,border-color .15s,color .15s}
 .cap:active:not(:disabled){background:#24262b}
 .cap[aria-current=page],.cap[aria-pressed=true]{color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5);box-shadow:none}
-.cap.go,.cap.go[aria-pressed=true]{color:#17140e;background:var(--amber);border-color:transparent;box-shadow:none}
+.cap.go,.cap.go[aria-pressed=true]{color:var(--c-night);background:var(--amber);border-color:transparent;box-shadow:none}
 .cap:disabled{opacity:.45}
-.cap.small{min-height:34px;padding:6px 12px;font-size:12.5px}
-.cap.big{min-height:46px;padding:10px 18px;font-size:14.5px}
+.cap.small{min-height:34px;padding:6px 12px;font-size:var(--fs-xs)}
+.cap.big{min-height:46px;padding:10px 18px;font-size:var(--fs-m)}
 .tools{gap:8px}
 #tabs .wrap{gap:4px}
-#tabs .cap{height:54px;border:0;background:none;color:var(--muted);font-size:12px;letter-spacing:.03em;text-transform:none}
+#tabs .cap{height:54px;border:0;background:none;color:var(--muted);font-size:var(--fs-xs);letter-spacing:.03em;text-transform:none}
 #tabs .cap .ico{opacity:1}
 #tabs .cap[aria-current=page]{color:var(--amber);background:rgba(240,180,41,.09)}
-#tabs .cap.long{font-size:12px}
+#tabs .cap.long{font-size:var(--fs-xs)}
 .cap.ping::after{content:"";position:absolute;right:10px;top:6px;width:9px;height:9px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #0b0b0c;animation:ping 1.2s ease-in-out infinite!important}
 .apPick{gap:8px}
-.apPick .cap{height:auto;font-size:13px}
+.apPick .cap{height:auto;font-size:var(--fs-s)}
 /* Settings and About: cards; knobs and flip switches become segmented switches, thumbwheels steppers */
 .plate,body.real .plate{background:var(--card);background-image:none;border:1px solid var(--edge);border-radius:16px;box-shadow:none}
 .plate>i{display:none}
 .plate h3{letter-spacing:.16em;color:var(--amber);text-shadow:none}
 .plate h3::before,.plate h3::after{display:none}
 .inst,body.real .inst{padding:0;background:none;box-shadow:none;align-items:stretch;gap:6px}
-.inst>span{padding:0;border:0;text-align:left;color:var(--muted);font:600 12px/1.2 var(--f-board);letter-spacing:.1em;text-shadow:none}
+.inst>span{padding:0;border:0;text-align:left;color:var(--muted);font:600 var(--fs-xs)/1.2 var(--f-board);letter-spacing:.1em;text-shadow:none}
 .inst.loc p{text-align:left}
 .inst.loc .cap{align-self:flex-start}
 .lcd,body.real .lcd{padding:10px 12px;border:1px solid var(--edge);border-radius:10px;background:var(--well);background-image:none;box-shadow:none;color:var(--ink);text-shadow:none;
-  font:600 16px/1.2 var(--f-board);letter-spacing:.02em;text-transform:none}
+  font:600 var(--fs-input)/1.2 var(--f-board);letter-spacing:.02em;text-transform:none}
 .lcd:focus{border-color:var(--amber);box-shadow:none}
 .rotary,.toggle{display:flex;flex-direction:row;align-items:stretch;width:100%;height:auto;padding:3px;gap:2px;border:1px solid var(--edge);border-radius:11px;background:var(--well)}
 .rotary .knob,.toggle .sw{display:none}
-.rotary b{position:static;flex:1 1 0;min-width:0;transform:none;padding:9px 2px;border-radius:8px;text-align:center;font:600 12px/1 var(--f-board);letter-spacing:.04em;
+.rotary b{position:static;flex:1 1 0;min-width:0;transform:none;padding:9px 2px;border-radius:8px;text-align:center;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.04em;
   color:var(--muted);text-shadow:none;overflow:hidden;text-overflow:ellipsis}
 .rotary b.on{background:#2a2c31;color:var(--ink);text-shadow:none}
 .rotary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.toggle .up,.toggle .down{flex:1 1 0;min-width:0;padding:9px 2px;border-radius:8px;text-align:center;font:600 12px/1 var(--f-board);letter-spacing:.04em;color:var(--muted);text-shadow:none!important}
+.toggle .up,.toggle .down{flex:1 1 0;min-width:0;padding:9px 2px;border-radius:8px;text-align:center;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.04em;color:var(--muted);text-shadow:none!important}
 .toggle .up{order:2}
-.toggle[aria-pressed=true] .up{background:var(--amber);color:#17140e}
+.toggle[aria-pressed=true] .up{background:var(--amber);color:var(--c-night)}
 .toggle[aria-pressed=false] .down{background:#2a2c31;color:var(--ink)}
 .toggle.guard[aria-pressed=true] .up{background:#d2493d;color:#fff}
 .toggle:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .wheel{flex-direction:row;align-items:stretch;gap:3px;width:100%;padding:3px;border:1px solid var(--edge);border-radius:11px;background:var(--well)}
 .wheel button{width:44px;height:auto;border-radius:8px;background:#2a2c31;box-shadow:none;font-size:0;color:var(--ink)}
-.wheel button::before{font:600 20px/1 var(--f-board)}
+.wheel button::before{font:600 var(--fs-xl)/1 var(--f-board)}
 .wheel .inc::before{content:"+"}.wheel .dec::before{content:"−"}
 .wheel .dec{order:-1}.wheel .inc{order:1}
 #todayP .lf .ll,#lbP .lf .ll{letter-spacing:.08em}
 #favBox .cap,#cardBox .cap{background:var(--card2);color:var(--ink);border:1px solid var(--edge);box-shadow:none}
-#favBox .cap.go,#cardBox .cap.go{background:var(--amber);color:#17140e}
-.wheel .win{flex:1;width:auto;height:38px;margin:0;background:none;box-shadow:none;font:700 20px/1 var(--f-board)}
+#favBox .cap.go,#cardBox .cap.go{background:var(--amber);color:var(--c-night)}
+.wheel .win{flex:1;width:auto;height:38px;margin:0;background:none;box-shadow:none;font:700 var(--fs-xl)/1 var(--f-board)}
 .wheel .win::after{display:none}
 #cockpit .plate{padding:14px 14px 16px;gap:14px 12px}
 .savebar{background:rgba(11,11,12,.9);border:1px solid var(--edge)}
@@ -148,7 +148,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .plate .chip{border-radius:999px;box-shadow:none}
 /* the welcome */
 #welcome .wbox{background:var(--card);background-image:none;border:1px solid var(--edge);box-shadow:0 18px 50px rgba(0,0,0,.6)}
-#wHello.lgreet{display:flex;justify-content:center;min-height:46px;font:700 34px/46px var(--f-board);letter-spacing:.06em;color:var(--ink);aspect-ratio:auto}
+#wHello.lgreet{display:flex;justify-content:center;min-height:46px;font:700 var(--fs-hero)/46px var(--f-board);letter-spacing:.06em;color:var(--ink);aspect-ratio:auto}
 #wHello.lgreet span{display:inline-block;animation:lgIn .45s cubic-bezier(.2,.8,.25,1) both}
 @keyframes lgIn{from{opacity:0;transform:translateY(40%);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
 @media (prefers-reduced-motion: reduce){#wHello.lgreet span{animation:none}}
@@ -157,28 +157,28 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   #t-now #hero,#t-now .rcol{width:auto}
   #hero.lp{padding:10px 14px 12px;border-radius:14px}
   #hero .lrow+.lrow{margin-top:8px}
-  #hero .lf .lv{font-size:16px}
-  #hero .lf[data-f=flight] .lv{font-size:24px}
-  #hero .lf[data-f=airline] .lv{font-size:17px}
-  #hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:20px}
-  #hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:17px}
+  #hero .lf .lv{font-size:var(--fs-input)}
+  #hero .lf[data-f=flight] .lv{font-size:var(--fs-2xl)}
+  #hero .lf[data-f=airline] .lv{font-size:var(--fs-l)}
+  #hero .lf[data-f=fromCode] .lv,#hero .lf[data-f=toCode] .lv{font-size:var(--fs-xl)}
+  #hero .lf[data-f=fromCity] .lv,#hero .lf[data-f=toCity] .lv{font-size:var(--fs-l)}
   #hero .lf[data-f=fromCode],#hero .lf[data-f=toCode]{flex:0 0 2.8em}
   #hero .lrow[data-r=toCode]{margin-top:0}
   .alogo{height:22px}
-  #clockP .lv{font-size:20px}
+  #clockP .lv{font-size:var(--fs-xl)}
   #t-now #acSec:not([hidden]){grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
   #t-now #acP{width:auto}
   #t-now #bezel{height:auto}
   #t-now #bezel .screen{aspect-ratio:568/268;height:auto}
-  #recentP .lf .lv,#apP .lf .lv,#acP .lf .lv{font-size:15px}
+  #recentP .lf .lv,#apP .lf .lv,#acP .lf .lv{font-size:var(--fs-base)}
   #apP.lp{display:grid;grid-template-rows:repeat(6,auto);grid-auto-flow:column;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
   #apP .lrow+.lrow{margin-top:0}
   #recentP .lrow+.lrow,#apP .lrow+.lrow{padding-top:6px;padding-bottom:6px}
-  #top .pages .cap{width:auto;height:auto;min-height:30px;padding:4px 12px;font-size:12px}
+  #top .pages .cap{width:auto;height:auto;min-height:30px;padding:4px 12px;font-size:var(--fs-xs)}
 }
 /* the cards' buttons, flat */
 #cardBox .cBtn,.cardish .cBtn{background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:11px;box-shadow:none;text-shadow:none}
-#cardBox .cBtn.go,.cardish .cBtn.go{background:var(--amber);color:#17140e;border-color:transparent}
+#cardBox .cBtn.go,.cardish .cBtn.go{background:var(--amber);color:var(--c-night);border-color:transparent}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:0;color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5)}
 /* 1.66: Daylight (Settings → Display): light cards on a cream page, dark text */
 html.daylight{--card:#fbf8f1;--card2:#f2ede2;--edge:rgba(0,0,0,.13);--well:#e7e0d1}
