@@ -10,6 +10,8 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.70.2: the Android WebChromeClient passes Sky view's camera request on (CAMERA asked the first time, REQ_CAMERA, the relay's own page only). `radarMapDraw` draws only with Map on (zoomed in it used to draw anyway). Notification channel `alerts_pa` (the old `alerts` is deleted) rings `res/raw/pa_bell.wav` (a copy of
+  app/airport-bell.wav); the small icon is `drawable-nodpi/ic_notify.png` (a copy of app/badge-96.png).
 - 1.70 / relay 57: Android notifications through Firebase Cloud Messaging. Relay: `fcm_ready()` (data/fcm.json, the
   service account key, copied onto the relay by hand; relay 57's `/fcm` upload page was removed in 58), `_fcm_token()` (RS256
   JWT → OAuth token, kept ~55 min), `fcm_send()` (v1 API, data message; unregistered → 410 so the sub is dropped);

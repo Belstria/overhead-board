@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- 1.70: notifications (asked for when Settings → Notifications is turned on) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 1.70.2: Sky view's camera (asked for when Sky view opens) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- The relay is plain http on the home network, at whatever address the computer has. -->
     <application
