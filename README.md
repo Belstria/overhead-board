@@ -250,8 +250,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   full board − and + sit at the radar's top corners, Map at its bottom left, and the range is engraved in the dial (1.63).
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
   landing, passing or on the ground (1.63).
-  Since 1.65 − and + work in the Overhead style too, around your place; on the phone, pinch the radar or double-tap it
-  (from the closest step a double tap goes back out). The zoom is kept per screen (1.64). A departure from Vienna shows
+  Since 1.65 zooming works in the Overhead style too, around your place. On the phone (1.69) the controls sit on a
+  **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer, through 10, 5 and 2.5 km) and the **Map**
+  switch; pinching zooms smoothly to any range and stays there, a double tap steps closer (from the closest, back out). The zoom is kept per screen (1.64). A departure from Vienna shows
   its gate on the plane card, and in the app's radar list while the plane stands at the airport (1.65).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.

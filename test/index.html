@@ -328,8 +328,13 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
    the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
 /* 1.61: Settings → Styles. The cell: Look and Badge caps like the Favourites cell's, the count under them. The card: a
    preview strip, then a row per kind (label, ◀, the choice on an amber display, ▶), what unlocks a locked one under it. */
-.inst.styl .cap.favCap{width:100%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
-.inst.styl .stN{min-width:0;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center}   /* 1.61: the narrow Display cell keeps both words */
+.inst.styl .cap.favCap{width:84%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
+.inst.styl .stN{min-width:0;max-width:58%;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis}   /* 1.69: a name too long ends in dots, then scrolls (lcdMarquee) */
+.inst.styl .stN.mq{text-overflow:clip;text-align:left}
+.inst.styl .stN>i{font-style:normal}
+.inst.styl .stN.mq>i{display:inline-block}
+.inst.styl .cap.favCap>span{text-overflow:ellipsis;white-space:nowrap}
 .inst.styl .stCnt{margin:0}
 #cardBox .styles .stPrev{display:block;width:100%;height:calc(64px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(12px*var(--ck,1));border-radius:calc(8px*var(--ck,1))}
 #cardBox .styles .stRows{display:grid;gap:calc(6px*var(--ck,1))}
@@ -392,7 +397,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #toasts .toast button{all:unset;cursor:pointer;padding:calc(6px*var(--ck,1)*var(--tz,1.5)) calc(4px*var(--ck,1)*var(--tz,1.5));font:700 calc(14px*var(--ck,1)*var(--tz,1.5)) var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f0b429}
 #toasts .toast.err button{color:#ff8a80}
 @media (prefers-reduced-motion:reduce){#toasts .toast{transition:none}}
-#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + env(safe-area-inset-top));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
+#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + var(--sa-top,env(safe-area-inset-top)));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -565,7 +570,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=c59ddc2f41"></script>
+<script src="i18n.js?v=565133eb1a"></script>
 <script>
 (() => {
 "use strict";
@@ -4202,9 +4207,9 @@ function buildViewTools(){
   if (view === "radar") {                    // 1.55 (to-do #68): the map under the radar, on or off
     // 1.62.1: the buttons sit in the radar's corners: − top left, + top right (Airport style), Map bottom left; the range
     // is engraved in the dial (drawRadar).
-    const zi = RADAR_ZOOMS.indexOf(radarZoom), rb = radarBox(), at = (x, y) => `style="left:calc(${x}px*var(--k));top:calc(${y}px*var(--k))"`;
-    const zb = !airportMode() || AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${zi > 0 ? "" : " disabled"}>−</button>` +
-      `<button class="cap small" type="button" data-z="1" ${at(rb.w - 68, 4)} aria-label="${escH(T("Zoom in"))}"${zi < RADAR_ZOOMS.length - 1 ? "" : " disabled"}>+</button>` : "";
+    const rb = radarBox(), at = (x, y) => `style="left:calc(${x}px*var(--k));top:calc(${y}px*var(--k))"`;
+    const zb = !airportMode() || AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${radarZoomCan(-1) ? "" : " disabled"}>−</button>` +
+      `<button class="cap small" type="button" data-z="1" ${at(rb.w - 68, 4)} aria-label="${escH(T("Zoom in"))}"${radarZoomCan(1) ? "" : " disabled"}>+</button>` : "";
     box.innerHTML = `<button class="cap small" type="button" data-map ${at(4, rb.h - 44)} aria-pressed="${radarMapOn}">${T("Map")}</button>` + zb;
     box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); radarMapSet(!radarMapOn); box.firstChild.setAttribute("aria-pressed", String(radarMapOn)); };
     for (const b of box.querySelectorAll("[data-z]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); radarZoomStep(+b.dataset.z); drawStatic(); renderRadarList();
@@ -4603,11 +4608,17 @@ function radarRows(n){
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
 const RADAR_ZOOMS = [0, 10, 5, 2.5];
-const radarZoomed = () => !!(radarZoom && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
+// 1.68.1: a pinch zooms smoothly (radar.live: the range under the fingers, km), and the zoom stays where it is let go
+// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of RADAR_ZOOMS from there.
+const RADAR_MIN = 1.5;
+const radarZoomed = () => !!((radar.live || radarZoom) && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
 // The close-up's centre: where the planes on the ground stand (the gates, not the runways' middle), fixed while zoomed.
 function radarZoomSet(z){
-  radarZoom = z; radar.zc = null;
+  const keep = radarZoomed() && airportMode() && radar.zc;     // already close in: the centre stays put
+  radarZoom = z;
+  if (keep && radarZoomed()) return radarZoomKeep();
+  radar.zc = null;
   if (!radarZoomed() || !airportMode()) return radarZoomKeep();
   const kx = 111.32 * Math.cos(AP.lat * Math.PI / 180), gr = radar.planes.filter(o => o.ac.alt_baro === "ground" && Math.hypot((o.ac.lon - AP.lon) * kx, (o.ac.lat - AP.lat) * 110.57) < 3);
   const m = (a, f) => a.reduce((t, o) => t + f(o), 0) / a.length;
@@ -4615,8 +4626,19 @@ function radarZoomSet(z){
   radarZoomKeep();
 }
 function radarZoomKeep(){ try { localStorage.setItem(RADAR_ZOOM_KEY, JSON.stringify({z: radarZoom, c: radar.zc})); } catch {} }
-function radarZoomStep(d){ radarZoomSet(RADAR_ZOOMS[Math.max(0, Math.min(RADAR_ZOOMS.length - 1, RADAR_ZOOMS.indexOf(radarZoom) + d))]); }
-const radarRange = () => radarZoomed() ? radarZoom : Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
+function radarZoomStep(d){
+  const steps = RADAR_ZOOMS.slice(1);                   // 10, 5, 2.5 km
+  let z = radarZoom;
+  for (let i = 0; i < Math.abs(d); i++) {
+    if (d > 0) z = steps.find(v => v < (z || Infinity) - .01) ?? steps[steps.length - 1];
+    else z = [...steps].reverse().find(v => v > z + .01) || 0;
+  }
+  radarZoomSet(z);
+}
+const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_ZOOMS[RADAR_ZOOMS.length - 1] + .01 : !!radarZoom;
+const radarBase = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);        // the usual range
+const radarRange = () => radar.live && radarZoomed() ? radar.live : radarZoomed() ? radarZoom : radarBase();
+const radarRangeText = () => nf.format(Math.round(radarRange() * 10) / 10) + " km";
 /* 1.55 (to-do #68): a map under the radar, switched per device (board, app and light). OpenFreeMap's vector tiles
    (OpenStreetMap data, free and without a key) drawn here in the board's own dim colours, so there's no text on it:
    built-up areas, water, rivers, main roads and runways. The tiles are put together once for the radar's centre, range
@@ -4629,8 +4651,17 @@ const radarMap = {key: "", cv: null, ready: false, tiles: null};
 function radarMapDraw(g, cx, cy, R, range, C, px){
   if (!radarMapOn && !radarZoomed()) return;
   const size = Math.round(2 * R * px), key = [(+C.lat).toFixed(4), (+C.lon).toFixed(4), range, size].join();
-  if (radarMap.key !== key) radarMapBuild(key, +C.lat, +C.lon, range, size);
-  if (radarMap.ready) g.drawImage(radarMap.cv, cx - R, cy - R, 2 * R, 2 * R);
+  // 1.68.1: while fingers pinch (radar.live) the last map is stretched to the range under them; a new one is built when
+  // they let go. While a new one loads, the last stays (scaled), instead of an empty scope.
+  if (radarMap.key !== key && !radar.live) {
+    if (radarMap.ready) radarMap.last = {cv: radarMap.cv, lat: radarMap.lat, lon: radarMap.lon, range: radarMap.range};
+    radarMapBuild(key, +C.lat, +C.lon, range, size);
+  }
+  const m = radarMap.ready ? radarMap : radarMap.last;
+  if (!m || !m.cv) return;
+  const k = R / range, w = 2 * R * m.range / range;
+  const dx = (m.lon - C.lon) * 111.32 * Math.cos(C.lat * Math.PI / 180) * k, dy = -(m.lat - C.lat) * 110.57 * k;
+  g.drawImage(m.cv, cx + dx - w / 2, cy + dy - w / 2, w, w);
 }
 // A Mapbox vector tile (protobuf): the layers we draw, each a list of {type (2 line, 3 area), cls, geom (commands)}.
 const MVT_LAYERS = new Set(["water", "waterway", "transportation", "aeroway", "landuse", "building"]);
@@ -4699,7 +4730,7 @@ async function radarMapTiles(){
 async function radarMapBuild(key, lat, lon, range, size){
   const cv = document.createElement("canvas"), c = cv.getContext("2d");
   cv.width = cv.height = size;
-  Object.assign(radarMap, {key, cv, ready: false});
+  Object.assign(radarMap, {key, cv, ready: false, lat, lon, range});
   const km = 2 * range / size, cosl = Math.cos(lat * Math.PI / 180), EARTH = 40075.016686, lr = lat * Math.PI / 180;     // km a pixel
   const z = Math.max(3, Math.min(range < 8 ? 15 : 13, Math.round(Math.log2(EARTH * cosl / (256 * km))) - (size > 700 ? 1 : 0))), n = 2 ** z;   // vector: sharp a zoom out
   const s = EARTH * cosl / (256 * n) / km;                                                       // pixels a tile pixel
@@ -5715,9 +5746,22 @@ const styleVal = k => String(S[k] || (k === "theme" ? "classic" : ""));
 const lookKind = () => styleKinds().some(([k]) => k === "theme") ? "theme" : "palette";
 const styleShort = k => { const v = styleVal(k); return T(STYLE_SHORT[v] || (k === "badge" ? "None" : "Standard")); };
 function stylesCellRefresh(){
-  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.textContent = styleShort(b.dataset.styles); }
+  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.innerHTML = `<i>${escH(styleShort(b.dataset.styles))}</i>`; }
   for (const p of document.querySelectorAll(".inst.styl .stCnt")) p.textContent = stylesNote();
 }
+// 1.69: a display whose word doesn't fit shows dots, then every few seconds slides from right to left to show the rest,
+// waits, and comes back to the dots.
+function lcdMarquee(){
+  for (const el of document.querySelectorAll(".inst.styl .stN")) {
+    const t = el.firstElementChild, over = el.scrollWidth - el.clientWidth;
+    if (!t || el.dataset.mq || over < 2 || !el.getClientRects().length || REDUCED) continue;
+    el.dataset.mq = "1"; el.classList.add("mq");
+    const ms = 500 + over * 45;
+    t.style.transition = `transform ${ms}ms linear`; t.style.transform = `translateX(${-over - 4}px)`;
+    setTimeout(() => { t.style.transition = "none"; t.style.transform = ""; el.classList.remove("mq"); delete el.dataset.mq; }, ms + 1400);
+  }
+}
+setInterval(lcdMarquee, 4500);
 // Settings → Styles (1.61): a preview of the look on top, then one row per kind: ◀, the choice on an amber display, ▶.
 // Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
 // is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
@@ -6001,6 +6045,17 @@ function tip(id, target, text, auto){
   tipQueue.push({id, target, text, auto});
   setTimeout(tipNext, 60);
 }
+// What of the screen isn't covered by fixed bars (the app's header and tab bar): a tip's ring stays within it.
+function tipBand(){
+  let top = 0, bottom = innerHeight;
+  for (const id of ["top", "tabs"]) {
+    const e = document.getElementById(id), cs = e && getComputedStyle(e);
+    if (!e || !e.getClientRects().length || !/fixed|sticky/.test(cs.position)) continue;
+    const r = e.getBoundingClientRect();
+    if (r.top <= 1) top = Math.max(top, r.bottom); else bottom = Math.min(bottom, r.top);
+  }
+  return {top, bottom};
+}
 function tipNext(){
   if (tipCur || !tipQueue.length) return;
   if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
@@ -6022,6 +6077,10 @@ function tipNext(){
     if (!el) { shade.style.background = "rgba(6,6,8,.32)"; Object.assign(bub.style, {left: "16px", top: `${innerHeight - bh - 24}px`}); return; }
     const r = el.getBoundingClientRect(), pad = 6, x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
     Object.assign(ring.style, {left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`});
+    // 1.68.1: only the part not under the app's header or tab bar is ringed (it was drawn over them)
+    const b = tipBand(), cutT = Math.max(0, b.top - y), cutB = Math.max(0, y + h - b.bottom);
+    ring.style.clipPath = cutT || cutB ? `inset(${cutT}px 0 ${cutB}px 0)` : "";
+    ring.style.visibility = cutT + cutB >= h ? "hidden" : "";
     const cx = x + w / 2, cy = y + h / 2;
     shade.style.background = `radial-gradient(ellipse ${w / 2 + 90}px ${h / 2 + 90}px at ${cx}px ${cy}px, rgba(6,6,8,0) 0%, rgba(6,6,8,0) 52%, rgba(6,6,8,.6) 100%)`;
     const below = y + h + 14 + bh < innerHeight - 8;
@@ -6033,14 +6092,20 @@ function tipNext(){
     try { localStorage.setItem(TIPS_KEY, JSON.stringify(tipsSeen)); } catch {}
     tipCur = null;
     L.style.pointerEvents = "none";                        // fading out: a second tap goes nowhere
-    removeEventListener("resize", place); removeEventListener("scroll", place, true); removeEventListener("keydown", key, true);
+    cancelAnimationFrame(follow); removeEventListener("resize", place); removeEventListener("keydown", key, true);
     L.classList.remove("on"); setTimeout(() => L.remove(), 200);
     setTimeout(tipNext, 40);                               // 1.50: the next one follows at once, over the fading one
   };
   const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
   L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
-  addEventListener("resize", place); addEventListener("scroll", place, {passive: true, capture: true}); addEventListener("keydown", key, true);
-  setTimeout(() => { place(); L.classList.add("on"); }, moved ? 50 : 20);
+  // 1.68.1: the page holds still under a tip (a swipe used to scroll it, with the ring trailing behind), and the ring
+  // follows its element every frame in case the layout moves anyway.
+  const hold = e => { if (e.cancelable) e.preventDefault(); };
+  L.addEventListener("touchmove", hold, {passive: false}); L.addEventListener("wheel", hold, {passive: false});
+  let follow = 0;
+  const track = () => { place(); follow = requestAnimationFrame(track); };
+  addEventListener("resize", place); addEventListener("keydown", key, true);
+  setTimeout(() => { if (tipCur !== t) return; track(); L.classList.add("on"); }, moved ? 50 : 20);
   if (t.auto) setTimeout(done, t.auto);
 }
 
@@ -6462,6 +6527,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.69", date: "2026-10-20", notes: [
+    "App: the radar's controls sit on a Radar plate like Settings: a Range thumbwheel and a Map switch.",
+    "App: pinching the radar really zooms the map and the rings, and stays where you let go.",
+    "Tips stay on the thing they point at: the page no longer scrolls under them.",
+    "Settings: the Look and Badge buttons are narrower; a name too long ends in dots and scrolls to show the rest.",
+    "Android app: no more empty band above the header and below the tabs.",
+  ]},
   {v: "1.68", date: "2026-10-20", notes: [
     "App: text sizes follow one scale, so the look stays even.",
     "Board: the radar's range is engraved in the dial whenever it is zoomed in, in either style.",
@@ -7199,7 +7271,7 @@ function itemHtml(it){
     const pal = svg('<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.47 2.08-1.32 2.83-.84.75-1.99 1.17-3.18 1.17H14a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r=".6"/><circle cx="12" cy="7.5" r=".6"/><circle cx="16.5" cy="10.5" r=".6"/>');
     const award = svg('<circle cx="12" cy="9" r="6"/><path d="M12 15l3.4 5.89 1.6-3.23 3.6.23-3.4-5.89"/><path d="M6.8 12l-3.4 5.89 3.6-.23 1.6 3.23 3.4-5.89"/>');
     const cap = (k, ico, name) => `<button class="cap favCap stCap" type="button" data-styles="${k}" title="${escH(T("Open styles"))}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
-      `<b class="lcd favN stN" aria-hidden="true">${escH(styleShort(k))}</b></button>`;
+      `<b class="lcd favN stN" aria-hidden="true"><i>${escH(styleShort(k))}</i></b></button>`;
     return cell("loc favs styl", cap(lookKind(), pal, "Look") + cap("badge", award, "Badge") + `<p class="note stCnt">${escH(stylesNote())}</p>`);
   }
   if (it.type === "favs") {

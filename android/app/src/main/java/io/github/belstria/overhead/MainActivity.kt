@@ -195,6 +195,7 @@ class MainActivity : Activity() {
                     return
                 }
                 handover = 0
+                if (url.contains("/app/") || url.contains("/light/")) prefs.edit().putString(LIVE, relay).apply()   // 1.69: the widgets use it
                 webReady = true
                 applyOrientation()
                 pushCut()
@@ -473,6 +474,7 @@ class MainActivity : Activity() {
     companion object {
         const val KEY = "relay"
         const val PUBLIC = "public"
+        const val LIVE = "live"                  // the address the page last loaded from (the widgets try it first)
         const val REQ_LOCATION = 7
         const val PORT = 8080
         val BG = 0xFF0B0B0C.toInt()
