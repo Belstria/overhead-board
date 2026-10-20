@@ -14,6 +14,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.PowerManager
 import android.os.SystemClock
 import android.view.View
@@ -78,27 +79,34 @@ abstract class NowWidget : AppWidgetProvider() {
         }.start()
     }
 
-    /** The relay's /now, as the app's signed-in device: (answer, null) or (null, why not). */
+    /** The relay's /now, as the app's signed-in device: (answer, null) or (null, why not). 1.69: the address the app's
+     *  page last loaded from first, then the https one, then the Wi-Fi one (away from home that one can't answer). */
     private fun fetchNow(context: Context): Pair<JSONObject?, String?> {
         val prefs = context.getSharedPreferences("overhead", Context.MODE_PRIVATE)
-        val base = prefs.getString(MainActivity.PUBLIC, null) ?: prefs.getString(MainActivity.KEY, null)
-            ?: return null to "Open the app once to set it up"
-        return try {
-            val cookie = try { CookieManager.getInstance().getCookie(base) } catch (e: Exception) { null }
-            val c = URL("$base/now").openConnection() as HttpURLConnection
-            c.connectTimeout = 6000
-            c.readTimeout = 8000
-            if (cookie != null) c.setRequestProperty("Cookie", cookie)
+        val bases = listOfNotNull(prefs.getString(MainActivity.LIVE, null), prefs.getString(MainActivity.PUBLIC, null),
+            prefs.getString(MainActivity.KEY, null)).distinct()
+        if (bases.isEmpty()) return null to "Open the app once to set it up"
+        var why = "No connection"
+        for (base in bases) {
             try {
-                when (c.responseCode) {
-                    200 -> JSONObject(c.inputStream.bufferedReader().readText()) to null
-                    401, 403 -> null to "Open the app to sign in"
-                    else -> null to "No answer from the board"
-                }
-            } finally { c.disconnect() }
-        } catch (e: Exception) {
-            null to "No connection"
+                val cookie = try { CookieManager.getInstance().getCookie(base) } catch (e: Exception) { null }
+                val c = URL("$base/now").openConnection() as HttpURLConnection
+                c.connectTimeout = 5000
+                c.readTimeout = 8000
+                c.instanceFollowRedirects = false
+                if (cookie != null) c.setRequestProperty("Cookie", cookie)
+                try {
+                    when (c.responseCode) {
+                        200 -> return JSONObject(c.inputStream.bufferedReader().readText()) to null
+                        401, 403 -> why = "Open the app to sign in"
+                        else -> why = "No answer from the board (${c.responseCode})"
+                    }
+                } finally { c.disconnect() }
+            } catch (e: Exception) {
+                why = "No connection · " + (Uri.parse(base).host ?: base)
+            }
         }
+        return null to why
     }
 
     companion object {
