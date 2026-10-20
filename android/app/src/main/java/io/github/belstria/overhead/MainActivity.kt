@@ -64,7 +64,8 @@ class MainActivity : Activity() {
     private var failed = false
     private var searching = false
     private var dialog: AlertDialog? = null
-    private var handover = 0                       // loading the relay's https address for the first time (its /join/ page)
+    private var handover = 0
+    private var camAsk: android.webkit.PermissionRequest? = null   // Sky view's camera request, while Android asks                       // loading the relay's https address for the first time (its /join/ page)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -145,7 +146,18 @@ class MainActivity : Activity() {
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "?" }
         s.userAgentString = "${s.userAgentString} OverheadAndroid/$version"   // the relay lists the phone as the app
         view.addJavascriptInterface(Bridge(view), "OverheadAndroid")
-        view.webChromeClient = WebChromeClient()
+        // 1.70.2: Sky view asks for the camera; the WebView passes that on to Android (asked the first time) and grants it
+        // to the relay's own page only.
+        view.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
+                main.post {
+                    val cam = android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                    if (cam !in request.resources || relay == null || request.origin.host != Uri.parse(relay).host) { request.deny(); return@post }
+                    if (checkSelfPermission(Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(cam))
+                    else { camAsk?.deny(); camAsk = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), REQ_CAMERA) }
+                }
+            }
+        }
         view.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url
@@ -451,6 +463,11 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
+        if (requestCode == REQ_CAMERA) {
+            val r = camAsk; camAsk = null
+            if (results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) r?.grant(arrayOf(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)) else r?.deny()
+            return
+        }
         if (requestCode == REQ_PUSH) {
             if (results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) pushFetch()
             else web.evaluateJavascript("window.fallblattPush && fallblattPush('', 'Notifications are turned off for Fallblatt in the phone\\'s settings.')", null)
@@ -524,6 +541,7 @@ class MainActivity : Activity() {
         const val LIVE = "live"                  // the address the page last loaded from (the widgets try it first)
         const val REQ_LOCATION = 7
         const val REQ_PUSH = 8
+        const val REQ_CAMERA = 9
         const val OPEN_URL = "openUrl"
         const val PORT = 8080
         val BG = 0xFF0B0B0C.toInt()
