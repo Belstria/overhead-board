@@ -1201,7 +1201,7 @@ function radarStatic(){
 }
 //@L:end
 function startRadar(){
-  radarSize();
+  radarSize(); buildRadarLegend();
   const loop = t => {
     if (tab !== "radar") return;
     if (t - radar.last > 66) { radar.last = t; drawRadar(t); }
@@ -1228,9 +1228,10 @@ function drawRadar(t){
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
   g.font = `600 10.5px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
   const ringTags = [];
-  for (let r = 5; r <= range; r += 5) {
+  const ringStep = radarRing(range);
+  for (let r = ringStep; r <= range; r += ringStep) {
     g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    if (r * k < R - 6) ringTags.push({text: `${r} km`, x: cx + Math.sin(.42) * r * k + 4, y: cy - Math.cos(.42) * r * k + 11});
+    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + 4, y: cy - Math.cos(.42) * r * k + 11});
   }
   g.setLineDash([8, 6]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 1.5;
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
@@ -1261,7 +1262,7 @@ function drawRadar(t){
       g.lineTo(x, y); g.stroke();
     }
     g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, o.kind ? 19 : 14, col);
+    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 12 : 16) : o.kind ? 19 : 14, col);
     g.restore();
     if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 17, 0, Math.PI * 2); g.stroke(); }
     shown.push({o, x, y, col});
@@ -1283,9 +1284,13 @@ function drawRadar(t){
 }
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
-  mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn)); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
+  mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
+  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport (Airport style)
+  $("rvZoom").hidden = !airportMode() || AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
+  $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
+  $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Approaching"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Leaving"],
-    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
+    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"], ...(airportMode() ? [[RADAR_COL.ground, "On the ground"]] : [])].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
 function renderRadarList(){
@@ -1294,7 +1299,9 @@ function renderRadarList(){
   const rows = radarRows(12).map(({o, dist, dir, st}) => {
     const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
     const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
+    const code = airlineCodeOf(info), L = code ? logo(code, true) : null;
+    const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
+    return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
       `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
   });
   const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
@@ -1540,6 +1547,7 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
+for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => { ctlSound.press(); radarZoomStep(d); buildRadarLegend(); rvSig = ""; renderRadarList(); };
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;

@@ -3,6 +3,14 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Zoom in", "Vergrößern", "Zoom avant", "Acercar", "Inzoomen"],
+  ["Zoom out", "Verkleinern", "Zoom arrière", "Alejar", "Uitzoomen"],
+  ["On the ground", "Am Boden", "Au sol", "En tierra", "Op de grond"],
+  ["TAXIING", "ROLLT", "ROULAGE", "RODANDO", "TAXIËN"],
+  ["PARKED", "GEPARKT", "STATIONNÉ", "ESTACIONADO", "GEPARKEERD"],
+  ["Moving on the ground (the radar's close-up)", "Rollt am Boden (Nahansicht des Radars)", "Roule au sol (vue rapprochée du radar)", "Rodando en tierra (vista cercana del radar)", "Rijdt op de grond (close-up van de radar)"],
+  ["Standing at the airport (the radar's close-up)", "Steht am Flughafen (Nahansicht des Radars)", "Stationné à l'aéroport (vue rapprochée du radar)", "Parado en el aeropuerto (vista cercana del radar)", "Staat op de luchthaven (close-up van de radar)"],
+  ["Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", "Nahansicht von {ap} · Ringe alle {r} · die Flugzeuge am Boden, stehend und rollend", "Vue rapprochée de {ap} · cercles tous les {r} · les avions au sol, à l'arrêt et en mouvement", "Vista cercana de {ap} · anillos cada {r} · los aviones en tierra, parados y en movimiento", "Close-up van {ap} · ringen om de {r} · de vliegtuigen op de grond, stilstaand en rijdend"],
   ["Look", "Look", "Look", "Estilo", "Look"],
   ["Badge", "Abzeichen", "Insigne", "Insignia", "Badge"],
   ["Board", "Tafel", "Tableau", "Panel", "Bord"],

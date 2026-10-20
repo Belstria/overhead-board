@@ -27,6 +27,12 @@ def plane(hex_, cs, t, x0, y0, track, gs_kmh, alt, rate=0, **extra):
     return d
 
 
+# Planes standing at Vienna airport's gates (hex, callsign, type, lat, lon, heading).
+APRON = [("440a21", "AUA123", "A320", 48.1209, 16.5615, 200), ("440a22", "AUA455", "E195", 48.1203, 16.5632, 200),
+         ("4ca9a1", "RYR4417", "B738", 48.1186, 16.5668, 20), ("471f90", "WZZ6481", "A21N", 48.1180, 16.5683, 20),
+         ("3c6589", "DLH2CA", "A20N", 48.1218, 16.5590, 200), ("440a30", "AUA67", "B763", 48.1225, 16.5655, 110)]
+
+
 def along(base, brg, km):
     return base[0] + km * math.sin(math.radians(brg)), base[1] + km * math.cos(math.radians(brg))
 
@@ -149,6 +155,8 @@ class H(BaseHTTPRequestHandler):
             plane("4ca9f1", "RYR3EG", "B38M", 3.0, -6.0, 300, 800, 5000, 0, r="9H-QEG"),       # stale route in the database
             plane("4ca123", "EIN2AB", "A320", 30.0, 30.0, 220, 800, 36000, 0),                   # far and high
         ]
+        for i, (hx, cs, t, la, lo, tr) in enumerate(APRON):     # parked at the gates
+            ac.append({"hex": hx, "flight": cs, "t": t, "lat": la, "lon": lo, "alt_baro": "ground", "gs": 0, "track": tr})
         if os.environ.get("QUIET"):   # no special planes, so the pages rotate undisturbed
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
