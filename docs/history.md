@@ -10,6 +10,9 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.63.1: `saveSettings` (board and app) always stores and sends theme, palette, finish and badge, defaults included:
+  one switched back to its default was left out, and the relay's `/me` merge kept the profile's old value, which came
+  back on the next load (the same as 1.54's cockpit keys).
 - 1.63: Sky view taps (`arTap`, `arHits` from `arLoop`, `arCardRender` with `planeBody` into `#arCard`; a move under
   8 px is a tap, not a drag; `#sheet` above `#arView` while it is open). The board's radar buttons are placed in
   `radarBox()` corners (`#viewTools.rdr`), the range engraved on the bezel in `drawRadar`.

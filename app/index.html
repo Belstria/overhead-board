@@ -1321,6 +1321,7 @@ function saveSettings(){
   const changed = {};
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
+  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -6840,6 +6841,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.63.1", date: "2026-10-20", notes: [
+    "Styles are kept after closing the app, also when you switch back to the standard ones.",
+  ]},
   {v: "1.63", date: "2026-10-20", notes: [
     "Sky view: tap a plane or its label to open its card.",
     "Airport style: the radar's list, plane card and colours show what a plane does at the airport (taking off, landing, passing) instead of Overhead.",
