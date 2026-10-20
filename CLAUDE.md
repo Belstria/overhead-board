@@ -39,7 +39,7 @@ area.** Where it and the code disagree, the code wins.
   falling-page animation for views.
 - Android notifications (1.70): Firebase project "fallblatt". Its app config is the Actions secret `GOOGLE_SERVICES_JSON`
   (written into the build by CI, git-ignored); the service account key is `data/fcm.json` on the relay (mode 600, user
-  overhead; replace it via `/fcm` from the owner's device). Never commit or print either.
+  overhead; replace it by copying a new key there over SSH or the Proxmox console). Never commit or print either.
 - The Android signing key (Actions secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`; backup in
   `%USERPROFILE%\overhead-android-key`): never commit or print it, never replace it, or phones refuse updates.
 - No Tailscale suggestions (tried and dropped 11 Oct 2026). OpenSky is ruled out (needs a written licence).
@@ -56,7 +56,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (57 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (58 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
