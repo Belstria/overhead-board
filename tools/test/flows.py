@@ -80,6 +80,11 @@ def checks():
     expect("one removed", [i["v"] for i in json.loads(b)["fav"]] if st == 200 else st, ["OE-LZA"])
     call("/lists", "test-device", body={"fav": []})
 
+    # the whole logbook searched (relay 55)
+    st, _, b = call("/search?q=ZZ9ZZ", "test-device")
+    expect("/search answers", (st, json.loads(b).get("rows") if st == 200 else None), (200, []))
+    expect("/search for strangers", call("/search?q=A320")[0] in (401, 403), True)
+
     for b_ in bad:
         print("flow:", b_)
     print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")

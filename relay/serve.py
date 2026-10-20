@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 54
+RELAY_VERSION = 55
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1727,6 +1727,51 @@ def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=
         everything = fr24_overlay(everything, spot.radius(), over_km)
     return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
             "stats": day_stats(everything, over_km)}
+
+
+def search_json(spot, q):
+    """Relay 55: the whole logbook searched (every saved day): a registration, a flight, a type or an airline. Matches
+    are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close."""
+    words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", q.upper()).split() if w][:4]
+    tight = lambda t: re.sub(r"[\s-]", "", str(t or "").upper())
+    if not words or len("".join(words)) < 2:
+        return {"q": q, "total": 0, "rows": []}
+    groups, total = {}, 0
+    with _data_lock:
+        spot.ensure_day()
+        files = sorted(spot.dir.glob("sightings-*.json"))
+        today = list(spot.entries)
+    for f in files:
+        day = f.stem[len("sightings-"):]
+        for e in (today if day == spot.day else _load(f, [])):
+            if not isinstance(e, dict):
+                continue
+            flight, reg = tight(e.get("flightIata") or e.get("callsign")), tight(e.get("reg"))
+            hay = " ".join(str(e.get(k) or "") for k in ("reg", "callsign", "flightIata", "icaoType", "typeCode", "aircraftType",
+                                                       "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner")).upper()
+            if not all(w in hay or tight(w) in tight(hay) for w in words):
+                continue
+            total += 1
+            by_flight = flight and any(tight(w) in (flight, tight(e.get("callsign"))) for w in words)
+            key = ("f", flight) if by_flight else ("r", reg or str(e.get("hex") or ""))
+            g = groups.get(key)
+            if not g:
+                g = groups[key] = {"by": key[0], "key": key[1], "reg": e.get("reg") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
+                                   "type": e.get("aircraftType") or e.get("icaoType") or e.get("typeCode") or "", "airline": e.get("airlineName") or "",
+                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": []}
+            g["n"] += 1
+            t = e.get("ts") or e.get("time")
+            if isinstance(t, (int, float)):
+                g["first"] = t if g["first"] is None else min(g["first"], t)
+                g["last"] = t if g["last"] is None else max(g["last"], t)
+            md = e.get("minDist")
+            if isinstance(md, (int, float)):
+                g["minDist"] = md if g["minDist"] is None else min(g["minDist"], md)
+            other = ("flights", e.get("flightIata") or e.get("callsign")) if key[0] == "r" else ("regs", e.get("reg"))
+            if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
+                g[other[0]].append(other[1])
+    rows = sorted(groups.values(), key=lambda g: -(g["last"] or 0))[:40]
+    return {"q": q, "total": total, "rows": rows}
 
 
 def logbook_json(spot):
@@ -5057,7 +5102,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -5153,6 +5198,11 @@ class Handler(BaseHTTPRequestHandler):
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
             return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/search":           # relay 55: the whole logbook searched (the app's Logbook tab)
+            if not allow("search:" + (self.guest[0] if self.guest else self.client_ip()), 1, 6):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = ((self.query().get("q") or [""])[0])[:60]
+            return self.reply(200, "application/json", json.dumps(search_json(self.spot, q)).encode())
         if path == "/seen":
             cs = re.sub(r"[^A-Z0-9]", "", ((self.query().get("cs") or [""])[0]).upper())[:8]
             if cs:

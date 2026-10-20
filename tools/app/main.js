@@ -507,11 +507,12 @@ const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar
 //@E26
 
 /* ---------- what the lists look like ---------- */
-function chip(r){                        // the status word in this language; its colours by the English name
+function chip(r, more = ""){              // the status word in this language; its colours by the English name
+  if (!r && more) return `<span class="chip">${escH(more)}</span>`;
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
   const icon = AP_ICON[r] ? `<i class="apic">${apSvg(AP_ICON[r])}</i>` : "";        // taking off or landing, as on the flaps (1.49: the board's pictograms)
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r))}</span>`;
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r) + (more ? " · " + more : ""))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -747,8 +748,44 @@ function lbViewsBar(){
     ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
   };
 }
+/* 1.65: search the whole logbook (relay 55): a registration, a flight, a type or an airline, over every saved day.
+   Typing searches after a short pause; × clears it and the logbook comes back. */
+let lbQuery = "", lbFindT = 0, lbFindTok = 0;
+function lbFindSetup(){
+  const box = $("lbFindBox");
+  box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
+  if (box.hidden || box.firstChild) return;
+  box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
+    `placeholder="${escH(T("Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
+    `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
+  const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
+  const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
+  inp.oninput = () => set(inp.value.trim());
+  x.onclick = () => { ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+}
+async function lbFind(){
+  const out = $("lbFound"), on = lbQuery.replace(/[\s-]/g, "").length >= 2, tok = ++lbFindTok;
+  $("t-logbook").classList.toggle("finding", on); out.hidden = !on;
+  if (!on) { out.innerHTML = ""; return; }
+  out.innerHTML = `<p class="lbfHead">${escH(T("Searching …"))}</p>`;
+  let j;
+  try { j = await fetchJSON(`${relay()}/search?q=${encodeURIComponent(lbQuery)}`, {}, 10000); }
+  catch { if (tok === lbFindTok) out.innerHTML = `<p class="sum">${escH(T("The search didn't answer. Try again."))}</p>`; return; }
+  if (tok !== lbFindTok) return;
+  const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
+  const rows = j.rows.map(g => {
+    const title = g.by === "f" ? [g.flight, g.airline].filter(Boolean).join(" · ") : [g.reg || g.key.toUpperCase(), g.type, g.airline].filter(Boolean).join(" · ");
+    const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
+      : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
+    const more = [g.minDist != null ? T("closest {d}", {d: distText(g.minDist)}) : "", (g.by === "f" ? g.regs : g.flights).join(", ")].filter(Boolean).join(" · ");
+    return `<li><b>${escH(title)}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
+  });
+  out.innerHTML = `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
+    (rows.length ? `<ol>${rows.join("")}</ol>` : `<p class="sum">${escH(T("Nothing in the logbook matches that."))}</p>`);
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
+  lbFindSetup();
   lbViewsBar();
   const v = lbView;
   if (v === "logbook") fetchYear();
@@ -1193,8 +1230,12 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 // Tap a plane on the radar (or a row of Nearest): it is ringed, and a card under the scope says what it is, with its
 // picture, route, height, speed and where it is; ★/⊘ as in the lists.
 $("radarCv").addEventListener("click", e => {
+  if (Date.now() < pinch.quiet) return;                     // the end of a pinch
   const cv = $("radarCv"), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * RG.S / r.width, y = (e.clientY - r.top) * RG.S / r.height;
   const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 26 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
+  pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
+  if (dbl) return radarZoomTo(radarZoom === RADAR_ZOOMS[RADAR_ZOOMS.length - 1] ? -9 : 1);   // double tap: closer, from the closest back out
   radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
   ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
 });
@@ -1337,8 +1378,8 @@ function drawRadar(t){
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
   mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
-  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport (Airport style)
-  $("rvZoom").hidden = !airportMode() || AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
+  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport; 1.65: both styles
+  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
   $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
@@ -1350,10 +1391,10 @@ function renderRadarList(){
   const rows = radarRows(12).map(({o, dist, dir, st}) => {
     const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
     const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    const code = airlineCodeOf(info), L = code ? logo(code, true) : null;
+    const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
     return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
-      `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
+      `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;   // 1.65: with its gate while on the ground
   });
   const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
@@ -1608,7 +1649,41 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
-for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => { ctlSound.press(); radarZoomStep(d); buildRadarLegend(); rvSig = ""; renderRadarList(); };
+for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
+function radarZoomTo(d){
+  const was = radarZoom;
+  radarZoomStep(d);
+  if (radarZoom === was) return;
+  ctlSound.press(); buildRadarLegend(); rvSig = ""; renderRadarList();
+}
+// 1.65: pinch the radar to zoom in or out a step (the scope follows the fingers, then settles on the step); one finger
+// still scrolls the page.
+const pinch = {pts: new Map(), d0: 0, k: 1, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
+(() => {
+  const el = $("scope"), cvs = el.querySelectorAll("canvas");
+  el.style.touchAction = "pan-y";
+  const dist = () => { const [a, b] = [...pinch.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const show = k => { for (const c of cvs) c.style.transform = k === 1 ? "" : `scale(${k})`; el.style.overflow = k === 1 ? "" : "hidden"; };
+  el.addEventListener("pointerdown", e => {
+    pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (pinch.pts.size === 2) { pinch.d0 = dist(); pinch.k = 1; }
+  });
+  el.addEventListener("pointermove", e => {
+    if (!pinch.pts.has(e.pointerId)) return;
+    pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (pinch.pts.size !== 2 || !pinch.d0) return;
+    pinch.k = Math.max(.5, Math.min(2.2, dist() / pinch.d0));
+    show(pinch.k);
+  });
+  const end = e => {
+    if (!pinch.pts.delete(e.pointerId) || !pinch.d0) return;
+    const k = pinch.k;
+    pinch.d0 = 0; pinch.k = 1; pinch.quiet = Date.now() + 400; show(1);
+    const steps = k > 1.9 ? 2 : k > 1.25 ? 1 : k < .55 ? -2 : k < .8 ? -1 : 0;
+    if (steps) radarZoomTo(steps);
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+})();
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;

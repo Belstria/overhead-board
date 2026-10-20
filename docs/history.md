@@ -10,6 +10,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.65 / relay 55: `toast(text, {err, action, run, ms})` (cards block, shared) puts a notice in `#toasts` (above the
+  tab bar in the app via `--toast-b`, over the rail on the board, at the top while a card is open); card toggles toast
+  with Undo, failures with Retry; `meFlush` toasts on the second failure and when it gets through after. Radar zoom in
+  both styles: `radarZoomed()` no longer needs the Airport style (Overhead zooms around your place; `radar.zc` only in
+  the Airport style); the app's `pinch` (pointer events on `#scope`, `touch-action: pan-y`, the canvases scaled live,
+  then `radarZoomTo(±1/2)`) and a double tap on empty radar. `gateFor(info)` (Vienna's departures, `timesFor`) adds a
+  Gate fact to `planeBody` and the gate to the app's radar list chip for planes on the ground. `/search?q=` (relay 55,
+  `search_json`) scans every `sightings-*.json` of the profile, grouped by flight (when the words name one) or by
+  aircraft; the app's Logbook tab has `#lbFindBox` (`lbFindSetup`, `lbFind`), `#t-logbook.finding` hides the rest.
 - 1.64 (sync you can trust): `meSend(settings, now)` / `meFlush(leaving)` in the network block (E12, so board, app and
   light share it) keep a profile's settings in `od.mePending.<id>` until `/me` answers (4xx other than 408/429 drop
   them), retry with doubling pauses (2 s … 60 s), flush on `online`, with `keepalive` when the page is hidden, and 3 s
