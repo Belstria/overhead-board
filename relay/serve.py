@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 57
+RELAY_VERSION = 58
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3666,7 +3666,7 @@ def _hkdf(salt, info, ikm, n):
 # Relay 57: the Android app's notifications through Firebase Cloud Messaging (its WebView has no Web Push). The
 # project's service account key, fcm.json next to the relay (root/the relay's user only; never in the repository),
 # signs a token for Google's FCM v1 API. Without the file the app says notifications aren't set up.
-FCM_FILE = DATA_DIR / "fcm.json"   # put there by the owner at /fcm (an upload page, owner's devices over https only)
+FCM_FILE = DATA_DIR / "fcm.json"   # copied onto the relay by hand (relay 58: no upload page any more)
 _fcm = {"token": "", "until": 0}
 
 
@@ -5249,7 +5249,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/fcm"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -5345,17 +5345,6 @@ class Handler(BaseHTTPRequestHandler):
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
             return self.reply(200, "application/json", json.dumps(body).encode())
-        if path == "/fcm":              # relay 57: the owner hands over the Firebase key file (away from home too)
-            if not self.owner_ok() or not (self.https() or self.at_home()):
-                return self.reply(403, "text/plain", b"Only for the owner, over https")
-            state = "<p>A key is set" + (f" for project <b>{html.escape(json.loads(FCM_FILE.read_text()).get('project_id', '?'))}</b>" if FCM_FILE.is_file() else "") + ". Uploading another replaces it.</p>" if FCM_FILE.is_file() else "<p>No key yet.</p>"
-            return self.reply(200, "text/html; charset=utf-8", plain_page("Fallblatt · Firebase", (
-                "<h1>Firebase key</h1><p>The service account key from Firebase (Project settings → Service accounts → Generate new "
-                "private key). It stays on the relay, readable only by it.</p>" + state +
-                "<p><input type=file id=f accept='.json,application/json'></p><p id=n></p>"
-                "<script>document.getElementById('f').onchange=async e=>{const t=await e.target.files[0].text(),n=document.getElementById('n');"
-                "n.textContent='Uploading …';const r=await fetch('/fcm',{method:'POST',headers:{'Content-Type':'application/json'},body:t});"
-                "n.textContent=r.ok?'Saved. Notifications for the Android app are ready.':'Not saved: '+await r.text();}</script>")))
         if path == "/now":              # relay 56: the plane overhead now, for the Android app's widget
             if not allow("now:" + self.guest[0], 1, 4):
                 return self.reply(429, "text/plain", b"Too many requests")
@@ -5585,24 +5574,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def profile_post(self, path):
         """The rest of the POSTs, from a signed-in device."""
-        if path == "/fcm":                  # relay 57: the Firebase service account key, from the owner (see the GET)
-            if not self.owner_ok() or not (self.https() or self.at_home()) or not self.same_origin():
-                return self.reply(403, "text/plain", b"Only for the owner, over https")
-            length = int(self.headers.get("Content-Length") or 0)
-            try:
-                assert 0 < length < 16384
-                sa = json.loads(self.rfile.read(length))
-                assert sa.get("type") == "service_account" and sa.get("project_id") and "@" in str(sa.get("client_email"))
-                serialization.load_pem_private_key(str(sa["private_key"]).encode(), password=None)
-            except Exception:
-                return self.reply(400, "text/plain", b"That isn't a Firebase service account key file")
-            tmp = FCM_FILE.with_suffix(".tmp")
-            tmp.write_text(json.dumps(sa), encoding="utf-8")
-            os.chmod(tmp, 0o600)
-            tmp.replace(FCM_FILE)
-            _fcm["token"] = ""
-            event("info", f"Firebase key set for project {sa['project_id']}")
-            return self.reply(204, "text/plain", b"")
         if path == "/handover":             # relay 54: the Android app on the Wi-Fi moves to the https address (TLS proves
             pub = (ARGS.public_url or "").rstrip("/")   # it's this relay): a one-time link for this phone's profile there
             if not self.same_origin() or not pub.startswith("https://"):
