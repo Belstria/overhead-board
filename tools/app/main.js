@@ -27,19 +27,13 @@ function loadSettings(){
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 // The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
 // so the profile's old one came back on the next load).
-let meQ = 0;
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
-  const settings = S.located ? {...changed, ...locSet(), located: true} : changed;
-  const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
-  clearTimeout(meQ);
-  if (now) return send();
-  meQ = setTimeout(send, 1200);
-  return Promise.resolve();
+  return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
 // Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
@@ -50,6 +44,8 @@ function saveSettings(){
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
+  meBase = {...S};
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -57,6 +53,7 @@ function saveSettings(){
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.logos = true;                                      // airline logos are always on (1.54: the switch went)
+let meBase = {...S};                                 // the settings as last saved (1.64)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -131,6 +128,24 @@ function placeRow(ids, gaps, y, step, ratio, x0){
   });
 }
 //@L:end
+// 1.64: screen readers hear what the flaps say. Each panel's label is its name and the text its flaps are turning to
+// ("The plane overhead: OS 802, Austrian, FLYING BY, …"), refreshed every few seconds; before, only the name.
+function panelSpeech(){
+  if (typeof panels === "undefined") return;
+  for (const P of panels) {
+    if (P.off || !P.el.isConnected) continue;
+    const name = P.el.dataset.al ?? (P.el.dataset.al = P.el.getAttribute("aria-label") || "");
+    const parts = P.ids.map(id => fields[id]).filter(f => f.kind !== "logo" && !["tier", "trend", "lamp"].includes(f.words)).map(f => {
+      const t = f.cells.map(c => c.target ?? c.cur ?? "").join("").replace(/\s+/g, " ").trim();
+      if (!t || /^[-|/ ]+$/.test(t)) return "";                 // empty, or "/" for not known
+      const lab = Array.isArray(f.label) && f.label[0] ? T(f.label[0]) + " " : "";
+      return lab + (f.kind === "word" ? T(t.split("|").pop()) : t);      // airline words are "EK|EMIRATES"
+    }).filter(Boolean);
+    const say = T(name) + (parts.length ? ": " + parts.join(", ") : "");
+    if (P.el.getAttribute("aria-label") !== say) P.el.setAttribute("aria-label", say);
+  }
+}
+setInterval(panelSpeech, 4000);
 // The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
 // across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
@@ -1351,7 +1366,7 @@ const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, co
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
 function androidHandover(){
   if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
@@ -1519,6 +1534,7 @@ function cockpitOpen(){
   wireCockpit(box);
   cockpitShow();
   renderAbout();
+  syncShow();
 }
 // The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
 // lights up while there is something to save.
@@ -1691,6 +1707,8 @@ function renderFavBox(){
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
+// 1.64: the service worker also keeps the app's last copy, so it opens without the relay (https and localhost only)
+if (!LIGHT && "serviceWorker" in navigator && window.isSecureContext) setTimeout(() => navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).catch(() => {}), 5000);
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
@@ -2033,6 +2051,7 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (window.OVERHEAD_OFFLINE && !lastOk) return T("Offline · the app as of {t} · retrying", {t: hhmm(new Date(window.OVERHEAD_OFFLINE))});   // 1.64: the kept copy
   if (isOffline()) return T("No flight data for over a minute · retrying");
   if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});

@@ -103,6 +103,7 @@ def pages():
         errors = []
         with sync_playwright() as p:
             b = p.chromium.launch()
+            errors += [f"app saves: {x}" for x in flows.browser_checks(b)]      # 1.64 (flows.py)
             # relay 42: every screen is signed in; without a cookie the relay shows the private page (checked too)
             ctx = b.new_context()
             pg = ctx.new_page()

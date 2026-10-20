@@ -80,9 +80,10 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
-BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
+BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav|css|woff2))$")  # the phone app's icons, its service worker
 PACKED_TYPES = ("text/", "application/json", "application/manifest+json", "image/svg+xml")   # worth packing (relay 54)
-FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav"}
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav",
+              "css": "text/css; charset=utf-8", "woff2": "font/woff2"}   # relay 54: the typefaces (fonts/)
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "fr24_budget_promo", "fr24_promo_until", "public_url", "allow_host")
 DATA_DIR = Path(__file__).with_name("data")
@@ -1056,22 +1057,6 @@ def category_of(e):
     if re.match(r"^[A-Z0-9]{3,7}$", cs):     # a registration as callsign (OEKON, DELFH, N60063): general aviation
         return "private"
     return "other"
-
-
-def _backfill_categories(spot):
-    """Older logbooks have no categories: count them once from the saved days."""
-    b = spot.book()
-    if "categories" in b:
-        return
-    cats = {}
-    for f in sorted(spot.dir.glob("sightings-*.json")):
-        for e in _load(f, []):
-            c = category_of(e)
-            cats[c] = cats.get(c, 0) + 1
-    b["categories"] = cats
-    spot.changed("book")
-    if cats:
-        event("info", f"Logbook categories counted from {sum(cats.values())} saved sightings")
 
 
 def _route_for(cs):
@@ -5086,7 +5071,7 @@ class Handler(BaseHTTPRequestHandler):
             if status == 200 and bf.group(2) == "manifest.webmanifest" and badge in BADGES:   # relay 53: the profile's badge
                 return self.reply(200, FILE_TYPES["webmanifest"], badge_manifest(body, badge), {"Cache-Control": "no-cache", "Vary": "Cookie"})
             # relay 48: a file the board names by its version (i18n.js?v=...) is that version for good: kept a year
-            keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact else None
+            keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact or bf.group(3) == "woff2" else {"Cache-Control": "no-cache"} if bf.group(3) == "css" else None   # fonts are named by content
             return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body, keep)
         page = PAGE.match(path)
         if page:
@@ -5402,9 +5387,12 @@ class Handler(BaseHTTPRequestHandler):
             j = self.json_body()
             with _data_lock:
                 L = self.guest[1].setdefault("lists", {})
-                op, which = j.get("op"), j.get("list")
-                if op in ("add", "remove") and which in ("fav", "hide"):   # relay 54: one change, so two devices saving
-                    item = _clean_list([j.get("item")])                      # at once don't undo each other
+                ops = j.get("ops") if isinstance(j.get("ops"), list) else [j]
+                for o in ops[:4]:               # relay 54: changes, not whole lists, so two devices saving at once keep both
+                    op, which = (o.get("op"), o.get("list")) if isinstance(o, dict) else (None, None)
+                    if op not in ("add", "remove") or which not in ("fav", "hide"):
+                        continue
+                    item = _clean_list([o.get("item")])
                     keep = [i for i in L.get(which, []) if not item or (i.get("k"), i.get("v")) != (item[0].get("k"), item[0].get("v"))]
                     L[which] = _clean_list(keep[-199:] + item if op == "add" else keep)
                 for k in ("fav", "hide"):

@@ -12,9 +12,7 @@
 <link rel="manifest" href="../app/manifest.webmanifest" crossorigin="use-credentials">
 <link rel="icon" type="image/png" href="../app/icon-192.png">
 <link rel="apple-touch-icon" href="../app/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../fonts/fonts.css"><!-- 1.64: the typefaces from the relay, not Google (tools/fonts.py) -->
 <style>
 /* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
 .rail{position:absolute;display:flex;z-index:2}
@@ -174,6 +172,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 /* About: patch notes, keys and information, on the same plates as Settings */
 #cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+#cockpit .syncNote{position:absolute;right:0;bottom:calc(-30px*var(--k));margin:0;font-size:calc(17px*var(--k));color:#f0b429}   /* 1.64 */
 .plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
 .plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
 .plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
@@ -252,6 +251,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:calc(42px*var(--ck,1));padding:calc(8px*var(--ck,1)) calc(14px*var(--ck,1));border-radius:calc(8px*var(--ck,1));background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
   font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
+#cardBox .cBtn.busy,.cardish .cBtn.busy{opacity:.7;pointer-events:none}   /* 1.64: saving */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -425,7 +425,7 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 .title h1 button[aria-pressed=true]{font-weight:700;color:var(--amber);opacity:1}
 .title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
-.title p{margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title p{margin:5px 0 0;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clockbox{position:relative;flex:none}
 @media (max-width:400px){.title h1{font-size:22px}}
 @media (max-width:374px){.title h1{font-size:20px}}
@@ -468,7 +468,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .acctPlate h4{margin:0;font:700 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .acctPlate .acSec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 2px}
 .acctPlate .acSec small{display:block;margin-top:3px;font-size:13px;color:var(--muted)}
-.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:11px}
+.acctPlate .acSec .cap,.acctPlate .acList .cap{width:auto;height:30px;padding:0 12px;font-size:12px}
 .acctPlate .acList{list-style:none;margin:4px 0 0;padding:0}
 .acctPlate .acList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.07);font-size:15px}
 .acctPlate .acList small{color:var(--muted);margin-left:4px}
@@ -512,7 +512,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #welcome #wAcctBox input{text-align:left;font-size:15px;margin:8px 0}
 #welcome #wAcctBox{text-align:left;max-height:52vh;overflow:auto}
 #pushBox .note{min-height:1.2em;color:var(--muted);font-size:13px}
-.brandline{margin:34px 0 0;text-align:center;font:700 11px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
+.brandline{margin:34px 0 0;text-align:center;font:700 12px/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:12.5px}
 /* the aircraft photo: a small screen in a housing with screws and a power light, set into the panel */
 .bezel{position:relative;padding:12px;border-radius:10px;background:linear-gradient(#2a2b2f,#1c1d20 50%,#141518);
@@ -529,13 +529,13 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .screen::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 52%,rgba(0,0,0,.42))}
 .screen .glass{position:absolute;inset:0;z-index:2;background:linear-gradient(115deg,rgba(255,255,255,.07),rgba(255,255,255,.022) 44%,rgba(255,255,255,0) 44.5%),
   linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0) 12px)}
-.screen .none,.screen .credit{position:absolute;z-index:3;font:600 11px/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
+.screen .none,.screen .credit{position:absolute;z-index:3;font:600 12px/1 var(--f-board);letter-spacing:.2em;text-transform:uppercase}
 .screen .none{inset:0;display:grid;place-items:center;color:rgba(170,190,215,.34)}
 .screen .credit{right:10px;bottom:9px;color:rgba(235,240,245,.62);text-shadow:0 0 3px rgba(0,0,0,.9);letter-spacing:.1em}
 .screen.has .none,.screen:not(.has) .credit{display:none}
 /* 1.43: a picture of the model, not of this aircraft */
 .screen .mtag{position:absolute;z-index:3;left:10px;top:10px;padding:5px 9px;border-radius:6px;background:rgba(240,180,41,.94);color:#141414;
-  font:700 11.5px/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
+  font:700 12px/1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;display:none}
 .screen.has.model .mtag{display:block}
 .screen.rwyOn .mtag{display:none}
 .screen.on{animation:screenOn .95s ease-out both}
@@ -547,7 +547,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 /* engraved facts: a label in amber, the value below */
 .facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin:16px 0 0}
 .facts div{min-width:0}
-.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.facts dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .facts dt span{color:var(--label2);margin-left:.5em}
 .facts dd{margin:5px 0 0;font:600 16px/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
 .facts .wide{grid-column:1/-1}
@@ -570,11 +570,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .fl .meta span:last-child{flex:none;color:#b9b6ae;font-variant-numeric:tabular-nums}
 .flights li.sp::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:4px;border-radius:2px;background:var(--lamp);box-shadow:0 0 8px var(--lamp)}
 .chip{position:relative;display:inline-grid;place-items:center;min-width:86px;height:23px;padding:0 8px;border-radius:3px;
-  font:700 11px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
+  font:700 12px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
 .chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5)}
 /* radar list */
 .rv{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
-.rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 11px/1 var(--f-board);color:var(--amber)}
+.rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 12px/1 var(--f-board);color:var(--amber)}
 .rvLogo.ok{background:linear-gradient(#f4f1ea,#dad6ca)}
 .rvLogo img{max-width:40px;max-height:16px;object-fit:contain}
 .rv strong{font:700 15.5px/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -591,7 +591,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
 #tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
-#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:54px;margin:0;font-size:10.5px;letter-spacing:.06em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#tabs .cap{flex:1 1 0;width:auto;min-width:0;height:54px;margin:0;font-size:12px;letter-spacing:.03em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+@media (max-width:380px){#tabs .cap{font-size:11px;letter-spacing:.02em}}   /* 1.64: 12 px where five tabs fit it */
 #tabs .cap .ico{width:19px;height:19px;opacity:.85}
 .cap.ping::after{content:"";position:absolute;right:-3px;top:-3px;width:10px;height:10px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #050505,0 0 10px #e0372c;animation:ping 1.2s ease-in-out infinite}
 @keyframes ping{50%{opacity:.35}}
@@ -618,7 +619,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .bingo .bc i{position:absolute;left:9px;top:12px;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}
 .bingo .bc.on{background:rgba(240,180,41,.14);border-color:rgba(240,180,41,.7);color:var(--ink)}
 .bingo .bc.on i{background:var(--amber);box-shadow:0 0 6px var(--amber)}
-.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:11px}
+.bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:12px}
 .ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
 .cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
 .cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}
@@ -638,7 +639,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .yearCard h3{margin-top:0}
 .yNums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 8px;margin:8px 0 10px}
 .yNums b{display:block;font:700 24px/1 var(--f-board);color:var(--ink)}
-.yNums span{font:600 11px/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.yNums span{font:600 12px/1.3 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .yFacts{margin:0}
 .yFacts div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.05);font:600 14px/1.3 var(--f-board)}
 .yFacts dt{color:var(--amber);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
@@ -651,7 +652,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .look{display:flex;gap:12px;align-items:center;margin:10px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
 .look canvas{width:96px;height:96px;flex:none}
 .lookTxt{min-width:0}
-.lookTxt small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.lookTxt small{display:block;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .lookTxt b{display:block;font:700 19px/1.15 var(--f-board);color:var(--ink)}
 .lookTxt span{display:block;margin-top:4px;font:500 13px/1.35 var(--f-board);color:var(--muted)}
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
@@ -703,7 +704,7 @@ body.aboutOpen{overflow:hidden}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
   background:linear-gradient(#1a1b1e,#111214);border-top:1px solid rgba(255,255,255,.08)}
 #sheet h3{margin:0 0 4px;font:700 20px var(--f-board);color:var(--ink)}
-.shH{margin:12px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.shH{margin:12px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .shRow{display:flex;flex-wrap:wrap;gap:8px}
 .shRow .cap{width:auto;height:auto;min-height:44px;padding:6px 12px;display:flex;flex-direction:column;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:13px}
 .shRow .cap small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
@@ -722,7 +723,7 @@ body.aboutOpen{overflow:hidden}
 /* the radar: a tapped plane's card */
 #lookCv{cursor:pointer}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
-.rvCard .rcX{all:unset;position:absolute;right:8px;top:6px;width:28px;height:28px;text-align:center;font:600 22px/28px var(--f-board);color:var(--muted);cursor:pointer}
+.rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 24px/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
 .rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
 .rcHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:28px}
 .rcHead strong{font:700 20px var(--f-board);color:var(--ink)}
@@ -748,7 +749,7 @@ body.aboutOpen{overflow:hidden}
 body.arOpen{overflow:hidden}
 body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
-.model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.model small{display:block;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
@@ -756,7 +757,7 @@ body.arOpen #sheet{z-index:75}
 .rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
 .rvBtns{display:flex;gap:10px}
 .rvBtns[hidden]{display:none}
-.rvMap small{font:500 11px/1.2 var(--f-board);color:var(--muted);text-align:right}
+.rvMap small{font:500 12px/1.2 var(--f-board);color:var(--muted);text-align:right}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -782,6 +783,7 @@ body.arOpen #sheet{z-index:75}
 #aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 14px/1.3 var(--f-board);color:rgba(232,227,214,.84)}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
+.syncNote{color:#f0b429;margin-top:6px}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -802,7 +804,7 @@ body.arOpen #sheet{z-index:75}
 .apPick{display:none;gap:12px;margin:2px 0 14px}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:12px}
 #t-now.ap .apPick{display:flex}
-.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lbPlaces{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
 .lbPlaces[hidden]{display:none}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 13.5px/1 var(--f-board)}
@@ -832,7 +834,7 @@ body.arOpen #sheet{z-index:75}
 #welcome p{margin:0 0 16px;color:var(--muted);line-height:1.45}
 #welcome .cap{margin:0 auto 6px}
 #welcome .note{min-height:1.4em;font-size:14px}
-#welcome .wlab{display:block;margin:4px 0 6px;font:600 11px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#welcome .wlab{display:block;margin:4px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #welcome input{width:100%;box-sizing:border-box;margin-bottom:14px;padding:11px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#0f1012;color:var(--ink);font:600 17px var(--f-board);text-align:center}
 #welcome #wPick .cap{margin-top:6px}
 #welcome #wPick .sub{margin:6px 0 14px;font-size:13px}
@@ -927,7 +929,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .lrow+.lrow{margin-top:12px}
 .lf{flex:var(--n) 1 0;min-width:0}
 .lf[hidden]{display:none}
-.lf .ll{display:block;margin:0 0 5px;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf .ll{display:block;margin:0 0 5px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lf .lv{display:block;min-height:1.25em;font:600 18px/1.25 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .lf.nil .lv::before{content:"–";color:rgba(255,255,255,.16)}
 .lf.amb .lv{color:var(--amber)}
@@ -984,7 +986,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #apDP .lrow:first-child,#apAP .lrow:first-child,#recentP .lrow:first-child{align-items:flex-end}
 #apDP .lf .lv,#apAP .lf .lv,#recentP .lf .lv,#apP .lf .lv{font-size:16px}
 #apDP .lf.w-remarks,#apAP .lf.w-remarks,#recentP .lf.w-remarks,#apP .lf.w-remarks{flex:0 0 112px;text-align:right}
-#apDP .chip,#apAP .chip,#recentP .chip,#apP .chip{min-width:0;height:22px;font-size:10.5px;letter-spacing:.06em;padding:0 9px}
+#apDP .chip,#apAP .chip,#recentP .chip,#apP .chip{min-width:0;height:22px;font-size:12px;letter-spacing:.06em;padding:0 9px}
 #apDP,#apAP{cursor:pointer}
 .lrow:not(:has(.lf:not([hidden]))){display:none}
 .lrow:not(:first-child):not(:has(.lf:not(.nil):not([hidden]))){display:none}   /* no empty rows in the lists */
@@ -1012,10 +1014,10 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .cap.big{min-height:46px;padding:10px 18px;font-size:14.5px}
 .tools{gap:8px}
 #tabs .wrap{gap:4px}
-#tabs .cap{height:54px;border:0;background:none;color:var(--muted);font-size:11px;letter-spacing:.03em;text-transform:none}
+#tabs .cap{height:54px;border:0;background:none;color:var(--muted);font-size:12px;letter-spacing:.03em;text-transform:none}
 #tabs .cap .ico{opacity:1}
 #tabs .cap[aria-current=page]{color:var(--amber);background:rgba(240,180,41,.09)}
-#tabs .cap.long{font-size:10px}
+#tabs .cap.long{font-size:12px}
 .cap.ping::after{content:"";position:absolute;right:10px;top:6px;width:9px;height:9px;border-radius:50%;background:#e0372c;box-shadow:0 0 0 2px #0b0b0c;animation:ping 1.2s ease-in-out infinite!important}
 .apPick{gap:8px}
 .apPick .cap{height:auto;font-size:13px}
@@ -1025,7 +1027,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 .plate h3{letter-spacing:.16em;color:var(--amber);text-shadow:none}
 .plate h3::before,.plate h3::after{display:none}
 .inst,body.real .inst{padding:0;background:none;box-shadow:none;align-items:stretch;gap:6px}
-.inst>span{padding:0;border:0;text-align:left;color:var(--muted);font:600 11px/1.2 var(--f-board);letter-spacing:.1em;text-shadow:none}
+.inst>span{padding:0;border:0;text-align:left;color:var(--muted);font:600 12px/1.2 var(--f-board);letter-spacing:.1em;text-shadow:none}
 .inst.loc p{text-align:left}
 .inst.loc .cap{align-self:flex-start}
 .lcd,body.real .lcd{padding:10px 12px;border:1px solid var(--edge);border-radius:10px;background:var(--well);background-image:none;box-shadow:none;color:var(--ink);text-shadow:none;
@@ -1085,7 +1087,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   #apP.lp{display:grid;grid-template-rows:repeat(6,auto);grid-auto-flow:column;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px}
   #apP .lrow+.lrow{margin-top:0}
   #recentP .lrow+.lrow,#apP .lrow+.lrow{padding-top:6px;padding-bottom:6px}
-  #top .pages .cap{width:auto;height:auto;min-height:30px;padding:4px 12px;font-size:11px}
+  #top .pages .cap{width:auto;height:auto;min-height:30px;padding:4px 12px;font-size:12px}
 }
 /* the cards' buttons, flat */
 #cardBox .cBtn,.cardish .cBtn{background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:11px;box-shadow:none;text-shadow:none}
@@ -1227,6 +1229,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>
     <p class="sum" id="setSum" data-t="Change the settings, then press Save.">Change the settings, then press Save.</p>
+    <p class="sum syncNote" data-syncnote hidden></p>
     <div id="cockpit" style="margin-top:14px"></div>
     <div id="favBox" hidden></div>
     <div id="setExtra"></div>
@@ -1274,7 +1277,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=6b5bd670b5"></script>
+<script src="../test/i18n.js?v=31faef82bc"></script>
 <script>
 (() => {
 "use strict";
@@ -1340,17 +1343,6 @@ function badgeGlyph(g, id, k){
   else if (id === "concorde") { g.moveTo(0, -k * 1.05); g.lineTo(k * .1, -k * .4); g.quadraticCurveTo(k * .75, k * .45, k * .7, k * .7); g.lineTo(k * .1, k * .6);
     g.lineTo(0, k * .9); g.lineTo(-k * .1, k * .6); g.lineTo(-k * .7, k * .7); g.quadraticCurveTo(-k * .75, k * .45, -k * .1, -k * .4); g.closePath(); g.fill(); }
   else if (id === "jumbo") drawPlaneShape(g, k * 2);      // nose up: the logo's own plane flies at 45°
-  g.restore();
-}
-// The badge as a little roundel (the Styles card's badge row), at x, y, s across.
-function drawBadge(g, id, x, y, s){
-  if (!id) return;
-  const c = s / 2;
-  g.save(); g.translate(x + c, y + c);
-  const rim = g.createLinearGradient(0, -c, 0, c); rim.addColorStop(0, "#f2c64c"); rim.addColorStop(1, "#a9791c");
-  g.fillStyle = rim; g.beginPath(); g.arc(0, 0, c, 0, Math.PI * 2); g.fill();
-  g.fillStyle = "#17140e"; g.beginPath(); g.arc(0, 0, c * .84, 0, Math.PI * 2); g.fill();
-  g.fillStyle = "#f2c64c"; badgeGlyph(g, id, c * .62);
   g.restore();
 }
 // The app icon's look (app/icon-*.png): a yellow split flap with the plane or the badge. 1.61: the browser tab shows
@@ -1478,19 +1470,13 @@ function loadSettings(){
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 // The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
 // so the profile's old one came back on the next load).
-let meQ = 0;
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
-  const settings = S.located ? {...changed, ...locSet(), located: true} : changed;
-  const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
-  clearTimeout(meQ);
-  if (now) return send();
-  meQ = setTimeout(send, 1200);
-  return Promise.resolve();
+  return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
 // Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
@@ -1501,6 +1487,8 @@ function saveSettings(){
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
+  meBase = {...S};
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -1508,6 +1496,7 @@ function saveSettings(){
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.logos = true;                                      // airline logos are always on (1.54: the switch went)
+let meBase = {...S};                                 // the settings as last saved (1.64)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -1747,11 +1736,42 @@ const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || "")
 // Favourites and hidden planes (lists on the relay): the sheet for one plane, the toggles on the cards, the manager.
 const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
 async function listsSave(next){
-  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json();
+  const j = await fetchJSON(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)}, 8000);
   userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
   if (typeof listsChanged === "function") listsChanged();
+}
+// 1.64: list changes show at once and go to the relay one after another (a second tap waits for the first). The relay
+// (54+) takes them as changes, so two devices saving at once keep both; older relays get the whole lists. A failed save
+// puts the lists back and says so in words (it said "HTTP 502" or "Failed to fetch").
+const SAVE_FAILED = "Couldn't save that. Check the connection and try again.";
+let listsQ = Promise.resolve(), listsWaiting = [], listsServer = null;   // changes shown but not yet saved; the relay's lists
+function listsApply(L, ops){
+  const out = {fav: L.fav.slice(), hide: L.hide.slice()};
+  for (const o of ops) out[o.list] = out[o.list].filter(i => !sameItem(i, o.item)).concat(o.op === "add" ? [o.item] : []);
+  return out;
+}
+function listsShow(){
+  userLists = {...listsApply(listsServer, listsWaiting.flat()), at: userLists.at, v: userLists.v + 1};
+  if (typeof listsChanged === "function") listsChanged();
+}
+function listOps(ops){
+  if (!listsWaiting.length) listsServer = {fav: userLists.fav, hide: userLists.hide};
+  listsWaiting.push(ops);
+  listsShow();
+  const run = async () => {
+    try {
+      const j = await fetchJSON(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify((window.OVERHEAD_RELAY_VERSION || 0) >= 54 ? {ops} : listsApply(listsServer, ops))}, 8000);
+      listsServer = {fav: j.fav || [], hide: j.hide || []};
+      userLists.at = Date.now();
+    } finally {
+      listsWaiting = listsWaiting.filter(w => w !== ops);
+      listsShow();                                  // saved: the relay's lists; failed: as before this change
+    }
+  };
+  const p = listsQ.then(run, run);
+  listsQ = p.catch(() => {});
+  return p;
 }
 // The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
 function listChoices(x){
@@ -1761,22 +1781,26 @@ function listChoices(x){
 }
 const sameItem = (i, c) => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === clean(c.v).replace(/[\s-]/g, "");
 const inList = (L, c) => L.some(i => sameItem(i, c));
-async function listFlip(which, c){
-  const on = inList(userLists[which], c), next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+function listFlip(which, c){
+  const on = inList(userLists[which], c);
   ctlSound.toggle(!on);
-  next[which] = on ? next[which].filter(i => !sameItem(i, c)) : next[which].concat([c]);
-  if (!on) { const o = which === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !sameItem(i, c)); }   // not both at once
-  await listsSave(next);
+  return listOps(on ? [{op: "remove", list: which, item: c}]
+    : [{op: "add", list: which, item: c}, {op: "remove", list: which === "fav" ? "hide" : "fav", item: c}]);   // not both at once
 }
 // Toggle buttons for some choices: data-tog = "fav|hide", the choice in data-k/v/n; cardToggle handles every card.
 const togBtn = (which, c, label) => `<button class="cBtn${inList(userLists[which], c) ? " on" : ""}" type="button" data-tog="${which}" ` +
   `data-k="${c.k}" data-v="${escH(c.v)}" data-n="${escH(c.n)}"><small>${escH(T(KIND_NAME[c.k]))}</small>${label || escH(c.n)}</button>`;
-async function cardToggle(e){
+function cardToggle(e){
   const b = e.target.closest && e.target.closest("[data-tog]");
   if (!b) return;
-  const c = {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n};
-  try { await listFlip(b.dataset.tog, c); } catch (err) { const n = $("cardBox").querySelector(".note"); if (n) n.textContent = err.message; return; }
-  for (const o of $("cardBox").querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v}));
+  const box = $("cardBox"), notes = box.querySelectorAll(".note"), note = notes[notes.length - 1];
+  const show = () => { for (const o of box.querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v})); };
+  if (note) note.textContent = "";
+  b.classList.add("busy");
+  const p = listFlip(b.dataset.tog, {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n});
+  show();                                            // at once; put back if the save fails
+  p.then(() => { b.classList.remove("busy"); show(); },
+    () => { b.classList.remove("busy"); show(); if (note) note.textContent = T(SAVE_FAILED); });
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
@@ -1801,17 +1825,20 @@ function favManager(el){
     `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
   const note = t => { el.querySelector("[data-fn]").textContent = t; };
   for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
-    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
-    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.press();
+    if (!item) return;
+    const p = listOps([{op: "remove", list: w, item}]);
+    favManager(el);
+    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
   };
   el.querySelector("[data-fa]").onclick = () => {
     ctlSound.press();
     const c = parseListEntry(el.querySelector("[data-fi]").value), w = el.querySelector("[data-fw]").value;
     if (!c) return note(T("Code or name, e.g. Austrian, A380, OE-LBN"));
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
-    if (!inList(next[w], c)) next[w].push(c);
-    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+    if (inList(userLists[w], c)) return favManager(el);
+    const p = listOps([{op: "add", list: w, item: c}]);
+    favManager(el);
+    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
   };
 }
 function favCard(side){
@@ -2140,12 +2167,6 @@ function styleRuleText(rule){
   if (rule.pts) return T("Unlocks at {n} points", {n: nf.format(rule.pts)});
   if (rule.tr) return T("Unlocks with the trophy {name}", {name: trophyText(rule.tr)[0]});
   return T(rule.cards === 1 ? "Unlocks with a full bingo card" : "Unlocks with {n} full bingo cards", {n: rule.cards});
-}
-// The short form on the Styles card's buttons.
-function styleRuleShort(rule){
-  if (rule.pts) return T("{n} points", {n: nf.format(rule.pts)});
-  if (rule.tr) return trophyText(rule.tr)[0];
-  return T(rule.cards === 1 ? "1 full bingo card" : "{n} full bingo cards", {n: rule.cards});
 }
 // The Styles count: how many of the locked-at-first styles this profile has (null: no game from the relay yet).
 function stylesCount(){
@@ -2699,6 +2720,24 @@ function placeRow(ids){
   P.el.appendChild(row);
   for (const r of [...P.el.children]) if (r.classList.contains("lrow") && !r.children.length) r.remove();
 }
+// 1.64: screen readers hear what the flaps say. Each panel's label is its name and the text its flaps are turning to
+// ("The plane overhead: OS 802, Austrian, FLYING BY, …"), refreshed every few seconds; before, only the name.
+function panelSpeech(){
+  if (typeof panels === "undefined") return;
+  for (const P of panels) {
+    if (P.off || !P.el.isConnected) continue;
+    const name = P.el.dataset.al ?? (P.el.dataset.al = P.el.getAttribute("aria-label") || "");
+    const parts = P.ids.map(id => fields[id]).filter(f => f.kind !== "logo" && !["tier", "trend", "lamp"].includes(f.words)).map(f => {
+      const t = f.cells.map(c => c.target ?? c.cur ?? "").join("").replace(/\s+/g, " ").trim();
+      if (!t || /^[-|/ ]+$/.test(t)) return "";                 // empty, or "/" for not known
+      const lab = Array.isArray(f.label) && f.label[0] ? T(f.label[0]) + " " : "";
+      return lab + (f.kind === "word" ? T(t.split("|").pop()) : t);      // airline words are "EK|EMIRATES"
+    }).filter(Boolean);
+    const say = T(name) + (parts.length ? ": " + parts.join(", ") : "");
+    if (P.el.getAttribute("aria-label") !== say) P.el.setAttribute("aria-label", say);
+  }
+}
+setInterval(panelSpeech, 4000);
 // The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
 // across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
@@ -3500,6 +3539,50 @@ async function fetchJSON(url, opts = {}, ms = 9000){
    servers, so requests go through the home relay (relay/serve.py) when the board is opened from it. */
 const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
+/* 1.64: a profile's settings reach the relay even when the network drops or the app is closed right after a change: they
+   wait on this device (od.mePending.<profile>) until the relay has them, are sent again with growing pauses, and at once
+   when the page is hidden (keepalive) or the network is back. Before, a failed or cut-off save was lost without a word. */
+const ME_KEY = "od.mePending." + ((window.OVERHEAD_GUEST || {}).id || "");
+let mePending = (() => { try { return JSON.parse(localStorage.getItem(ME_KEY) || "null"); } catch { return null; } })();
+let meTimer = 0, meFails = 0, meBusy = null;
+function meSend(settings, now){
+  mePending = {...(mePending || {}), ...settings};
+  try { localStorage.setItem(ME_KEY, JSON.stringify(mePending)); } catch {}
+  clearTimeout(meTimer);
+  if (now) return meFlush();
+  meTimer = setTimeout(meFlush, 1200);
+  return Promise.resolve();
+}
+function meFlush(leaving){
+  clearTimeout(meTimer);
+  if (!mePending || !relay() || !window.OVERHEAD_GUEST) return Promise.resolve();
+  if (meBusy && !leaving) return meBusy;
+  const body = mePending, ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+  const p = fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings: body}),
+    keepalive: !!leaving, signal: leaving ? undefined : ctl.signal}).then(r => {
+    if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(r.status);   // others won't get better: dropped
+    if (mePending === body) { mePending = null; try { localStorage.removeItem(ME_KEY); } catch {} }
+    meFails = 0;
+  }).catch(() => {
+    meFails++;
+    meTimer = setTimeout(meFlush, Math.min(60000, 2000 * 2 ** Math.min(meFails, 5)));
+  }).finally(() => {
+    clearTimeout(t);
+    if (meBusy === p) meBusy = null;
+    if (mePending && !meBusy && meFails === 0) meTimer = setTimeout(meFlush, 300);    // changed while this one was on its way
+    syncShow();
+  });
+  meBusy = p;
+  return p;
+}
+// Not on the relay yet after a failed try: Settings say so (data-syncnote) until it gets through.
+const meUnsynced = () => !!mePending && meFails > 0;
+function syncShow(){
+  for (const n of document.querySelectorAll("[data-syncnote]")) { n.hidden = !meUnsynced(); n.textContent = T("Not synced yet · trying again"); }
+}
+addEventListener("online", () => { meFails = 0; meFlush(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) meFlush(true); });
+setTimeout(meFlush, 3000);                         // left over from last time
 // Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
 const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
 // This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
@@ -4736,18 +4819,22 @@ function radarRows(n){
 }
 // 1.62: zooming in on the home airport (only in the Airport style), down to its gates, to see what stands around there:
 // − and + step through the ranges (0: the usual one).
-let radarZoom = 0;
+// 1.64: the zoom and its centre are kept per device, so the close-up is still there after a reload.
+const RADAR_ZOOM_KEY = "od.radarZoom";
+let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
 const RADAR_ZOOMS = [0, 10, 5, 2.5];
 const radarZoomed = () => !!(radarZoom && airportMode() && AP.lat != null);
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
 // The close-up's centre: where the planes on the ground stand (the gates, not the runways' middle), fixed while zoomed.
 function radarZoomSet(z){
   radarZoom = z; radar.zc = null;
-  if (!radarZoomed()) return;
+  if (!radarZoomed()) return radarZoomKeep();
   const kx = 111.32 * Math.cos(AP.lat * Math.PI / 180), gr = radar.planes.filter(o => o.ac.alt_baro === "ground" && Math.hypot((o.ac.lon - AP.lon) * kx, (o.ac.lat - AP.lat) * 110.57) < 3);
   const m = (a, f) => a.reduce((t, o) => t + f(o), 0) / a.length;
   radar.zc = gr.length ? {lat: m(gr, o => o.ac.lat), lon: m(gr, o => o.ac.lon), ap: true} : null;
+  radarZoomKeep();
 }
+function radarZoomKeep(){ try { localStorage.setItem(RADAR_ZOOM_KEY, JSON.stringify({z: radarZoom, c: radar.zc})); } catch {} }
 function radarZoomStep(d){ radarZoomSet(RADAR_ZOOMS[Math.max(0, Math.min(RADAR_ZOOMS.length - 1, RADAR_ZOOMS.indexOf(radarZoom) + d))]); }
 const radarRange = () => radarZoomed() ? radarZoom : Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
 /* 1.55 (to-do #68): a map under the radar, switched per device (board, app and light). OpenFreeMap's vector tiles
@@ -5813,7 +5900,7 @@ const COCKPIT_FOR = "light";
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
 function androidHandover(){
   if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
@@ -6832,6 +6919,14 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.64", date: "2026-10-20", notes: [
+    "Settings wait on your device until they are saved for your profile, and are sent again when the connection is back. Settings say \"Not synced yet\" meanwhile.",
+    "Favourite and Hide switch at once, and say so in words when they couldn't be saved.",
+    "The app opens when the board can't be reached: its last copy shows, says it's offline, and keeps trying.",
+    "Screen readers read out what the flaps show. Small print is a little larger, and the card's close button easier to hit.",
+    "The radar's close-up stays zoomed after a reload.",
+    "The typefaces come with the board instead of from Google: quicker on the TVs, and opening a board tells nobody else.",
+  ]},
   {v: "1.63.2", date: "2026-10-20", notes: [
     "The app opens faster: pages arrive packed, and an unchanged page isn't downloaded again.",
     "Android app: once signed in, it switches to the board's secure address, so it also works away from home.",
@@ -7218,6 +7313,7 @@ function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
+    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
     `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`;
 }
@@ -7304,6 +7400,7 @@ function cockpitOpen(){
   wireCockpit(box);
   cockpitShow();
   renderAbout();
+  syncShow();
 }
 // The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
 // lights up while there is something to save.
@@ -7471,6 +7568,8 @@ function renderFavBox(){
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
+// 1.64: the service worker also keeps the app's last copy, so it opens without the relay (https and localhost only)
+if (!LIGHT && "serviceWorker" in navigator && window.isSecureContext) setTimeout(() => navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).catch(() => {}), 5000);
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
@@ -7775,6 +7874,7 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (window.OVERHEAD_OFFLINE && !lastOk) return T("Offline · the app as of {t} · retrying", {t: hhmm(new Date(window.OVERHEAD_OFFLINE))});   // 1.64: the kept copy
   if (isOffline()) return T("No flight data for over a minute · retrying");
   if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});

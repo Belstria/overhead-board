@@ -3,6 +3,10 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself.", "Schriften: Archivo Narrow, Oswald und Barlow Condensed (SIL Open Font License), von der Tafel selbst geliefert.", "Polices : Archivo Narrow, Oswald et Barlow Condensed (SIL Open Font License), fournies par le tableau lui-même.", "Tipografías: Archivo Narrow, Oswald y Barlow Condensed (SIL Open Font License), servidas por el propio panel.", "Lettertypen: Archivo Narrow, Oswald en Barlow Condensed (SIL Open Font License), door het bord zelf geleverd."],
+  ["Offline · the app as of {t} · retrying", "Offline · App-Stand von {t} · neuer Versuch läuft", "Hors ligne · l'app telle qu'à {t} · nouvel essai", "Sin conexión · la app tal como a las {t} · reintentando", "Offline · de app van {t} · probeert opnieuw"],
+  ["Not synced yet · trying again", "Noch nicht synchronisiert · neuer Versuch läuft", "Pas encore synchronisé · nouvel essai en cours", "Aún sin sincronizar · reintentando", "Nog niet gesynchroniseerd · probeert opnieuw"],
+  ["Couldn't save that. Check the connection and try again.", "Konnte nicht gespeichert werden. Prüfe die Verbindung und versuche es noch einmal.", "Impossible d'enregistrer. Vérifiez la connexion et réessayez.", "No se pudo guardar. Comprueba la conexión e inténtalo de nuevo.", "Kon dat niet opslaan. Controleer de verbinding en probeer het opnieuw."],
   ["Taking off", "Startet", "Décolle", "Despegando", "Stijgt op"],
   ["Passing", "Vorbeiflug", "De passage", "De paso", "Passeert"],
   ["Zoom in", "Vergrößern", "Zoom avant", "Acercar", "Inzoomen"],

@@ -304,6 +304,9 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Take-off and landing pictograms** (1.49): TAKE-OFF and CLIMBING show a filled plane climbing away from a runway line,
   APPROACH and FINAL one coming down to it, LANDED the plane level on the runway (after [Tabler Icons](https://tabler.io/icons)'
   plane-departure and plane-arrival, MIT licence, © Paweł Kuna), on the flaps, in the app's chips and on the page buttons.
+- **Typefaces** (1.64): Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License, `fonts/OFL.txt`) come
+  from the relay (`fonts/`, made by `tools/fonts.py`), not from Google Fonts: opening a board tells Google nothing, and
+  the TVs draw their first flaps sooner.
 - **Tap About seven times** (1.49) within a few seconds (the board: the About button, then the About heading; the app:
   About, then the page's title) and the Airbus "barking dog" plays: the hydraulic power transfer unit's bark.
 - **Emirates boarding music** (1.49, relay 42): opening the Emirates airline card plays the first 30 seconds of the
