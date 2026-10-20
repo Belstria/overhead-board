@@ -378,6 +378,21 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
   font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
 #cardBox .cBtn.busy,.cardish .cBtn.busy{opacity:.7;pointer-events:none}   /* 1.64: saving */
+/* 1.65: notices (toast()): a short card above the tab bar (the app) or the rail (the board), amber edge when something
+   was saved, red when it wasn't; an action on the right (Undo, Retry). At most two at once. */
+#toasts{position:fixed;left:50%;bottom:var(--toast-b,calc(150px*var(--ck,1)*var(--tz,1.5)));transform:translateX(-50%);z-index:90;width:min(92vw,calc(560px*var(--ck,1)*var(--tz,1.5)));
+  display:flex;flex-direction:column-reverse;gap:calc(8px*var(--ck,1)*var(--tz,1.5));pointer-events:none}
+#toasts .toast{pointer-events:auto;display:flex;align-items:center;gap:calc(12px*var(--ck,1)*var(--tz,1.5));padding:calc(12px*var(--ck,1)*var(--tz,1.5)) calc(14px*var(--ck,1)*var(--tz,1.5));
+  border-radius:calc(10px*var(--ck,1)*var(--tz,1.5));background:#1d1e21;border:1px solid #3a3b40;border-left:calc(5px*var(--ck,1)*var(--tz,1.5)) solid #f0b429;
+  box-shadow:0 calc(6px*var(--ck,1)*var(--tz,1.5)) calc(20px*var(--ck,1)*var(--tz,1.5)) rgba(0,0,0,.6);color:#f3f0e8;font:500 calc(15px*var(--ck,1)*var(--tz,1.5))/1.3 var(--f-board);
+  transition:opacity .25s,transform .25s}
+#toasts .toast.err{background:#2a1517;border-color:#5a2a2d;border-left-color:#d9534f}
+#toasts .toast.out{opacity:0;transform:translateY(calc(10px*var(--ck,1)*var(--tz,1.5)))}
+#toasts .toast span{flex:1}
+#toasts .toast button{all:unset;cursor:pointer;padding:calc(6px*var(--ck,1)*var(--tz,1.5)) calc(4px*var(--ck,1)*var(--tz,1.5));font:700 calc(14px*var(--ck,1)*var(--tz,1.5)) var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f0b429}
+#toasts .toast.err button{color:#ff8a80}
+@media (prefers-reduced-motion:reduce){#toasts .toast{transition:none}}
+#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + env(safe-area-inset-top));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -550,7 +565,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=31faef82bc"></script>
+<script src="i18n.js?v=44f67a8679"></script>
 <script>
 (() => {
 "use strict";
@@ -2296,9 +2311,10 @@ function meFlush(leaving){
     keepalive: !!leaving, signal: leaving ? undefined : ctl.signal}).then(r => {
     if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(r.status);   // others won't get better: dropped
     if (mePending === body) { mePending = null; try { localStorage.removeItem(ME_KEY); } catch {} }
+    if (meFails > 1 && typeof toast === "function") toast(T("Settings saved for your profile."));
     meFails = 0;
   }).catch(() => {
-    meFails++;
+    if (++meFails === 2 && typeof toast === "function") toast(T("Settings aren't saved for your profile yet. Trying again."), {err: true, action: T("Retry"), run: () => { meFails = 0; meFlush(); }});
     meTimer = setTimeout(meFlush, Math.min(60000, 2000 * 2 ** Math.min(meFails, 5)));
   }).finally(() => {
     clearTimeout(t);
@@ -3292,6 +3308,13 @@ function vieLines(info){
   if (t.kind === "dep") out.push(T("GATE {g}", {g: t.gate || t.gateArea || NA}));
   return out;
 }
+// 1.65: a departure's gate from Vienna's list (its pier until the gate is given out), "" when not known: the plane card
+// shows it as a fact, the app's radar list beside the status.
+function gateFor(info){
+  if (!info || code3(info.from) !== "VIE") return "";
+  const t = timesFor(info);
+  return t && t.kind === "dep" ? String(t.gate || t.gateArea || "") : "";
+}
 function remarkLines(ac, info){
   info = info || {};
   const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
@@ -3885,7 +3908,11 @@ function viewSubtitle(){
   if (view === "review") return reviewSummary(reviewData());
   if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
   if (view === "records") return T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.");
-  if (view === "radar" && radarZoomed()) return T("Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", {ap: clean(S.home), r: radarRing(radarRange()) < 1 ? "500 m" : radarRing(radarRange()) + " km"});
+  if (view === "radar" && radarZoomed()) {
+    const r = radarRing(radarRange()) < 1 ? "500 m" : radarRing(radarRange()) + " km";
+    return airportMode() ? T("Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", {ap: clean(S.home), r})
+      : T("Close-up around {place} · rings every {r}", {place: clean(S.place), r});
+  }
   if (view === "radar" && radarCentre().ap) return T("Centred on {ap} · rings every 5 km · dashed: {n} km around the airport · the logo: your place", {ap: clean(S.home), n: +S.radiusKm || 15});
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
   if (view === "settings") return T("Turn the knobs and flip the switches, then press Save.");
@@ -4168,7 +4195,7 @@ function buildViewTools(){
     // 1.62.1: the buttons sit in the radar's corners: − top left, + top right (Airport style), Map bottom left; the range
     // is engraved in the dial (drawRadar).
     const zi = RADAR_ZOOMS.indexOf(radarZoom), rb = radarBox(), at = (x, y) => `style="left:calc(${x}px*var(--k));top:calc(${y}px*var(--k))"`;
-    const zb = airportMode() && AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${zi > 0 ? "" : " disabled"}>−</button>` +
+    const zb = !airportMode() || AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${zi > 0 ? "" : " disabled"}>−</button>` +
       `<button class="cap small" type="button" data-z="1" ${at(rb.w - 68, 4)} aria-label="${escH(T("Zoom in"))}"${zi < RADAR_ZOOMS.length - 1 ? "" : " disabled"}>+</button>` : "";
     box.innerHTML = `<button class="cap small" type="button" data-map ${at(4, rb.h - 44)} aria-pressed="${radarMapOn}">${T("Map")}</button>` + zb;
     box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); radarMapSet(!radarMapOn); box.firstChild.setAttribute("aria-pressed", String(radarMapOn)); };
@@ -4538,7 +4565,7 @@ function radarPos(o, now, kx, ky){
 // The radar's centre (1.33): your place in the Overhead style; in the Airport style the home airport (once its position
 // is known), with the spotting radius around it and the logo marking your place.
 function radarCentre(){
-  if (radarZoomed() && radar.zc) return radar.zc;
+  if (radarZoomed() && radar.zc && airportMode()) return radar.zc;
   if (airportMode()) airportPos();
   return airportMode() && AP.lat != null ? {lat: AP.lat, lon: AP.lon, ap: true} : {lat: S.lat, lon: S.lon, ap: false};
 }
@@ -4569,12 +4596,12 @@ function radarRows(n){
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
 const RADAR_ZOOMS = [0, 10, 5, 2.5];
-const radarZoomed = () => !!(radarZoom && airportMode() && AP.lat != null);
+const radarZoomed = () => !!(radarZoom && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
 // The close-up's centre: where the planes on the ground stand (the gates, not the runways' middle), fixed while zoomed.
 function radarZoomSet(z){
   radarZoom = z; radar.zc = null;
-  if (!radarZoomed()) return radarZoomKeep();
+  if (!radarZoomed() || !airportMode()) return radarZoomKeep();
   const kx = 111.32 * Math.cos(AP.lat * Math.PI / 180), gr = radar.planes.filter(o => o.ac.alt_baro === "ground" && Math.hypot((o.ac.lon - AP.lon) * kx, (o.ac.lat - AP.lat) * 110.57) < 3);
   const m = (a, f) => a.reduce((t, o) => t + f(o), 0) / a.length;
   radar.zc = gr.length ? {lat: m(gr, o => o.ac.lat), lon: m(gr, o => o.ac.lon), ap: true} : null;
@@ -5039,6 +5066,24 @@ const I18N = (() => {
    One overlay (#cardBox) for the boards (a tap or a click) and the phone app. The facts come from what the board knows,
    the logbook and the relay's airport list; a short description and pictures from Wikipedia (Wikimedia Commons). */
 const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
+// 1.65: one way for saves to answer (#toasts). toast(text, {err, action, run, ms}): err for a failure (red), action and
+// run for its button (Undo, Retry); it goes after ms (4 s, 6 s for errors) or when its button is used. The same text
+// again replaces the older one; at most two show.
+function toast(text, o = {}){
+  let box = $("toasts");
+  if (!box) { box = document.createElement("div"); box.id = "toasts"; box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite"); document.body.appendChild(box); }
+  box.classList.toggle("top", !!document.querySelector("#cardBox:not([hidden]), .cardish:not([hidden])"));
+  for (const t of box.children) if (t.dataset.text === text) t.remove();
+  while (box.children.length >= 2) box.firstElementChild.remove();
+  const t = document.createElement("div");
+  t.className = "toast" + (o.err ? " err" : ""); t.dataset.text = text;
+  t.innerHTML = `<span>${escH(text)}</span>` + (o.action ? `<button type="button">${escH(o.action)}</button>` : "");
+  const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
+  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.press(); go(); if (o.run) o.run(); };
+  box.appendChild(t);
+  setTimeout(go, o.ms || (o.err ? 6000 : 4000));
+  return t;
+}
 let cardTok = 0;
 function cardOpen(html, wire){
   let box = $("cardBox");
@@ -5259,10 +5304,14 @@ function cardToggle(e){
   const show = () => { for (const o of box.querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v})); };
   if (note) note.textContent = "";
   b.classList.add("busy");
-  const p = listFlip(b.dataset.tog, {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n});
+  const which = b.dataset.tog, c = {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n}, on = !inList(userLists[which], c);
+  const flip = () => listFlip(which, c).then(() => { b.classList.remove("busy"); show(); return true; },
+    () => { b.classList.remove("busy"); show(); toast(T(SAVE_FAILED), {err: true, action: T("Retry"), run: () => { b.classList.add("busy"); flip(); }}); return false; });
+  flip().then(ok => {
+    if (ok) toast(T(on ? (which === "fav" ? "★ {n} is a favourite now, on all your devices" : "⊘ {n} is hidden now, on all your devices") : "{n} is off the list again", {n: c.n}),
+      {action: T("Undo"), run: () => listFlip(which, c).then(show, () => toast(T(SAVE_FAILED), {err: true}))});
+  });
   show();                                            // at once; put back if the save fails
-  p.then(() => { b.classList.remove("busy"); show(); },
-    () => { b.classList.remove("busy"); show(); if (note) note.textContent = T(SAVE_FAILED); });
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
@@ -5291,7 +5340,7 @@ function favManager(el){
     if (!item) return;
     const p = listOps([{op: "remove", list: w, item}]);
     favManager(el);
-    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
+    p.catch(() => { favManager(el); toast(T(SAVE_FAILED), {err: true}); });
   };
   el.querySelector("[data-fa]").onclick = () => {
     ctlSound.press();
@@ -5300,7 +5349,7 @@ function favManager(el){
     if (inList(userLists[w], c)) return favManager(el);
     const p = listOps([{op: "add", list: w, item: c}]);
     favManager(el);
-    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
+    p.catch(() => { favManager(el); toast(T(SAVE_FAILED), {err: true}); });
   };
 }
 function favCard(side){
@@ -5447,7 +5496,7 @@ function planeBody(o){
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
-      ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""],
+      ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""], ["Gate", escH(gateFor(info))],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
     (listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
       (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "");
@@ -6397,6 +6446,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.65", date: "2026-10-20", notes: [
+    "Saving answers with a short notice: Favourite and Hide can be undone from it, and a save that failed can be tried again.",
+    "App: search the whole logbook on the Logbook tab, by registration, flight, type or airline.",
+    "App: pinch the radar to zoom in or out, or double-tap it; zooming now works in the Overhead style too.",
+    "Plane cards show a departure's gate, and the app's radar list shows it next to a plane standing at the airport.",
+  ]},
   {v: "1.64", date: "2026-10-20", notes: [
     "Settings wait on your device until they are saved for your profile, and are sent again when the connection is back. Settings say \"Not synced yet\" meanwhile.",
     "Favourite and Hide switch at once, and say so in words when they couldn't be saved.",

@@ -255,6 +255,21 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
   font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
 #cardBox .cBtn.busy,.cardish .cBtn.busy{opacity:.7;pointer-events:none}   /* 1.64: saving */
+/* 1.65: notices (toast()): a short card above the tab bar (the app) or the rail (the board), amber edge when something
+   was saved, red when it wasn't; an action on the right (Undo, Retry). At most two at once. */
+#toasts{position:fixed;left:50%;bottom:var(--toast-b,calc(150px*var(--ck,1)*var(--tz,1.5)));transform:translateX(-50%);z-index:90;width:min(92vw,calc(560px*var(--ck,1)*var(--tz,1.5)));
+  display:flex;flex-direction:column-reverse;gap:calc(8px*var(--ck,1)*var(--tz,1.5));pointer-events:none}
+#toasts .toast{pointer-events:auto;display:flex;align-items:center;gap:calc(12px*var(--ck,1)*var(--tz,1.5));padding:calc(12px*var(--ck,1)*var(--tz,1.5)) calc(14px*var(--ck,1)*var(--tz,1.5));
+  border-radius:calc(10px*var(--ck,1)*var(--tz,1.5));background:#1d1e21;border:1px solid #3a3b40;border-left:calc(5px*var(--ck,1)*var(--tz,1.5)) solid #f0b429;
+  box-shadow:0 calc(6px*var(--ck,1)*var(--tz,1.5)) calc(20px*var(--ck,1)*var(--tz,1.5)) rgba(0,0,0,.6);color:#f3f0e8;font:500 calc(15px*var(--ck,1)*var(--tz,1.5))/1.3 var(--f-board);
+  transition:opacity .25s,transform .25s}
+#toasts .toast.err{background:#2a1517;border-color:#5a2a2d;border-left-color:#d9534f}
+#toasts .toast.out{opacity:0;transform:translateY(calc(10px*var(--ck,1)*var(--tz,1.5)))}
+#toasts .toast span{flex:1}
+#toasts .toast button{all:unset;cursor:pointer;padding:calc(6px*var(--ck,1)*var(--tz,1.5)) calc(4px*var(--ck,1)*var(--tz,1.5));font:700 calc(14px*var(--ck,1)*var(--tz,1.5)) var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f0b429}
+#toasts .toast.err button{color:#ff8a80}
+@media (prefers-reduced-motion:reduce){#toasts .toast{transition:none}}
+#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + env(safe-area-inset-top));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -787,6 +802,16 @@ body.arOpen #sheet{z-index:75}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:#f0b429;margin-top:6px}
+#toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+/* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
+.lbFindBox{margin:8px 0 4px}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
+#lbFound .lbfHead{margin:10px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#lbFound ol{list-style:none;margin:0;padding:0}
+#lbFound li{padding:11px 0;border-top:1px solid var(--line)}
+#lbFound li b{display:block;font:700 17px/1.25 var(--f-board);color:var(--ink)}
+#lbFound li span{display:block;margin-top:3px;font:500 14px/1.35 var(--f-board);color:var(--muted)}
+@media (orientation:landscape) and (max-height:500px){#toasts{--toast-b:12px}}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -1019,6 +1044,8 @@ body.arOpen #sheet{z-index:75}
   <section class="wrap tab cols" id="t-logbook" hidden>
     <div class="lcol">
       <h2 data-t="Logbook">Logbook</h2>
+      <div class="tools lbFindBox" id="lbFindBox" hidden></div>
+      <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
@@ -1098,7 +1125,7 @@ body.arOpen #sheet{z-index:75}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=31faef82bc"></script>
+<script src="../test/i18n.js?v=44f67a8679"></script>
 <script>
 (() => {
 "use strict";
@@ -1398,6 +1425,24 @@ const I18N = (() => {
    One overlay (#cardBox) for the boards (a tap or a click) and the phone app. The facts come from what the board knows,
    the logbook and the relay's airport list; a short description and pictures from Wikipedia (Wikimedia Commons). */
 const listsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 31;
+// 1.65: one way for saves to answer (#toasts). toast(text, {err, action, run, ms}): err for a failure (red), action and
+// run for its button (Undo, Retry); it goes after ms (4 s, 6 s for errors) or when its button is used. The same text
+// again replaces the older one; at most two show.
+function toast(text, o = {}){
+  let box = $("toasts");
+  if (!box) { box = document.createElement("div"); box.id = "toasts"; box.setAttribute("role", "status"); box.setAttribute("aria-live", "polite"); document.body.appendChild(box); }
+  box.classList.toggle("top", !!document.querySelector("#cardBox:not([hidden]), .cardish:not([hidden])"));
+  for (const t of box.children) if (t.dataset.text === text) t.remove();
+  while (box.children.length >= 2) box.firstElementChild.remove();
+  const t = document.createElement("div");
+  t.className = "toast" + (o.err ? " err" : ""); t.dataset.text = text;
+  t.innerHTML = `<span>${escH(text)}</span>` + (o.action ? `<button type="button">${escH(o.action)}</button>` : "");
+  const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
+  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.press(); go(); if (o.run) o.run(); };
+  box.appendChild(t);
+  setTimeout(go, o.ms || (o.err ? 6000 : 4000));
+  return t;
+}
 let cardTok = 0;
 function cardOpen(html, wire){
   let box = $("cardBox");
@@ -1618,10 +1663,14 @@ function cardToggle(e){
   const show = () => { for (const o of box.querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v})); };
   if (note) note.textContent = "";
   b.classList.add("busy");
-  const p = listFlip(b.dataset.tog, {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n});
+  const which = b.dataset.tog, c = {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n}, on = !inList(userLists[which], c);
+  const flip = () => listFlip(which, c).then(() => { b.classList.remove("busy"); show(); return true; },
+    () => { b.classList.remove("busy"); show(); toast(T(SAVE_FAILED), {err: true, action: T("Retry"), run: () => { b.classList.add("busy"); flip(); }}); return false; });
+  flip().then(ok => {
+    if (ok) toast(T(on ? (which === "fav" ? "★ {n} is a favourite now, on all your devices" : "⊘ {n} is hidden now, on all your devices") : "{n} is off the list again", {n: c.n}),
+      {action: T("Undo"), run: () => listFlip(which, c).then(show, () => toast(T(SAVE_FAILED), {err: true}))});
+  });
   show();                                            // at once; put back if the save fails
-  p.then(() => { b.classList.remove("busy"); show(); },
-    () => { b.classList.remove("busy"); show(); if (note) note.textContent = T(SAVE_FAILED); });
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
@@ -1650,7 +1699,7 @@ function favManager(el){
     if (!item) return;
     const p = listOps([{op: "remove", list: w, item}]);
     favManager(el);
-    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
+    p.catch(() => { favManager(el); toast(T(SAVE_FAILED), {err: true}); });
   };
   el.querySelector("[data-fa]").onclick = () => {
     ctlSound.press();
@@ -1659,7 +1708,7 @@ function favManager(el){
     if (inList(userLists[w], c)) return favManager(el);
     const p = listOps([{op: "add", list: w, item: c}]);
     favManager(el);
-    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
+    p.catch(() => { favManager(el); toast(T(SAVE_FAILED), {err: true}); });
   };
 }
 function favCard(side){
@@ -1806,7 +1855,7 @@ function planeBody(o){
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
-      ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""],
+      ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""], ["Gate", escH(gateFor(info))],
       ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
     (listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
       (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "");
@@ -3573,9 +3622,10 @@ function meFlush(leaving){
     keepalive: !!leaving, signal: leaving ? undefined : ctl.signal}).then(r => {
     if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(r.status);   // others won't get better: dropped
     if (mePending === body) { mePending = null; try { localStorage.removeItem(ME_KEY); } catch {} }
+    if (meFails > 1 && typeof toast === "function") toast(T("Settings saved for your profile."));
     meFails = 0;
   }).catch(() => {
-    meFails++;
+    if (++meFails === 2 && typeof toast === "function") toast(T("Settings aren't saved for your profile yet. Trying again."), {err: true, action: T("Retry"), run: () => { meFails = 0; meFlush(); }});
     meTimer = setTimeout(meFlush, Math.min(60000, 2000 * 2 ** Math.min(meFails, 5)));
   }).finally(() => {
     clearTimeout(t);
@@ -4511,6 +4561,13 @@ function vieLines(info){
   if (t.kind === "dep") out.push(T("GATE {g}", {g: t.gate || t.gateArea || NA}));
   return out;
 }
+// 1.65: a departure's gate from Vienna's list (its pier until the gate is given out), "" when not known: the plane card
+// shows it as a fact, the app's radar list beside the status.
+function gateFor(info){
+  if (!info || code3(info.from) !== "VIE") return "";
+  const t = timesFor(info);
+  return t && t.kind === "dep" ? String(t.gate || t.gateArea || "") : "";
+}
 function remarkLines(ac, info){
   info = info || {};
   const out = [], seen = seenText(info.reg || ac.r || ""), t = String(ac.t || info.typeCode || "").toUpperCase();
@@ -4803,7 +4860,7 @@ function radarPos(o, now, kx, ky){
 // The radar's centre (1.33): your place in the Overhead style; in the Airport style the home airport (once its position
 // is known), with the spotting radius around it and the logo marking your place.
 function radarCentre(){
-  if (radarZoomed() && radar.zc) return radar.zc;
+  if (radarZoomed() && radar.zc && airportMode()) return radar.zc;
   if (airportMode()) airportPos();
   return airportMode() && AP.lat != null ? {lat: AP.lat, lon: AP.lon, ap: true} : {lat: S.lat, lon: S.lon, ap: false};
 }
@@ -4834,12 +4891,12 @@ function radarRows(n){
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
 const RADAR_ZOOMS = [0, 10, 5, 2.5];
-const radarZoomed = () => !!(radarZoom && airportMode() && AP.lat != null);
+const radarZoomed = () => !!(radarZoom && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
 // The close-up's centre: where the planes on the ground stand (the gates, not the runways' middle), fixed while zoomed.
 function radarZoomSet(z){
   radarZoom = z; radar.zc = null;
-  if (!radarZoomed()) return radarZoomKeep();
+  if (!radarZoomed() || !airportMode()) return radarZoomKeep();
   const kx = 111.32 * Math.cos(AP.lat * Math.PI / 180), gr = radar.planes.filter(o => o.ac.alt_baro === "ground" && Math.hypot((o.ac.lon - AP.lon) * kx, (o.ac.lat - AP.lat) * 110.57) < 3);
   const m = (a, f) => a.reduce((t, o) => t + f(o), 0) / a.length;
   radar.zc = gr.length ? {lat: m(gr, o => o.ac.lat), lon: m(gr, o => o.ac.lon), ap: true} : null;
@@ -5025,11 +5082,12 @@ function altNum(ft){
 }
 
 /* ---------- what the lists look like ---------- */
-function chip(r){                        // the status word in this language; its colours by the English name
+function chip(r, more = ""){              // the status word in this language; its colours by the English name
+  if (!r && more) return `<span class="chip">${escH(more)}</span>`;
   const L = REMARK_LOOK[r] || {};
   const bg = L.fill ? `background:linear-gradient(${L.fill[0]},${L.fill[1]});` : "";
   const icon = AP_ICON[r] ? `<i class="apic">${apSvg(AP_ICON[r])}</i>` : "";        // taking off or landing, as on the flaps (1.49: the board's pictograms)
-  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r))}</span>`;
+  return `<span class="chip" style="${bg}color:${L.fg || "var(--ink)"}">${icon}${escH(T(r) + (more ? " · " + more : ""))}</span>`;
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
@@ -5303,8 +5361,44 @@ function lbViewsBar(){
     ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
   };
 }
+/* 1.65: search the whole logbook (relay 55): a registration, a flight, a type or an airline, over every saved day.
+   Typing searches after a short pause; × clears it and the logbook comes back. */
+let lbQuery = "", lbFindT = 0, lbFindTok = 0;
+function lbFindSetup(){
+  const box = $("lbFindBox");
+  box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
+  if (box.hidden || box.firstChild) return;
+  box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
+    `placeholder="${escH(T("Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
+    `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
+  const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
+  const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
+  inp.oninput = () => set(inp.value.trim());
+  x.onclick = () => { ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+}
+async function lbFind(){
+  const out = $("lbFound"), on = lbQuery.replace(/[\s-]/g, "").length >= 2, tok = ++lbFindTok;
+  $("t-logbook").classList.toggle("finding", on); out.hidden = !on;
+  if (!on) { out.innerHTML = ""; return; }
+  out.innerHTML = `<p class="lbfHead">${escH(T("Searching …"))}</p>`;
+  let j;
+  try { j = await fetchJSON(`${relay()}/search?q=${encodeURIComponent(lbQuery)}`, {}, 10000); }
+  catch { if (tok === lbFindTok) out.innerHTML = `<p class="sum">${escH(T("The search didn't answer. Try again."))}</p>`; return; }
+  if (tok !== lbFindTok) return;
+  const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
+  const rows = j.rows.map(g => {
+    const title = g.by === "f" ? [g.flight, g.airline].filter(Boolean).join(" · ") : [g.reg || g.key.toUpperCase(), g.type, g.airline].filter(Boolean).join(" · ");
+    const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
+      : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
+    const more = [g.minDist != null ? T("closest {d}", {d: distText(g.minDist)}) : "", (g.by === "f" ? g.regs : g.flights).join(", ")].filter(Boolean).join(" · ");
+    return `<li><b>${escH(title)}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
+  });
+  out.innerHTML = `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
+    (rows.length ? `<ol>${rows.join("")}</ol>` : `<p class="sum">${escH(T("Nothing in the logbook matches that."))}</p>`);
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
+  lbFindSetup();
   lbViewsBar();
   const v = lbView;
   if (v === "logbook") fetchYear();
@@ -5749,8 +5843,12 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 // Tap a plane on the radar (or a row of Nearest): it is ringed, and a card under the scope says what it is, with its
 // picture, route, height, speed and where it is; ★/⊘ as in the lists.
 $("radarCv").addEventListener("click", e => {
+  if (Date.now() < pinch.quiet) return;                     // the end of a pinch
   const cv = $("radarCv"), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * RG.S / r.width, y = (e.clientY - r.top) * RG.S / r.height;
   const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 26 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
+  pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
+  if (dbl) return radarZoomTo(radarZoom === RADAR_ZOOMS[RADAR_ZOOMS.length - 1] ? -9 : 1);   // double tap: closer, from the closest back out
   radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
   ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
 });
@@ -5891,8 +5989,8 @@ function drawRadar(t){
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
   mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
-  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport (Airport style)
-  $("rvZoom").hidden = !airportMode() || AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
+  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport; 1.65: both styles
+  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
   $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
@@ -5904,10 +6002,10 @@ function renderRadarList(){
   const rows = radarRows(12).map(({o, dist, dir, st}) => {
     const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
     const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
-    const code = airlineCodeOf(info), L = code ? logo(code, true) : null;
+    const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
     return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
-      `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st)}</li>`;
+      `<span class="num">${distText(dist)} ${dir}</span><span class="num">${escH(altShort(o.alt))}</span>${chip(st, g && (st ? g : T("GATE {g}", {g})))}</li>`;   // 1.65: with its gate while on the ground
   });
   const html = rows.length ? rows.join("") : `<li class="empty">${escH(T("No planes within {n} km right now.", {n: range}))}</li>`;
   if (html !== rvSig) { rvSig = html; $("rvList").innerHTML = html; }
@@ -6937,6 +7035,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.65", date: "2026-10-20", notes: [
+    "Saving answers with a short notice: Favourite and Hide can be undone from it, and a save that failed can be tried again.",
+    "App: search the whole logbook on the Logbook tab, by registration, flight, type or airline.",
+    "App: pinch the radar to zoom in or out, or double-tap it; zooming now works in the Overhead style too.",
+    "Plane cards show a departure's gate, and the app's radar list shows it next to a plane standing at the airport.",
+  ]},
   {v: "1.64", date: "2026-10-20", notes: [
     "Settings wait on your device until they are saved for your profile, and are sent again when the connection is back. Settings say \"Not synced yet\" meanwhile.",
     "Favourite and Hide switch at once, and say so in words when they couldn't be saved.",
@@ -7490,7 +7594,41 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", 
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
-for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => { ctlSound.press(); radarZoomStep(d); buildRadarLegend(); rvSig = ""; renderRadarList(); };
+for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
+function radarZoomTo(d){
+  const was = radarZoom;
+  radarZoomStep(d);
+  if (radarZoom === was) return;
+  ctlSound.press(); buildRadarLegend(); rvSig = ""; renderRadarList();
+}
+// 1.65: pinch the radar to zoom in or out a step (the scope follows the fingers, then settles on the step); one finger
+// still scrolls the page.
+const pinch = {pts: new Map(), d0: 0, k: 1, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
+(() => {
+  const el = $("scope"), cvs = el.querySelectorAll("canvas");
+  el.style.touchAction = "pan-y";
+  const dist = () => { const [a, b] = [...pinch.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const show = k => { for (const c of cvs) c.style.transform = k === 1 ? "" : `scale(${k})`; el.style.overflow = k === 1 ? "" : "hidden"; };
+  el.addEventListener("pointerdown", e => {
+    pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (pinch.pts.size === 2) { pinch.d0 = dist(); pinch.k = 1; }
+  });
+  el.addEventListener("pointermove", e => {
+    if (!pinch.pts.has(e.pointerId)) return;
+    pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (pinch.pts.size !== 2 || !pinch.d0) return;
+    pinch.k = Math.max(.5, Math.min(2.2, dist() / pinch.d0));
+    show(pinch.k);
+  });
+  const end = e => {
+    if (!pinch.pts.delete(e.pointerId) || !pinch.d0) return;
+    const k = pinch.k;
+    pinch.d0 = 0; pinch.k = 1; pinch.quiet = Date.now() + 400; show(1);
+    const steps = k > 1.9 ? 2 : k > 1.25 ? 1 : k < .55 ? -2 : k < .8 ? -1 : 0;
+    if (steps) radarZoomTo(steps);
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+})();
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;

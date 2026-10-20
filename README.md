@@ -250,6 +250,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   full board − and + sit at the radar's top corners, Map at its bottom left, and the range is engraved in the dial (1.63).
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
   landing, passing or on the ground (1.63).
+  Since 1.65 − and + work in the Overhead style too, around your place; on the phone, pinch the radar or double-tap it
+  (from the closest step a double tap goes back out). The zoom is kept per screen (1.64). A departure from Vienna shows
+  its gate on the plane card, and in the app's radar list while the plane stands at the airport (1.65).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -477,6 +480,12 @@ Five buttons along the bottom:
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close.
+- **Search the logbook** (1.65, relay 55): the field at the top of the Logbook tab searches every sighting since the
+  start, by registration, flight, type or airline (several words narrow it). Each match says how often and when it was
+  seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew.
+- **Notices** (1.65): saving answers with a short notice above the tabs (at the top while a card is open): Favourite and
+  Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
+  again (1.64); Settings say **Not synced yet** meanwhile.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)

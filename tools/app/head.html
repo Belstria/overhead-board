@@ -416,6 +416,16 @@ body.arOpen #sheet{z-index:75}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:#f0b429;margin-top:6px}
+#toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+/* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
+.lbFindBox{margin:8px 0 4px}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
+#lbFound .lbfHead{margin:10px 0 6px;font:600 12px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#lbFound ol{list-style:none;margin:0;padding:0}
+#lbFound li{padding:11px 0;border-top:1px solid var(--line)}
+#lbFound li b{display:block;font:700 17px/1.25 var(--f-board);color:var(--ink)}
+#lbFound li span{display:block;margin-top:3px;font:500 14px/1.35 var(--f-board);color:var(--muted)}
+@media (orientation:landscape) and (max-height:500px){#toasts{--toast-b:12px}}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -649,6 +659,8 @@ body.arOpen #sheet{z-index:75}
   <section class="wrap tab cols" id="t-logbook" hidden>
     <div class="lcol">
       <h2 data-t="Logbook">Logbook</h2>
+      <div class="tools lbFindBox" id="lbFindBox" hidden></div>
+      <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
