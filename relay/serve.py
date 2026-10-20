@@ -1058,22 +1058,6 @@ def category_of(e):
     return "other"
 
 
-def _backfill_categories(spot):
-    """Older logbooks have no categories: count them once from the saved days."""
-    b = spot.book()
-    if "categories" in b:
-        return
-    cats = {}
-    for f in sorted(spot.dir.glob("sightings-*.json")):
-        for e in _load(f, []):
-            c = category_of(e)
-            cats[c] = cats.get(c, 0) + 1
-    b["categories"] = cats
-    spot.changed("book")
-    if cats:
-        event("info", f"Logbook categories counted from {sum(cats.values())} saved sightings")
-
-
 def _route_for(cs):
     if cs in _route_cache:
         return _route_cache[cs]

@@ -128,6 +128,24 @@ function placeRow(ids, gaps, y, step, ratio, x0){
   });
 }
 //@L:end
+// 1.64: screen readers hear what the flaps say. Each panel's label is its name and the text its flaps are turning to
+// ("The plane overhead: OS 802, Austrian, FLYING BY, …"), refreshed every few seconds; before, only the name.
+function panelSpeech(){
+  if (typeof panels === "undefined") return;
+  for (const P of panels) {
+    if (P.off || !P.el.isConnected) continue;
+    const name = P.el.dataset.al ?? (P.el.dataset.al = P.el.getAttribute("aria-label") || "");
+    const parts = P.ids.map(id => fields[id]).filter(f => f.kind !== "logo" && !["tier", "trend", "lamp"].includes(f.words)).map(f => {
+      const t = f.cells.map(c => c.target ?? c.cur ?? "").join("").replace(/\s+/g, " ").trim();
+      if (!t || /^[-|/ ]+$/.test(t)) return "";                 // empty, or "/" for not known
+      const lab = Array.isArray(f.label) && f.label[0] ? T(f.label[0]) + " " : "";
+      return lab + (f.kind === "word" ? T(t.split("|").pop()) : t);      // airline words are "EK|EMIRATES"
+    }).filter(Boolean);
+    const say = T(name) + (parts.length ? ": " + parts.join(", ") : "");
+    if (P.el.getAttribute("aria-label") !== say) P.el.setAttribute("aria-label", say);
+  }
+}
+setInterval(panelSpeech, 4000);
 // The plane overhead: the board's top half, in eight rows for a phone held upright and, on its side, in three rows
 // across the whole width (like the board's top half, with a page under it).
 const UM = 14;                                   // margin, in panel units (the panel is 390 units wide)
