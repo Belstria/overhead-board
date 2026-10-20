@@ -27,14 +27,19 @@ class PushService : FirebaseMessagingService() {
 
     companion object {
         const val TOKEN = "fcmToken"
-        private const val CHANNEL = "alerts"
+        private const val CHANNEL = "alerts_pa"       // 1.70.2: with the airport PA chime (a channel's sound is fixed once made)
         private const val ID = 7
 
         fun channel(context: Context) {
             val nm = context.getSystemService(NotificationManager::class.java)
+            nm.deleteNotificationChannel("alerts")                     // 1.70's, with the phone's own sound
             if (nm.getNotificationChannel(CHANNEL) == null) nm.createNotificationChannel(
                 NotificationChannel(CHANNEL, "Planes worth a look", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "Special planes, favourites, the countdown, the evening summary"
+                    // the boards' airport bell: three rising notes, like the chime before an announcement in a terminal
+                    setSound(android.net.Uri.parse("android.resource://${context.packageName}/${R.raw.pa_bell}"),
+                        android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
                 })
         }
 
@@ -44,7 +49,7 @@ class PushService : FirebaseMessagingService() {
                 Intent(context, MainActivity::class.java).putExtra(MainActivity.OPEN_URL, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val n = Notification.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_plane)
+                .setSmallIcon(R.drawable.ic_notify)          // the logo's plane at its angle (app/badge-96.png, as on the web)
                 .setContentTitle(title)
                 .setContentText(body.lineSequence().firstOrNull() ?: "")
                 .setStyle(Notification.BigTextStyle().bigText(body))
