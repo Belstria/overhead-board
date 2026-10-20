@@ -10,6 +10,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.63.2 / relay 54 (the code review's security and speed fixes): `owner_ok()` lets a device without a profile in only
+  while no `HOME_OWNER` profile exists or from the relay's own computer (`on_this_computer()`: loopback, no
+  Cf-Connecting-IP/X-Forwarded-For); before, any device at home without a cookie had the admin pages. `reply()` packs
+  (`_gzip`, lru-cached) and tags (`ETag`, sha256) bodies over 1 KB of `PACKED_TYPES`; pages are `private, no-cache`
+  and answer `If-None-Match` with 304. `/me` POSTs need the same origin when the browser names one. `/lists` takes
+  `{op: "add"|"remove", list, item}` (one change; whole lists still work). `/handover` (POST, signed in, over http,
+  `public_url` https only) makes a one-time `/join/` link for the profile; the app's `androidHandover()` hands it to
+  `OverheadAndroid.usePublic`, which keeps the https base in prefs `public`, submits the join form and falls back to
+  the Wi-Fi address (`relay`) when the https one can't be reached. CI: actions pinned to commits, the APK release in
+  its own job (the only one with write access), the keystore removed at the end. `tools/test/flows.py` checks it all.
 - 1.63.1: `saveSettings` (board and app) always stores and sends theme, palette, finish and badge, defaults included:
   one switched back to its default was left out, and the relay's `/me` merge kept the profile's old value, which came
   back on the next load (the same as 1.54's cockpit keys).

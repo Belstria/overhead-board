@@ -1351,6 +1351,15 @@ const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, co
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
+// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
+function androidHandover(){
+  if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
+  try { if (Date.now() - (+localStorage.getItem("od.handover") || 0) < 864e5) return; localStorage.setItem("od.handover", Date.now()); } catch { return; }
+  fetch("/handover", {method: "POST"}).then(r => r.ok ? r.json() : null)
+    .then(j => { if (j && j.link) window.OverheadAndroid.usePublic(j.link); }).catch(() => {});
+}
+setTimeout(androidHandover, 4000);
 //@E29
 //@E32
 /* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,

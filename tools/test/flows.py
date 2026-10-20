@@ -1,0 +1,88 @@
+"""The relay's rules and the saves that broke before, checked against a running test relay (smoke.py runs them; on
+their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --port 8096`).
+
+- who gets the admin pages: only David's devices, at home; a device at home without a profile no more (relay 54)
+- pages go packed and tagged: an unchanged page is a 304 (relay 54)
+- settings round trip through /me, a save from another site refused (relay 54)
+- favourites change one at a time, so two devices saving at once keep both (relay 54)
+"""
+import gzip
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
+BASE = f"http://localhost:{PORT}"
+AT_HOME = {"X-Forwarded-For": "192.168.1.50"}          # through a proxy on this computer, from a phone at home
+OUTSIDE = {"Cf-Connecting-IP": "203.0.113.9"}           # through the tunnel
+
+
+def call(path, cookie=None, headers=None, body=None, method=None):
+    h = dict(headers or {})
+    if cookie:
+        h["Cookie"] = "overhead=" + cookie
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode()
+        h.setdefault("Content-Type", "application/json")
+        h.setdefault("Origin", BASE)
+    req = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+    try:
+        r = urllib.request.urlopen(req, timeout=10)
+        return r.status, r.headers, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.headers, e.read()
+
+
+def checks():
+    bad = []
+
+    def expect(what, got, want):
+        if got != want:
+            bad.append(f"{what}: got {got}, expected {want}")
+
+    # C1: the admin pages
+    expect("/admin at home, no profile", call("/admin", headers=AT_HOME)[0], 403)
+    expect("/admin at home, a guest", call("/admin", "test-device", AT_HOME)[0], 403)
+    expect("/admin at home, David", call("/admin", "owner-device", AT_HOME)[0], 200)
+    expect("/admin from outside, David", call("/admin", "owner-device", OUTSIDE)[0] in (403, 404), True)
+    expect("/admin on the relay's own computer", call("/admin")[0], 200)
+    expect("/status at home, no profile", call("/status", headers=AT_HOME)[0], 403)
+
+    # packed and tagged pages
+    st, h, body = call("/app/", "test-device", {"Accept-Encoding": "gzip"})
+    expect("/app/ packed", h.get("Content-Encoding"), "gzip")
+    expect("/app/ unpacks to a page", b"<html" in gzip.decompress(body)[:400].lower() if st == 200 else False, True)
+    tag = h.get("ETag") or ""
+    expect("/app/ has a tag", bool(tag), True)
+    expect("/app/ unchanged is a 304", call("/app/", "test-device", {"If-None-Match": tag})[0], 304)
+    expect("/app/ for another profile isn't that copy", call("/app/", "owner-device", {"If-None-Match": tag})[0], 200)
+
+    # settings round trip, and a save from another site
+    expect("/me save", call("/me", "test-device", body={"settings": {"theme": "classic", "units": "metric"}})[0], 204)
+    st, _, b = call("/me", "test-device")
+    expect("/me saved theme", (json.loads(b).get("settings") or {}).get("theme") if st == 200 else st, "classic")
+    expect("/me save from another site", call("/me", "test-device", {"Origin": "https://evil.example"}, {"settings": {"theme": "frankfurt"}})[0], 403)
+    st, _, b = call("/me", "test-device")
+    expect("/me after the refused save", (json.loads(b).get("settings") or {}).get("theme") if st == 200 else st, "classic")
+
+    # favourites, one change at a time
+    call("/lists", "test-device", body={"fav": []})
+    call("/lists", "test-device", body={"op": "add", "list": "fav", "item": {"k": "reg", "v": "OE-LBN", "n": "A321"}})
+    st, _, b = call("/lists", "test-device", body={"op": "add", "list": "fav", "item": {"k": "reg", "v": "OE-LZA", "n": "A320"}})
+    favs = [i["v"] for i in json.loads(b)["fav"]] if st == 200 else st
+    expect("two favourites added one by one", favs, ["OE-LBN", "OE-LZA"])
+    st, _, b = call("/lists", "test-device", body={"op": "remove", "list": "fav", "item": {"k": "reg", "v": "OE-LBN"}})
+    expect("one removed", [i["v"] for i in json.loads(b)["fav"]] if st == 200 else st, ["OE-LZA"])
+    call("/lists", "test-device", body={"fav": []})
+
+    for b_ in bad:
+        print("flow:", b_)
+    print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")
+    return not bad
+
+
+if __name__ == "__main__":
+    sys.exit(0 if checks() else 1)
