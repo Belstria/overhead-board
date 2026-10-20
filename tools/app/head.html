@@ -378,6 +378,10 @@ body.aboutOpen{overflow:hidden}
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
+/* 1.66: the compass seems off: a note under the top bar until it settles */
+#arView .arCal{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
+  background:rgba(15,16,18,.85);color:#f3f0e8;font:500 14px/1.35 var(--f-board)}
+#arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
 body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
@@ -417,6 +421,27 @@ body.arOpen #sheet{z-index:75}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:#f0b429;margin-top:6px}
 #toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+/* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
+html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
+html.daylight body{background-color:#efe9dc}
+html.daylight .panel{background:#e2d9c6;border-radius:6px}
+html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn{background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
+html.daylight #cardBox .cardIn *,html.daylight .cardish *{border-color:#d3cab7}
+html.daylight #cardBox h3,html.daylight #cardBox .cFacts dd,html.daylight .cardish .cFacts dd,html.daylight .cardish h3{color:#191919}
+html.daylight .chip{border-color:#c9bfaa;color:#191919}
+html.daylight .flights li,html.daylight #lbFound li{border-color:#d3cab7}
+html.daylight .svFind input{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast.err{background:#fde9e7;border-color:#e3b2ad}
+html.daylight .fl .tap,html.daylight .fl .who .tap,html.daylight .fl .rt .tap,html.daylight .fl .meta .tap,html.daylight .cLink{color:#2a2620;border-color:#c9bfaa}
+html.daylight .fl .rt .no{color:rgba(0,0,0,.3)}
+html.daylight .fl .meta span:last-child{color:#4a463f}
+html.daylight .svFind input::placeholder,html.daylight #welcome input::placeholder{color:rgba(25,25,25,.45)}
+html.daylight .rv .num{color:#3b3832}
+html.daylight .acCheck b,html.daylight .devTile{color:#191919}
+html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
+html.daylight .cups li:not(.on) .name{color:rgba(25,25,25,.5)}
+html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
@@ -563,6 +588,7 @@ body.arOpen #sheet{z-index:75}
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
+  <p class="arCal" id="arCal" hidden></p>
   <p class="arHint" id="arHint"></p>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>

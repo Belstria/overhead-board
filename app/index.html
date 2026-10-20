@@ -764,6 +764,10 @@ body.aboutOpen{overflow:hidden}
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
+/* 1.66: the compass seems off: a note under the top bar until it settles */
+#arView .arCal{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
+  background:rgba(15,16,18,.85);color:#f3f0e8;font:500 14px/1.35 var(--f-board)}
+#arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
 body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
@@ -803,6 +807,27 @@ body.arOpen #sheet{z-index:75}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:#f0b429;margin-top:6px}
 #toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+/* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
+html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
+html.daylight body{background-color:#efe9dc}
+html.daylight .panel{background:#e2d9c6;border-radius:6px}
+html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn{background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
+html.daylight #cardBox .cardIn *,html.daylight .cardish *{border-color:#d3cab7}
+html.daylight #cardBox h3,html.daylight #cardBox .cFacts dd,html.daylight .cardish .cFacts dd,html.daylight .cardish h3{color:#191919}
+html.daylight .chip{border-color:#c9bfaa;color:#191919}
+html.daylight .flights li,html.daylight #lbFound li{border-color:#d3cab7}
+html.daylight .svFind input{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast.err{background:#fde9e7;border-color:#e3b2ad}
+html.daylight .fl .tap,html.daylight .fl .who .tap,html.daylight .fl .rt .tap,html.daylight .fl .meta .tap,html.daylight .cLink{color:#2a2620;border-color:#c9bfaa}
+html.daylight .fl .rt .no{color:rgba(0,0,0,.3)}
+html.daylight .fl .meta span:last-child{color:#4a463f}
+html.daylight .svFind input::placeholder,html.daylight #welcome input::placeholder{color:rgba(25,25,25,.45)}
+html.daylight .rv .num{color:#3b3832}
+html.daylight .acCheck b,html.daylight .devTile{color:#191919}
+html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
+html.daylight .cups li:not(.on) .name{color:rgba(25,25,25,.5)}
+html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
@@ -948,6 +973,7 @@ body.arOpen #sheet{z-index:75}
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
+  <p class="arCal" id="arCal" hidden></p>
   <p class="arHint" id="arHint"></p>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
@@ -1125,7 +1151,7 @@ body.arOpen #sheet{z-index:75}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=44f67a8679"></script>
+<script src="../test/i18n.js?v=3b8d3d54b7"></script>
 <script>
 (() => {
 "use strict";
@@ -1174,8 +1200,14 @@ const classicLook = () => (typeof LIGHT !== "undefined" && LIGHT) || !S.theme ||
 // The board style, with a palette laid over it.
 function themeNow(){
   const T = THEMES[S.theme] || THEMES.classic, P = classicLook() && PALETTES[S.palette];
+  if (daylightOn()) return {...T, ...DAYLIGHT};
   return P ? {...T, ink: P.ink, accent: P.accent} : T;
 }
+// 1.66: Daylight (the app and the light version, Settings → Display): a cream page with black flaps and white letters,
+// for reading outdoors in the sun. The phone's own choice; the board stays as it is.
+const DAYLIGHT = {flap: ["#232427", "#1b1c1f", "#141517", "#0e0f11"], ink: "#ffffff", accent: "#f0b429", label2: "#5a5650", pageAccent: "#a85300",
+  metal: ["#efe9dc", "#e5ddcc", "#ebe4d5"]};
+const daylightOn = () => typeof LIGHT !== "undefined" && !!S.daylight;
 // A title badge's silhouette, centred on 0,0 and about 2k across, in the current fill colour (1.61: drawn in the logo
 // square instead of the plane, in the browser tab's icon and in the app icons; tools/app/make_icons.py uses it too).
 function badgeGlyph(g, id, k){
@@ -1303,7 +1335,7 @@ const REMARK_LOOK = {
 const LIGHT = false;                  // the light version (tools/light/build.py): the same app without the split flaps
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  logos:true, overKm:3, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
@@ -1311,7 +1343,7 @@ const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classi
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
+  const {mode, live, livePrev, daylight, ...shared} = GUEST && GUEST.settings || {};      // the style (1.40) and Daylight (1.66) stay this device's own
   return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
@@ -1321,7 +1353,7 @@ function loadSettings(){
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
-  const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
+  const {live, livePrev, mode, daylight, ...rest} = changed;   // following the phone, the style and Daylight are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
@@ -3213,7 +3245,7 @@ function label(g, f, main, second, size, max = Infinity){
   const wa = g.measureText(a).width, gap = size * .7, total = wa + (b ? gap + g.measureText(b).width : 0);
   g.save(); g.translate(f.x, yb);
   if (total > max) g.scale(Math.max(.6, max / total), 1);
-  g.fillStyle = COL.amber; g.fillText(a, 0, 0);
+  g.fillStyle = COL.labelInk || COL.amber; g.fillText(a, 0, 0);          // 1.66: darker on Daylight's cream
   if (b) { g.fillStyle = COL.labelEn; g.fillText(b, wa + gap, 0); }
   g.restore();
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -3487,9 +3519,10 @@ function applyTheme(){
   applyLook();
   const T = themeNow();
   FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
-  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
+  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2; COL.labelInk = T.pageAccent || null;
   const root = document.documentElement.style;
-  root.setProperty("--f-board", T.font); root.setProperty("--amber", T.accent); root.setProperty("--ink", T.ink);
+  root.setProperty("--f-board", T.font); root.setProperty("--amber", T.pageAccent || T.accent); root.setProperty("--ink", daylightOn() ? "#191919" : T.ink);
+  document.documentElement.classList.toggle("daylight", daylightOn());   // 1.66: the page's own colours (head.html)
   root.setProperty("--label2", T.label2); root.setProperty("--metal", T.metal[1]);
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.content = T.metal[1];
@@ -5659,6 +5692,13 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
 let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0};
+// 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
+// (the ring fills as it waits). Then it waits for the ring to be empty again.
+const AR_AIM_R = 56, AR_AIM_MS = 1500;
+let arAim = {hex: "", since: 0, done: ""};
+// 1.66: the compass is unsure when the heading jumps about while the phone is held still (or iOS says it is poor):
+// a note asks for a figure of eight, or a drag to line the labels up.
+let arRaw = [], arCalAt = 0;
 const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
 function arFeed(list){ arList = list || []; arListAt = Date.now(); }
 const arEvent = () => "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
@@ -5667,6 +5707,7 @@ function arOrient(e){
   if (typeof e.webkitCompassHeading === "number") a = 360 - e.webkitCompassHeading;       // iPhone: north from the compass
   else if (!e.absolute && e.type !== "deviceorientationabsolute") return;
   if (a == null || e.beta == null || e.gamma == null) return;
+  arCalCheck(a, e.beta, e.gamma, e.webkitCompassAccuracy);
   if (!arAng) arAng = {a, b: e.beta, g: e.gamma};
   else {                                             // smoothed: compasses wobble
     const d = ((a - arAng.a + 540) % 360) - 180;
@@ -5683,11 +5724,26 @@ async function arOpen(){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arAng = null;
-  $("arHint").textContent = T("Hold the phone up and look around. If the labels sit beside the planes, drag them into place.");
+  $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.");
+  arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
   arLoop();
+}
+function arCalCheck(a, b, g, acc){
+  const now = Date.now();
+  arRaw.push([now, a, b, g]);
+  while (arRaw.length && now - arRaw[0][0] > 1500) arRaw.shift();
+  if (arRaw.length < 8) return;
+  const spread = i => { const v = arRaw.map(r => r[i]); return Math.max(...v) - Math.min(...v); };
+  const as = arRaw.map(r => ((r[1] - arRaw[0][1] + 540) % 360) - 180), aSpread = Math.max(...as) - Math.min(...as);
+  if ((typeof acc === "number" && acc > 25) || (spread(2) < 3 && spread(3) < 3 && aSpread > 12)) arCalAt = now;
+  const el = $("arCal"), show = now - arCalAt < 4000;
+  if (el.hidden === show) {
+    el.hidden = !show;
+    if (show) el.innerHTML = `<b>${escH(T("Compass unsure"))}</b> · ${escH(T("move the phone in a figure of eight, or drag the picture to line the labels up"))}`;
+  }
 }
 function arClose(){
   if (!arOn) return;
@@ -5771,6 +5827,25 @@ function arLoop(){
     g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
   }
   $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
+  arAimDraw(g, W, H);
+}
+// The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
+function arAimDraw(g, W, H){
+  const cx = W / 2, cy = H / 2, now = Date.now();
+  const hit = arHits.reduce((a, h) => { const d = Math.hypot(h.x - cx, h.y - cy); return d < AR_AIM_R && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const hex = hit ? hit.hex : "";
+  if (hex !== arAim.hex) arAim = {hex, since: now, done: hex && hex === arAim.done ? hex : ""};
+  const k = hex && hex !== arAim.done && hex !== arSel ? Math.min(1, (now - arAim.since) / AR_AIM_MS) : hex === arSel && hex ? 1 : 0;
+  g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
+  g.beginPath(); g.arc(cx, cy, AR_AIM_R, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.moveTo(cx, cy - AR_AIM_R - 12); g.lineTo(cx, cy - AR_AIM_R + 6); g.moveTo(cx, cy + AR_AIM_R - 6); g.lineTo(cx, cy + AR_AIM_R + 12); g.stroke();
+  if (k > 0) {
+    g.strokeStyle = "#f0b429"; g.lineWidth = 5;
+    g.beginPath(); g.arc(cx, cy, AR_AIM_R, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
+  }
+  if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
+    arAim.done = hex; arSel = hex; ctlSound.press(); arCardRender();
+  }
 }
 // The plane on top, out of the picture: an arrow at the edge pointing the way to turn.
 function arEdge(g, s, W, H){
@@ -6058,6 +6133,7 @@ const COCKPIT = [
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]], for: "tv"},
     {k: "units", type: "switch", label: "Units", on: "metric", off: "aviation", upText: "METRIC", downText: "FT · KT"},
     {k: "real", type: "switch", label: "Realistic look", flaps: true},
+    {k: "daylight", type: "switch", label: "Daylight", for: "phone"},      // 1.66
     {k: "demo", type: "switch", label: "Demo mode", guard: true}]},
   {id: "flaps", title: "Flaps & sound", cols: 3, light: {title: "Sounds"}, items: [
     {k: "speedPct", type: "wheel", label: "Flap speed %", min: 10, max: 100, step: 5, flaps: true},
@@ -6135,6 +6211,7 @@ const HINTS = {
   ding: "A soft cabin ding when a new plane comes on top, so you know when to look up.",
   units: "Metres and km/h, or feet and knots.",
   real: "Printed flaps, glass and brushed metal, like a real board.",
+  daylight: "A light page with black flaps, easier to read outdoors in the sun. Just this phone.",
   imperfect: "Slightly uneven modules and the odd hesitating flap, like a well-used board.",
   demo: "Sample flights instead of live data.",
   speedPct: "How fast each flap turns.",
@@ -7035,6 +7112,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.66", date: "2026-10-20", notes: [
+    "Sky view: hold a plane in the ring in the middle for a moment and its card opens; no need to tap moving labels.",
+    "Sky view says when the compass seems off, and how to fix it.",
+    "App: Daylight (Settings → Display) turns the page cream with black flaps and white letters, for reading in the sun.",
+  ]},
   {v: "1.65", date: "2026-10-20", notes: [
     "Saving answers with a short notice: Favourite and Hide can be undone from it, and a save that failed can be tried again.",
     "App: search the whole logbook on the Logbook tab, by registration, flight, type or airline.",

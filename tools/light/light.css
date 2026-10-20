@@ -180,3 +180,13 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
 #cardBox .cBtn,.cardish .cBtn{background:var(--card2);color:var(--ink);border:1px solid var(--edge);border-radius:11px;box-shadow:none;text-shadow:none}
 #cardBox .cBtn.go,.cardish .cBtn.go{background:var(--amber);color:#17140e;border-color:transparent}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:0;color:var(--amber);background:rgba(240,180,41,.13);border-color:rgba(240,180,41,.5)}
+/* 1.66: Daylight (Settings → Display): light cards on a cream page, dark text */
+html.daylight{--card:#fbf8f1;--card2:#f2ede2;--edge:rgba(0,0,0,.13);--well:#e7e0d1}
+html.daylight #top,html.daylight #tabs{background:rgba(239,233,220,.92)}
+html.daylight .lf.nil .lv::before{color:rgba(0,0,0,.2)}
+html.daylight .rotary b.on,html.daylight .toggle[aria-pressed=false] .down,html.daylight .wheel button{background:#e2dacb}
+html.daylight .cap:active:not(:disabled){background:#e2dacb}
+html.daylight .rotary b{color:#55524b}
+html.daylight .rotary b.on,html.daylight .wheel .win{color:var(--ink)}
+html.daylight .geoQ input{background:var(--well);color:var(--ink);border-color:var(--edge)}
+html.daylight .geoQ input::placeholder{color:rgba(25,25,25,.45)}

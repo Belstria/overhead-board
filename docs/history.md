@@ -10,6 +10,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.66: Sky view aiming: `arAimDraw()` (end of `arLoop`) draws the ring (`AR_AIM_R` 56 px) and fills it while the
+  nearest `arHits` marker stays inside; after `AR_AIM_MS` (1.5 s) it sets `arSel` and opens the card; `arAim.done`
+  keeps it from reopening until the ring empties. `arCalCheck()` (from `arOrient`) keeps 1.5 s of raw readings: heading
+  spread over 12° while beta/gamma move under 3°, or `webkitCompassAccuracy` over 25, shows `#arCal` for 4 s.
+- 1.66 Daylight: `S.daylight` (COCKPIT Display switch, `for: "phone"`; device-own: left out of `/me` and of the
+  profile's settings in `loadSettings`). `daylightOn()` (app and light only: `typeof LIGHT`) makes `themeNow()` lay
+  `DAYLIGHT` over the board style (cream metal, black flaps, white ink, bright amber for flap text, `pageAccent` dark
+  orange for labels via `COL.labelInk` and the page's `--amber`); the app's `applyTheme` sets `--ink` dark and
+  `html.daylight`, which head.html and light.css restyle (cards, lists, fields, toasts).
 - 1.65 / relay 55: `toast(text, {err, action, run, ms})` (cards block, shared) puts a notice in `#toasts` (above the
   tab bar in the app via `--toast-b`, over the rail on the board, at the top while a card is open); card toggles toast
   with Undo, failures with Retry; `meFlush` toasts on the second failure and when it gets through after. Radar zoom in
