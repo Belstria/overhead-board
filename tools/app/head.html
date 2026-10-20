@@ -421,6 +421,27 @@ body.arOpen #sheet{z-index:75}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:#f0b429;margin-top:6px}
 #toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+/* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
+html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
+html.daylight body{background-color:#efe9dc}
+html.daylight .panel{background:#e2d9c6;border-radius:6px}
+html.daylight .rvCard,html.daylight .cardish,html.daylight #cardBox .cardIn{background:#fbf8f1!important;color:#191919;border-color:#d3cab7}
+html.daylight #cardBox .cardIn *,html.daylight .cardish *{border-color:#d3cab7}
+html.daylight #cardBox h3,html.daylight #cardBox .cFacts dd,html.daylight .cardish .cFacts dd,html.daylight .cardish h3{color:#191919}
+html.daylight .chip{border-color:#c9bfaa;color:#191919}
+html.daylight .flights li,html.daylight #lbFound li{border-color:#d3cab7}
+html.daylight .svFind input{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast{background:#fbf8f1;color:#191919;border-color:#c9bfaa}
+html.daylight #toasts .toast.err{background:#fde9e7;border-color:#e3b2ad}
+html.daylight .fl .tap,html.daylight .fl .who .tap,html.daylight .fl .rt .tap,html.daylight .fl .meta .tap,html.daylight .cLink{color:#2a2620;border-color:#c9bfaa}
+html.daylight .fl .rt .no{color:rgba(0,0,0,.3)}
+html.daylight .fl .meta span:last-child{color:#4a463f}
+html.daylight .svFind input::placeholder,html.daylight #welcome input::placeholder{color:rgba(25,25,25,.45)}
+html.daylight .rv .num{color:#3b3832}
+html.daylight .acCheck b,html.daylight .devTile{color:#191919}
+html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
+html.daylight .cups li:not(.on) .name{color:rgba(25,25,25,.5)}
+html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}

@@ -12,7 +12,7 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  logos:true, overKm:3, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
@@ -20,7 +20,7 @@ const LIGHT_FIXED = {real: false, imperfect: false, quick: false, theme: "classi
 function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
-  const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
+  const {mode, live, livePrev, daylight, ...shared} = GUEST && GUEST.settings || {};      // the style (1.40) and Daylight (1.66) stay this device's own
   return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
 }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
@@ -30,7 +30,7 @@ function loadSettings(){
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
-  const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
+  const {live, livePrev, mode, daylight, ...rest} = changed;   // following the phone, the style and Daylight are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
   return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
@@ -352,7 +352,7 @@ function label(g, f, main, second, size, max = Infinity){
   const wa = g.measureText(a).width, gap = size * .7, total = wa + (b ? gap + g.measureText(b).width : 0);
   g.save(); g.translate(f.x, yb);
   if (total > max) g.scale(Math.max(.6, max / total), 1);
-  g.fillStyle = COL.amber; g.fillText(a, 0, 0);
+  g.fillStyle = COL.labelInk || COL.amber; g.fillText(a, 0, 0);          // 1.66: darker on Daylight's cream
   if (b) { g.fillStyle = COL.labelEn; g.fillText(b, wa + gap, 0); }
   g.restore();
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -413,9 +413,10 @@ function applyTheme(){
   applyLook();
   const T = themeNow();
   FONT = T.font; FLAP.splice(0, 4, ...T.flap); METAL = T.metal;
-  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2;
+  COL.ink = T.ink; COL.amber = T.accent; COL.labelEn = T.label2; COL.labelInk = T.pageAccent || null;
   const root = document.documentElement.style;
-  root.setProperty("--f-board", T.font); root.setProperty("--amber", T.accent); root.setProperty("--ink", T.ink);
+  root.setProperty("--f-board", T.font); root.setProperty("--amber", T.pageAccent || T.accent); root.setProperty("--ink", daylightOn() ? "#191919" : T.ink);
+  document.documentElement.classList.toggle("daylight", daylightOn());   // 1.66: the page's own colours (head.html)
   root.setProperty("--label2", T.label2); root.setProperty("--metal", T.metal[1]);
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.content = T.metal[1];
