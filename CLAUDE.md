@@ -53,13 +53,13 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/` | The app without split flaps (`light/index.html`, generated). |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (53 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (54 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
 | `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
 | `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js` into the boards (the app build does it first); make the main board. |
-| `tools/test/` | `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target). |
+| `tools/test/` | `flows.py` (the relay's access rules and saves, run by smoke.py), `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |
 
 ## How it works
@@ -114,7 +114,8 @@ link, an account sign-in, or a QR pairing) or a stranger (only the private page 
 icons and manifest). A profile has its own spot (sightings, logbook, places, lists, settings under `data/profiles/<id>/`)
 and may have an account (user, scrypt password, passkeys). `at_home()` only opens the admin paths (`/admin`, `/screens`,
 `/status`, `/admin/*` POSTs), and since relay 43 `owner_ok()` only for the one profile named `HOME_OWNER` (David)
-or a device without a profile (other guests: 403). A guest not yet `located` gets the relay's place and airport in
+(relay 54: a device without a profile only on the relay's own computer, e.g. `curl` over SSH, or while no David
+profile exists; other guests: 403). A guest not yet `located` gets the relay's place and airport in
 `OVERHEAD_DEFAULTS`, never its lat/lon (Dave's home). `/admin` makes invites, accounts and limits. Screens name
 their place on each position request. `host_ok()` refuses foreign Host names; loopback (the tunnel) always passes.
 

@@ -3,8 +3,8 @@ check.yml), and handy before a commit.
 
     py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps and their separate files (i18n.js,
                                        sounds.js) parse, and the boards name those files' current versions (needs Node)
-    py tools/test/smoke.py             the test relay with made-up flights, then /, /test/, /app/, /light/ and /test-api/ in a
-                                       headless browser (needs Playwright); fails on any page error
+    py tools/test/smoke.py             the test relay with made-up flights, its rules and saves (flows.py), then /, /test/, /app/,
+                                       /light/ and /test-api/ in a headless browser (needs Playwright); fails on any page error
     py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
                                        checkouts don't test each other's relay
 
@@ -86,6 +86,12 @@ def pages():
             print("the test relay served no positions at /aircraft/48.2085/16.3731/25")
             return False
         print(f"positions: {len(ac)} aircraft")
+        # relay 54: who gets the admin pages, packed pages, the saves (tools/test/flows.py)
+        sys.path.insert(0, str(REPO / "tools" / "test"))
+        import flows
+        flows.BASE = BASE
+        if not flows.checks():
+            return False
         # 1.53.1: the board's translations and sounds, by the version the board names, kept for good (relay 48)
         board = (REPO / "test" / "index.html").read_text(encoding="utf-8")
         for name in assets.ASSETS:

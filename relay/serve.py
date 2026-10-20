@@ -28,6 +28,8 @@ import collections
 import csv
 import datetime
 import email.utils
+import functools
+import gzip
 import hashlib
 import hmac
 import heapq
@@ -56,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 53
+RELAY_VERSION = 54
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -79,6 +81,7 @@ AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
 BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
+PACKED_TYPES = ("text/", "application/json", "application/manifest+json", "image/svg+xml")   # worth packing (relay 54)
 FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav"}
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "fr24_budget_promo", "fr24_promo_until", "public_url", "allow_host")
@@ -2566,6 +2569,12 @@ _buckets = {}
 _made = {}                  # one-off key -> (expires, (name, invite code)): the admin page's last new link
 
 
+@functools.lru_cache(maxsize=16)
+def _gzip(body):
+    """A page or file packed for sending; the same page is packed once (relay 54)."""
+    return gzip.compress(body, 6, mtime=0)
+
+
 def _hash(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
@@ -4561,6 +4570,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def reply(self, status, content_type, body, extra=None):
         extra = dict(extra or {})
+        if status == 200 and len(body) > 1024 and content_type.startswith(PACKED_TYPES):
+            # relay 54: pages and data go packed (gzip) and tagged, so an unchanged page is a short "304" and a changed
+            # one about a fifth of its size. Pages may hold a profile's place: kept by the browser only, and checked
+            # with the relay on every open ("no-cache").
+            tag = '"' + hashlib.sha256(body).hexdigest()[:24] + '"'
+            if content_type.startswith("text/html"):
+                extra.setdefault("Cache-Control", "private, no-cache")
+            extra.update({"ETag": tag, "Vary": "Accept-Encoding, Cookie"})
+            if tag in (self.headers.get("If-None-Match") or "") and extra.get("Cache-Control") != "no-store":
+                status, body = 304, b""
+            elif "gzip" in (self.headers.get("Accept-Encoding") or ""):
+                body, extra["Content-Encoding"] = _gzip(body), "gzip"
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
@@ -4599,14 +4620,21 @@ class Handler(BaseHTTPRequestHandler):
             return False
 
     def owner_ok(self):
-        """The admin pages are Dave's (relay 43): a device of the one profile named HOME_OWNER, or a device without a
-        profile (so a fresh relay can still make its first invite). Other guests are turned away, even at home."""
-        if not self.guest:
-            return True
+        """The admin pages are Dave's (relay 43): a device of the one profile named HOME_OWNER. Other guests are turned
+        away, even at home. A device without a profile only while there is no such profile yet (a fresh relay making its
+        first invite), or on the relay's own computer (relay 54: before, any device at home without a profile got in)."""
         with _data_lock:
             hits = [pid for pid, p in profiles()["profiles"].items()
                     if str(p.get("name") or "").strip().lower() == HOME_OWNER.lower()]
-        return hits == [self.guest[0]]
+        if self.guest:
+            return hits == [self.guest[0]]
+        return not hits or self.on_this_computer()
+
+    def on_this_computer(self):
+        """A request made on the relay's own computer (curl in an SSH session), not passed on by a proxy or the tunnel."""
+        if self.headers.get("Cf-Connecting-IP") or self.headers.get("X-Forwarded-For"):
+            return False
+        return self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
 
     def identify(self):
         """Who is asking: self.guest = (id, profile) for a signed-in device; anyone else is a stranger (relay 42: there
@@ -5360,12 +5388,25 @@ class Handler(BaseHTTPRequestHandler):
 
     def profile_post(self, path):
         """The rest of the POSTs, from a signed-in device."""
+        if path == "/handover":             # relay 54: the Android app on the Wi-Fi moves to the https address (TLS proves
+            pub = (ARGS.public_url or "").rstrip("/")   # it's this relay): a one-time link for this phone's profile there
+            if not self.same_origin() or not pub.startswith("https://"):
+                return self.reply(404 if self.same_origin() else 403, "text/plain", b"No https address")
+            if self.https() or not allow("handover:" + self.guest[0], 1 / 600, 3):
+                return self.reply(429, "text/plain", b"Not now")
+            code = new_invite(pid=self.guest[0])
+            return self.reply(200, "application/json", json.dumps({"link": f"{pub}/join/{code}"}).encode())
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
             j = self.json_body()
             with _data_lock:
                 L = self.guest[1].setdefault("lists", {})
+                op, which = j.get("op"), j.get("list")
+                if op in ("add", "remove") and which in ("fav", "hide"):   # relay 54: one change, so two devices saving
+                    item = _clean_list([j.get("item")])                      # at once don't undo each other
+                    keep = [i for i in L.get(which, []) if not item or (i.get("k"), i.get("v")) != (item[0].get("k"), item[0].get("v"))]
+                    L[which] = _clean_list(keep[-199:] + item if op == "add" else keep)
                 for k in ("fav", "hide"):
                     if k in j:
                         L[k] = _clean_list(j[k])
@@ -5397,6 +5438,8 @@ class Handler(BaseHTTPRequestHandler):
                 _dirty.add("profiles")
             return self.reply(204, "text/plain", b"")
         if path == "/me":               # a guest's settings, so their other devices (and the relay) know their place
+            if (self.headers.get("Origin") or self.headers.get("Referer")) and not self.same_origin():   # relay 54, like the other saves
+                return self.reply(403, "text/plain", b"Only from this site")
             length = int(self.headers.get("Content-Length") or 0)
             if length > 8192:
                 return self.reply(413, "text/plain", b"Too large")

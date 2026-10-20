@@ -5831,6 +5831,15 @@ const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, co
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
+// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
+function androidHandover(){
+  if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
+  try { if (Date.now() - (+localStorage.getItem("od.handover") || 0) < 864e5) return; localStorage.setItem("od.handover", Date.now()); } catch { return; }
+  fetch("/handover", {method: "POST"}).then(r => r.ok ? r.json() : null)
+    .then(j => { if (j && j.link) window.OverheadAndroid.usePublic(j.link); }).catch(() => {});
+}
+setTimeout(androidHandover, 4000);
 /* Settings, once for every screen (1.53.2): the board (tv), the phone app (phone) and its light version (light) show these
    plates; tools/app/build.py copies this part into the app. Each plate is a grid of `cols` cells (two on a phone); `span`
    widens a control to several cells, `wide` to the whole plate. `for: "tv"` or `"phone"` keeps a plate or a control to
@@ -6841,6 +6850,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.63.2", date: "2026-10-20", notes: [
+    "The app opens faster: pages arrive packed, and an unchanged page isn't downloaded again.",
+    "Android app: once signed in, it switches to the board's secure address, so it also works away from home.",
+    "The admin pages only open on the owner's own devices.",
+  ]},
   {v: "1.63.1", date: "2026-10-20", notes: [
     "Styles are kept after closing the app, also when you switch back to the standard ones.",
   ]},

@@ -64,6 +64,7 @@ class MainActivity : Activity() {
     private var failed = false
     private var searching = false
     private var dialog: AlertDialog? = null
+    private var handover = 0                       // loading the relay's https address for the first time (its /join/ page)
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -105,8 +106,11 @@ class MainActivity : Activity() {
             pushCut()
             insets
         }
+        // The relay's https address (the tunnel) once the page has handed it over: TLS proves it is this relay, wherever
+        // the phone is. The address on the Wi-Fi is the fallback when the internet is down.
+        val pub = prefs.getString(PUBLIC, null)
         val saved = prefs.getString(KEY, null)
-        if (saved != null) open(saved) else search()
+        if (pub != null) open(pub) else if (saved != null) open(saved) else search()
         applyOrientation()
     }
 
@@ -153,6 +157,12 @@ class MainActivity : Activity() {
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (!request.isForMainFrame) return
+                val lan = prefs.getString(KEY, null)
+                if (relay == prefs.getString(PUBLIC, null) && lan != null && lan != relay) {
+                    handover = 0
+                    open(lan)                       // no internet: the relay on the home Wi-Fi
+                    return
+                }
                 failed = true
                 web.visibility = View.INVISIBLE
                 showNote("Can't reach the relay at $relay.")
@@ -175,6 +185,16 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView, url: String) {
                 if (url.startsWith("about:")) return
                 if (failed) return
+                if (handover > 0 && Uri.parse(url).path.orEmpty().startsWith("/join/")) {
+                    if (handover++ == 1) view.evaluateJavascript("document.forms[0] && document.forms[0].submit()", null)
+                    else {                          // the link didn't take: stay with the Wi-Fi address
+                        handover = 0
+                        prefs.edit().remove(PUBLIC).apply()
+                        prefs.getString(KEY, null)?.let { open(it) }
+                    }
+                    return
+                }
+                handover = 0
                 webReady = true
                 applyOrientation()
                 pushCut()
@@ -225,7 +245,9 @@ class MainActivity : Activity() {
     }
 
     private fun use(base: String) {
-        prefs.edit().putString(KEY, base).apply()
+        val e = prefs.edit().putString(KEY, base)
+        if (base != prefs.getString(PUBLIC, null)) e.remove(PUBLIC)   // typed or found by hand: that one, not the https one
+        e.apply()
         open(base)
     }
 
@@ -331,6 +353,26 @@ class MainActivity : Activity() {
             main.post { askAddress(null) }
         }
 
+        /** The page, signed in over the Wi-Fi, hands over the relay's https address: a one-time link for this phone there. */
+        @JavascriptInterface
+        fun usePublic(link: String) {
+            val u = Uri.parse(link)
+            val host = u.host ?: return
+            if (u.scheme != "https" || host.isEmpty() || !u.path.orEmpty().startsWith("/join/")) return
+            val base = "https://$host" + if (u.port > 0) ":${u.port}" else ""
+            main.post {
+                if (relay == base || view !== web) return@post
+                prefs.edit().putString(PUBLIC, base).apply()
+                relay = base
+                failed = false
+                webReady = false
+                handover = 1
+                web.visibility = View.INVISIBLE
+                showNote("Switching to the secure address …")
+                web.loadUrl(link)
+            }
+        }
+
         @JavascriptInterface
         fun locate() {
             main.post {
@@ -430,6 +472,7 @@ class MainActivity : Activity() {
 
     companion object {
         const val KEY = "relay"
+        const val PUBLIC = "public"
         const val REQ_LOCATION = 7
         const val PORT = 8080
         val BG = 0xFF0B0B0C.toInt()
