@@ -478,6 +478,9 @@ Five buttons along the bottom:
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
+  Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
+  meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still
+  (or the iPhone says its compass is poor), a note asks for a figure of eight or a drag.
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close.
 - **Search the logbook** (1.65, relay 55): the field at the top of the Logbook tab searches every sighting since the

@@ -565,7 +565,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=44f67a8679"></script>
+<script src="i18n.js?v=13c85588c0"></script>
 <script>
 (() => {
 "use strict";
@@ -6446,6 +6446,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.66", date: "2026-10-20", notes: [
+    "Sky view: hold a plane in the ring in the middle for a moment and its card opens; no need to tap moving labels.",
+    "Sky view says when the compass seems off, and how to fix it.",
+  ]},
   {v: "1.65", date: "2026-10-20", notes: [
     "Saving answers with a short notice: Favourite and Hide can be undone from it, and a save that failed can be tried again.",
     "App: search the whole logbook on the Logbook tab, by registration, flight, type or airline.",

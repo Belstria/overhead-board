@@ -1046,6 +1046,13 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
 let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0};
+// 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
+// (the ring fills as it waits). Then it waits for the ring to be empty again.
+const AR_AIM_R = 56, AR_AIM_MS = 1500;
+let arAim = {hex: "", since: 0, done: ""};
+// 1.66: the compass is unsure when the heading jumps about while the phone is held still (or iOS says it is poor):
+// a note asks for a figure of eight, or a drag to line the labels up.
+let arRaw = [], arCalAt = 0;
 const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
 function arFeed(list){ arList = list || []; arListAt = Date.now(); }
 const arEvent = () => "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
@@ -1054,6 +1061,7 @@ function arOrient(e){
   if (typeof e.webkitCompassHeading === "number") a = 360 - e.webkitCompassHeading;       // iPhone: north from the compass
   else if (!e.absolute && e.type !== "deviceorientationabsolute") return;
   if (a == null || e.beta == null || e.gamma == null) return;
+  arCalCheck(a, e.beta, e.gamma, e.webkitCompassAccuracy);
   if (!arAng) arAng = {a, b: e.beta, g: e.gamma};
   else {                                             // smoothed: compasses wobble
     const d = ((a - arAng.a + 540) % 360) - 180;
@@ -1070,11 +1078,26 @@ async function arOpen(){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arAng = null;
-  $("arHint").textContent = T("Hold the phone up and look around. If the labels sit beside the planes, drag them into place.");
+  $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.");
+  arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
   arLoop();
+}
+function arCalCheck(a, b, g, acc){
+  const now = Date.now();
+  arRaw.push([now, a, b, g]);
+  while (arRaw.length && now - arRaw[0][0] > 1500) arRaw.shift();
+  if (arRaw.length < 8) return;
+  const spread = i => { const v = arRaw.map(r => r[i]); return Math.max(...v) - Math.min(...v); };
+  const as = arRaw.map(r => ((r[1] - arRaw[0][1] + 540) % 360) - 180), aSpread = Math.max(...as) - Math.min(...as);
+  if ((typeof acc === "number" && acc > 25) || (spread(2) < 3 && spread(3) < 3 && aSpread > 12)) arCalAt = now;
+  const el = $("arCal"), show = now - arCalAt < 4000;
+  if (el.hidden === show) {
+    el.hidden = !show;
+    if (show) el.innerHTML = `<b>${escH(T("Compass unsure"))}</b> · ${escH(T("move the phone in a figure of eight, or drag the picture to line the labels up"))}`;
+  }
 }
 function arClose(){
   if (!arOn) return;
@@ -1158,6 +1181,25 @@ function arLoop(){
     g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
   }
   $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
+  arAimDraw(g, W, H);
+}
+// The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
+function arAimDraw(g, W, H){
+  const cx = W / 2, cy = H / 2, now = Date.now();
+  const hit = arHits.reduce((a, h) => { const d = Math.hypot(h.x - cx, h.y - cy); return d < AR_AIM_R && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const hex = hit ? hit.hex : "";
+  if (hex !== arAim.hex) arAim = {hex, since: now, done: hex && hex === arAim.done ? hex : ""};
+  const k = hex && hex !== arAim.done && hex !== arSel ? Math.min(1, (now - arAim.since) / AR_AIM_MS) : hex === arSel && hex ? 1 : 0;
+  g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
+  g.beginPath(); g.arc(cx, cy, AR_AIM_R, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.moveTo(cx, cy - AR_AIM_R - 12); g.lineTo(cx, cy - AR_AIM_R + 6); g.moveTo(cx, cy + AR_AIM_R - 6); g.lineTo(cx, cy + AR_AIM_R + 12); g.stroke();
+  if (k > 0) {
+    g.strokeStyle = "#f0b429"; g.lineWidth = 5;
+    g.beginPath(); g.arc(cx, cy, AR_AIM_R, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
+  }
+  if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
+    arAim.done = hex; arSel = hex; ctlSound.press(); arCardRender();
+  }
 }
 // The plane on top, out of the picture: an arrow at the edge pointing the way to turn.
 function arEdge(g, s, W, H){

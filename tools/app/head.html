@@ -378,6 +378,10 @@ body.aboutOpen{overflow:hidden}
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
+/* 1.66: the compass seems off: a note under the top bar until it settles */
+#arView .arCal{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
+  background:rgba(15,16,18,.85);color:#f3f0e8;font:500 14px/1.35 var(--f-board)}
+#arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
 body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
@@ -563,6 +567,7 @@ body.arOpen #sheet{z-index:75}
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
+  <p class="arCal" id="arCal" hidden></p>
   <p class="arHint" id="arHint"></p>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
