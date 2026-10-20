@@ -245,7 +245,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   runways, no text, from [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles, © OpenStreetMap contributors, credited
   under the radar). Each screen remembers it.
   **− and +** (1.62, Airport style) zoom in on the home airport in steps (10, 5 and 2.5 km to the rim), centred on where
-  the planes stand: the map then always shows, with taxiways, aprons and buildings, and the planes on the ground are
+  the planes stand: with Map on the close-up shows taxiways, aprons and buildings (since 1.70.2 Map off hides the map at every zoom), and the planes on the ground are
   grey and listed as **TAXIING** or **PARKED**. The list beside the radar shows each airline's logo (1.62). On the
   full board − and + sit at the radar's top corners, Map at its bottom left, and the range is engraved in the dial (1.63).
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,

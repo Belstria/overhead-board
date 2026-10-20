@@ -5018,7 +5018,7 @@ function radarMapSet(on){ radarMapOn = !!on; try { localStorage.setItem(RADAR_MA
 const radarMap = {key: "", cv: null, ready: false, tiles: null};
 // Into g (clipped to the scope): the map for a scope of radius R (units) at cx, cy, `range` km to the rim, px pixels a unit.
 function radarMapDraw(g, cx, cy, R, range, C, px){
-  if (!radarMapOn && !radarZoomed()) return;
+  if (!radarMapOn) return;                // 1.70.2: off is off (zoomed in it used to show anyway)
   const size = Math.round(2 * R * px), key = [(+C.lat).toFixed(4), (+C.lon).toFixed(4), range, size].join();
   // 1.68.1: while fingers pinch (radar.live) the last map is stretched to the range under them; a new one is built when
   // they let go. While a new one loads, the last stays (scaled), instead of an empty scope.
@@ -7207,6 +7207,7 @@ setInterval(() => {
 const CHANGELOG = [
   {v: "1.70.2", date: "2026-10-21", notes: [
     "Android app: notifications ring with the airport chime and show the logo's plane in the status bar.",
+    "Radar: Map off now hides the map at every zoom, not only zoomed out.",
   ]},
   {v: "1.70.1", date: "2026-10-20", notes: [
     "A setup page used once for the notifications is gone again.",
