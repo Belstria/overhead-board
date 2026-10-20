@@ -4930,11 +4930,17 @@ function radarRows(n){
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
 const RADAR_ZOOMS = [0, 10, 5, 2.5];
-const radarZoomed = () => !!(radarZoom && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
+// 1.68.1: a pinch zooms smoothly (radar.live: the range under the fingers, km), and the zoom stays where it is let go
+// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of RADAR_ZOOMS from there.
+const RADAR_MIN = 1.5;
+const radarZoomed = () => !!((radar.live || radarZoom) && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
 // The close-up's centre: where the planes on the ground stand (the gates, not the runways' middle), fixed while zoomed.
 function radarZoomSet(z){
-  radarZoom = z; radar.zc = null;
+  const keep = radarZoomed() && airportMode() && radar.zc;     // already close in: the centre stays put
+  radarZoom = z;
+  if (keep && radarZoomed()) return radarZoomKeep();
+  radar.zc = null;
   if (!radarZoomed() || !airportMode()) return radarZoomKeep();
   const kx = 111.32 * Math.cos(AP.lat * Math.PI / 180), gr = radar.planes.filter(o => o.ac.alt_baro === "ground" && Math.hypot((o.ac.lon - AP.lon) * kx, (o.ac.lat - AP.lat) * 110.57) < 3);
   const m = (a, f) => a.reduce((t, o) => t + f(o), 0) / a.length;
@@ -4942,8 +4948,19 @@ function radarZoomSet(z){
   radarZoomKeep();
 }
 function radarZoomKeep(){ try { localStorage.setItem(RADAR_ZOOM_KEY, JSON.stringify({z: radarZoom, c: radar.zc})); } catch {} }
-function radarZoomStep(d){ radarZoomSet(RADAR_ZOOMS[Math.max(0, Math.min(RADAR_ZOOMS.length - 1, RADAR_ZOOMS.indexOf(radarZoom) + d))]); }
-const radarRange = () => radarZoomed() ? radarZoom : Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);
+function radarZoomStep(d){
+  const steps = RADAR_ZOOMS.slice(1);                   // 10, 5, 2.5 km
+  let z = radarZoom;
+  for (let i = 0; i < Math.abs(d); i++) {
+    if (d > 0) z = steps.find(v => v < (z || Infinity) - .01) ?? steps[steps.length - 1];
+    else z = [...steps].reverse().find(v => v > z + .01) || 0;
+  }
+  radarZoomSet(z);
+}
+const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_ZOOMS[RADAR_ZOOMS.length - 1] + .01 : !!radarZoom;
+const radarBase = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);        // the usual range
+const radarRange = () => radar.live && radarZoomed() ? radar.live : radarZoomed() ? radarZoom : radarBase();
+const radarRangeText = () => nf.format(Math.round(radarRange() * 10) / 10) + " km";
 /* 1.55 (to-do #68): a map under the radar, switched per device (board, app and light). OpenFreeMap's vector tiles
    (OpenStreetMap data, free and without a key) drawn here in the board's own dim colours, so there's no text on it:
    built-up areas, water, rivers, main roads and runways. The tiles are put together once for the radar's centre, range
@@ -4956,8 +4973,17 @@ const radarMap = {key: "", cv: null, ready: false, tiles: null};
 function radarMapDraw(g, cx, cy, R, range, C, px){
   if (!radarMapOn && !radarZoomed()) return;
   const size = Math.round(2 * R * px), key = [(+C.lat).toFixed(4), (+C.lon).toFixed(4), range, size].join();
-  if (radarMap.key !== key) radarMapBuild(key, +C.lat, +C.lon, range, size);
-  if (radarMap.ready) g.drawImage(radarMap.cv, cx - R, cy - R, 2 * R, 2 * R);
+  // 1.68.1: while fingers pinch (radar.live) the last map is stretched to the range under them; a new one is built when
+  // they let go. While a new one loads, the last stays (scaled), instead of an empty scope.
+  if (radarMap.key !== key && !radar.live) {
+    if (radarMap.ready) radarMap.last = {cv: radarMap.cv, lat: radarMap.lat, lon: radarMap.lon, range: radarMap.range};
+    radarMapBuild(key, +C.lat, +C.lon, range, size);
+  }
+  const m = radarMap.ready ? radarMap : radarMap.last;
+  if (!m || !m.cv) return;
+  const k = R / range, w = 2 * R * m.range / range;
+  const dx = (m.lon - C.lon) * 111.32 * Math.cos(C.lat * Math.PI / 180) * k, dy = -(m.lat - C.lat) * 110.57 * k;
+  g.drawImage(m.cv, cx + dx - w / 2, cy + dy - w / 2, w, w);
 }
 // A Mapbox vector tile (protobuf): the layers we draw, each a list of {type (2 line, 3 area), cls, geom (commands)}.
 const MVT_LAYERS = new Set(["water", "waterway", "transportation", "aeroway", "landuse", "building"]);
@@ -5026,7 +5052,7 @@ async function radarMapTiles(){
 async function radarMapBuild(key, lat, lon, range, size){
   const cv = document.createElement("canvas"), c = cv.getContext("2d");
   cv.width = cv.height = size;
-  Object.assign(radarMap, {key, cv, ready: false});
+  Object.assign(radarMap, {key, cv, ready: false, lat, lon, range});
   const km = 2 * range / size, cosl = Math.cos(lat * Math.PI / 180), EARTH = 40075.016686, lr = lat * Math.PI / 180;     // km a pixel
   const z = Math.max(3, Math.min(range < 8 ? 15 : 13, Math.round(Math.log2(EARTH * cosl / (256 * km))) - (size > 700 ? 1 : 0))), n = 2 ** z;   // vector: sharp a zoom out
   const s = EARTH * cosl / (256 * n) / km;                                                       // pixels a tile pixel
@@ -6013,7 +6039,7 @@ $("radarCv").addEventListener("click", e => {
   const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 26 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
   const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
   pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
-  if (dbl) return radarZoomTo(radarZoom === RADAR_ZOOMS[RADAR_ZOOMS.length - 1] ? -9 : 1);   // double tap: closer, from the closest back out
+  if (dbl) return radarZoomTo(radarZoomCan(1) ? 1 : -9);   // double tap: closer, from the closest back out
   radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
   ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
 });
@@ -6079,9 +6105,9 @@ function drawRadar(t){
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
   mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
-  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport; 1.65: both styles
-  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
-  $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
+  // 1.62: − and + zoom in on the airport; 1.65: both styles; 1.68.1: from any range a pinch left
+  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = radarRangeText();
+  $("rvZoomOut").disabled = !radarZoomCan(-1); $("rvZoomIn").disabled = !radarZoomCan(1);
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
@@ -7704,31 +7730,33 @@ function radarZoomTo(d){
   if (radarZoom === was) return;
   ctlSound.press(); buildRadarLegend(); rvSig = ""; renderRadarList();
 }
-// 1.65: pinch the radar to zoom in or out a step (the scope follows the fingers, then settles on the step); one finger
-// still scrolls the page.
-const pinch = {pts: new Map(), d0: 0, k: 1, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
+// 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
+// meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
+const pinch = {pts: new Map(), d0: 0, r0: 0, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
 (() => {
-  const el = $("scope"), cvs = el.querySelectorAll("canvas");
+  const el = $("scope");
   el.style.touchAction = "pan-y";
   const dist = () => { const [a, b] = [...pinch.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
-  const show = k => { for (const c of cvs) c.style.transform = k === 1 ? "" : `scale(${k})`; el.style.overflow = k === 1 ? "" : "hidden"; };
   el.addEventListener("pointerdown", e => {
     pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    if (pinch.pts.size === 2) { pinch.d0 = dist(); pinch.k = 1; }
+    if (pinch.pts.size !== 2) return;
+    if (airportMode() && AP.lat == null) return;
+    if (!radarZoomed() && airportMode()) { radarZoomSet(radarBase()); }      // the airport's close-up centre, at the usual range
+    pinch.d0 = dist(); pinch.r0 = radarRange();
   });
   el.addEventListener("pointermove", e => {
     if (!pinch.pts.has(e.pointerId)) return;
     pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if (pinch.pts.size !== 2 || !pinch.d0) return;
-    pinch.k = Math.max(.5, Math.min(2.2, dist() / pinch.d0));
-    show(pinch.k);
+    radar.live = Math.max(RADAR_MIN, Math.min(radarBase(), pinch.r0 * pinch.d0 / Math.max(1, dist())));
+    $("rvZoomKm").textContent = radarRangeText();
   });
   const end = e => {
     if (!pinch.pts.delete(e.pointerId) || !pinch.d0) return;
-    const k = pinch.k;
-    pinch.d0 = 0; pinch.k = 1; pinch.quiet = Date.now() + 400; show(1);
-    const steps = k > 1.9 ? 2 : k > 1.25 ? 1 : k < .55 ? -2 : k < .8 ? -1 : 0;
-    if (steps) radarZoomTo(steps);
+    const v = radar.live || pinch.r0;
+    pinch.d0 = 0; radar.live = 0; pinch.quiet = Date.now() + 400;
+    radarZoomSet(v >= radarBase() * .97 ? 0 : Math.round(v * 10) / 10);
+    buildRadarLegend(); rvSig = ""; renderRadarList();
   };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
 })();

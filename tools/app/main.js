@@ -1267,7 +1267,7 @@ $("radarCv").addEventListener("click", e => {
   const hit = (radar.hits || []).reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 26 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
   const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
   pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
-  if (dbl) return radarZoomTo(radarZoom === RADAR_ZOOMS[RADAR_ZOOMS.length - 1] ? -9 : 1);   // double tap: closer, from the closest back out
+  if (dbl) return radarZoomTo(radarZoomCan(1) ? 1 : -9);   // double tap: closer, from the closest back out
   radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
   ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
 });
@@ -1344,9 +1344,9 @@ function drawRadar(t){
 function buildRadarLegend(){
   const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
   mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
-  const zi = RADAR_ZOOMS.indexOf(radarZoom);                  // 1.62: − and + zoom in on the airport; 1.65: both styles
-  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
-  $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
+  // 1.62: − and + zoom in on the airport; 1.65: both styles; 1.68.1: from any range a pinch left
+  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = radarRangeText();
+  $("rvZoomOut").disabled = !radarZoomCan(-1); $("rvZoomIn").disabled = !radarZoomCan(1);
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
@@ -1622,31 +1622,33 @@ function radarZoomTo(d){
   if (radarZoom === was) return;
   ctlSound.press(); buildRadarLegend(); rvSig = ""; renderRadarList();
 }
-// 1.65: pinch the radar to zoom in or out a step (the scope follows the fingers, then settles on the step); one finger
-// still scrolls the page.
-const pinch = {pts: new Map(), d0: 0, k: 1, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
+// 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
+// meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
+const pinch = {pts: new Map(), d0: 0, r0: 0, quiet: 0, tapAt: 0, tapX: 0, tapY: 0};
 (() => {
-  const el = $("scope"), cvs = el.querySelectorAll("canvas");
+  const el = $("scope");
   el.style.touchAction = "pan-y";
   const dist = () => { const [a, b] = [...pinch.pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
-  const show = k => { for (const c of cvs) c.style.transform = k === 1 ? "" : `scale(${k})`; el.style.overflow = k === 1 ? "" : "hidden"; };
   el.addEventListener("pointerdown", e => {
     pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
-    if (pinch.pts.size === 2) { pinch.d0 = dist(); pinch.k = 1; }
+    if (pinch.pts.size !== 2) return;
+    if (airportMode() && AP.lat == null) return;
+    if (!radarZoomed() && airportMode()) { radarZoomSet(radarBase()); }      // the airport's close-up centre, at the usual range
+    pinch.d0 = dist(); pinch.r0 = radarRange();
   });
   el.addEventListener("pointermove", e => {
     if (!pinch.pts.has(e.pointerId)) return;
     pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if (pinch.pts.size !== 2 || !pinch.d0) return;
-    pinch.k = Math.max(.5, Math.min(2.2, dist() / pinch.d0));
-    show(pinch.k);
+    radar.live = Math.max(RADAR_MIN, Math.min(radarBase(), pinch.r0 * pinch.d0 / Math.max(1, dist())));
+    $("rvZoomKm").textContent = radarRangeText();
   });
   const end = e => {
     if (!pinch.pts.delete(e.pointerId) || !pinch.d0) return;
-    const k = pinch.k;
-    pinch.d0 = 0; pinch.k = 1; pinch.quiet = Date.now() + 400; show(1);
-    const steps = k > 1.9 ? 2 : k > 1.25 ? 1 : k < .55 ? -2 : k < .8 ? -1 : 0;
-    if (steps) radarZoomTo(steps);
+    const v = radar.live || pinch.r0;
+    pinch.d0 = 0; radar.live = 0; pinch.quiet = Date.now() + 400;
+    radarZoomSet(v >= radarBase() * .97 ? 0 : Math.round(v * 10) / 10);
+    buildRadarLegend(); rvSig = ""; renderRadarList();
   };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
 })();
