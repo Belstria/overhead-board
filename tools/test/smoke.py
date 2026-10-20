@@ -53,6 +53,10 @@ def syntax():
     if stale:
         bad += 1
         print(f"{', '.join(stale)} don't name the current i18n.js/sounds.js: run py tools/assets.py (or tools/app/build.py)")
+    sys.path.insert(0, str(REPO / "tools" / "test"))
+    import tokens                                  # 1.68: the app's CSS keeps to the type scale
+    if not tokens.check():
+        bad += 1
     print("scripts parse" if not bad else f"{bad} script(s) don't parse")
     return bad == 0
 
