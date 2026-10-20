@@ -10,6 +10,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.70 / relay 57: Android notifications through Firebase Cloud Messaging. Relay: `fcm_ready()` (data/fcm.json, the
+  service account key; uploaded by the owner at `/fcm`, owner's devices over https or at home), `_fcm_token()` (RS256
+  JWT → OAuth token, kept ~55 min), `fcm_send()` (v1 API, data message; unregistered → 410 so the sub is dropped);
+  `/push/subscribe` takes `{subscription: {fcm: token}}` (endpoint `fcm:<token>`); pages get `OVERHEAD_FCM`;
+  `/push/test` sends a test to the profile's devices. App: `PushService.kt` (shows the data message like sw.js; an
+  `update` with `setOnlyAlertOnce`), bridge `pushEnable()` (POST_NOTIFICATIONS on Android 13+, then the token to
+  `window.fallblattPush`) and `pushToken()`; a tap opens `OPEN_URL`. Build: the google-services plugin applies only
+  when `android/app/google-services.json` exists, written by CI from the secret `GOOGLE_SERVICES_JSON`. main.js:
+  `NATIVE_PUSH()`, `od.push.native`, the token re-sent 6 s after each start.
 - 1.69: the app's radar controls are a `.plate.rvPlate` (head.html) with Settings' own `.wheel` (`#rvWheel`, ▲ `#rvZoomOut`
   wider, ▼ `#rvZoomIn` closer, `#rvZoomKm` the range; arrow keys too) and `.toggle` (`#rvMap`); `buildRadarLegend` sets
   them. Pinch (1.68.1): `radar.live` is the range under the fingers (`radarRange()` uses it, `RADAR_MIN` 1.5 km to

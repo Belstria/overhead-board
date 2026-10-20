@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 56
+RELAY_VERSION = 57
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2579,7 +2579,8 @@ def board_html(sub="", guest=None):
     who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
-              f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};</script>")
+              f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};"
+              f"window.OVERHEAD_FCM={'true' if fcm_ready() else 'false'};</script>")
     return html.replace("<head>", "<head>\n" + inject, 1)
 
 
@@ -3617,7 +3618,7 @@ def save_config():
 # notifications and everything else works as before. Subscriptions live with each profile.
 try:
     from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric import ec, padding
     from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -3662,8 +3663,55 @@ def _hkdf(salt, info, ikm, n):
     return HKDF(algorithm=hashes.SHA256(), length=n, salt=salt, info=info).derive(ikm)
 
 
+# Relay 57: the Android app's notifications through Firebase Cloud Messaging (its WebView has no Web Push). The
+# project's service account key, fcm.json next to the relay (root/the relay's user only; never in the repository),
+# signs a token for Google's FCM v1 API. Without the file the app says notifications aren't set up.
+FCM_FILE = DATA_DIR / "fcm.json"   # put there by the owner at /fcm (an upload page, owner's devices over https only)
+_fcm = {"token": "", "until": 0}
+
+
+def fcm_ready():
+    return PUSH_OK and FCM_FILE.is_file()
+
+
+def _fcm_token():
+    """An OAuth access token from the service account (RS256 JWT), kept until shortly before it runs out."""
+    if _fcm["token"] and time.time() < _fcm["until"]:
+        return _fcm["token"], _fcm["project"]
+    sa = json.loads(FCM_FILE.read_text(encoding="utf-8"))
+    now = int(time.time())
+    claims = {"iss": sa["client_email"], "scope": "https://www.googleapis.com/auth/firebase.messaging",
+              "aud": "https://oauth2.googleapis.com/token", "iat": now, "exp": now + 3600}
+    head = _b64u(json.dumps({"alg": "RS256", "typ": "JWT"}).encode()) + "." + _b64u(json.dumps(claims).encode())
+    key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
+    jwt = head + "." + _b64u(key.sign(head.encode(), padding.PKCS1v15(), hashes.SHA256()))
+    status, _, body, _ = fetch("https://oauth2.googleapis.com/token", content_type="application/x-www-form-urlencoded", timeout=15,
+                               data=urllib.parse.urlencode({"grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer", "assertion": jwt}).encode())
+    if status != 200:
+        raise RuntimeError(f"Firebase sign-in failed (HTTP {status})")
+    j = json.loads(body)
+    _fcm.update(token=j["access_token"], until=time.time() + int(j.get("expires_in", 3600)) - 300, project=sa["project_id"])
+    return _fcm["token"], _fcm["project"]
+
+
+def fcm_send(sub, payload, urgent):
+    """One notification to the Android app: a data message its PushService shows (as the service worker does)."""
+    token, project = _fcm_token()
+    data = {k: ("1" if v is True else "" if v is False else str(v)) for k, v in payload.items() if v is not None}
+    msg = {"message": {"token": sub["fcm"], "data": data, "android": {"priority": "high" if urgent else "normal", "ttl": "3600s"}}}
+    status, _, body, _ = fetch(f"https://fcm.googleapis.com/v1/projects/{project}/messages:send", data=json.dumps(msg).encode(),
+                               content_type="application/json", timeout=15, headers={"Authorization": f"Bearer {token}"})
+    if status == 401:
+        _fcm["token"] = ""
+    if status == 400 and b"registration-token-not-registered" in body.lower():
+        return 410
+    return 410 if status == 404 else status
+
+
 def push_send(sub, payload, urgent=False):
     """Send one notification. Returns the HTTP status (404/410: the subscription is gone)."""
+    if sub.get("fcm"):
+        return fcm_send(sub, payload, urgent)
     key, pub = vapid()
     ua_pub, auth = _ub64(sub["keys"]["p256dh"]), _ub64(sub["keys"]["auth"])
     eph = ec.generate_private_key(ec.SECP256R1())
@@ -3701,6 +3749,9 @@ PUSH_TEXT = {
                "nl": "Kijk nu omhoog: {what}"},
     "cd_look": {"en": "look {dir}", "de": "Blick nach {dir}", "fr": "regardez vers {dir}", "es": "mira al {dir}", "nl": "kijk naar {dir}"},
     "cd_up": {"en": "straight up", "de": "direkt nach oben", "fr": "juste au-dessus", "es": "justo encima", "nl": "recht omhoog"},
+    "test": {"en": "Notifications work. This is how a plane worth a look will show up.", "de": "Benachrichtigungen funktionieren. So erscheint ein Flugzeug, das einen Blick wert ist.",
+             "fr": "Les notifications fonctionnent. Voici comment un avion à voir s'affichera.", "es": "Las notificaciones funcionan. Así aparecerá un avión que merece la pena.",
+             "nl": "Meldingen werken. Zo verschijnt een vliegtuig dat het bekijken waard is."},
     "why_emergency": {"en": "Emergency: squawking {x}", "de": "Notfall: Squawk {x}", "fr": "Urgence : transpondeur {x}", "es": "Emergencia: squawk {x}", "nl": "Noodgeval: squawk {x}"},
     "why_special": {"en": "A special plane is coming", "de": "Ein besonderes Flugzeug kommt", "fr": "Un avion spécial arrive", "es": "Llega un avión especial", "nl": "Er komt een bijzonder toestel"},
     "why_watch": {"en": "On the watchlist: {x}", "de": "Auf der Beobachtungsliste: {x}", "fr": "Sur la liste : {x}", "es": "En la lista de vigilancia: {x}", "nl": "Op de volglijst: {x}"},
@@ -5198,7 +5249,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/fcm"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -5294,6 +5345,17 @@ class Handler(BaseHTTPRequestHandler):
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
             return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/fcm":              # relay 57: the owner hands over the Firebase key file (away from home too)
+            if not self.owner_ok() or not (self.https() or self.at_home()):
+                return self.reply(403, "text/plain", b"Only for the owner, over https")
+            state = "<p>A key is set" + (f" for project <b>{html.escape(json.loads(FCM_FILE.read_text()).get('project_id', '?'))}</b>" if FCM_FILE.is_file() else "") + ". Uploading another replaces it.</p>" if FCM_FILE.is_file() else "<p>No key yet.</p>"
+            return self.reply(200, "text/html; charset=utf-8", plain_page("Fallblatt · Firebase", (
+                "<h1>Firebase key</h1><p>The service account key from Firebase (Project settings → Service accounts → Generate new "
+                "private key). It stays on the relay, readable only by it.</p>" + state +
+                "<p><input type=file id=f accept='.json,application/json'></p><p id=n></p>"
+                "<script>document.getElementById('f').onchange=async e=>{const t=await e.target.files[0].text(),n=document.getElementById('n');"
+                "n.textContent='Uploading …';const r=await fetch('/fcm',{method:'POST',headers:{'Content-Type':'application/json'},body:t});"
+                "n.textContent=r.ok?'Saved. Notifications for the Android app are ready.':'Not saved: '+await r.text();}</script>")))
         if path == "/now":              # relay 56: the plane overhead now, for the Android app's widget
             if not allow("now:" + self.guest[0], 1, 4):
                 return self.reply(429, "text/plain", b"Too many requests")
@@ -5523,6 +5585,24 @@ class Handler(BaseHTTPRequestHandler):
 
     def profile_post(self, path):
         """The rest of the POSTs, from a signed-in device."""
+        if path == "/fcm":                  # relay 57: the Firebase service account key, from the owner (see the GET)
+            if not self.owner_ok() or not (self.https() or self.at_home()) or not self.same_origin():
+                return self.reply(403, "text/plain", b"Only for the owner, over https")
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                assert 0 < length < 16384
+                sa = json.loads(self.rfile.read(length))
+                assert sa.get("type") == "service_account" and sa.get("project_id") and "@" in str(sa.get("client_email"))
+                serialization.load_pem_private_key(str(sa["private_key"]).encode(), password=None)
+            except Exception:
+                return self.reply(400, "text/plain", b"That isn't a Firebase service account key file")
+            tmp = FCM_FILE.with_suffix(".tmp")
+            tmp.write_text(json.dumps(sa), encoding="utf-8")
+            os.chmod(tmp, 0o600)
+            tmp.replace(FCM_FILE)
+            _fcm["token"] = ""
+            event("info", f"Firebase key set for project {sa['project_id']}")
+            return self.reply(204, "text/plain", b"")
         if path == "/handover":             # relay 54: the Android app on the Wi-Fi moves to the https address (TLS proves
             pub = (ARGS.public_url or "").rstrip("/")   # it's this relay): a one-time link for this phone's profile there
             if not self.same_origin() or not pub.startswith("https://"):
@@ -5551,6 +5631,16 @@ class Handler(BaseHTTPRequestHandler):
                 _dirty.add("profiles")
                 out = {"fav": L.get("fav", []), "hide": L.get("hide", [])}
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/push/test":            # relay 57: Settings → Notifications → Send a test, to this profile's devices
+            if not self.same_origin() or not PUSH_OK or not allow("pushtest:" + self.guest[0], 1 / 20, 3):
+                return self.reply(429, "text/plain", b"Not now")
+            with _data_lock:
+                subs = self.guest[1].get("push") or []
+            if not subs:
+                return self.reply(404, "text/plain", b"No notifications are on")
+            threading.Thread(target=_deliver, args=(subs, {"title": "Fallblatt", "body": ptext("test", (subs[-1].get("lang") or "en")),
+                                                           "tag": "test", "url": "/app/"}), daemon=True).start()
+            return self.reply(204, "text/plain", b"")
         if path in ("/push/subscribe", "/push/unsubscribe"):
             length = int(self.headers.get("Content-Length") or 0)
             if length > 4096 or not PUSH_OK:
@@ -5560,9 +5650,14 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 j = json.loads(self.rfile.read(length) or b"{}")
                 sub = j["subscription"]
-                ep, keys = str(sub["endpoint"]), sub["keys"]
-                assert push_endpoint_ok(ep) and isinstance(keys.get("p256dh"), str) and isinstance(keys.get("auth"), str)
-                assert len(keys["p256dh"]) < 200 and len(keys["auth"]) < 100
+                fcm = str(sub.get("fcm") or "")
+                if fcm:                     # relay 57: the Android app, through Firebase
+                    assert fcm_ready() and re.fullmatch(r"[A-Za-z0-9:_-]{20,400}", fcm)
+                    ep, keys = "fcm:" + fcm, {}
+                else:
+                    ep, keys = str(sub["endpoint"]), sub["keys"]
+                    assert push_endpoint_ok(ep) and isinstance(keys.get("p256dh"), str) and isinstance(keys.get("auth"), str)
+                    assert len(keys["p256dh"]) < 200 and len(keys["auth"]) < 100
             except (ValueError, KeyError, TypeError, AttributeError, AssertionError):
                 return self.reply(400, "text/plain", b"subscription missing")
             with _data_lock:
@@ -5570,8 +5665,9 @@ class Handler(BaseHTTPRequestHandler):
                 subs[:] = [s_ for s_ in subs if s_["endpoint"] != ep]
                 if path == "/push/subscribe":
                     prefs = j.get("prefs") or {}
-                    subs.append({"endpoint": ep, "keys": {"p256dh": keys["p256dh"], "auth": keys["auth"]}, "lang": str(j.get("lang") or "en")[:2],
-                                 "prefs": _push_prefs(prefs), "added": time.time()})
+                    one = {"endpoint": ep, "lang": str(j.get("lang") or "en")[:2], "prefs": _push_prefs(prefs), "added": time.time()}
+                    one.update({"fcm": fcm} if fcm else {"keys": {"p256dh": keys["p256dh"], "auth": keys["auth"]}})
+                    subs.append(one)
                     del subs[:-10]
                 _dirty.add("profiles")
             return self.reply(204, "text/plain", b"")

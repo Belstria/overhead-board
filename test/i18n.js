@@ -3,6 +3,10 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Send a test", "Test senden", "Envoyer un test", "Enviar una prueba", "Test sturen"],
+  ["Sent: it should arrive in a few seconds.", "Gesendet: sie sollte in ein paar Sekunden ankommen.", "Envoyé : elle devrait arriver dans quelques secondes.", "Enviado: debería llegar en unos segundos.", "Verstuurd: hij zou binnen een paar seconden moeten komen."],
+  ["The phone didn't answer. Try again in a moment.", "Das Handy hat nicht geantwortet. Versuche es gleich noch einmal.", "Le téléphone n'a pas répondu. Réessayez dans un instant.", "El teléfono no respondió. Inténtalo de nuevo en un momento.", "De telefoon antwoordde niet. Probeer het zo opnieuw."],
+  ["Notifications couldn't be turned on.", "Benachrichtigungen konnten nicht eingeschaltet werden.", "Impossible d'activer les notifications.", "No se pudieron activar las notificaciones.", "Meldingen konden niet worden ingeschakeld."],
   ["Range km", "Reichweite km", "Portée km", "Alcance km", "Bereik km"],
   ["Count down to the plane", "Countdown bis zum Flugzeug", "Compte à rebours jusqu'à l'avion", "Cuenta atrás hasta el avión", "Aftellen tot het vliegtuig"],
   ["The notification counts down until the plane is there, and rings once more when it's time to look up.", "Die Benachrichtigung zählt herunter, bis das Flugzeug da ist, und klingelt noch einmal, wenn es Zeit zum Hochschauen ist.", "La notification fait un compte à rebours jusqu'à l'arrivée de l'avion et sonne encore une fois quand il faut lever les yeux.", "La notificación cuenta hacia atrás hasta que llega el avión y vuelve a sonar cuando toca mirar arriba.", "De melding telt af tot het vliegtuig er is en klinkt nog een keer als het tijd is om omhoog te kijken."],

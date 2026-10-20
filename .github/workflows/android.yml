@@ -47,6 +47,13 @@ jobs:
             echo "::warning::No signing key in the secrets: the APK is signed with a throwaway debug key and not released."
           fi
 
+      # 1.70: Firebase's app config for push (not in the repository)
+      - name: Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; fi
+
       # The app is named after the project version (the newest entry in the patch notes) and the build number.
       - name: Version
         id: version

@@ -4,3 +4,4 @@ __pycache__/
 relay/data/
 sounds-src/
 .cache/
+android/app/google-services.json
