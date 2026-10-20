@@ -6027,6 +6027,17 @@ function tip(id, target, text, auto){
   tipQueue.push({id, target, text, auto});
   setTimeout(tipNext, 60);
 }
+// What of the screen isn't covered by fixed bars (the app's header and tab bar): a tip's ring stays within it.
+function tipBand(){
+  let top = 0, bottom = innerHeight;
+  for (const id of ["top", "tabs"]) {
+    const e = document.getElementById(id), cs = e && getComputedStyle(e);
+    if (!e || !e.getClientRects().length || !/fixed|sticky/.test(cs.position)) continue;
+    const r = e.getBoundingClientRect();
+    if (r.top <= 1) top = Math.max(top, r.bottom); else bottom = Math.min(bottom, r.top);
+  }
+  return {top, bottom};
+}
 function tipNext(){
   if (tipCur || !tipQueue.length) return;
   if (cardOpenNow() || document.hidden) { setTimeout(tipNext, 2000); return; }
@@ -6048,6 +6059,10 @@ function tipNext(){
     if (!el) { shade.style.background = "rgba(6,6,8,.32)"; Object.assign(bub.style, {left: "16px", top: `${innerHeight - bh - 24}px`}); return; }
     const r = el.getBoundingClientRect(), pad = 6, x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
     Object.assign(ring.style, {left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`});
+    // 1.68.1: only the part not under the app's header or tab bar is ringed (it was drawn over them)
+    const b = tipBand(), cutT = Math.max(0, b.top - y), cutB = Math.max(0, y + h - b.bottom);
+    ring.style.clipPath = cutT || cutB ? `inset(${cutT}px 0 ${cutB}px 0)` : "";
+    ring.style.visibility = cutT + cutB >= h ? "hidden" : "";
     const cx = x + w / 2, cy = y + h / 2;
     shade.style.background = `radial-gradient(ellipse ${w / 2 + 90}px ${h / 2 + 90}px at ${cx}px ${cy}px, rgba(6,6,8,0) 0%, rgba(6,6,8,0) 52%, rgba(6,6,8,.6) 100%)`;
     const below = y + h + 14 + bh < innerHeight - 8;
@@ -6059,14 +6074,20 @@ function tipNext(){
     try { localStorage.setItem(TIPS_KEY, JSON.stringify(tipsSeen)); } catch {}
     tipCur = null;
     L.style.pointerEvents = "none";                        // fading out: a second tap goes nowhere
-    removeEventListener("resize", place); removeEventListener("scroll", place, true); removeEventListener("keydown", key, true);
+    cancelAnimationFrame(follow); removeEventListener("resize", place); removeEventListener("keydown", key, true);
     L.classList.remove("on"); setTimeout(() => L.remove(), 200);
     setTimeout(tipNext, 40);                               // 1.50: the next one follows at once, over the fading one
   };
   const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
   L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
-  addEventListener("resize", place); addEventListener("scroll", place, {passive: true, capture: true}); addEventListener("keydown", key, true);
-  setTimeout(() => { place(); L.classList.add("on"); }, moved ? 50 : 20);
+  // 1.68.1: the page holds still under a tip (a swipe used to scroll it, with the ring trailing behind), and the ring
+  // follows its element every frame in case the layout moves anyway.
+  const hold = e => { if (e.cancelable) e.preventDefault(); };
+  L.addEventListener("touchmove", hold, {passive: false}); L.addEventListener("wheel", hold, {passive: false});
+  let follow = 0;
+  const track = () => { place(); follow = requestAnimationFrame(track); };
+  addEventListener("resize", place); addEventListener("keydown", key, true);
+  setTimeout(() => { if (tipCur !== t) return; track(); L.classList.add("on"); }, moved ? 50 : 20);
   if (t.auto) setTimeout(done, t.auto);
 }
 
