@@ -174,6 +174,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
 /* About: patch notes, keys and information, on the same plates as Settings */
 #cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+#cockpit .syncNote{position:absolute;right:0;bottom:calc(-30px*var(--k));margin:0;font-size:calc(17px*var(--k));color:#f0b429}   /* 1.64 */
 .plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
 .plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
 .plate .log::-webkit-scrollbar-thumb{background:rgba(214,208,194,.25);border-radius:calc(4px*var(--k))}
@@ -252,6 +253,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .cBtn,.cardish .cBtn{all:unset;box-sizing:border-box;cursor:pointer;min-height:calc(42px*var(--ck,1));padding:calc(8px*var(--ck,1)) calc(14px*var(--ck,1));border-radius:calc(8px*var(--ck,1));background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;
   font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.04em;text-align:left;box-shadow:0 calc(2px*var(--ck,1)) 0 #000,0 0 0 calc(2px*var(--ck,1)) #050505}
 #cardBox .cBtn.on,.cardish .cBtn.on{outline:calc(3px*var(--ck,1)) solid #f0b429;outline-offset:1px}
+#cardBox .cBtn.busy,.cardish .cBtn.busy{opacity:.7;pointer-events:none}   /* 1.64: saving */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -782,6 +784,7 @@ body.arOpen #sheet{z-index:75}
 #aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 14px/1.3 var(--f-board);color:rgba(232,227,214,.84)}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
+.syncNote{color:#f0b429;margin-top:6px}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
@@ -1227,6 +1230,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>
     <p class="sum" id="setSum" data-t="Change the settings, then press Save.">Change the settings, then press Save.</p>
+    <p class="sum syncNote" data-syncnote hidden></p>
     <div id="cockpit" style="margin-top:14px"></div>
     <div id="favBox" hidden></div>
     <div id="setExtra"></div>
@@ -1274,7 +1278,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=6b5bd670b5"></script>
+<script src="../test/i18n.js?v=a13b75de75"></script>
 <script>
 (() => {
 "use strict";
@@ -1478,19 +1482,13 @@ function loadSettings(){
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 // The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
 // so the profile's old one came back on the next load).
-let meQ = 0;
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
-  const settings = S.located ? {...changed, ...locSet(), located: true} : changed;
-  const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
-  clearTimeout(meQ);
-  if (now) return send();
-  meQ = setTimeout(send, 1200);
-  return Promise.resolve();
+  return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
 // Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
@@ -1501,6 +1499,8 @@ function saveSettings(){
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
+  meBase = {...S};
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -1508,6 +1508,7 @@ function saveSettings(){
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.logos = true;                                      // airline logos are always on (1.54: the switch went)
+let meBase = {...S};                                 // the settings as last saved (1.64)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -1747,11 +1748,42 @@ const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || "")
 // Favourites and hidden planes (lists on the relay): the sheet for one plane, the toggles on the cards, the manager.
 const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
 async function listsSave(next){
-  const r = await fetch(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)});
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const j = await r.json();
+  const j = await fetchJSON(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(next)}, 8000);
   userLists = {fav: j.fav || [], hide: j.hide || [], at: Date.now(), v: userLists.v + 1};
   if (typeof listsChanged === "function") listsChanged();
+}
+// 1.64: list changes show at once and go to the relay one after another (a second tap waits for the first). The relay
+// (54+) takes them as changes, so two devices saving at once keep both; older relays get the whole lists. A failed save
+// puts the lists back and says so in words (it said "HTTP 502" or "Failed to fetch").
+const SAVE_FAILED = "Couldn't save that. Check the connection and try again.";
+let listsQ = Promise.resolve(), listsWaiting = [], listsServer = null;   // changes shown but not yet saved; the relay's lists
+function listsApply(L, ops){
+  const out = {fav: L.fav.slice(), hide: L.hide.slice()};
+  for (const o of ops) out[o.list] = out[o.list].filter(i => !sameItem(i, o.item)).concat(o.op === "add" ? [o.item] : []);
+  return out;
+}
+function listsShow(){
+  userLists = {...listsApply(listsServer, listsWaiting.flat()), at: userLists.at, v: userLists.v + 1};
+  if (typeof listsChanged === "function") listsChanged();
+}
+function listOps(ops){
+  if (!listsWaiting.length) listsServer = {fav: userLists.fav, hide: userLists.hide};
+  listsWaiting.push(ops);
+  listsShow();
+  const run = async () => {
+    try {
+      const j = await fetchJSON(`${relay()}/lists`, {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify((window.OVERHEAD_RELAY_VERSION || 0) >= 54 ? {ops} : listsApply(listsServer, ops))}, 8000);
+      listsServer = {fav: j.fav || [], hide: j.hide || []};
+      userLists.at = Date.now();
+    } finally {
+      listsWaiting = listsWaiting.filter(w => w !== ops);
+      listsShow();                                  // saved: the relay's lists; failed: as before this change
+    }
+  };
+  const p = listsQ.then(run, run);
+  listsQ = p.catch(() => {});
+  return p;
 }
 // The choices for one plane: its aircraft (registration), type, airline and flight, those it has.
 function listChoices(x){
@@ -1761,22 +1793,26 @@ function listChoices(x){
 }
 const sameItem = (i, c) => i.k === c.k && clean(i.v).replace(/[\s-]/g, "") === clean(c.v).replace(/[\s-]/g, "");
 const inList = (L, c) => L.some(i => sameItem(i, c));
-async function listFlip(which, c){
-  const on = inList(userLists[which], c), next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
+function listFlip(which, c){
+  const on = inList(userLists[which], c);
   ctlSound.toggle(!on);
-  next[which] = on ? next[which].filter(i => !sameItem(i, c)) : next[which].concat([c]);
-  if (!on) { const o = which === "fav" ? "hide" : "fav"; next[o] = next[o].filter(i => !sameItem(i, c)); }   // not both at once
-  await listsSave(next);
+  return listOps(on ? [{op: "remove", list: which, item: c}]
+    : [{op: "add", list: which, item: c}, {op: "remove", list: which === "fav" ? "hide" : "fav", item: c}]);   // not both at once
 }
 // Toggle buttons for some choices: data-tog = "fav|hide", the choice in data-k/v/n; cardToggle handles every card.
 const togBtn = (which, c, label) => `<button class="cBtn${inList(userLists[which], c) ? " on" : ""}" type="button" data-tog="${which}" ` +
   `data-k="${c.k}" data-v="${escH(c.v)}" data-n="${escH(c.n)}"><small>${escH(T(KIND_NAME[c.k]))}</small>${label || escH(c.n)}</button>`;
-async function cardToggle(e){
+function cardToggle(e){
   const b = e.target.closest && e.target.closest("[data-tog]");
   if (!b) return;
-  const c = {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n};
-  try { await listFlip(b.dataset.tog, c); } catch (err) { const n = $("cardBox").querySelector(".note"); if (n) n.textContent = err.message; return; }
-  for (const o of $("cardBox").querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v}));
+  const box = $("cardBox"), notes = box.querySelectorAll(".note"), note = notes[notes.length - 1];
+  const show = () => { for (const o of box.querySelectorAll("[data-tog]")) o.classList.toggle("on", inList(userLists[o.dataset.tog], {k: o.dataset.k, v: o.dataset.v})); };
+  if (note) note.textContent = "";
+  b.classList.add("busy");
+  const p = listFlip(b.dataset.tog, {k: b.dataset.k, v: b.dataset.v, n: b.dataset.n});
+  show();                                            // at once; put back if the save fails
+  p.then(() => { b.classList.remove("busy"); show(); },
+    () => { b.classList.remove("busy"); show(); if (note) note.textContent = T(SAVE_FAILED); });
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
@@ -1801,17 +1837,20 @@ function favManager(el){
     `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
   const note = t => { el.querySelector("[data-fn]").textContent = t; };
   for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
-    const [w, n] = b.dataset.rm.split(":"); ctlSound.press();
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()}; next[w].splice(+n, 1);
-    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.press();
+    if (!item) return;
+    const p = listOps([{op: "remove", list: w, item}]);
+    favManager(el);
+    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
   };
   el.querySelector("[data-fa]").onclick = () => {
     ctlSound.press();
     const c = parseListEntry(el.querySelector("[data-fi]").value), w = el.querySelector("[data-fw]").value;
     if (!c) return note(T("Code or name, e.g. Austrian, A380, OE-LBN"));
-    const next = {fav: userLists.fav.slice(), hide: userLists.hide.slice()};
-    if (!inList(next[w], c)) next[w].push(c);
-    listsSave(next).then(() => favManager(el)).catch(e => note(e.message));
+    if (inList(userLists[w], c)) return favManager(el);
+    const p = listOps([{op: "add", list: w, item: c}]);
+    favManager(el);
+    p.catch(() => { favManager(el); note(T(SAVE_FAILED)); });
   };
 }
 function favCard(side){
@@ -3500,6 +3539,50 @@ async function fetchJSON(url, opts = {}, ms = 9000){
    servers, so requests go through the home relay (relay/serve.py) when the board is opened from it. */
 const PROXY = window.OVERHEAD_RELAY || "";
 const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
+/* 1.64: a profile's settings reach the relay even when the network drops or the app is closed right after a change: they
+   wait on this device (od.mePending.<profile>) until the relay has them, are sent again with growing pauses, and at once
+   when the page is hidden (keepalive) or the network is back. Before, a failed or cut-off save was lost without a word. */
+const ME_KEY = "od.mePending." + ((window.OVERHEAD_GUEST || {}).id || "");
+let mePending = (() => { try { return JSON.parse(localStorage.getItem(ME_KEY) || "null"); } catch { return null; } })();
+let meTimer = 0, meFails = 0, meBusy = null;
+function meSend(settings, now){
+  mePending = {...(mePending || {}), ...settings};
+  try { localStorage.setItem(ME_KEY, JSON.stringify(mePending)); } catch {}
+  clearTimeout(meTimer);
+  if (now) return meFlush();
+  meTimer = setTimeout(meFlush, 1200);
+  return Promise.resolve();
+}
+function meFlush(leaving){
+  clearTimeout(meTimer);
+  if (!mePending || !relay() || !window.OVERHEAD_GUEST) return Promise.resolve();
+  if (meBusy && !leaving) return meBusy;
+  const body = mePending, ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+  const p = fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings: body}),
+    keepalive: !!leaving, signal: leaving ? undefined : ctl.signal}).then(r => {
+    if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(r.status);   // others won't get better: dropped
+    if (mePending === body) { mePending = null; try { localStorage.removeItem(ME_KEY); } catch {} }
+    meFails = 0;
+  }).catch(() => {
+    meFails++;
+    meTimer = setTimeout(meFlush, Math.min(60000, 2000 * 2 ** Math.min(meFails, 5)));
+  }).finally(() => {
+    clearTimeout(t);
+    if (meBusy === p) meBusy = null;
+    if (mePending && !meBusy && meFails === 0) meTimer = setTimeout(meFlush, 300);    // changed while this one was on its way
+    syncShow();
+  });
+  meBusy = p;
+  return p;
+}
+// Not on the relay yet after a failed try: Settings say so (data-syncnote) until it gets through.
+const meUnsynced = () => !!mePending && meFails > 0;
+function syncShow(){
+  for (const n of document.querySelectorAll("[data-syncnote]")) { n.hidden = !meUnsynced(); n.textContent = T("Not synced yet · trying again"); }
+}
+addEventListener("online", () => { meFails = 0; meFlush(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) meFlush(true); });
+setTimeout(meFlush, 3000);                         // left over from last time
 // Relay version 5 keeps Spotted today and the lifetime logbook itself, so every screen shows the same list.
 const relayV5 = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 5;
 // This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home
@@ -5813,7 +5896,7 @@ const COCKPIT_FOR = "light";
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
 function androidHandover(){
   if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
@@ -6832,6 +6915,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.64", date: "2026-10-20", notes: [
+    "Settings wait on your device until they are saved for your profile, and are sent again when the connection is back. Settings say \"Not synced yet\" meanwhile.",
+    "Favourite and Hide switch at once, and say so in words when they couldn't be saved.",
+  ]},
   {v: "1.63.2", date: "2026-10-20", notes: [
     "The app opens faster: pages arrive packed, and an unchanged page isn't downloaded again.",
     "Android app: once signed in, it switches to the board's secure address, so it also works away from home.",
@@ -7304,6 +7391,7 @@ function cockpitOpen(){
   wireCockpit(box);
   cockpitShow();
   renderAbout();
+  syncShow();
 }
 // The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
 // lights up while there is something to save.

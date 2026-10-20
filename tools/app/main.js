@@ -27,19 +27,13 @@ function loadSettings(){
 // set one), so the relay knows where to count their planes even when it happens to be the default spot.
 // The whole location, also where it equals a default (1.49.1: an airport chosen back to the relay's own was left out,
 // so the profile's old one came back on the next load).
-let meQ = 0;
 const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
 function saveMe(changed, now){
   if (!GUEST) return Promise.resolve();
   const {live, livePrev, mode, ...rest} = changed;         // following the phone and the style are this device's own
   changed = rest;
   if (LIGHT) for (const k of [...Object.keys(LIGHT_FIXED), "sound"]) delete changed[k];
-  const settings = S.located ? {...changed, ...locSet(), located: true} : changed;
-  const send = () => fetch(`${relay()}/me`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({settings})}).catch(() => {});
-  clearTimeout(meQ);
-  if (now) return send();
-  meQ = setTimeout(send, 1200);
-  return Promise.resolve();
+  return meSend(S.located ? {...changed, ...locSet(), located: true} : changed, now);   // kept until the relay has it (1.64)
 }
 const located = () => !GUEST || !!S.located;
 // Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
@@ -50,6 +44,8 @@ function saveSettings(){
   for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
   for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
   for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
+  meBase = {...S};
   if (GUEST && S.located) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   return saveMe(changed);
@@ -57,6 +53,7 @@ function saveSettings(){
 Object.assign(DEFAULTS, window.OVERHEAD_DEFAULTS || {});  // location etc. supplied by the home relay
 let S = loadSettings();
 S.logos = true;                                      // airline logos are always on (1.54: the switch went)
+let meBase = {...S};                                 // the settings as last saved (1.64)
 (() => { // a few of the board's address options work here too: ?lat=..&lon=..&radius=..&home=..&place=..&theme=..&demo
   const q = new URLSearchParams(location.search);
   const num = k => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : null; };
@@ -1351,7 +1348,7 @@ const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, co
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
-// 1.64: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
+// 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
 function androidHandover(){
   if (!ANDROID || !window.OverheadAndroid.usePublic || location.protocol !== "http:" || (window.OVERHEAD_RELAY_VERSION || 0) < 54) return;
@@ -1519,6 +1516,7 @@ function cockpitOpen(){
   wireCockpit(box);
   cockpitShow();
   renderAbout();
+  syncShow();
 }
 // The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
 // lights up while there is something to save.

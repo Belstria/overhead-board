@@ -5402,9 +5402,12 @@ class Handler(BaseHTTPRequestHandler):
             j = self.json_body()
             with _data_lock:
                 L = self.guest[1].setdefault("lists", {})
-                op, which = j.get("op"), j.get("list")
-                if op in ("add", "remove") and which in ("fav", "hide"):   # relay 54: one change, so two devices saving
-                    item = _clean_list([j.get("item")])                      # at once don't undo each other
+                ops = j.get("ops") if isinstance(j.get("ops"), list) else [j]
+                for o in ops[:4]:               # relay 54: changes, not whole lists, so two devices saving at once keep both
+                    op, which = (o.get("op"), o.get("list")) if isinstance(o, dict) else (None, None)
+                    if op not in ("add", "remove") or which not in ("fav", "hide"):
+                        continue
+                    item = _clean_list([o.get("item")])
                     keep = [i for i in L.get(which, []) if not item or (i.get("k"), i.get("v")) != (item[0].get("k"), item[0].get("v"))]
                     L[which] = _clean_list(keep[-199:] + item if op == "add" else keep)
                 for k in ("fav", "hide"):

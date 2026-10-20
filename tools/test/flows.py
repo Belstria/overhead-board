@@ -5,6 +5,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - pages go packed and tagged: an unchanged page is a 304 (relay 54)
 - settings round trip through /me, a save from another site refused (relay 54)
 - favourites change one at a time, so two devices saving at once keep both (relay 54)
+- in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
+  phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64)
 """
 import gzip
 import json
@@ -82,6 +84,65 @@ def checks():
         print("flow:", b_)
     print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")
     return not bad
+
+
+def browser_checks(browser):
+    """The app's saves, in a browser. The app's code runs inside one function; a copy of the page with an eval inside
+    it (window.__e) lets the checks call it."""
+    bad = []
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
+
+    def hooked(route):
+        r = route.fetch()
+        t = r.text()
+        i = t.rindex("})();")
+        route.fulfill(response=r, body=t[:i] + "window.__e = c => eval(c);\n" + t[i:], headers={**r.headers, "content-encoding": "identity"})
+    ctx.route("**/app/", hooked)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"page error: {e}"))
+    pg.goto(BASE + "/app/")
+    pg.wait_for_timeout(4000)
+    e = lambda code: pg.evaluate("c => __e(c)", code)          # noqa: E731
+    relay_theme = lambda: pg.evaluate("fetch('/me').then(r => r.json()).then(j => (j.settings || {}).theme)")   # noqa: E731
+
+    pg.route("**/me*", lambda route: route.abort())
+    e("S = {...S, theme: 'frankfurt'}; saveSettings()")
+    pg.wait_for_timeout(2500)
+    if not e("meUnsynced()"):
+        bad.append("a settings change the relay didn't get isn't marked Not synced")
+    pg.unroute("**/me*")
+    pg.wait_for_timeout(9000)
+    if relay_theme() != "frankfurt" or e("!!mePending"):
+        bad.append("a settings change wasn't sent again once the relay answered")
+    pg.route("**/me*", lambda route: route.abort())
+    e("S = {...S, theme: 'classic'}; saveSettings(); meFlush()")
+    pg.wait_for_timeout(500)
+    pg.unroute("**/me*")
+    pg.reload()
+    pg.wait_for_timeout(5000)
+    if relay_theme() != "classic":
+        bad.append("a settings change cut off by closing the app wasn't sent on the next start")
+
+    pg.evaluate("fetch('/lists', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fav: [], hide: []})})")
+    e("listsLoad(true)")
+    pg.wait_for_timeout(800)
+    e("listFlip('fav', {k: 'reg', v: 'OE-LBN', n: 'A'}); listFlip('fav', {k: 'reg', v: 'OE-LZA', n: 'B'})")
+    if e("userLists.fav.map(i => i.v).join()") != "OE-LBN,OE-LZA":
+        bad.append("favourites don't show at once")
+    pg.wait_for_timeout(2000)
+    if pg.evaluate("fetch('/lists').then(r => r.json()).then(j => j.fav.map(i => i.v).join())") != "OE-LBN,OE-LZA":
+        bad.append("two quick favourites didn't both reach the relay")
+    pg.route("**/lists*", lambda route: route.abort())
+    if e("listFlip('fav', {k: 'reg', v: 'OE-LBN', n: 'A'}).then(() => 'saved', () => userLists.fav.map(i => i.v).join())") != "OE-LBN,OE-LZA":
+        bad.append("a favourite that couldn't be saved didn't go back")
+    pg.unroute("**/lists*")
+    pg.evaluate("fetch('/lists', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fav: [], hide: []})})")
+    ctx.close()
+    for b_ in bad:
+        print("flow:", b_)
+    print("the app's saves hold" if not bad else f"{len(bad)} app save check(s) failed")
+    return bad
 
 
 if __name__ == "__main__":

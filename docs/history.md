@@ -10,6 +10,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.64 (sync you can trust): `meSend(settings, now)` / `meFlush(leaving)` in the network block (E12, so board, app and
+  light share it) keep a profile's settings in `od.mePending.<id>` until `/me` answers (4xx other than 408/429 drop
+  them), retry with doubling pauses (2 s … 60 s), flush on `online`, with `keepalive` when the page is hidden, and 3 s
+  after load for what was left over. `meUnsynced()` and `syncShow()` fill `[data-syncnote]` (the app's Settings, the
+  board's cockpit). `saveSettings` also sends every key that changed since `meBase` (the settings as last saved).
+  Lists: `listOps(ops)` shows the change at once (`listsWaiting` over `listsServer`), queues the POSTs (`listsQ`),
+  sends `{ops}` to relay 54+ (whole lists to older ones) and falls back to the relay's lists on failure;
+  `cardToggle` marks the button `.busy`, the favourites manager re-renders at once; failures say `SAVE_FAILED`.
+  `tools/test/flows.py` `browser_checks()` (run by smoke.py) checks both in the app through a hooked page (`__e`).
 - 1.63.2 / relay 54 (the code review's security and speed fixes): `owner_ok()` lets a device without a profile in only
   while no `HOME_OWNER` profile exists or from the relay's own computer (`on_this_computer()`: loopback, no
   Cf-Connecting-IP/X-Forwarded-For); before, any device at home without a cookie had the admin pages. `reply()` packs
