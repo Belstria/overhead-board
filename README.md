@@ -244,6 +244,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Map** (1.55; board, app and light) puts a plain dark map underneath: built-up areas, water, rivers, main roads and
   runways, no text, from [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles, © OpenStreetMap contributors, credited
   under the radar). Each screen remembers it.
+  **− and +** (1.62, Airport style) zoom in on the home airport in steps (10, 5 and 2.5 km to the rim), centred on where
+  the planes stand: the map then always shows, with taxiways, aprons and buildings, and the planes on the ground are
+  grey and listed as **TAXIING** or **PARKED**. The list beside the radar shows each airline's logo (1.62).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -260,7 +263,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   flaps too; the patch notes and the connection log stay in English.
 - **Airport style** (tap **Airport** in the title, or `?mode=airport`): for watching from the
   airport. The board follows the planes taking off from the home airport (rolling for take-off, climbing away) and the
-  ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now;
+  ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now; a plane
+  that just landed stays there while it taxies in, until the next landing is about 6 km out or a take-off starts (1.62);
   its status flap shows a plane climbing away from or coming down onto a runway in front of the word. Below, the pages
   turn between the take-offs and landings (two lists side by side), the departing plane and the landing plane (photo
   and details, like This aircraft). Every page button works; a page with no plane on it says so (and the automatic page turning

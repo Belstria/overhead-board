@@ -15,7 +15,7 @@ OUT is a file name prefix (shot:now writes OUT-now.png). Steps run in order:
     plates           print the Settings plates whose content runs past their edge (1.58; none: "plates fit")
 Set PHONE=390x844 (or another size) for a phone: 3x pixels, touch, an iPhone browser. Otherwise 1920x1080 (UA= sets the user agent, e.g. a Fire TV's); SIZE=960x540
 and DPR=2 for the Fire TV. The test relay's "Test" profile is signed in (COOKIE=test-device; COOKIE=new-device is the
-new guest, COOKIE= nobody).
+new guest, COOKIE= nobody). NOTIPS=1 hides the first-run tips.
 Prints page errors and console errors at the end. Route and aircraft lookups (adsbdb) go to the fake data source
 from run_test_relay.py, so names and routes match the made-up planes.
 
@@ -63,6 +63,8 @@ async def main():
         if cookie:
             host = url.split("//", 1)[-1].split("/", 1)[0].split(":")[0]
             await ctx.add_cookies([{"name": "overhead", "value": cookie, "domain": host, "path": "/"}])
+        if os.environ.get("NOTIPS"):      # the first-run tips stay out of the way
+            await ctx.add_init_script("document.addEventListener('DOMContentLoaded', () => document.head.insertAdjacentHTML('beforeend', '<style>#tipLayer{display:none!important}</style>'))")
         page = await ctx.new_page()
         errors, console = [], []
         page.on("pageerror", lambda e: errors.append(str(e)))

@@ -10,6 +10,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.62 (radar zoom, logos, landed planes linger): `radarZoom` (km to the rim, 0 the usual range) steps through
+  `RADAR_ZOOMS` with `radarZoomStep()`; `radarZoomed()` only in the Airport style once `AP.lat` is known. `radarZoomSet()`
+  fixes the centre `radar.zc` on the planes on the ground within 3 km (else the airport), so the map isn't rebuilt as
+  planes come and go. Zoomed, `radarMapDraw` draws even with Map off, tiles go to zoom 15, and `RADAR_MAP_LOOK` entries with
+  a fifth value (km) only draw at that range or closer (aprons, buildings, taxiways). Rings step by `radarRing(range)`.
+  Ground planes: `RADAR_COL.ground`, statuses TAXIING/PARKED (new REMARKS words) in `radarRows`, labels show the type
+  instead of the altitude. The radar list has a logo flap `rv<i>logo`; the app's list a `.rvLogo` from `logo(code, true)`.
+  Board: − / km / + caps in `viewTools`; app: `#rvZoom` beside Map. `apFocus()` keeps the newest LANDED arrival on top
+  until the next arrival is within `AP_LINGER_KM` (6) or a take-off rolls. Test data: `APRON` in `fakesrc.py` (parked
+  planes at VIE's gates); `shoot.py` takes `NOTIPS=1`.
 - 1.61 additions (to-do #76 and Dave's feedback): the board's `cockpitDone(saved)` keeps Settings open after Save
   (`cockpitOpen()` again, "Saved" on the Save cap for 1.6 s); Cancel still goes back to the board. Favourites and Styles
   caps are 30 px tall and 86% wide (Styles 100% with smaller text, as the Display cell is narrow).

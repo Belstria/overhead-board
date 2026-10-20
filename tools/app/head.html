@@ -207,7 +207,10 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
   font:700 11px/1 var(--f-board);letter-spacing:.12em;color:var(--ink);background:linear-gradient(#2e2f33,#232427);box-shadow:0 1px 2px rgba(0,0,0,.6);white-space:nowrap}
 .chip::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.5)}
 /* radar list */
-.rv{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
+.rv{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;gap:10px;align-items:center}
+.rvLogo{display:flex;align-items:center;justify-content:center;height:20px;border-radius:3px;background:#2a2b2f;font:700 11px/1 var(--f-board);color:var(--amber)}
+.rvLogo.ok{background:linear-gradient(#f4f1ea,#dad6ca)}
+.rvLogo img{max-width:40px;max-height:16px;object-fit:contain}
 .rv strong{font:700 15.5px/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rv strong span{font-weight:500;color:var(--muted);font-size:13px;margin-left:.4em}
 .rv .num{font:600 13.5px/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
@@ -382,6 +385,8 @@ body.arOpen{overflow:hidden}
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
 .rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
+.rvBtns{display:flex;gap:10px}
+.rvBtns[hidden]{display:none}
 .rvMap small{font:500 11px/1.2 var(--f-board);color:var(--muted);text-align:right}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 13px/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
@@ -654,7 +659,7 @@ body.arOpen{overflow:hidden}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
-      <div class="rvMap"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button><small id="rvCredit" hidden></small></div>
+      <div class="rvMap"><span class="rvBtns"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button></span><span class="rvBtns" id="rvZoom" hidden><button class="cap small" type="button" id="rvZoomOut">−</button><button class="cap small" type="button" id="rvZoomKm" disabled></button><button class="cap small" type="button" id="rvZoomIn">+</button></span><small id="rvCredit" hidden></small></div>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>
