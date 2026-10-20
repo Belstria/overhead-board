@@ -743,7 +743,10 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
+#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
+  background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 body.arOpen{overflow:hidden}
+body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
 .model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
@@ -1098,6 +1101,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
   <p class="arHint" id="arHint"></p>
+  <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
   <div class="sp-logo"><div class="sp-sq"></div>
@@ -5460,7 +5464,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    on iPhones), the back camera looking along the phone's -z. Positions are moved on to now with each plane's speed and
    track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device). */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
-let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null;
+let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0};
 const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
 function arFeed(list){ arList = list || []; arListAt = Date.now(); }
@@ -5500,6 +5504,7 @@ function arClose(){
   removeEventListener(arEvent(), arOrient);
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
+  arSel = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen");
 }
 // The rotation from the phone's axes to east-north-up (W3C DeviceOrientation, Z-X'-Y'' with alpha, beta, gamma).
@@ -5554,6 +5559,7 @@ function arLoop(){
   }
   shown.sort((a, b) => a.d - b.d);
   const boxes = [];
+  arHits = [];
   g.textBaseline = "alphabetic";
   for (const s of shown.slice(0, 14)) {
     if (s.pr.edge) { arEdge(g, s, W, H); continue; }
@@ -5562,8 +5568,9 @@ function arLoop(){
     const bw = Math.max(w1, w2) + 18, bh = 40;
     let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
     for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
-    boxes.push([bx, by, bw, bh]);
+    boxes.push([bx, by, bw, bh]); arHits.push({hex: s.ac.hex, x, y, box: [bx, by, bw, bh]});
     const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
+    if (s.ac.hex === arSel) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
     g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
     g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
     g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
@@ -5584,14 +5591,47 @@ function arEdge(g, s, W, H){
 }
 const shortType = t => String(t || "").replace(/^(Airbus|Boeing|Embraer|Bombardier|De Havilland Canada|ATR) /i, "");
 // Dragging the picture lines the labels up with the planes: sideways turns them, up and down lifts them.
-function arDragStart(e){ arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
+function arDragStart(e){ arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
 function arDragMove(e){
   if (!arDrag) return;
+  if (!arDrag.moved && Math.hypot(e.clientX - arDrag.x, e.clientY - arDrag.y) < 8) return;       // still a tap
+  arDrag.moved = true;
   const H = $("arCv").clientHeight, f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180);
   arOff.h = arDrag.h - Math.atan((e.clientX - arDrag.x) / f) * 180 / Math.PI;
   arOff.p = arDrag.p + Math.atan((e.clientY - arDrag.y) / f) * 180 / Math.PI;
 }
-function arDragEnd(){ if (!arDrag) return; arDrag = null; try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {} }
+function arDragEnd(e){
+  if (!arDrag) return;
+  const tap = !arDrag.moved; arDrag = null;
+  if (tap && e && e.type === "pointerup") return arTap(e);
+  try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {}
+}
+// 1.62.1: a tap on a plane or its label opens its card (as on the radar) over the picture; a tap elsewhere closes it.
+function arTap(e){
+  const r = $("arCv").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = arHits.find(h => x >= h.box[0] && x <= h.box[0] + h.box[2] && y >= h.box[1] && y <= h.box[1] + h.box[3])
+    || arHits.reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 32 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const was = arSel;
+  arSel = hit && hit.hex !== was ? hit.hex : "";
+  if (arSel || was) ctlSound.press();
+  arCardRender();
+}
+let arCardSig = "";
+function arCardRender(){
+  const box = $("arCard"), ac = arSel && arList.find(a => a.hex === arSel);
+  if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; return; }
+  const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
+  const b = planeBody(o);
+  $("arHint").hidden = true;
+  if (b.sig === arCardSig && !box.hidden) {
+    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+    return;
+  }
+  arCardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
+  b.wire(box);
+  box.querySelector(".rcX").onclick = () => { ctlSound.press(); arSel = ""; arCardRender(); };
+}
+setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
 $("arClose").onclick = arClose;
 $("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };

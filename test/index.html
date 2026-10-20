@@ -173,6 +173,9 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 #viewTools{z-index:2}
 #viewTools.two{flex-direction:column;align-items:flex-end;gap:calc(12px*var(--k))}
 #viewTools .vtRow{display:flex}
+#viewTools.rdr{display:block;pointer-events:none}
+#viewTools.rdr .cap{position:absolute;pointer-events:auto;min-width:calc(64px*var(--k))}
+#viewTools.rdr .cap[data-z]{font-size:calc(24px*var(--k));line-height:1;font-weight:700}
 #modeSw button{position:absolute;z-index:3;padding:0;border:0;background:transparent;color:transparent;cursor:pointer;border-radius:calc(6px*var(--k));outline:none}
 #modeSw button:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
 #radarCv{position:absolute;z-index:1;pointer-events:none}
@@ -4101,7 +4104,8 @@ function drawLegend(g){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
-  box.classList.toggle("two", LB_VIEWS.includes(view));
+  box.classList.toggle("two", LB_VIEWS.includes(view)); box.classList.toggle("rdr", view === "radar");
+  box.style.left = box.style.width = box.style.height = "";
   if (LB_VIEWS.includes(view)) {
     // 1.55 (to-do #65): two rows that stay put: the four views in one order, the one on show lit; under them what this
     // view offers (places and the spreadsheet, or week, month and turning back).
@@ -4130,14 +4134,16 @@ function buildViewTools(){
     return true;
   }
   if (view === "radar") {                    // 1.55 (to-do #68): the map under the radar, on or off
-    const zi = RADAR_ZOOMS.indexOf(radarZoom), zb = airportMode() && AP.lat != null ? `<button class="cap small" type="button" data-z="-1" aria-label="${escH(T("Zoom out"))}"${zi > 0 ? "" : " disabled"}>−</button>` +
-      `<button class="cap small zoomKm" type="button" disabled>${nf.format(radarRange())} km</button>` +
-      `<button class="cap small" type="button" data-z="1" aria-label="${escH(T("Zoom in"))}"${zi < RADAR_ZOOMS.length - 1 ? "" : " disabled"}>+</button>` : "";
-    box.innerHTML = `<button class="cap small" type="button" data-map aria-pressed="${radarMapOn}">${T("Map")}</button>` + zb;
+    // 1.62.1: the buttons sit in the radar's corners: − top left, + top right (Airport style), Map bottom left; the range
+    // is engraved in the dial (drawRadar).
+    const zi = RADAR_ZOOMS.indexOf(radarZoom), rb = radarBox(), at = (x, y) => `style="left:calc(${x}px*var(--k));top:calc(${y}px*var(--k))"`;
+    const zb = airportMode() && AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${zi > 0 ? "" : " disabled"}>−</button>` +
+      `<button class="cap small" type="button" data-z="1" ${at(rb.w - 68, 4)} aria-label="${escH(T("Zoom in"))}"${zi < RADAR_ZOOMS.length - 1 ? "" : " disabled"}>+</button>` : "";
+    box.innerHTML = `<button class="cap small" type="button" data-map ${at(4, rb.h - 44)} aria-pressed="${radarMapOn}">${T("Map")}</button>` + zb;
     box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); radarMapSet(!radarMapOn); box.firstChild.setAttribute("aria-pressed", String(radarMapOn)); };
     for (const b of box.querySelectorAll("[data-z]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); radarZoomStep(+b.dataset.z); drawStatic(); renderRadarList();
       buildViewTools(); const nb = box.querySelector(`[data-z="${b.dataset.z}"]`); if (nb && !nb.disabled) nb.focus(); };
-    box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(178px * var(--k))`;
+    Object.assign(box.style, {right: "auto", left: `calc(${rb.x}px * var(--k))`, top: `calc(${rb.y}px * var(--k))`, width: `calc(${rb.w}px * var(--k))`, height: `calc(${rb.h}px * var(--k))`});
     return true;
   }
   if (view !== "spotted") { box.innerHTML = ""; return false; }
@@ -4821,6 +4827,13 @@ function drawRadar(t){
   [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 18), cy - Math.cos(a) * (R - 18)); });
   { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
     if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - 12, hy - 12, 24); }
+  if (airportMode() && AP.lat != null) {          // 1.62.1: the range, engraved in the dial's rim at the bottom
+    g.font = `700 13px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; if ("letterSpacing" in g) g.letterSpacing = "2px";
+    const txt = `${nf.format(range)} KM`;
+    g.fillStyle = "rgba(0,0,0,.55)"; g.fillText(txt, cx, cy + R + 14);
+    g.fillStyle = "rgba(225,220,205,.42)"; g.fillText(txt, cx, cy + R + 13);
+    if ("letterSpacing" in g) g.letterSpacing = "0px";
+  }
   if (radarMapOn) { g.font = `500 12px ${FONT}`; g.fillStyle = "rgba(200,196,186,.55)"; g.textAlign = "right"; g.fillText(RADAR_MAP_CREDIT, cx + R + 34, cy + R + 32); }
   g.textAlign = "left"; g.textBaseline = "alphabetic";
 }
@@ -6317,9 +6330,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.62.1", date: "2026-10-20", notes: [
+  {v: "1.63", date: "2026-10-20", notes: [
+    "Sky view: tap a plane or its label to open its card.",
     "Airport style: the radar's list, plane card and colours show what a plane does at the airport (taking off, landing, passing) instead of Overhead.",
     "Planes on the zoomed-in radar are a little bigger and easier to tap.",
+    "On the full board the radar's buttons sit at its corners: − and + at the top, Map at the bottom; the range is engraved in the dial.",
   ]},
   {v: "1.62", date: "2026-10-20", notes: [
     "Radar in the Airport style: − and + zoom in down to the gates, with the planes parked or taxiing at the airport.",

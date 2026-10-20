@@ -377,7 +377,10 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
+#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
+  background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 body.arOpen{overflow:hidden}
+body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
 .model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
@@ -551,6 +554,7 @@ body.arOpen{overflow:hidden}
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
   <p class="arHint" id="arHint"></p>
+  <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
   <div class="sp-logo"><div class="sp-sq"></div>

@@ -246,7 +246,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   under the radar). Each screen remembers it.
   **− and +** (1.62, Airport style) zoom in on the home airport in steps (10, 5 and 2.5 km to the rim), centred on where
   the planes stand: the map then always shows, with taxiways, aprons and buildings, and the planes on the ground are
-  grey and listed as **TAXIING** or **PARKED**. The list beside the radar shows each airline's logo (1.62).
+  grey and listed as **TAXIING** or **PARKED**. The list beside the radar shows each airline's logo (1.62). On the
+  full board − and + sit at the radar's top corners, Map at its bottom left, and the range is engraved in the dial (1.63).
+  In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
+  landing, passing or on the ground (1.63).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
 - **Settings** (press **S**): a cockpit panel. Rotary selectors, flip switches, thumbwheels and amber read-outs on
@@ -469,7 +472,8 @@ Five buttons along the bottom:
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it).
-  The phone asks for the camera and the motion sensors the first time.
+  The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
+  photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
