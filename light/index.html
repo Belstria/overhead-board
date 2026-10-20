@@ -777,10 +777,10 @@ body.arOpen #sheet{z-index:75}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
-.rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
-.rvBtns{display:flex;gap:10px}
-.rvBtns[hidden]{display:none}
-.rvMap small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted);text-align:right}
+.rvPlate{max-width:440px;margin:14px auto 0}
+.rvPlate .wheel.off{opacity:.45;pointer-events:none}
+.rvCredit{max-width:440px;margin:6px auto 0;text-align:right}
+.rvCredit small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted)}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -1279,7 +1279,12 @@ html.daylight .geoQ input::placeholder{color:rgba(25,25,25,.45)}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
-      <div class="rvMap"><span class="rvBtns"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button></span><span class="rvBtns" id="rvZoom" hidden><button class="cap small" type="button" id="rvZoomOut">−</button><button class="cap small" type="button" id="rvZoomKm" disabled></button><button class="cap small" type="button" id="rvZoomIn">+</button></span><small id="rvCredit" hidden></small></div>
+      <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
+      <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
+        <div class="inst"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><span data-t="Range km">Range km</span></div>
+        <div class="inst"><button class="toggle" type="button" id="rvMap" aria-pressed="false" aria-label="Map"><span class="up" data-t="ON">ON</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down" data-t="OFF">OFF</span></button><span data-t="Map">Map</span></div>
+      </div>
+      <p class="rvCredit"><small id="rvCredit" hidden></small></p>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>
@@ -1344,7 +1349,7 @@ html.daylight .geoQ input::placeholder{color:rgba(25,25,25,.45)}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=c59ddc2f41"></script>
+<script src="../test/i18n.js?v=565133eb1a"></script>
 <script>
 (() => {
 "use strict";
@@ -6124,12 +6129,15 @@ function drawRadar(t){
   paintRadar(g, RG.cx, RG.cy, RG.R, 1, t);              // 1.68: the board's own drawing (E25), at the phone's size
 }
 function buildRadarLegend(){
-  const mb = $("rvMap"), cr = $("rvCredit");                    // 1.55: the map under the radar (to-do #68)
-  mb.textContent = T("Map"); mb.setAttribute("aria-pressed", String(radarMapOn));
-  // 1.62: − and + zoom in on the airport; 1.65: both styles; 1.68.1: from any range a pinch left
-  $("rvZoom").hidden = airportMode() && AP.lat == null; $("rvZoomKm").textContent = radarRangeText();
-  $("rvZoomOut").disabled = !radarZoomCan(-1); $("rvZoomIn").disabled = !radarZoomCan(1);
-  $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
+  // 1.69: the Radar plate. The wheel shows the range to the rim (▲ wider, ▼ closer; also pinch and double-tap), the switch
+  // the map. Off in the Airport style until the airport's place is known.
+  const off = airportMode() && AP.lat == null, kmB = $("rvZoomKm"), txt = radarRangeText().replace(" km", "");
+  $("rvWheel").classList.toggle("off", off); $("rvWheel").setAttribute("aria-valuetext", radarRangeText());
+  if (kmB.textContent !== txt) kmB.textContent = txt;
+  $("rvZoomOut").disabled = off || !radarZoomCan(-1); $("rvZoomIn").disabled = off || !radarZoomCan(1);
+  $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in"));
+  $("rvMap").setAttribute("aria-pressed", String(radarMapOn));
+  const cr = $("rvCredit"); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
   $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
@@ -7175,6 +7183,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.69", date: "2026-10-20", notes: [
+    "App: the radar's controls sit on a Radar plate like Settings: a Range thumbwheel and a Map switch.",
+    "App: pinching the radar really zooms the map and the rings, and stays where you let go.",
+    "Tips stay on the thing they point at: the page no longer scrolls under them.",
+  ]},
   {v: "1.68", date: "2026-10-20", notes: [
     "App: text sizes follow one scale, so the look stays even.",
     "Board: the radar's range is engraved in the dial whenever it is zoomed in, in either style.",
@@ -7743,13 +7756,15 @@ for (const k of ["d", "a"]) $(k === "d" ? "apDP" : "apAP").addEventListener("cli
 });
 $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
-$("rvMap").onclick = () => { ctlSound.press(); radarMapSet(!radarMapOn); buildRadarLegend(); };
+$("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
+$("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
 function radarZoomTo(d){
   const was = radarZoom;
   radarZoomStep(d);
   if (radarZoom === was) return;
-  ctlSound.press(); buildRadarLegend(); rvSig = ""; renderRadarList();
+  ctlSound.wheel(); buildRadarLegend(); rvSig = ""; renderRadarList();
+  const b = $("rvZoomKm"); b.className = ""; void b.offsetWidth; b.className = d < 0 ? "up" : "down";     // the wheel rolls, as in Settings
 }
 // 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
 // meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
@@ -7770,7 +7785,7 @@ const pinch = {pts: new Map(), d0: 0, r0: 0, quiet: 0, tapAt: 0, tapX: 0, tapY: 
     pinch.pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if (pinch.pts.size !== 2 || !pinch.d0) return;
     radar.live = Math.max(RADAR_MIN, Math.min(radarBase(), pinch.r0 * pinch.d0 / Math.max(1, dist())));
-    $("rvZoomKm").textContent = radarRangeText();
+    $("rvZoomKm").textContent = radarRangeText().replace(" km", "");
   });
   const end = e => {
     if (!pinch.pts.delete(e.pointerId) || !pinch.d0) return;

@@ -394,10 +394,10 @@ body.arOpen #sheet{z-index:75}
 /* radar */
 .scope{position:relative;width:100%;max-width:440px;margin:6px auto 0;aspect-ratio:1}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
-.rvMap{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:440px;margin:10px auto 0}
-.rvBtns{display:flex;gap:10px}
-.rvBtns[hidden]{display:none}
-.rvMap small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted);text-align:right}
+.rvPlate{max-width:440px;margin:14px auto 0}
+.rvPlate .wheel.off{opacity:.45;pointer-events:none}
+.rvCredit{max-width:440px;margin:6px auto 0;text-align:right}
+.rvCredit small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted)}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -705,7 +705,12 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
-      <div class="rvMap"><span class="rvBtns"><button class="cap small" type="button" id="rvMap" aria-pressed="false">Map</button></span><span class="rvBtns" id="rvZoom" hidden><button class="cap small" type="button" id="rvZoomOut">−</button><button class="cap small" type="button" id="rvZoomKm" disabled></button><button class="cap small" type="button" id="rvZoomIn">+</button></span><small id="rvCredit" hidden></small></div>
+      <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
+      <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
+        <div class="inst"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><span data-t="Range km">Range km</span></div>
+        <div class="inst"><button class="toggle" type="button" id="rvMap" aria-pressed="false" aria-label="Map"><span class="up" data-t="ON">ON</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down" data-t="OFF">OFF</span></button><span data-t="Map">Map</span></div>
+      </div>
+      <p class="rvCredit"><small id="rvCredit" hidden></small></p>
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <ul class="rlegend" id="rLegend"></ul>

@@ -10,6 +10,13 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.69: the app's radar controls are a `.plate.rvPlate` (head.html) with Settings' own `.wheel` (`#rvWheel`, ▲ `#rvZoomOut`
+  wider, ▼ `#rvZoomIn` closer, `#rvZoomKm` the range; arrow keys too) and `.toggle` (`#rvMap`); `buildRadarLegend` sets
+  them. Pinch (1.68.1): `radar.live` is the range under the fingers (`radarRange()` uses it, `RADAR_MIN` 1.5 km to
+  `radarBase()`), the map's last image is stretched meanwhile (`radarMapDraw` keeps `radarMap.last`), and on release
+  `radarZoomSet` keeps the range (any value; `radarZoomStep` goes to the next of 10 / 5 / 2.5, `radarZoomCan`).
+  Tips: the layer stops touchmove/wheel, `place()` runs every frame, the ring is clipped by `tipBand()` (the app's
+  fixed header and tab bar).
 - 1.68 (structure): `paintRadar(g, cx, cy, R, z, t, o)` (E25, before `drawRadar`) is the one radar drawing; the
   board's `drawRadar` calls it at z 1.5 with `{engrave: true}` (range and map credit in the rim), the app's at 1;
   `radar.hits` carry both `o` and `hex`. `settingsChanged(changed)`, `locSet()` and `cockpitKeys()` (E12, function

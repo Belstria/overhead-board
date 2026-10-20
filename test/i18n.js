@@ -3,6 +3,7 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Range km", "Reichweite km", "Portée km", "Alcance km", "Bereik km"],
   ["Count down to the plane", "Countdown bis zum Flugzeug", "Compte à rebours jusqu'à l'avion", "Cuenta atrás hasta el avión", "Aftellen tot het vliegtuig"],
   ["The notification counts down until the plane is there, and rings once more when it's time to look up.", "Die Benachrichtigung zählt herunter, bis das Flugzeug da ist, und klingelt noch einmal, wenn es Zeit zum Hochschauen ist.", "La notification fait un compte à rebours jusqu'à l'arrivée de l'avion et sonne encore une fois quand il faut lever les yeux.", "La notificación cuenta hacia atrás hasta que llega el avión y vuelve a sonar cuando toca mirar arriba.", "De melding telt af tot het vliegtuig er is en klinkt nog een keer als het tijd is om omhoog te kijken."],
   ["Daylight", "Tageslicht", "Plein jour", "Luz de día", "Daglicht"],
