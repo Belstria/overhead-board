@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_card_name">Plane overhead</string>
+    <string name="widget_card_desc">The plane over your place on split flaps, with its route</string>
+    <string name="widget_line_name">Plane overhead, one line</string>
+    <string name="widget_line_desc">The plane over your place in one line</string>
+</resources>

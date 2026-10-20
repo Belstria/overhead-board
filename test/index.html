@@ -565,7 +565,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=3b8d3d54b7"></script>
+<script src="i18n.js?v=c59ddc2f41"></script>
 <script>
 (() => {
 "use strict";
@@ -6452,6 +6452,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.67", date: "2026-10-20", notes: [
+    "Notifications for a plane worth a look count down until it's there, with a bar, and ring again when it's time to look up (Settings → Notifications).",
+    "Android app: two home-screen widgets with the plane overhead, a flap card and a single line.",
+  ]},
   {v: "1.66", date: "2026-10-20", notes: [
     "Sky view: hold a plane in the ring in the middle for a moment and its card opens; no need to tap moving labels.",
     "Sky view says when the compass seems off, and how to fix it.",

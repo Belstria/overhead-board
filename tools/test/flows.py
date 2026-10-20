@@ -80,6 +80,10 @@ def checks():
     expect("one removed", [i["v"] for i in json.loads(b)["fav"]] if st == 200 else st, ["OE-LZA"])
     call("/lists", "test-device", body={"fav": []})
 
+    # the plane overhead now, for the Android widget (relay 56)
+    st, _, b = call("/now", "test-device")
+    expect("/now answers", st == 200 and "plane" in json.loads(b), True)
+    expect("/now for strangers", call("/now")[0] in (401, 403), True)
     # the whole logbook searched (relay 55)
     st, _, b = call("/search?q=ZZ9ZZ", "test-device")
     expect("/search answers", (st, json.loads(b).get("rows") if st == 200 else None), (200, []))

@@ -10,6 +10,17 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.67 / relay 56: the widgets. `/now` (`now_json`) gives the nearest airborne plane within the profile's radius
+  (hidden ones left out), status OVERHEAD (within overKm) / APPROACHING / LEAVING by its track, route from
+  `_route_for` when `_route_fits`, distance, direction, height in metres and today's count. Android: `NowWidget.kt`
+  (`NowWidgetCard` 4×2 with `flaps()` and `pill()` bitmaps, `NowWidgetLine` 4×1), layouts `widget_card`/`widget_line`,
+  `xml/widget_*_info`; the WebView's cookie for the relay (prefs `public`, else `relay`); a non-waking 60 s alarm
+  (`ACTION_TICK`) refreshes only while the screen is on; tapping opens MainActivity.
+- 1.67 / relay 56: the live countdown. `window_check` remembers each alert in `_countdown` (subscription pref
+  `countdown`, default on) and, while `window_planes` still lists the plane, `countdown_send` replaces it every 25 s
+  under the same tag: title "{what} · overhead/passing in m:ss" (`cd_over`/`cd_pass`), body why · direction · height
+  and a ten-step bar; `update: true` makes sw.js show it silently (no renotify, no bell in the open app). Under 50 s
+  the title turns "Look up now: …" (`cd_now`) and rings once. Planes that left `window_planes` drop out.
 - 1.66: Sky view aiming: `arAimDraw()` (end of `arLoop`) draws the ring (`AR_AIM_R` 56 px) and fills it while the
   nearest `arHits` marker stays inside; after `AR_AIM_MS` (1.5 s) it sets `arSel` and opens the card; `arAim.done`
   keeps it from reopening until the ring empties. `arCalCheck()` (from `arOrient`) keeps 1.5 s of raw readings: heading

@@ -492,6 +492,14 @@ Five buttons along the bottom:
 - **Notices** (1.65): saving answers with a short notice above the tabs (at the top while a card is open): Favourite and
   Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
   again (1.64); Settings say **Not synced yet** meanwhile.
+- **Home-screen widgets** (1.67, Android app, relay 56): long-press the home screen → Widgets → Fallblatt. **Plane
+  overhead** (4×2) shows the flight on split flaps, its status, airline and type, route, distance, direction and
+  height, and today's count; **Plane overhead, one line** (4×1) the flight, type, route and distance, its plane mark in
+  the status colour. Both use the app's sign-in, refresh about once a minute while the screen is on, and open the app
+  when tapped. They show the profile's place (the relay's `/now`).
+- **Look up now** (1.67, relay 56): a "worth going to the window" notification counts down after it rings: every half
+  minute it is replaced, silently, by "… · overhead in 1:30" with a bar of the wait, and under 50 seconds it rings once
+  more as **Look up now**, with where to look and how high. Settings → Notifications → **Count down to the plane**.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
