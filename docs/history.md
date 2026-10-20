@@ -26,7 +26,8 @@ The repository is public: no addresses, keys or personal data here either.
   Accessibility: `panelSpeech()` (main.js, every 4 s) sets each flap panel's aria-label to its name plus its fields'
   targets with their labels (logo, tier, trend and lamp fields and "/" left out); the app's smallest text is 12 px (tab
   labels 11 px under 380 px wide); the card's × (`.rcX`) is 44 px. `radarZoom` and `radar.zc` kept in `od.radarZoom`
-  (`radarZoomKeep`). Removed unused `drawBadge`, `blankRow`, `styleRuleShort` and the relay's `_backfill_categories`.
+  (`radarZoomKeep`). Fonts: `fonts/` (tools/fonts.py) replaces Google Fonts; relay 54's `BOARD_FILE` serves css
+  (no-cache) and woff2 (a year, immutable: names carry a content hash). Removed unused `drawBadge`, `blankRow`, `styleRuleShort` and the relay's `_backfill_categories`.
 - 1.63.2 / relay 54 (the code review's security and speed fixes): `owner_ok()` lets a device without a profile in only
   while no `HOME_OWNER` profile exists or from the relay's own computer (`on_this_computer()`: loopback, no
   Cf-Connecting-IP/X-Forwarded-For); before, any device at home without a cookie had the admin pages. `reply()` packs

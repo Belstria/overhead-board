@@ -80,9 +80,10 @@ NUM = r"(-?\d{1,3}(?:\.\d{1,6})?)"
 AIRCRAFT = re.compile(rf"^/aircraft/{NUM}/{NUM}/(\d{{1,3}})$")
 LEGACY = re.compile(rf"^/(adsblol|airplaneslive)/{NUM}/{NUM}/(\d{{1,3}})$")
 PAGE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?(?:index\.html)?$")   # "/" is the board, "/test/" the test version
-BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav))$")  # the phone app's icons, its service worker
+BOARD_FILE = re.compile(r"^/(?:([a-z0-9-]{1,40})/)?([a-z0-9][a-z0-9._-]{0,60}\.(webmanifest|png|svg|ico|js|wav|css|woff2))$")  # the phone app's icons, its service worker
 PACKED_TYPES = ("text/", "application/json", "application/manifest+json", "image/svg+xml")   # worth packing (relay 54)
-FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav"}
+FILE_TYPES = {"webmanifest": "application/manifest+json", "png": "image/png", "svg": "image/svg+xml", "ico": "image/x-icon", "js": "text/javascript; charset=utf-8", "wav": "audio/wav",
+              "css": "text/css; charset=utf-8", "woff2": "font/woff2"}   # relay 54: the typefaces (fonts/)
 CONFIG_FILE = Path(__file__).with_name("overhead.json")   # your saved settings; stays on this computer
 SAVED_KEYS = ("lat", "lon", "place", "home", "radius", "units", "sound", "port", "source", "fr24_key", "fr24_budget", "fr24_reset_day", "fr24_budget_promo", "fr24_promo_until", "public_url", "allow_host")
 DATA_DIR = Path(__file__).with_name("data")
@@ -5070,7 +5071,7 @@ class Handler(BaseHTTPRequestHandler):
             if status == 200 and bf.group(2) == "manifest.webmanifest" and badge in BADGES:   # relay 53: the profile's badge
                 return self.reply(200, FILE_TYPES["webmanifest"], badge_manifest(body, badge), {"Cache-Control": "no-cache", "Vary": "Cookie"})
             # relay 48: a file the board names by its version (i18n.js?v=...) is that version for good: kept a year
-            keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact else None
+            keep = {"Cache-Control": "public, max-age=31536000, immutable"} if exact or bf.group(3) == "woff2" else {"Cache-Control": "no-cache"} if bf.group(3) == "css" else None   # fonts are named by content
             return self.reply(status, FILE_TYPES[bf.group(3)] if status == 200 else "text/plain", body, keep)
         page = PAGE.match(path)
         if page:

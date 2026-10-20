@@ -58,6 +58,7 @@ area.** Where it and the code disagree, the code wins.
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/` | `build.py`, `light.js` (code for main.js's `//@L:name` ... `//@L:end` regions), `light.css`. |
 | `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
+| `fonts/` | The typefaces (woff2, Latin and Latin Extended, named by content) and `fonts.css`, loaded by every board and app as `../fonts/fonts.css` (1.64); made by `tools/fonts.py`. |
 | `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js` into the boards (the app build does it first); make the main board. |
 | `tools/test/` | `flows.py` (the relay's access rules and saves, run by smoke.py), `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |

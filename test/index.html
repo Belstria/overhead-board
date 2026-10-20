@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fallblatt (Test)</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3CclipPath id='c'%3E%3Crect width='64' height='64' rx='12'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='64' height='64' fill='%23f2b632'/%3E%3Crect y='32' width='64' height='32' fill='%23dca32a'/%3E%3Crect y='31' width='64' height='2' fill='%23141414'/%3E%3C/g%3E%3Cpath transform='translate(32 32) rotate(45) scale(2.2) translate(-12 -12)' fill='%23141414' d='M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../fonts/fonts.css"><!-- 1.64: the typefaces from the relay, not Google (tools/fonts.py) -->
 <style>
 /* Layout: a fixed 1920x1080 airport flight-information board, scaled to fit any screen.
    Top: gate-style feature of the plane overhead. Bottom: today's sightings as a departures list. */
@@ -552,7 +550,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=5399e2d215"></script>
+<script src="i18n.js?v=31faef82bc"></script>
 <script>
 (() => {
 "use strict";
@@ -6405,6 +6403,7 @@ const CHANGELOG = [
     "The app opens when the board can't be reached: its last copy shows, says it's offline, and keeps trying.",
     "Screen readers read out what the flaps show. Small print is a little larger, and the card's close button easier to hit.",
     "The radar's close-up stays zoomed after a reload.",
+    "The typefaces come with the board instead of from Google: quicker on the TVs, and opening a board tells nobody else.",
   ]},
   {v: "1.63.2", date: "2026-10-20", notes: [
     "The app opens faster: pages arrive packed, and an unchanged page isn't downloaded again.",
@@ -6792,6 +6791,7 @@ function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
+    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
     `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`;
 }
