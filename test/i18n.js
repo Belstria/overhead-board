@@ -3,6 +3,8 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Taking off", "Startet", "Décolle", "Despegando", "Stijgt op"],
+  ["Passing", "Vorbeiflug", "De passage", "De paso", "Passeert"],
   ["Zoom in", "Vergrößern", "Zoom avant", "Acercar", "Inzoomen"],
   ["Zoom out", "Verkleinern", "Zoom arrière", "Alejar", "Uitzoomen"],
   ["On the ground", "Am Boden", "Au sol", "En tierra", "Op de grond"],

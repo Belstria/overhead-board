@@ -746,7 +746,10 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:#f3f0e8;font:500 13px/1.4 var(--f-board)}
+#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
+  background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 body.arOpen{overflow:hidden}
+body.arOpen #sheet{z-index:75}
 .model{margin:14px 0 0;font:700 18px/1.2 var(--f-board);color:var(--ink)}
 .model small{display:block;font:600 10.5px/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .model span{color:var(--muted);font-weight:500;font-size:14px;margin-left:.4em}
@@ -919,6 +922,7 @@ body.arOpen{overflow:hidden}
   <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
     <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
   <p class="arHint" id="arHint"></p>
+  <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
   <div class="sp-logo"><div class="sp-sq"></div>
@@ -1091,7 +1095,7 @@ body.arOpen{overflow:hidden}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=75afa66213"></script>
+<script src="../test/i18n.js?v=6b5bd670b5"></script>
 <script>
 (() => {
 "use strict";
@@ -1761,7 +1765,7 @@ async function placeCard(p){
 function planeBody(o){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
-  const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || MODE_REMARK[o.kind] || "";
+  const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || radarStatus(o);
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
   const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (typeof planeAgain === "function") planeAgain(); });
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
@@ -4674,7 +4678,7 @@ const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.
 const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 const API_NOTE = () => apiOn() ? " · flight numbers and routes from Flightradar24" : "";
 const radar = {raf: 0, last: 0, at: 0, planes: [], trails: new Map(), px: 1, disp: new Map(), rep: new Map(), sel: ""};
-const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#c8645c", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae", ground: "#a19d94"};
+const RADAR_COL = {over: "#27a85e", soon: "#f6be35", by: "#4f8fe0", away: "#c8645c", high: "#4a4d53", special: "#b483ff", emergency: "#e0372c", fav: "#ef6fae", ground: "#a19d94", dep: "#27a85e", arr: "#f6be35"};
 function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
 function radarTrack(all, now){
   for (const o of all) {                    // when this position was reported: a repeat of the same one keeps its time
@@ -4719,17 +4723,25 @@ function radarCentre(){
   if (airportMode()) airportPos();
   return airportMode() && AP.lat != null ? {lat: AP.lat, lon: AP.lon, ap: true} : {lat: S.lat, lon: S.lon, ap: false};
 }
+// What a plane is doing, as the radar's list, card and colours say it (1.62.1): in the Airport style its airport status
+// (TAKE-OFF, FINAL ...; on the ground TAXIING or PARKED; any other OVERFLIGHT), never OVERHEAD and the rest, which are
+// about your place, not the airport.
+function radarStatus(o){
+  if (!airportMode() || AP.lat == null) return MODE_REMARK[o.kind] || "";
+  const e = AP.deps.find(e => e.hex === o.ac.hex) || AP.arrs.find(e => e.hex === o.ac.hex);
+  if (e) return e.st;
+  if (o.ac.alt_baro === "ground") return (o.ac.gs || 0) < 5 ? "PARKED" : "TAXIING";
+  return o.kind ? "OVERFLIGHT" : "";
+}
 // The rows of the list beside the radar: the planes within the spotting radius of its centre, nearest first, with
 // their distance and direction from it and their status (at the airport: TAKE-OFF, APPROACH and the rest).
 function radarRows(n){
   const C = radarCentre(), R = +S.radiusKm || 15, kx = 111.32 * Math.cos(C.lat * Math.PI / 180), DIR8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-  const ap = C.ap ? new Map(AP.deps.concat(AP.arrs).map(e => [e.hex, e.st])) : null;
   return radar.planes.map(o => {
-    const st = MODE_REMARK[o.kind] || "";
+    const st = radarStatus(o);
     if (!C.ap) return {o, dist: o.dist, dir: o.dir, st};
     const x = (o.ac.lon - C.lon) * kx, y = (o.ac.lat - C.lat) * 110.57;
-    const gst = o.ac.alt_baro === "ground" ? ((o.ac.gs || 0) < 5 ? "PARKED" : "TAXIING") : st;
-    return {o, dist: Math.hypot(x, y), dir: DIR8[Math.round(((Math.atan2(x, y) * 180 / Math.PI + 360) % 360) / 45) % 8], st: ap.get(o.ac.hex) || gst};
+    return {o, dist: Math.hypot(x, y), dir: DIR8[Math.round(((Math.atan2(x, y) * 180 / Math.PI + 360) % 360) / 45) % 8], st};
   }).filter(r => r.dist <= R).sort((a, b) => a.dist - b.dist).slice(0, n);
 }
 // 1.62: zooming in on the home airport (only in the Airport style), down to its gates, to see what stands around there:
@@ -4868,8 +4880,17 @@ function radarColor(o){
   if (sp === "EMERGENCY") return RADAR_COL.emergency;
   if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return RADAR_COL.special;
   if (isFav(x)) return RADAR_COL.fav;
+  if (airportMode() && AP.lat != null && (o.kind || o.ac.alt_baro === "ground")) { const st = radarStatus(o);   // 1.62.1: by what it does at the airport
+    return ["TAKE-OFF", "CLIMBING"].includes(st) ? RADAR_COL.dep : ["APPROACH", "FINAL", "LANDED"].includes(st) ? RADAR_COL.arr
+      : o.ac.alt_baro === "ground" ? RADAR_COL.ground : RADAR_COL.by; }
   if (o.ac.alt_baro === "ground") return RADAR_COL.ground;
   return RADAR_COL[o.kind] || RADAR_COL.high;
+}
+// The radar's legend: in the Airport style what the planes do at the airport.
+function radarLegend(){
+  return (airportMode() && AP.lat != null ? [[RADAR_COL.dep, "Taking off"], [RADAR_COL.arr, "Landing"], [RADAR_COL.by, "Passing"]]
+    : [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Approaching"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Leaving"]])
+    .concat([[RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"]], airportMode() ? [[RADAR_COL.ground, "On the ground"]] : []);
 }
 // Plane labels that never cover each other or leave the scope: nearest planes first, each label tries the right of its
 // plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
@@ -5454,7 +5475,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    on iPhones), the back camera looking along the phone's -z. Positions are moved on to now with each plane's speed and
    track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device). */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
-let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null;
+let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0};
 const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
 function arFeed(list){ arList = list || []; arListAt = Date.now(); }
@@ -5494,6 +5515,7 @@ function arClose(){
   removeEventListener(arEvent(), arOrient);
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
+  arSel = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen");
 }
 // The rotation from the phone's axes to east-north-up (W3C DeviceOrientation, Z-X'-Y'' with alpha, beta, gamma).
@@ -5548,6 +5570,7 @@ function arLoop(){
   }
   shown.sort((a, b) => a.d - b.d);
   const boxes = [];
+  arHits = [];
   g.textBaseline = "alphabetic";
   for (const s of shown.slice(0, 14)) {
     if (s.pr.edge) { arEdge(g, s, W, H); continue; }
@@ -5556,8 +5579,9 @@ function arLoop(){
     const bw = Math.max(w1, w2) + 18, bh = 40;
     let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
     for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
-    boxes.push([bx, by, bw, bh]);
+    boxes.push([bx, by, bw, bh]); arHits.push({hex: s.ac.hex, x, y, box: [bx, by, bw, bh]});
     const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
+    if (s.ac.hex === arSel) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
     g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
     g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
     g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
@@ -5578,14 +5602,47 @@ function arEdge(g, s, W, H){
 }
 const shortType = t => String(t || "").replace(/^(Airbus|Boeing|Embraer|Bombardier|De Havilland Canada|ATR) /i, "");
 // Dragging the picture lines the labels up with the planes: sideways turns them, up and down lifts them.
-function arDragStart(e){ arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
+function arDragStart(e){ arDrag = {x: e.clientX, y: e.clientY, h: arOff.h, p: arOff.p, moved: false}; e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId); }
 function arDragMove(e){
   if (!arDrag) return;
+  if (!arDrag.moved && Math.hypot(e.clientX - arDrag.x, e.clientY - arDrag.y) < 8) return;       // still a tap
+  arDrag.moved = true;
   const H = $("arCv").clientHeight, f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180);
   arOff.h = arDrag.h - Math.atan((e.clientX - arDrag.x) / f) * 180 / Math.PI;
   arOff.p = arDrag.p + Math.atan((e.clientY - arDrag.y) / f) * 180 / Math.PI;
 }
-function arDragEnd(){ if (!arDrag) return; arDrag = null; try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {} }
+function arDragEnd(e){
+  if (!arDrag) return;
+  const tap = !arDrag.moved; arDrag = null;
+  if (tap && e && e.type === "pointerup") return arTap(e);
+  try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {}
+}
+// 1.62.1: a tap on a plane or its label opens its card (as on the radar) over the picture; a tap elsewhere closes it.
+function arTap(e){
+  const r = $("arCv").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = arHits.find(h => x >= h.box[0] && x <= h.box[0] + h.box[2] && y >= h.box[1] && y <= h.box[1] + h.box[3])
+    || arHits.reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 32 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  const was = arSel;
+  arSel = hit && hit.hex !== was ? hit.hex : "";
+  if (arSel || was) ctlSound.press();
+  arCardRender();
+}
+let arCardSig = "";
+function arCardRender(){
+  const box = $("arCard"), ac = arSel && arList.find(a => a.hex === arSel);
+  if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; return; }
+  const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
+  const b = planeBody(o);
+  $("arHint").hidden = true;
+  if (b.sig === arCardSig && !box.hidden) {
+    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+    return;
+  }
+  arCardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
+  b.wire(box);
+  box.querySelector(".rcX").onclick = () => { ctlSound.press(); arSel = ""; arCardRender(); };
+}
+setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
 $("arClose").onclick = arClose;
 $("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
@@ -5723,7 +5780,7 @@ function drawRadar(t){
       g.lineTo(x, y); g.stroke();
     }
     g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 12 : 16) : o.kind ? 19 : 14, col);
+    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 17 : 21) : o.kind ? 19 : 14, col);
     g.restore();
     if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 17, 0, Math.PI * 2); g.stroke(); }
     shown.push({o, x, y, col});
@@ -5750,8 +5807,7 @@ function buildRadarLegend(){
   $("rvZoom").hidden = !airportMode() || AP.lat == null; $("rvZoomKm").textContent = nf.format(radarRange()) + " km";
   $("rvZoomOut").disabled = zi <= 0; $("rvZoomIn").disabled = zi >= RADAR_ZOOMS.length - 1;
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in")); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
-  $("rLegend").innerHTML = [[RADAR_COL.over, "Overhead"], [RADAR_COL.soon, "Approaching"], [RADAR_COL.by, "Flying by"], [RADAR_COL.away, "Leaving"],
-    [RADAR_COL.special, "Special"], [RADAR_COL.fav, "Favourite"], [RADAR_COL.high, "Too high"], ...(airportMode() ? [[RADAR_COL.ground, "On the ground"]] : [])].map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
+  $("rLegend").innerHTML = radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i>${escH(T(t))}</li>`).join("");
 }
 let rvSig = "";
 function renderRadarList(){
@@ -6784,6 +6840,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.63", date: "2026-10-20", notes: [
+    "Sky view: tap a plane or its label to open its card.",
+    "Airport style: the radar's list, plane card and colours show what a plane does at the airport (taking off, landing, passing) instead of Overhead.",
+    "Planes on the zoomed-in radar are a little bigger and easier to tap.",
+    "On the full board the radar's buttons sit at its corners: − and + at the top, Map at the bottom; the range is engraved in the dial.",
+  ]},
   {v: "1.62", date: "2026-10-20", notes: [
     "Radar in the Airport style: − and + zoom in down to the gates, with the planes parked or taxiing at the airport.",
     "The radar's list shows each airline's logo.",
