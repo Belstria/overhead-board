@@ -10,6 +10,9 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.62.1: `radarStatus(o)` is the one status for the radar's list (`radarRows`), the plane card (`planeBody`) and
+  `radarColor`: in the Airport style the airport status (TAKE-OFF ... from `AP.deps`/`AP.arrs`, TAXIING/PARKED on the
+  ground, else OVERFLIGHT), never OVERHEAD; colours `RADAR_COL.dep`/`arr`/`by`/`ground`; `radarLegend()` for both legends.
 - 1.62 (radar zoom, logos, landed planes linger): `radarZoom` (km to the rim, 0 the usual range) steps through
   `RADAR_ZOOMS` with `radarZoomStep()`; `radarZoomed()` only in the Airport style once `AP.lat` is known. `radarZoomSet()`
   fixes the centre `radar.zc` on the planes on the ground within 3 km (else the airport), so the map isn't rebuilt as
