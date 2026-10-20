@@ -124,7 +124,8 @@ abstract class NowWidget : AppWidgetProvider() {
 
         /** The flight on split flaps: a dark module per letter, split across the middle, the letter in white. */
         fun flaps(text: String, cells: Int = 7, h: Int = 96): Bitmap {
-            val w = (h * .72f).toInt(), gap = (h * .06f).toInt()
+            val w = (h * .72f).toInt()
+            val gap = (h * .06f).toInt()
             val bmp = Bitmap.createBitmap(cells * (w + gap), h, Bitmap.Config.ARGB_8888)
             val g = Canvas(bmp)
             val face = Paint(Paint.ANTI_ALIAS_FLAG)
