@@ -62,10 +62,11 @@ self.addEventListener("push", e => {
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({type: "window", includeUncontrolled: true});
     const front = d.kind ? wins.find(w => w.visibilityState === "visible" && /\/(app|light)\//.test(w.url)) : null;
-    if (front) front.postMessage({type: "bell", kind: d.kind});
+    if (front && !d.update) front.postMessage({type: "bell", kind: d.kind});
     for (const n of await self.registration.getNotifications()) n.close();
     await self.registration.showNotification(d.title || "Fallblatt", {
-      body: d.body || "", tag: "fallblatt", renotify: true, silent: !!front,
+      // 1.67: a countdown's update (d.update) replaces the alert quietly; "Look up now" rings again
+      body: d.body || "", tag: "fallblatt", renotify: !d.update, silent: !!front || !!d.update,
       // the badge is the status bar's little icon: Android uses only its shape, so it is the plane alone (make_badge.py)
       icon: "icon-192.png", badge: "badge-96.png", data: {url: d.url || "/app/"}
     });

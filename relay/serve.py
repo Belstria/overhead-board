@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 55
+RELAY_VERSION = 56
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -3693,6 +3693,14 @@ PUSH_TEXT = {
     "overhead": {"en": "{what} passes right overhead in about {m} min, {alt}", "de": "{what} fliegt in etwa {m} Min. direkt drüber, {alt}",
                  "fr": "{what} passe juste au-dessus dans environ {m} min, {alt}", "es": "{what} pasa justo encima en unos {m} min, {alt}",
                  "nl": "{what} komt over ongeveer {m} min recht over, {alt}"},
+    "cd_over": {"en": "{what} · overhead in {left}", "de": "{what} · über dir in {left}", "fr": "{what} · au-dessus dans {left}",
+                "es": "{what} · encima en {left}", "nl": "{what} · recht boven in {left}"},
+    "cd_pass": {"en": "{what} · passing in {left}", "de": "{what} · kommt vorbei in {left}", "fr": "{what} · passe dans {left}",
+                "es": "{what} · pasa en {left}", "nl": "{what} · komt langs over {left}"},
+    "cd_now": {"en": "Look up now: {what}", "de": "Jetzt hochschauen: {what}", "fr": "Levez les yeux : {what}", "es": "Mira arriba ahora: {what}",
+               "nl": "Kijk nu omhoog: {what}"},
+    "cd_look": {"en": "look {dir}", "de": "Blick nach {dir}", "fr": "regardez vers {dir}", "es": "mira al {dir}", "nl": "kijk naar {dir}"},
+    "cd_up": {"en": "straight up", "de": "direkt nach oben", "fr": "juste au-dessus", "es": "justo encima", "nl": "recht omhoog"},
     "why_emergency": {"en": "Emergency: squawking {x}", "de": "Notfall: Squawk {x}", "fr": "Urgence : transpondeur {x}", "es": "Emergencia: squawk {x}", "nl": "Noodgeval: squawk {x}"},
     "why_special": {"en": "A special plane is coming", "de": "Ein besonderes Flugzeug kommt", "fr": "Un avion spécial arrive", "es": "Llega un avión especial", "nl": "Er komt een bijzonder toestel"},
     "why_watch": {"en": "On the watchlist: {x}", "de": "Auf der Beobachtungsliste: {x}", "fr": "Sur la liste : {x}", "es": "En la lista de vigilancia: {x}", "nl": "Op de volglijst: {x}"},
@@ -3922,12 +3930,14 @@ def _list_hit(items, tc, cs, reg, al):
 PUSH_KINDS = {"special": True, "watch": True, "military": True, "fav": True, "newtype": False, "low": False}
 WINDOW_GAP_S = 15 * 60
 _last_window = {}            # subscription endpoint -> time of its last window alert
+_countdown = {}              # relay 56: (endpoint, hex) -> the first alert's {t, why, kind}: the live countdown that follows
 
 
 def _push_prefs(p):
     p = p if isinstance(p, dict) else {}
     out = {"summary": p.get("summary") is not False, "window": p.get("window") is not False, "quiet": p.get("quiet") is not False}
     out["review"] = p.get("review") is not False          # relay 46: the week and month in review
+    out["countdown"] = p.get("countdown") is not False    # relay 56: the alert counts down to the plane
     for k, d in PUSH_KINDS.items():
         out[k] = bool(p[k]) if k in p else d
     return out
@@ -4003,11 +4013,17 @@ def window_check(who, subs, centre, spot, st):
     now = time.time()
     for k in [k for k, t in _sent.items() if now - t > 3 * 3600]:
         del _sent[k]
-    for pl in window_planes(who, centre, spot, st):
+    planes = window_planes(who, centre, spot, st)
+    live = {(sub["endpoint"], pl["ac"].get("hex")) for sub in want for pl in planes}
+    for k in [k for k in _countdown if k[0] in {s_["endpoint"] for s_ in want} and k not in live]:
+        del _countdown[k]                            # passed (or gone): the last notification stays as it is
+    for pl in planes:
         ac, kinds, what, t, cpa, cx, cy, alt = (pl[k] for k in ("ac", "kinds", "what", "t", "cpa", "cx", "cy", "alt"))
         for sub in want:
             key = (sub["endpoint"], ac.get("hex"))
             if key in _sent:
+                if key in _countdown:
+                    countdown_send(sub, key, pl)
                 continue
             pr = _push_prefs(sub.get("prefs"))
             mine = [k for k in kinds if k[0] == "emergency" or pr.get(k[0])]
@@ -4031,6 +4047,33 @@ def window_check(who, subs, centre, spot, st):
             bell = "emergency" if k == "emergency" else "fav" if k == "fav" else "special"
             _deliver([sub], {"title": why, "body": text, "tag": "window-" + str(ac.get("hex")), "kind": bell, "url": "/app/"}, urgent=True)
             event("info", f"Window alert for {who}: {what} ({k})")
+            if pr.get("countdown"):
+                _countdown[key] = {"t0": t, "why": why, "kind": bell, "at": now, "now": False}
+
+
+def countdown_send(sub, key, pl):
+    """Relay 56: the alert after it went out, replaced every half minute (silently) by one that counts down, with a bar
+    of how much of the wait is gone; under 50 s it rings once more: "Look up now". It stops once the plane has passed."""
+    c, now = _countdown[key], time.time()
+    if now - c["at"] < 25:
+        return
+    c["at"] = now
+    lang = sub.get("lang") or "en"
+    t, cpa, alt = pl["t"], pl["cpa"], pl["alt"]
+    d = DIRS.get(lang, DIRS["en"]).split()[int(((math.degrees(math.atan2(pl["cx"], pl["cy"])) + 360) % 360 + 22.5) // 45) % 8]
+    altx = f"{round(alt * .3048 / 50) * 50:,} m" if isinstance(alt, (int, float)) else ""
+    left = f"{int(t // 60)}:{int(t % 60):02d}"
+    done = max(0, min(10, round(10 * (1 - t / max(c["t0"], 1)))))
+    bar = "▰" * done + "▱" * (10 - done)
+    ring = t <= 50 and not c["now"]
+    if t <= 50:
+        c["now"] = True
+        title = ptext("cd_now", lang, what=pl["what"])
+    else:
+        title = ptext("cd_over" if cpa < 1.2 else "cd_pass", lang, what=pl["what"], left=left)
+    body = " · ".join(x_ for x_ in [c["why"], ptext("cd_look", lang, dir=d) if cpa >= 1.2 else ptext("cd_up", lang), altx] if x_) + "\n" + bar + " " + left
+    _deliver([sub], {"title": title, "body": body, "tag": "window-" + str(pl["ac"].get("hex")), "kind": c["kind"], "url": "/app/",
+                     "update": not ring}, urgent=True)
 
 
 def summary_check(who, subs, spot, st):

@@ -1855,7 +1855,7 @@ async function enablePush(){
       try { sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: raw}); }
       catch (e) { if (i === 2) throw e; await new Promise(r => setTimeout(r, 800)); }
     }
-    let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
+    let prefs = {summary: true, review: true, window: true, countdown: true, ...PUSH_KIND_DEFAULTS};
     try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
     const r = await sendSub(sub, prefs, "subscribe");
     return r.ok ? "" : `HTTP ${r.status}`;
@@ -1871,7 +1871,7 @@ async function renderPush(){
     box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
   }
   if (Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
-  let prefs = {summary: true, review: true, window: true, ...PUSH_KIND_DEFAULTS};
+  let prefs = {summary: true, review: true, window: true, countdown: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
@@ -1879,7 +1879,8 @@ async function renderPush(){
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 46 ? sw("review", "Week and month in review") + `<p class="sum">${escH(T("Your week on Sunday at 20:00, your month on the 1st at 9:00."))}</p>` : "") + sw("window", "Worth going to the window") +
     ((window.OVERHEAD_RELAY_VERSION || 0) >= 31 ? `<div class="pushKinds"${prefs.window ? "" : " hidden"}><p class="sum"><b>${escH(T("Which notifications"))}</b> · ${escH(T("At most one every 15 minutes, except emergencies and special planes."))}</p>` +
-      PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") + `</div>` : "") +
+      PUSH_KINDS.map(([k, l]) => sw(k, l)).join("") +
+      ((window.OVERHEAD_RELAY_VERSION || 0) >= 56 ? sw("countdown", "Count down to the plane") + `<p class="sum">${escH(T("The notification counts down until the plane is there, and rings once more when it's time to look up."))}</p>` : "") + `</div>` : "") +
     `<div class="acts"><button class="cap big${sub ? "" : " go"}" type="button" id="pushBtn">${T(sub ? "Turn off" : "Turn on notifications")}</button></div><p class="note" id="pushNote"></p>`;
   for (const cb of box.querySelectorAll("[data-p]")) cb.onchange = async () => {
     ctlSound.toggle(cb.checked);
