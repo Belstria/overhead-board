@@ -15,6 +15,9 @@ The repository is public: no addresses, keys or personal data here either.
   them. Pinch (1.68.1): `radar.live` is the range under the fingers (`radarRange()` uses it, `RADAR_MIN` 1.5 km to
   `radarBase()`), the map's last image is stretched meanwhile (`radarMapDraw` keeps `radarMap.last`), and on release
   `radarZoomSet` keeps the range (any value; `radarZoomStep` goes to the next of 10 / 5 / 2.5, `radarZoomCan`).
+  Styles cell: caps at 84 %, `.stN` ellipsis and `lcdMarquee()` (every 4.5 s, slides an overflowing word left, back
+  to the dots after 1.4 s). Safe areas in head.html/light.css go through `--sa-top`/`--sa-bottom`; `html.android`
+  (set by main.js in the Android app, whose MainActivity already pads the page clear of the bars) zeroes them.
   Tips: the layer stops touchmove/wheel, `place()` runs every frame, the ring is clipped by `tipBand()` (the app's
   fixed header and tab bar).
 - 1.68 (structure): `paintRadar(g, cx, cy, R, z, t, o)` (E25, before `drawRadar`) is the one radar drawing; the

@@ -1375,6 +1375,7 @@ const COCKPIT_FOR = "phone";         // the board's shared Settings (COCKPIT, co
 //@L:end
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
+if (ANDROID) document.documentElement.classList.add("android");     // 1.69: the app pads the page clear of the phone's bars itself
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
 // 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.

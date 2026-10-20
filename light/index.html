@@ -202,8 +202,13 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
    the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
 /* 1.61: Settings → Styles. The cell: Look and Badge caps like the Favourites cell's, the count under them. The card: a
    preview strip, then a row per kind (label, ◀, the choice on an amber display, ▶), what unlocks a locked one under it. */
-.inst.styl .cap.favCap{width:100%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
-.inst.styl .stN{min-width:0;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center}   /* 1.61: the narrow Display cell keeps both words */
+.inst.styl .cap.favCap{width:84%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
+.inst.styl .stN{min-width:0;max-width:58%;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis}   /* 1.69: a name too long ends in dots, then scrolls (lcdMarquee) */
+.inst.styl .stN.mq{text-overflow:clip;text-align:left}
+.inst.styl .stN>i{font-style:normal}
+.inst.styl .stN.mq>i{display:inline-block}
+.inst.styl .cap.favCap>span{text-overflow:ellipsis;white-space:nowrap}
 .inst.styl .stCnt{margin:0}
 #cardBox .styles .stPrev{display:block;width:100%;height:calc(64px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(12px*var(--ck,1));border-radius:calc(8px*var(--ck,1))}
 #cardBox .styles .stRows{display:grid;gap:calc(6px*var(--ck,1))}
@@ -266,7 +271,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #toasts .toast button{all:unset;cursor:pointer;padding:calc(6px*var(--ck,1)*var(--tz,1.5)) calc(4px*var(--ck,1)*var(--tz,1.5));font:700 calc(14px*var(--ck,1)*var(--tz,1.5)) var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f0b429}
 #toasts .toast.err button{color:#ff8a80}
 @media (prefers-reduced-motion:reduce){#toasts .toast{transition:none}}
-#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + env(safe-area-inset-top));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
+#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + var(--sa-top,env(safe-area-inset-top)));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -403,6 +408,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 /* The phone version of the overhead board: the same split flaps, metal, lamps and engraving, laid out for a phone held
    upright. The plane overhead is on flaps at the top; the rest of the page scrolls. Tabs along the bottom are the
    board's backlit push buttons. */
+html.android{--sa-top:0px!important;--sa-bottom:0px!important}
 :root{
   color-scheme: dark;
   --housing:#0b0b0c;
@@ -415,6 +421,8 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
   --k:1;
   --gut:14px;
+  /* 1.69: the phone's safe areas; the Android app already keeps the page clear of its bars, so it has none (html.android) */
+  --sa-top:env(safe-area-inset-top);--sa-bottom:env(safe-area-inset-bottom);
   /* 1.68: the type scale (tools/test/tokens.py keeps new CSS on it). tag: uppercase letter-spaced kickers only */
   --fs-tag:11px;--fs-xs:12px;--fs-s:13px;--fs-m:14px;--fs-base:15px;--fs-input:16px;--fs-l:17px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:30px;--fs-hero:36px;
   /* fixed colours, the same in every board style (the themed ones are --amber, --ink, --muted ...) */
@@ -433,7 +441,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 .wrap{position:relative;max-width:560px;margin:0 auto;padding:0 var(--gut)}
 /* the header plate: logo, title and the clock on flaps; it stays at the top while the page scrolls */
 html{touch-action:manipulation}            /* no zooming in on a double tap (1.34) */
-#top{position:sticky;top:0;z-index:5;padding-top:calc(env(safe-area-inset-top) + 8px);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+#top{position:sticky;top:0;z-index:5;padding-top:calc(var(--sa-top) + 8px);background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.7),0 8px 18px rgba(0,0,0,.38)}
 #top .wrap{display:flex;align-items:center;gap:11px;padding-top:10px;padding-bottom:11px}
 #mark{width:40px;height:40px;flex:none}
@@ -454,7 +462,7 @@ html{touch-action:manipulation}            /* no zooming in on a double tap (1.3
 html,body{overflow-x:clip}
 #cardBox .stOk{font-size:.9em}#cardBox .stOk[data-ok=good]{color:#22a058}#cardBox .stOk[data-ok=meh]{color:var(--amber)}#cardBox .stOk[data-ok=bad]{color:#c7372d}
 .dot[data-state=live]{background:#22a058}.dot[data-state=demo],.dot[data-state=warn]{background:var(--amber)}.dot[data-state=off]{background:#c7372d}
-main{position:relative;z-index:1;padding:14px 0 calc(92px + env(safe-area-inset-bottom))}
+main{position:relative;z-index:1;padding:14px 0 calc(92px + var(--sa-bottom))}
 /* split-flap panels: canvases drawn by the same flap engine as the board */
 .panel{position:relative;width:100%;aspect-ratio:var(--w)/var(--h)}
 .panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -468,8 +476,8 @@ h3 span{color:var(--label2);margin-left:.6em}
 .sum,.status{margin:8px 0 0;font:500 var(--fs-s)/1.45 var(--f-board);color:var(--muted)}
 .status{display:none}
 body[data-health=off] .status,body[data-health=warn] .status,body[data-health=demo] .status{display:block}
-#snapTag{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;padding:5px 12px;border:1px solid #f2c44e;border-radius:12px;background:rgba(20,18,14,.92);color:#f2c44e;font:700 var(--fs-xs) var(--f-board);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
-#nvBox{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:99;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:10px 10px 10px 16px;border-radius:14px;background:#f2c44e;color:#17140e;font:700 var(--fs-m)/1.3 var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6)}
+#snapTag{position:fixed;left:50%;top:calc(8px + var(--sa-top));transform:translateX(-50%);z-index:90;padding:5px 12px;border:1px solid #f2c44e;border-radius:12px;background:rgba(20,18,14,.92);color:#f2c44e;font:700 var(--fs-xs) var(--f-board);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+#nvBox{position:fixed;left:12px;right:12px;bottom:calc(86px + var(--sa-bottom));z-index:99;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:10px 10px 10px 16px;border-radius:14px;background:#f2c44e;color:#17140e;font:700 var(--fs-m)/1.3 var(--f-board);box-shadow:0 6px 18px rgba(0,0,0,.6)}
 #nvBox span{flex:1}
 #nvBox button{flex:none;border:0;border-radius:10px;padding:9px 14px;background:#17140e;color:#f2c44e;font:inherit;cursor:pointer}
 .pushOpt{display:flex;align-items:center;gap:10px;margin:10px 0;font:600 var(--fs-base) var(--f-board);color:var(--ink)}
@@ -606,7 +614,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tools .cap{margin:0}
 .tools .svFind{flex:1 1 100%;--k:1}
 .tools .svFind input{width:100%;height:40px;font-size:var(--fs-input)}
-#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 0 calc(12px + var(--sa-bottom));background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   box-shadow:0 -1px 0 rgba(255,255,255,.05),0 -2px 0 rgba(0,0,0,.7),0 -8px 18px rgba(0,0,0,.38)}
 #tabs .wrap{display:flex;gap:9px;--k:.88}
 #tabs .cap.long{font-size:calc(10px*var(--k));letter-spacing:0}          /* long names in some languages */
@@ -686,8 +694,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
    and closing it leaves Settings where it was */
 #t-about{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
-  padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(env(safe-area-inset-bottom) + 28px)}
-#t-about .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(env(safe-area-inset-top) + 14px) var(--gut) 12px;
+  padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(var(--sa-bottom) + 28px)}
+#t-about .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
   background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
 #t-about .tabHead h2{margin:0}
 #t-about #aboutBox{margin-top:4px!important}
@@ -720,7 +728,7 @@ body.aboutOpen{overflow:hidden}
 .fl .tap:active{background:rgba(255,255,255,.1)}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
-#sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(env(safe-area-inset-bottom) + 14px);border-radius:16px 16px 0 0;
+#sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(var(--sa-bottom) + 14px);border-radius:16px 16px 0 0;
   background:linear-gradient(#1a1b1e,#111214);border-top:1px solid rgba(255,255,255,.08)}
 #sheet h3{margin:0 0 4px;font:700 var(--fs-xl) var(--f-board);color:var(--ink)}
 .shH{margin:12px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
@@ -757,16 +765,16 @@ body.aboutOpen{overflow:hidden}
 #arView video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #arView canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
 #arView .arTop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;
-  padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0));color:var(--c-paper);font:600 var(--fs-m) var(--f-board)}
+  padding:calc(var(--sa-top) + 10px) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0));color:var(--c-paper);font:600 var(--fs-m) var(--f-board)}
 #arView .arTop b{font-size:var(--fs-l);color:var(--amber)}
 #arView .arTop span{flex:1;color:#d6d2c6}
 #arView .arTop .cap{width:auto;padding:0 12px}
-#arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
+#arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
-#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
+#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
-#arView .arCal{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
+#arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
   background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
@@ -807,7 +815,7 @@ body.arOpen #sheet{z-index:75}
 #aboutBox ul.legend .chip{min-width:0;width:118px}
 #aboutBox .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:var(--c-gold);margin-top:6px}
-#toasts{--toast-b:calc(84px + env(safe-area-inset-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
+#toasts{--toast-b:calc(84px + var(--sa-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
 /* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
 html.daylight{color-scheme:light;--housing:#efe9dc;--muted:#55524b;--label2:#5a5650;--line:#d3cab7}
 html.daylight body{background-color:#efe9dc}
@@ -841,7 +849,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
-.savebar{display:none;position:sticky;bottom:calc(80px + env(safe-area-inset-bottom));z-index:3;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
+.savebar{display:none;position:sticky;bottom:calc(80px + var(--sa-bottom));z-index:3;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
   border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
 .savebar .cap{margin:0}
 #t-settings.dirty .savebar{display:flex;justify-content:center}
@@ -2276,9 +2284,22 @@ const styleVal = k => String(S[k] || (k === "theme" ? "classic" : ""));
 const lookKind = () => styleKinds().some(([k]) => k === "theme") ? "theme" : "palette";
 const styleShort = k => { const v = styleVal(k); return T(STYLE_SHORT[v] || (k === "badge" ? "None" : "Standard")); };
 function stylesCellRefresh(){
-  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.textContent = styleShort(b.dataset.styles); }
+  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.innerHTML = `<i>${escH(styleShort(b.dataset.styles))}</i>`; }
   for (const p of document.querySelectorAll(".inst.styl .stCnt")) p.textContent = stylesNote();
 }
+// 1.69: a display whose word doesn't fit shows dots, then every few seconds slides from right to left to show the rest,
+// waits, and comes back to the dots.
+function lcdMarquee(){
+  for (const el of document.querySelectorAll(".inst.styl .stN")) {
+    const t = el.firstElementChild, over = el.scrollWidth - el.clientWidth;
+    if (!t || el.dataset.mq || over < 2 || !el.getClientRects().length || REDUCED) continue;
+    el.dataset.mq = "1"; el.classList.add("mq");
+    const ms = 500 + over * 45;
+    t.style.transition = `transform ${ms}ms linear`; t.style.transform = `translateX(${-over - 4}px)`;
+    setTimeout(() => { t.style.transition = "none"; t.style.transform = ""; el.classList.remove("mq"); delete el.dataset.mq; }, ms + 1400);
+  }
+}
+setInterval(lcdMarquee, 4500);
 // Settings → Styles (1.61): a preview of the look on top, then one row per kind: ◀, the choice on an amber display, ▶.
 // Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
 // is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
@@ -6162,6 +6183,7 @@ function renderRadarList(){
 const COCKPIT_FOR = "light";
 // Inside the Android app (android/ in the repository) the page runs in a WebView that offers OverheadAndroid.
 const ANDROID = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
+if (ANDROID) document.documentElement.classList.add("android");     // 1.69: the app pads the page clear of the phone's bars itself
 const APK_URL = "https://github.com/Belstria/overhead-board/releases/latest/download/overhead.apk";
 // 1.63.2: the Android app signed in over the Wi-Fi moves to the relay's https address, where TLS proves it's this relay
 // (and it works away from home too). At most once a day, so a missing internet connection doesn't loop.
@@ -6417,7 +6439,7 @@ function itemHtml(it){
     const pal = svg('<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.47 2.08-1.32 2.83-.84.75-1.99 1.17-3.18 1.17H14a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r=".6"/><circle cx="12" cy="7.5" r=".6"/><circle cx="16.5" cy="10.5" r=".6"/>');
     const award = svg('<circle cx="12" cy="9" r="6"/><path d="M12 15l3.4 5.89 1.6-3.23 3.6.23-3.4-5.89"/><path d="M6.8 12l-3.4 5.89 3.6-.23 1.6 3.23 3.4-5.89"/>');
     const cap = (k, ico, name) => `<button class="cap favCap stCap" type="button" data-styles="${k}" title="${escH(T("Open styles"))}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
-      `<b class="lcd favN stN" aria-hidden="true">${escH(styleShort(k))}</b></button>`;
+      `<b class="lcd favN stN" aria-hidden="true"><i>${escH(styleShort(k))}</i></b></button>`;
     return cell("loc favs styl", cap(lookKind(), pal, "Look") + cap("badge", award, "Badge") + `<p class="note stCnt">${escH(stylesNote())}</p>`);
   }
   if (it.type === "favs") {
@@ -7187,6 +7209,8 @@ const CHANGELOG = [
     "App: the radar's controls sit on a Radar plate like Settings: a Range thumbwheel and a Map switch.",
     "App: pinching the radar really zooms the map and the rings, and stays where you let go.",
     "Tips stay on the thing they point at: the page no longer scrolls under them.",
+    "Settings: the Look and Badge buttons are narrower; a name too long ends in dots and scrolls to show the rest.",
+    "Android app: no more empty band above the header and below the tabs.",
   ]},
   {v: "1.68", date: "2026-10-20", notes: [
     "App: text sizes follow one scale, so the look stays even.",

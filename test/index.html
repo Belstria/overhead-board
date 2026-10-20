@@ -328,8 +328,13 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
    the phone app. On the board they scale with it (--ck, 1.54: on a TV's small layout they ran off the screen); the app keeps 1. */
 /* 1.61: Settings → Styles. The cell: Look and Badge caps like the Favourites cell's, the count under them. The card: a
    preview strip, then a row per kind (label, ◀, the choice on an amber display, ▶), what unlocks a locked one under it. */
-.inst.styl .cap.favCap{width:100%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
-.inst.styl .stN{min-width:0;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center}   /* 1.61: the narrow Display cell keeps both words */
+.inst.styl .cap.favCap{width:84%;gap:calc(3px*var(--k));padding:0 calc(4px*var(--k)) 0 calc(5px*var(--k));font-size:calc(10px*var(--k));letter-spacing:.02em}
+.inst.styl .stN{min-width:0;max-width:58%;padding:calc(2px*var(--k)) calc(4px*var(--k));font-size:calc(10.5px*var(--k));letter-spacing:.02em;text-align:center;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis}   /* 1.69: a name too long ends in dots, then scrolls (lcdMarquee) */
+.inst.styl .stN.mq{text-overflow:clip;text-align:left}
+.inst.styl .stN>i{font-style:normal}
+.inst.styl .stN.mq>i{display:inline-block}
+.inst.styl .cap.favCap>span{text-overflow:ellipsis;white-space:nowrap}
 .inst.styl .stCnt{margin:0}
 #cardBox .styles .stPrev{display:block;width:100%;height:calc(64px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(12px*var(--ck,1));border-radius:calc(8px*var(--ck,1))}
 #cardBox .styles .stRows{display:grid;gap:calc(6px*var(--ck,1))}
@@ -392,7 +397,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #toasts .toast button{all:unset;cursor:pointer;padding:calc(6px*var(--ck,1)*var(--tz,1.5)) calc(4px*var(--ck,1)*var(--tz,1.5));font:700 calc(14px*var(--ck,1)*var(--tz,1.5)) var(--f-board);letter-spacing:.08em;text-transform:uppercase;color:#f0b429}
 #toasts .toast.err button{color:#ff8a80}
 @media (prefers-reduced-motion:reduce){#toasts .toast{transition:none}}
-#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + env(safe-area-inset-top));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
+#toasts.top{bottom:auto;top:calc(16px*var(--ck,1) + var(--sa-top,env(safe-area-inset-top)));flex-direction:column}   /* over an open card: at the top, clear of its buttons */
 #cardBox .cBtn.go,.cardish .cBtn.go{background:linear-gradient(#f6cf63,#e0a92a)}
 #cardBox .cBtn small,.cardish .cBtn small{display:block;font-size:calc(9.5px*var(--ck,1));letter-spacing:.1em;text-transform:uppercase;opacity:.65}
 #cardBox .shH,.cardish .shH{margin:calc(14px*var(--ck,1)) 0 calc(6px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
@@ -5741,9 +5746,22 @@ const styleVal = k => String(S[k] || (k === "theme" ? "classic" : ""));
 const lookKind = () => styleKinds().some(([k]) => k === "theme") ? "theme" : "palette";
 const styleShort = k => { const v = styleVal(k); return T(STYLE_SHORT[v] || (k === "badge" ? "None" : "Standard")); };
 function stylesCellRefresh(){
-  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.textContent = styleShort(b.dataset.styles); }
+  for (const b of document.querySelectorAll("[data-styles]")) { const v = b.querySelector(".stN"); if (v) v.innerHTML = `<i>${escH(styleShort(b.dataset.styles))}</i>`; }
   for (const p of document.querySelectorAll(".inst.styl .stCnt")) p.textContent = stylesNote();
 }
+// 1.69: a display whose word doesn't fit shows dots, then every few seconds slides from right to left to show the rest,
+// waits, and comes back to the dots.
+function lcdMarquee(){
+  for (const el of document.querySelectorAll(".inst.styl .stN")) {
+    const t = el.firstElementChild, over = el.scrollWidth - el.clientWidth;
+    if (!t || el.dataset.mq || over < 2 || !el.getClientRects().length || REDUCED) continue;
+    el.dataset.mq = "1"; el.classList.add("mq");
+    const ms = 500 + over * 45;
+    t.style.transition = `transform ${ms}ms linear`; t.style.transform = `translateX(${-over - 4}px)`;
+    setTimeout(() => { t.style.transition = "none"; t.style.transform = ""; el.classList.remove("mq"); delete el.dataset.mq; }, ms + 1400);
+  }
+}
+setInterval(lcdMarquee, 4500);
 // Settings → Styles (1.61): a preview of the look on top, then one row per kind: ◀, the choice on an amber display, ▶.
 // Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
 // is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
@@ -6513,6 +6531,8 @@ const CHANGELOG = [
     "App: the radar's controls sit on a Radar plate like Settings: a Range thumbwheel and a Map switch.",
     "App: pinching the radar really zooms the map and the rings, and stays where you let go.",
     "Tips stay on the thing they point at: the page no longer scrolls under them.",
+    "Settings: the Look and Badge buttons are narrower; a name too long ends in dots and scrolls to show the rest.",
+    "Android app: no more empty band above the header and below the tabs.",
   ]},
   {v: "1.68", date: "2026-10-20", notes: [
     "App: text sizes follow one scale, so the look stays even.",
@@ -7251,7 +7271,7 @@ function itemHtml(it){
     const pal = svg('<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.47 2.08-1.32 2.83-.84.75-1.99 1.17-3.18 1.17H14a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r=".6"/><circle cx="12" cy="7.5" r=".6"/><circle cx="16.5" cy="10.5" r=".6"/>');
     const award = svg('<circle cx="12" cy="9" r="6"/><path d="M12 15l3.4 5.89 1.6-3.23 3.6.23-3.4-5.89"/><path d="M6.8 12l-3.4 5.89 3.6-.23 1.6 3.23 3.4-5.89"/>');
     const cap = (k, ico, name) => `<button class="cap favCap stCap" type="button" data-styles="${k}" title="${escH(T("Open styles"))}" aria-label="${escH(T(name))}">${ico}<span>${escH(T(name))}</span>` +
-      `<b class="lcd favN stN" aria-hidden="true">${escH(styleShort(k))}</b></button>`;
+      `<b class="lcd favN stN" aria-hidden="true"><i>${escH(styleShort(k))}</i></b></button>`;
     return cell("loc favs styl", cap(lookKind(), pal, "Look") + cap("badge", award, "Badge") + `<p class="note stCnt">${escH(stylesNote())}</p>`);
   }
   if (it.type === "favs") {
