@@ -3943,6 +3943,59 @@ def _push_prefs(p):
     return out
 
 
+def now_json(pid, st):
+    """Relay 56: the plane over a profile's place right now, for the Android app's home-screen widget: the nearest one
+    in the air within the spotting radius (hidden planes left out), with its status in the boards' words, its route
+    when the callsign's listed one fits, and today's count. {"plane": None} when the sky is empty."""
+    try:
+        lat0, lon0 = float(st["lat"]), float(st["lon"])
+    except (KeyError, TypeError, ValueError):
+        return {"plane": None, "error": "no place"}
+    radius, over = float(st.get("radiusKm") or 15), float(st.get("overKm") or 3)
+    status, body, _, _ = aircraft(f"{lat0:.2f}", f"{lon0:.2f}", "25")
+    try:
+        planes = (json.loads(body).get("ac") or json.loads(body).get("aircraft") or []) if status == 200 else []
+    except ValueError:
+        planes = []
+    kx, ky = 111.32 * math.cos(math.radians(lat0)), 110.57
+    _, hide_list = lists_of(pid)
+    best = None
+    for ac in planes:
+        if not isinstance(ac, dict) or ac.get("lat") is None or ac.get("alt_baro") == "ground":
+            continue
+        x, y = (ac["lon"] - lon0) * kx, (ac["lat"] - lat0) * ky
+        d = math.hypot(x, y)
+        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        m_ = re.match(r"^([A-Z]{3})\d", cs)
+        if d > radius or _list_hit(hide_list, tc, cs, reg, m_.group(1) if m_ else ""):
+            continue
+        if not best or d < best[0]:
+            best = (d, x, y, ac, cs, tc, reg)
+    spot = guest_spot(pid)
+    with _data_lock:
+        spot.ensure_day()
+        today = len(spot.entries)
+    if not best:
+        return {"plane": None, "today": today}
+    d, x, y, ac, cs, tc, reg = best
+    closing = False
+    if ac.get("gs") and ac.get("track") is not None:
+        vx, vy = math.sin(math.radians(ac["track"])), math.cos(math.radians(ac["track"]))
+        closing = x * vx + y * vy < 0
+    word = "OVERHEAD" if d <= over else "APPROACHING" if closing else "LEAVING"
+    route = _route_for(cs) if re.fullmatch(r"[A-Z0-9]{3,8}", cs or "") else None
+    if route and not _route_fits(route, (ac["lat"], ac["lon"], ac.get("track") or 0)):
+        route = None
+    alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
+    dirs = DIRS["en"].split()
+    flight = re.sub(r"^([A-Z0-9]{2})(\d)", r"\1 \2", (route or {}).get("flightIata") or "") or cs or reg or str(ac.get("hex") or "").upper()
+    return {"plane": {"flight": flight,
+                      "airline": (route or {}).get("airlineName") or "", "type": ac.get("desc") or tc, "reg": reg,
+                      "from": (route or {}).get("from"), "to": (route or {}).get("to"), "status": word,
+                      "dist": round(d, 1), "dir": dirs[int(((math.degrees(math.atan2(x, y)) + 360) % 360 + 22.5) // 45) % 8],
+                      "altM": round(alt * .3048 / 10) * 10 if isinstance(alt, (int, float)) else None}, "today": today, "at": int(time.time())}
+
+
 def window_planes(who, centre, spot, st):
     """Planes worth going to the window for: passing within 5 km in the next 3 minutes, with why (special, watchlist,
     military, favourite, a new type, very low; most telling first). Relay 47: shared by the alerts and the Hue pulse."""
@@ -5145,7 +5198,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -5241,6 +5294,10 @@ class Handler(BaseHTTPRequestHandler):
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
             return self.reply(200, "application/json", json.dumps(body).encode())
+        if path == "/now":              # relay 56: the plane overhead now, for the Android app's widget
+            if not allow("now:" + self.guest[0], 1, 4):
+                return self.reply(429, "text/plain", b"Too many requests")
+            return self.reply(200, "application/json", json.dumps(now_json(self.guest[0], self.guest[1].get("settings") or {})).encode())
         if path == "/search":           # relay 55: the whole logbook searched (the app's Logbook tab)
             if not allow("search:" + (self.guest[0] if self.guest else self.client_ip()), 1, 6):
                 return self.reply(429, "text/plain", b"Too many requests")

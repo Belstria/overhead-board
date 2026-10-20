@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A plane seen from above, pointing up (the line widget's mark, tinted by the status). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2C11.2,2 10.8,2.8 10.8,3.6V9L3,13.5V15.5L10.8,13V18.2L8.6,19.8V21.5L12,20.5L15.4,21.5V19.8L13.2,18.2V13L21,15.5V13.5L13.2,9V3.6C13.2,2.8 12.8,2 12,2Z" />
+</vector>

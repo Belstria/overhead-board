@@ -27,6 +27,20 @@
             </intent-filter>
         </activity>
 
+        <!-- 1.67: the home-screen widgets, the plane overhead in two sizes (NowWidget.kt). -->
+        <receiver android:name=".NowWidgetCard" android:exported="true" android:label="@string/widget_card_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_card_info" />
+        </receiver>
+        <receiver android:name=".NowWidgetLine" android:exported="true" android:label="@string/widget_line_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_line_info" />
+        </receiver>
+
         <!-- A plane card's Share: the picture, read-only, for the app it is shared with. -->
         <provider
             android:name=".ShareProvider"

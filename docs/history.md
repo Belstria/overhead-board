@@ -10,6 +10,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.67 / relay 56: the widgets. `/now` (`now_json`) gives the nearest airborne plane within the profile's radius
+  (hidden ones left out), status OVERHEAD (within overKm) / APPROACHING / LEAVING by its track, route from
+  `_route_for` when `_route_fits`, distance, direction, height in metres and today's count. Android: `NowWidget.kt`
+  (`NowWidgetCard` 4×2 with `flaps()` and `pill()` bitmaps, `NowWidgetLine` 4×1), layouts `widget_card`/`widget_line`,
+  `xml/widget_*_info`; the WebView's cookie for the relay (prefs `public`, else `relay`); a non-waking 60 s alarm
+  (`ACTION_TICK`) refreshes only while the screen is on; tapping opens MainActivity.
 - 1.67 / relay 56: the live countdown. `window_check` remembers each alert in `_countdown` (subscription pref
   `countdown`, default on) and, while `window_planes` still lists the plane, `countdown_send` replaces it every 25 s
   under the same tag: title "{what} · overhead/passing in m:ss" (`cd_over`/`cd_pass`), body why · direction · height
