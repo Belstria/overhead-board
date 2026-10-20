@@ -536,6 +536,19 @@ the other being the Full board, with **Show the tips again** as a small link und
 choice stays on the device: `/app/` (and so the Android app and a phone's home-screen icon) then opens the light
 version. Notifications are shared with the app.
 
+### Glass (preview)
+
+`/glass/` (1.71) is a new phone design, made with Google's Gemini as the designer ("Glasshouse"): light, and built around
+the live map. The map fills the screen (light, with the planes in bold colours, their trails, the spotting radius
+and your place; pinch or double-tap to zoom), and the plane that matters floats over it on a photo card: status,
+flight, height, airline, type, distance and route. Tap a plane on the map to put it on the card (× goes back to the
+plane overhead); tap the card for its full card. While the map is pinched the card shrinks to a slim pill. Today and
+Logbook are buttons at the top left (or swipe the map right or left), the person button opens Settings (its dot shows
+the connection), and "planes nearby" on the card opens the list of the nearest planes; each slides over the map with
+"‹ Map" to go back. On its side the card sits on the left and the map fills the rest. It is the light version underneath,
+so it has every feature and setting and keeps the light version's settings on the device. Open it from Settings →
+Device → **Glass (preview)**; it is meant to replace the light version once finished.
+
 **Remote key test**: `http://<relay>:8080/keys/` lights up each remote button that reaches a web page (arrows, OK,
 Back, colour keys), to see whether a TV's browser passes them on (the first step towards navigating the board with
 the remote).

@@ -1,0 +1,72 @@
+/* ---------- the glass version (1.71, "Glasshouse", designed with Gemini): light, map-first ----------
+   Over the app's and the light version's styles. The map (#gMap) fills the screen; the controls float at the top; the
+   plane's card (#gCard) floats at the bottom; every other tab is a page that slides over the map. Inter throughout. */
+html.glass{color-scheme:light;--housing:#faf9f6;--metal:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--label2:#94a3b8;
+  --card:#ffffff;--card2:#f8fafc;--edge:rgba(15,23,42,.08);--well:#f1f5f9;--g-shadow:0 10px 30px rgba(15,23,42,.14);--g-blue:#2563eb}
+html.glass body{background:#faf9f6;color:var(--ink);font-family:"Inter","Archivo Narrow",sans-serif}
+html.glass #top,html.glass #tabs,html.glass #t-now,html.glass .brandline,html.glass #sideAlert{display:none!important}
+#gMap{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:0;display:block}
+/* the controls: Overhead / Airport, the connection dot, Settings; Today and Logbook at the top left */
+#gCtl{position:fixed;top:calc(var(--sa-top) + 12px);right:12px;z-index:20;display:flex;gap:8px;align-items:center}
+.gSeg{display:flex;gap:2px;padding:4px;border-radius:999px;background:#fff;box-shadow:var(--g-shadow)}
+.gSeg button,#gMe{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;border-radius:999px;color:#475569}
+.gSeg button{width:40px;height:40px}
+.gSeg button[aria-pressed=true]{background:#0f172a;color:#fff}
+#gMe{position:relative;width:48px;height:48px;background:#fff;box-shadow:var(--g-shadow);color:#0f172a}
+.gSeg svg,#gMe svg{width:22px;height:22px}
+/* the connection: a small dot on the profile button (green live, amber late, red none) */
+#gDot{position:absolute;right:3px;top:3px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;background:#94a3b8}
+#gDot[data-state=live]{background:#16a34a}
+#gDot[data-state=warn],#gDot[data-state=demo]{background:#d97706}
+#gDot[data-state=off]{background:#dc2626}
+.gEdges{position:fixed;z-index:20;left:12px;top:calc(var(--sa-top) + 12px);display:flex;gap:2px;padding:4px;border-radius:999px;background:#fff;box-shadow:var(--g-shadow)}
+.gEdges button{all:unset;box-sizing:border-box;cursor:pointer;height:40px;padding:0 14px;border-radius:999px;display:flex;align-items:center;
+  font:700 14px/1 "Inter",sans-serif;color:#0f172a}
+.gEdges button:active{background:#f1f5f9}
+html.glass:has(main .tab:not(#t-now):not([hidden])) :is(#gCtl,.gEdges,#gCard){display:none}
+/* the plane's card */
+#gCard{position:fixed;z-index:20;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);max-width:520px;margin:0 auto;box-sizing:border-box;
+  padding:10px;border-radius:28px;background:#fff;box-shadow:0 20px 44px rgba(15,23,42,.2);cursor:pointer;
+  transition:padding .25s ease,border-radius .25s ease;outline:none}
+#gCard:focus-visible{box-shadow:0 0 0 3px var(--g-blue),0 20px 44px rgba(15,23,42,.2)}
+.gPhoto{position:relative;height:min(26vh,210px);border-radius:20px;overflow:hidden;background:#e8ecf1}
+.gPhoto img{display:block;width:100%;height:100%;object-fit:cover}
+.gTag{position:absolute;left:10px;top:10px;padding:4px 8px;border-radius:999px;background:rgba(15,23,42,.62);color:#fff;font:600 11px/1 "Inter",sans-serif}
+.gInfo{padding:12px 8px 6px}
+.gStat{display:inline-flex;align-items:center;gap:6px;font:800 12px/1 "Inter",sans-serif;letter-spacing:.06em;color:var(--c,#2563eb)}
+.gStat i{width:8px;height:8px;border-radius:50%;background:var(--c,#2563eb)}
+.gRow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-top:6px}
+.gFlight{font:800 32px/1.05 "Inter",sans-serif;letter-spacing:-.02em;color:#0f172a}
+.gFlight.gNone{font-size:22px;letter-spacing:-.01em}
+.gAlt{font:700 18px/1 "Inter",sans-serif;color:#0f172a;white-space:nowrap}
+.gSub{margin:6px 0 0;font:600 14px/1.35 "Inter",sans-serif;color:#64748b}
+.gRoute{margin:2px 0 0;font:700 13px/1.35 "Inter",sans-serif;color:#334155;letter-spacing:.02em}
+.gMore{all:unset;cursor:pointer;display:inline-block;margin-top:10px;padding:6px 0;font:700 13px/1 "Inter",sans-serif;color:var(--g-blue)}
+.gX{all:unset;cursor:pointer;position:absolute;right:16px;top:16px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(15,23,42,.6);color:#fff;font:600 22px/1 "Inter",sans-serif}
+#gCard:not(:has(.gPhoto)) .gX{background:#f1f5f9;color:#0f172a}
+#gCard.pill{padding:6px 10px 6px 16px;border-radius:999px}
+#gCard.pill :is(.gPhoto,.gSub,.gRoute,.gMore,.gX){display:none}
+#gCard.pill .gInfo{padding:4px 0}
+#gCard.pill .gRow{margin-top:2px}
+#gCard.pill .gFlight{font-size:20px}
+/* the pages over the map: Today, Logbook, Nearby, Settings */
+html.glass main .tab:not(#t-now){position:fixed;inset:0;z-index:30;overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;max-width:none;
+  padding:calc(var(--sa-top) + 72px) 16px calc(var(--sa-bottom) + 32px);background:#faf9f6;animation:gIn .26s cubic-bezier(.2,.8,.2,1)}
+@keyframes gIn{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){html.glass main .tab{animation:none!important}}
+.gBack{all:unset;box-sizing:border-box;cursor:pointer;position:fixed;z-index:31;left:12px;top:calc(var(--sa-top) + 12px);height:44px;padding:0 16px 0 10px;
+  display:flex;align-items:center;gap:4px;border-radius:999px;background:#fff;box-shadow:var(--g-shadow);font:700 15px/1 "Inter",sans-serif;color:#0f172a}
+.gBack svg{width:22px;height:22px}
+html.glass main .tab h2{font:800 34px/1.1 "Inter",sans-serif;letter-spacing:-.02em;color:#0f172a}
+html.glass #t-radar :is(#scope,.rvPlate,.rvCredit,#rvHint){display:none!important}
+/* on its side: the card along the left, the map to its right */
+@media (orientation:landscape) and (max-height:600px){
+  #gCard{left:12px;right:auto;top:12px;bottom:12px;width:min(340px,42vw);margin:0;overflow:hidden}
+  .gPhoto{height:48%}
+  .gEdges{display:none}
+}
+/* light switchers on the pages (Logbook's sections, Today's places) */
+html.glass .seg.svPlaces,html.glass .seg.lbViews{background:#eef2f6;border-color:transparent}
+html.glass .seg.svPlaces button[aria-pressed=true],html.glass .seg.lbViews button[aria-current=page]{background:#0f172a;color:#fff;box-shadow:none}
+html.glass .rvLogo{background:#eef2f6;color:#0f172a}

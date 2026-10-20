@@ -24,7 +24,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
 BASE = f"http://localhost:{PORT}"
-PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html"]
+PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html", "glass/index.html"]
 sys.path.insert(0, str(REPO / "tools"))
 import assets  # noqa: E402  (tools/assets.py)
 
@@ -122,7 +122,7 @@ def pages():
             ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
             for url, size in [(BASE + "/", (1920, 1080)), (BASE + "/test/", (1920, 1080)), (BASE + "/app/", (390, 844)),
                               (BASE + "/app/", (844, 390)),
-                              (BASE + "/light/", (390, 844)), (BASE + "/light/", (844, 390)), (BASE + "/test-api/", (1280, 720))]:
+                              (BASE + "/light/", (390, 844)), (BASE + "/light/", (844, 390)), (BASE + "/glass/", (390, 844)), (BASE + "/glass/", (844, 390)), (BASE + "/test-api/", (1280, 720))]:
                 pg = ctx.new_page()
                 pg.set_viewport_size({"width": size[0], "height": size[1]})
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))

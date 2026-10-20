@@ -1357,7 +1357,7 @@ html.daylight .geoQ input::placeholder{color:rgba(25,25,25,.45)}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=8b9ab37912"></script>
+<script src="../test/i18n.js?v=552eead569"></script>
 <script>
 (() => {
 "use strict";
@@ -6379,7 +6379,8 @@ function viewItemHtml(it){
   if (it.type === "device") {
     const tiles = tv ? [["../app/", "Phone app", "Planes on your phone, with notifications.", "phone"], ["../light/", "Light version", "The phone app without split flaps.", "light"]]
       : [[light ? "../app/" : "../light/", light ? "Full app" : "Light version", light ? "The plane on split flaps, like the board." : "Plain and quick, without split flaps.", light ? "flaps" : "light", "uiBtn"],
-        ["../", "Full board", "The big board, for a TV or a computer.", "board"]];
+        ["../", "Full board", "The big board, for a TV or a computer.", "board"],
+        ...(location.pathname.includes("/glass/") ? [] : [["../glass/", "Glass (preview)", "The new design: light, with the map first.", "light"]])];   // 1.71
     const android = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
     return `<div class="devTiles">${tiles.map(([href, name, line, ico, id]) => `<a class="devTile" href="${href}"${id ? ` id="${id}"` : ""}>` +
         `<span class="devIco">${DEV_ICON[ico]}</span><b>${escH(T(name))}</b><small>${escH(T(line))}</small></a>`).join("")}</div>` +
@@ -7205,6 +7206,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.71", date: "2026-10-21", notes: [
+    "A preview of a new phone design, Glass: light, with the live map filling the screen and the plane on a photo card (Settings → Device → Glass).",
+  ]},
   {v: "1.70.2", date: "2026-10-21", notes: [
     "Android app: notifications ring with the airport chime and show the logo's plane in the status bar.",
     "Radar: Map off now hides the map at every zoom, not only zoomed out.",

@@ -16,7 +16,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
 CACHE = REPO / ".cache" / "lint"
-PAGES = ["test/index.html", "app/index.html", "light/index.html"]
+PAGES = ["test/index.html", "app/index.html", "light/index.html", "glass/index.html"]
 OPTIONAL = ["LIGHT", "WEAK_TV", "plusOn", "drawStatic", "recentInfo", "switchView", "rwyChanged", "glass", "page", "preloadPhoto",
             "noteFeatured", "renderPage", "renderAircraftInfo", "appApPage", "aboutShow", "renderPush", "arFeed"]
 CONFIG = """import globals from "globals";

@@ -10,6 +10,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.71 Glass (designed with Gemini 3.1 Pro: rounds 1–3 in its chat, "Glasshouse"): `tools/glass/build.py` builds the
+  light version with glass.js's regions over light.js's (main.js gained an empty `//@L:extra` region before
+  `start()`) and glass.css after light.css. glass.js: `G` state; the map's colours by mutating `RADAR_MAP_LOOK` and
+  `RADAR_COL`; `glassVars()` keeps Inter and light colours on the root and `html.daylight` on (a MutationObserver
+  undoes applyTheme); `glassPaint()` draws the full-screen map (radarMapDraw with a radius reaching every corner,
+  rings, radius, runways, planes with a white edge, `glassNames()` labels, your place); `glassCard()` the floating card
+  (feat, or `G.sel` from a tap), `G.pill` shrinks it while pinching; the map's pointer handling (tap select, swipe to
+  Today/Logbook, pinch with `radar.live`, double tap). Every tab but Now is a fixed page with a `.gBack`; Now's own
+  content is hidden. `radarMapOn` follows whether the map shows, so the radar page's hidden scope doesn't refetch tiles.
+  Inter added to fonts/ (tools/fonts.py). Device tiles: "Glass (preview)" in the app and the light version.
 - 1.70.2: the Android WebChromeClient passes Sky view's camera request on (CAMERA asked the first time, REQ_CAMERA, the relay's own page only). `radarMapDraw` draws only with Map on (zoomed in it used to draw anyway). Notification channel `alerts_pa` (the old `alerts` is deleted) rings `res/raw/pa_bell.wav` (a copy of
   app/airport-bell.wav); the small icon is `drawable-nodpi/ic_notify.png` (a copy of app/badge-96.png).
 - 1.70 / relay 57: Android notifications through Firebase Cloud Messaging. Relay: `fcm_ready()` (data/fcm.json, the

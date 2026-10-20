@@ -2269,6 +2269,9 @@ function run(){
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };
   SIDEWAYS.addEventListener ? SIDEWAYS.addEventListener("change", turned) : SIDEWAYS.addListener && SIDEWAYS.addListener(turned);
 }
+//@L:extra
+// (the glass version, tools/glass/, adds its own layer here; the app and the light version have none)
+//@L:end
 start();
 })();
 </script>
