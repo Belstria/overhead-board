@@ -10,6 +10,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.68 (structure): `paintRadar(g, cx, cy, R, z, t, o)` (E25, before `drawRadar`) is the one radar drawing; the
+  board's `drawRadar` calls it at z 1.5 with `{engrave: true}` (range and map credit in the rim), the app's at 1;
+  `radar.hits` carry both `o` and `hex`. `settingsChanged(changed)`, `locSet()` and `cockpitKeys()` (E12, function
+  declarations so they hoist) are the save rules for both `saveSettings`. Type scale: `--fs-tag … --fs-hero` and fixed
+  colours (`--c-gold`, `--c-paper`, …) in head.html's `:root`; `tools/test/tokens.py` fails on a font size off the
+  scale in head.html or light.css. `tools/test/lint.py` (ESLint 9 in `.cache/lint`) fails on undefined or redeclared
+  names in the three pages' scripts; names that exist on one page only and are reached behind a guard are `OPTIONAL`.
+  Both run in `smoke.py --syntax`. Removed unused `POLL_MS`, `VIEWR`, `SET_NAMES`, `apName`.
 - 1.67 / relay 56: the widgets. `/now` (`now_json`) gives the nearest airborne plane within the profile's radius
   (hidden ones left out), status OVERHEAD (within overKm) / APPROACHING / LEAVING by its track, route from
   `_route_for` when `_route_fits`, distance, direction, height in metres and today's count. Android: `NowWidget.kt`

@@ -759,19 +759,8 @@ function loadSettings(){
   const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
   return {...DEFAULTS, ...shared, ...saved};
 }
-// The whole location goes along every time, also where it equals a default (1.49.1: an airport chosen back to the
-// relay's own was left out, so the profile's old one came back on the next load).
-const locSet = () => ({lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null});
-// Every setting this screen's Settings show goes along every time, also where it equals the default (1.54: one switched
-// back to its default was left out, so the profile's old value came back on the next load). The place goes by locSet.
-const cockpitKeys = () => { try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } };
 function saveSettings(){
-  const changed = {v: 2};
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
-  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
-  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");   // 1.63.1: the styles too, defaults included
-  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";   // 1.64: anything changed since the last save, back to its default too
-  meBase = {...S};
+  const changed = settingsChanged({v: 2});            // 1.68: what goes along, worked out once for board and app (E12)
   if (GUEST) Object.assign(changed, locSet());
   try { localStorage.setItem(SKEY, JSON.stringify(changed)); } catch {}
   if (GUEST) {                                       // the profile learns them too, always with the place
@@ -2297,6 +2286,21 @@ const relay = () => String(S.proxy || PROXY || "").replace(/\/+$/, "");
 /* 1.64: a profile's settings reach the relay even when the network drops or the app is closed right after a change: they
    wait on this device (od.mePending.<profile>) until the relay has them, are sent again with growing pauses, and at once
    when the page is hidden (keepalive) or the network is back. Before, a failed or cut-off save was lost without a word. */
+// What a save stores and sends (1.68: one copy for the board and the app; their saveSettings add their own few keys).
+// Every setting not at its default; every setting this screen's Settings show, also at the default (1.54: one switched
+// back was left out, so the profile's old value came back on the next load); the styles (1.63.1); anything changed
+// since the last save (1.64, meBase). The place goes along whole by locSet (1.49.1: an airport chosen back to the
+// relay's own was left out, so the profile's old one came back).
+function settingsChanged(changed){
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(DEFAULTS[k])) changed[k] = v;
+  for (const k of cockpitKeys()) if (S[k] !== undefined) changed[k] = S[k];
+  for (const k of ["theme", "palette", "finish", "badge"]) changed[k] = S[k] || (k === "theme" ? "classic" : "");
+  for (const [k, v] of Object.entries(S)) if (k !== "proxy" && JSON.stringify(v) !== JSON.stringify(meBase[k])) changed[k] = v ?? DEFAULTS[k] ?? "";
+  meBase = {...S};
+  return changed;
+}
+function locSet(){ return {lat: S.lat, lon: S.lon, radiusKm: S.radiusKm, place: S.place, home: S.home, placeKey: S.placeKey || null}; }
+function cockpitKeys(){ try { return ITEMS.map(it => it.k).filter(k => !["placeKey", "place", "home", "lat", "lon", "radiusKm"].includes(k)); } catch { return []; } }
 const ME_KEY = "od.mePending." + ((window.OVERHEAD_GUEST || {}).id || "");
 let mePending = (() => { try { return JSON.parse(localStorage.getItem(ME_KEY) || "null"); } catch { return null; } })();
 let meTimer = 0, meFails = 0, meBusy = null;
@@ -2361,7 +2365,6 @@ const FEEDS = [
 ];
 let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
-const POLL_MS = 10000;
 async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
@@ -3149,7 +3152,7 @@ function estArrival(info, o){
 }
 function renderTimes(){
   if (!feat) { ["depTime", "arrTime", "airTime"].forEach(id => setChars(id, "")); return; }
-  const info = feat.info || baseInfo(feat.o.ac), now = Date.now();
+  const info = feat.info || baseInfo(feat.o.ac);
   let dep = utcMs(info.takeoff), arr = null;
   const done = !!info.done && timesSettled(info);
   if (S.demo) ({dep, arr} = demoTimes(feat.hex));
@@ -3526,7 +3529,6 @@ function goPage(p){
 }
 
 const PANEL = {x: 46, y: Y.rule2 + 8, w: 1828, h: Y.rail - 14 - Y.rule2};      // the lower half, above the rail
-const VIEWR = {x: 46, y: Y.rule1 + 6, w: 1828, h: Y.rail - 12 - Y.rule1};         // everything a view takes over
 const bigFlap = {on: false, raf: 0, liveG: null, leaving: []};
 const FLIP_PX = () => Math.min(PX, 1);                      // the falling page moves too fast to need 4K
 function capturePanel(arriving = false, R = PANEL){
@@ -4340,7 +4342,6 @@ function renderReview(){
 
 /* ---------- the Collection view ---------- */
 const game = () => (lbData() || {}).game || null;
-const SET_NAMES = ["Airbus narrowbodies", "Airbus widebodies", "Boeing narrowbodies", "Boeing widebodies", "Regional jets", "Turboprops", "Giants", "Helicopters", "Business jets"];
 let cvSig = "";
 function renderCollection(){
   if (view !== "collection") return;
@@ -4825,11 +4826,11 @@ function ringLabels(g, tags, boxes, size){
     g.fillText(t.text, t.x, t.y);
   }
 }
-function drawRadar(t){
-  const cv = $("radarCv"), g = cv.getContext("2d"), now = Date.now(), b = radarBox();
-  g.setTransform(radar.px, 0, 0, radar.px, -b.x * radar.px, -b.y * radar.px);
-  g.clearRect(b.x, b.y, b.w, b.h);
-  const {cx, cy, R} = RADAR_GEO, range = radarRange(), k = R / range, TAU = Math.PI * 2;
+/* 1.68: the radar's picture, once for the board and the phone app (it was two copies of these lines): the scope at
+   cx, cy with radius R, every size times z (the phone draws at 1, the board at 1.5). o.engrave: the range engraved in
+   the rim and the map's credit under it (the board; the app has them as page text). */
+function paintRadar(g, cx, cy, R, z, t, o = {}){
+  const now = Date.now(), range = radarRange(), k = R / range, TAU = Math.PI * 2, px = n => n * z;
   const C = radarCentre(), kx = 111.32 * Math.cos(C.lat * Math.PI / 180), ky = 110.57;
   const toXY = (lat, lon) => [cx + (lon - C.lon) * kx * k, cy - (lat - C.lat) * ky * k];
   g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
@@ -4842,68 +4843,78 @@ function drawRadar(t){
   if (!C.ap) { g.fillStyle = rgba(RADAR_COL.over, .12); g.beginPath(); g.arc(cx, cy, overKm() * k, 0, TAU); g.fill(); }
   g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1;
   g.beginPath(); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.stroke();
-  g.font = `600 16px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
-  const ringTags = [];
-  const ringStep = radarRing(range);
+  g.font = `600 ${px(10.5)}px ${FONT}`; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const ringTags = [], ringStep = radarRing(range);
   for (let r = ringStep; r <= range; r += ringStep) {
-    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = 1.2; g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
-    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + 6, y: cy - Math.cos(.42) * r * k + 16});
+    g.strokeStyle = "rgba(255,255,255,.1)"; g.lineWidth = px(.8); g.beginPath(); g.arc(cx, cy, r * k, 0, TAU); g.stroke();
+    if (r * k < R - 6) ringTags.push({text: `${nf.format(r)} km`, x: cx + Math.sin(.42) * r * k + px(4), y: cy - Math.cos(.42) * r * k + px(11)});
   }
-  g.setLineDash([12, 9]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = 2;
+  g.setLineDash([px(8), px(6)]); g.strokeStyle = rgba(COL.amber, .6); g.lineWidth = px(1.4);
   g.beginPath(); g.arc(cx, cy, (+S.radiusKm || 15) * k, 0, TAU); g.stroke(); g.setLineDash([]);
   airportPos();
   const ap = AP.code === clean(S.home).slice(0, 3) && AP.lat != null && AP.rwys.length ? AP : null;
+  radar.apBox = null;
   if (ap) {
     const u = rwyInUse();
-    g.lineCap = "round"; g.lineWidth = 3;
+    g.lineCap = "round"; g.lineWidth = px(2.1);
     for (const r of ap.rwys) {
       const used = [r.a.id, r.b.id].some(id => u.arr.includes(id) || u.dep.includes(id));
       g.strokeStyle = used ? rgba(COL.amber, .75) : "rgba(255,255,255,.28)";
       const [x1, y1] = toXY(r.a.lat, r.a.lon), [x2, y2] = toXY(r.b.lat, r.b.lon); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
     }
     const [ax, ay] = toXY(ap.lat, ap.lon);
-    g.font = `700 16px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = 3.5; g.lineJoin = "round";
-    if (Math.hypot(ax - cx, ay - cy) < R - 40) { g.strokeText(S.home, ax + 16, ay + 24); g.fillText(S.home, ax + 16, ay + 24); radar.apBox = {x: ax + 14, y: ay + 8, w: 46, h: 22}; } else radar.apBox = null;
+    g.font = `700 ${px(11)}px ${FONT}`; g.fillStyle = "rgba(255,255,255,.42)"; g.strokeStyle = "rgba(6,7,8,.85)"; g.lineWidth = px(2.4); g.lineJoin = "round";
+    if (Math.hypot(ax - cx, ay - cy) < R - px(27)) {
+      g.strokeText(S.home, ax + px(10.5), ay + px(16)); g.fillText(S.home, ax + px(10.5), ay + px(16));
+      radar.apBox = {x: ax + px(9.5), y: ay + px(5.5), w: px(31), h: px(14.5)};
+    }
     g.lineCap = "butt";
-  } else radar.apBox = null;
-  const dt = Math.min(20, (now - radar.at) / 1000), shown = [];
-  for (const o of radar.planes) {
-    const ac = o.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o, now, kx, ky);
+  }
+  const shown = [];
+  for (const o_ of radar.planes) {
+    const ac = o_.ac, th = (ac.track || 0) * Math.PI / 180, pos = radarPos(o_, now, kx, ky);
     const [x, y] = toXY(pos.lat, pos.lon);
-    if (Math.hypot(x - cx, y - cy) > R + 10) continue;
-    const col = radarColor(o), tr = radar.trails.get(ac.hex);
+    if (Math.hypot(x - cx, y - cy) > R + px(7)) continue;
+    const col = radarColor(o_), tr = radar.trails.get(ac.hex);
     if (tr && tr.length > 1) {
-      g.strokeStyle = rgba(col, .35); g.lineWidth = 2.5; g.beginPath();
-      tr.forEach((p, i) => { const [px, py] = toXY(p.lat, p.lon); i ? g.lineTo(px, py) : g.moveTo(px, py); });
+      g.strokeStyle = rgba(col, .35); g.lineWidth = px(1.7); g.beginPath();
+      tr.forEach((p, i) => { const [qx, qy] = toXY(p.lat, p.lon); i ? g.lineTo(qx, qy) : g.moveTo(qx, qy); });
       g.lineTo(x, y); g.stroke();
     }
-    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);
-    drawPlane(g, 0, 0, radarZoomed() ? (ac.alt_baro === "ground" ? 26 : 32) : o.kind ? 30 : 22, col);   // drawPlane points north-east; this turns it to the track
+    g.save(); g.translate(x, y); g.rotate(th - Math.PI / 4);        // drawPlane points north-east; this turns it to the track
+    drawPlane(g, 0, 0, px(radarZoomed() ? (ac.alt_baro === "ground" ? 17.5 : 21.5) : o_.kind ? 19.5 : 14.5), col);
     g.restore();
-    shown.push({o, x, y, col});
+    if (radar.sel === ac.hex) { g.strokeStyle = "#f3f0e8"; g.lineWidth = px(2); g.beginPath(); g.arc(x, y, px(17), 0, TAU); g.stroke(); }
+    shown.push({o: o_, x, y, col});
   }
-  radar.hits = shown.map(s_ => ({o: s_.o, x: s_.x, y: s_.y}));              // for a tap on a plane
-  const centre = {x: cx - 18, y: cy - 18, w: 36, h: 36}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
-    return {x: cx + Math.sin(a) * (R - 18) - 14, y: cy - Math.cos(a) * (R - 18) - 14, w: 28, h: 28}; });   // N E S W stay readable
-  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: 16, alt: 14, gap: 18}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), 16);
+  radar.hits = shown.map(s_ => ({o: s_.o, hex: s_.o.ac.hex, x: s_.x, y: s_.y}));   // for a tap on a plane
+  const centre = {x: cx - px(12), y: cy - px(12), w: px(24), h: px(24)}, compass = [0, 90, 180, 270].map(d => { const a = d * Math.PI / 180;
+    return {x: cx + Math.sin(a) * (R - px(12)) - px(9.5), y: cy - Math.cos(a) * (R - px(12)) - px(9.5), w: px(19), h: px(19)}; });   // N E S W stay readable
+  ringLabels(g, ringTags, radarLabels(g, shown, cx, cy, R, {name: px(11), alt: px(9.5), gap: px(11.5)}, [centre, ...compass, ...(radar.apBox ? [radar.apBox] : [])]), px(10.5));
   g.restore();
-  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
+  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = px(1.4); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.stroke();
   const glass = g.createLinearGradient(cx - R, cy - R, cx + R * .2, cy + R * .4);          // the instrument's glass
   glass.addColorStop(0, "rgba(255,255,255,.06)"); glass.addColorStop(.5, "rgba(255,255,255,.015)"); glass.addColorStop(.501, "rgba(255,255,255,0)");
   g.fillStyle = glass; g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
-  g.font = `700 20px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
-  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - 18), cy - Math.cos(a) * (R - 18)); });
+  g.font = `700 ${px(13)}px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "center"; g.textBaseline = "middle";
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([l, deg]) => { const a = deg * Math.PI / 180; g.fillText(l, cx + Math.sin(a) * (R - px(12)), cy - Math.cos(a) * (R - px(12))); });
   { const [hx, hy] = C.ap ? toXY(S.lat, S.lon) : [cx, cy];             // your place (at the centre, or off it in the Airport style)
-    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - 12, hy - 12, 24); }
-  if (airportMode() && AP.lat != null) {          // 1.62.1: the range, engraved in the dial's rim at the bottom
-    g.font = `700 13px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; if ("letterSpacing" in g) g.letterSpacing = "2px";
+    if (Math.hypot(hx - cx, hy - cy) < R - 10) pictogram(g, hx - px(8), hy - px(8), px(16)); }
+  if (o.engrave && radarZoomed()) {                // 1.62.1: the range, engraved in the dial's rim at the bottom (1.68: zoomed in either style)
+    g.font = `700 ${px(8.7)}px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = px(1.3) + "px";
     const txt = `${nf.format(range)} KM`;
-    g.fillStyle = "rgba(0,0,0,.55)"; g.fillText(txt, cx, cy + R + 14);
-    g.fillStyle = "rgba(225,220,205,.42)"; g.fillText(txt, cx, cy + R + 13);
+    g.fillStyle = "rgba(0,0,0,.55)"; g.fillText(txt, cx, cy + R + px(9.3));
+    g.fillStyle = "rgba(225,220,205,.42)"; g.fillText(txt, cx, cy + R + px(8.7));
     if ("letterSpacing" in g) g.letterSpacing = "0px";
   }
-  if (radarMapOn) { g.font = `500 12px ${FONT}`; g.fillStyle = "rgba(200,196,186,.55)"; g.textAlign = "right"; g.fillText(RADAR_MAP_CREDIT, cx + R + 34, cy + R + 32); }
+  if (o.engrave && radarMapOn) { g.font = `500 ${px(8)}px ${FONT}`; g.fillStyle = "rgba(200,196,186,.55)"; g.textAlign = "right"; g.fillText(RADAR_MAP_CREDIT, cx + R + px(22.7), cy + R + px(21.3)); }
   g.textAlign = "left"; g.textBaseline = "alphabetic";
+}
+function drawRadar(t){
+  const cv = $("radarCv"), g = cv.getContext("2d"), b = radarBox(), {cx, cy, R} = RADAR_GEO;
+  g.setTransform(radar.px, 0, 0, radar.px, -b.x * radar.px, -b.y * radar.px);
+  g.clearRect(b.x, b.y, b.w, b.h);
+  paintRadar(g, cx, cy, R, 1.5, t, {engrave: true});
 }
 function renderRadarList(){
   if (view !== "radar") return;
@@ -6221,7 +6232,6 @@ function airportPos(){
 }
 // Where to ask for positions: around the home airport in airport mode, around the board's location otherwise.
 const queryCenter = () => (airportMode() && airportPos()) || [S.lat, S.lon];
-const apName = () => AP.code ? `${AP.city || AP.name || AP.code} (${AP.code})` : "";
 function airportProcess(list){
   const at = airportPos(), now = Date.now();
   if (!at) { AP.deps = []; AP.arrs = []; renderAirport(); return; }
@@ -6452,6 +6462,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.68", date: "2026-10-20", notes: [
+    "App: text sizes follow one scale, so the look stays even.",
+    "Board: the radar's range is engraved in the dial whenever it is zoomed in, in either style.",
+  ]},
   {v: "1.67", date: "2026-10-20", notes: [
     "Notifications for a plane worth a look count down until it's there, with a bar, and ring again when it's time to look up (Settings → Notifications).",
     "Android app: two home-screen widgets with the plane overhead, a flap card and a single line.",
