@@ -1,8 +1,37 @@
 // Fallblatt's service worker: shows the relay's push notifications (the evening summary and "worth going to the
-// window") and opens the app when one is tapped; the light version (/light/) uses it too. The app itself always comes
-// fresh from the relay; only the translations and the sounds (i18n.js, sounds.js, 1.53.1) are kept here.
+// window") and opens the app when one is tapped; the light version (/light/) uses it too. It keeps the translations and
+// the sounds (i18n.js, sounds.js, 1.53.1) and, since 1.64, the last copy of the app itself for when the relay can't be
+// reached.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
+
+// The app comes from the relay when it answers within 3 s (it keeps loading in the background and refreshes the copy).
+// Otherwise the last copy opens, marked (OVERHEAD_OFFLINE: when it was kept) so the page says it isn't live; it shows
+// the last known board (snapLoad) and keeps trying. A refusal (signed out: the private page) forgets the copy.
+const SHELL = "fallblatt-shell";
+self.addEventListener("fetch", e => {
+  const u = new URL(e.request.url);
+  if (e.request.mode !== "navigate" || e.request.method !== "GET" || u.origin !== location.origin || !/\/app\/$/.test(u.pathname)) return;
+  e.respondWith((async () => {
+    const c = await caches.open(SHELL), key = u.origin + u.pathname;
+    const net = fetch(e.request).then(async r => {
+      if (r.ok && (r.headers.get("Content-Type") || "").startsWith("text/html")) {
+        const copy = new Response(await r.clone().text(), {headers: {"Content-Type": "text/html; charset=utf-8", "X-Kept": String(Date.now())}});
+        await c.put(key, copy);
+      } else if (r.status === 403 || r.status === 401) await c.delete(key);
+      return r;
+    });
+    e.waitUntil(net.catch(() => {}));
+    const late = new Promise(ok => setTimeout(ok, 3000));
+    const first = await Promise.race([net.catch(() => null), late.then(() => null)]);
+    if (first && first.status < 500) return first;
+    const kept = await c.match(key);
+    if (!kept) return first || net;                 // nothing kept yet: wait for the relay after all
+    const at = +kept.headers.get("X-Kept") || Date.now();
+    const page = (await kept.text()).replace("<head>", `<head><script>window.OVERHEAD_OFFLINE = ${at};</script>`);
+    return new Response(page, {headers: {"Content-Type": "text/html; charset=utf-8"}});
+  })());
+});
 
 // The app names them with their version (i18n.js?v=...; tools/assets.py), so a copy kept here is right for good and a
 // new version has a new address: it is fetched once and replaces the older copy. Then the app opens with them on a poor

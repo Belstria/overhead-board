@@ -19,6 +19,10 @@ The repository is public: no addresses, keys or personal data here either.
   sends `{ops}` to relay 54+ (whole lists to older ones) and falls back to the relay's lists on failure;
   `cardToggle` marks the button `.busy`, the favourites manager re-renders at once; failures say `SAVE_FAILED`.
   `tools/test/flows.py` `browser_checks()` (run by smoke.py) checks both in the app through a hooked page (`__e`).
+  Offline start: `app/sw.js` answers navigations to `/app/` from the relay when it answers within 3 s (status < 500),
+  else from cache `fallblatt-shell` (kept with `X-Kept`), with `window.OVERHEAD_OFFLINE = <kept ms>` put into the head;
+  a 401/403 forgets the copy. main.js registers the worker on load (https/localhost, not the light version, whose
+  pages are outside the worker's /app/ scope); `statusLine()` says "Offline · the app as of …".
 - 1.63.2 / relay 54 (the code review's security and speed fixes): `owner_ok()` lets a device without a profile in only
   while no `HOME_OWNER` profile exists or from the relay's own computer (`on_this_computer()`: loopback, no
   Cf-Connecting-IP/X-Forwarded-For); before, any device at home without a cookie had the admin pages. `reply()` packs

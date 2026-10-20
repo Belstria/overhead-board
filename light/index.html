@@ -1278,7 +1278,7 @@ h2,h3,.title h1,.facts dd{text-shadow:none}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=a13b75de75"></script>
+<script src="../test/i18n.js?v=5399e2d215"></script>
 <script>
 (() => {
 "use strict";
@@ -6918,6 +6918,7 @@ const CHANGELOG = [
   {v: "1.64", date: "2026-10-20", notes: [
     "Settings wait on your device until they are saved for your profile, and are sent again when the connection is back. Settings say \"Not synced yet\" meanwhile.",
     "Favourite and Hide switch at once, and say so in words when they couldn't be saved.",
+    "The app opens when the board can't be reached: its last copy shows, says it's offline, and keeps trying.",
   ]},
   {v: "1.63.2", date: "2026-10-20", notes: [
     "The app opens faster: pages arrive packed, and an unchanged page isn't downloaded again.",
@@ -7559,6 +7560,8 @@ function renderFavBox(){
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
+// 1.64: the service worker also keeps the app's last copy, so it opens without the relay (https and localhost only)
+if (!LIGHT && "serviceWorker" in navigator && window.isSecureContext) setTimeout(() => navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).catch(() => {}), 5000);
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
@@ -7863,6 +7866,7 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (window.OVERHEAD_OFFLINE && !lastOk) return T("Offline · the app as of {t} · retrying", {t: hhmm(new Date(window.OVERHEAD_OFFLINE))});   // 1.64: the kept copy
   if (isOffline()) return T("No flight data for over a minute · retrying");
   if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});

@@ -1689,6 +1689,8 @@ function renderFavBox(){
    Browser push, which only works on https (the public address). The service worker (sw.js next to the app) shows them. */
 const PUSH_PREFS = "od.push.prefs";
 const SW_DIR = LIGHT ? "../app/" : "./";       // the light version shares the app's service worker (one subscription for both)
+// 1.64: the service worker also keeps the app's last copy, so it opens without the relay (https and localhost only)
+if (!LIGHT && "serviceWorker" in navigator && window.isSecureContext) setTimeout(() => navigator.serviceWorker.register(SW_DIR + "sw.js", {scope: SW_DIR}).catch(() => {}), 5000);
 async function pushSub(){
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   const reg = await navigator.serviceWorker.getRegistration(SW_DIR);
@@ -2031,6 +2033,7 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 function statusLine(){
   if (S.demo) return T("Demo mode · sample flights, not live data");
   if (!relay()) return T("No flight data here: open the app through your home relay, at http://<your computer>:8080/app/");
+  if (window.OVERHEAD_OFFLINE && !lastOk) return T("Offline · the app as of {t} · retrying", {t: hhmm(new Date(window.OVERHEAD_OFFLINE))});   // 1.64: the kept copy
   if (isOffline()) return T("No flight data for over a minute · retrying");
   if (!lastOk && snapShown && !failures) return T("Last known board · not live yet");
   if (!lastOk && failures) return T(failures > 1 ? "Waiting for flight data · {n} failed attempts" : "Waiting for flight data · {n} failed attempt", {n: failures});
