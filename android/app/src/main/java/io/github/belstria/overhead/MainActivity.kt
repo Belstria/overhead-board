@@ -213,7 +213,35 @@ class MainActivity : Activity() {
         failed = false
         webReady = false
         showNote("Connecting to $base …")
-        web.loadUrl("$base/app/")
+        val path = intent?.getStringExtra(OPEN_URL)?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: "/app/"
+        intent?.removeExtra(OPEN_URL)
+        web.loadUrl(base + path)
+    }
+
+    /** 1.70: a tapped notification opens its page (the app may be open already). */
+    override fun onNewIntent(next: Intent) {
+        super.onNewIntent(next)
+        setIntent(next)
+        val path = next.getStringExtra(OPEN_URL)?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: return
+        next.removeExtra(OPEN_URL)
+        relay?.let { web.loadUrl(it + path) }
+    }
+
+    /** 1.70: notifications: Android 13+ asks first, then Firebase gives this phone's token, which goes to the page. */
+    private fun pushFetch() {
+        val answer = { tok: String, err: String ->
+            main.post { web.evaluateJavascript("window.fallblattPush && fallblattPush(${JSONObject.quote(tok)}, ${JSONObject.quote(err)})", null) }
+        }
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { t ->
+                if (t.isSuccessful && t.result != null) {
+                    prefs.edit().putString(PushService.TOKEN, t.result).apply()
+                    answer(t.result, "")
+                } else answer("", "Firebase didn't answer. Try again in a moment.")
+            }
+        } catch (e: Exception) {
+            answer("", "This build of the app has no notifications.")
+        }
     }
 
     /* ---------- on its side: the same page in its landscape layout, full screen ---------- */
@@ -374,6 +402,20 @@ class MainActivity : Activity() {
             }
         }
 
+        /** 1.70: this phone's Firebase token if there is one already ("" otherwise). */
+        @JavascriptInterface
+        fun pushToken(): String = prefs.getString(PushService.TOKEN, null) ?: ""
+
+        /** 1.70: turn notifications on: the permission, then the token, answered through window.fallblattPush. */
+        @JavascriptInterface
+        fun pushEnable() {
+            main.post {
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_PUSH)
+                else pushFetch()
+            }
+        }
+
         @JavascriptInterface
         fun locate() {
             main.post {
@@ -409,6 +451,11 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, results)
+        if (requestCode == REQ_PUSH) {
+            if (results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) pushFetch()
+            else web.evaluateJavascript("window.fallblattPush && fallblattPush('', 'Notifications are turned off for Fallblatt in the phone\\'s settings.')", null)
+            return
+        }
         if (requestCode != REQ_LOCATION) return
         if (hasLocationPermission()) locateNow() else answerHere(null, "Location access was turned down. Allow it in the phone's settings for the Overhead app.")
     }
@@ -476,6 +523,8 @@ class MainActivity : Activity() {
         const val PUBLIC = "public"
         const val LIVE = "live"                  // the address the page last loaded from (the widgets try it first)
         const val REQ_LOCATION = 7
+        const val REQ_PUSH = 8
+        const val OPEN_URL = "openUrl"
         const val PORT = 8080
         val BG = 0xFF0B0B0C.toInt()
         val INK = 0xFFE8E2D0.toInt()

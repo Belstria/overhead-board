@@ -570,7 +570,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=565133eb1a"></script>
+<script src="i18n.js?v=8b9ab37912"></script>
 <script>
 (() => {
 "use strict";
@@ -6527,6 +6527,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.70", date: "2026-10-20", notes: [
+    "Android app: notifications work (Settings → Notifications), with a button to send yourself a test.",
+  ]},
   {v: "1.69", date: "2026-10-20", notes: [
     "App: the radar's controls sit on a Radar plate like Settings: a Range thumbwheel and a Map switch.",
     "App: pinching the radar really zooms the map and the rings, and stays where you let go.",

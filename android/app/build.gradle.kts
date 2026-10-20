@@ -2,6 +2,10 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+// 1.70: notifications through Firebase Cloud Messaging. Its config (google-services.json) comes from the Actions secret
+// GOOGLE_SERVICES_JSON at build time, never from the repository; without it the app builds without push.
+val firebase = file("google-services.json").exists()
+if (firebase) apply(plugin = "com.google.gms.google-services")
 
 // The release key comes from the build machine (GitHub Actions secrets), never from the repository:
 // OVERHEAD_KEYSTORE is the path to a PKCS12 file, OVERHEAD_KEYSTORE_PASSWORD its password, OVERHEAD_KEY_ALIAS the key.
@@ -49,4 +53,9 @@ android {
     lint {
         disable += "ExpiredTargetSdkVersion"   // sideloaded, not on Google Play
     }
+}
+
+dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-messaging")
 }

@@ -5,6 +5,8 @@
     <!-- Settings → Use current location: asked for only when that button is pressed. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- 1.70: notifications (asked for when Settings → Notifications is turned on) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- The relay is plain http on the home network, at whatever address the computer has. -->
     <application
@@ -26,6 +28,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 1.70: notifications from the relay through Firebase (PushService.kt) -->
+        <service android:name=".PushService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- 1.67: the home-screen widgets, the plane overhead in two sizes (NowWidget.kt). -->
         <receiver android:name=".NowWidgetCard" android:exported="true" android:label="@string/widget_card_name">
