@@ -103,7 +103,6 @@ async def main():
             await page.evaluate("document.querySelector('[data-tab=settings]').click()")
         await dump(b, "board", f"{BASE}/test/", board, False)
         await dump(b, "app", f"{BASE}/app/", app, True)
-        await dump(b, "light", f"{BASE}/light/", app, True)
         await b.close()
 
 asyncio.run(main())

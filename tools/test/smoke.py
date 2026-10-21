@@ -4,7 +4,7 @@ check.yml), and handy before a commit.
     py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps and their separate files (i18n.js,
                                        sounds.js) parse, and the boards name those files' current versions (needs Node)
     py tools/test/smoke.py             the test relay with made-up flights, its rules and saves (flows.py), then /, /test/, /app/,
-                                       /light/ and /test-api/ in a headless browser (needs Playwright); fails on any page error
+                                       and /test-api/ in a headless browser (needs Playwright); fails on any page error
     py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
                                        checkouts don't test each other's relay
 
@@ -24,7 +24,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
 BASE = f"http://localhost:{PORT}"
-PAGES = ["index.html", "test/index.html", "app/index.html", "light/index.html", "glass/index.html"]
+PAGES = ["index.html", "test/index.html", "app/index.html"]   # light/ and glass/ are parked (1.71.3)
 sys.path.insert(0, str(REPO / "tools"))
 import assets  # noqa: E402  (tools/assets.py)
 
@@ -122,7 +122,7 @@ def pages():
             ctx.add_cookies([{"name": "overhead", "value": "test-device", "domain": "localhost", "path": "/"}])
             for url, size in [(BASE + "/", (1920, 1080)), (BASE + "/test/", (1920, 1080)), (BASE + "/app/", (390, 844)),
                               (BASE + "/app/", (844, 390)),
-                              (BASE + "/light/", (390, 844)), (BASE + "/light/", (844, 390)), (BASE + "/glass/", (390, 844)), (BASE + "/glass/", (844, 390)), (BASE + "/test-api/", (1280, 720))]:
+                              (BASE + "/test-api/", (1280, 720))]:
                 pg = ctx.new_page()
                 pg.set_viewport_size({"width": size[0], "height": size[1]})
                 pg.on("pageerror", lambda e, url=url, size=size: errors.append(f"{url} {size}: {e}"))
