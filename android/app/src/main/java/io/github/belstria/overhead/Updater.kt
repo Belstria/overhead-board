@@ -15,17 +15,16 @@ import java.net.URL
 import org.json.JSONObject
 
 /**
- * 1.71.1: the app updates itself. On start (at most every few hours) it asks GitHub for the newest release; when that
- * build is newer than this one it offers it. "Update" downloads overhead.apk and hands it to Android's installer, which
- * asks once more (Android always does for apps from outside the Play Store). Android only accepts it when it is signed
- * with the same key as the installed app. The first time, Android asks to allow installs from Fallblatt.
+ * 1.71.1: the app updates itself. Every time it is opened it asks GitHub for the newest release; when that build is
+ * newer than this one it offers it (Update or Skip; 1.71.2: no waiting between checks, Skip only closes the message).
+ * "Update" downloads overhead.apk and hands it to Android's installer, which asks once more (Android always does for
+ * apps from outside the Play Store). Android only accepts it when it is signed with the same key as the installed app. The first time, Android asks to allow installs from Fallblatt.
  *
  * Only the web page changes most of the time and that needs no update at all: this is for the app itself
  * (notifications, widgets, camera and the like).
  */
 class Updater(private val act: Activity) {
     private val main = Handler(Looper.getMainLooper())
-    private val prefs = act.getSharedPreferences("overhead", Activity.MODE_PRIVATE)
     private var offer: Release? = null          // waiting for "allow installs from Fallblatt" in the phone's settings
     private var dialog: AlertDialog? = null
     private var busy = false
@@ -39,9 +38,7 @@ class Updater(private val act: Activity) {
 
     /** Looks for a newer build. [asked]: from Settings (always look, and say so when there is none). */
     fun check(asked: Boolean = false) {
-        if (busy) return
-        val now = System.currentTimeMillis()
-        if (!asked && now - prefs.getLong(CHECKED, 0) < EVERY) return
+        if (busy || offer != null || dialog?.isShowing == true) return
         if (installed() <= 1) return                // a local build ("dev"): nothing to compare with
         busy = true
         Thread {
@@ -49,12 +46,7 @@ class Updater(private val act: Activity) {
             main.post {
                 busy = false
                 if (r == null) { if (asked) say("Couldn't reach GitHub to look for an update. Try again later."); return@post }
-                prefs.edit().putLong(CHECKED, now).apply()
-                when {
-                    r.build <= installed() -> if (asked) say("Fallblatt is up to date.")
-                    !asked && r.build == prefs.getInt(SKIPPED, 0) && now < prefs.getLong(SKIPPED_UNTIL, 0) -> {}
-                    else -> ask(r)
-                }
+                if (r.build > installed()) ask(r) else if (asked) say("Fallblatt is up to date.")
             }
         }.start()
     }
@@ -92,9 +84,7 @@ class Updater(private val act: Activity) {
             .setTitle("Update available")
             .setMessage("Fallblatt ${r.name} is ready$mb. This phone has $mine.")
             .setPositiveButton("Update") { _, _ -> start(r) }
-            .setNegativeButton("Later") { _, _ ->
-                prefs.edit().putInt(SKIPPED, r.build).putLong(SKIPPED_UNTIL, System.currentTimeMillis() + LATER).apply()
-            }
+            .setNegativeButton("Skip", null)
             .show()
     }
 
@@ -208,10 +198,5 @@ class Updater(private val act: Activity) {
         const val API = "https://api.github.com/repos/Belstria/overhead-board/releases/latest"
         const val DOWNLOADS = "https://github.com/Belstria/overhead-board/releases/download/"
         const val ACTION_INSTALLED = "io.github.belstria.overhead.INSTALLED"
-        const val CHECKED = "updateChecked"
-        const val SKIPPED = "updateSkipped"
-        const val SKIPPED_UNTIL = "updateSkippedUntil"
-        const val EVERY = 3 * 3600_000L         // look at most every 3 hours
-        const val LATER = 24 * 3600_000L        // "Later" stays quiet for a day about that build
     }
 }

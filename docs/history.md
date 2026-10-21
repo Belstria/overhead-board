@@ -10,6 +10,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.71.2: the update offer shows on every resume (no 3 h wait, no skip memory); buttons Update / Skip.
 - 1.71.1: the Android app updates itself (`Updater.kt`): `check()` on resume, at most every 3 h, asks GitHub's
   `releases/latest` (tag `android-build-N` = versionCode); newer → dialog Update / Later (Later skips that build 24 h).
   Update: `canRequestPackageInstalls` (else the phone's settings, `resume()` carries on), downloads overhead.apk (only
