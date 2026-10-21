@@ -439,7 +439,7 @@ asks once to allow installs from the browser). On first start it looks for the r
 can't find it, type the address the relay prints, such as `http://192.168.1.20:8080`. Settings → About → Change relay
 picks another one later. The app shows `/app/` from the relay full screen, so it is always the current version; a new
 APK is only needed when the app itself changes (see [android/](android/)). Since 1.71.1 the app fetches those
-itself: on start it offers a newer build when GitHub has one ("Later" waits a day), and Settings → Device → Check for app
+itself: every time it opens it offers a newer build when GitHub has one (Update or Skip), and Settings → Device → Check for app
 updates looks at once; Android asks once to allow installs from Fallblatt, then confirms each update. Chrome can't install `/app/` itself as an
 app, because it installs web apps only from https addresses and the relay is plain http.
 
