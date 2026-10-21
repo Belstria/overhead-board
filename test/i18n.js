@@ -3,6 +3,13 @@
 // One row per text: English (the key), German, French, Spanish, Dutch. To add a text, add a row here; tools/app/build.py
 // then stamps the new version into the board (i18n.js?v=...). Without this file every text shows in English.
 window.I18N_ROWS = [
+  ["Glass (preview)", "Glass (Vorschau)", "Glass (aperçu)", "Glass (vista previa)", "Glass (voorproef)"],
+  ["The new design: light, with the map first.", "Das neue Design: hell, mit der Karte im Mittelpunkt.", "Le nouveau design : clair, la carte d'abord.", "El nuevo diseño: claro, con el mapa primero.", "Het nieuwe ontwerp: licht, met de kaart voorop."],
+  ["Offline", "Offline", "Hors ligne", "Sin conexión", "Offline"],
+  ["No plane overhead right now", "Gerade kein Flugzeug über dir", "Aucun avion au-dessus en ce moment", "Ningún avión encima ahora mismo", "Nu geen vliegtuig boven je"],
+  ["Map of the planes around you", "Karte der Flugzeuge um dich", "Carte des avions autour de vous", "Mapa de los aviones a tu alrededor", "Kaart van de vliegtuigen om je heen"],
+  ["1 plane nearby", "1 Flugzeug in der Nähe", "1 avion à proximité", "1 avión cerca", "1 vliegtuig in de buurt"],
+  ["{n} planes nearby", "{n} Flugzeuge in der Nähe", "{n} avions à proximité", "{n} aviones cerca", "{n} vliegtuigen in de buurt"],
   ["Send a test", "Test senden", "Envoyer un test", "Enviar una prueba", "Test sturen"],
   ["Sent: it should arrive in a few seconds.", "Gesendet: sie sollte in ein paar Sekunden ankommen.", "Envoyé : elle devrait arriver dans quelques secondes.", "Enviado: debería llegar en unos segundos.", "Verstuurd: hij zou binnen een paar seconden moeten komen."],
   ["The phone didn't answer. Try again in a moment.", "Das Handy hat nicht geantwortet. Versuche es gleich noch einmal.", "Le téléphone n'a pas répondu. Réessayez dans un instant.", "El teléfono no respondió. Inténtalo de nuevo en un momento.", "De telefoon antwoordde niet. Probeer het zo opnieuw."],
