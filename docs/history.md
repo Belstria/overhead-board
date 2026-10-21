@@ -10,6 +10,9 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.6: `planeBody(o, sky)` → `skyBody()` for Sky view's whole card: `.cOv` (flight, airline `data-al`, status) on the
+  photo `.cSkyPic` (plain when there's no photo), `.cRouteB` (from/to `data-pl`), `.cTiles` (alt, speed, dist via
+  `data-dyn`), `.cDet` (aircraft `data-ty`, registration, operator, gate, remarks), buttons sharing the width.
 - 1.72.5: the whole Sky view card opens up to the top bar (`arRoom()`, was 62 % of the screen), the photo in it at most
   32vh; the small card's countdown line (`#arTimer`) is gone (the 3 s still run).
 - 1.72.4: `#skyRow` (under the board on Now, `#arBtn2`) whenever the Where to look card with `#arBtn` isn't shown
