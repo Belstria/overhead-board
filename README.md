@@ -369,7 +369,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a gold ★ for the planes
   within reach of points, ✓ and the bonus once locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
-  seconds (a gold line runs down); swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
+  seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**

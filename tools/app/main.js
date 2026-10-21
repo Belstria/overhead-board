@@ -1276,7 +1276,7 @@ function arPeekHtml(o){
   const html = `<i class="arGrip"></i><div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
     `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div></div>` +
     `<p class="arSwipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${escH(T("Swipe up for more"))}</p>` +
-    `<div class="arTimer"><i id="arTimer"></i></div>`;
+    "";
   return {html, pic, sig: [ac.hex, pic, name, type, sub].join("|")};
 }
 function arCardRender(){
@@ -1304,9 +1304,10 @@ function arSet(p){
   const box = $("arCard"), pk = box.querySelector(".arPeekL"), fl = box.querySelector(".arFullL");
   if (!pk || !fl) return;
   arP = p = Math.max(0, Math.min(1, p));
-  const PH = pk.offsetHeight, FH = Math.max(PH, Math.min(fl.offsetHeight, innerHeight * .62));
+  const PH = pk.offsetHeight, FH = Math.max(PH, Math.min(fl.offsetHeight, arRoom()));
   box.style.height = (PH + (FH - PH) * p).toFixed(1) + "px";
   box.style.overflowY = p >= 1 ? "auto" : "hidden";
+  if (p >= 1) { const more = box.scrollHeight - box.clientHeight; if (more > 0) box.style.height = Math.min(arRoom(), FH + more + 2) + "px"; }   // margins and borders too
   if (p < 1) box.scrollTop = 0;
   pk.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3); pk.style.pointerEvents = p > .4 ? "none" : "";
   fl.style.opacity = Math.max(0, (p - .45) / .55).toFixed(3); fl.style.pointerEvents = p >= 1 ? "" : "none";
@@ -1321,6 +1322,12 @@ function arSet(p){
   }
   arFull = p >= 1;
 }
+// 1.72.5: the whole card may take the screen up to Sky view's top bar, so it shows everything without scrolling.
+function arRoom(){
+  const top = document.querySelector("#arView .arTop"), box = $("arCard");
+  const b = box.getBoundingClientRect(), t = top ? top.getBoundingClientRect().bottom : 60;
+  return Math.max(220, b.bottom - t - 12);
+}
 // Eases the card to the small or the whole one (after a release, a tap).
 function arTo(p){
   const box = $("arCard");
@@ -1331,12 +1338,11 @@ function arTo(p){
 function arPeekWatch(hex){
   const box = $("arCard");
   if (!arSel || arP > 0 || box.hidden || box.classList.contains("drag")) { arAwayAt = 0; return; }
-  if (hex === arSel) { arAwayAt = 0; if ($("arTimer")) $("arTimer").style.width = "100%"; return; }
+  if (hex === arSel) { arAwayAt = 0; return; }
   if (hex) return arCardDismiss();
   const now = Date.now();
   if (!arAwayAt) arAwayAt = now;
   const left = 1 - (now - arAwayAt) / AR_PEEK_MS;
-  if ($("arTimer")) $("arTimer").style.width = (Math.max(0, left) * 100).toFixed(1) + "%";
   if (left <= 0) { arAwayAt = 0; arCardDismiss(); }
 }
 // The card slides away (a drag down, a tap on the sky, the timer).
@@ -1363,7 +1369,7 @@ function arCardDismiss(){
     if (e.cancelable) e.preventDefault();
     const now = performance.now(); drag.v = (y - drag.ly) / Math.max(1, now - drag.lt); drag.ly = y; drag.lt = now;
     const d = drag.dy = y - drag.y0, pk = box.querySelector(".arPeekL"), fl = box.querySelector(".arFullL");
-    const span = Math.max(1, Math.max(pk.offsetHeight, Math.min(fl.offsetHeight, innerHeight * .62)) - pk.offsetHeight);
+    const span = Math.max(1, Math.max(pk.offsetHeight, Math.min(fl.offsetHeight, arRoom())) - pk.offsetHeight);
     const p = drag.p0 - d / span;
     if (p >= 0) { arSet(Math.min(1, p)); box.style.transform = p > 1 ? `translateY(${(-(p - 1) * span / 6).toFixed(1)}px)` : ""; }
     else { arSet(0); box.style.transform = `translateY(${(-p * span).toFixed(1)}px)`; }   // below the small card: on its way out
