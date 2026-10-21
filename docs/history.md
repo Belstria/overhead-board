@@ -10,6 +10,8 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.8: `arTour`'s drag step acts it out (`.arTourDrag`: a plane in the ring, `.arTourLab` dragged onto it by
+  `.arTourFinger`, green once in place).
 - 1.72.7: Sky view's top bar: `.arTitle` pill and round frosted `.arIb` buttons `#arInfo` ⓘ, `#arReset` ⟲ (`.moved`, a gold
   ring and dot, while `arOff` isn't zero), `#arClose` ✕; `arMovedNote` after a drag; `arTour` (`AR_TOUR`: ring, drag,
   buttons; `od.ar.tour` once seen) the first time and from ⓘ.
