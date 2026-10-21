@@ -6527,6 +6527,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.71.3", date: "2026-10-21", notes: [
+    "The light version and the Glass preview are retired for now; their addresses open the phone app.",
+  ]},
   {v: "1.71.2", date: "2026-10-21", notes: [
     "The Android app offers a new version every time it opens, with Update or Skip.",
   ]},
@@ -7219,7 +7222,7 @@ const DEV_ICON = {
   flaps: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="8.5" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="5.5" width="8.5" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 12h8.5M13 12h8.5" stroke="currentColor" stroke-width="1.8"/></svg>',
   board: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="12.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 20.5h8M12 17v3.5M2.5 10.75h19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'};
 function viewItemHtml(it){
-  const tv = COCKPIT_FOR === "tv", light = COCKPIT_FOR === "light";
+  const tv = COCKPIT_FOR === "tv";
   if (it.type === "account") {
     const who = GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
     return `<div class="acHead"><span class="acAv" aria-hidden="true">${escH(who.slice(0, 1).toUpperCase())}</span><div class="acWho"><b>${escH(who)}</b>` +
@@ -7229,10 +7232,9 @@ function viewItemHtml(it){
   }
   if (it.type === "push") return `<div id="pushBox"></div>`;
   if (it.type === "device") {
-    const tiles = tv ? [["../app/", "Phone app", "Planes on your phone, with notifications.", "phone"], ["../light/", "Light version", "The phone app without split flaps.", "light"]]
-      : [[light ? "../app/" : "../light/", light ? "Full app" : "Light version", light ? "The plane on split flaps, like the board." : "Plain and quick, without split flaps.", light ? "flaps" : "light", "uiBtn"],
-        ["../", "Full board", "The big board, for a TV or a computer.", "board"],
-        ...(location.pathname.includes("/glass/") ? [] : [["../glass/", "Glass (preview)", "The new design: light, with the map first.", "light"]])];   // 1.71
+    // 1.71.3: the light version and Glass are parked (tools/light/, tools/glass/), so no tiles for them
+    const tiles = tv ? [["../app/", "Phone app", "Planes on your phone, with notifications.", "phone"]]
+      : [["../", "Full board", "The big board, for a TV or a computer.", "board"]];
     const android = !!(window.OverheadAndroid && window.OverheadAndroid.changeRelay);
     return `<div class="devTiles">${tiles.map(([href, name, line, ico, id]) => `<a class="devTile" href="${href}"${id ? ` id="${id}"` : ""}>` +
         `<span class="devIco">${DEV_ICON[ico]}</span><b>${escH(T(name))}</b><small>${escH(T(line))}</small></a>`).join("")}</div>` +
@@ -7254,7 +7256,6 @@ function wireViews(box){
   if (q("aboutBtn")) q("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
   if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
   if (q("acBack")) q("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
-  if (q("uiBtn")) q("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", COCKPIT_FOR === "light" ? "app" : "light"); } catch {} };
   if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
   if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.checkUpdate(); };
   if (q("signOut")) q("signOut").onclick = async () => {

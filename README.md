@@ -63,7 +63,7 @@ Arriving or Departing for your home airport. The Spotted today panel also lists 
 | `/` | **Main board**: the version for everyday use, with Flightradar24 when the relay has a key (a copy of the test board). |
 | `/test/` | **Test board**: where changes are tried before they go to the main board, Flightradar24 features included. (Since 1.35.2 the only test board: `/test-api/` forwards here.) |
 | `/app/` | **Phone app**: the board laid out for a phone, to add to the home screen (see below). |
-| `/light/` | **Light version** of the phone app (1.39): the same, without split flaps (see below). |
+| `/light/`, `/glass/` | Parked (1.71.3): open the phone app (see below). |
 
 Changes are tried on the test board first and copied to the main board when they're ready. If the Flightradar24
 subscription ends, the boards keep working: they fall back to the free sources by themselves.
@@ -521,35 +521,13 @@ The flight data comes through the relay (version 13 or newer serves its icons), 
 It checks for planes every 10 seconds while it's on screen and once a minute in the background. The relay lists it
 among its screens as the APP board. `?demo` shows sample flights.
 
-### Light version
+### Light version and Glass (parked)
 
-`/light/` (1.39) is the phone app without split flaps: the same tabs, plane, lists, cards, places, notifications and
-Settings, in the app's colours and fonts but as a plain, modern display. The plane overhead is a card of labelled
-fields (the label in amber, the value under it); a new value slides in with a quick fade instead of flapping. Status
-words are coloured pills, the airline shows its logo, the tier its sign. No metal, screws, glass or lamps: flat
-cards, flat buttons, and Settings as segmented switches and steppers. Its Settings leave out everything about the
-flaps (speed, quick flaps, worn hardware, realistic look, board style and flap finish; its Styles offer colours and
-badges); Sounds keeps Button sounds, Chimes and the
-Special bell. It keeps its own settings on the device, but a guest's place still goes to their profile as in the
-app. On its side it is laid out like the app's, with the fields in place of the flaps.
-
-Switch to it in Settings → Device → the **Light version** tile, and back with the **Full app** tile (1.56: two tiles,
-the other being the Full board, with **Show the tips again** as a small link under them). The
-choice stays on the device: `/app/` (and so the Android app and a phone's home-screen icon) then opens the light
-version. Notifications are shared with the app.
-
-### Glass (preview)
-
-`/glass/` (1.71) is a new phone design, made with Google's Gemini as the designer ("Glasshouse"): light, and built around
-the live map. The map fills the screen (light, with the planes in bold colours, their trails, the spotting radius
-and your place; pinch or double-tap to zoom), and the plane that matters floats over it on a photo card: status,
-flight, height, airline, type, distance and route. Tap a plane on the map to put it on the card (× goes back to the
-plane overhead); tap the card for its full card. While the map is pinched the card shrinks to a slim pill. Today and
-Logbook are buttons at the top left (or swipe the map right or left), the person button opens Settings (its dot shows
-the connection), and "planes nearby" on the card opens the list of the nearest planes; each slides over the map with
-"‹ Map" to go back. On its side the card sits on the left and the map fills the rest. It is the light version underneath,
-so it has every feature and setting and keeps the light version's settings on the device. Open it from Settings →
-Device → **Glass (preview)**; it is meant to replace the light version once finished.
+The light version (`/light/`, 1.39, the phone app without split flaps) and the Glass preview (`/glass/`, 1.71, a
+light, map-first design made with Google's Gemini) are parked since 1.71.3: their addresses open the phone app, and
+Settings → Device no longer offers them. Their source stays in `tools/light/` and `tools/glass/` for later; reviving
+them means bringing `light.js`/`glass.js` up to date with the app and building again (`py tools/light/build.py`,
+`py tools/glass/build.py`, which overwrite the forwarding pages).
 
 **Remote key test**: `http://<relay>:8080/keys/` lights up each remote button that reaches a web page (arrows, OK,
 Back, colour keys), to see whether a TV's browser passes them on (the first step towards navigating the board with
@@ -774,5 +752,4 @@ each other, and `smoke.py` takes `--port` too);
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
-`py tools/app/build.py`, so it gets new features together with that board; its light version from the app with
-`py tools/light/build.py`.
+`py tools/app/build.py`, so it gets new features together with that board.

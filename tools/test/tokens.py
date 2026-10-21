@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
-FILES = ["tools/app/head.html", "tools/light/light.css"]
+FILES = ["tools/app/head.html"]   # tools/light/light.css is parked (1.71.3)
 SIZE = re.compile(r"(?:font-size:\s*|font:\s*(?:italic\s+)?\d{3}\s+)([\d.]+px)")
 
 
