@@ -681,6 +681,13 @@ html.leather #top,html.leather #tabs{position:relative}
 html.leather #top::after,html.leather #tabs::before{content:"";position:absolute;left:10px;right:10px;border-top:1.5px dashed rgba(233,204,142,.5);pointer-events:none}
 html.leather #top::after{bottom:4px} html.leather #tabs::before{top:4px}
 html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:inset 0 2px 0 #b89443}
+/* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading) */
+.skyRow{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#121315;border:1px solid var(--line)}
+.skyRow[hidden]{display:none}
+.skyRow>svg{flex:none;width:28px;height:28px;color:var(--amber)}
+.skyRow>div{flex:1;min-width:0;display:grid;gap:2px}
+.skyRow b{font:700 var(--fs-l)/1.1 var(--f-board)} .skyRow span{font-size:var(--fs-s);color:var(--muted)}
+.skyRow .cap{flex:none;width:auto;padding:0 14px}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -761,6 +768,9 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
       <div class="gPts" id="gPts" hidden></div>
+      <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
+        <button class="cap small go" type="button" id="arBtn2" data-t="Open">Open</button></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>

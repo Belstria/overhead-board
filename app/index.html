@@ -1071,6 +1071,13 @@ html.leather #top,html.leather #tabs{position:relative}
 html.leather #top::after,html.leather #tabs::before{content:"";position:absolute;left:10px;right:10px;border-top:1.5px dashed rgba(233,204,142,.5);pointer-events:none}
 html.leather #top::after{bottom:4px} html.leather #tabs::before{top:4px}
 html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:inset 0 2px 0 #b89443}
+/* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading) */
+.skyRow{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#121315;border:1px solid var(--line)}
+.skyRow[hidden]{display:none}
+.skyRow>svg{flex:none;width:28px;height:28px;color:var(--amber)}
+.skyRow>div{flex:1;min-width:0;display:grid;gap:2px}
+.skyRow b{font:700 var(--fs-l)/1.1 var(--f-board)} .skyRow span{font-size:var(--fs-s);color:var(--muted)}
+.skyRow .cap{flex:none;width:auto;padding:0 14px}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -1151,6 +1158,9 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
       <div class="gPts" id="gPts" hidden></div>
+      <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
+        <button class="cap small go" type="button" id="arBtn2" data-t="Open">Open</button></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -5508,7 +5518,7 @@ function renderRecent(){
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
-  nowEmptyNote(); nowPanels();
+  nowEmptyNote(); nowPanels(); skyRowRender();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
@@ -5991,7 +6001,7 @@ function drawLook(){
   lookRaf = 0;
   const box = $("look"), L = lookAt();
   box.hidden = !L || SIDEWAYS.matches;
-  if (box.hidden) return;
+  if (box.hidden) return skyRowRender();
   $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
   $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
     (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.")
@@ -6010,6 +6020,7 @@ function drawLook(){
   g.restore();
 
   $("arBtn").hidden = !arPossible();
+  skyRowRender();
 }
 const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
 function lookHeadingFrom(e){
@@ -6381,6 +6392,14 @@ function arCardDismiss(){
   box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
+// 1.72.4: Sky view can always be opened: when the plane's Where to look card (with its button) isn't there, a row of
+// its own under the board takes its place.
+$("arBtn2").onclick = arOpen;
+function skyRowRender(){
+  const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden;
+  $("skyRow").hidden = look || !arPossible() || SIDEWAYS.matches;
+}
+setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
@@ -7530,6 +7549,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.4", date: "2026-10-21", notes: [
+    "Sky view can always be opened, also with no plane overhead or while the app is loading.",
+  ]},
   {v: "1.72.3", date: "2026-10-21", notes: [
     "Sky view: swipe the small card up and it grows into the whole card, its picture growing with it; drag it down to go back.",
   ]},
@@ -8970,7 +8992,7 @@ function gPtsRender(){
   if (box.dataset.h !== html) { box.dataset.h = html; box.innerHTML = html; }
   box.hidden = false;
 }
-const arOk = () => !!$("arBtn") && !$("arBtn").hidden;
+const arOk = () => arPossible();
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
   if (!gameOk() || (!force && Date.now() - gLeagueAt < 30000)) return;

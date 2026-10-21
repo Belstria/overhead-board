@@ -10,6 +10,8 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.4: `#skyRow` (under the board on Now, `#arBtn2`) whenever the Where to look card with `#arBtn` isn't shown
+  (`skyRowRender`, from `drawLook`, `renderAircraftInfo` and every second); `arOk` is `arPossible()`.
 - 1.72.3: the Sky view card's two layers (`.arPeekL` over `.arFullL`, both rendered) and `arSet(p)`: height between
   them, the layers' fades, `.arGhost` (the photo) flying from the thumbnail to `.cPicW`; the drag sets p (up from the
   small card, down from the whole one; below the small card it translates out), `arTo` eases to 0 or 1 on release
