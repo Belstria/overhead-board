@@ -1089,6 +1089,7 @@ async function arOpen(){
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
+  try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
 }
 function arCalCheck(a, b, g, acc){
@@ -1108,6 +1109,7 @@ function arCalCheck(a, b, g, acc){
 function arClose(){
   if (!arOn) return;
   arOn = false; ctlSound.press();
+  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
   removeEventListener(arEvent(), arOrient);
@@ -1197,7 +1199,8 @@ function arLoop(){
     }
     g.globalAlpha = 1;
   }
-  $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
+  $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
+  $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   arAimDraw(g, W, H);
 }
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
@@ -1246,7 +1249,36 @@ function arDragEnd(e){
   const tap = !arDrag.moved; arDrag = null;
   if (tap && e && e.type === "pointerup") return arTap(e);
   try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {}
+  arMovedNote();
 }
+// 1.72.7: after a drag, a note by ⟲ for a moment: the labels sit where the finger put them, not where the compass says.
+function arMovedNote(){
+  const n = $("arMoved");
+  n.textContent = T("Labels moved by hand · ⟲ to undo"); n.hidden = false;
+  clearTimeout(arMovedNote.t); arMovedNote.t = setTimeout(() => { n.hidden = true; }, 3500);
+}
+// 1.72.7: the walkthrough, the first time Sky view opens and from ⓘ: the ring, the drag, the buttons.
+const AR_TOUR = [["ring", "Hold a plane in the ring", "Point the ring at a plane and keep it there for a moment: its card opens. With live location on, it pays a bonus too."],
+  ["drag", "Labels beside the planes?", "Phone compasses drift. Drag the sky sideways, or up and down, until the labels sit on the planes."],
+  ["btns", "The buttons", "⟲ puts the labels back where the compass says (it lights up once you've dragged them). ⓘ shows these tips again. ✕ closes Sky view."]];
+function arTour(step){
+  const box = $("arTour");
+  if (step >= AR_TOUR.length) {
+    box.hidden = true; $("arView").classList.remove("tourBtns");
+    try { localStorage.setItem("od.ar.tour", "1"); } catch {}
+    return;
+  }
+  const [k, h, p] = AR_TOUR[step];
+  $("arView").classList.toggle("tourBtns", k === "btns");
+  box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? '<i class="arTourHand"></i>' : "") +
+    `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
+    (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
+    `<button class="cap small go" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
+  box.hidden = false;
+  box.querySelector(".go").onclick = () => { ctlSound.press(); arTour(step + 1); };
+  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
+}
+$("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
 // 1.62.1: a tap on a plane or its label opens its card (as on the radar) over the picture; a tap elsewhere closes it.
 function arTap(e){
   const r = $("arCv").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
@@ -1404,7 +1436,7 @@ function skyRowRender(){
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
-$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
+$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
   cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }

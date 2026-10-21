@@ -10,6 +10,9 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.7: Sky view's top bar: `.arTitle` pill and round frosted `.arIb` buttons `#arInfo` ⓘ, `#arReset` ⟲ (`.moved`, a gold
+  ring and dot, while `arOff` isn't zero), `#arClose` ✕; `arMovedNote` after a drag; `arTour` (`AR_TOUR`: ring, drag,
+  buttons; `od.ar.tour` once seen) the first time and from ⓘ.
 - 1.72.6: `planeBody(o, sky)` → `skyBody()` for Sky view's whole card: `.cOv` (flight, airline `data-al`, status) on the
   photo `.cSkyPic` (plain when there's no photo), `.cRouteB` (from/to `data-pl`), `.cTiles` (alt, speed, dist via
   `data-dyn`), `.cDet` (aircraft `data-ty`, registration, operator, gate, remarks), buttons sharing the width.
