@@ -1270,7 +1270,10 @@ function arTour(step){
   }
   const [k, h, p] = AR_TOUR[step];
   $("arView").classList.toggle("tourBtns", k === "btns");
-  box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? '<i class="arTourHand"></i>' : "") +
+  // 1.72.8: the drag step acts it out: a plane in the ring, its label beside it, a finger dragging the label onto it
+  const drag = `<div class="arTourDrag"><svg class="arTourPlane" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="currentColor"/></svg>` +
+    `<div class="arTourLab"><b>OS 411</b><small>A320 · 2,300 m · 6.8 km</small><i class="arTourFinger"></i></div></div>`;
+  box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? drag : "") +
     `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
     `<button class="cap small go" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
