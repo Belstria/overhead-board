@@ -1071,6 +1071,28 @@ html.leather #top,html.leather #tabs{position:relative}
 html.leather #top::after,html.leather #tabs::before{content:"";position:absolute;left:10px;right:10px;border-top:1.5px dashed rgba(233,204,142,.5);pointer-events:none}
 html.leather #top::after{bottom:4px} html.leather #tabs::before{top:4px}
 html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:inset 0 2px 0 #b89443}
+/* 1.72.6: Sky view's whole card: flight, airline and status on the photo, the route as a band, live tiles, two columns */
+.arFullL .cSkyPic{position:relative;border-radius:12px;overflow:hidden}
+.arFullL .cSkyPic .cPic{display:block;width:100%;margin:0;border-radius:0}
+.cOv{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;gap:8px;padding:28px 12px 10px;background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.cOv.cOvPlain{position:static;padding:4px 0;background:none}
+.cOvF{font:700 var(--fs-2xl)/1 var(--f-board);color:#fff;letter-spacing:.02em}
+.cOv .cOvA{color:#e4e1d8;font-size:var(--fs-s);border:0;padding:0 0 2px;background:none}
+.cOv .cChip{margin-left:auto}
+.cRouteB{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:12px 2px 0}
+.cRouteB i{font-style:normal;color:var(--amber);white-space:nowrap}
+.cRbEnd{all:unset;cursor:pointer;display:grid}
+.cRbEnd:last-child{text-align:right}
+.cRbEnd b{font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink)} .cRbEnd small{font-size:var(--fs-tag);color:var(--muted)}
+.cTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.cTile{background:#202125;border-radius:10px;padding:8px 6px;text-align:center;min-width:0}
+.cTile span{display:block;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.cTile b{display:block;margin-top:3px;font:700 var(--fs-l)/1.15 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cDet{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px;font-size:var(--fs-m)}
+.cDet div{min-width:0} .cDet span{display:block;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.cDet .cLink{padding:0;border:0;background:none;color:var(--ink);font-size:var(--fs-m)}
+.arFullL .cBtns{margin-top:12px;display:flex;gap:8px}
+.arFullL .cBtns .cBtn{flex:1;justify-content:center;text-align:center}
 /* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading) */
 .skyRow{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#121315;border:1px solid var(--line)}
 .skyRow[hidden]{display:none}
@@ -2053,7 +2075,7 @@ async function placeCard(p){
 }
 // A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
 // with the airline and places to tap and Favourite / Hide.
-function planeBody(o){
+function planeBody(o, sky){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || radarStatus(o);
@@ -2063,16 +2085,32 @@ function planeBody(o){
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
-  const html = (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
+  const btns = listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
+    (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "";
+  const html = sky ? skyBody() : (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
       (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span></div><p class="cCredit">Wikimedia Commons</p>` : "</div>") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
       ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""], ["Gate", escH(gateFor(info))],
-      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
-    (listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
-      (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "");
+      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) + btns;
+  // 1.72.6: Sky view's whole card (`sky`): the flight, airline and status on the photo, the route as a band, the three
+  // live numbers as tiles, the rest in two columns.
+  function skyBody(){
+    const head = `<b class="cOvF">${escH(name)}</b>${info.airline ? `<button class="cLink cOvA" type="button" data-al>${escH(info.airline)}</button>` : ""}${chipHtml(badge)}`;
+    const end = (p, k) => p ? `<button class="cRbEnd" type="button" data-pl="${k}"><b>${escH(code3(p) || p.code || "···")}</b><small>${escH(p.city || "")}</small></button>` : `<span class="cRbEnd"><b>···</b></span>`;
+    const tile = (k, l) => `<div class="cTile"><span>${escH(T(l))}</span><b data-dyn="${k}">${escH(dyn[k] || NA)}</b></div>`;
+    const det = [["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)} ›</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")],
+      ["Operator", escH(d.owner || info.airline || "")], ["Gate", escH(gateFor(info))], ["Remarks", escH(remarkLines(ac, info).join(" · "))]].filter(x => x[1]);
+    return (pic ? `<div class="cPicW cSkyPic"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
+        (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span>` : "") + `<div class="cOv">${head}</div></div>` +
+        (isModelPic(pic) ? `<p class="cCredit">Wikimedia Commons</p>` : "")
+      : `<div class="cOv cOvPlain">${head}</div>`) +
+      (info.from || info.to ? `<div class="cRouteB">${end(info.from, "from")}<i>— ✈ —</i>${end(info.to, "to")}</div>` : "") +
+      `<div class="cTiles">${tile("alt", "Altitude")}${tile("speed", "Speed")}${tile("dist", "Distance")}</div>` +
+      `<div class="cDet">${det.map(([l, v]) => `<div><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` + btns;
+  }
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
   const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || "", pic, model: !!pic && isModelPic(pic)};
   const wire = el => {
@@ -6287,7 +6325,7 @@ function arCardRender(){
   if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; arP = 0; return; }
   if (box.classList.contains("drag") || box.classList.contains("anim")) return;   // not under the finger
   const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
-  const pk = arPeekHtml(o), b = planeBody(o), sig = pk.sig + "|" + b.sig;
+  const pk = arPeekHtml(o), b = planeBody(o, true), sig = pk.sig + "|" + b.sig;
   $("arHint").hidden = true;
   if (sig === arCardSig && !box.hidden) {
     for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
@@ -7555,6 +7593,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.6", date: "2026-10-21", notes: [
+    "Sky view's whole card has a new look: the flight on its photo, the route across, height, speed and distance as tiles.",
+  ]},
   {v: "1.72.5", date: "2026-10-21", notes: [
     "Sky view's whole card opens to its full length, so everything shows without scrolling; the small card loses its countdown line.",
   ]},

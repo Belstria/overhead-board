@@ -1284,7 +1284,7 @@ function arCardRender(){
   if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; arP = 0; return; }
   if (box.classList.contains("drag") || box.classList.contains("anim")) return;   // not under the finger
   const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
-  const pk = arPeekHtml(o), b = planeBody(o), sig = pk.sig + "|" + b.sig;
+  const pk = arPeekHtml(o), b = planeBody(o, true), sig = pk.sig + "|" + b.sig;
   $("arHint").hidden = true;
   if (sig === arCardSig && !box.hidden) {
     for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];

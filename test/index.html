@@ -5610,7 +5610,7 @@ async function placeCard(p){
 }
 // A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
 // with the airline and places to tap and Favourite / Hide.
-function planeBody(o){
+function planeBody(o, sky){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || radarStatus(o);
@@ -5620,16 +5620,32 @@ function planeBody(o){
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
-  const html = (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
+  const btns = listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
+    (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "";
+  const html = sky ? skyBody() : (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
       (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span></div><p class="cCredit">Wikimedia Commons</p>` : "</div>") : "") +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
       ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""], ["Gate", escH(gateFor(info))],
-      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) +
-    (listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
-      (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "");
+      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) + btns;
+  // 1.72.6: Sky view's whole card (`sky`): the flight, airline and status on the photo, the route as a band, the three
+  // live numbers as tiles, the rest in two columns.
+  function skyBody(){
+    const head = `<b class="cOvF">${escH(name)}</b>${info.airline ? `<button class="cLink cOvA" type="button" data-al>${escH(info.airline)}</button>` : ""}${chipHtml(badge)}`;
+    const end = (p, k) => p ? `<button class="cRbEnd" type="button" data-pl="${k}"><b>${escH(code3(p) || p.code || "···")}</b><small>${escH(p.city || "")}</small></button>` : `<span class="cRbEnd"><b>···</b></span>`;
+    const tile = (k, l) => `<div class="cTile"><span>${escH(T(l))}</span><b data-dyn="${k}">${escH(dyn[k] || NA)}</b></div>`;
+    const det = [["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)} ›</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")],
+      ["Operator", escH(d.owner || info.airline || "")], ["Gate", escH(gateFor(info))], ["Remarks", escH(remarkLines(ac, info).join(" · "))]].filter(x => x[1]);
+    return (pic ? `<div class="cPicW cSkyPic"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
+        (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span>` : "") + `<div class="cOv">${head}</div></div>` +
+        (isModelPic(pic) ? `<p class="cCredit">Wikimedia Commons</p>` : "")
+      : `<div class="cOv cOvPlain">${head}</div>`) +
+      (info.from || info.to ? `<div class="cRouteB">${end(info.from, "from")}<i>— ✈ —</i>${end(info.to, "to")}</div>` : "") +
+      `<div class="cTiles">${tile("alt", "Altitude")}${tile("speed", "Speed")}${tile("dist", "Distance")}</div>` +
+      `<div class="cDet">${det.map(([l, v]) => `<div><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` + btns;
+  }
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
   const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || "", pic, model: !!pic && isModelPic(pic)};
   const wire = el => {
@@ -6612,6 +6628,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.6", date: "2026-10-21", notes: [
+    "Sky view's whole card has a new look: the flight on its photo, the route across, height, speed and distance as tiles.",
+  ]},
   {v: "1.72.5", date: "2026-10-21", notes: [
     "Sky view's whole card opens to its full length, so everything shows without scrolling; the small card loses its countdown line.",
   ]},
