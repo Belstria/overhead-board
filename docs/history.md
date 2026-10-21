@@ -10,6 +10,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.73: one look per kind in the app (the consistency check, https://claude.ai/artifact/GqHPCWGz21JFjmepi4S3j7):
+  `--box-bg`/`--box-bd` for boxes (`.gPts`, `.skyRow`, `.look`, `.gCard`, `.rvCard`, `.yearCard`), `--sheet-bg` for
+  `#cardBox .cardIn`, toasts, `#arCard`, `.arTourBox`; `.cBtn` app-wide (Sky view, Open, Styles, Share, CSV, tips'
+  Next; the board's `.cap` stays in Settings); `.rcX`/`.cardX` round like `.tabX`; Today's filters a `.seg.svFilters`;
+  bars 6 px; `.gLeague` rows as lines. Pop-up titles (gold capitals) and the checkboxes stayed, by Dave's choice.
 - 1.72.8: `arTour`'s drag step acts it out (`.arTourDrag`: a plane in the ring, `.arTourLab` dragged onto it by
   `.arTourFinger`, green once in place).
 - 1.72.7: Sky view's top bar: `.arTitle` pill and round frosted `.arIb` buttons `#arInfo` ⓘ, `#arReset` ⟲ (`.moved`, a gold

@@ -548,13 +548,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -747,6 +747,30 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .skyRow>div{flex:1;min-width:0;display:grid;gap:2px}
 .skyRow b{font:700 var(--fs-l)/1.1 var(--f-board)} .skyRow span{font-size:var(--fs-s);color:var(--muted)}
 .skyRow .cap{flex:none;width:auto;padding:0 14px}
+/* ---------- 1.73: one look per kind of thing (the consistency check; Dave took the suggestions) ----------
+   Boxes on a page share the soft gradient, a faint border and 12 px corners (gold border for a page's highlight);
+   things over the page share the sheet's background (18 px corners for sheets, 14 for toasts and tips); phone pages
+   use the cream button (the board's caps stay in Settings); one round close button; segmented bars for picking one;
+   6 px bars; plain lines for lists. (Pop-up titles and the checkboxes stay as they were: Dave's choice.) */
+:root{--box-bg:linear-gradient(#17181b,#101113);--box-bd:1px solid rgba(255,255,255,.08);--sheet-bg:linear-gradient(#1b1c1f,#111214)}
+.gPts,.skyRow,.look,#t-game .gCard,.rvCard,.yearCard{background:var(--box-bg);border:var(--box-bd);border-radius:12px}
+.yearCard{border-color:rgba(240,180,41,.35)} .gPts.off{border-color:#5a2a2d}
+#cardBox .cardIn{border-radius:18px 18px 0 0;background:var(--sheet-bg)}
+@media (min-width:700px){#cardBox .cardIn{border-radius:18px}}
+#toasts .toast{background:var(--sheet-bg);border-radius:14px}
+#arView .arCard{background:var(--sheet-bg);border-radius:18px}
+.arTourBox{background:var(--sheet-bg);border:var(--box-bd);border-radius:14px}
+.cBtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:8px;
+  background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.04em;box-shadow:0 2px 0 #000,0 0 0 2px #050505;text-decoration:none}
+.cBtn:active{transform:translateY(1px)} .cBtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px} .cBtn[hidden]{display:none}
+.rvCard .rcX,#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
+  display:grid;place-items:center;font:600 var(--fs-xl)/1 var(--f-board);text-align:center;z-index:5}
+.cats .bar,.cups .tl .bar{height:6px;border-radius:3px;background:#2a2b30}
+.cups .tl .bar i{background:var(--amber)} .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:var(--c-good)}
+#t-game .gBar,.gTaper{height:6px;border-radius:3px}
+.tools .seg.svFilters{flex:1 1 100%;margin:0}
+.gLeague{gap:0} .gLeague li{background:none;border-radius:0;padding:9px 4px;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03)}
+.gLeague li.me{outline:none;background:linear-gradient(90deg,rgba(240,180,41,.14),transparent 70%);box-shadow:inset 3px 0 0 var(--amber),0 1px 0 rgba(255,255,255,.03)}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -831,7 +855,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="gPts" id="gPts" hidden></div>
       <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
-        <button class="cap small go" type="button" id="arBtn2" data-t="Open">Open</button></div>
+        <button class="cBtn" type="button" id="arBtn2" data-t="Open">Open</button></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -847,7 +871,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
         <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
         <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
           <span class="lookActs">
-          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
+          <button class="cBtn" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
       </div>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>

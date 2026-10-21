@@ -939,13 +939,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -1137,6 +1137,30 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .skyRow>div{flex:1;min-width:0;display:grid;gap:2px}
 .skyRow b{font:700 var(--fs-l)/1.1 var(--f-board)} .skyRow span{font-size:var(--fs-s);color:var(--muted)}
 .skyRow .cap{flex:none;width:auto;padding:0 14px}
+/* ---------- 1.73: one look per kind of thing (the consistency check; Dave took the suggestions) ----------
+   Boxes on a page share the soft gradient, a faint border and 12 px corners (gold border for a page's highlight);
+   things over the page share the sheet's background (18 px corners for sheets, 14 for toasts and tips); phone pages
+   use the cream button (the board's caps stay in Settings); one round close button; segmented bars for picking one;
+   6 px bars; plain lines for lists. (Pop-up titles and the checkboxes stay as they were: Dave's choice.) */
+:root{--box-bg:linear-gradient(#17181b,#101113);--box-bd:1px solid rgba(255,255,255,.08);--sheet-bg:linear-gradient(#1b1c1f,#111214)}
+.gPts,.skyRow,.look,#t-game .gCard,.rvCard,.yearCard{background:var(--box-bg);border:var(--box-bd);border-radius:12px}
+.yearCard{border-color:rgba(240,180,41,.35)} .gPts.off{border-color:#5a2a2d}
+#cardBox .cardIn{border-radius:18px 18px 0 0;background:var(--sheet-bg)}
+@media (min-width:700px){#cardBox .cardIn{border-radius:18px}}
+#toasts .toast{background:var(--sheet-bg);border-radius:14px}
+#arView .arCard{background:var(--sheet-bg);border-radius:18px}
+.arTourBox{background:var(--sheet-bg);border:var(--box-bd);border-radius:14px}
+.cBtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:8px;
+  background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.04em;box-shadow:0 2px 0 #000,0 0 0 2px #050505;text-decoration:none}
+.cBtn:active{transform:translateY(1px)} .cBtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px} .cBtn[hidden]{display:none}
+.rvCard .rcX,#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
+  display:grid;place-items:center;font:600 var(--fs-xl)/1 var(--f-board);text-align:center;z-index:5}
+.cats .bar,.cups .tl .bar{height:6px;border-radius:3px;background:#2a2b30}
+.cups .tl .bar i{background:var(--amber)} .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:var(--c-good)}
+#t-game .gBar,.gTaper{height:6px;border-radius:3px}
+.tools .seg.svFilters{flex:1 1 100%;margin:0}
+.gLeague{gap:0} .gLeague li{background:none;border-radius:0;padding:9px 4px;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03)}
+.gLeague li.me{outline:none;background:linear-gradient(90deg,rgba(240,180,41,.14),transparent 70%);box-shadow:inset 3px 0 0 var(--amber),0 1px 0 rgba(255,255,255,.03)}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -1221,7 +1245,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="gPts" id="gPts" hidden></div>
       <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
-        <button class="cap small go" type="button" id="arBtn2" data-t="Open">Open</button></div>
+        <button class="cBtn" type="button" id="arBtn2" data-t="Open">Open</button></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -1237,7 +1261,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
         <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
         <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
           <span class="lookActs">
-          <button class="cap small go" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
+          <button class="cBtn" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
       </div>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
@@ -5707,7 +5731,7 @@ function svFindWire(box, go){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = svFindHtml() + SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
+  box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
   svFindWire(box, () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.press();
@@ -5927,8 +5951,8 @@ function renderLogbook(){
 function collectionHtml(g0){
   if (!g0) return "";
   const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
-  const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
-    `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+  const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+    `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"};opacity:1"></i></span></li>`).join("");   // 1.73: gold, green once complete
   return `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
     (g0.best && g0.best.points ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
     `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
@@ -6005,8 +6029,8 @@ function yearHtml(){
   return `<div class="yearCard"><h3>${escH(T("{y} in planes", {y: y.year}))}</h3><div class="yNums">` +
     nums.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div><dl class="yFacts">` +
     yearFacts(y).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") +
-    `</dl><div class="yActs"><button class="cap small" type="button" id="yShare">${escH(T("Share"))}</button>` +
-    `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `</dl><div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
+    `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
 }
 // Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
@@ -6356,9 +6380,9 @@ function arTour(step){
   box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? drag : "") +
     `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
-    `<button class="cap small go" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
+    `<button class="cBtn arNext" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
   box.hidden = false;
-  box.querySelector(".go").onclick = () => { ctlSound.press(); arTour(step + 1); };
+  box.querySelector(".arNext").onclick = () => { ctlSound.press(); arTour(step + 1); };
   const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
 }
 $("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
@@ -7667,6 +7691,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.73", date: "2026-10-21", notes: [
+    "The phone app looks more of a piece: boxes, pop-ups, buttons, close buttons, filters, bars and lists that do the same job now look the same.",
+  ]},
   {v: "1.72.8", date: "2026-10-21", notes: [
     "Sky view's tips show the drag clearly: a label is dragged onto its plane in the ring.",
   ]},
@@ -9152,7 +9179,7 @@ function renderGame(){
     `${g.streak > 1 ? " · " + escH(T("{n}-day streak", {n: g.streak})) : ""}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</span></div>`;
   h += `<p class="gRule" style="margin-top:12px">${escH(T("How points work: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a little more for a close pass, something new or a streak. Hold a plane in Sky view's ring for a bonus."))}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cap small" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
+  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cBtn" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;

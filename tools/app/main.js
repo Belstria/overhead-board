@@ -629,7 +629,7 @@ function svData(){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = svFindHtml() + SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
+  box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
   svFindWire(box, () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.press();
@@ -847,8 +847,8 @@ function renderLogbook(){
 function collectionHtml(g0){
   if (!g0) return "";
   const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
-  const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
-    `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+  const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+    `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"};opacity:1"></i></span></li>`).join("");   // 1.73: gold, green once complete
   return `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
     (g0.best && g0.best.points ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
     `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
@@ -925,8 +925,8 @@ function yearHtml(){
   return `<div class="yearCard"><h3>${escH(T("{y} in planes", {y: y.year}))}</h3><div class="yNums">` +
     nums.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div><dl class="yFacts">` +
     yearFacts(y).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") +
-    `</dl><div class="yActs"><button class="cap small" type="button" id="yShare">${escH(T("Share"))}</button>` +
-    `<a class="cap small" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `</dl><div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
+    `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
 }
 // Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
@@ -1276,9 +1276,9 @@ function arTour(step){
   box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? drag : "") +
     `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
-    `<button class="cap small go" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
+    `<button class="cBtn arNext" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
   box.hidden = false;
-  box.querySelector(".go").onclick = () => { ctlSound.press(); arTour(step + 1); };
+  box.querySelector(".arNext").onclick = () => { ctlSound.press(); arTour(step + 1); };
   const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
 }
 $("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
@@ -2621,7 +2621,7 @@ function renderGame(){
     `${g.streak > 1 ? " · " + escH(T("{n}-day streak", {n: g.streak})) : ""}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</span></div>`;
   h += `<p class="gRule" style="margin-top:12px">${escH(T("How points work: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a little more for a close pass, something new or a streak. Hold a plane in Sky view's ring for a bonus."))}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cap small" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
+  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cBtn" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;
