@@ -1251,6 +1251,7 @@ function arTap(e){
   const hit = arHits.find(h => x >= h.box[0] && x <= h.box[0] + h.box[2] && y >= h.box[1] && y <= h.box[1] + h.box[3])
     || arHits.reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 32 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
   const was = arSel;
+  if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
   if (arSel || was) ctlSound.press();
   arCardRender();
@@ -1268,13 +1269,46 @@ function arCardRender(){
   }
   arCardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
   b.wire(box);
-  box.querySelector(".rcX").onclick = () => { ctlSound.press(); arSel = ""; arCardRender(); };
+  box.querySelector(".rcX").onclick = arCardDismiss;
 }
-// 1.72.1: a swipe down on the Sky view card closes it too (as do its × and a tap on the sky).
-{ const box = $("arCard"); let y0 = null;
-  box.addEventListener("pointerdown", e => { y0 = e.clientY; });
-  box.addEventListener("pointerup", e => { if (y0 != null && e.clientY - y0 > 50) { ctlSound.press(); arSel = ""; arCardRender(); } y0 = null; });
-  box.addEventListener("touchmove", e => { if (y0 != null && box.scrollTop <= 0 && e.touches[0].clientY - y0 > 10) e.preventDefault(); }, {passive: false}); }
+// 1.72.2: the Sky view card is a sheet: it slides up from the bottom, follows a finger dragged down, and on release
+// goes away (dragged a quarter of its height, at most 140 px, or flicked) or springs back. Its × and a tap on the sky close it too.
+function arCardDismiss(){
+  const box = $("arCard");
+  if (box.hidden || box.classList.contains("out")) return;
+  ctlSound.press();
+  box.classList.remove("drag"); box.style.transform = ""; box.classList.add("out");
+  setTimeout(() => { box.classList.remove("out"); arSel = ""; arCardRender(); }, 260);
+}
+{ const box = $("arCard"); let drag = null, dragged = 0;
+  const start = (y, x) => { drag = {y0: y, t0: performance.now(), dy: 0, on: false, top: box.scrollTop <= 0, x}; };
+  const move = (y, e) => {
+    if (!drag || !drag.top) return;
+    const dy = y - drag.y0;
+    if (!drag.on && dy > 6) { drag.on = true; drag.y0 = y; drag.t0 = performance.now(); box.classList.add("drag"); }
+    if (!drag.on) return;
+    if (e.cancelable) e.preventDefault();             // the card follows the finger instead of scrolling
+    const d = y - drag.y0;
+    drag.dy = d > 0 ? d : d / 4;                      // a little give upwards
+    drag.v = (d - (drag.last || 0)) / Math.max(1, performance.now() - (drag.lt || drag.t0)); drag.last = d; drag.lt = performance.now();
+    box.style.transform = `translateY(${drag.dy}px)`;
+  };
+  const end = () => {
+    const d = drag; drag = null;
+    if (!d || !d.on) return;
+    dragged = Date.now();                            // the tap that ends a drag isn't a tap on the card
+    box.classList.remove("drag");
+    if (d.dy > Math.min(140, box.offsetHeight / 4) || (d.v || 0) > .5) arCardDismiss();
+    else box.style.transform = "";
+  };
+  box.addEventListener("click", e => { if (Date.now() - dragged < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+  box.addEventListener("dragstart", e => e.preventDefault());   // the photo isn't picked up, the card is
+  box.addEventListener("touchstart", e => start(e.touches[0].clientY), {passive: true});
+  box.addEventListener("touchmove", e => move(e.touches[0].clientY, e), {passive: false});
+  box.addEventListener("touchend", end); box.addEventListener("touchcancel", end);
+  box.addEventListener("pointerdown", e => { if (e.pointerType === "mouse") start(e.clientY); });
+  box.addEventListener("pointermove", e => { if (e.pointerType === "mouse") move(e.clientY, e); });
+  box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
 $("arClose").onclick = arClose;

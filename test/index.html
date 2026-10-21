@@ -6612,6 +6612,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.2", date: "2026-10-21", notes: [
+    "Sky view's plane card slides up from the bottom; drag it down and let go to put it away. Its × no longer hides behind the photo.",
+  ]},
   {v: "1.72.1", date: "2026-10-21", notes: [
     "Planes now score within 10 km. In Sky view a gold ★ marks the planes within reach of points, NO PTS the ones too far away.",
     "Sky view's plane card closes more easily: a bigger ×, a swipe down, or a tap on the sky.",

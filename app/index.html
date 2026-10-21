@@ -773,8 +773,15 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
-#arView .arCard .rcX{right:6px;top:6px;width:48px;height:48px;line-height:48px;font-size:var(--fs-3xl);color:var(--ink);background:rgba(255,255,255,.1);border-radius:50%}   /* 1.72.1: easier to close */
-#arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: swipe down */
+#arView .arCard .rcX{z-index:5;right:6px;top:6px;width:48px;height:48px;line-height:48px;font-size:var(--fs-3xl);color:var(--ink);background:rgba(255,255,255,.1);border-radius:50%}   /* 1.72.1: easier to close */
+#arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: drag down */
+/* 1.72.2: a sheet: up from the bottom, after the finger while dragged, springing back or sliding away */
+#arView .arCard img{-webkit-user-drag:none}
+#arView .arCard:not([hidden]){user-select:none;-webkit-user-select:none;animation:arSheetIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .3s cubic-bezier(.2,.9,.25,1);touch-action:pan-y}
+#arView .arCard.drag{transition:none}
+#arView .arCard.out{transform:translateY(calc(100% + 40px))!important;transition:transform .26s cubic-bezier(.4,0,.8,.5)}
+@keyframes arSheetIn{from{transform:translateY(calc(100% + 40px))}}
+@media (prefers-reduced-motion:reduce){#arView .arCard,#arView .arCard.out{animation:none;transition:none}}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
@@ -6218,6 +6225,7 @@ function arTap(e){
   const hit = arHits.find(h => x >= h.box[0] && x <= h.box[0] + h.box[2] && y >= h.box[1] && y <= h.box[1] + h.box[3])
     || arHits.reduce((a, h) => { const d = Math.hypot(h.x - x, h.y - y); return d < 32 && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
   const was = arSel;
+  if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
   if (arSel || was) ctlSound.press();
   arCardRender();
@@ -6235,13 +6243,46 @@ function arCardRender(){
   }
   arCardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
   b.wire(box);
-  box.querySelector(".rcX").onclick = () => { ctlSound.press(); arSel = ""; arCardRender(); };
+  box.querySelector(".rcX").onclick = arCardDismiss;
 }
-// 1.72.1: a swipe down on the Sky view card closes it too (as do its × and a tap on the sky).
-{ const box = $("arCard"); let y0 = null;
-  box.addEventListener("pointerdown", e => { y0 = e.clientY; });
-  box.addEventListener("pointerup", e => { if (y0 != null && e.clientY - y0 > 50) { ctlSound.press(); arSel = ""; arCardRender(); } y0 = null; });
-  box.addEventListener("touchmove", e => { if (y0 != null && box.scrollTop <= 0 && e.touches[0].clientY - y0 > 10) e.preventDefault(); }, {passive: false}); }
+// 1.72.2: the Sky view card is a sheet: it slides up from the bottom, follows a finger dragged down, and on release
+// goes away (dragged a quarter of its height, at most 140 px, or flicked) or springs back. Its × and a tap on the sky close it too.
+function arCardDismiss(){
+  const box = $("arCard");
+  if (box.hidden || box.classList.contains("out")) return;
+  ctlSound.press();
+  box.classList.remove("drag"); box.style.transform = ""; box.classList.add("out");
+  setTimeout(() => { box.classList.remove("out"); arSel = ""; arCardRender(); }, 260);
+}
+{ const box = $("arCard"); let drag = null, dragged = 0;
+  const start = (y, x) => { drag = {y0: y, t0: performance.now(), dy: 0, on: false, top: box.scrollTop <= 0, x}; };
+  const move = (y, e) => {
+    if (!drag || !drag.top) return;
+    const dy = y - drag.y0;
+    if (!drag.on && dy > 6) { drag.on = true; drag.y0 = y; drag.t0 = performance.now(); box.classList.add("drag"); }
+    if (!drag.on) return;
+    if (e.cancelable) e.preventDefault();             // the card follows the finger instead of scrolling
+    const d = y - drag.y0;
+    drag.dy = d > 0 ? d : d / 4;                      // a little give upwards
+    drag.v = (d - (drag.last || 0)) / Math.max(1, performance.now() - (drag.lt || drag.t0)); drag.last = d; drag.lt = performance.now();
+    box.style.transform = `translateY(${drag.dy}px)`;
+  };
+  const end = () => {
+    const d = drag; drag = null;
+    if (!d || !d.on) return;
+    dragged = Date.now();                            // the tap that ends a drag isn't a tap on the card
+    box.classList.remove("drag");
+    if (d.dy > Math.min(140, box.offsetHeight / 4) || (d.v || 0) > .5) arCardDismiss();
+    else box.style.transform = "";
+  };
+  box.addEventListener("click", e => { if (Date.now() - dragged < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+  box.addEventListener("dragstart", e => e.preventDefault());   // the photo isn't picked up, the card is
+  box.addEventListener("touchstart", e => start(e.touches[0].clientY), {passive: true});
+  box.addEventListener("touchmove", e => move(e.touches[0].clientY, e), {passive: false});
+  box.addEventListener("touchend", end); box.addEventListener("touchcancel", end);
+  box.addEventListener("pointerdown", e => { if (e.pointerType === "mouse") start(e.clientY); });
+  box.addEventListener("pointermove", e => { if (e.pointerType === "mouse") move(e.clientY, e); });
+  box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
 $("arClose").onclick = arClose;
@@ -7393,6 +7434,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.2", date: "2026-10-21", notes: [
+    "Sky view's plane card slides up from the bottom; drag it down and let go to put it away. Its × no longer hides behind the photo.",
+  ]},
   {v: "1.72.1", date: "2026-10-21", notes: [
     "Planes now score within 10 km. In Sky view a gold ★ marks the planes within reach of points, NO PTS the ones too far away.",
     "Sky view's plane card closes more easily: a bigger ×, a swipe down, or a tap on the sky.",
