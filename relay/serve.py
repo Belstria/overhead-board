@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 58
+RELAY_VERSION = 59
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -487,6 +487,8 @@ def _record(self, planes, lat, lon, key="home", radius=None):
     screen watches; a plane already logged today from another of the profile's places (within the same pass) stays
     one sighting, so two devices never count it twice."""
     radius = radius or self.radius()
+    if key == "live":
+        radius = max(radius, GAME_KM)       # relay 59: the game's circle is the same for everyone
     now = time.time()
     try:
         lat, lon = float(lat), float(lon)
@@ -506,6 +508,11 @@ def _record(self, planes, lat, lon, key="home", radius=None):
             e = self.by_hex.get(hx)
             if e and now - e.get("lastSeen", 0) > SAME_PASS_S:
                 e = None
+            if e and key == "live" and d < e.get("liveMin", 999):
+                e["liveMin"] = round(d, 2)          # relay 59: how close the phone following its owner saw it (the game)
+            if e and key == "live":
+                e["liveSeen"] = now
+                changed |= game_note(self, e)
             if e and (e.get("place") or "home") != key:
                 e["lastSeen"] = now                 # the same pass, seen from another place: one sighting
                 continue
@@ -539,6 +546,8 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                      "adsbCat": str(ac.get("category") or "")}
                 if key != "home":
                     e["place"] = key
+                if key == "live":
+                    e["liveMin"], e["liveSeen"] = round(d, 2), now
                 w = watch_of(hx)
                 if w:
                     e["watch"], e["watchOp"] = w
@@ -568,6 +577,8 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                     book["hours"] = sorted(hrs | {_hour(e)})
                 for k in trophy_check(book, e, self.entries):
                     event("info", f"Trophy won: {k}", echo=False)
+                if key == "live":
+                    game_note(self, e)
                 self.changed("book")
                 _enrich_q.put((self, e["id"]))
                 changed = True
@@ -858,8 +869,9 @@ BINGO = {
 BINGO_LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
 
 
-def _bingo_week(spot, monday, day):
-    """A week's card and which of its goals were done (and when), up to `day`."""
+def _bingo_week(spot, monday, day, live=False):
+    """A week's card and which of its goals were done (and when), up to `day`. `live`: only planes that scored in the
+    game (relay 59)."""
     card = random.Random("fallblatt-" + monday.isoformat()).sample(sorted(BINGO), 9)
     done = {}
     for i in range(7):
@@ -868,6 +880,8 @@ def _bingo_week(spot, monday, day):
             break
         entries = spot.entries if d == spot.day else _load(spot.dir / f"sightings-{d}.json", [])
         for e in reversed(entries):
+            if live and "gp" not in e:
+                continue
             for g in card:
                 if g not in done:
                     try:
@@ -900,9 +914,9 @@ def bingo_json(spot, day):
     cached = getattr(spot, "_bingo", None)
     if cached and cached[0] == key:
         return cached[1]
-    card, done = _bingo_week(spot, monday, day)
+    card, done = _bingo_week(spot, monday, day, live=True)
     lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
-    book = spot.book()
+    book = game_book(spot.book())           # relay 59: the game's card, from live planes only
     if len(done) == 9 and monday.isoformat() not in book.setdefault("bingoCards", {}):     # relay 51: full cards
         book["bingoCards"][monday.isoformat()] = max(v or 0 for v in done.values())
         spot.changed("book")
@@ -922,7 +936,8 @@ def bingo_json(spot, day):
 STYLE_GRANTS = [("heathrow", "Heathrow yellow"), ("solari", "Solari green"), ("ice", "Ice blue"), ("sunset", "Sunset"),
                 ("white", "Black on white"), ("brass", "Brass trim"), ("enamel", "Worn enamel"), ("led", "LED dots"),
                 ("star", "Star"), ("prop", "Propeller"), ("heli", "Helicopter"), ("jumbo", "Jumbo"), ("jet", "Fighter jet"),
-                ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night")]
+                ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night"), ("goldleaf", "Gold leaf"),
+                ("firstclass", "First Class")]
 
 
 def style_grants(p):
@@ -944,6 +959,239 @@ def game_json(book, day):
             "sets": [{"name": n, "have": [t for t in ts if t in have], "total": len(ts)} for n, ts in SETS],
             "trophies": book.get("trophies", {}), "trophyCounts": trophy_counts(book, day=day),
             "bingoCards": len(book.get("bingoCards", {}))}
+
+
+# ---------- the game since relay 59 (1.72): only planes spotted with live location score ----------
+# A plane scores once a day, the first time a phone following its owner (place "live") sees it within GAME_KM, the same
+# circle for everyone whatever their radius. Rarity counts most (TIER_BASE); a close pass, something new to the game,
+# the daily streak and Sky view's lock-on add a little; the day's planes taper off (full, then half, then a quarter)
+# so a day at the airport can't run away with the league. Everything of the game (points, collections, bingo, trophies,
+# records) lives in the logbook's "game3" part, a small logbook of its own that started empty; the logbook keeps every plane.
+GAME3_V = 1
+GAME_KM = 8
+TIER_BASE = {"common": 10, "uncommon": 30, "rare": 100, "epic": 250, "legendary": 500}
+GAME_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))
+LOCK_PCT = (0.25, 0.30, 0.40, 0.50)     # Sky view's lock-on: a share of the plane's points, more in a combo
+LOCK_MIN = 15                           # ... but never less than this
+LOCK_COMBO_S = 180                      # lock-ons this close together make a combo
+LOCK_FRESH_S = 120                      # a lock-on counts for a plane seen live this recently
+LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
+                "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
+                "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
+
+
+def game_book(book):
+    """The game's own small logbook inside the logbook (made empty the first time: the reset of relay 59). Its keys are
+    the logbook's, so trophies, records, sets and the streak work on it unchanged; its "rareDays" are the days with a
+    live plane (the streak)."""
+    g = book.get("game3")
+    if not isinstance(g, dict) or g.get("v") != GAME3_V:
+        g = book["game3"] = {"v": GAME3_V, "since": int(time.time() * 1000), "sightings": 0, "types": {}, "airlines": {},
+                             "regs": {}, "countries": {}, "categories": {}, "hours": [], "points": 0, "days": {}, "planes": {},
+                             "tiers": {}, "rareDays": [], "records": {}, "trophies": {}, "bingoCards": {}, "best": {},
+                             "lock": {"at": 0, "combo": 0, "n": 0}}
+    return g
+
+
+def _monday(day):
+    d = datetime.date.fromisoformat(day)
+    return (d - datetime.timedelta(days=d.weekday())).isoformat()
+
+
+def _streak_mult(n):
+    return 1.2 if n >= 30 else 1.15 if n >= 14 else 1.1 if n >= 7 else 1.05 if n >= 3 else 1.0
+
+
+def game_points(e):
+    """A plane's points (without the lock-on): rarity, a light close-pass bonus, what is new to the game, the streak at
+    the time and where it came in the day."""
+    d = e.get("liveMin", GAME_KM)
+    close = 1.2 if d <= 1.5 else 1.1 if d <= 4 else 1.0
+    new = sum(v for k, v in GAME_NEW if e.get(k))
+    n = e.get("gn") or 1
+    taper = 1.0 if n <= 25 else 0.5 if n <= 50 else 0.25
+    return max(1, round((TIER_BASE.get(e.get("tier"), 30) * close + new) * (e.get("gk") or 1.0) * taper))
+
+
+def level_of(points):
+    """The level for a points total: each level needs a quarter more than the one before (500, 625, ...), from level
+    20 on the same as level 20. Returns (level, title, points into it, points it needs)."""
+    lv, need, left = 1, 500.0, max(0, int(points))
+    while left >= round(need):
+        left -= round(need)
+        lv += 1
+        if lv < 20:
+            need *= 1.25
+    title = LEVEL_TITLES[lv - 1] if lv <= 20 else f"Legend {lv - 19}"
+    return lv, title, left, round(need)
+
+
+def _game_add(g, day, pts):
+    g["points"] = g.get("points", 0) + pts
+    days = g.setdefault("days", {})
+    days[day] = days.get(day, 0) + pts
+    for k in sorted(days)[:-400]:
+        del days[k]
+
+
+def game_note(spot, e):
+    """A live sighting came within GAME_KM or closer: score it the first time, then follow its points as it comes
+    closer (the close-pass bonus). Call under _data_lock. True when something changed."""
+    d = e.get("liveMin")
+    if d is None or d > GAME_KM:
+        return False
+    book, day = spot.book(), spot.day
+    g = game_book(book)
+    if "gp" not in e:
+        planes = g.setdefault("planes", {})
+        n = planes[day] = planes.get(day, 0) + 1
+        for k in sorted(planes)[:-400]:
+            del planes[k]
+        rd = g.setdefault("rareDays", [])
+        if day not in rd:
+            rd.append(day)
+            del rd[:-400]
+        e["gn"], e["gk"] = n, _streak_mult(_streak(g, day))
+        g["sightings"] = g.get("sightings", 0) + 1
+        cats = g.setdefault("categories", {})
+        cat = category_of(e)
+        cats[cat] = cats.get(cat, 0) + 1
+        if e.get("typeCode"):
+            _note_first(g["types"], e["typeCode"], e.get("desc") or "", e, "gNewType")
+        if e.get("reg"):
+            _note_first(g["regs"], e["reg"], e.get("typeCode") or "", e, "gNewReg")
+        m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+        if m:
+            _note_first(g["airlines"], m.group(1), "", e, "gNewAirline")
+        tiers = g.setdefault("tiers", {})
+        tiers[e.get("tier") or "uncommon"] = tiers.get(e.get("tier") or "uncommon", 0) + 1
+        hrs = set(g.get("hours", []))
+        if _hour(e) not in hrs:
+            g["hours"] = sorted(hrs | {_hour(e)})
+        e["gp"] = game_points(e)
+        _game_add(g, day, e["gp"])
+        note_records(g, e)
+        for k in trophy_check(g, e, [x for x in spot.entries if "gp" in x]):
+            event("info", f"Trophy won: {k}", echo=False)
+    else:
+        p = game_points(e)
+        if p == e["gp"]:
+            return False
+        _game_add(g, day, p - e["gp"])
+        e["gp"] = p
+        note_records(g, e)
+        trophy_pass(g, e)
+    _game_best(g, day, e)
+    spot.changed("book")
+    return True
+
+
+def _game_best(g, day, e):
+    """The week's best plane (the board's league shows it)."""
+    wk, total = _monday(day), e["gp"] + e.get("lock", 0)
+    best = g.setdefault("best", {})
+    if total > (best.get(wk) or {}).get("pts", 0):
+        best[wk] = {"pts": total, "type": e.get("typeCode") or "", "flight": e.get("callsign") or "", "ts": e.get("ts")}
+        for k in sorted(best)[:-12]:
+            del best[k]
+
+
+def game_lockon(spot, hx):
+    """Sky view held a plane in its ring for 1.5 s: a bonus once per plane a day, for a plane that scored and was seen
+    live a moment ago. Lock-ons within LOCK_COMBO_S of each other build a combo (up to four)."""
+    now = time.time()
+    with _data_lock:
+        spot.ensure_day()
+        e = spot.by_hex.get(str(hx or "").lower())
+        if not e or "gp" not in e:
+            return {"bonus": 0, "why": "far"}
+        if now - e.get("liveSeen", 0) > LOCK_FRESH_S:
+            return {"bonus": 0, "why": "gone"}
+        if e.get("lock"):
+            return {"bonus": 0, "why": "done", "had": e["lock"]}
+        g = game_book(spot.book())
+        L = g.setdefault("lock", {"at": 0, "combo": 0, "n": 0})
+        combo = min(len(LOCK_PCT), L.get("combo", 0) + 1) if now - L.get("at", 0) <= LOCK_COMBO_S else 1
+        bonus = max(LOCK_MIN, round(e["gp"] * LOCK_PCT[combo - 1]))
+        e["lock"] = bonus
+        L.update(at=now, combo=combo, n=L.get("n", 0) + 1, last={"ts": int(now * 1000), "flight": e.get("callsign") or "",
+                                                                  "type": e.get("typeCode") or "", "pts": bonus})
+        _game_add(g, spot.day, bonus)
+        _game_best(g, spot.day, e)
+        spot.changed("book", "day")
+        lv = level_of(g["points"])
+        return {"bonus": bonus, "combo": combo, "pct": LOCK_PCT[combo - 1], "plane": e["gp"], "tier": e.get("tier") or "",
+                "points": g["points"], "level": lv[0], "comboUntil": int((now + LOCK_COMBO_S) * 1000)}
+
+
+def game3_json(book, day):
+    """The game for the boards: game_json's shape on the game's own logbook, with the level and this week."""
+    g = game_book(book)
+    out = game_json(g, day)
+    lv, title, into, need = level_of(g.get("points", 0))
+    wk = _monday(day)
+    days = g.get("days", {})
+    week = sum(v for k, v in days.items() if k >= wk)
+    L = g.get("lock") or {}
+    out.update(v=3, since=g.get("since"), km=GAME_KM, level=lv, title=title, into=into, need=need, week=week,
+               planesToday=g.get("planes", {}).get(day, 0), taper=[25, 50], lockons=L.get("n", 0),
+               combo=L.get("combo", 0) if time.time() - L.get("at", 0) <= LOCK_COMBO_S else 0,
+               comboUntil=int((L.get("at", 0) + LOCK_COMBO_S) * 1000), best=(g.get("best") or {}).get(wk),
+               records=g.get("records", {}))
+    return out
+
+
+_league_cache = {}
+
+
+def league_json(me=None):
+    """The league (relay 59): every profile that has points and didn't leave it (Settings → Game), this week (Monday
+    03:00 on) and all time, by first name; last week's winner wears the crown. Never places."""
+    day = board_day()
+    wk = _monday(day)
+    last = (datetime.date.fromisoformat(wk) - datetime.timedelta(days=7)).isoformat()
+    key = (day, int(time.time() // 30))
+    rows = _league_cache.get(key)
+    if rows is None:
+        with _data_lock:
+            pids = [(pid, p) for pid, p in profiles()["profiles"].items() if (p.get("settings") or {}).get("league", True) is not False]
+        rows = []
+        for pid, p in pids:
+            try:
+                sp = guest_spot(pid)
+                with _data_lock:
+                    g = (sp.book().get("game3") or {})
+            except Exception:
+                continue
+            if not g.get("points"):
+                continue
+            days = g.get("days", {})
+            rows.append({"pid": pid, "name": (str(p.get("name") or "?").strip().split() or ["?"])[0][:14],
+                         "week": sum(v for k, v in days.items() if k >= wk),
+                         "before": sum(v for k, v in days.items() if wk <= k < day),
+                         "lastWeek": sum(v for k, v in days.items() if last <= k < wk), "all": g.get("points", 0),
+                         "level": level_of(g.get("points", 0))[0], "best": (g.get("best") or {}).get(wk),
+                         "lock": (g.get("lock") or {}).get("last")})
+        _league_cache.clear()
+        _league_cache[key] = rows
+    champ = max((r for r in rows if r["lastWeek"] > 0), key=lambda r: r["lastWeek"], default=None)
+    prev = {r["pid"]: i for i, r in enumerate(sorted((r for r in rows if r["before"] > 0), key=lambda r: -r["before"]))}
+    def out(r, i, order):
+        o = {"name": r["name"], "points": r[order], "all": r["all"], "level": r["level"], "rank": i + 1,
+             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me}
+        if order == "week":
+            o["best"] = r["best"]
+            if r["pid"] in prev and day != wk:
+                o["was"] = prev[r["pid"]] + 1
+        return o
+    week = [out(r, i, "week") for i, r in enumerate(sorted(rows, key=lambda r: -r["week"])) if r["week"] > 0 or r["pid"] == me]
+    alltime = [out(r, i, "all") for i, r in enumerate(sorted(rows, key=lambda r: -r["all"]))]
+    lock = max((r["lock"] for r in rows if r.get("lock")), key=lambda x: x.get("ts", 0), default=None)
+    if lock:
+        lock = {**lock, "name": next(r["name"] for r in rows if r.get("lock") is lock)}
+    nxt = datetime.datetime.combine(datetime.date.fromisoformat(wk) + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
+    return {"week": wk, "resets": int(nxt.timestamp() * 1000), "rows": week, "allTime": alltime, "lastLock": lock,
+            "champion": champ["name"] if champ else None, "championMe": bool(champ and champ["pid"] == me)}
 
 
 # ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
@@ -1712,7 +1960,7 @@ def day_stats(entries, over_km):
             "lowest": slim(low), "highest": slim(high), "fastest": slim(fast), "first": slim(first),
             "topAirline": {"code": top[0][0], "name": names.get(top[0][0], ""), "count": top[0][1]} if top else None,
             "newTypes": sum(1 for e in entries if e.get("newType")),
-            "points": sum(TIER_POINTS.get(e.get("tier"), 0) for e in entries),
+            "points": sum(e.get("gp", 0) + e.get("lock", 0) for e in entries),
             "newAirlines": sum(1 for e in entries if e.get("newAirline")),
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
@@ -1784,9 +2032,9 @@ def logbook_json(spot):
                 "types": b.get("types", {}), "airlines": b.get("airlines", {}), "regsCount": len(regs),
                 "regsTop": [{"reg": k, **v} for k, v in top],
                 "regsRecent": [{"reg": k, **v} for k, v in sorted(regs.items(), key=lambda kv: -kv[1].get("first", 0))[:15]],
-                "game": {**game_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day()),
-                         "trophyToday": len(spot.entries)},
-                "records": b.get("records", {}),
+                "game": {**game3_json(b, spot.day or board_day()), "bingo": bingo_json(spot, spot.day or board_day()),
+                         "trophyToday": sum(1 for e in spot.entries if "gp" in e)},
+                "records": game_book(b).get("records", {}),          # relay 59: the game's records
                 "places": sorted(([k, p["n"]] for k, p in place_logbook(spot).items()), key=lambda kp: -kp[1])}
 
 
@@ -1907,7 +2155,7 @@ def year_json(spot, year):
             days[day] = len(entries)
             for e in entries:
                 n += 1
-                pts += TIER_POINTS.get(e.get("tier"), 0)
+                pts += e.get("gp", 0) + e.get("lock", 0)
                 if e.get("typeCode"):
                     types.add(e["typeCode"])
                 if _al(e):
@@ -1981,7 +2229,7 @@ def review_json(spot, span, back=0, prev=True):
                 per_day[day] = len(entries)
                 for e in entries:
                     n += 1
-                    pts += TIER_POINTS.get(e.get("tier"), 0)
+                    pts += e.get("gp", 0) + e.get("lock", 0)
                     rare += order.get(e.get("tier"), -1) >= order["rare"]
                     if e.get("typeCode"):
                         types.add(e["typeCode"])
@@ -4187,7 +4435,7 @@ def summary_check(who, subs, spot, st):
     with _data_lock:
         spot.ensure_day()
         day, entries = spot.day, list(spot.entries)
-        g = game_json(spot.book(), day)
+        g = game3_json(spot.book(), day)
     want = [s_ for s_ in subs if (s_.get("prefs") or {}).get("summary", True) and s_.get("summaryDay") != day]
     if not want or not entries:
         return
@@ -5338,12 +5586,28 @@ class Handler(BaseHTTPRequestHandler):
             if abs(lat) > 90 or abs(lon) > 180:
                 return self.reply(400, "text/plain", b"Out of range")
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
+        if path == "/game/me":            # relay 59: the score strip, often (small: no collections, no trophies)
+            with _data_lock:
+                g = game3_json(self.spot.book(), self.spot.day or board_day())
+            lg = league_json(self.guest[0])
+            me = next((r for r in lg["rows"] if r["me"]), None)
+            keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "combo", "comboUntil", "km", "lockons")
+            out = {k: g.get(k) for k in keep}
+            out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],
+                       below=(lg["rows"][me["rank"]]["name"] if me and me["rank"] < len(lg["rows"]) else None), players=len(lg["rows"]))
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
+            return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
         if path == "/logbook":
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
             place = (raw[0] if len(raw) == 1 else tuple(raw)) if all(raw) else None   # relay 40: place=a&place=b, merged
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
+                lg = league_json(self.guest[0])                                 # relay 59: the crown and the Champion style
+                body["game"]["champion"] = lg["championMe"]
+                me = next((r for r in lg["rows"] if r["me"]), None)
+                body["game"]["rank"], body["game"]["was"] = (me or {}).get("rank"), (me or {}).get("was")
             return self.reply(200, "application/json", json.dumps(body).encode())
         if path == "/now":              # relay 56: the plane overhead now, for the Android app's widget
             if not allow("now:" + self.guest[0], 1, 4):
@@ -5582,6 +5846,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(429, "text/plain", b"Not now")
             code = new_invite(pid=self.guest[0])
             return self.reply(200, "application/json", json.dumps({"link": f"{pub}/join/{code}"}).encode())
+        if path == "/game/lockon":          # relay 59: Sky view held a plane in its ring
+            if not self.same_origin() or not allow("lock:" + self.guest[0], 1, 4):
+                return self.reply(429, "text/plain", b"Not now")
+            hx = str(self.json_body().get("hex") or "")
+            if not re.fullmatch(r"~?[0-9a-fA-F]{6}", hx):
+                return self.reply(400, "text/plain", b"hex missing")
+            out = game_lockon(self.spot, hx)
+            if out.get("bonus"):
+                event("info", f"Sky view lock-on for {self.guest[1].get('name')}: +{out['bonus']} (combo {out['combo']})")
+            return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")

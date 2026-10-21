@@ -874,13 +874,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -938,7 +938,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
   .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
-  #tabs,.tab:not(#t-now),.brandline{display:none!important}
+  #tabs,.tab:not(#t-now),.brandline,#gStrip,.gPts{display:none!important}
   #top{padding-top:0}
   #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
   #mark{width:28px;height:28px}
@@ -976,6 +976,102 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
   #sideAlert[data-state=off]{border-color:#c7372d}
 }
 #svList.wait{opacity:.55;transition:opacity .2s}
+/* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
+#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:6px var(--gut) 8px;position:relative;box-sizing:border-box}
+#gStrip[hidden]{display:none}
+#gStrip .gMain{all:unset;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.gTot{display:inline-flex;gap:2px;font:600 var(--fs-l)/1 var(--f-flap,"Oswald",var(--f-board))}
+.gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
+  background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.gTot s.flp{animation:gFlp .26s ease-in-out}
+@keyframes gFlp{50%{transform:scaleY(.05);filter:brightness(1.8)}}
+.gLv{flex:1;min-width:0;display:grid;gap:4px}
+.gLv small{font:600 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
+.gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
+.gBar b{width:0;background:linear-gradient(90deg,#ffe08a,#fff6d8,#ffe08a);background-size:200% 100%}
+#gStrip.gain .gBar b{transition:width .7s ease-out;animation:gShine 1s .7s linear 2}
+@keyframes gShine{from{background-position:200% 0}to{background-position:0 0}}
+#gStrip.gain{animation:gGlow 1.4s}
+@keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
+.gChip{all:unset;cursor:pointer;display:inline-grid;perspective:200px;flex:none}
+.gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
+.gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
+.gChip .r2{background:var(--amber);color:#17140e;transform:rotateX(90deg)}
+#gStrip.flip .gChip .r1{animation:gR1 3.4s forwards} #gStrip.flip .gChip .r2{animation:gR2 3.4s forwards}
+@keyframes gR1{0%,6%{transform:none}11%,50%{transform:rotateX(-90deg)}56%,100%{transform:none}}
+@keyframes gR2{0%,9%{transform:rotateX(90deg)}14%,44%{transform:none}48%,100%{transform:rotateX(90deg)}}
+.gTok{position:absolute;right:calc(var(--gut) + 6px);top:50%;margin-top:-10px;padding:4px 7px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);opacity:0;pointer-events:none}
+#gStrip.fly .gTok{animation:gTok .55s cubic-bezier(.4,0,.6,1) forwards}
+@keyframes gTok{0%{opacity:1;transform:none}100%{opacity:0;transform:translate(var(--tx,-90px),2px) scale(.5)}}
+#gStrip.off .gTot s{color:var(--label2)} #gStrip.off .gLv small{color:#e7a39d} #gStrip.off .gBar i{background:#4a4b50}
+#gStrip.off .gChip .r1{background:var(--c-good);color:#06130b}
+@media (prefers-reduced-motion:reduce){#gStrip *,#gStrip{animation:none!important;transition:none!important}}
+.gPts{display:flex;align-items:center;gap:10px;margin-top:10px;background:#121315;border:1px solid #2c2416;border-radius:8px;padding:8px 10px}
+.gPts.off{border-color:#3a2020}
+.gPts b{font:600 var(--fs-xl)/1 var(--f-board);color:var(--amber);min-width:3.2em}
+.gPts.off b,.gPts.wait b{color:var(--label2)}
+.gPts span{flex:1;min-width:0;font:600 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
+.gPts span em{font-style:normal;color:var(--ink)}
+#t-game .gCard{background:var(--card2,#17181b);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px;margin-top:12px}
+#t-game .gBig{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+#t-game .gBig b{font:700 var(--fs-2xl)/1.1 var(--f-board)} #t-game .gBig span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#t-game .gBar{height:8px}
+#t-game .seg{margin-top:14px}
+.gLeague{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.gLeague li{display:grid;grid-template-columns:28px 1fr auto 30px;align-items:center;gap:8px;background:#121315;border-radius:8px;padding:9px 10px;font:600 var(--fs-m)/1 var(--f-board)}
+.gLeague li.me{outline:1px solid var(--amber);background:#1c1810}
+.gLeague li b{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber);text-align:center}
+.gLeague li em{font-style:normal;font-variant-numeric:tabular-nums}
+.gLeague li i{font-style:normal;font-size:var(--fs-xs);text-align:right}
+.gLeague .up{color:var(--c-good)} .gLeague .dn{color:var(--c-bad)} .gLeague .crown{color:var(--amber)}
+.gTaper{display:grid;grid-template-columns:25fr 25fr 30fr;height:8px;border-radius:4px;overflow:hidden;background:#2a2b30;gap:2px}
+.gTaper i{display:block;background:#2a2b30} .gTaper i>u{display:block;height:100%;background:var(--amber)}
+.gTaper i:nth-child(2)>u{background:#a07a1e} .gTaper i:nth-child(3)>u{background:#6b5520}
+.gRule{font-size:var(--fs-s);color:var(--muted)}
+.gOpt{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:var(--fs-m)}
+.gOpt input{width:20px;height:20px;accent-color:var(--amber)}
+#gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
+#gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes gPop{from{transform:scale(.6);opacity:0}}
+#gLvUp .badge{width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe08a,#e0aa1f 55%,#8a6110);display:grid;place-items:center;
+  box-shadow:0 0 0 6px #17140e,0 0 0 8px var(--amber),0 0 40px rgba(240,180,41,.5);font:700 var(--fs-hero)/1 var(--f-board);color:#17140e}
+#gLvUp h3{margin:0;font:700 var(--fs-2xl)/1.1 var(--f-board)} #gLvUp p{margin:0;color:var(--muted)}
+#gLvUp .eyebrow{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+/* 1.72: First Class (leather, stitched seams) and Gold leaf (a gilded rim) on the header and the tab bar */
+html.leather #top,html.leather #tabs{position:relative}
+html.leather #top::after,html.leather #tabs::before{content:"";position:absolute;left:10px;right:10px;border-top:1.5px dashed rgba(233,204,142,.5);pointer-events:none}
+html.leather #top::after{bottom:4px} html.leather #tabs::before{top:4px}
+html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:inset 0 2px 0 #b89443}
+/* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
+#arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
+.pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
+  --t1:#e0aa1f;--t2:#f6d27a;--ti:#17140e}
+.pF.common{--t1:#e9e6df;--t2:#ffffff;--ti:#17140e} .pF.uncommon{--t1:#2f8f47;--t2:#56bb6e;--ti:#fff}
+.pF.rare{--t1:#2f6dcc;--t2:#6a9ee8;--ti:#fff} .pF.epic{--t1:#8644cc;--t2:#b07ce8;--ti:#fff}
+@keyframes pfIn{from{opacity:0;transform:scale(.4) rotate(-8deg)}to{opacity:1;transform:rotate(-3deg)}}
+.pF .main{width:236px;background:#fbf8f1;color:#111;border-radius:12px 0 0 12px;overflow:hidden}
+.pF .band{display:flex;justify-content:space-between;gap:6px;padding:7px 12px;background:linear-gradient(90deg,var(--t1),var(--t2));color:var(--ti);font:700 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;white-space:nowrap}
+.pF.common .band{border-bottom:1px solid #e2ddd2}
+.pF .codes{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:6px;padding:8px 12px 0}
+.pF .codes b{font:700 var(--fs-3xl)/1 var(--f-board);letter-spacing:.01em}
+.pF .codes small{display:block;font:600 var(--fs-tag)/1.3 var(--f-board);color:#777}
+.pF .codes i{height:14px;margin-bottom:14px;background:linear-gradient(#bbb,#bbb) 0 50%/100% 1px no-repeat;display:grid;place-items:center;font-style:normal;color:var(--t1)}
+.pF.common .codes i{color:#9a958a}
+.pF .fields{display:grid;grid-template-columns:.9fr 1.4fr .9fr;gap:4px;padding:8px 12px 11px}
+.pF .fields span{font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;color:#888;text-transform:uppercase}
+.pF .fields b{display:block;font:700 var(--fs-s)/1.2 var(--f-board);color:#111;white-space:nowrap;text-transform:none;letter-spacing:0}
+.pF .stub{width:84px;background:linear-gradient(160deg,var(--t2),var(--t1));color:var(--ti);border-radius:0 12px 12px 0;border-left:2px dashed rgba(0,0,0,.35);
+  display:grid;place-items:center;align-content:center;gap:3px;padding:8px 4px;transform-origin:0 100%;animation:pfTear 1.1s 1.05s cubic-bezier(.5,0,.7,.4) forwards}
+.pF .stub small{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em}
+.pF .stub b{font:700 var(--fs-2xl)/1 var(--f-board)}
+.pF .stub em{display:block;width:52px;height:16px;margin-top:4px;background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 3px,currentColor 3px 4px,transparent 4px 6px);opacity:.85}
+@keyframes pfTear{0%{transform:none}12%{transform:translate(2px,1px) rotate(3deg)}30%{transform:translate(10px,-4px) rotate(11deg)}100%{transform:translate(70px,-320px) rotate(38deg) scale(.55);opacity:0}}
+.pF .combo{font:700 var(--fs-tag)/1 var(--f-board);color:var(--t1)}
+#arBurst{position:absolute;left:50%;top:42%;width:0;height:0;z-index:3;pointer-events:none}
+#arBurst i{position:absolute;left:-4px;top:-4px;width:8px;height:16px;border-radius:2px;animation:pfSpark .9s ease-out forwards}
+@keyframes pfSpark{0%{opacity:1;transform:rotate(var(--r)) translateY(0)}100%{opacity:0;transform:rotate(var(--r)) translateY(-120px)}}
+@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1020,11 +1116,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
     <div class="pages" id="nowPages"></div>
     <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection"></button></div>
   </div>
+  <div id="gStrip" hidden></div>
 </header>
 <main>
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
+      <div class="gPts" id="gPts" hidden></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -1112,6 +1210,10 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
       <ol class="flights" id="rvList"></ol>
     </div>
   </section>
+  <section class="wrap tab" id="t-game" hidden>
+    <div class="tabHead"><h2 data-t="Game">Game</h2><button class="tabX" type="button" id="gameX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
+    <div id="gameBox"></div>
+  </section>
   <section class="wrap tab" id="t-about" hidden>
     <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
@@ -1190,6 +1292,36 @@ THEMES.frankfurt70 = {font:'"Oswald","Archivo Narrow","Arial Narrow",sans-serif'
   ink:"#f4e7c8", accent:"#f08a24", label2:"#8a7a63", metal:["#231e19","#191512","#1e1915"]};
 THEMES.tokyo = {font:'"Barlow Condensed","Archivo Narrow","Arial Narrow",sans-serif', flap:["#1b1f33","#171a2c","#121526","#0e1120"],
   ink:"#eaf1ff", accent:"#ff4fa3", label2:"#6f78a0", metal:["#10131f","#0a0c16","#0d101b"]};
+// 1.72: Gold leaf (a level style, near the top: black lacquer flaps, gold-leaf letters, brushed gold and a gilded rim)
+// and First Class, the Champion style (last week's league winner, for that week: claret leather with a stitched seam,
+// cream flaps with claret letters). `gilt` and `leather` change how the housing is drawn (paintMetal, the app's tile).
+THEMES.goldleaf = {font:'"Oswald","Archivo Narrow","Arial Narrow",sans-serif', flap:["#24201a","#1d1a14","#16130e","#100e0a"],
+  ink:"#f3d27a", accent:"#f3d27a", label2:"#b8954a", metal:["#2a2112","#17130b","#201a0f"], gilt: true};
+THEMES.firstclass = {font:'"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif', flap:["#f4ecd9","#ece2ca","#e3d7bc","#d6c9ab"],
+  ink:"#5a1526", accent:"#e9cc8e", label2:"#c9a96a", metal:["#561a28","#3d0f1a","#2c0a12"], leather: true};
+// 1.72: leather for First Class: a fine pebble grain, soft creases lit from above, and a stitched champagne seam.
+function leatherGrain(g, w, h, rnd, creases = true){
+  for (let i = 0; i < (creases ? 14 : 0); i++) {        // creases (not on the app's repeating tile)
+    const x = rnd() * w, y = rnd() * h, r = 80 + rnd() * 240, cg = g.createRadialGradient(x, y, 0, x, y, r);
+    cg.addColorStop(0, `rgba(255,220,200,${.03 + rnd() * .04})`); cg.addColorStop(1, "rgba(255,220,200,0)");
+    g.fillStyle = cg; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const n = Math.round(w * h / 90);
+  for (let i = 0; i < n; i++) {                         // pebbles: a dark pit and a light edge
+    const x = rnd() * w, y = rnd() * h, r = .6 + rnd() * 1.6;
+    g.fillStyle = `rgba(0,0,0,${.12 + rnd() * .18})`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = `rgba(255,235,220,${.03 + rnd() * .05})`; g.beginPath(); g.arc(x - r * .4, y - r * .5, r * .6, 0, Math.PI * 2); g.fill();
+  }
+  const sh = g.createLinearGradient(0, 0, 0, h);
+  sh.addColorStop(0, "rgba(255,230,210,.06)"); sh.addColorStop(.5, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.25)");
+  g.fillStyle = sh; g.fillRect(0, 0, w, h);
+}
+function leatherSeam(g, x, y, w, h){
+  g.save(); g.setLineDash([9, 6]); g.lineCap = "round";
+  g.lineWidth = 2.6; g.strokeStyle = "rgba(0,0,0,.45)"; g.strokeRect(x + 1, y + 1.5, w, h);
+  g.lineWidth = 2; g.strokeStyle = "rgba(233,204,142,.62)"; g.strokeRect(x, y, w, h);
+  g.restore();
+}
 let METAL = THEMES.classic.metal;
 /* Unlockable styles (1.59, to-do #66, relay 51): colour palettes for points, flap finishes for trophies, a title badge
    for each full bingo card, and two board styles for the rarest trophies. Per profile: unlocked by its logbook's game
@@ -1198,24 +1330,31 @@ let METAL = THEMES.classic.metal;
 const PALETTES = {heathrow: {ink: "#ffd23a", accent: "#ffd23a"}, solari: {ink: "#e2f6d9", accent: "#5fd17a"},
   ice: {ink: "#e6f3ff", accent: "#7cc4ff"}, sunset: {ink: "#ffe8d4", accent: "#ff8f5a"}};
 const STYLES = [
-  ["palette", "Colours", [["", "Board colours"], ["heathrow", "Heathrow yellow", {pts: 5000}], ["solari", "Solari green", {pts: 25000}],
-    ["ice", "Ice blue", {pts: 50000}], ["sunset", "Sunset", {pts: 100000}]]],
-  ["finish", "Flaps", [["", "Standard flaps"], ["white", "Black on white", {tr: "types100"}], ["brass", "Brass trim", {tr: "legend100"}],
-    ["enamel", "Worn enamel", {tr: "regular100"}], ["led", "LED dots", {tr: "aroundclock"}]]],
-  ["badge", "Title badge", [["", "No badge"], ["star", "Star", {cards: 1}], ["prop", "Propeller", {cards: 2}], ["heli", "Helicopter", {cards: 3}],
-    ["jumbo", "Jumbo", {cards: 4}], ["jet", "Fighter jet", {cards: 5}], ["concorde", "Concorde", {cards: 6}]]],
+  // 1.72: unlocked by level, one by one (the game's points), and First Class by winning last week's league
+  ["palette", "Colours", [["", "Board colours"], ["heathrow", "Heathrow yellow", {lvl: 2}], ["solari", "Solari green", {lvl: 5}],
+    ["ice", "Ice blue", {lvl: 9}], ["sunset", "Sunset", {lvl: 12}]]],
+  ["finish", "Flaps", [["", "Standard flaps"], ["white", "Black on white", {lvl: 4}], ["brass", "Brass trim", {lvl: 7}],
+    ["enamel", "Worn enamel", {lvl: 11}], ["led", "LED dots", {lvl: 15}]]],
+  ["badge", "Title badge", [["", "No badge"], ["star", "Star", {lvl: 3}], ["prop", "Propeller", {lvl: 6}], ["heli", "Helicopter", {lvl: 10}],
+    ["jumbo", "Jumbo", {lvl: 13}], ["jet", "Fighter jet", {lvl: 16}], ["concorde", "Concorde", {lvl: 17}]]],
   ["theme", "Board style", [["classic", "Classic"], ["frankfurt", "Frankfurt"], ["blue", "Blue"],
-    ["frankfurt70", "Frankfurt 1970s", {tr: "streak30"}], ["tokyo", "Tokyo night", {tr: "allsets"}]]]];
+    ["frankfurt70", "Frankfurt 1970s", {lvl: 8}], ["tokyo", "Tokyo night", {lvl: 14}], ["goldleaf", "Gold leaf", {lvl: 18}],
+    ["firstclass", "First Class", {champ: 1}]]]];
 const BADGE_IDS = STYLES.find(x => x[0] === "badge")[2].map(x => x[0]).filter(Boolean);
 const styleGame = () => (typeof lbData === "function" && lbData() || {}).game || null;
 // 1.60: a style the owner granted by hand (g0.styleGrants: "all" or a list of ids) counts like an earned one; pass no id for earned only.
-const styleOk = (rule, g0, id) => !rule || !!g0 && ((id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : (g0.bingoCards || 0) >= rule.cards));
+const styleOk = (rule, g0, id) => !rule || !!g0 && ((id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.lvl ? (g0.level || 0) >= rule.lvl : rule.champ ? !!g0.champion : rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : (g0.bingoCards || 0) >= rule.cards));
 // 1.61: Colours and flap finishes apply only with the Classic board; another board style keeps its own (the choice
 // stays saved, so going back to Classic brings it back). The light version has no board styles.
 const classicLook = () => (typeof LIGHT !== "undefined" && LIGHT) || !S.theme || S.theme === "classic";
 // The board style, with a palette laid over it.
+const GAME_LEVELS = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
+  "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain", "Check Captain",
+  "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"];
 function themeNow(){
-  const T = THEMES[S.theme] || THEMES.classic, P = classicLook() && PALETTES[S.palette];
+  // 1.72: First Class only while this profile is the champion (once the logbook says it isn't, the board goes Classic)
+  const champOff = S.theme === "firstclass" && styleGame() && !styleGame().champion && !(styleGame().styleGrants === "all");
+  const T = (!champOff && THEMES[S.theme]) || THEMES.classic, P = classicLook() && PALETTES[S.palette];
   if (daylightOn()) return {...T, ...DAYLIGHT};
   return P ? {...T, ink: P.ink, accent: P.accent} : T;
 }
@@ -2071,6 +2210,8 @@ let achQueue = [], achTimer = 0;
 const styleKinds = () => STYLES.filter(([k]) => !(typeof LIGHT !== "undefined" && LIGHT && (k === "theme" || k === "finish")));
 function styleRuleText(rule){
   if (!rule) return "";
+  if (rule.lvl) return T("Unlocks at level {n}, {t}", {n: rule.lvl, t: T(GAME_LEVELS[rule.lvl - 1] || "")});
+  if (rule.champ) return T("For last week's league winner, all week");
   if (rule.pts) return T("Unlocks at {n} points", {n: nf.format(rule.pts)});
   if (rule.tr) return T("Unlocks with the trophy {name}", {name: trophyText(rule.tr)[0]});
   return T(rule.cards === 1 ? "Unlocks with a full bingo card" : "Unlocks with {n} full bingo cards", {n: rule.cards});
@@ -2385,6 +2526,7 @@ const MODE_TIP = "Two styles: Overhead shows the planes flying over you, Airport
 const PAGE_TIPS = {spotted: "Recent flights: the planes that were on the board today, newest first.",
   aircraft: "This aircraft: the plane on top in detail, with its photo.",
   stats: "Today in numbers: the day so far, and after 21:00 the day in review.",
+  league: "League: this week's points of everyone spotting with live location on their phone.",
   aplists: "Coming up: the next take-offs and landings at your airport, side by side.",
   apdep: "Take-off: the plane taking off next, on top, with the runway it uses.",
   apland: "Landing: the plane landing next, on top, with the runway and when it lands."};
@@ -3304,11 +3446,14 @@ function metalTile(){
   g.scale(d, d);
   g.fillStyle = METAL[1]; g.fillRect(0, 0, T, T);
   const rnd = (seed => () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff)(1234567);
+  if (themeNow().leather) leatherGrain(g, T, T, rnd, false);    // 1.72: First Class's leather
+  else {
   g.lineWidth = .7;                                         // brushed grain, wrapping round the tile's edges
   for (let i = 0; i < 700; i++) {
     const y = 1 + rnd() * (T - 2), x = rnd() * T, len = 60 + rnd() * 380, light = rnd() < .5;
     g.strokeStyle = light ? `rgba(255,255,255,${.012 + rnd() * .03})` : `rgba(0,0,0,${.03 + rnd() * .06})`;
     for (const dx of [0, -T]) { g.beginPath(); g.moveTo(x + dx, y); g.lineTo(x + dx + len, y); g.stroke(); }
+  }
   }
   if (S.imperfect) {
     for (let i = 0; i < 6; i++) {                           // dull polish marks
@@ -3562,6 +3707,8 @@ function applyTheme(){
   const root = document.documentElement.style;
   root.setProperty("--f-board", T.font); root.setProperty("--amber", T.pageAccent || T.accent); root.setProperty("--ink", daylightOn() ? "#191919" : T.ink);
   document.documentElement.classList.toggle("daylight", daylightOn());   // 1.66: the page's own colours (head.html)
+  document.documentElement.classList.toggle("leather", !!T.leather && !daylightOn());   // 1.72: First Class's seams
+  document.documentElement.classList.toggle("gilt", !!T.gilt && !daylightOn());         // 1.72: Gold leaf's rim
   root.setProperty("--label2", T.label2); root.setProperty("--metal", T.metal[1]);
   const tc = document.querySelector('meta[name="theme-color"]');
   if (tc) tc.content = T.metal[1];
@@ -4081,6 +4228,7 @@ function fromRelay(r){
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
     newType: r.newType, newAirline: r.newAirline, newReg: r.newReg, tier: r.tier, watch: r.watch || "",
+    gp: r.gp, lock: r.lock, liveMin: r.liveMin, gn: r.gn, gk: r.gk, gNewType: r.gNewType, gNewAirline: r.gNewAirline, gNewReg: r.gNewReg,   // 1.72: the game
     photo: r.photo, owner: r.owner, ownerCountry: r.ownerCountry, aircraftType: r.aircraftType, manufacturer: r.manufacturer,
     fr24: !!r.fr24, category: r.category, operator: r.operator, livery: r.livery, divertedTo: r.divertedTo, ...marketedBy(r.fr24 && r.flightIata),
     done: sightDone(r)};
@@ -4194,6 +4342,9 @@ function isFav(x){
   const names = " " + [clean(x.airline), clean(x.type)].join(" ");
   return toks.some(t => exact.has(sq(t)) || (t.length >= 3 && names.includes(" " + t)));
 }
+// 1.72: a special plane (an emergency, a giant, military, a rare or government aircraft, one on the watchlist); a
+// favourite is its own thing (isFav), and so are new types and cargo or private flights.
+const isSpecialPlane = x => !!specialOf(x) || !!x.watch;
 // The most interesting thing about a plane, if anything: shown in the remarks instead of the route type.
 function badgeFor(x){
   const sp = specialOf(x);
@@ -5396,9 +5547,9 @@ function todayList(){
 }
 function svData(){
   const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm(), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
-  const isOver = e => e.minDist != null && e.minDist <= OVK, isSpecial = e => !!badgeFor(e);
-  const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecial).length};
-  const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecial : () => true);
+  const isOver = e => e.minDist != null && e.minDist <= OVK;      // 1.72: Special is special planes only; favourites have their own
+  const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecialPlane).length, fav: hit.filter(isFav).length};
+  const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecialPlane : svFilter === "fav" ? isFav : () => true);
   return {real, rows, counts};
 }
 function spottedSummary(){
@@ -5438,7 +5589,7 @@ function svFindWire(box, go){
   for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
   x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
 }
-const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"]];
+const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
   const box = $("svTools");
   box.innerHTML = svFindHtml() + SV_TOOLS.map(([k, t]) => `<button class="cap small" type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("");
@@ -5539,13 +5690,13 @@ async function fetchLogbook(){
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
   achCheck((lbData() || {}).game);
-  renderLogbook();
+  renderLogbook(); renderGame();
 }
 let lbSig = "", lbView = "logbook";
 // 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
 // put (Logbook, Collection, Records, Week & month); the places are a second row, only under Logbook.
 function lbViewsBar(){
-  const bar = $("lbViews"), views = LB_VIEWS.filter(v => v !== "review" || reviewOk());
+  const bar = $("lbViews"), views = LB_VIEWS.filter(v => (v !== "review" || reviewOk()) && !(gameOk() && (v === "collection" || v === "records")));   // 1.72: those on the Game page
   if (!views.includes(lbView)) lbView = "logbook";
   const sig = JSON.stringify([views, lbView, LANG]);
   bar.hidden = false;
@@ -5650,34 +5801,43 @@ function renderLogbook(){
     if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
     if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
     if (!place) html = yearHtml() + html;
-  } else if (v === "collection") {                   // the game: points, tiers and the collections
-    if (g0) {
-      const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
-      const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
-        `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
-      html = `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
-        (g0.best ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
-        `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
-    }
-  } else if (v === "records") {
-    const r = all.records;
-    if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28)
-      const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
-      const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
-        ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
-      html += `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
-    }
-    const bg = g0 && g0.bingo;
-    if (bg && bg.card) {                                 // the weekly bingo (relay 29)
-      const nd = Object.keys(bg.done || {}).length;
-      const cells = bg.card.map(k => { const d = (bg.done || {})[k];
-        return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-      html += `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`;
-    }
-    if (g0) html += trophiesHtml(g0);
-  } else html = reviewHtml();
+  } else if (v === "collection") html = collectionHtml(g0);
+  else if (v === "records") html = recordsHtml(all, g0);
+  else html = reviewHtml();
   $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
+}
+// The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
+// 1.72 (relay 59), in the Logbook before.
+function collectionHtml(g0){
+  if (!g0) return "";
+  const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
+  const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
+    `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? TIER_COL.legendary : "var(--amber)"}"></i></span></li>`).join("");
+  return `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
+    (g0.best && g0.best.points ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
+    `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
+}
+function recordsHtml(all, g0){
+  const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
+  const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  let html = "";
+  const r = all.records;
+  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28; the game's since relay 59)
+    const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
+    const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
+      ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
+    html += `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+  }
+  const bg = g0 && g0.bingo;
+  if (bg && bg.card) {                                 // the weekly bingo (relay 29)
+    const nd = Object.keys(bg.done || {}).length;
+    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
+      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
+    html += `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`;
+  }
+  if (g0) html += trophiesHtml(g0);
+  return html;
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
 const tierIcons = {};
@@ -6008,6 +6168,7 @@ function arAimDraw(g, W, H){
   }
   if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
     arAim.done = hex; arSel = hex; ctlSound.press(); arCardRender();
+    gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
 // The plane on top, out of the picture: an arrow at the edge pointing the way to turn.
@@ -7213,6 +7374,15 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72", date: "2026-10-21", notes: [
+    "A new game: only planes you spot with live location on your phone score, within 8 km; everyone starts again from zero.",
+    "Points go by rarity, with a little more for a close pass, something new or a daily streak; after 25 and 50 planes a day they count less.",
+    "A score strip under the header shows your points, level and league place; tap it for the Game page with the league, collections, bingo and trophies.",
+    "Hold a plane in Sky view's ring for a bonus: a boarding pass in the plane's rarity colour, and its stub with the points tears off.",
+    "Levels with titles unlock the styles one by one, up to the new Gold leaf; last week's league winner wears the crown and the First Class style.",
+    "The board shows the league as a page of its own.",
+    "Favourites have their own filter in Spotted today; Special is for special planes only.",
+  ]},
   {v: "1.71.3", date: "2026-10-21", notes: [
     "The light version and the Glass preview are retired for now; their addresses open the phone app.",
   ]},
@@ -8267,7 +8437,7 @@ function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); i
 // The tips for a tab (1.42): what the tab is, the first time, then what can be done on it.
 const TAB_TIPS = {now: "Now: the plane over you right now, its photo, and today's planes below. Tap the board for its card.",
   today: "Spotted today: every plane that came within your radius today, with the day's numbers.",
-  logbook: "Logbook: everything you've ever spotted: types, airlines, records, the collection, trophies and the weekly bingo.",
+  logbook: "Logbook: everything you've ever spotted: types, airlines, aircraft, the year in planes and your week and month.",
   radar: "Radar: the planes around you right now. Tap one for its card.",
   settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
 // 1.49 (to-do #29): the first time on Now, a walk through the styles, the page buttons and every tab; the first time in
@@ -8311,10 +8481,11 @@ function showTab(t){
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
   if (rv) { review.span = rv[1]; review.back = +rv[2]; t = "logbook"; }
   aboutHide();
-  if (!TABS.some(x => x[0] === t) || SIDEWAYS.matches) t = "now";
+  if ((!TABS.some(x => x[0] === t) && !(t === "game" && gameOk())) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
+  $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
   for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
@@ -8325,6 +8496,7 @@ function showTab(t){
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
+  else if (t === "game") { $("gameBox").dataset.h = ""; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   setTimeout(() => appTips(t), 900);
@@ -8482,6 +8654,231 @@ async function start(){
   run();
 }
 let booted = false;
+/* ---------- the game (1.72, relay 59): the score strip, the Points field, the Game page, Sky view's lock-on ----------
+   Only planes spotted with live location score, the first time they come within 8 km (the relay counts them). The
+   strip under the header shows the total on flaps, the level bar and the league place, on every tab; tapping it opens
+   the Game page (no tab of its own). When points come in, the rank chip flips to +N, the +N flies into the level bar,
+   which fills, and the total rolls up. */
+const gameOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
+const G_BASE = {common: 10, uncommon: 30, rare: 100, epic: 250, legendary: 500};
+let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
+function gStripSetup(){
+  const box = $("gStrip");
+  box.hidden = !gameOk();
+  if (box.hidden || box.dataset.on) return;
+  box.dataset.on = "1";
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T("Game: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
+    `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
+    `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
+  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) { liveStart(); setTimeout(gRefresh, 4000); } else showTab("game"); };
+}
+// The total on flaps: a flap flips over only where the digit changed, right to left.
+function gTotSet(n, anim){
+  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(4, " ");
+  if (el.children.length !== t.length) el.innerHTML = [...t].map(c => `<s>${c === " " ? "" : c}</s>`).join("");
+  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
+    if (s.textContent === v) return;
+    if (!anim) { s.textContent = v; return; }
+    setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
+}
+function gLevelText(g){ return T("Lvl {n} · {t} · {a} / {b}", {n: g.level, t: T(g.title), a: nf.format(g.into), b: nf.format(g.need)}); }
+function gStripRender(g, anim){
+  const box = $("gStrip");
+  if (box.hidden || !g) return;
+  const off = !S.live;
+  box.classList.toggle("off", off);
+  if (!anim) gTotSet(g.points);
+  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
+  $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
+  $("gRank").innerHTML = off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
+    : escH(T("Game"));
+}
+// Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
+function gGain(prev, g){
+  const box = $("gStrip"), n = g.points - prev.points;
+  gAnimT.forEach(clearTimeout); gAnimT = [];
+  $("gPlus").textContent = "+" + nf.format(n);
+  $("gTok").textContent = "+" + nf.format(n);
+  const lvUp = g.level > prev.level, from = prev.need ? prev.into / prev.need * 100 : 0, to = lvUp ? 100 : g.need ? g.into / g.need * 100 : 0;
+  const bar = $("gBarI").getBoundingClientRect(), chip = $("gChip").getBoundingClientRect();
+  box.style.setProperty("--tx", Math.round(bar.left + bar.width * to / 100 - chip.left - chip.width / 2) + "px");
+  $("gBarI").style.width = from.toFixed(1) + "%"; $("gBarG").style.left = from.toFixed(1) + "%"; $("gBarG").style.width = "0";
+  box.classList.remove("flip", "fly", "gain"); void box.offsetWidth; box.classList.add("flip");
+  gAnimT.push(setTimeout(() => box.classList.add("fly"), 1550));
+  gAnimT.push(setTimeout(() => {
+    box.classList.add("gain"); $("gBarG").style.width = Math.max(0, to - from).toFixed(1) + "%";
+    gTotSet(g.points, true); gCoins();
+  }, 2050));
+  gAnimT.push(setTimeout(() => {
+    box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
+    if (lvUp) gLevelUp(g);
+  }, 3500));
+}
+async function gRefresh(force){
+  if (!gameOk() || gBusy || document.hidden) return;
+  const every = S.live ? 15000 : 60000;
+  if (!force && Date.now() - gmeAt < every - 500) return;
+  gBusy = true; gmeAt = Date.now();
+  try {
+    const g = await fetchJSON(`${relay()}/game/me`, {}, 8000), prev = gme;
+    gme = g;
+    if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
+    else gStripRender(g);
+    if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
+    if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g);
+    if (tab === "game") renderGame();
+  } catch {} finally { gBusy = false; }
+}
+// A little shower of coins when points land (with the button sounds on).
+function gCoins(){
+  if (!S.sound || !actx || actx.state !== "running") return;
+  const out = actx.createGain(); out.gain.value = .3; out.connect(sfxOut());
+  for (let i = 0; i < 4; i++) {
+    const t = actx.currentTime + .02 + i * .07, o = actx.createOscillator(), g = actx.createGain();
+    o.type = "triangle"; o.frequency.value = 2600 + (i % 3) * 400;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.5, t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+    o.connect(g).connect(out); o.start(t); o.stop(t + .15);
+  }
+}
+// The style a level unlocks (STYLES rules {lvl: n}), for the level-up.
+function gStyleAt(lv){
+  for (const [, , items] of STYLES) for (const it of items) if (it[2] && it[2].lvl === lv) return it[1];
+  return "";
+}
+function gLevelUp(g){
+  let box = $("gLvUp");
+  if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
+  const st = gStyleAt(g.level);
+  box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
+    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") + `<p>${escH(T("Tap to carry on"))}</p></div>`;
+  box.hidden = false;
+  gJingle();
+  const close = () => { box.hidden = true; };
+  box.onclick = close; setTimeout(close, 7000);
+}
+// The fairground prize jingle (a lock-on, a level up): four rising chime notes and a bright chord.
+function gJingle(){
+  if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
+  const out = actx.createGain(), t0 = actx.currentTime + .03; out.gain.value = .45; out.connect(sfxOut());
+  const tone = (f, t, dur, vol) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = "triangle"; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g).connect(out); o.start(t); o.stop(t + dur + .05); };
+  [[1047, 0], [1319, .09], [1568, .18], [2093, .27]].forEach(([f, d]) => tone(f, t0 + d, .35, .3));
+  [1568, 2093, 2637].forEach(f => tone(f, t0 + .42, 1.1, .14));
+}
+function gRip(){
+  if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
+  const n = actx.createBuffer(1, actx.sampleRate * .25, actx.sampleRate), d = n.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < .35 ? 1 : .25) * (1 - i / d.length);
+  const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
+  src.connect(bp).connect(g).connect(sfxOut()); src.start();
+}
+// The Points field under the board on Now: what the plane on top gave, or would give.
+function gPoints(e){
+  if (!e || e.gp == null) return null;
+  const d = e.liveMin ?? 9, parts = [`<em>${escH(T(TIER_NAME[e.tier] || "Uncommon"))} ${G_BASE[e.tier] || 30}</em>`];
+  if (d <= 1.5) parts.push(T("overhead ×1.2")); else if (d <= 4) parts.push(T("close ×1.1"));
+  if (e.gNewType) parts.push(T("new type +50")); if (e.gNewAirline) parts.push(T("new airline +25")); if (e.gNewReg) parts.push(T("new aircraft +5"));
+  if (e.gk > 1) parts.push(T("streak ×{k}", {k: e.gk}));
+  if (e.gn > 25) parts.push(T("plane {n} today ×{k}", {n: e.gn, k: e.gn > 50 ? "¼" : "½"}));
+  if (e.lock) parts.push(T("Sky view +{n}", {n: e.lock}));
+  return {n: e.gp + (e.lock || 0), why: parts.join(" · ")};
+}
+function gPtsRender(){
+  const box = $("gPts");
+  if (!gameOk() || !feat || !feat.o || airportMode()) { box.hidden = true; return; }
+  const e = spotted.find(x => x.hex === feat.hex && x.gp != null), p = gPoints(e);
+  let n, why, cls = "";
+  if (p) { n = "+" + nf.format(p.n); why = p.why + (e.lock || !arOk() ? "" : " · " + T("hold it in Sky view for a bonus")); }
+  else {
+    const t = tierOf(feat.o.ac, feat.info), est = Math.round((G_BASE[t] || 30) * (feat.o.dist <= 1.5 ? 1.2 : feat.o.dist <= 4 ? 1.1 : 1));
+    if (!S.live) { cls = "off"; n = "–"; why = T("This one would give about {n}. Turn on live location to score.", {n: est}); }
+    else if (feat.o.dist > 8) { cls = "wait"; n = "–"; why = T("Scores about {n} once it comes within 8 km.", {n: est}); }
+    else { cls = "wait"; n = "…"; why = T("Counting …"); }
+  }
+  const html = `<b>${escH(n)}</b><span>${why}</span>`;
+  box.className = "gPts" + (cls ? " " + cls : "");
+  if (box.dataset.h !== html) { box.dataset.h = html; box.innerHTML = html; }
+  box.hidden = false;
+}
+const arOk = () => !!$("arBtn") && !$("arBtn").hidden;
+// The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
+async function gLeagueLoad(force){
+  if (!gameOk() || (!force && Date.now() - gLeagueAt < 30000)) return;
+  gLeagueAt = Date.now();
+  try { gLeague = await fetchJSON(`${relay()}/game/league`, {}, 8000); } catch {}
+  if (tab === "game") renderGame();
+}
+function renderGame(){
+  if (tab !== "game") return;
+  const g = gme, all = lbData() || {}, g0 = all.game;
+  if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; return; }
+  const next = g.level < 20 ? GAME_LEVELS[g.level] : "";
+  let h = `<div class="gCard"><div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
+    `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
+    `<span class="gRule">${escH(T("{n} points in all", {n: nf.format(g.points)}))} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span></div>`;
+  if (!S.live) h += `<p class="sum">${escH(T("Points only come with live location (Settings → Location), for planes within 8 km of you."))}</p>`;
+  const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
+  h += `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
+  h += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
+    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}"><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
+      `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
+  if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
+  const pt = g.planesToday || 0, seg = (a, b) => Math.max(0, Math.min(1, (pt - a) / (b - a))) * 100;
+  h += `<div class="gCard"><div class="gBig"><b>${escH(T("Today"))}</b><span>${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}</span></div>` +
+    `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
+    `<span class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))}` +
+    `${g.streak > 1 ? " · " + escH(T("{n}-day streak", {n: g.streak})) : ""}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</span></div>`;
+  h += `<p class="gRule" style="margin-top:12px">${escH(T("How points work: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a little more for a close pass, something new or a streak. Hold a plane in Sky view's ring for a bonus."))}</p>`;
+  if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
+  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cap small" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
+  h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
+  const box = $("gameBox");
+  if (box.dataset.h === h) return;
+  box.dataset.h = h; box.innerHTML = h;
+  for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
+  const sb = $("gStyles"); if (sb) sb.onclick = () => { ctlSound.press(); stylesCard(); };
+  $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+}
+// Sky view held a plane in its ring for 1.5 s: the relay pays a bonus once per plane a day, shown as a boarding pass
+// whose stub (the points) tears off.
+async function gLockOn(hex){
+  if (!gameOk() || !S.live) return;
+  let r;
+  try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); } catch { return; }
+  if (!r || !r.bonus) {
+    if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within 8 km."); }
+    return;
+  }
+  const ac = arList.find(a => a.hex === hex) || {}, info = (enrich(ac) || {}).info || {};
+  const tier = r.tier || "uncommon", tname = {common: "COMMON", uncommon: "UNCOMMON", rare: "RARE", epic: "VERY RARE", legendary: "SPECIAL"}[tier] || "";
+  const code = a => code3(a) || "···", city = a => (a && a.city) || "";
+  const html = `<div class="pF ${tier}"><div class="main"><div class="band"><span>${escH(T("SKY VIEW · SPOTTED"))}</span><span>${escH(T(tname))} ★</span></div>` +
+    `<div class="codes"><div><b>${escH(code(info.from))}</b><small>${escH(city(info.from))}</small></div><i>✈</i><div style="text-align:right"><b>${escH(code(info.to))}</b><small>${escH(city(info.to))}</small></div></div>` +
+    `<div class="fields"><span>${escH(T("Flight"))}<b>${escH(info.flightNo || String(ac.flight || "").trim() || ac.r || "")}</b></span><span>${escH(T("Aircraft"))}<b>${escH(shortType(info.type) || ac.t || "")}</b></span>` +
+    `<span>${escH(T("Combo"))}<b>${r.combo} · ×${(1 + r.pct).toFixed(2).replace(/0$/, "")}</b></span></div></div>` +
+    `<div class="stub"><small>${escH(T("POINTS"))}</small><b>+${nf.format(r.bonus)}</b><em></em></div></div>`;
+  let pass = $("arPass"), burst = $("arBurst");
+  if (!pass) { pass = document.createElement("div"); pass.id = "arPass"; $("arView").appendChild(pass); }
+  if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
+  pass.innerHTML = html; pass.hidden = false;
+  const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
+  burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
+  gJingle(); setTimeout(gRip, 1050);
+  try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
+  setTimeout(() => { pass.hidden = true; burst.innerHTML = ""; }, 3600);
+  setTimeout(() => gRefresh(true), 2500);
+}
+function gameStart(){
+  gStripSetup();
+  if (!gameOk()) return;
+  gRefresh(true); gLeagueLoad();
+  setInterval(() => { gRefresh(); gPtsRender(); }, 2500);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
+  $("gameX").onclick = () => { ctlSound.press(); showTab("now"); };
+  setTimeout(() => tip("gstrip", () => $("gStrip"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
+}
 function run(){
   if (booted) return;
   booted = true;
@@ -8499,6 +8896,7 @@ function run(){
   // need, the hello that tells the relay where this screen looks); then each on its usual timer.
   poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();
   listsLoad(true).then(() => { listsMigrate(); renderFavBox(); svSig = recentSig = ""; renderLists(); });
+  gameStart();
   setInterval(sayHello, 60000);
   // Turned on its side or upright again: the flaps take the other arrangement (the page's columns are CSS).
   const turned = () => { sideways(); heroLayout(); buildNowPages(); nowPanels(); fitSideways(); clearTiles(); refreshPanels(true); paintRwy(); if (tab === "radar") radarSize(); };

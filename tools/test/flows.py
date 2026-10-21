@@ -89,6 +89,33 @@ def checks():
     expect("/search answers", (st, json.loads(b).get("rows") if st == 200 else None), (200, []))
     expect("/search for strangers", call("/search?q=A320")[0] in (401, 403), True)
 
+    # the game (relay 59): only a phone on live location scores, within 8 km; Sky view's lock-on once per plane
+    live = "?pl=live&pc=48.2085,16.3731&pr=15"
+    call("/aircraft/48.2085/16.3731/25" + live, "test-device")
+    call("/aircraft/48.2085/16.3731/25", "owner-device")
+    st, _, b = call("/logbook", "test-device")
+    g = json.loads(b).get("game", {}) if st == 200 else {}
+    expect("live planes score", g.get("points", 0) > 0 and g.get("v") == 3, True)
+    expect("the level", (g.get("level") or 0) >= 1 and bool(g.get("title")), True)
+    st, _, b = call("/logbook", "owner-device")
+    expect("a board without live location doesn't score", json.loads(b).get("game", {}).get("points") if st == 200 else st, 0)
+    st, _, b = call("/sightings", "test-device")
+    rows = json.loads(b) if st == 200 else []
+    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+    hx = next((e["hex"] for e in rows if "gp" in e), None)
+    expect("a scored plane in today's list", bool(hx), True)
+    if hx:
+        st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
+        lk = json.loads(b) if st == 200 else {}
+        expect("a lock-on pays at least 15", lk.get("bonus", 0) >= 15 and lk.get("combo") == 1, True)
+        st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
+        expect("the same plane locked on twice", json.loads(b).get("why") if st == 200 else st, "done")
+    expect("a lock-on from another site", call("/game/lockon", "test-device", {"Origin": "https://evil.example"}, {"hex": "abcdef"})[0] in (403, 429), True)
+    st, _, b = call("/game/league", "test-device")
+    lg = json.loads(b) if st == 200 else {}
+    expect("the league has the live player", [r["name"] for r in lg.get("rows", []) if r.get("me")], ["Test"])
+    expect("the league shows no places", "lat" in b.decode() or "place" in b.decode(), False)
+
     for b_ in bad:
         print("flow:", b_)
     print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")

@@ -359,13 +359,29 @@ The main board has everything below. New features are tried on `/test/` first; o
   longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
+- **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
+  come within **8 km** (the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
+  again from zero. A plane's points: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a
+  close pass ×1.1 (within 4 km) or ×1.2 (within 1.5 km), something new to the game (type +50, airline +25, aircraft
+  +5), a daily streak (3 days ×1.05 up to 30 days ×1.2); planes 26–50 of a day count half, after that a quarter.
+  **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
+  within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
+  with the points tears off, with a prize jingle and a buzz. In the phone app a **score strip** under the header shows
+  the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
+  when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**
+  field under the board says what the plane on top gave, or would give. Tap the strip for the **Game** page: the
+  level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
+  out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
+  Logbook), and Styles. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
+  shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
+  planes only; the logbook keeps every plane.
 - **Rarity and the Collection** (1.21, relay 24; by fleet size since 1.25, relay 26): every plane gets a tier, shown in
   colour with an icon on the flap after its type, from how many of its type fly today: common (grey: 1,000 or more),
   uncommon (green: 250 or more, or a type the table doesn't know), rare (blue: 50 or more), very rare (purple: fewer)
-  and special (gold: the special planes, military and emergencies). Sightings score 1, 3, 10, 25 and 50 points; Today in
-  numbers shows the day's points and the best day, the Logbook the total and the streak of days with something rare,
-  and Logbook → **Collection** shows the points, the tiers seen (with their icons in the app) and nine sets of types to complete. Guests have their
-  own.
+  and special (gold: the special planes, military and emergencies). Points: see The game above (until 1.72 every
+  sighting scored 1, 3, 10, 25 and 50). The Collection shows the points, the tiers seen and nine sets of types to
+  complete. Guests have their own.
 - **Runways in use** (Airport style, 1.20): worked out from the planes lined up with each runway; shown next to the
   lists' title ("Landing 29 · departing 16") and lit on the radar. The Take-off and Landing pages show the plane on a
   runway screen with how far it is to touchdown or how high it has climbed. Far out (a landing before its final
@@ -384,11 +400,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   choice stays saved for when you go back to Classic). The default look stays until someone picks something. Unlocks
   are the profile's own, from its logbook's game:
   - The owner can also unlock styles by hand for a profile on the admin page (relay 52: Unlock all, Back to earned only, or pick styles); they count like earned ones, without a pop-up.
-  - **Colours** for points: Heathrow yellow 5,000, Solari green 25,000, Ice blue 50,000, Sunset 100,000.
-  - **Flaps** for trophies: Black on white (Type collector), Brass trim (Rare breed), Worn enamel (Regular), LED dots
-    (Around the clock; since 1.61 a real 5x7 dot font on dark flaps, readable on a TV). Not in the light version.
-  - **Title badge**, one more for each full bingo card (all nine in a week): Star, Propeller, Helicopter,
-    Jumbo, Fighter jet, Concorde. The relay counts the full cards, older weeks once from the saved days. Since 1.61 the
+  - Since 1.72 by **level**: Heathrow yellow 2, Star 3, Black on white 4, Solari green 5, Propeller 6, Brass trim 7,
+    Frankfurt 1970s 8, Ice blue 9, Helicopter 10, Worn enamel 11, Sunset 12, Jumbo 13, Tokyo night 14, LED dots 15,
+    Fighter jet 16, Concorde 17 and **Gold leaf** 18 (black lacquer flaps, gold-leaf letters, a gilded rim). **First
+    Class** (claret leather with a stitched seam, cream flaps with claret letters) is for last week's league winner,
+    that week only. Styles picked before 1.72 stay.
+  - LED dots: since 1.61 a real 5x7 dot font on dark flaps, readable on a TV.
+  - **Title badges**: Star, Propeller, Helicopter, Jumbo, Fighter jet, Concorde. Since 1.61 the
     badge takes the plane's place in the yellow logo square, the browser tab's icon and the web app's home-screen icon
     (relay 53 gives the profile a manifest with that badge's icons; an installed icon changes when the phone next
     refreshes the app's manifest, which the browser decides, often within a day of using it; adding it to the home
@@ -466,8 +484,9 @@ Five buttons along the bottom:
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
   airline), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
-- **Logbook** (1.55): a switch at the top for the same four views as the board (Logbook, Collection, Records, Week &
-  month); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+  Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
+- **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
+  Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
   At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the

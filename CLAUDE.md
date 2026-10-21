@@ -58,7 +58,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/`, `glass/` | Parked since 1.71.3: each `index.html` only forwards to `/app/`. Not built, checked or linked. |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (58 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (59 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). |
 | `tools/light/`, `tools/glass/` | Parked source of the light version (`light.js` for main.js's `//@L:name` ... `//@L:end` regions, `light.css`) and Glass (`glass.js`, `glass.css`). Kept for later; running their `build.py` overwrites the forwarders. |
@@ -84,7 +84,10 @@ About too as `view` plates, 1.56), checked with
 itself (`radarMapBuild`, `mvtRead`; no text, no key); trophies are mostly tiers (`TROPHY_LADDERS`, relay `TROPHY_LADDER`,
 progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()` (◀ ▶ rows, 1.61), flap finishes in `tile()`;
 colours and finishes only with the Classic board (`classicLook()`); badge icons `app/icon-*-<badge>.png` by `tools/app/make_icons.py`.
-Realistic look is `S.real`/`REAL()`. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
+Realistic look is `S.real`/`REAL()`. The game (1.72, relay 59): only "live" sightings within `GAME_KM` score, kept in
+the logbook's own `game3` part (`game_note`, `game_points`, `game_lockon`, `level_of`, `league_json`); the app's score
+strip, Points field, Game page and Sky view boarding pass are `gStrip*`/`gPts*`/`renderGame`/`gLockOn` in main.js; the
+board's League page is `renderLeague`. Styles unlock by level (`{lvl: n}`), First Class only for the champion. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
 Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 
 **Airport style** (`S.mode === "airport"`, toggled by tapping Overhead/Airport in the title): pages aplists, apland,
