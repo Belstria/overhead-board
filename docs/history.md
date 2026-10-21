@@ -10,6 +10,27 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72 / relay 59, the game redesigned (plan: claude.ai artifact WfByuzJYgym9THBEH9r3By): `game_book(book)` makes the
+  logbook's `game3` part, a small logbook of its own (its keys are the logbook's, so `trophy_check`, `note_records`,
+  `_streak`, `game_json` work on it; its `rareDays` are days with a live plane). `_record` tracks `liveMin`/`liveSeen`
+  for place "live" (also on a pass first logged from another place) and calls `game_note`: the first time within
+  `GAME_KM` (8) it scores (`gn` plane of the day, `gk` streak multiplier, `gNewType/gNewAirline/gNewReg`, `gp`), later
+  only the close bonus changes `gp`. `game_points`: `TIER_BASE` × close (≤1.5 km 1.2, ≤4 km 1.1) + new, × streak, ×
+  taper (26–50 ½, 51+ ¼). `game_lockon` (POST /game/lockon): +25/30/40/50 % (combo within 180 s), min 15, once per
+  plane, seen live in the last 120 s. `level_of`: 500 × 1.25ⁿ, 20 titles (`LEVEL_TITLES`, the board's `GAME_LEVELS`).
+  `league_json` (GET /game/league, cached 30 s): week (Mon 03:00) and all time, first names, `was` (rank before today),
+  crown for last week's winner (`championMe` → `game.champion`), settings `league: false` leaves it. GET /game/me for
+  the strip. Bingo counts live planes only (`_bingo_week(live=True)`), its cards and trophies in game3; reviews and
+  the evening summary count `gp + lock`.
+  App: `#gStrip` in the header (`gStripSetup`, `gStripRender`, `gGain`: chip flips to +N, `.gTok` flies to the bar,
+  `#gBarG` fills, `gTotSet` rolls the flaps; `gRefresh` every 15 s live, 60 s not), `#gPts` under the board
+  (`gPoints`), the Game page `#t-game` (`showTab("game")`, `renderGame`, `collectionHtml`/`recordsHtml` moved out of
+  `renderLogbook`; the Logbook loses Collection and Records), level-up `#gLvUp`, Sky view `gLockOn` (from
+  `arAimDraw`) → `#arPass` (`.pF` in the rarity colour, the stub tears off), `gJingle`, `gRip`, `gCoins`. Board: the
+  `league` page (`LEAGUE_ROWS`, `renderLeague`, `leagueLoad`, in `ROTATION_OVERHEAD`). Styles: rules `{lvl}`/`{champ}`;
+  themes `goldleaf` (`gilt`: gold rim) and `firstclass` (`leather`: `leatherGrain`, `leatherSeam`; the app's
+  `html.leather` seams). `isSpecialPlane` for Today's Special; Favourites a filter of its own. `fromRelay` keeps the
+  game fields.
 - 1.71.3: light/ and glass/ parked: forwarders to /app/ (clear `od.ui`), the app's `od.ui` redirect and the Device tiles
   for them gone, out of check.yml, smoke.py, lint.py, tokens.py, cockpit_list.py. Source kept in tools/light, tools/glass.
 - 1.71.2: the update offer shows on every resume (no 3 h wait, no skip memory); buttons Update / Skip.

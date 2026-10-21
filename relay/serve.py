@@ -936,7 +936,8 @@ def bingo_json(spot, day):
 STYLE_GRANTS = [("heathrow", "Heathrow yellow"), ("solari", "Solari green"), ("ice", "Ice blue"), ("sunset", "Sunset"),
                 ("white", "Black on white"), ("brass", "Brass trim"), ("enamel", "Worn enamel"), ("led", "LED dots"),
                 ("star", "Star"), ("prop", "Propeller"), ("heli", "Helicopter"), ("jumbo", "Jumbo"), ("jet", "Fighter jet"),
-                ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night")]
+                ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night"), ("goldleaf", "Gold leaf"),
+                ("firstclass", "First Class")]
 
 
 def style_grants(p):
@@ -5585,6 +5586,16 @@ class Handler(BaseHTTPRequestHandler):
             if abs(lat) > 90 or abs(lon) > 180:
                 return self.reply(400, "text/plain", b"Out of range")
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
+        if path == "/game/me":            # relay 59: the score strip, often (small: no collections, no trophies)
+            with _data_lock:
+                g = game3_json(self.spot.book(), self.spot.day or board_day())
+            lg = league_json(self.guest[0])
+            me = next((r for r in lg["rows"] if r["me"]), None)
+            keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "combo", "comboUntil", "km", "lockons")
+            out = {k: g.get(k) for k in keep}
+            out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],
+                       below=(lg["rows"][me["rank"]]["name"] if me and me["rank"] < len(lg["rows"]) else None), players=len(lg["rows"]))
+            return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
             return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
         if path == "/logbook":
