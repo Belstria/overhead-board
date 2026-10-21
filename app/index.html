@@ -769,8 +769,35 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;
   padding:calc(var(--sa-top) + 10px) 12px 10px;background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,0));color:var(--c-paper);font:600 var(--fs-m) var(--f-board)}
 #arView .arTop b{font-size:var(--fs-l);color:var(--amber)}
-#arView .arTop span{flex:1;color:#d6d2c6}
-#arView .arTop .cap{width:auto;padding:0 12px}
+#arView .arTop span{color:#d6d2c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 1.72.7: frosted glass over the sky: the title in a pill, round ⓘ ⟲ ✕ (⟲ lit gold when the labels were dragged) */
+#arView .arTop{background:none;gap:8px}
+.arTitle,.arIb,.arMoved{background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
+.arTitle{margin-right:auto;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px}
+.arIb{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
+.arIb:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.arIb svg{width:21px;height:21px}
+.arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
+.arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
+.arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
+/* the first-time walkthrough (and ⓘ): the ring, the drag, the buttons */
+.arTour{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(var(--sa-bottom) + 18px)}
+.arTour[hidden]{display:none}
+#arView.tourBtns .arTop{z-index:9}
+#arView.tourBtns .arIb{box-shadow:0 0 0 3px var(--amber)}
+.arTourBox{width:100%;max-width:440px;background:#16171a;border-radius:16px;padding:16px;display:grid;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.arTourBox h3{margin:0;font:700 var(--fs-xl)/1.2 var(--f-board);color:var(--amber)}
+.arTourBox p{margin:0;font-size:var(--fs-m);line-height:1.4;color:var(--ink)}
+.arTourAct{display:flex;align-items:center;gap:10px;margin-top:6px}
+.arTourAct span{margin-right:auto;font-size:var(--fs-s);color:var(--muted)}
+.arTourAct .arTourSkip{all:unset;cursor:pointer;padding:8px 6px;color:var(--muted);font:600 var(--fs-s)/1 var(--f-board)}
+.arTourAct .cap{width:auto;padding:0 16px}
+.arTourRing{position:absolute;left:50%;top:50%;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;box-shadow:0 0 0 4px var(--amber),0 0 0 9999px rgba(0,0,0,.25);animation:arPulse 1.4s ease-in-out infinite}
+@keyframes arPulse{50%{transform:scale(1.08)}}
+.arTourHand{position:absolute;left:50%;top:44%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:0 0 0 7px rgba(255,255,255,.2);animation:arSwipe 2s ease-in-out infinite}
+@keyframes arSwipe{0%,100%{transform:translateX(-70px)}50%{transform:translateX(70px)}}
+@media (prefers-reduced-motion:reduce){.arTourRing,.arTourHand{animation:none}}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
 /* 1.72.2-3: the Sky view card: the small card a lock-on opens (thumbnail, essentials, "swipe up", the line running down
@@ -1135,8 +1162,10 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 <div id="arView" hidden>
   <video id="arVid" playsinline muted autoplay></video>
   <canvas id="arCv" aria-hidden="true"></canvas>
-  <div class="arTop"><b data-t="Sky view">Sky view</b><span id="arCount"></span>
-    <button class="cap small" type="button" id="arReset" data-t="Reset">Reset</button><button class="cap small" type="button" id="arClose" data-t="Close">Close</button></div>
+  <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
+    <button class="arIb" type="button" id="arInfo" aria-label="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <p class="arMoved" id="arMoved" hidden></p>
+  <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
   <p class="arHint" id="arHint"></p>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
@@ -6130,6 +6159,7 @@ async function arOpen(){
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
+  try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
 }
 function arCalCheck(a, b, g, acc){
@@ -6149,6 +6179,7 @@ function arCalCheck(a, b, g, acc){
 function arClose(){
   if (!arOn) return;
   arOn = false; ctlSound.press();
+  $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
   removeEventListener(arEvent(), arOrient);
@@ -6238,7 +6269,8 @@ function arLoop(){
     }
     g.globalAlpha = 1;
   }
-  $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
+  $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
+  $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   arAimDraw(g, W, H);
 }
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
@@ -6287,7 +6319,36 @@ function arDragEnd(e){
   const tap = !arDrag.moved; arDrag = null;
   if (tap && e && e.type === "pointerup") return arTap(e);
   try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {}
+  arMovedNote();
 }
+// 1.72.7: after a drag, a note by ⟲ for a moment: the labels sit where the finger put them, not where the compass says.
+function arMovedNote(){
+  const n = $("arMoved");
+  n.textContent = T("Labels moved by hand · ⟲ to undo"); n.hidden = false;
+  clearTimeout(arMovedNote.t); arMovedNote.t = setTimeout(() => { n.hidden = true; }, 3500);
+}
+// 1.72.7: the walkthrough, the first time Sky view opens and from ⓘ: the ring, the drag, the buttons.
+const AR_TOUR = [["ring", "Hold a plane in the ring", "Point the ring at a plane and keep it there for a moment: its card opens. With live location on, it pays a bonus too."],
+  ["drag", "Labels beside the planes?", "Phone compasses drift. Drag the sky sideways, or up and down, until the labels sit on the planes."],
+  ["btns", "The buttons", "⟲ puts the labels back where the compass says (it lights up once you've dragged them). ⓘ shows these tips again. ✕ closes Sky view."]];
+function arTour(step){
+  const box = $("arTour");
+  if (step >= AR_TOUR.length) {
+    box.hidden = true; $("arView").classList.remove("tourBtns");
+    try { localStorage.setItem("od.ar.tour", "1"); } catch {}
+    return;
+  }
+  const [k, h, p] = AR_TOUR[step];
+  $("arView").classList.toggle("tourBtns", k === "btns");
+  box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? '<i class="arTourHand"></i>' : "") +
+    `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
+    (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
+    `<button class="cap small go" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
+  box.hidden = false;
+  box.querySelector(".go").onclick = () => { ctlSound.press(); arTour(step + 1); };
+  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
+}
+$("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
 // 1.62.1: a tap on a plane or its label opens its card (as on the radar) over the picture; a tap elsewhere closes it.
 function arTap(e){
   const r = $("arCv").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
@@ -6445,7 +6506,7 @@ function skyRowRender(){
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
-$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
+$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
   cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }
@@ -7593,6 +7654,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.7", date: "2026-10-21", notes: [
+    "Sky view's buttons are round and see-through; the reset button lights up once you've dragged the labels, and ⓘ explains Sky view (shown by itself the first time).",
+  ]},
   {v: "1.72.6", date: "2026-10-21", notes: [
     "Sky view's whole card has a new look: the flight on its photo, the route across, height, speed and distance as tiles.",
   ]},
