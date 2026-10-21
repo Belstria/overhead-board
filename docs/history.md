@@ -10,6 +10,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.73.1: the points for the plane on top are a HERO flap field `pts` (n 4, `PTS_ON` with relay 59; `seen` 15 then)
+  beside the remarks; `gPtsRender` fills it, a tap on it (`#hero` click, before the other fields) toasts `gPtsText`.
+  `#gPts` is gone. Where to look: `drawLook` draws a heading tape on `#lookCv` (±60°, ticks every 5°, names every 45°,
+  the gold line where you face, the plane or an arrow at the end); with the compass the words say which way to turn;
+  Sky view sits left of the words (`.lookRow`).
 - 1.73: one look per kind in the app (the consistency check, https://claude.ai/artifact/GqHPCWGz21JFjmepi4S3j7):
   `--box-bg`/`--box-bd` for boxes (`.gPts`, `.skyRow`, `.look`, `.gCard`, `.rvCard`, `.yearCard`), `--sheet-bg` for
   `#cardBox .cardIn`, toasts, `#arCard`, `.arTourBox`; `.cBtn` app-wide (Sky view, Open, Styles, Share, CSV, tips'
