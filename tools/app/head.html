@@ -399,8 +399,8 @@ body.aboutOpen{overflow:hidden}
 .arSwipe svg{width:14px;height:14px}
 @media (prefers-reduced-motion:no-preference){.arSwipe svg{animation:arNudge 1.6s ease-in-out infinite}}
 @keyframes arNudge{50%{transform:translateY(-3px)}}
-.arTimer{height:3px;margin:10px -12px 0;background:#2a2b30}
-.arTimer i{display:block;height:100%;width:100%;background:var(--amber)}
+.arPeekL{padding-bottom:10px}
+.arFullL img.cPic{max-height:32vh;object-fit:cover}   /* 1.72.5: room for every line without scrolling */
 .arGhost{position:absolute;z-index:3;display:none;object-fit:cover;border-radius:8px;pointer-events:none}
 #arView .arCard.anim,#arView .arCard.anim .arL,#arView .arCard.anim .arGhost{transition:height .3s cubic-bezier(.2,.9,.25,1),opacity .3s,left .3s cubic-bezier(.2,.9,.25,1),
   top .3s cubic-bezier(.2,.9,.25,1),width .3s cubic-bezier(.2,.9,.25,1),transform .3s cubic-bezier(.2,.9,.25,1)}
@@ -410,7 +410,7 @@ body.aboutOpen{overflow:hidden}
 #arView .arCard.out{transform:translateY(calc(100% + 40px))!important;transition:transform .26s cubic-bezier(.4,0,.8,.5)}
 @keyframes arSheetIn{from{transform:translateY(calc(100% + 40px))}}
 @media (prefers-reduced-motion:reduce){#arView .arCard,#arView .arCard.out{animation:none;transition:none}}
-#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
+#arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:calc(100dvh - var(--sa-top) - 80px);overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
 #arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
