@@ -750,8 +750,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 /* ---------- 1.73: one look per kind of thing (the consistency check; Dave took the suggestions) ----------
    Boxes on a page share the soft gradient, a faint border and 12 px corners (gold border for a page's highlight);
    things over the page share the sheet's background (18 px corners for sheets, 14 for toasts and tips); phone pages
-   use the cream button (the board's caps stay in Settings); one round close button; segmented bars for picking one,
-   switches for on/off; white titles in boxes and pop-ups; 6 px bars; plain lines for lists. */
+   use the cream button (the board's caps stay in Settings); one round close button; segmented bars for picking one;
+   6 px bars; plain lines for lists. (Pop-up titles and the checkboxes stay as they were: Dave's choice.) */
 :root{--box-bg:linear-gradient(#17181b,#101113);--box-bd:1px solid rgba(255,255,255,.08);--sheet-bg:linear-gradient(#1b1c1f,#111214)}
 .gPts,.skyRow,.look,#t-game .gCard,.rvCard,.yearCard{background:var(--box-bg);border:var(--box-bd);border-radius:12px}
 .yearCard{border-color:rgba(240,180,41,.35)} .gPts.off{border-color:#5a2a2d}
@@ -765,12 +765,6 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .cBtn:active{transform:translateY(1px)} .cBtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px} .cBtn[hidden]{display:none}
 .rvCard .rcX,#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
   display:grid;place-items:center;font:600 var(--fs-xl)/1 var(--f-board);text-align:center;z-index:5}
-.gOpt input,.pushOpt input{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:44px;height:26px;margin:0;border-radius:13px;background:#2a2b30;
-  border:1px solid rgba(255,255,255,.14);cursor:pointer;transition:background .2s}
-.gOpt input::after,.pushOpt input::after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(#e7e2d6,#a9a291);
-  box-shadow:0 1px 2px rgba(0,0,0,.6);transition:transform .2s}
-.gOpt input:checked,.pushOpt input:checked{background:var(--amber)} .gOpt input:checked::after,.pushOpt input:checked::after{transform:translateX(18px)}
-.arTourBox h3,#gLvUp h3,#cardBox .ach h3,#cardBox .cardIn.ach h3{font:700 var(--fs-2xl)/1.15 var(--f-board);color:var(--ink);letter-spacing:0;text-transform:none}
 .cats .bar,.cups .tl .bar{height:6px;border-radius:3px;background:#2a2b30}
 .cups .tl .bar i{background:var(--amber)} .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:var(--c-good)}
 #t-game .gBar,.gTaper{height:6px;border-radius:3px}
