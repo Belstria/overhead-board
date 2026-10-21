@@ -553,7 +553,7 @@ function renderRecent(){
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
-  nowEmptyNote(); nowPanels();
+  nowEmptyNote(); nowPanels(); skyRowRender();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
   const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
@@ -998,7 +998,7 @@ function drawLook(){
   lookRaf = 0;
   const box = $("look"), L = lookAt();
   box.hidden = !L || SIDEWAYS.matches;
-  if (box.hidden) return;
+  if (box.hidden) return skyRowRender();
   $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
   $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
     (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.")
@@ -1017,6 +1017,7 @@ function drawLook(){
   g.restore();
 
   $("arBtn").hidden = !arPossible();
+  skyRowRender();
 }
 const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
 function lookHeadingFrom(e){
@@ -1388,6 +1389,14 @@ function arCardDismiss(){
   box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
+// 1.72.4: Sky view can always be opened: when the plane's Where to look card (with its button) isn't there, a row of
+// its own under the board takes its place.
+$("arBtn2").onclick = arOpen;
+function skyRowRender(){
+  const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden;
+  $("skyRow").hidden = look || !arPossible() || SIDEWAYS.matches;
+}
+setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
@@ -2541,7 +2550,7 @@ function gPtsRender(){
   if (box.dataset.h !== html) { box.dataset.h = html; box.innerHTML = html; }
   box.hidden = false;
 }
-const arOk = () => !!$("arBtn") && !$("arBtn").hidden;
+const arOk = () => arPossible();
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
   if (!gameOk() || (!force && Date.now() - gLeagueAt < 30000)) return;

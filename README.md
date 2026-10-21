@@ -499,7 +499,8 @@ Five buttons along the bottom:
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
   points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
-- **Sky view** (Now → Where to look → Sky view, 1.30; https only): the camera full screen, with a label on every plane
+- **Sky view** (Now → Where to look → Sky view, 1.30; https only; since 1.72.4 a Sky view row under the board when there
+  is no plane on top, so it can always be opened): the camera full screen, with a label on every plane
   within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Phone compasses are often a few
