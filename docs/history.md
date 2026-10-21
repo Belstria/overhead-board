@@ -10,6 +10,8 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.1 / relay 60: `GAME_KM` 10. Sky view labels get a chip from `arLoop` (★ / ★ POINTS on top within `gKm()`, ✓ +N
+  locked on, NO PTS dimmed beyond; live location only); `#arCard` closes on a swipe down, a bigger round × and a handle.
 - 1.72 / relay 59, the game redesigned (plan: claude.ai artifact WfByuzJYgym9THBEH9r3By): `game_book(book)` makes the
   logbook's `game3` part, a small logbook of its own (its keys are the logbook's, so `trophy_check`, `note_records`,
   `_streak`, `game_json` work on it; its `rareDays` are days with a live plane). `_record` tracks `liveMin`/`liveSeen`

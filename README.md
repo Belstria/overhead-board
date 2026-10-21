@@ -360,13 +360,15 @@ The main board has everything below. New features are tried on `/test/` first; o
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
-  come within **8 km** (the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
+  come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
   again from zero. A plane's points: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a
   close pass ×1.1 (within 4 km) or ×1.2 (within 1.5 km), something new to the game (type +50, airline +25, aircraft
   +5), a daily streak (3 days ×1.05 up to 30 days ×1.2); planes 26–50 of a day count half, after that a quarter.
   **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
   within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
-  with the points tears off, with a prize jingle and a buzz. In the phone app a **score strip** under the header shows
+  with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a gold ★ for the planes
+  within reach of points, ✓ and the bonus once locked on, and a dimmed NO PTS beyond 10 km; its card closes with the
+  big ×, a swipe down or a tap on the sky. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**
   field under the board says what the plane on top gave, or would give. Tap the strip for the **Game** page: the

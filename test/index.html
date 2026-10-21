@@ -6612,6 +6612,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.1", date: "2026-10-21", notes: [
+    "Planes now score within 10 km. In Sky view a gold ★ marks the planes within reach of points, NO PTS the ones too far away.",
+    "Sky view's plane card closes more easily: a bigger ×, a swipe down, or a tap on the sky.",
+  ]},
   {v: "1.72", date: "2026-10-21", notes: [
     "A new game: only planes you spot with live location on your phone score, within 8 km; everyone starts again from zero.",
     "Points go by rarity, with a little more for a close pass, something new or a daily streak; after 25 and 50 planes a day they count less.",
