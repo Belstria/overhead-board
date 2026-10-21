@@ -678,8 +678,14 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .yActs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .yActs .cap{width:auto;padding:0 12px;text-decoration:none;display:inline-flex;align-items:center}
 /* where to look */
-.look{display:flex;gap:12px;align-items:center;margin:10px 0 0;padding:10px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
-.look canvas{width:96px;height:96px;flex:none}
+/* 1.73.1: Where to look: a heading tape (the directions slide as the phone turns; the gold line is where you face, the
+   plane where it is), then Sky view and the words */
+.look{display:grid;gap:8px;margin:10px 0 0;padding:12px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
+.look[hidden]{display:none}
+.look canvas{display:block;width:100%;height:44px}
+.lookH{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.lookRow{display:flex;gap:12px;align-items:center}
+.lookRow .cBtn{flex:none}
 .lookTxt{min-width:0}
 .lookTxt small{display:block;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .lookTxt b{display:block;font:700 var(--fs-xl)/1.15 var(--f-board);color:var(--ink)}
@@ -1242,7 +1248,6 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="gPts" id="gPts" hidden></div>
       <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
         <button class="cBtn" type="button" id="arBtn2" data-t="Open">Open</button></div>
@@ -1258,10 +1263,10 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
           <b class="led"></b>
         </div>
         <div class="look" id="look" hidden>
-        <canvas id="lookCv" width="96" height="96" aria-hidden="true"></canvas>
-        <div class="lookTxt"><small data-t="Where to look">Where to look</small><b id="lookDir"></b><span id="lookSub"></span>
-          <span class="lookActs">
-          <button class="cBtn" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button></span></div>
+        <small class="lookH" data-t="Where to look">Where to look</small>
+        <canvas id="lookCv" aria-hidden="true"></canvas>
+        <div class="lookRow"><button class="cBtn" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button>
+          <div class="lookTxt"><b id="lookDir"></b><span id="lookSub"></span></div></div>
       </div>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
       </div>
@@ -2975,7 +2980,11 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-def(HERO, "seen",    {kind:"chars", n:19, dur:60, style:"amber", label:["Remarks",""]});
+// 1.73.1: the game's points for the plane on top, a flap field before the remarks (tap it for why); "-" when it can't score
+// yet. With the game (relay 59) the remarks are four flaps shorter.
+const PTS_ON = !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
+def(HERO, "seen",    {kind:"chars", n:PTS_ON ? 15 : 19, dur:60, style:"amber", label:["Remarks",""]});
+def(HERO, "pts",     {kind:"chars", n:4, dur:66, drum:" +-0123456789", align:"right", style:"amber", label:["Points",""]});
 def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
 fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
@@ -2983,6 +2992,7 @@ function heroLayout(){
   const wide = SIDEWAYS.matches;
   HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 448;
   fields.seen.hidden = wide;                    // on its side the three rows are full
+  fields.pts.hidden = wide || !PTS_ON;
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
@@ -2998,7 +3008,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
-  placeRow(["seen"], [], 411, 17.4, 1.45, UM);
+  placeRow(fields.pts.hidden ? ["seen"] : ["pts", "seen"], [.6], 411, 17.4, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -6103,23 +6113,34 @@ function drawLook(){
   const box = $("look"), L = lookAt();
   box.hidden = !L || SIDEWAYS.matches;
   if (box.hidden) return skyRowRender();
-  $("lookDir").textContent = T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up});
-  $("lookSub").textContent = T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()}) + " · " +
-    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : lookOn && lookHeading != null ? T("Turn until the arrow points up, then look that way.")
-      : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the compass to let it turn with your phone.") : T("North is up."));
-  const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), sz = 96;
-  if (cv.width !== sz * px) { cv.width = cv.height = sz * px; }
-  const g = cv.getContext("2d"), turn = lookOn && lookHeading != null ? -lookHeading : 0;
-  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, sz, sz);
-  g.translate(sz / 2, sz / 2);
-  g.beginPath(); g.arc(0, 0, 44, 0, Math.PI * 2); g.fillStyle = "#0c0d0e"; g.fill(); g.strokeStyle = "rgba(255,255,255,.14)"; g.lineWidth = 1.5; g.stroke();
-  g.save(); g.rotate(turn * Math.PI / 180);
-  for (let i = 0; i < 8; i++) { g.save(); g.rotate(i * Math.PI / 4); g.fillStyle = "rgba(255,255,255,.25)"; g.fillRect(-1, -42, 2, i % 2 ? 4 : 7); g.restore(); }
-  g.fillStyle = "#e0372c"; g.font = `700 12px ${FONT}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("N", 0, -30);
-  g.rotate(L.brg * Math.PI / 180);
-  g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(0, -36); g.lineTo(9, -14); g.lineTo(3, -14); g.lineTo(3, 14); g.lineTo(-3, 14); g.lineTo(-3, -14); g.lineTo(-9, -14); g.closePath(); g.fill();
-  g.restore();
-
+  // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
+  // turn; without it the tape is centred on the plane
+  const on = lookOn && lookHeading != null, c = on ? lookHeading : L.brg, d = ((L.brg - c + 540) % 360) - 180;
+  const ad = Math.abs(d), side = d > 0 ? "right" : "left";
+  $("lookDir").textContent = !on ? T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up})
+    : ad <= 8 ? T("Straight ahead · {e}° up", {e: L.up}) : T(ad < 45 ? `Turn a little ${side} · {e}° up` : `Turn ${side} · {e}° up`, {e: L.up});
+  $("lookSub").textContent = [L.dir, T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()})].join(" · ") + " · " +
+    (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : on ? T("The gold line is where you face.")
+      : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the strip to let it turn with your phone.") : T("The plane is in the middle."));
+  const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), W = cv.clientWidth || 300, H = 44;
+  if (cv.width !== Math.round(W * px)) { cv.width = Math.round(W * px); cv.height = H * px; }
+  const g = cv.getContext("2d"), ppd = W / 120, X = deg => W / 2 + deg * ppd;
+  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
+  g.fillStyle = "#0c0d0e"; rr(g, 0, 0, W, H, 8); g.fill();
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  const NAMES = {0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW"};
+  for (let k = Math.ceil((c - 66) / 5) * 5; k <= c + 66; k += 5) {
+    const deg = (k + 360) % 360, x = X(k - c), big = deg % 45 === 0;
+    g.fillStyle = big ? "rgba(255,255,255,.55)" : "rgba(255,255,255,.22)";
+    g.fillRect(x - .75, H - (big ? 12 : deg % 15 === 0 ? 8 : 5), 1.5, big ? 12 : deg % 15 === 0 ? 8 : 5);
+    if (big) { g.fillStyle = deg === 0 ? "#e0372c" : "#c9c3b4"; g.font = `700 12px ${FONT}`; g.fillText(NAMES[deg], x, H - 16); }
+  }
+  g.fillStyle = on ? "#f0b429" : "rgba(240,180,41,.35)"; g.fillRect(W / 2 - 1, 0, 2, H);      // where you face
+  if (ad <= 58) drawPlane(g, X(d), 13, 18, "#f0b429");
+  else {                                                         // off the tape: an arrow at its end, pointing the way
+    const x = d > 0 ? W - 10 : 10, s = d > 0 ? 1 : -1;
+    g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(x + 6 * s, 13); g.lineTo(x - 5 * s, 6); g.lineTo(x - 5 * s, 20); g.closePath(); g.fill();
+  }
   $("arBtn").hidden = !arPossible();
   skyRowRender();
 }
@@ -7691,6 +7712,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.73.1", date: "2026-10-22", notes: [
+    "The plane's points are a Points field on the board, beside the remarks; tap it to see why.",
+    "Where to look is a compass strip that slides as you turn, with Sky view beside the directions.",
+  ]},
   {v: "1.73", date: "2026-10-21", notes: [
     "The phone app looks more of a piece: boxes, pop-ups, buttons, close buttons, filters, bars and lists that do the same job now look the same.",
   ]},
@@ -8307,6 +8332,8 @@ function settingsExtra(){
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
+  const fp = fields.pts;
+  if (!fp.hidden && fp.x != null && x >= fp.x - 3 && x <= fp.x + fp.n * fp.step + 3 && y >= fp.y - 3 && y <= fp.y + fp.ch + 3) { ctlSound.press(); return gPtsWhy(); }
   const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
     const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
     const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
@@ -9132,23 +9159,23 @@ function gPoints(e){
   if (e.lock) parts.push(T("Sky view +{n}", {n: e.lock}));
   return {n: e.gp + (e.lock || 0), why: parts.join(" · ")};
 }
+// 1.73.1: the Points flaps on the board (beside the remarks): what the plane on top gave, or "-"; a tap says why.
+let gPtsText = "";
 function gPtsRender(){
-  const box = $("gPts");
-  if (!gameOk() || !feat || !feat.o || airportMode()) { box.hidden = true; return; }
+  if (fields.pts.hidden) return;
+  if (!gameOk() || !feat || !feat.o || airportMode()) { setChars("pts", ""); gPtsText = ""; return; }
   const e = spotted.find(x => x.hex === feat.hex && x.gp != null), p = gPoints(e);
-  let n, why, cls = "";
-  if (p) { n = "+" + nf.format(p.n); why = p.why + (e.lock || !arOk() ? "" : " · " + T("hold it in Sky view for a bonus")); }
+  let n, why;
+  if (p) { n = "+" + Math.min(999, p.n); why = p.why.replace(/<[^>]+>/g, "") + (e.lock || !arOk() ? "" : " · " + T("hold it in Sky view for a bonus")); }
   else {
     const t = tierOf(feat.o.ac, feat.info), est = Math.round((G_BASE[t] || 30) * (feat.o.dist <= 1.5 ? 1.2 : feat.o.dist <= 4 ? 1.1 : 1));
-    if (!S.live) { cls = "off"; n = "–"; why = T("This one would give about {n}. Turn on live location to score.", {n: est}); }
-    else if (feat.o.dist > gKm()) { cls = "wait"; n = "–"; why = T("Scores about {n} once it comes within {k} km.", {n: est, k: gKm()}); }
-    else { cls = "wait"; n = "…"; why = T("Counting …"); }
+    n = "-";
+    why = !S.live ? T("This one would give about {n}. Turn on live location to score.", {n: est})
+      : feat.o.dist > gKm() ? T("Scores about {n} once it comes within {k} km.", {n: est, k: gKm()}) : T("Counting …");
   }
-  const html = `<b>${escH(n)}</b><span>${why}</span>`;
-  box.className = "gPts" + (cls ? " " + cls : "");
-  if (box.dataset.h !== html) { box.dataset.h = html; box.innerHTML = html; }
-  box.hidden = false;
+  setChars("pts", n); gPtsText = why;
 }
+function gPtsWhy(){ if (gPtsText) toast(gPtsText, {ms: 6000}); }
 const arOk = () => arPossible();
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
