@@ -10,9 +10,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
-- 1.72.2: `#arCard` is a sheet: `arSheetIn` slides it up, touch/mouse drag moves it (`.drag`, translateY, a quarter
-  of the way upwards), release past a quarter of its height (140 px at most) or a flick (> .5 px/ms) calls `arCardDismiss` (`.out`), else it
-  springs back; the ×, a tap on the sky (`arTap`) also dismiss. `.rcX` z-index 5 (the photo covered it).
+- 1.72.2: Sky view's card. A lock-on opens a peek (`arPeekHtml`: thumbnail, flight · type, height · distance ·
+  status, More, `#arTimer`); `arPeekWatch` (every frame from `arAimDraw`) dismisses it when the ring holds another
+  plane, or none for `AR_PEEK_MS` (3 s, the line runs down). Tapping the peek sets `arFull` (`planeBody`); a plane
+  tapped opens full at once. `#arCard` is a sheet: `arSheetIn` slides it up, touch/mouse drag moves it (`.drag`), a
+  release past a quarter of its height (140 px at most) or a flick (> .5 px/ms) calls `arCardDismiss` (`.out`; a new
+  lock-on meanwhile keeps its card), else it springs back; a tap on the sky (`arTap`) dismisses too. No ×.
 - 1.72.1 / relay 60: `GAME_KM` 10. Sky view labels get a chip from `arLoop` (★ / ★ POINTS on top within `gKm()`, ✓ +N
   locked on, NO PTS dimmed beyond; live location only); `#arCard` closes on a swipe down, a bigger round × and a handle.
 - 1.72 / relay 59, the game redesigned (plan: claude.ai artifact WfByuzJYgym9THBEH9r3By): `game_book(book)` makes the

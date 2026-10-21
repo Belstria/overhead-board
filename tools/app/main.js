@@ -1213,8 +1213,9 @@ function arAimDraw(g, W, H){
     g.strokeStyle = "#f0b429"; g.lineWidth = 5;
     g.beginPath(); g.arc(cx, cy, AR_AIM_R, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
   }
+  arPeekWatch(hex);
   if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
-    arAim.done = hex; arSel = hex; ctlSound.press(); arCardRender();
+    arAim.done = hex; arSel = hex; arFull = false; arAwayAt = 0; ctlSound.press(); arCardRender();
     gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
@@ -1253,32 +1254,64 @@ function arTap(e){
   const was = arSel;
   if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
+  arFull = true;                                     // a plane tapped: its whole card
   if (arSel || was) ctlSound.press();
   arCardRender();
 }
 let arCardSig = "";
+// 1.72.2: a lock-on opens a peek (the essentials, small, so the sky stays free; More opens the whole card); it goes by
+// itself when the ring is on another plane, or on none for AR_PEEK_MS. A plane tapped opens the whole card at once.
+const AR_PEEK_MS = 3000;
+let arFull = false, arAwayAt = 0;
+function arPeekHtml(o){
+  const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
+  lookupDetails(ac.hex);
+  const d = detailsOf(ac.hex) || {}, badge = badgeFor(liveFacts(ac, info)) || radarStatus(o);
+  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } });
+  const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
+  const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
+  const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
+  const html = `<div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
+    `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div>` +
+    `<button class="arMore" type="button">${escH(T("More"))} ⌃</button></div><div class="arTimer"><i id="arTimer"></i></div>`;
+  return {html, sig: "peek|" + [ac.hex, pic, name, type, sub].join("|")};
+}
 function arCardRender(){
   const box = $("arCard"), ac = arSel && arList.find(a => a.hex === arSel);
-  if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; return; }
+  if (!ac) { box.hidden = true; box.classList.remove("peek"); $("arHint").hidden = false; arCardSig = ""; return; }
   const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
-  const b = planeBody(o);
+  const b = arFull ? planeBody(o) : arPeekHtml(o);
   $("arHint").hidden = true;
   if (b.sig === arCardSig && !box.hidden) {
-    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+    if (b.dyn) for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
     return;
   }
-  arCardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
-  b.wire(box);
-  box.querySelector(".rcX").onclick = arCardDismiss;
+  arCardSig = b.sig; box.innerHTML = b.html; box.hidden = false;
+  box.classList.toggle("peek", !arFull);
+  if (b.wire) b.wire(box);
+  const peek = box.querySelector(".arPeek");
+  if (peek) peek.onclick = () => { ctlSound.press(); arFull = true; arCardSig = ""; arCardRender(); };   // the peek, or its More
+}
+// Called every frame from arAimDraw: the peek goes when the ring holds another plane, or none for AR_PEEK_MS.
+function arPeekWatch(hex){
+  if (!arSel || arFull || $("arCard").hidden) { arAwayAt = 0; return; }
+  if (hex === arSel) { arAwayAt = 0; if ($("arTimer")) $("arTimer").style.width = "100%"; return; }
+  if (hex) return arCardDismiss();
+  const now = Date.now();
+  if (!arAwayAt) arAwayAt = now;
+  const left = 1 - (now - arAwayAt) / AR_PEEK_MS;
+  if ($("arTimer")) $("arTimer").style.width = (Math.max(0, left) * 100).toFixed(1) + "%";
+  if (left <= 0) { arAwayAt = 0; arCardDismiss(); }
 }
 // 1.72.2: the Sky view card is a sheet: it slides up from the bottom, follows a finger dragged down, and on release
-// goes away (dragged a quarter of its height, at most 140 px, or flicked) or springs back. Its × and a tap on the sky close it too.
+// goes away (dragged a quarter of its height, at most 140 px, or flicked) or springs back. A tap on the sky closes it too.
 function arCardDismiss(){
   const box = $("arCard");
   if (box.hidden || box.classList.contains("out")) return;
   ctlSound.press();
   box.classList.remove("drag"); box.style.transform = ""; box.classList.add("out");
-  setTimeout(() => { box.classList.remove("out"); arSel = ""; arCardRender(); }, 260);
+  const was = arSel;
+  setTimeout(() => { box.classList.remove("out"); if (arSel === was) arSel = ""; arCardSig = ""; arCardRender(); }, 260);   // a new lock-on meanwhile keeps its card
 }
 { const box = $("arCard"); let drag = null, dragged = 0;
   const start = (y, x) => { drag = {y0: y, t0: performance.now(), dy: 0, on: false, top: box.scrollTop <= 0, x}; };

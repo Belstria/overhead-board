@@ -382,7 +382,17 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
-#arView .arCard .rcX{z-index:5;right:6px;top:6px;width:48px;height:48px;line-height:48px;font-size:var(--fs-3xl);color:var(--ink);background:rgba(255,255,255,.1);border-radius:50%}   /* 1.72.1: easier to close */
+/* 1.72.2: the peek a lock-on opens: a thumbnail, the essentials, More, and the line running down while you aim away */
+#arView .arCard.peek{max-height:none;overflow:hidden;padding:10px 12px 0}
+#arView .arCard.peek::before{display:none}
+.arPeek{display:flex;align-items:center;gap:12px}
+.arThumb{flex:none;width:64px;height:46px;border-radius:8px;object-fit:cover;background:linear-gradient(160deg,#c9d6e3,#6c87a3)}
+.arPeekT{flex:1;min-width:0;display:grid;gap:3px}
+.arPeekT b{font:700 var(--fs-l)/1.1 var(--f-board);color:var(--amber);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arPeekT span{font-size:var(--fs-s);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arMore{all:unset;cursor:pointer;flex:none;padding:9px 12px;border-radius:999px;background:#26272b;color:var(--ink);font:700 var(--fs-s)/1 var(--f-board)}
+.arTimer{height:3px;margin:10px -12px 0;background:#2a2b30}
+.arTimer i{display:block;height:100%;width:100%;background:var(--amber)}
 #arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: drag down */
 /* 1.72.2: a sheet: up from the bottom, after the finger while dragged, springing back or sliding away */
 #arView .arCard img{-webkit-user-drag:none}

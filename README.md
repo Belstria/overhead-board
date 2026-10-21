@@ -367,8 +367,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
   within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
   with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a gold ★ for the planes
-  within reach of points, ✓ and the bonus once locked on, and a dimmed NO PTS beyond 10 km; its card (1.72.2) slides up
-  from the bottom and goes away when dragged down and let go, with the big × or a tap on the sky. In the phone app a **score strip** under the header shows
+  within reach of points, ✓ and the bonus once locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
+  opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
+  seconds (a gold line runs down); tap it for the whole card, which goes when dragged down or with a tap on the sky. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**
   field under the board says what the plane on top gave, or would give. Tap the strip for the **Game** page: the
