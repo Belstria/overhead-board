@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 59
+RELAY_VERSION = 60
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -968,7 +968,7 @@ def game_json(book, day):
 # so a day at the airport can't run away with the league. Everything of the game (points, collections, bingo, trophies,
 # records) lives in the logbook's "game3" part, a small logbook of its own that started empty; the logbook keeps every plane.
 GAME3_V = 1
-GAME_KM = 8
+GAME_KM = 10                # relay 60: 10 km (8 in relay 59)
 TIER_BASE = {"common": 10, "uncommon": 30, "rare": 100, "epic": 250, "legendary": 500}
 GAME_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))
 LOCK_PCT = (0.25, 0.30, 0.40, 0.50)     # Sky view's lock-on: a share of the plane's points, more in a combo

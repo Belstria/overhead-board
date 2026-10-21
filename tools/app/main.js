@@ -1082,7 +1082,8 @@ async function arOpen(){
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arAng = null;
-  $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.");
+  $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
+    (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
   arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
@@ -1161,7 +1162,10 @@ function arLoop(){
     const pr = arProject(e, n, u, R, W, H), isFeat = feat && feat.hex === ac.hex;
     if (pr.edge && !isFeat) continue;
     const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
-    shown.push({ac, d, pr, isFeat, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
+    // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only)
+    const gx = gameOk() && S.live ? spotted.find(x => x.hex === ac.hex && x.lock) : null;
+    const chip = !(gameOk() && S.live) ? "" : gx ? "✓ +" + gx.lock : d / 1000 <= gKm() ? (isFeat ? T("★ POINTS") : "★") : T("NO PTS");
+    shown.push({ac, d, pr, isFeat, chip, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
       sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
   }
   shown.sort((a, b) => a.d - b.d);
@@ -1172,7 +1176,8 @@ function arLoop(){
     if (s.pr.edge) { arEdge(g, s, W, H); continue; }
     const {x, y} = s.pr;
     g.font = `700 15px ${FONT}`; const w1 = g.measureText(s.name).width; g.font = `500 12px ${FONT}`; const w2 = g.measureText(s.sub).width;
-    const bw = Math.max(w1, w2) + 18, bh = 40;
+    g.font = `700 10px ${FONT}`; const wc = s.chip ? g.measureText(s.chip).width + 12 : 0;
+    const bw = Math.max(w1 + (wc ? wc + 6 : 0), w2) + 18, bh = 40;
     let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
     for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
     boxes.push([bx, by, bw, bh]); arHits.push({hex: s.ac.hex, x, y, box: [bx, by, bw, bh]});
@@ -1180,9 +1185,16 @@ function arLoop(){
     if (s.ac.hex === arSel) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
     g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
     g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = s.far ? .62 : 1;                 // too far for points: dimmed
     g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
     g.fillStyle = s.isFeat ? "#111" : "#f3f0e8"; g.font = `700 15px ${FONT}`; g.fillText(s.name, bx + 9, by + 18);
     g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
+    if (s.chip) {
+      const cx = bx + 9 + w1 + 6;
+      g.fillStyle = s.far ? "rgba(255,255,255,.2)" : s.isFeat ? "#17140e" : "#f0b429"; rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
+      g.fillStyle = s.far ? "#e7e2d6" : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
+    }
+    g.globalAlpha = 1;
   }
   $("arCount").textContent = shown.length ? T("{n} planes around", {n: shown.length}) : T("No planes nearby right now.");
   arAimDraw(g, W, H);
@@ -1258,6 +1270,11 @@ function arCardRender(){
   b.wire(box);
   box.querySelector(".rcX").onclick = () => { ctlSound.press(); arSel = ""; arCardRender(); };
 }
+// 1.72.1: a swipe down on the Sky view card closes it too (as do its × and a tap on the sky).
+{ const box = $("arCard"); let y0 = null;
+  box.addEventListener("pointerdown", e => { y0 = e.clientY; });
+  box.addEventListener("pointerup", e => { if (y0 != null && e.clientY - y0 > 50) { ctlSound.press(); arSel = ""; arCardRender(); } y0 = null; });
+  box.addEventListener("touchmove", e => { if (y0 != null && box.scrollTop <= 0 && e.touches[0].clientY - y0 > 10) e.preventDefault(); }, {passive: false}); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
 $("arBtn").onclick = arOpen;
 $("arClose").onclick = arClose;
@@ -2265,12 +2282,13 @@ async function start(){
 }
 let booted = false;
 /* ---------- the game (1.72, relay 59): the score strip, the Points field, the Game page, Sky view's lock-on ----------
-   Only planes spotted with live location score, the first time they come within 8 km (the relay counts them). The
+   Only planes spotted with live location score, the first time they come within 10 km (the relay counts them). The
    strip under the header shows the total on flaps, the level bar and the league place, on every tab; tapping it opens
    the Game page (no tab of its own). When points come in, the rank chip flips to +N, the +N flies into the level bar,
    which fills, and the total rolls up. */
 const gameOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
 const G_BASE = {common: 10, uncommon: 30, rare: 100, epic: 250, legendary: 500};
+const gKm = () => (gme && gme.km) || 10;             // the game's circle, from the relay (10 km since relay 60)
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
 function gStripSetup(){
   const box = $("gStrip");
@@ -2404,7 +2422,7 @@ function gPtsRender(){
   else {
     const t = tierOf(feat.o.ac, feat.info), est = Math.round((G_BASE[t] || 30) * (feat.o.dist <= 1.5 ? 1.2 : feat.o.dist <= 4 ? 1.1 : 1));
     if (!S.live) { cls = "off"; n = "–"; why = T("This one would give about {n}. Turn on live location to score.", {n: est}); }
-    else if (feat.o.dist > 8) { cls = "wait"; n = "–"; why = T("Scores about {n} once it comes within 8 km.", {n: est}); }
+    else if (feat.o.dist > gKm()) { cls = "wait"; n = "–"; why = T("Scores about {n} once it comes within {k} km.", {n: est, k: gKm()}); }
     else { cls = "wait"; n = "…"; why = T("Counting …"); }
   }
   const html = `<b>${escH(n)}</b><span>${why}</span>`;
@@ -2428,7 +2446,7 @@ function renderGame(){
   let h = `<div class="gCard"><div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<span class="gRule">${escH(T("{n} points in all", {n: nf.format(g.points)}))} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span></div>`;
-  if (!S.live) h += `<p class="sum">${escH(T("Points only come with live location (Settings → Location), for planes within 8 km of you."))}</p>`;
+  if (!S.live) h += `<p class="sum">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`;
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
   h += `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
   h += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
@@ -2458,7 +2476,7 @@ async function gLockOn(hex){
   let r;
   try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); } catch { return; }
   if (!r || !r.bonus) {
-    if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within 8 km."); }
+    if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }
     return;
   }
   const ac = arList.find(a => a.hex === hex) || {}, info = (enrich(ac) || {}).info || {};

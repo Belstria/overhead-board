@@ -382,6 +382,8 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
+#arView .arCard .rcX{right:6px;top:6px;width:48px;height:48px;line-height:48px;font-size:var(--fs-3xl);color:var(--ink);background:rgba(255,255,255,.1);border-radius:50%}   /* 1.72.1: easier to close */
+#arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: swipe down */
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:62vh;overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
