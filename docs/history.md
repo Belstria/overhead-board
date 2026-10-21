@@ -10,6 +10,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.71.1: the Android app updates itself (`Updater.kt`): `check()` on resume, at most every 3 h, asks GitHub's
+  `releases/latest` (tag `android-build-N` = versionCode); newer → dialog Update / Later (Later skips that build 24 h).
+  Update: `canRequestPackageInstalls` (else the phone's settings, `resume()` carries on), downloads overhead.apk (only
+  from the repository's release downloads) into a `PackageInstaller` session, commit's answer comes back through
+  `onNewIntent` (`ACTION_INSTALLED`; pending user action starts Android's prompt). `UPDATE_PACKAGES_WITHOUT_USER_ACTION`
+  lets later updates skip the prompt where Android allows it. Bridge `checkUpdate()`; Device link `updBtn`.
 - 1.71 Glass (designed with Gemini 3.1 Pro: rounds 1–3 in its chat, "Glasshouse"): `tools/glass/build.py` builds the
   light version with glass.js's regions over light.js's (main.js gained an empty `//@L:extra` region before
   `start()`) and glass.css after light.css. glass.js: `G` state; the map's colours by mutating `RADAR_MAP_LOOK` and

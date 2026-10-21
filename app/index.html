@@ -1168,7 +1168,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=552eead569"></script>
+<script src="../test/i18n.js?v=d7b2aa5524"></script>
 <script>
 (() => {
 "use strict";
@@ -6394,6 +6394,7 @@ function viewItemHtml(it){
         `<span class="devIco">${DEV_ICON[ico]}</span><b>${escH(T(name))}</b><small>${escH(T(line))}</small></a>`).join("")}</div>` +
       `<div class="devLinks"><button class="lnk" type="button" id="tipsBtn">${T("Show the tips again")}</button>` +
       (android && !tv ? `<button class="lnk" type="button" id="relayBtn">${T("Change relay")}</button>` : "") +
+      (window.OverheadAndroid && window.OverheadAndroid.checkUpdate && !tv ? `<button class="lnk" type="button" id="updBtn">${T("Check for app updates")}</button>` : "") +   // 1.71.1
       (tv ? `<button class="lnk" type="button" id="acBack">${T("Back to Settings")}</button>` : "") + `</div>`;
   }
   if (it.type === "privacy") return `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>` +
@@ -6411,6 +6412,7 @@ function wireViews(box){
   if (q("acBack")) q("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
   if (q("uiBtn")) q("uiBtn").onclick = () => { ctlSound.press(); try { localStorage.setItem("od.ui", COCKPIT_FOR === "light" ? "app" : "light"); } catch {} };
   if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
+  if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.checkUpdate(); };
   if (q("signOut")) q("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && acctHas ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -7214,6 +7216,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.71.1", date: "2026-10-21", notes: [
+    "The Android app updates itself: it offers a new version when there is one, or look in Settings → Device → Check for app updates.",
+  ]},
   {v: "1.71", date: "2026-10-21", notes: [
     "A preview of a new phone design, Glass: light, with the live map filling the screen and the plane on a photo card (Settings → Device → Glass).",
   ]},

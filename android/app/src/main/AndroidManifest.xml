@@ -10,6 +10,10 @@
     <!-- 1.70.2: Sky view's camera (asked for when Sky view opens) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- 1.71.1: the app installs its own updates from GitHub (Updater.kt); Android asks before each one, or after the
+         first, may let it update itself without asking -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
     <!-- The relay is plain http on the home network, at whatever address the computer has. -->
     <application

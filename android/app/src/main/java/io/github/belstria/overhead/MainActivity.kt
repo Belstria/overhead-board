@@ -65,7 +65,8 @@ class MainActivity : Activity() {
     private var searching = false
     private var dialog: AlertDialog? = null
     private var handover = 0
-    private var camAsk: android.webkit.PermissionRequest? = null   // Sky view's camera request, while Android asks                       // loading the relay's https address for the first time (its /join/ page)
+    private var camAsk: android.webkit.PermissionRequest? = null   // Sky view's camera request, while Android asks
+    private val updater by lazy { Updater(this) }   // 1.71.1: the app's own updates from GitHub
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
@@ -233,6 +234,7 @@ class MainActivity : Activity() {
     /** 1.70: a tapped notification opens its page (the app may be open already). */
     override fun onNewIntent(next: Intent) {
         super.onNewIntent(next)
+        if (updater.handle(next)) return
         setIntent(next)
         val path = next.getStringExtra(OPEN_URL)?.takeIf { it.startsWith("/") && !it.startsWith("//") } ?: return
         next.removeExtra(OPEN_URL)
@@ -428,6 +430,12 @@ class MainActivity : Activity() {
             }
         }
 
+        /** 1.71.1: Settings → Check for app updates. */
+        @JavascriptInterface
+        fun checkUpdate() {
+            main.post { updater.check(asked = true) }
+        }
+
         @JavascriptInterface
         fun locate() {
             main.post {
@@ -522,6 +530,8 @@ class MainActivity : Activity() {
         super.onResume()
         web.onResume()                              // paused in onPause: without this the page stayed frozen and black
         applyOrientation()
+        updater.resume()                            // back from allowing installs in the phone's settings
+        updater.check()
     }
 
     override fun onPause() {
@@ -531,6 +541,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         dialog?.dismiss()
+        updater.close()
         web.destroy()
         super.onDestroy()
     }
