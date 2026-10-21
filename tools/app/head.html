@@ -382,19 +382,28 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
-/* 1.72.2: the peek a lock-on opens: a thumbnail, the essentials, More, and the line running down while you aim away */
-#arView .arCard.peek{max-height:none;overflow:hidden;padding:10px 12px 0}
-#arView .arCard.peek::before{display:none}
+/* 1.72.2-3: the Sky view card: the small card a lock-on opens (thumbnail, essentials, "swipe up", the line running down
+   while you aim away) over the whole card, which it grows into as it's swiped up (height, fades, the thumbnail as a ghost
+   flying into the photo). A sheet: up from the bottom, after the finger, springing back or sliding away. */
+#arView .arCard{padding:0;overflow:hidden;max-height:none}
+.arL{padding:0 12px}
+.arPeekL{position:absolute;left:0;right:0;top:0;z-index:2;padding-bottom:0;cursor:pointer}
+.arFullL{padding:0 14px 14px}
+.arGrip{display:block;width:40px;height:4px;margin:8px auto 8px;border-radius:2px;background:rgba(255,255,255,.28)}
 .arPeek{display:flex;align-items:center;gap:12px}
 .arThumb{flex:none;width:64px;height:46px;border-radius:8px;object-fit:cover;background:linear-gradient(160deg,#c9d6e3,#6c87a3)}
 .arPeekT{flex:1;min-width:0;display:grid;gap:3px}
 .arPeekT b{font:700 var(--fs-l)/1.1 var(--f-board);color:var(--amber);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arPeekT span{font-size:var(--fs-s);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arMore{all:unset;cursor:pointer;flex:none;padding:9px 12px;border-radius:999px;background:#26272b;color:var(--ink);font:700 var(--fs-s)/1 var(--f-board)}
+.arSwipe{display:flex;align-items:center;justify-content:center;gap:5px;margin:8px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.arSwipe svg{width:14px;height:14px}
+@media (prefers-reduced-motion:no-preference){.arSwipe svg{animation:arNudge 1.6s ease-in-out infinite}}
+@keyframes arNudge{50%{transform:translateY(-3px)}}
 .arTimer{height:3px;margin:10px -12px 0;background:#2a2b30}
 .arTimer i{display:block;height:100%;width:100%;background:var(--amber)}
-#arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: drag down */
-/* 1.72.2: a sheet: up from the bottom, after the finger while dragged, springing back or sliding away */
+.arGhost{position:absolute;z-index:3;display:none;object-fit:cover;border-radius:8px;pointer-events:none}
+#arView .arCard.anim,#arView .arCard.anim .arL,#arView .arCard.anim .arGhost{transition:height .3s cubic-bezier(.2,.9,.25,1),opacity .3s,left .3s cubic-bezier(.2,.9,.25,1),
+  top .3s cubic-bezier(.2,.9,.25,1),width .3s cubic-bezier(.2,.9,.25,1),transform .3s cubic-bezier(.2,.9,.25,1)}
 #arView .arCard img{-webkit-user-drag:none}
 #arView .arCard:not([hidden]){user-select:none;-webkit-user-select:none;animation:arSheetIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .3s cubic-bezier(.2,.9,.25,1);touch-action:pan-y}
 #arView .arCard.drag{transition:none}

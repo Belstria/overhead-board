@@ -10,6 +10,10 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.72.3: the Sky view card's two layers (`.arPeekL` over `.arFullL`, both rendered) and `arSet(p)`: height between
+  them, the layers' fades, `.arGhost` (the photo) flying from the thumbnail to `.cPicW`; the drag sets p (up from the
+  small card, down from the whole one; below the small card it translates out), `arTo` eases to 0 or 1 on release
+  (past 30 % or a flick), `.anim` while it does. "Swipe up for more" replaces More; a tap on the small card opens it too.
 - 1.72.2: Sky view's card. A lock-on opens a peek (`arPeekHtml`: thumbnail, flight · type, height · distance ·
   status, More, `#arTimer`); `arPeekWatch` (every frame from `arAimDraw`) dismisses it when the ring holds another
   plane, or none for `AR_PEEK_MS` (3 s, the line runs down). Tapping the peek sets `arFull` (`planeBody`); a plane

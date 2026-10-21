@@ -773,19 +773,28 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop .cap{width:auto;padding:0 12px}
 #arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
-/* 1.72.2: the peek a lock-on opens: a thumbnail, the essentials, More, and the line running down while you aim away */
-#arView .arCard.peek{max-height:none;overflow:hidden;padding:10px 12px 0}
-#arView .arCard.peek::before{display:none}
+/* 1.72.2-3: the Sky view card: the small card a lock-on opens (thumbnail, essentials, "swipe up", the line running down
+   while you aim away) over the whole card, which it grows into as it's swiped up (height, fades, the thumbnail as a ghost
+   flying into the photo). A sheet: up from the bottom, after the finger, springing back or sliding away. */
+#arView .arCard{padding:0;overflow:hidden;max-height:none}
+.arL{padding:0 12px}
+.arPeekL{position:absolute;left:0;right:0;top:0;z-index:2;padding-bottom:0;cursor:pointer}
+.arFullL{padding:0 14px 14px}
+.arGrip{display:block;width:40px;height:4px;margin:8px auto 8px;border-radius:2px;background:rgba(255,255,255,.28)}
 .arPeek{display:flex;align-items:center;gap:12px}
 .arThumb{flex:none;width:64px;height:46px;border-radius:8px;object-fit:cover;background:linear-gradient(160deg,#c9d6e3,#6c87a3)}
 .arPeekT{flex:1;min-width:0;display:grid;gap:3px}
 .arPeekT b{font:700 var(--fs-l)/1.1 var(--f-board);color:var(--amber);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arPeekT span{font-size:var(--fs-s);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.arMore{all:unset;cursor:pointer;flex:none;padding:9px 12px;border-radius:999px;background:#26272b;color:var(--ink);font:700 var(--fs-s)/1 var(--f-board)}
+.arSwipe{display:flex;align-items:center;justify-content:center;gap:5px;margin:8px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.arSwipe svg{width:14px;height:14px}
+@media (prefers-reduced-motion:no-preference){.arSwipe svg{animation:arNudge 1.6s ease-in-out infinite}}
+@keyframes arNudge{50%{transform:translateY(-3px)}}
 .arTimer{height:3px;margin:10px -12px 0;background:#2a2b30}
 .arTimer i{display:block;height:100%;width:100%;background:var(--amber)}
-#arView .arCard::before{content:"";display:block;width:40px;height:4px;margin:-4px auto 8px;border-radius:2px;background:rgba(255,255,255,.25)}   /* a handle: drag down */
-/* 1.72.2: a sheet: up from the bottom, after the finger while dragged, springing back or sliding away */
+.arGhost{position:absolute;z-index:3;display:none;object-fit:cover;border-radius:8px;pointer-events:none}
+#arView .arCard.anim,#arView .arCard.anim .arL,#arView .arCard.anim .arGhost{transition:height .3s cubic-bezier(.2,.9,.25,1),opacity .3s,left .3s cubic-bezier(.2,.9,.25,1),
+  top .3s cubic-bezier(.2,.9,.25,1),width .3s cubic-bezier(.2,.9,.25,1),transform .3s cubic-bezier(.2,.9,.25,1)}
 #arView .arCard img{-webkit-user-drag:none}
 #arView .arCard:not([hidden]){user-select:none;-webkit-user-select:none;animation:arSheetIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .3s cubic-bezier(.2,.9,.25,1);touch-action:pan-y}
 #arView .arCard.drag{transition:none}
@@ -6199,7 +6208,7 @@ function arAimDraw(g, W, H){
   }
   arPeekWatch(hex);
   if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
-    arAim.done = hex; arSel = hex; arFull = false; arAwayAt = 0; ctlSound.press(); arCardRender();
+    arAim.done = hex; arSel = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.press(); arCardRender();
     gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
@@ -6238,15 +6247,16 @@ function arTap(e){
   const was = arSel;
   if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
-  arFull = true;                                     // a plane tapped: its whole card
+  arFull = !!arSel;                                  // a plane tapped: its whole card
   if (arSel || was) ctlSound.press();
   arCardRender();
 }
 let arCardSig = "";
-// 1.72.2: a lock-on opens a peek (the essentials, small, so the sky stays free; More opens the whole card); it goes by
-// itself when the ring is on another plane, or on none for AR_PEEK_MS. A plane tapped opens the whole card at once.
+// 1.72.2: a lock-on opens the small card (the essentials, so the sky stays free); it goes by itself when the ring holds
+// another plane, or none for AR_PEEK_MS. 1.72.3: swiped up it grows into the whole card under the finger (the
+// thumbnail into the photo, the rest fading in); a plane tapped opens the whole card at once.
 const AR_PEEK_MS = 3000;
-let arFull = false, arAwayAt = 0;
+let arFull = false, arAwayAt = 0, arP = 0;           // arP: 0 the small card, 1 the whole card, in between while dragged
 function arPeekHtml(o){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
@@ -6255,30 +6265,64 @@ function arPeekHtml(o){
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
   const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
-  const html = `<div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
-    `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div>` +
-    `<button class="arMore" type="button">${escH(T("More"))} ⌃</button></div><div class="arTimer"><i id="arTimer"></i></div>`;
-  return {html, sig: "peek|" + [ac.hex, pic, name, type, sub].join("|")};
+  const html = `<i class="arGrip"></i><div class="arPeek">${pic ? `<img class="arThumb" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` : `<span class="arThumb"></span>`}` +
+    `<div class="arPeekT"><b>${escH([name, type].filter(Boolean).join(" · "))}</b><span>${escH(sub)}</span></div></div>` +
+    `<p class="arSwipe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${escH(T("Swipe up for more"))}</p>` +
+    `<div class="arTimer"><i id="arTimer"></i></div>`;
+  return {html, pic, sig: [ac.hex, pic, name, type, sub].join("|")};
 }
 function arCardRender(){
   const box = $("arCard"), ac = arSel && arList.find(a => a.hex === arSel);
-  if (!ac) { box.hidden = true; box.classList.remove("peek"); $("arHint").hidden = false; arCardSig = ""; return; }
+  if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; arP = 0; return; }
+  if (box.classList.contains("drag") || box.classList.contains("anim")) return;   // not under the finger
   const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
-  const b = arFull ? planeBody(o) : arPeekHtml(o);
+  const pk = arPeekHtml(o), b = planeBody(o), sig = pk.sig + "|" + b.sig;
   $("arHint").hidden = true;
-  if (b.sig === arCardSig && !box.hidden) {
-    if (b.dyn) for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
+  if (sig === arCardSig && !box.hidden) {
+    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
     return;
   }
-  arCardSig = b.sig; box.innerHTML = b.html; box.hidden = false;
-  box.classList.toggle("peek", !arFull);
-  if (b.wire) b.wire(box);
-  const peek = box.querySelector(".arPeek");
-  if (peek) peek.onclick = () => { ctlSound.press(); arFull = true; arCardSig = ""; arCardRender(); };   // the peek, or its More
+  arCardSig = sig;
+  box.innerHTML = `<div class="arL arPeekL">${pk.html}</div><div class="arL arFullL"><i class="arGrip"></i>${b.html}</div>` +
+    (pk.pic ? `<img class="arGhost" src="${escH(pk.pic)}" alt="" referrerpolicy="no-referrer">` : "");
+  box.hidden = false;
+  b.wire(box.querySelector(".arFullL"));
+  box.querySelector(".arPeekL").onclick = () => { if (!arP) { ctlSound.press(); arTo(1); } };
+  arSet(arFull ? 1 : 0);
+  for (const im of box.querySelectorAll("img")) im.addEventListener("load", () => { if (!box.classList.contains("drag")) arSet(arP); }, {once: true});
 }
-// Called every frame from arAimDraw: the peek goes when the ring holds another plane, or none for AR_PEEK_MS.
+// Lays the card out at p (0 small, 1 whole): its height, the two layers' fades, and the thumbnail on its way to the photo.
+function arSet(p){
+  const box = $("arCard"), pk = box.querySelector(".arPeekL"), fl = box.querySelector(".arFullL");
+  if (!pk || !fl) return;
+  arP = p = Math.max(0, Math.min(1, p));
+  const PH = pk.offsetHeight, FH = Math.max(PH, Math.min(fl.offsetHeight, innerHeight * .62));
+  box.style.height = (PH + (FH - PH) * p).toFixed(1) + "px";
+  box.style.overflowY = p >= 1 ? "auto" : "hidden";
+  if (p < 1) box.scrollTop = 0;
+  pk.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(3); pk.style.pointerEvents = p > .4 ? "none" : "";
+  fl.style.opacity = Math.max(0, (p - .45) / .55).toFixed(3); fl.style.pointerEvents = p >= 1 ? "" : "none";
+  const th = pk.querySelector("img.arThumb"), ph = fl.querySelector(".cPicW"), gh = box.querySelector(".arGhost");
+  if (ph) ph.style.visibility = p >= 1 || !gh ? "" : "hidden";
+  if (th) th.style.visibility = p > 0 && gh ? "hidden" : "";
+  if (gh && th && ph) {
+    const a = {l: th.offsetLeft + pk.offsetLeft, t: th.offsetTop + pk.offsetTop, w: th.offsetWidth, h: th.offsetHeight};
+    const z = {l: ph.offsetLeft + fl.offsetLeft, t: ph.offsetTop + fl.offsetTop, w: ph.offsetWidth, h: ph.querySelector("img") ? ph.querySelector("img").offsetHeight : ph.offsetHeight};
+    const m = (x, y) => (x + (y - x) * p).toFixed(1) + "px";
+    Object.assign(gh.style, {display: p > 0 && p < 1 ? "block" : "none", left: m(a.l, z.l), top: m(a.t, z.t), width: m(a.w, z.w), height: m(a.h, z.h)});
+  }
+  arFull = p >= 1;
+}
+// Eases the card to the small or the whole one (after a release, a tap).
+function arTo(p){
+  const box = $("arCard");
+  box.classList.add("anim"); arSet(p);
+  clearTimeout(arTo.t); arTo.t = setTimeout(() => { box.classList.remove("anim"); arSet(p); arAwayAt = 0; }, 320);
+}
+// Called every frame from arAimDraw: the small card goes when the ring holds another plane, or none for AR_PEEK_MS.
 function arPeekWatch(hex){
-  if (!arSel || arFull || $("arCard").hidden) { arAwayAt = 0; return; }
+  const box = $("arCard");
+  if (!arSel || arP > 0 || box.hidden || box.classList.contains("drag")) { arAwayAt = 0; return; }
   if (hex === arSel) { arAwayAt = 0; if ($("arTimer")) $("arTimer").style.width = "100%"; return; }
   if (hex) return arCardDismiss();
   const now = Date.now();
@@ -6287,36 +6331,45 @@ function arPeekWatch(hex){
   if ($("arTimer")) $("arTimer").style.width = (Math.max(0, left) * 100).toFixed(1) + "%";
   if (left <= 0) { arAwayAt = 0; arCardDismiss(); }
 }
-// 1.72.2: the Sky view card is a sheet: it slides up from the bottom, follows a finger dragged down, and on release
-// goes away (dragged a quarter of its height, at most 140 px, or flicked) or springs back. A tap on the sky closes it too.
+// The card slides away (a drag down, a tap on the sky, the timer).
 function arCardDismiss(){
   const box = $("arCard");
   if (box.hidden || box.classList.contains("out")) return;
   ctlSound.press();
-  box.classList.remove("drag"); box.style.transform = ""; box.classList.add("out");
+  box.classList.remove("drag", "anim"); box.style.transform = ""; box.classList.add("out");
   const was = arSel;
-  setTimeout(() => { box.classList.remove("out"); if (arSel === was) arSel = ""; arCardSig = ""; arCardRender(); }, 260);   // a new lock-on meanwhile keeps its card
+  setTimeout(() => { box.classList.remove("out"); if (arSel === was) { arSel = ""; arFull = false; } arCardSig = ""; arCardRender(); }, 260);   // a new lock-on meanwhile keeps its card
 }
+// The finger: up on the small card grows it (released past 30 %, or flicked up, it opens; else it shrinks back); down
+// on the small card puts it away; down on the whole card shrinks it back to the small one, or further puts it away.
 { const box = $("arCard"); let drag = null, dragged = 0;
-  const start = (y, x) => { drag = {y0: y, t0: performance.now(), dy: 0, on: false, top: box.scrollTop <= 0, x}; };
+  const start = y => { drag = {y0: y, p0: arP, on: false, top: box.scrollTop <= 0, dy: 0, v: 0, lt: performance.now(), ly: y}; };
   const move = (y, e) => {
-    if (!drag || !drag.top) return;
+    if (!drag) return;
     const dy = y - drag.y0;
-    if (!drag.on && dy > 6) { drag.on = true; drag.y0 = y; drag.t0 = performance.now(); box.classList.add("drag"); }
-    if (!drag.on) return;
-    if (e.cancelable) e.preventDefault();             // the card follows the finger instead of scrolling
-    const d = y - drag.y0;
-    drag.dy = d > 0 ? d : d / 4;                      // a little give upwards
-    drag.v = (d - (drag.last || 0)) / Math.max(1, performance.now() - (drag.lt || drag.t0)); drag.last = d; drag.lt = performance.now();
-    box.style.transform = `translateY(${drag.dy}px)`;
+    if (!drag.on) {
+      if (Math.abs(dy) < 6) return;
+      if (drag.p0 >= 1 && (dy < 0 || !drag.top)) { drag = null; return; }   // the whole card scrolls
+      drag.on = true; drag.y0 = y; box.classList.add("drag"); arAwayAt = 0;
+    }
+    if (e.cancelable) e.preventDefault();
+    const now = performance.now(); drag.v = (y - drag.ly) / Math.max(1, now - drag.lt); drag.ly = y; drag.lt = now;
+    const d = drag.dy = y - drag.y0, pk = box.querySelector(".arPeekL"), fl = box.querySelector(".arFullL");
+    const span = Math.max(1, Math.max(pk.offsetHeight, Math.min(fl.offsetHeight, innerHeight * .62)) - pk.offsetHeight);
+    const p = drag.p0 - d / span;
+    if (p >= 0) { arSet(Math.min(1, p)); box.style.transform = p > 1 ? `translateY(${(-(p - 1) * span / 6).toFixed(1)}px)` : ""; }
+    else { arSet(0); box.style.transform = `translateY(${(-p * span).toFixed(1)}px)`; }   // below the small card: on its way out
   };
   const end = () => {
     const d = drag; drag = null;
     if (!d || !d.on) return;
     dragged = Date.now();                            // the tap that ends a drag isn't a tap on the card
     box.classList.remove("drag");
-    if (d.dy > Math.min(140, box.offsetHeight / 4) || (d.v || 0) > .5) arCardDismiss();
-    else box.style.transform = "";
+    const over = parseFloat((box.style.transform.match(/translateY\(([-\d.]+)px/) || [])[1] || 0);
+    if (over > 50 || (arP === 0 && d.v > .5 && d.dy > 0)) return arCardDismiss();
+    box.style.transform = "";
+    if (d.p0 < 1) arTo(arP > .3 || d.v < -.5 ? 1 : 0);
+    else arTo(arP < .7 || d.v > .5 ? 0 : 1);
   };
   box.addEventListener("click", e => { if (Date.now() - dragged < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
   box.addEventListener("dragstart", e => e.preventDefault());   // the photo isn't picked up, the card is
@@ -7477,6 +7530,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.72.3", date: "2026-10-21", notes: [
+    "Sky view: swipe the small card up and it grows into the whole card, its picture growing with it; drag it down to go back.",
+  ]},
   {v: "1.72.2", date: "2026-10-21", notes: [
     "Sky view: a lock-on opens a small card with the essentials that goes by itself when you aim away; tap it for the whole card.",
     "Sky view's cards slide up from the bottom; drag one down and let go, or tap the sky, to put it away.",
