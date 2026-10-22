@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 61
+RELAY_VERSION = 62
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -4237,10 +4237,31 @@ def _geo_get(url):
     return out
 
 
+# relay 62: names that are an administrative area rather than a place (Greece's municipal units come as Nominatim's
+# "city": "Ia Municipal Unit" above the village Oia, "Thira Municipal Unit" above the town Fira)
+_GEO_ADMIN = re.compile(r"(?i)\b(municipal unit|regional unit|municipal district|municipality|community of|gemeindebezirk|regionalbezirk)\b")
+
+
+def _geo_admin_clean(v):
+    v = re.sub(r"(?i)\b(municipality|community|district|county) of\s+", "", v)
+    v = re.sub(r"(?i)\s*\b(municipal unit|regional unit|municipal district|municipality|gemeindebezirk|regionalbezirk)\b\s*", " ", v)
+    return re.sub(r"\s+", " ", v).strip(" ,-")
+
+
 def _geo_name(a, fallback=""):
+    """A place's name from Nominatim's address: the city, town or village before the area round it. Relay 62: a name
+    that is an administrative area is passed over for the next one, and only cleaned up when nothing else is there."""
     a = a or {}
-    return (a.get("city") or a.get("town") or a.get("village") or a.get("municipality") or a.get("suburb")
-            or a.get("county") or a.get("state") or fallback or "")
+    near = ("city", "town", "village", "suburb", "hamlet")
+    for k in near:                                   # a place, not an area
+        v = str(a.get(k) or "").strip()
+        if v and not _GEO_ADMIN.search(v):
+            return v
+    for k in near + ("city_district", "municipality", "county", "state"):   # else the nearest area, without the words
+        v = _geo_admin_clean(str(a.get(k) or ""))
+        if v:
+            return v
+    return fallback or ""
 
 
 def geo_search(text, lang="en"):
@@ -4260,7 +4281,8 @@ def geo_search(text, lang="en"):
 
 
 def geo_reverse(lat, lon, lang="en"):
-    j = _geo_get(f"{NOMINATIM}/reverse?format=jsonv2&zoom=12&accept-language={urllib.parse.quote(lang)}&lat={lat:.3f}&lon={lon:.3f}")
+    # relay 62: zoom 13 (villages and suburbs; 12 stopped at the area above a village, "Ia Municipal Unit" for Oia)
+    j = _geo_get(f"{NOMINATIM}/reverse?format=jsonv2&zoom=13&accept-language={urllib.parse.quote(lang)}&lat={lat:.3f}&lon={lon:.3f}")
     if not isinstance(j, dict):
         return {"status": "error"}
     return {"status": "ok", "name": _geo_name(j.get("address"), j.get("name") or "")}
