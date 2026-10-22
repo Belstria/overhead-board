@@ -11,6 +11,9 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- Push to main (Dave's to-do 12, 23 Oct 2026): the main board goes from 1.37 to the test board's 1.79.2, with `i18n.js` and
+  `sounds.js` next to it for the first time; `push_main.py` points the main copy at `fonts/fonts.css` (the test board's
+  `../fonts/` works through the relay, but on GitHub Pages' own address it leaves the project).
 - 1.79.2 (Dave's picks: medals without coloured dots, and the switch): `trophiesHtml` has a `.seg.trSeg` switch
   (`gTrTab`: near, won, todo; kept across redraws, wired by `trWire` on the club page and the Logbook's Records) in
   place of the `trFold` folds and `gTrOpen`. Closest is the three ladders nearest their next rank; Still to win is
