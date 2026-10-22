@@ -323,6 +323,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
   counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
+- **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
+  tap beside it, and it slides away; one opened over another glides to its new size.
 - **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then

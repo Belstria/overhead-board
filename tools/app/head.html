@@ -780,6 +780,20 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .yearCard{border-color:rgba(240,180,41,.35)} .gPts.off{border-color:#5a2a2d}
 #cardBox .cardIn{border-radius:18px 18px 0 0;background:var(--sheet-bg)}
 @media (min-width:700px){#cardBox .cardIn{border-radius:18px}}
+/* 1.78: cards are sheets, like Sky view's: floating above the bottom with a grip, up from below on a spring, after the
+   finger when dragged down, away down when let go past the mark or flicked (or tapped beside), the dark behind fading;
+   a card that changes while open fades into its new content and height */
+#cardBox{align-items:flex-end;padding:0 10px calc(var(--sa-bottom) + 10px);background:rgba(0,0,0,0);transition:background .25s}
+#cardBox.in{background:rgba(0,0,0,.55)}
+#cardBox .cardIn{border-radius:18px;max-height:calc(100dvh - var(--sa-top) - var(--sa-bottom) - 30px);padding-top:24px;
+  transform:translateY(calc(100% + 40px));transition:transform .38s cubic-bezier(.2,.9,.25,1),height .3s cubic-bezier(.2,.9,.25,1)}
+#cardBox.in .cardIn{transform:none}
+#cardBox.closing .cardIn{transform:translateY(calc(100% + 40px));transition:transform .26s cubic-bezier(.4,0,.8,.5)}
+#cardBox.drag .cardIn{transition:none}
+#cardBox .cardIn::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.28)}
+#cardBox .cardIn.swap>*{animation:cardSwap .24s ease-out}
+@keyframes cardSwap{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){#cardBox,#cardBox .cardIn,#cardBox.closing .cardIn{transition:none}#cardBox .cardIn.swap>*{animation:none}}
 #toasts .toast{background:var(--sheet-bg);border-radius:14px}
 #arView .arCard{background:var(--sheet-bg);border-radius:18px}
 .arTourBox{background:var(--sheet-bg);border:var(--box-bd);border-radius:14px}

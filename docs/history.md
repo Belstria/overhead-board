@@ -11,6 +11,14 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.78: the app's cards are sheets like Sky view's card. The board's `cardOpen`/`cardClose` call the app's
+  `cardSheetPre`/`cardSheetPost`/`cardSheetClose` (typeof-guarded, in lint's OPTIONAL; the TV boards keep their cards):
+  `#cardBox.in` slides `.cardIn` up (0.38 s, Sky view's spring) and fades the dark in; `.closing` slides it down (0.26 s)
+  and hides it after; `cardOpenNow` is false while closing. A card replaced while open glides from its old height to the
+  new one and fades its content in (`.swap`); the same card again does nothing. Touch: down from the top of an
+  unscrolled card drags it (`.drag`, above the start a sixth of the way), let go past 90 px or flicked (0.5 px/ms) it
+  closes, else springs back; the click ending a drag is swallowed. Floating 10 px from the sides and the bottom, with a
+  grip (`.cardIn::before`).
 - 1.77: **Opening sound** (head.html's splash script, `splashSound`): with sound on and outside quiet hours (read
   straight from the stored settings, the profile's or the relay defaults), where the phone lets a page play before a tap
   (the Android app: `mediaPlaybackRequiresUserGesture = false` already; a home-screen web app on Android; never an
