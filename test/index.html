@@ -1012,7 +1012,7 @@ for (const [k, en] of [["planes", "Planes"], ["types", "Types"], ["airlines", "A
   .forEach((en, i) => vdef("review", `rwf${i}`, {kind:"chars", n:24, dur:60, style: i < 2 ? "amber" : "ink", label:[en, ""]}));
 vdef("review", "rwNew", {kind:"chars", n:50, dur:55, label:["New types", ""]});
 for (let i = 0; i < CV_SETS; i++) {
-  vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Collections", ""] : null});
+  vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Sets", ""] : null});   // 1.79: not "Collections"
   vdef("collection", `cs${i}n`,    {kind:"chars", n:7, dur:55, loud:.4});
 }
 // The airport style's lists page (pages layout): take-offs on the left, landings on the right, under the plane on top.
@@ -3271,7 +3271,7 @@ const TROPHY_TEXT = {
   dayairlines40: ["Airline parade", "40 airlines in one day"],
   beluga: ["Whale watcher", "An Airbus Beluga"],
   antonov: ["Heavy lifter", "An Antonov An-124, An-225 or An-22"],
-  allsets: ["Completionist", "Every collection complete"],
+  allsets: ["Completionist", "Every set complete"],
   bingo: ["Bingo!", "A line on the weekly bingo card"],
   fullcard: ["Full card", "All nine on the weekly bingo card"]};
 const TROPHY_TIER = new Map(TROPHY_LADDERS.flatMap(([key, text, tiers]) => tiers.map(([id, at, name]) => [id, {key, text, at, name}])));
@@ -3913,7 +3913,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
 // 1.45: the ding for a new plane on top only sounds where the top half shows (no view open); the chimes play anywhere.
 function onMainPage(){ return !view; }
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Collection", "Sammlung"], records: ["Records & trophies", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Your catch", ""], records: ["Records & trophies", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -6635,6 +6635,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.79", date: "2026-10-22", notes: [
+    "Spotters' Club: your level, today's points, your place this week and your streak in one card; the rules open from How points work.",
+    "Your catch (by rarity) and Sets (to complete) replace Collection and Collections.",
+    "Trophies show the three closest to winning; the ones won and the ones still to win fold away.",
+  ]},
   {v: "1.78.2", date: "2026-10-22", notes: [
     "Spotted today shows the most seen aircraft types instead of the busiest hour and the first plane of the day.",
   ]},

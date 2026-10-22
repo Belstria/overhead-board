@@ -11,6 +11,14 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.79 (Dave's picks A, B, B from the club options): `renderGame` starts with one `.gHero` card (level, bar,
+  `into / need`, the live-off note inside, `.gTiles` with today's points, `g.rank` and the streak, the `#gHow` button);
+  `gHowCard` holds the rules (tier values with their icons, the extras, today's `gTaper`, the Sky view bonus); the
+  league's heading carries its switch (`.gHead`). `collectionHtml` says "Your catch" and "Sets" without the points line
+  (the board's view name and its Sets label too; the Completionist trophy says "Every set complete"). `trophiesHtml`:
+  the three ladders closest to their next tier (`.trNear`, bright, the requirement inline, pips and bar), then
+  `<details class="trFold">` for Won and Still to win, one line each, their state kept in `gTrOpen` across redraws.
+  The page went from about 3,400 to 2,200 px.
 - 1.78.2: the app's Spotted today facts (`todayNumbers`) drop Busiest hour and First of the day and gain Most seen
   types (`topTypes`: the day's list counted by type, the top three as "A320 ×12").
 - 1.78.1: the score strip follows `S.live` at once (`gStripLive`, checked every 300 ms; a change redraws it and forces
