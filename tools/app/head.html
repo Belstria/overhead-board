@@ -614,9 +614,12 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #splash.fly .sp-pl{animation:spFly .85s cubic-bezier(.5,0,.8,.3) both}
 #splash.fly .sp-name{animation:spSink .5s .45s ease-in forwards}
 #splash .sp-name{display:flex;gap:.16em;font:700 var(--fs-3xl) var(--f-board);letter-spacing:.06em;color:var(--ink)}
-#splash .sp-name span{display:inline-block;animation:spUp .5s calc(.3s + var(--i) * 45ms) cubic-bezier(.2,.8,.3,1) both}
+/* 1.77: the letters flip in like split flaps, each landing (with its clack) a beat after the one before */
+#splash .sp-name{perspective:420px}
+#splash .sp-name span{display:inline-block;animation:spFlap .32s calc(.3s + var(--i) * 45ms) both}
 @keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
-@keyframes spUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes spFlap{0%{opacity:0;transform:rotateX(90deg);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+  50%{opacity:1;transform:rotateX(-14deg);animation-timing-function:ease-out}75%{transform:rotateX(5deg)}100%{opacity:1;transform:none}}
 @keyframes spFly{0%{transform:none;fill:var(--housing)}14%{transform:translate(-5px,5px);fill:var(--housing)}
   40%{fill:var(--amber)}100%{transform:translate(80vmax,-80vmax) scale(1.6);fill:var(--amber)}}
 @keyframes spSink{to{opacity:0;transform:scale(.9)}}
@@ -758,13 +761,15 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .cDet .cLink{padding:0;border:0;background:none;color:var(--ink);font-size:var(--fs-m)}
 .arFullL .cBtns{margin-top:12px;display:flex;gap:8px}
 .arFullL .cBtns .cBtn{flex:1;justify-content:center;text-align:center}
-/* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading) */
-.skyRow{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:10px;background:#121315;border:1px solid var(--line)}
-.skyRow[hidden]{display:none}
-.skyRow>svg{flex:none;width:28px;height:28px;color:var(--amber)}
-.skyRow>div{flex:1;min-width:0;display:grid;gap:2px}
-.skyRow b{font:700 var(--fs-l)/1.1 var(--f-board)} .skyRow span{font-size:var(--fs-s);color:var(--muted)}
-.skyRow .cap{flex:none;width:auto;padding:0 14px}
+/* 1.72.4: Sky view whenever the plane's Where to look card isn't there (no plane on top, still loading). 1.77: the same
+   card, its tape a compass, and the words say no plane is around */
+.skyRow{margin-top:12px}
+#skyCv{cursor:pointer}
+/* 1.77: Sky view needs live location: the card that asks (Go live and open, green like the strip's Go live; Not now) */
+.liveAsk{display:flex;align-items:center;gap:12px;margin-top:12px}
+.liveGo{all:unset;cursor:pointer;display:inline-flex;align-items:center;padding:11px 16px;border-radius:999px;background:var(--c-good);color:#06130b;font:700 var(--fs-base)/1 var(--f-board)}
+.liveNo{all:unset;cursor:pointer;padding:10px 6px;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board)}
+.liveGo:focus-visible,.liveNo:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* ---------- 1.73: one look per kind of thing (the consistency check; Dave took the suggestions) ----------
    Boxes on a page share the soft gradient, a faint border and 12 px corners (gold border for a page's highlight);
    things over the page share the sheet's background (18 px corners for sheets, 14 for toasts and tips); phone pages
@@ -881,17 +886,78 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   try { last = +sessionStorage.getItem("od.splash") || 0; sessionStorage.setItem("od.splash", now); } catch (e) {}
   if (now - last < 60000) { sp.remove(); window.SPLASH_END = 0; return; }
   window.SPLASH_END = t0 + 1e9;
+  var snd = splashSound(t0);
   window.splashGo = function(){
     if (gone) return; gone = true;
     var wait = Math.max(0, 1100 - (performance.now() - t0));
     window.SPLASH_END = performance.now() + wait + 1100;
     setTimeout(function(){
-      sp.classList.add("fly");
+      sp.classList.add("fly"); if (snd) snd.fly();
       sp.addEventListener("animationend", function(e){ if (e.target === sp) sp.remove(); });
       setTimeout(function(){ sp.remove(); }, 2500);
     }, wait);
   };
-  setTimeout(window.splashGo, 8000); })();
+  setTimeout(window.splashGo, 8000);
+  // 1.77: the opening's sound, with sound on and outside quiet hours, where the phone lets a page play before the first
+  // tap (the Android app, a web app on the home screen; never on an iPhone): each letter of FALLBLATT clacks as it lands,
+  // the board's own flap sound, and a whoosh carries the plane off to the top right. Made live, through the app's output
+  // (low and high cut, a small room, a limiter); its own context, closed afterwards.
+  function splashSound(t0){
+    var G = window.OVERHEAD_GUEST, s = null, AC = window.AudioContext || window.webkitAudioContext;
+    try { s = JSON.parse(localStorage.getItem("od.app.settings" + (G ? ".g." + G.id : "")) || "null"); } catch (e) {}
+    s = s || (G && G.settings) || {};
+    var on = s.sound != null ? !!s.sound : !(window.OVERHEAD_DEFAULTS && window.OVERHEAD_DEFAULTS.sound === false);
+    var mins = function(v){ var p = String(v || "").split(":"); return (+p[0] || 0) * 60 + (+p[1] || 0); };
+    var d = new Date(), n = d.getHours() * 60 + d.getMinutes(), a = mins(s.nightFrom), b = mins(s.nightTo);
+    if (!on || !AC || (s.night && a !== b && (a < b ? n >= a && n < b : n >= a || n < b))) return null;
+    var c; try { c = new AC(); } catch (e) { return null; }
+    var api = {live: false, fly: function(){}}, out = null, base = null, planned = false;
+    // the letters' animations: their own start time once they run (a frame or two after this), else the first frame's
+    var flaps = document.getAnimations ? document.getAnimations().filter(function(x){ return x.animationName === "spFlap"; }) : [];
+    if (flaps.length && flaps[0].ready) flaps[0].ready.then(function(x){ base = x.startTime; plan(); }, function(){});
+    else requestAnimationFrame(function(ts){ base = ts; plan(); });
+    var shut = function(){ try { c.close(); } catch (e) {} };
+    var burst = function(sec, fall){ var len = Math.floor(c.sampleRate * sec), buf = c.createBuffer(1, len, c.sampleRate), x = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) x[i] = (Math.random() * 2 - 1) * (fall ? Math.pow(1 - i / len, 6) : 1); return buf; };
+    var clack = function(t){                         // one flap: a short burst through a band between 1.4 and 3.2 kHz
+      var src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = burst(.012, true); src.playbackRate.value = .7 + Math.random() * .5;
+      bp.type = "bandpass"; bp.frequency.value = 1400 + Math.random() * 1800; bp.Q.value = 1; g.gain.value = .34;
+      src.connect(bp); bp.connect(g); g.connect(out); src.start(t);
+    };
+    var whoosh = function(t){                        // air: a band opening upwards as it speeds off, swelling, fading right
+      var dur = 1.05, src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(), p = c.createStereoPanner ? c.createStereoPanner() : c.createGain();
+      src.buffer = burst(dur + .2, false); bp.type = "bandpass"; bp.Q.value = 1.1;
+      bp.frequency.setValueAtTime(380, t); bp.frequency.exponentialRampToValueAtTime(2400, t + dur * .72); bp.frequency.exponentialRampToValueAtTime(1680, t + dur);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(1.25, t + dur * .52); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      if (p.pan) { p.pan.setValueAtTime(-.35, t); p.pan.linearRampToValueAtTime(.85, t + dur); }
+      src.connect(bp); bp.connect(g); g.connect(p); p.connect(out); src.start(t); src.stop(t + dur + .1);
+    };
+    var start = function(){
+      if (api.live || c.state !== "running") return;
+      api.live = true;
+      var hp = c.createBiquadFilter(), lp = c.createBiquadFilter(), lp2 = c.createBiquadFilter(), lim = c.createDynamicsCompressor(), trim = c.createGain();
+      hp.type = "highpass"; hp.frequency.value = 110; lp.type = lp2.type = "lowpass"; lp.frequency.value = lp2.frequency.value = 6500; lp.Q.value = lp2.Q.value = .6;
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .001; lim.release.value = .1; trim.gain.value = .82;
+      var sr = c.sampleRate, len = Math.floor(sr * .22), ir = c.createBuffer(2, len, sr), room = c.createConvolver(), wet = c.createGain();
+      for (var ch = 0; ch < 2; ch++) { var x = ir.getChannelData(ch); for (var i = 0; i < len; i++) x[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4) * Math.min(1, i / (sr * .004)); }
+      room.buffer = ir; wet.gain.value = .18; out = c.createGain(); out.gain.value = .9;
+      out.connect(hp); hp.connect(lp); lp.connect(lp2); lp2.connect(lim); lp2.connect(room); room.connect(wet); wet.connect(lim); lim.connect(trim); trim.connect(c.destination);
+      api.fly = function(){ whoosh(c.currentTime + .02); setTimeout(shut, 1600); };
+      plan();
+    };
+    // the letters land 0.46 s into their animations, 45 ms apart (spFlap): each clack then, less the phone's own delay
+    var plan = function(){
+      if (!api.live || base == null || planned) return;
+      planned = true;
+      var late = c.outputLatency || c.baseLatency || 0;
+      for (var k = 0; k < 9; k++) { var at = (base + 460 + k * 45 - performance.now()) / 1000 - late; if (at > 0) clack(c.currentTime + at); }
+    };
+    c.onstatechange = start; start();
+    setTimeout(function(){ if (!api.live) shut(); }, 400);   // not allowed to play before a tap: no sound
+    return api;
+  }
+})();
 </script>
 <header id="top">
   <div class="wrap">
@@ -906,9 +972,11 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab cols" id="t-now">
     <div class="lcol">
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
-      <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
-        <button class="cBtn" type="button" id="arBtn2"><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Open">Open</span></button></div>
+      <div class="look skyRow" id="skyRow" hidden>
+        <small class="lookH" data-t="Where to look">Where to look</small>
+        <canvas id="skyCv" aria-hidden="true"></canvas>
+        <div class="lookRow"><button class="cBtn" type="button" id="arBtn2"><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Sky view">Sky view</span></button>
+          <div class="lookTxt"><b id="skyB"></b><span id="skySub"></span></div></div></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>

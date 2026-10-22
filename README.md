@@ -499,8 +499,10 @@ Five buttons along the bottom:
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
   points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
-- **Sky view** (Now → Where to look → Sky view, 1.30; https only; since 1.72.4 a Sky view row under the board when there
-  is no plane on top, so it can always be opened): the camera full screen, with a label on every plane
+- **Sky view** (Now → Where to look → Sky view, 1.30; https only; since 1.72.4 a Sky view card under the board when there
+  is no plane on top, so it can always be opened; 1.77: in Where to look's style, saying "No planes around right now",
+  its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
+  open" or "Not now"), since Sky view shows the planes around you wherever you are: the camera full screen, with a label on every plane
   within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
@@ -521,6 +523,10 @@ Five buttons along the bottom:
   (or the iPhone says its compass is poor), a note asks for a figure of eight or a drag.
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close.
+- **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
+  off as the board shows through. With sound on it plays the board's clack for each letter and a whoosh for the
+  take-off, where the phone lets a page play sound before the first tap (the Android app; never on an iPhone); not in
+  quiet hours.
 - **Daylight** (1.66; app and light version, Settings → Display): a cream page with black flaps and white letters, dark
   text and darker labels, easier to read outdoors in the sun. Each phone keeps its own choice (not shared with the
   profile); the boards on the TVs don't have it.
