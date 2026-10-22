@@ -373,7 +373,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**
-  field under the board says what the plane on top gave, or would give. Tap the strip for the **Game** page: the
+  field under the board says what the plane on top gave, or would give. Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up

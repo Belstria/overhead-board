@@ -736,10 +736,11 @@ let lbSig = "", lbView = "logbook";
 // 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
 // put (Logbook, Collection, Records, Week & month); the places are a second row, only under Logbook.
 function lbViewsBar(){
-  const bar = $("lbViews"), views = LB_VIEWS.filter(v => (v !== "review" || reviewOk()) && !(gameOk() && (v === "collection" || v === "records")));   // 1.72: those on the Game page
+  // 1.72: Collection and Records on the Spotters' Club page; 1.74: Week & month in the period card
+  const bar = $("lbViews"), views = LB_VIEWS.filter(v => v !== "review" && !(gameOk() && (v === "collection" || v === "records")));
   if (!views.includes(lbView)) lbView = "logbook";
   const sig = JSON.stringify([views, lbView, LANG]);
-  bar.hidden = false;
+  bar.hidden = views.length < 2;
   if (bar.dataset.sig === sig) return;
   bar.dataset.sig = sig;
   bar.innerHTML = views.map(v => `<button type="button" data-v="${v}"${v === lbView ? ' aria-current="page"' : ""}>${escH(T(LB_VIEW_NAMES[v]))}</button>`).join("");
@@ -788,8 +789,7 @@ function renderLogbook(){
   lbFindSetup();
   lbViewsBar();
   const v = lbView;
-  if (v === "logbook") fetchYear();
-  if (v === "review") fetchReview(() => { lbSig = ""; renderLogbook(); });
+  if (v === "logbook") { if (lbPeriod === "year") fetchYear(); else fetchReview(() => { lbSig = ""; renderLogbook(); }); }
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
@@ -819,7 +819,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, v === "review" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -840,7 +840,7 @@ function renderLogbook(){
     if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
     if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
     if ((b.regsRecent || []).length) html += `<h3>${escH(T("Newest aircraft"))}</h3>` + rank(b.regsRecent.slice(0, 8).map(r => li(r.reg, fmtDay(r.first), r.name)), true);
-    if (!place) html = yearHtml() + html;
+    if (!place) html = periodHtml() + html;
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
@@ -911,11 +911,13 @@ function trophiesHtml(g0){
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
 // The year in planes (relay 29, /year): a card at the top of the Logbook with a Share button (a picture of the card)
 // and the logbook as a spreadsheet (/logbook.csv).
-let yearData = null, yearAt = 0;
+let yearData = null, yearAt = {}, yearCache = {};
 function fetchYear(){
-  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - yearAt < 5 * 60000) return;
-  yearAt = Date.now();
-  fetchJSON(`${relay()}/year?y=${new Date().getFullYear()}`, {}, 10000).then(j => { yearData = j; lbSig = ""; renderLogbook(); }).catch(() => { yearAt = 0; });
+  const y = new Date().getFullYear() - yearBack;
+  yearData = yearCache[y] || null;
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - (yearAt[y] || 0) < 5 * 60000) return;
+  yearAt[y] = Date.now();
+  fetchJSON(`${relay()}/year?y=${y}`, {}, 10000).then(j => { yearCache[y] = j; if (y === new Date().getFullYear() - yearBack) yearData = j; lbSig = ""; renderLogbook(); }).catch(() => { yearAt[y] = 0; });
 }
 function yearFacts(y){
   const r = y.rarest, m = y.mostSeen, b = y.busiest;
@@ -923,17 +925,43 @@ function yearFacts(y){
     [T("Most seen aircraft"), m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
     [T("Rarest"), r ? `${r.type || r.reg} · ${T(TIER_NAME[r.tier] || "")}` : ""]].filter(x => x[1]);
 }
-function yearHtml(){
-  const y = yearData;
-  if (!y || !y.planes) return "";
-  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
-  return `<div class="yearCard"><h3>${escH(T("{y} in planes", {y: y.year}))}</h3><div class="yNums">` +
-    nums.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div><dl class="yFacts">` +
-    yearFacts(y).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") +
-    `</dl><div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
-    `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
-    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p></div>`;
+// 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
+// ◀ ▶ for earlier and later (week and month from /review, relay 46; the year from /year, with Share and the CSV).
+let lbPeriod = "year", yearBack = 0;
+function periodHtml(){
+  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
+  const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
+    .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${per === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
+  const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
+    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}>▶</button></span>`;
+  const nums = list => `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>`;
+  const facts = list => `<dl class="yFacts">` + list.filter(x => x[1]).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>`;
+  let title, body;
+  if (per === "year") {
+    const y = yearData && yearData.year === yr ? yearData : null;
+    title = T("{y} in planes", {y: yr});
+    body = !y ? `<p class="sum">${escH(T("Loading …"))}</p>` : !y.planes ? `<p class="sum">${escH(T("No planes that year."))}</p>`
+      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(yearFacts(y)) +
+        `<div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
+        `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+        `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>`;
+  } else {
+    const r = reviewData();
+    title = T("{p} in planes", {p: reviewTitle()});
+    body = `<p class="sum">${escH(reviewSummary(r))}</p>` + (r && r.planes ? nums(REVIEW_NUMS.map(([k, l]) => [r[k], l])) +
+      facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) : "");
+  }
+  return `<div class="yearCard perCard"><div class="perHead"><h3>${escH(title)}</h3>${arrows}</div>${seg}${body}</div>`;
 }
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
+  if (!b || b.disabled) return;
+  ctlSound.press();
+  if (b.dataset.per) { lbPeriod = b.dataset.per; if (lbPeriod !== "year") { review.span = lbPeriod; review.back = 0; } }
+  else if (lbPeriod === "year") yearBack = Math.max(0, Math.min(10, yearBack + +b.dataset.pb));
+  else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.pb));
+  lbSig = ""; renderLogbook();
+});
 // Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
 function reviewHtml(){
   if (!reviewOk()) return "";
@@ -2326,14 +2354,14 @@ addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-about").hidde
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
-  if (rv) { review.span = rv[1]; review.back = +rv[2]; t = "logbook"; }
+  if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; t = "logbook"; }
   aboutHide();
   if ((!TABS.some(x => x[0] === t) && !(t === "game" && gameOk())) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
-  for (const b of $("tabRow").children) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
@@ -2474,12 +2502,22 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T("Game: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T("Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
   box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
   $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
 }
+// 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
+for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
+for (const id of ["t-logbook", "t-game"]) { let sw = null;
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbPlaces, .bingo") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchend", e => {
+    if (!sw) return;
+    const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
+    if (tab === "logbook" && dx < 0 && gameOk()) showTab("game"); else if (tab === "game" && dx > 0) showTab("logbook");
+  }, {passive: true}); }
 // 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back.
 { let sw = null;
   const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; };
@@ -2530,7 +2568,7 @@ function gStripRender(g, anim){
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
   $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
-    : escH(T("Game"));
+    : escH(T("Club"));
 }
 // Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
 function gGain(prev, g){
@@ -2710,11 +2748,11 @@ async function gLockOn(hex){
 }
 function gameStart(){
   gStripSetup();
+  for (const b of document.querySelectorAll('[data-lt="game"]')) b.hidden = !gameOk();   // 1.74: no Spotters' Club without relay 59
   if (!gameOk()) return;
   gRefresh(true); gLeagueLoad();
   setInterval(() => { gRefresh(); gPtsRender(); }, 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  $("gameX").onclick = () => { ctlSound.press(); showTab("now"); };
   setTimeout(() => tip("gstrip", () => $("gStrip"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
 }
 function run(){
