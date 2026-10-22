@@ -1127,7 +1127,7 @@ function lookHeadingFrom(e){
   else if (e.absolute && typeof e.alpha === "number") h = (360 - e.alpha) % 360;         // Android: the alpha angle, absolute
   if (h == null) return;
   const so = (screen.orientation && screen.orientation.angle) || 0;
-  h = (h + so + 360) % 360;
+  h = (h + so + magDecl(S.lat, S.lon) + 360) % 360;                                       // 1.76: true north
   if (lookHeading == null) lookHeading = h;
   else { const d = ((h - lookHeading + 540) % 360) - 180; lookHeading = (lookHeading + d * .25 + 360) % 360; }   // smoothed: compasses wobble
   lookSoon();
@@ -1151,10 +1151,13 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device).
    1.75.2: the turn is smoothed as a quaternion; the picture's scale comes from the video's own size, and held sideways
    the labels turn the right way; planes are moved on from the time the source made the data (not when it arrived),
-   along their turn and climb; heights are made true with the home airport's QNH and temperature. */
+   along their turn and climb; heights are made true with the home airport's QNH and temperature.
+   1.76: true north (the compass points to magnetic north: the World Magnetic Model's declination is added), the sun
+   and the moon as dashed rings to line the compass up on, and AUTO, which finds nearby planes in the picture. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
 let arOn = false, arStream = null, arList = [], arListAt = 0, arQ = null, arQt = 0, arGap = null, arGapT = 0, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
-let arOff = {h: 0, p: 0};
+let arOff = {h: 0, p: 0}, arDec = 0, arHintText = "";
+const arOffSave = () => { try { localStorage.setItem("od.ar.off", JSON.stringify({...arOff, v: 2})); } catch {} };
 // 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
 // (the ring fills as it waits). Then it waits for the ring to be empty again.
 const AR_AIM_R = 56, AR_AIM_MS = 1500;
@@ -1238,6 +1241,10 @@ async function arOpen(){
     arStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}, height: {ideal: 1280}}, audio: false});
   } catch { return fail(); }
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
+  // 1.76: labels lined up before true north was known carry the declination in their drag: taken out once
+  if (!arOff.v) { if (arOff.h) { arOff.h -= magDecl(S.lat, S.lon); arOffSave(); } arOff.v = 2; }
+  try { arAuto = localStorage.getItem("od.ar.auto") !== "0"; } catch {}
+  arAutoFinds = []; arAutoLock = null; arAutoSig = ""; arAutoPause = 0;
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
     const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
@@ -1246,6 +1253,7 @@ async function arOpen(){
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null;
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
+  arHintText = $("arHint").textContent;
   arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
@@ -1279,10 +1287,80 @@ function arClose(){
   arSel = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen");
 }
+// 1.76: true north. Phone compasses point to magnetic north; the World Magnetic Model gives the declination, how
+// far east of true north it lies (about 5° in Vienna). WMM2025 by NOAA NCEI (public domain; tools/app/WMM.COF, its
+// g, h, ġ, ḣ for n 1..12, m 0..n), good to 2030 and still close for some years after.
+const WMM_EPOCH = 2025, WMM_C = "-29351.8 0 12 0 -1410.8 4545.4 9.7 -21.5 -2556.6 0 -11.6 0 2951.1 -3133.6 -5.2 -27.7 1649.3 -815.1 -8 -12.1 1361 0 -1.3 0 -2404.1 -56.6 -4.2 4 1243.8 237.5 0.4 -0.3 453.6 -549.5 -15.6 -4.1 895 0 -1.6 0 799.5 278.6 -2.4 -1.1 55.7 -133.9 -6 4.1 -281.1 212 5.6 1.6 12.1 -375.6 -7 -4.4 -233.2 0 0.6 0 368.9 45.4 1.4 -0.5 187.2 220.2 0 2.2 -138.7 -122.9 0.6 0.4 -142 43 2.2 1.7 20.9 106.1 0.9 1.9 64.4 0 -0.2 0 63.8 -18.4 -0.4 0.3 76.9 16.8 0.9 -1.6 -115.7 48.8 1.2 -0.4 -40.9 -59.8 -0.9 0.9 14.9 10.9 0.3 0.7 -60.7 72.7 0.9 0.9 79.5 0 -0 0 -77 -48.9 -0.1 0.6 -8.8 -14.4 -0.1 0.5 59.3 -1 0.5 -0.8 15.8 23.4 -0.1 0 2.5 -7.4 -0.8 -1 -11.1 -25.1 -0.8 0.6 14.2 -2.3 0.8 -0.2 23.2 0 -0.1 0 10.8 7.1 0.2 -0.2 -17.5 -12.6 0 0.5 2 11.4 0.5 -0.4 -21.7 -9.7 -0.1 0.4 16.9 12.7 0.3 -0.5 15 0.7 0.2 -0.6 -16.8 -5.2 -0 0.3 0.9 3.9 0.2 0.2 4.6 0 -0 0 7.8 -24.8 -0.1 -0.3 3 12.2 0.1 0.3 -0.2 8.3 0.3 -0.3 -2.5 -3.3 -0.3 0.3 -13.1 -5.2 0 0.2 2.4 7.2 0.3 -0.1 8.6 -0.6 -0.1 -0.2 -8.7 0.8 0.1 0.4 -12.9 10 -0.1 0.1 -1.3 0 0.1 0 -6.4 3.3 0 0 0.2 0 0.1 -0 2 2.4 0.1 -0.2 -1 5.3 -0 0.1 -0.6 -9.1 -0.3 -0.1 -0.9 0.4 0 0.1 1.5 -4.2 -0.1 0 0.9 -3.8 -0.1 -0.1 -2.7 0.9 -0 0.2 -3.9 -9.1 -0 -0 2.9 0 0 0 -1.5 0 -0 -0 -2.5 2.9 0 0.1 2.4 -0.6 0 -0 -0.6 0.2 0 0.1 -0.1 0.5 -0.1 -0 -0.6 -0.3 0 -0 -0.1 -1.2 -0 0.1 1.1 -1.7 -0.1 -0 -1 -2.9 -0.1 0 -0.2 -1.8 -0.1 0 2.6 -2.3 -0.1 0 -2 0 0 0 -0.2 -1.3 0 -0 0.3 0.7 -0 0 1.2 1 -0 -0.1 -1.3 -1.4 -0 0.1 0.6 -0 -0 -0 0.6 0.6 0.1 -0 0.5 -0.1 -0 -0 -0.1 0.8 0 0 -0.4 0.1 0 -0 -0.2 -1 -0.1 -0 -1.3 0.1 -0 0 -0.7 0.2 -0.1 -0.1".split(" ").map(Number);
+let magCache = {key: "", d: 0};
+function magField(lat, lon, hKm, year){
+  const N = 12, r0 = 6371.2, A = 6378.137, F = 1 / 298.257223563, e2 = F * (2 - F), rad = Math.PI / 180;
+  // geodetic to geocentric
+  const sp = Math.sin(lat * rad), cp = Math.cos(lat * rad), Rc = A / Math.sqrt(1 - e2 * sp * sp);
+  const px = (Rc + hKm) * cp, pz = (Rc * (1 - e2) + hKm) * sp, r = Math.hypot(px, pz), lc = Math.asin(pz / r);
+  const x = Math.sin(lc), c = Math.cos(lc), dt = year - WMM_EPOCH, fact = [1];
+  for (let i = 1; i <= 2 * N; i++) fact[i] = fact[i - 1] * i;
+  // associated Legendre functions (no Condon-Shortley phase), P[n][m]
+  const P = [[1]];
+  for (let n = 1; n <= N; n++) {
+    P[n] = [];
+    for (let m = 0; m <= n; m++)
+      P[n][m] = m === n ? (2 * m - 1) * c * P[n - 1][n - 1] : m === n - 1 ? (2 * m + 1) * x * P[n - 1][m]
+        : ((2 * n - 1) * x * P[n - 1][m] - (n + m - 1) * P[n - 2][m]) / (n - m);
+  }
+  let X = 0, Y = 0, Z = 0, k = 0;
+  for (let n = 1; n <= N; n++) {
+    const ar = Math.pow(r0 / r, n + 2);
+    for (let m = 0; m <= n; m++, k += 4) {
+      const g = WMM_C[k] + dt * WMM_C[k + 2], h = WMM_C[k + 1] + dt * WMM_C[k + 3], S = Math.sqrt((m ? 2 : 1) * fact[n - m] / fact[n + m]);
+      const cm = Math.cos(m * lon * rad), sm = Math.sin(m * lon * rad), Pn = S * P[n][m];
+      const dP = S * ((n + m) * (m <= n - 1 ? P[n - 1][m] : 0) - n * x * P[n][m]) / c;
+      X -= ar * (g * cm + h * sm) * dP;
+      Y += ar * m * (g * sm - h * cm) * Pn / c;
+      Z -= ar * (n + 1) * (g * cm + h * sm) * Pn;
+    }
+  }
+  const psi = lc - lat * rad;                                 // geocentric to geodetic
+  return {X: X * Math.cos(psi) - Z * Math.sin(psi), Y, Z: X * Math.sin(psi) + Z * Math.cos(psi)};
+}
+// The declination at a place now, in degrees east (kept while the place moves less than about 10 km).
+function magDecl(lat, lon){
+  const key = lat.toFixed(1) + "," + lon.toFixed(1);
+  if (magCache.key !== key) {
+    const d = new Date(), y0 = Date.UTC(d.getUTCFullYear(), 0, 1), y1 = Date.UTC(d.getUTCFullYear() + 1, 0, 1);
+    const f = magField(Math.max(-89.9, Math.min(89.9, lat)), lon, 0, d.getUTCFullYear() + (d - y0) / (y1 - y0));
+    magCache = {key, d: Math.atan2(f.Y, f.X) * 180 / Math.PI};
+  }
+  return magCache.d;
+}
+// 1.76: where the sun and the moon are in the sky (azimuth from north, elevation in degrees, refraction included):
+// the Astronomical Almanac's low-precision formulas, some 0.01° for the sun and 0.3° for the moon, the moon as seen
+// from here (it sits up to 1° lower than from the earth's centre). lit: how much of the moon is lit, 0 to 1.
+function skyBodies(lat, lon, t){
+  const r = Math.PI / 180, n = t / 86400000 - 10957.5, T = n / 36525, ep = (23.439 - 4e-7 * n) * r, phi = lat * r;
+  const lst = ((280.46061837 + 360.98564736629 * n + lon) % 360) * r;
+  const azel = (ra, dec) => {
+    const H = lst - ra, el = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / r;
+    const az = Math.atan2(-Math.cos(dec) * Math.sin(H), Math.sin(dec) * Math.cos(phi) - Math.cos(dec) * Math.sin(phi) * Math.cos(H)) / r;
+    return {az: (az + 360) % 360, el: el > -1 ? el + 1.02 / Math.tan((el + 10.3 / (el + 5.11)) * r) / 60 : el};
+  };
+  const g = (357.528 + .9856003 * n) * r, L = (280.46 + .9856474 * n + 1.915 * Math.sin(g) + .02 * Math.sin(2 * g)) * r;
+  const sun = azel(Math.atan2(Math.cos(ep) * Math.sin(L), Math.cos(L)), Math.asin(Math.sin(ep) * Math.sin(L)));
+  const S = (a, b) => Math.sin((a + b * T) * r), C = (a, b) => Math.cos((a + b * T) * r);
+  const lm = (218.32 + 481267.881 * T + 6.29 * S(135, 477198.87) - 1.27 * S(259.3, -413335.36) + .66 * S(235.7, 890534.22)
+    + .21 * S(269.9, 954397.74) - .19 * S(357.5, 35999.05) - .11 * S(186.5, 966404.03)) * r;
+  const bm = (5.13 * S(93.3, 483202.02) + .28 * S(228.2, 960400.89) - .28 * S(318.3, 6003.15) - .17 * S(217.6, -407332.21)) * r;
+  const hp = (.9508 + .0518 * C(135, 477198.87) + .0095 * C(259.3, -413335.36) + .0078 * C(235.7, 890534.22) + .0028 * C(269.9, 954397.74)) * r;
+  const l = Math.cos(bm) * Math.cos(lm), m = Math.cos(ep) * Math.cos(bm) * Math.sin(lm) - Math.sin(ep) * Math.sin(bm);
+  const z = Math.sin(ep) * Math.cos(bm) * Math.sin(lm) + Math.cos(ep) * Math.sin(bm), d = 1 / Math.sin(hp);
+  const X = d * l - Math.cos(phi) * Math.cos(lst), Y = d * m - Math.cos(phi) * Math.sin(lst), Z = d * z - Math.sin(phi);
+  const moon = azel(Math.atan2(Y, X), Math.asin(Z / Math.hypot(X, Y, Z)));
+  moon.lit = (1 - Math.cos(lm) * Math.cos(bm) * Math.cos(L) - Math.cos(bm) * Math.sin(lm) * Math.sin(L)) / 2;   // from its angle to the sun
+  return {sun, moon};
+}
 // Where a point (east, north, up in metres from the phone) falls on the screen: [x, y] or, behind the phone, the
 // direction to turn ({edge: [dx, dy]}).
 function arProject(e, n, u, R, W, H){
-  const hh = arOff.h * Math.PI / 180, ce = Math.cos(hh), se = Math.sin(hh);
+  const hh = (arOff.h + arDec) * Math.PI / 180, ce = Math.cos(hh), se = Math.sin(hh);   // 1.76: and magnetic to true north
   const E = e * ce - n * se, N = e * se + n * ce, L = Math.hypot(E, N, u) || 1, p = [E / L, N / L, u / L];
   let vx = R[0][0] * p[0] + R[1][0] * p[1] + R[2][0] * p[2], vy = R[0][1] * p[0] + R[1][1] * p[1] + R[2][1] * p[2];
   const vz = R[0][2] * p[0] + R[1][2] * p[1] + R[2][2] * p[2];
@@ -1304,6 +1382,7 @@ function arLoop(){
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
   if (!arQ) return;
   const R = arQMatrix(arQ), here = arHere || {lat: S.lat, lon: S.lon}, wx = arWeather();
+  arDec = magDecl(here.lat, here.lon);
   const r = here.lat * Math.PI / 180, ky = 111132.95 - 559.82 * Math.cos(2 * r) + 1.18 * Math.cos(4 * r), kx = 111412.84 * Math.cos(r) - 93.5 * Math.cos(3 * r);
   const dt = (Date.now() - arListAt) / 1000;
   const shown = [];
@@ -1321,11 +1400,11 @@ function arLoop(){
     // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only)
     const gx = gameOk() && S.live ? spotted.find(x => x.hex === ac.hex && x.lock) : null;
     const chip = !(gameOk() && S.live) ? "" : gx ? "✓ +" + gx.lock : d / 1000 <= gKm() ? (isFeat ? T("★ POINTS") : "★") : T("NO PTS");
-    shown.push({ac, d, pr, isFeat, chip, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
+    shown.push({ac, d, pr, isFeat, chip, el: Math.atan2(u, d) * 180 / Math.PI, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
       sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
   }
   shown.sort((a, b) => a.d - b.d);
-  const boxes = [];
+  const marks = arBodiesDraw(g, R, here, W, H), boxes = [];
   arHits = [];
   g.textBaseline = "alphabetic";
   for (const s of shown.slice(0, 14)) {
@@ -1352,9 +1431,139 @@ function arLoop(){
     }
     g.globalAlpha = 1;
   }
+  if (arAutoLock) for (const s of shown) if (!s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) arBrackets(g, s.pr.x, s.pr.y);
   $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
   $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
+  const hint = marks.some(m => m.k === "sun") ? T("Sun beside its ring? Drag the sky until it sits in it on the screen: every label follows. Don't look into the sun.")
+    : marks.length ? T("Moon beside its ring? Drag the sky until it sits in it: every label follows.") : arHintText;
+  if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   arAimDraw(g, W, H);
+  arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"));
+}
+// 1.76: AUTO's mark on a plane it found in the picture: gold corners round its dot.
+function arBrackets(g, x, y){
+  g.save(); g.strokeStyle = "#f0b429"; g.lineWidth = 2.5; g.beginPath();
+  for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { g.moveTo(x + a * 14, y + b * 8); g.lineTo(x + a * 14, y + b * 14); g.lineTo(x + a * 8, y + b * 14); }
+  g.stroke(); g.restore();
+}
+/* 1.76: AUTO, Sky view lining itself up (experimental; on unless switched off, kept per phone). A few times a second
+   the camera's picture around each nearby plane's label is searched for a plane-sized dot against the sky (darker than
+   the sky by day, a light at night). Where one keeps turning up in the same place for a second or so, the labels
+   slide onto it, as a drag would. Labels close together and the sun's glare are left out; a lone dot in an even sky
+   counts, edges (clouds, roofs) and lines (contrails, wires) don't. */
+const AR_AUTO_MS = 160, AR_AUTO_R = 9, AR_AUTO_N = 240;   // how often, how far around a label (degrees), samples across
+let arAuto = true, arAutoAt = 0, arAutoFinds = [], arAutoLock = null, arAutoPause = 0, arAutoSaved = 0, arAutoSig = "";
+const arCan = document.createElement("canvas"), arCx = arCan.getContext("2d", {willReadFrequently: true});
+function arAutoStep(shown, W, H, avoid){
+  const now = Date.now(), v = $("arVid");
+  if (!arAuto || arDrag || now < arAutoPause || now - arAutoAt < AR_AUTO_MS || !(v.readyState >= 2) || !v.videoWidth) return arAutoChip();
+  arAutoAt = now;
+  const f = arFocal(W, H), r = f * Math.tan(AR_AUTO_R * Math.PI / 180);
+  const near = shown.filter(o => !o.pr.edge && o.d < 15000 && o.el > 2 && o.pr.x > 0 && o.pr.x < W && o.pr.y > 0 && o.pr.y < H);
+  for (const o of near.slice(0, 3)) {
+    if (near.some(q => q !== o && Math.hypot(q.pr.x - o.pr.x, q.pr.y - o.pr.y) < r * 1.3)) continue;   // two planes close: which is which?
+    if (avoid.some(a => Math.hypot(a.x - o.pr.x, a.y - o.pr.y) < r * 1.6)) continue;                      // the sun's glare
+    const span = {A1: 11, A2: 20, A5: 65, A7: 11}[o.ac.category] || 35;                             // wingspan or rotor, metres
+    const hit = arFind(v, W, H, o.pr.x, o.pr.y, r, span / o.d * f);
+    if (hit) arAutoFinds.push({hex: o.ac.hex, t: now, h: arOff.h - Math.atan((hit.x - o.pr.x) / f) * 180 / Math.PI, p: arOff.p + Math.atan((hit.y - o.pr.y) / f) * 180 / Math.PI});
+  }
+  arAutoFinds = arAutoFinds.filter(x => now - x.t < 2500);
+  // a plane counts when most of its last finds agree (within 0.7°); the planes counted must agree with each other
+  const med = a => [...a].sort((x, y) => x - y)[a.length >> 1], got = [];
+  for (const hex of new Set(arAutoFinds.map(x => x.hex))) {
+    const fs = arAutoFinds.filter(x => x.hex === hex);
+    if (fs.length < 5) continue;
+    const h = med(fs.map(x => x.h)), p = med(fs.map(x => x.p));
+    if (fs.filter(x => Math.abs(x.h - h) < .7 && Math.abs(x.p - p) < .7).length >= fs.length * .8) got.push({hex, h, p});
+  }
+  const h = got.length ? med(got.map(x => x.h)) : 0, p = got.length ? med(got.map(x => x.p)) : 0;
+  if (got.length && got.every(x => Math.abs(x.h - h) < 1.5 && Math.abs(x.p - p) < 1.5)) {
+    arAutoLock = {hexes: got.map(x => x.hex), at: now};
+    const k = 1 - Math.exp(-AR_AUTO_MS / 700);       // glides there in a second or two
+    arOff.h += (h - arOff.h) * k; arOff.p += (p - arOff.p) * k;
+    if (now - arAutoSaved > 5000) { arAutoSaved = now; arOffSave(); }
+  } else if (arAutoLock && now - arAutoLock.at > 2000) arAutoLock = null;
+  arAutoChip();
+}
+// Looks for a plane-sized dot in the camera's picture within r of (x, y) on the screen: its screen position, or null.
+// The picture is scaled so the plane (size: its expected span in screen px) comes out about 3 samples across.
+function arFind(v, W, H, x, y, r, size){
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh);   // screen px to a video px (cover)
+  const cx = vw / 2 + (x - W / 2) / s, cy = vh / 2 + (y - H / 2) / s, vr = r / s;
+  const x0 = Math.max(0, cx - vr), y0 = Math.max(0, cy - vr), x1 = Math.min(vw, cx + vr), y1 = Math.min(vh, cy + vr);
+  const k = Math.min(1, AR_AUTO_N / (2 * vr), 3 / Math.max(1, size / s)), w = Math.round((x1 - x0) * k), h = Math.round((y1 - y0) * k);
+  if (w < 24 || h < 24) return null;
+  if (arCan.width !== w || arCan.height !== h) { arCan.width = w; arCan.height = h; }
+  arCx.drawImage(v, x0, y0, x1 - x0, y1 - y0, 0, 0, w, h);
+  const px = arCx.getImageData(0, 0, w, h).data, w1 = w + 1, I = new Float64Array(w1 * (h + 1));
+  for (let j = 0; j < h; j++) for (let i = 0, row = 0; i < w; i++) {   // the brightness, summed (an integral image)
+    const q = (j * w + i) * 4; row += .299 * px[q] + .587 * px[q + 1] + .114 * px[q + 2];
+    I[(j + 1) * w1 + i + 1] = I[j * w1 + i + 1] + row;
+  }
+  const box = (i, j, b) => {                         // the mean brightness of the square of side 2b+1 around (i, j)
+    const a0 = Math.max(0, i - b), b0 = Math.max(0, j - b), a1 = Math.min(w, i + b + 1), b1 = Math.min(h, j + b + 1);
+    return (I[b1 * w1 + a1] - I[b0 * w1 + a1] - I[b1 * w1 + a0] + I[b0 * w1 + a0]) / ((a1 - a0) * (b1 - b0));
+  };
+  const d = new Float32Array(w * h);                 // how much each small spot stands out from the sky around it
+  for (let j = 1; j < h - 1; j++) for (let i = 1; i < w - 1; i++) d[j * w + i] = box(i, j, 1) - box(i, j, 6);
+  const smp = [];
+  for (let q = w + 1; q < d.length; q += 7) smp.push(Math.abs(d[q]));
+  smp.sort((a, b) => a - b);
+  const noise = Math.max(1.2, smp[smp.length >> 1] * 1.4826), ci = (cx - x0) * k, cj = (cy - y0) * k, rr2 = (vr * k) ** 2;
+  const at = (i, j) => Math.abs(d[Math.round(j) * w + Math.round(i)] || 0);
+  let best = null, second = 0;
+  for (let j = 7; j < h - 7; j++) for (let i = 7; i < w - 7; i++) {
+    const a = Math.abs(d[j * w + i]);
+    if (a < noise * 5 || (i - ci) ** 2 + (j - cj) ** 2 > rr2) continue;
+    let top = true;
+    for (let jj = -2; jj <= 2 && top; jj++) for (let ii = -2; ii <= 2; ii++) if ((ii || jj) && Math.abs(d[(j + jj) * w + i + ii]) > a) { top = false; break; }
+    if (!top) continue;
+    const ring = [], arm = [];
+    for (let q = 0; q < 12; q++) ring.push(at(i + 5 * Math.cos(q * Math.PI / 6), j + 5 * Math.sin(q * Math.PI / 6)));
+    for (let q = 0; q < 4; q++) arm.push((at(i + 3 * Math.cos(q * Math.PI / 4), j + 3 * Math.sin(q * Math.PI / 4)) + at(i - 3 * Math.cos(q * Math.PI / 4), j - 3 * Math.sin(q * Math.PI / 4))) / 2);
+    ring.sort((x, y) => x - y);
+    if (ring[6] > noise * 2 || ring[6] > a * .35) continue;                       // not on its own: an edge or a patch
+    if (Math.max(...arm) > a * .5 && Math.max(...arm) > Math.min(...arm) * 2.5) continue;   // a line through it
+    if (!best || a > best.a) { if (best && Math.hypot(best.i - i, best.j - j) > 6) second = Math.max(second, best.a); best = {i, j, a}; }
+    else if (Math.hypot(best.i - i, best.j - j) > 6) second = Math.max(second, a);
+  }
+  if (!best || second > best.a * .7) return null;    // nothing, or two alike: can't tell
+  let sw = 0, si = 0, sj = 0;
+  for (let jj = -1; jj <= 1; jj++) for (let ii = -1; ii <= 1; ii++) { const q = at(best.i + ii, best.j + jj); sw += q; si += q * ii; sj += q * jj; }
+  const fx = x0 + (best.i + si / sw + .5) / k, fy = y0 + (best.j + sj / sw + .5) / k;
+  return {x: W / 2 + (fx - vw / 2) * s, y: H / 2 + (fy - vh / 2) * s};
+}
+// The AUTO switch under the title: off, looking, or lined up on n planes.
+function arAutoChip(){
+  const n = arAutoLock ? arAutoLock.hexes.length : 0, sig = arAuto + "|" + n;
+  if (sig === arAutoSig) return;
+  arAutoSig = sig;
+  const b = $("arAuto");
+  b.classList.toggle("on", arAuto && !!n); b.classList.toggle("off", !arAuto); b.setAttribute("aria-pressed", String(arAuto));
+  b.innerHTML = `<b>${escH(T("AUTO"))}</b><span>${escH(!arAuto ? T("off") : n ? T(n === 1 ? "lined up · 1 plane" : "lined up · {n} planes", {n}) : T("looking"))}</span>`;
+}
+$("arAuto").onclick = () => {
+  ctlSound.press(); arAuto = !arAuto; arAutoFinds = []; arAutoLock = null;
+  try { localStorage.setItem("od.ar.auto", arAuto ? "1" : "0"); } catch {}
+  arAutoChip();
+};
+// 1.76: the sun and the moon where they really are, as dashed rings: if the real one isn't in its ring, a drag lines it
+// and every label up. Returns where they are on the screen.
+let arBody = null, arBodyAt = 0;
+function arBodiesDraw(g, R, here, W, H){
+  const now = Date.now(), out = [], r = Math.PI / 180;
+  if (now - arBodyAt > 1000) { arBody = skyBodies(here.lat, here.lon, now); arBodyAt = now; }
+  for (const [k, b, name] of [["sun", arBody.sun, "SUN"], ["moon", arBody.moon, "MOON"]]) {
+    if (b.el < -.5 || (k === "moon" && b.lit < .04)) continue;
+    const pr = arProject(Math.sin(b.az * r) * Math.cos(b.el * r), Math.cos(b.az * r) * Math.cos(b.el * r), Math.sin(b.el * r), R, W, H);
+    if (pr.edge) continue;
+    out.push({k, x: pr.x, y: pr.y});
+    g.save(); g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 4;
+    g.setLineDash([6, 5]); g.strokeStyle = "#f0b429"; g.lineWidth = 2.5; g.beginPath(); g.arc(pr.x, pr.y, 22, 0, Math.PI * 2); g.stroke();
+    g.font = `700 12px ${FONT}`; g.fillStyle = "#f0b429"; g.textAlign = "center"; g.fillText((k === "sun" ? "☀ " : "☾ ") + T(name), pr.x, pr.y - 30);
+    g.restore();
+  }
+  return out;
 }
 // 1.75.2: how far a plane has come since its position: along its track, round its turn (the rate it sends, or the one
 // measured between two updates; at most 20 s of it) and up or down at its climb or descent rate. [east, north, up] m.
@@ -1429,7 +1638,8 @@ function arDragEnd(e){
   if (!arDrag) return;
   const tap = !arDrag.moved; arDrag = null;
   if (tap && e && e.type === "pointerup") return arTap(e);
-  try { localStorage.setItem("od.ar.off", JSON.stringify(arOff)); } catch {}
+  arOffSave();
+  arAutoFinds = []; arAutoLock = null; arAutoPause = Date.now() + 5000;   // 1.76: the finger wins; AUTO waits
   arMovedNote();
 }
 // 1.72.7: after a drag, a note by ⟲ for a moment: the labels sit where the finger put them, not where the compass says.
@@ -1440,8 +1650,8 @@ function arMovedNote(){
 }
 // 1.72.7: the walkthrough, the first time Sky view opens and from ⓘ: the ring, the drag, the buttons.
 const AR_TOUR = [["ring", "Hold a plane in the ring", "Point the ring at a plane and keep it there for a moment: its card opens. With live location on, it pays a bonus too."],
-  ["drag", "Labels beside the planes?", "Phone compasses drift. Drag the sky sideways, or up and down, until the labels sit on the planes."],
-  ["btns", "The buttons", "⟲ puts the labels back where the compass says (it lights up once you've dragged them). ⓘ shows these tips again. ✕ closes Sky view."]];
+  ["drag", "Labels beside the planes?", "Phone compasses drift. Drag the sky sideways, or up and down, until the labels sit on the planes, or the sun or the moon in its dashed ring."],
+  ["btns", "The buttons", "AUTO looks for nearby planes in the picture and lines the labels up by itself (tap it to switch it off). ⟲ puts the labels back where the compass says (it lights up once they've moved). ⓘ shows these tips again. ✕ closes Sky view."]];
 function arTour(step){
   const box = $("arTour");
   if (step >= AR_TOUR.length) {
@@ -1620,7 +1830,7 @@ function skyRowRender(){
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
-$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0}; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {} };
+$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
   cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }

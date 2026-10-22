@@ -11,6 +11,21 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.76 (Sky view lines up): **true north**: `magField`/`magDecl` evaluate the World Magnetic Model (WMM2025, NOAA NCEI,
+  public domain; `tools/app/WMM.COF`, its g h ġ ḣ packed into `WMM_C`), checked against NOAA's 100 test values (to
+  0.005°; Vienna 5.4° E in 2026). Added to the heading in `arProject` (`arDec`) and in Where to look's `lookHeadingFrom`.
+  Drags saved before carry the declination: taken out once (`od.ar.off` gets `v: 2`, `arOffSave`). **Sun and moon**:
+  `skyBodies` (the Astronomical Almanac's low-precision formulas, refraction, the moon seen from here; at three total
+  eclipses sun and moon land within 0.2°), drawn by `arBodiesDraw` as dashed rings (the moon only when 4 % lit or
+  more); the hint at the bottom asks to drag them into place. **AUTO** (`arAutoStep`, `arFind`, `arAutoChip`,
+  `arBrackets`; `od.ar.auto`, on by default): every 160 ms the camera picture within 9° of each plane's label (planes
+  under 15 km, over 2° up, not near another label or the sun) is scaled so the plane comes out ~3 samples across (span by
+  ADS-B category), and searched for a spot that stands out from the 13×13 around it by 5× the noise, alone (a ring 5
+  out stays quiet: no edges) and round (no line through it), with no second spot nearly as strong. Finds are kept as
+  the offset that would put the label there; a plane counts with 5 finds in 2.5 s, 80 % within 0.7°; the planes counted
+  must agree within 1.5°; the offset then glides there (τ 0.7 s) and is saved every 5 s. A drag pauses it 5 s. Tested
+  with a synthetic camera: a compass 4–5° off ends 0.0–0.3° from the plane; an empty sky, a cloud edge or a contrail
+  move nothing.
 - 1.75.2 (Sky view accuracy): the board's `getAircraft` keeps the source's `now` on the list (`list.now`, `srcTime`:
   ms or s); `arFeed` dates the data from it (the relay keeps positions up to `FRESH_S`; clocks more than 2 min off fall
   back to arrival) and measures each plane's turn rate between updates (`arTurns`). `arMove` moves a plane on along its
