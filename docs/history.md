@@ -11,6 +11,7 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.75.1: the app's Logbook drops the Newest aircraft list (the board keeps it).
 - 1.75 / relay 61: `CATEGORY_WORDS` in `search_json` (a category word narrows to `category_of`; alone it lists the
   category; the answer says `category` and `text`), rows carry `typeCode`, `callsign`, `airlineIata`.
   `/logbook/category?c=&place=` → `category_top_json` (top ten types, regs, operators over `_logbook_entries`, cached
