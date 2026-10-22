@@ -1076,10 +1076,12 @@ document.addEventListener("click", e => { if (e.target && e.target.id === "yShar
 let lookHeading = null, lookOn = false, lookRaf = 0, lookErr = "", lookErrAt = 0;
 function lookAt(){
   if (!feat || !feat.o || feat.o.ac.lat == null) return null;
-  const ac = feat.o.ac, kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx, y = (ac.lat - S.lat) * 110.57;
+  // 1.75.2: where the plane is now and how high (as Sky view has it: moved on from the data's time, its true height)
+  const ac = feat.o.ac, mv = arMove(ac, Math.min(60, (Date.now() - arListAt) / 1000 + (ac.seen_pos || 0))), h = arHeight(ac, arWeather());
+  const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx + mv[0] / 1000, y = (ac.lat - S.lat) * 110.57 + mv[1] / 1000;
   const km = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, alt = feat.o.alt;
-  if (alt == null || km > 80) return null;
-  const up = Math.round(Math.atan2(Math.max(0, alt) * .3048, Math.max(50, km * 1000)) * 180 / Math.PI);
+  if (alt == null || h == null || km > 80) return null;
+  const up = Math.round(Math.atan2(Math.max(0, h + mv[2]) - km * km * 1e6 / (2 * 6371000) * .87, Math.max(50, km * 1000)) * 180 / Math.PI);
   return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
 }
 function drawLook(){
@@ -1146,9 +1148,12 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    Each plane's direction from where the phone is (its own location, or the place in Settings) and its height, turned
    into the camera's picture with the phone's orientation: the W3C rotation (alpha, beta, gamma; the compass heading
    on iPhones), the back camera looking along the phone's -z. Positions are moved on to now with each plane's speed and
-   track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device). */
+   track. Compasses are often a few degrees off: dragging the picture shifts the labels into place (kept per device).
+   1.75.2: the turn is smoothed as a quaternion; the picture's scale comes from the video's own size, and held sideways
+   the labels turn the right way; planes are moved on from the time the source made the data (not when it arrived),
+   along their turn and climb; heights are made true with the home airport's QNH and temperature. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
-let arOn = false, arStream = null, arList = [], arListAt = 0, arAng = null, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
+let arOn = false, arStream = null, arList = [], arListAt = 0, arQ = null, arQt = 0, arGap = null, arGapT = 0, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0};
 // 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
 // (the ring fills as it waits). Then it waits for the ring to be empty again.
@@ -1157,20 +1162,73 @@ let arAim = {hex: "", since: 0, done: ""};
 // 1.66: the compass is unsure when the heading jumps about while the phone is held still (or iOS says it is poor):
 // a note asks for a figure of eight, or a drag to line the labels up.
 let arRaw = [], arCalAt = 0;
-const AR_VFOV = 64;                                  // the back camera's vertical field of view, upright (degrees, typical)
-function arFeed(list){ arList = list || []; arListAt = Date.now(); }
-const arEvent = () => "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
-function arOrient(e){
-  let a = e.alpha;
-  if (typeof e.webkitCompassHeading === "number") a = 360 - e.webkitCompassHeading;       // iPhone: north from the compass
-  else if (!e.absolute && e.type !== "deviceorientationabsolute") return;
-  if (a == null || e.beta == null || e.gamma == null) return;
-  arCalCheck(a, e.beta, e.gamma, e.webkitCompassAccuracy);
-  if (!arAng) arAng = {a, b: e.beta, g: e.gamma};
-  else {                                             // smoothed: compasses wobble
-    const d = ((a - arAng.a + 540) % 360) - 180;
-    arAng = {a: (arAng.a + d * .3 + 360) % 360, b: arAng.b + (e.beta - arAng.b) * .3, g: arAng.g + (e.gamma - arAng.g) * .3};
+const AR_FOV = 64;                                   // the back camera's view along the picture's long side (degrees, typical)
+// 1.75.2: the focal length in screen pixels. The video fills the screen (object-fit: cover), so its long side, however
+// much of it is cut off, spans AR_FOV; this holds upright, sideways and on a tablet alike. Camera sensors are 4:3:
+// a narrower video (square) was cut along its long side too, and sees less.
+function arFocal(W, H){
+  const v = $("arVid"), vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw || !vh) return Math.max(W, H) / 2 / Math.tan(AR_FOV / 2 * Math.PI / 180);
+  const lo = Math.max(vw, vh), t = Math.tan(AR_FOV / 2 * Math.PI / 180) * Math.min(1, lo / Math.min(vw, vh) * .75);
+  return lo * Math.max(W / vw, H / vh) / 2 / t;
+}
+// 1.75.2: the time the source made the positions (getAircraft's list.now), so the relay's few seconds of keeping them
+// count too; a phone clock far off falls back to when they arrived. Turn rates are measured between two updates.
+const arTurns = new Map();                           // hex -> {at, track, rate}
+function arFeed(list){
+  const now = Date.now(), t = list && list.now;
+  arList = list || []; arListAt = t && now - t > -2000 && now - t < 120000 ? Math.min(now, t) : now;
+  for (const ac of arList) {
+    if (ac.track == null) continue;
+    const at = arListAt - (ac.seen_pos || 0) * 1000, was = arTurns.get(ac.hex);
+    if (was && at - was.at < 1000) continue;         // the same position again
+    const gap = was ? (at - was.at) / 1000 : 0, r = gap ? (((ac.track - was.track) % 360) + 540) % 360 - 180 : 0;
+    arTurns.set(ac.hex, {at, track: ac.track, rate: gap > 1 && gap < 20 && Math.abs(r / gap) <= 6 ? r / gap : 0});
   }
+  if (arTurns.size > 400) for (const [k, v] of arTurns) if (now - v.at > 120000) arTurns.delete(k);
+}
+const arEvent = () => "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+// 1.75.2: the W3C angles (Z-X'-Y'') as a quaternion [w, x, y, z], and back into the rotation matrix (the phone's axes in
+// east-north-up). Smoothing the angles one by one went wrong where they wrap: looking straight up (beta at ±180,
+// planes overhead) or holding the phone sideways (gamma at ±90).
+function arQuat(a, b, g){
+  const r = Math.PI / 360, cX = Math.cos(b * r), cY = Math.cos(g * r), cZ = Math.cos(a * r), sX = Math.sin(b * r), sY = Math.sin(g * r), sZ = Math.sin(a * r);
+  return [cX * cY * cZ - sX * sY * sZ, sX * cY * cZ - cX * sY * sZ, cX * sY * cZ + sX * cY * sZ, cX * cY * sZ + sX * sY * cZ];
+}
+function arQMatrix([w, x, y, z]){
+  return [[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+          [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+          [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]];
+}
+const wrap180 = d => ((d % 360) + 540) % 360 - 180;
+function arOrient(e){
+  if (e.beta == null || e.gamma == null) return;
+  const t = performance.now();
+  let a = e.alpha, raw = a;
+  if (typeof e.webkitCompassHeading === "number" && e.webkitCompassHeading >= 0) {
+    // iPhone: alpha comes from the gyro (steady, but with its own zero) and the compass says where north is; the gap
+    // between them is followed slowly, so the labels get the gyro's steadiness and the compass's north.
+    raw = 360 - e.webkitCompassHeading;
+    if (a == null) a = raw;
+    else {
+      // (a big difference is a real change, a first reading or the compass settling, and is taken at once)
+      const gap = raw - a, poor = typeof e.webkitCompassAccuracy === "number" && (e.webkitCompassAccuracy < 0 || e.webkitCompassAccuracy > 25);
+      const off = arGap == null ? 0 : wrap180(gap - arGap), tau = (poor ? 4 : 1.2) / (1 + (off / 8) ** 2);
+      arGap = arGap == null ? gap : arGap + off * (1 - Math.exp(-Math.min(.2, (t - arGapT) / 1000) / tau));
+      arGapT = t; a += arGap;
+    }
+  }
+  else if (!e.absolute && e.type !== "deviceorientationabsolute") return;
+  if (a == null) return;
+  arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy);
+  const q = arQuat(a, e.beta, e.gamma);
+  if (!arQ) { arQ = q; arQt = t; return; }
+  let d = arQ[0] * q[0] + arQ[1] * q[1] + arQ[2] * q[2] + arQ[3] * q[3];
+  if (d < 0) { for (let i = 0; i < 4; i++) q[i] = -q[i]; d = -d; }
+  // smoothed like a 1€ filter: held still heavily (compasses wobble), turning hardly at all (the labels keep up)
+  const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.exp(-ang / .7);
+  const k = 1 - Math.exp(-Math.min(.2, Math.max(.002, (t - arQt) / 1000)) / tau), m = arQ.map((v, i) => v + (q[i] - v) * k), L = Math.hypot(...m);
+  arQ = m.map(v => v / L); arQt = t;
 }
 async function arOpen(){
   ctlSound.press();
@@ -1181,13 +1239,17 @@ async function arOpen(){
   } catch { return fail(); }
   try { arOff = {h: 0, p: 0, ...JSON.parse(localStorage.getItem("od.ar.off") || "{}")}; } catch {}
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
-  $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arAng = null;
+  v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
+    const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
+    dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
+  }, {once: true});
+  $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null;
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
   arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
-  setTimeout(() => { if (arOn && !arAng) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
+  setTimeout(() => { if (arOn && !arQ) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
 }
@@ -1217,13 +1279,6 @@ function arClose(){
   arSel = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen");
 }
-// The rotation from the phone's axes to east-north-up (W3C DeviceOrientation, Z-X'-Y'' with alpha, beta, gamma).
-function arMatrix(a, b, g){
-  const r = Math.PI / 180, cA = Math.cos(a * r), sA = Math.sin(a * r), cB = Math.cos(b * r), sB = Math.sin(b * r), cG = Math.cos(g * r), sG = Math.sin(g * r);
-  return [[cA * cG - sA * sB * sG, -cB * sA, cA * sG + cG * sA * sB],
-          [cG * sA + cA * sB * sG, cA * cB, sA * sG - cA * cG * sB],
-          [-cB * sG, sB, cB * cG]];
-}
 // Where a point (east, north, up in metres from the phone) falls on the screen: [x, y] or, behind the phone, the
 // direction to turn ({edge: [dx, dy]}).
 function arProject(e, n, u, R, W, H){
@@ -1231,9 +1286,11 @@ function arProject(e, n, u, R, W, H){
   const E = e * ce - n * se, N = e * se + n * ce, L = Math.hypot(E, N, u) || 1, p = [E / L, N / L, u / L];
   let vx = R[0][0] * p[0] + R[1][0] * p[1] + R[2][0] * p[2], vy = R[0][1] * p[0] + R[1][1] * p[1] + R[2][1] * p[2];
   const vz = R[0][2] * p[0] + R[1][2] * p[1] + R[2][2] * p[2];
+  // held sideways the screen's axes are the phone's turned by the screen angle (90: the top to the left). 1.75.2: the
+  // turn went the other way, so sideways every label sat mirrored through the middle.
   const so = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
-  if (so) { const x = vx * Math.cos(so) + vy * Math.sin(so), y = -vx * Math.sin(so) + vy * Math.cos(so); vx = x; vy = y; }
-  const f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180), shift = f * Math.tan(arOff.p * Math.PI / 180);
+  if (so) { const x = vx * Math.cos(so) - vy * Math.sin(so), y = vx * Math.sin(so) + vy * Math.cos(so); vx = x; vy = y; }
+  const f = arFocal(W, H), shift = f * Math.tan(arOff.p * Math.PI / 180);
   if (vz > -.08) return {edge: [vx, -vy]};
   const x = W / 2 + f * vx / -vz, y = H / 2 - f * vy / -vz + shift;
   return x < -40 || x > W + 40 || y < -40 || y > H + 40 ? {edge: [x - W / 2, y - H / 2], x, y} : {x, y};
@@ -1245,22 +1302,19 @@ function arLoop(){
   if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
-  if (!arAng) return;
-  const R = arMatrix(arAng.a, arAng.b, arAng.g), here = arHere || {lat: S.lat, lon: S.lon};
-  const kx = 111320 * Math.cos(here.lat * Math.PI / 180), dt = (Date.now() - arListAt) / 1000, ground = sky && sky.elevation ? sky.elevation * .3048 : 0;
+  if (!arQ) return;
+  const R = arQMatrix(arQ), here = arHere || {lat: S.lat, lon: S.lon}, wx = arWeather();
+  const r = here.lat * Math.PI / 180, ky = 111132.95 - 559.82 * Math.cos(2 * r) + 1.18 * Math.cos(4 * r), kx = 111412.84 * Math.cos(r) - 93.5 * Math.cos(3 * r);
+  const dt = (Date.now() - arListAt) / 1000;
   const shown = [];
   for (const ac of arList) {
     if (ac.lat == null || ac.lon == null) continue;
-    const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
-    if (alt == null || alt < 0) continue;
-    let e = (ac.lon - here.lon) * kx, n = (ac.lat - here.lat) * 110570;
-    if (ac.gs && ac.track != null) {                     // on to now along its track
-      const m = ac.gs * .5144 * Math.min(60, dt + (ac.seen_pos || 0)), t = ac.track * Math.PI / 180;
-      e += m * Math.sin(t); n += m * Math.cos(t);
-    }
-    const d = Math.hypot(e, n);
+    const h = arHeight(ac, wx), alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
+    if (h == null || h < -150) continue;
+    const mv = arMove(ac, Math.min(60, dt + (ac.seen_pos || 0)));   // on to now
+    const e = (ac.lon - here.lon) * kx + mv[0], n = (ac.lat - here.lat) * ky + mv[1], d = Math.hypot(e, n);
     if (d > 60000) continue;
-    const u = alt * .3048 - ground - d * d / (2 * 6371000) * .87;  // the earth's curve (with the usual refraction)
+    const u = Math.max(0, h + mv[2]) - d * d / (2 * 6371000) * .87;  // the earth's curve (with the usual refraction)
     const pr = arProject(e, n, u, R, W, H), isFeat = feat && feat.hex === ac.hex;
     if (pr.edge && !isFeat) continue;
     const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
@@ -1302,6 +1356,34 @@ function arLoop(){
   $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   arAimDraw(g, W, H);
 }
+// 1.75.2: how far a plane has come since its position: along its track, round its turn (the rate it sends, or the one
+// measured between two updates; at most 20 s of it) and up or down at its climb or descent rate. [east, north, up] m.
+function arMove(ac, t){
+  const v = (ac.gs || 0) * .5144, th = (ac.track || 0) * Math.PI / 180, tt = Math.min(t, 20);
+  const vr = typeof ac.geom_rate === "number" ? ac.geom_rate : typeof ac.baro_rate === "number" ? ac.baro_rate : 0, up = vr * .3048 / 60 * tt;
+  if (!v || ac.track == null) return [0, 0, up];
+  const tr = typeof ac.track_rate === "number" ? ac.track_rate : (arTurns.get(ac.hex) || {}).rate || 0, w = Math.abs(tr) < .2 ? 0 : tr * Math.PI / 180;
+  if (!w) return [v * t * Math.sin(th), v * t * Math.cos(th), up];
+  const th2 = th + w * tt;
+  return [v / w * (Math.cos(th) - Math.cos(th2)) + v * (t - tt) * Math.sin(th2), v / w * (Math.sin(th2) - Math.sin(th)) + v * (t - tt) * Math.cos(th2), up];
+}
+// 1.75.2: the home airport's METAR (relay /sky): its elevation, QNH and temperature, for true heights.
+function arWeather(){
+  const raw = sky && sky.raw || "", q = /\bQ(\d{4})\b/.exec(raw), a = /\bA(\d{4})\b/.exec(raw), tc = /\s(M?\d{2})\/M?\d{2}\s/.exec(" " + raw + " ");
+  const qnh = q ? +q[1] : a ? +a[1] / 100 * 33.8639 : 0;
+  return {ground: sky && sky.elevation ? sky.elevation * .3048 : 0, qnh: qnh > 900 && qnh < 1100 ? qnh : 0, temp: tc ? +tc[1].replace("M", "-") : null};
+}
+// A plane's height above the ground in metres. Its pressure altitude (altimeters on 1013 hPa) is moved to the day's QNH
+// (some 8 m a hectopascal) and scaled for the air's temperature (cold air: lower than it says); without a METAR as it
+// is, and without a pressure altitude its GPS height.
+function arHeight(ac, wx){
+  let ft;
+  if (typeof ac.alt_baro === "number") ft = ac.alt_baro - (wx.qnh ? 145366.45 * (1 - Math.pow(wx.qnh / 1013.25, .190284)) : 0);
+  else if (typeof ac.alt_geom === "number") ft = ac.alt_geom;
+  else return null;
+  const h = ft * .3048 - wx.ground;
+  return wx.temp != null && h > 0 ? h * (wx.temp + 273.15) / (288.15 - .0065 * wx.ground) : h;
+}
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
 function arAimDraw(g, W, H){
   const cx = W / 2, cy = H / 2, now = Date.now();
@@ -1339,7 +1421,7 @@ function arDragMove(e){
   if (!arDrag) return;
   if (!arDrag.moved && Math.hypot(e.clientX - arDrag.x, e.clientY - arDrag.y) < 8) return;       // still a tap
   arDrag.moved = true;
-  const H = $("arCv").clientHeight, f = (H / 2) / Math.tan(AR_VFOV / 2 * Math.PI / 180);
+  const cv = $("arCv"), f = arFocal(cv.clientWidth, cv.clientHeight);
   arOff.h = arDrag.h - Math.atan((e.clientX - arDrag.x) / f) * 180 / Math.PI;
   arOff.p = arDrag.p + Math.atan((e.clientY - arDrag.y) / f) * 180 / Math.PI;
 }

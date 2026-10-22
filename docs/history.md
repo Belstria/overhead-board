@@ -11,6 +11,16 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.75.2 (Sky view accuracy): the board's `getAircraft` keeps the source's `now` on the list (`list.now`, `srcTime`:
+  ms or s); `arFeed` dates the data from it (the relay keeps positions up to `FRESH_S`; clocks more than 2 min off fall
+  back to arrival) and measures each plane's turn rate between updates (`arTurns`). `arMove` moves a plane on along its
+  turn (`track_rate`, else the measured one; at most 20 s of it) and climb (`geom_rate`/`baro_rate`); `arHeight` makes
+  the pressure altitude true with the home airport's METAR (`arWeather`: QNH from Q/A groups, temperature) and falls
+  back to `alt_geom`. The orientation is a quaternion (`arQuat`, `arQMatrix`) smoothed as a whole, 1€-style (τ 0.2 s
+  held still, 0.03 s turning): the per-angle smoothing broke where beta wraps (straight up) and gamma wraps (sideways).
+  iPhones: gyro alpha plus a slowly followed gap to the compass (`arGap`; big gaps taken at once). `arProject` turned
+  the screen the wrong way (sideways labels mirrored); `arFocal` takes the scale from the video's size (cover; a stream
+  narrower than 4:3 sees less). `lookAt` (Where to look) uses `arMove`/`arHeight` too. The camera's size goes to the log.
 - 1.75.1: the app's Logbook drops the Newest aircraft list (the board keeps it).
 - 1.75 / relay 61: `CATEGORY_WORDS` in `search_json` (a category word narrows to `category_of`; alone it lists the
   category; the answer says `category` and `text`), rows carry `typeCode`, `callsign`, `airlineIata`.
