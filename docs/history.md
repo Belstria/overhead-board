@@ -11,6 +11,8 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.78.2: the app's Spotted today facts (`todayNumbers`) drop Busiest hour and First of the day and gain Most seen
+  types (`topTypes`: the day's list counted by type, the top three as "A320 ×12").
 - 1.78.1: the score strip follows `S.live` at once (`gStripLive`, checked every 300 ms; a change redraws it and forces
   `gRefresh`): it waited for the next points, up to a minute (Dave: 30 s after live went off). Remarks "FIRST: TYPE"
   etc. (keys in i18n.js too; the translations had the colon already). Cards: a finger going up where the card can't

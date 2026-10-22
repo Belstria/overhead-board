@@ -489,8 +489,8 @@ Five buttons along the bottom:
   latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today**: today's numbers on flaps, the day's highlights (busiest hour, lowest and highest pass, fastest, most seen
-  airline), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
+- **Today**: today's numbers on flaps, the day's highlights (lowest and highest pass, fastest, most seen airline, the
+  most seen aircraft types since 1.78.2, what's new in the logbook), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.

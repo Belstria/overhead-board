@@ -648,30 +648,34 @@ function legendHtml(){
     items.map(([r, t]) => `<li>${chip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
     `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
+// 1.78.2: the most seen aircraft types today (up to three, "A320 ×12"), counted from the day's list
+function topTypes(list){
+  const c = new Map();
+  for (const e of list) { const k = e.typeCode || clean(e.type); if (k) c.set(k, (c.get(k) || 0) + 1); }
+  return [...c].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${shortType(TYPES[k] || k)} ×${n}`).join(" · ");
+}
 function todayNumbers(){
   const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList(), OVK = overKm();
   if (st) {
     const name = x => x ? fromRelay(x).flight : "";
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
     return {planes: st.planes, airlines: st.airlines, types: st.types, over: st.overhead, facts: [
-      ["Busiest hour", "Meiste Flüge", st.busiestHour != null ? `${String(st.busiestHour).padStart(2, "0")}:00` : ""],
-      ["First of the day", "Erster", st.first ? `${st.first.time} ${name(st.first)}` : ""],
-      ["Lowest pass", "Tiefster", st.lowest ? `${name(st.lowest)} · ${altText(st.lowest.altAtMin)}` : ""],
+      ["Lowest pass", "Tiefster", st.lowest ? `${name(st.lowest)} · ${altText(st.lowest.altAtMin)}` : ""],   // 1.78.2: no busiest hour, no first
       ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
       ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
       ["Most seen airline", "", t ? `${tn} · ${t.count}` : ""],
+      ["Most seen types", "", topTypes(list)],
       ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? T("{a} types · {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet")]]};
   }
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
   const withAlt = list.filter(e => typeof e.altAtMin === "number");
   const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
   const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
-  const first = list[list.length - 1];
   return {planes: list.length, airlines: uniq(e => e.airlineCode || clean(e.airline)), types: uniq(e => e.typeCode || clean(e.type)),
     over: list.filter(e => e.minDist != null && e.minDist <= OVK).length, facts: [
-      ["First of the day", "Erster", first ? `${first.time} ${first.flight}` : ""],
       ["Lowest pass", "Tiefster", low ? `${low.flight} · ${altText(low.altAtMin)}` : ""],
-      ["Highest pass", "Höchster", high ? `${high.flight} · ${altText(high.altAtMin)}` : ""]]};
+      ["Highest pass", "Höchster", high ? `${high.flight} · ${altText(high.altAtMin)}` : ""],
+      ["Most seen types", "", topTypes(list)]]};
 }
 let todayFactsSig = "";
 function renderTodayNumbers(){
