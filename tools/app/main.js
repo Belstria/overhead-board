@@ -905,6 +905,7 @@ function renderLogbook(){
   else html = reviewHtml();
   $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
+  trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -950,29 +951,39 @@ function tierIcon(t){
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
 }
-// The trophies (1.55). 1.79 (Dave's pick B): the three closest to winning first, each a line with its bar; the ones won
-// and the ones still to win folded (one line each), opened with a tap and kept open while the page updates.
-let gTrOpen = {won: false, todo: false};
+// The trophies (1.55). 1.79 (Dave's pick B): the three closest to winning first, each a line with its bar. 1.79.2 (Dave's
+// picks): a switch shows Closest, Won or Still to win, one list at a time (kept while the page updates); a trophy with
+// ranks shows its rank's medal, bronze to diamond: the cup in that metal (filled once won) and a tag before the dots.
+let gTrTab = "near";
+const TROPHY_MEDALS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"];
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
   const prog = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
-  const close = lads.filter(x => x.st.next).sort((a, b) => prog(b) - prog(a)).slice(0, 3);
+  const todo = lads.filter(x => x.st.next).sort((a, b) => prog(b) - prog(a));
   const pips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
-  const row = (on, name, what, right, extra = "") => `<li class="${on ? "on" : ""}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
+  const medal = (st, t) => { const i = st.tiers.indexOf(t); return {cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
+  const row = (on, name, what, right, extra = "", cls = "") => `<li class="${on ? "on" : ""}${cls}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
     `<span class="n">${escH(right)}</span>${extra}</li>`;
-  const toGo = x => { const t = x.st.next; return row(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : ""); };
-  const near = close.map(x => { const t = x.st.next;
+  const toGo = x => { const t = x.st.next, m = medal(x.st, t);
     return row(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
-      `<span class="tl">${pips(x.st)}<span class="bar"><i style="width:${(prog(x) * 100).toFixed(1)}%"></i></span></span>`); }).join("");
-  const wonRows = lads.filter(x => x.st.last).map(x => row(true, T(x.st.last[2]), T(x.L[1], {n: nf.format(x.st.last[1])}), fmtDay(x.st.won[x.st.last[0]]), `<span class="tl">${pips(x.st)}</span>`))
-    .concat(TROPHY_SINGLES.filter(k => won[k]).map(k => { const [nm, what] = trophyText(k); return row(true, nm, what, fmtDay(won[k])); })).join("");
-  const todoRows = lads.filter(x => x.st.next && !close.includes(x)).map(toGo)
-    .concat(TROPHY_SINGLES.filter(k => !won[k]).map(k => { const [nm, what] = trophyText(k); return row(false, nm, what, ""); })).join("");
-  const fold = (k, label, rows) => rows ? `<details class="trFold" data-tr="${k}"${gTrOpen[k] ? " open" : ""}><summary>${escH(label)}</summary><ul class="ranks plain cups">${rows}</ul></details>` : "";
+      `<span class="tl">${m.tag}${pips(x.st)}<span class="bar"><i style="width:${(prog(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls); };
+  const single = k => { const [nm, what] = trophyText(k); return row(!!won[k], nm, what, won[k] ? fmtDay(won[k]) : ""); };
+  const lists = {near: todo.slice(0, 3).map(toGo),
+    won: lads.filter(x => x.st.last).map(x => { const t = x.st.last, m = medal(x.st, t);
+      return row(true, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), fmtDay(x.st.won[t[0]]),
+        `<span class="tl">${m.tag}${pips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls); })
+      .concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
+    todo: todo.map(toGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
+  const tabs = [["near", T("Closest")], ["won", T("Won · {n}", {n: nWon})], ["todo", T("Still to win")]];
+  const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
   return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
-    `<p class="trSub">${escH(T("Closest to winning"))}</p><ul class="ranks plain cups ladders trNear">${near}</ul>` +
-    fold("won", T("Won · {n}", {n: nWon}), wonRows) + fold("todo", T("Still to win · {n}", {n: TROPHY_IDS.length - nWon}), todoRows);
+    `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
+    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`);
+}
+// The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
+function trWire(box, redraw){
+  for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.press(); gTrTab = b.dataset.tt; redraw(); };
 }
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -3196,7 +3207,7 @@ function renderGame(){
   box.dataset.h = h; box.innerHTML = h;
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
-  for (const d of box.querySelectorAll("details[data-tr]")) d.ontoggle = () => { if (gTrOpen[d.dataset.tr] !== d.open) { gTrOpen[d.dataset.tr] = d.open; ctlSound.press(); } };
+  trWire(box, renderGame);
   const sb = $("gStyles"); if (sb) sb.onclick = () => { ctlSound.press(); stylesCard(); };
   $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }

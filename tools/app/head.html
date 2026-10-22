@@ -261,10 +261,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
 .cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
 .cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}
-.cups li:not(.on) .name{color:rgba(243,240,232,.5)}
 .cups .name{white-space:normal}
-.cups .s{display:block;margin:2px 0 0}
-.cups.ladders{margin-bottom:10px}
+.cups .s{margin:0 0 0 4px}
 .cups .tl{grid-column:2/4;display:flex;align-items:center;gap:8px;margin-top:2px}
 .cups .pips{display:flex;gap:4px}
 .cups .pips b{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
@@ -272,6 +270,12 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .cups .tl .bar{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden}
 .cups .tl .bar i{display:block;height:100%;background:#c99a2e}
 .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:#e0aa1f}
+/* 1.79.2: a rank's medal, bronze to diamond: the cup in its metal (filled once won) and a tag before the dots */
+.cups li.m0{--m:#cf8f5a} .cups li.m1{--m:#c6ccd5} .cups li.m2{--m:#e0aa1f} .cups li.m3{--m:#86dccb} .cups li.m4{--m:#9fb9ff}
+.cups li.medal .cup{stroke:var(--m);stroke-width:1.4}
+.cups li.medal.on .cup{fill:var(--m);stroke:var(--m)}
+.cups .metal{flex:none;padding:3px 7px 2px;border:1px solid var(--m);border-radius:999px;color:var(--m);font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase}
+.cups .tl .nx{min-width:0;color:var(--muted);font:500 var(--fs-s)/1.2 var(--f-board)}
 /* the year in planes */
 .yearCard{margin:16px 0 4px;padding:14px 14px 10px;border-radius:10px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(240,180,41,.35)}
 .yearCard h3{margin-top:0}
@@ -525,7 +529,8 @@ html.daylight .svFind input::placeholder,html.daylight #welcome input::placehold
 html.daylight .rv .num{color:#3b3832}
 html.daylight .acCheck b,html.daylight .devTile{color:#191919}
 html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
-html.daylight .cups li:not(.on) .name{color:rgba(25,25,25,.5)}
+html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
+html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
@@ -562,13 +567,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -741,15 +746,6 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .gHowTiers{margin:10px 0}
 #cardBox .gTaper{margin:12px 0 6px}
 #cardBox .gRule{margin:8px 0 0;line-height:1.4}
-.trSub{margin:10px 0 2px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#c9c3b4}
-.trFold summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:13px 4px;border-bottom:1px solid rgba(255,255,255,.06);font:600 var(--fs-base)/1 var(--f-board)}
-.trFold summary::-webkit-details-marker{display:none}
-.trFold summary::after{content:"▸";color:var(--muted);transition:transform .2s}
-.trFold[open] summary::after{transform:rotate(90deg)}
-.trFold summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.trFold .cups .s,.trNear .s{display:inline;margin:0 0 0 4px}
-.trNear li:not(.on) .name{color:var(--ink)}
-.trFold .cups .tl{margin-top:4px}
 .gOpt{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:var(--fs-m)}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
