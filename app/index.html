@@ -1055,6 +1055,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
   background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
 .gTot s.flp{animation:gFlp .26s ease-in-out}
+.gTot s.z{color:#6b5520}   /* 1.73.2: a leading zero, dimmed */
 @keyframes gFlp{50%{transform:scaleY(.05);filter:brightness(1.8)}}
 .gLv{flex:1;min-width:0;display:grid;gap:4px}
 .gLv small{font:600 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1068,6 +1069,10 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .gChip{all:unset;cursor:pointer;display:inline-grid;perspective:200px;flex:none}
 .gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
 .gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
+.skyIco{width:18px;height:18px;flex:none}
+/* 1.73.2: Go live, while the phone finds itself: a turning circle in the chip */
+.gSpin{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;animation:gSpin .8s linear infinite}
+@keyframes gSpin{to{transform:rotate(360deg)}}
 .gChip .r2{background:var(--amber);color:#17140e;transform:rotateX(90deg)}
 #gStrip.flip .gChip .r1{animation:gR1 3.4s forwards} #gStrip.flip .gChip .r2{animation:gR2 3.4s forwards}
 @keyframes gR1{0%,6%{transform:none}11%,50%{transform:rotateX(-90deg)}56%,100%{transform:none}}
@@ -1167,6 +1172,17 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .tools .seg.svFilters{flex:1 1 100%;margin:0}
 .gLeague{gap:0} .gLeague li{background:none;border-radius:0;padding:9px 4px;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03)}
 .gLeague li.me{outline:none;background:linear-gradient(90deg,rgba(240,180,41,.14),transparent 70%);box-shadow:inset 3px 0 0 var(--amber),0 1px 0 rgba(255,255,255,.03)}
+/* 1.73.2: notices (toasts) are dark pills, like the boxes, sliding in from the right under the score strip; a swipe to the
+   right sends one away (main.js) */
+#toasts,#toasts.top{left:auto;right:10px;transform:none;bottom:auto;top:calc(var(--sa-top) + 132px);width:min(92vw,440px);display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#toasts .toast{border-radius:999px;background:var(--box-bg);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:9px 9px 9px 16px;gap:10px;
+  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
+#toasts .toast.err{border-color:#5a2a2d;background:linear-gradient(#2a1517,#1d0f11)}
+#toasts .toast button{flex:none;padding:7px 12px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.06em}
+#toasts .toast.err button{background:#ff8a80}
+#toasts .toast.out{transform:translateX(120%);opacity:0}
+@keyframes toastIn{from{transform:translateX(120%)}}
+@media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -1250,7 +1266,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="panel" id="hero" role="img" aria-label="The plane overhead"></div>
       <div class="skyRow" id="skyRow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         <div><b data-t="Sky view">Sky view</b><span data-t="Hold your phone up to the sky to see every plane around you.">Hold your phone up to the sky to see every plane around you.</span></div>
-        <button class="cBtn" type="button" id="arBtn2" data-t="Open">Open</button></div>
+        <button class="cBtn" type="button" id="arBtn2"><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Open">Open</span></button></div>
     </div>
     <div class="rcol">
       <div class="apPick" id="apPick"></div>
@@ -1265,7 +1281,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
         <div class="look" id="look" hidden>
         <small class="lookH" data-t="Where to look">Where to look</small>
         <canvas id="lookCv" aria-hidden="true"></canvas>
-        <div class="lookRow"><button class="cBtn" type="button" id="arBtn" data-t="Sky view" hidden>Sky view</button>
+        <div class="lookRow"><button class="cBtn" type="button" id="arBtn" hidden><svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-t="Sky view">Sky view</span></button>
           <div class="lookTxt"><b id="lookDir"></b><span id="lookSub"></span></div></div>
       </div>
         <div class="panel lsOnly" id="acP" role="img" aria-label="This aircraft"></div>
@@ -1397,7 +1413,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=d7b2aa5524"></script>
+<script src="../test/i18n.js?v=ec448803ee"></script>
 <script>
 (() => {
 "use strict";
@@ -4927,11 +4943,11 @@ function firstLines(ac, info){
   const t = String(ac.t || info.typeCode || "").toUpperCase(), cs = String(ac.flight || "").trim().toUpperCase();
   const icao = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
   const reg = seenGet("reg", clean(info.reg || ac.r || "").replace(/\s/g, ""));
-  if (t && fresh(b.types[t])) out.push(T("FIRST EVER: TYPE"));
-  else if (reg && !seenBefore(reg).n) out.push(T("FIRST EVER: PLANE"));
-  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST EVER: AIRLINE"));
+  if (t && fresh(b.types[t])) out.push(T("FIRST TYPE"));                          // 1.73.2: without "ever"
+  else if (reg && !seenBefore(reg).n) out.push(T("FIRST PLANE"));
+  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST AIRLINE"));
   const f = icao ? seenGet("cs", cs) : null;
-  if (f && !seenBefore(f).n) out.push(T("FIRST EVER: FLIGHT"));
+  if (f && !seenBefore(f).n) out.push(T("FIRST FLIGHT"));
   return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
@@ -7170,6 +7186,14 @@ const putDraft = (box, k, v) => { draft[k] = v; const el = box.querySelector(`.l
 async function locatedAt(box, lat, lon, name, why){
   const note = box.querySelector("[data-lnote]"), ask = box.querySelector("[data-lask]");
   const say = t => { if (note) note.textContent = t; };
+  // 1.73.2: a place set by hand (Here, an address, typed coordinates) ends live location: it no longer follows the
+  // phone (or scores in the game), and Save doesn't turn it back on
+  if (S.live || (draft && draft.live)) {
+    liveHalt(); S.live = false; delete S.livePrev; saveSettings();
+    if (draft) { draft.live = false; delete draft.livePrev; }
+    const lv = box.querySelector("[data-live]"); if (lv) { lv.setAttribute("aria-pressed", "false"); lv.title = lv.ariaLabel = T("Live location"); }
+    if (typeof gStripRender === "function" && typeof gme !== "undefined") gStripRender(gme);
+  }
   putDraft(box, "lat", +(+lat).toFixed(4)); putDraft(box, "lon", +(+lon).toFixed(4));
   if (name) putDraft(box, "place", String(name).slice(0, 24));
   cockpitDirty();
@@ -7712,6 +7736,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.73.2", date: "2026-10-22", notes: [
+    "Setting a place yourself (Here, an address, coordinates) turns live location off, so it no longer scores where your phone is.",
+    "Go live shows a turning circle until your phone has found itself.",
+    "Messages slide in from the right as dark pills and go with a swipe to the right.",
+    "The points total always shows on four flaps; the Sky view buttons carry its icon; remarks say FIRST TYPE, FIRST PLANE and so on.",
+  ]},
   {v: "1.73.1", date: "2026-10-22", notes: [
     "The plane's points are a Points field on the board, beside the remarks; tap it to see why.",
     "Where to look is a compass strip that slides as you turn, with Sky view beside the directions.",
@@ -9045,13 +9075,44 @@ function gStripSetup(){
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
   box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) { liveStart(); setTimeout(gRefresh, 4000); } else showTab("game"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
+}
+// 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back.
+{ let sw = null;
+  const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; };
+  const move = x => { if (!sw) return; sw.dx = Math.max(0, x - sw.x0); sw.t.style.transform = `translateX(${sw.dx}px)`; sw.t.style.opacity = String(Math.max(.2, 1 - sw.dx / 260)); };
+  const end = () => {
+    if (!sw) return;
+    const {t, dx} = sw; sw = null; t.style.transition = "";
+    if (dx > 60) { t.style.transform = "translateX(120%)"; t.style.opacity = "0"; setTimeout(() => t.remove(), 260); }
+    else { t.style.transform = ""; t.style.opacity = ""; }
+  };
+  const toastAt = e => e.target && e.target.closest && !e.target.closest("button") && e.target.closest("#toasts .toast");
+  document.addEventListener("touchstart", e => { const t = toastAt(e); if (t) start(t, e.touches[0].clientX); }, {passive: true});
+  document.addEventListener("touchmove", e => { if (sw) move(e.touches[0].clientX); }, {passive: true});
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+  document.addEventListener("pointerdown", e => { const t = e.pointerType === "mouse" && toastAt(e); if (t) start(t, e.clientX); });
+  document.addEventListener("pointermove", e => { if (sw && e.pointerType === "mouse") move(e.clientX); });
+  document.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
+// 1.73.2: Go live: a turning circle in the chip until the phone has found itself (or 15 s), then the strip as it is.
+let gGoing = 0;
+function gGoLive(){
+  if (gGoing) return;
+  liveStart();
+  const t0 = Date.now();
+  gGoing = setInterval(() => {
+    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); if (gme) gStripRender(gme); }
+    else if (gme) gStripRender(gme);
+  }, 400);
+  if (gme) gStripRender(gme);
 }
 // The total on flaps: a flap flips over only where the digit changed, right to left.
+// 1.73.2: always four flaps at least, leading zeros dimmed (0402)
 function gTotSet(n, anim){
-  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(4, " ");
-  if (el.children.length !== t.length) el.innerHTML = [...t].map(c => `<s>${c === " " ? "" : c}</s>`).join("");
-  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
+  const el = $("gTot"), raw = String(Math.max(0, Math.round(n || 0))), t = raw.padStart(4, "0"), lead = t.length - raw.length;
+  if (el.children.length !== t.length) el.innerHTML = [...t].map(() => "<s></s>").join("");
+  [...t].forEach((c, i) => { const s = el.children[i], v = c;
+    s.classList.toggle("z", i < lead);
     if (s.textContent === v) return;
     if (!anim) { s.textContent = v; return; }
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
@@ -9065,7 +9126,7 @@ function gStripRender(g, anim){
   if (!anim) gTotSet(g.points);
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
-  $("gRank").innerHTML = off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
+  $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
     : escH(T("Game"));
 }
 // Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
