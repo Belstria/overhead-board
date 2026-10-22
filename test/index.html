@@ -570,7 +570,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=d7b2aa5524"></script>
+<script src="i18n.js?v=ec448803ee"></script>
 <script>
 (() => {
 "use strict";
@@ -3361,11 +3361,11 @@ function firstLines(ac, info){
   const t = String(ac.t || info.typeCode || "").toUpperCase(), cs = String(ac.flight || "").trim().toUpperCase();
   const icao = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
   const reg = seenGet("reg", clean(info.reg || ac.r || "").replace(/\s/g, ""));
-  if (t && fresh(b.types[t])) out.push(T("FIRST EVER: TYPE"));
-  else if (reg && !seenBefore(reg).n) out.push(T("FIRST EVER: PLANE"));
-  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST EVER: AIRLINE"));
+  if (t && fresh(b.types[t])) out.push(T("FIRST TYPE"));                          // 1.73.2: without "ever"
+  else if (reg && !seenBefore(reg).n) out.push(T("FIRST PLANE"));
+  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST AIRLINE"));
   const f = icao ? seenGet("cs", cs) : null;
-  if (f && !seenBefore(f).n) out.push(T("FIRST EVER: FLIGHT"));
+  if (f && !seenBefore(f).n) out.push(T("FIRST FLIGHT"));
   return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
@@ -6628,6 +6628,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.73.2", date: "2026-10-22", notes: [
+    "Setting a place yourself (Here, an address, coordinates) turns live location off, so it no longer scores where your phone is.",
+    "Go live shows a turning circle until your phone has found itself.",
+    "Messages slide in from the right as dark pills and go with a swipe to the right.",
+    "The points total always shows on four flaps; the Sky view buttons carry its icon; remarks say FIRST TYPE, FIRST PLANE and so on.",
+  ]},
   {v: "1.73.1", date: "2026-10-22", notes: [
     "The plane's points are a Points field on the board, beside the remarks; tap it to see why.",
     "Where to look is a compass strip that slides as you turn, with Sky view beside the directions.",
@@ -7758,6 +7764,14 @@ const putDraft = (box, k, v) => { draft[k] = v; const el = box.querySelector(`.l
 async function locatedAt(box, lat, lon, name, why){
   const note = box.querySelector("[data-lnote]"), ask = box.querySelector("[data-lask]");
   const say = t => { if (note) note.textContent = t; };
+  // 1.73.2: a place set by hand (Here, an address, typed coordinates) ends live location: it no longer follows the
+  // phone (or scores in the game), and Save doesn't turn it back on
+  if (S.live || (draft && draft.live)) {
+    liveHalt(); S.live = false; delete S.livePrev; saveSettings();
+    if (draft) { draft.live = false; delete draft.livePrev; }
+    const lv = box.querySelector("[data-live]"); if (lv) { lv.setAttribute("aria-pressed", "false"); lv.title = lv.ariaLabel = T("Live location"); }
+    if (typeof gStripRender === "function" && typeof gme !== "undefined") gStripRender(gme);
+  }
   putDraft(box, "lat", +(+lat).toFixed(4)); putDraft(box, "lon", +(+lon).toFixed(4));
   if (name) putDraft(box, "place", String(name).slice(0, 24));
   cockpitDirty();

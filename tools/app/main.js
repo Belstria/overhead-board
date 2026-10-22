@@ -2478,13 +2478,44 @@ function gStripSetup(){
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
   box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) { liveStart(); setTimeout(gRefresh, 4000); } else showTab("game"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
+}
+// 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back.
+{ let sw = null;
+  const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; };
+  const move = x => { if (!sw) return; sw.dx = Math.max(0, x - sw.x0); sw.t.style.transform = `translateX(${sw.dx}px)`; sw.t.style.opacity = String(Math.max(.2, 1 - sw.dx / 260)); };
+  const end = () => {
+    if (!sw) return;
+    const {t, dx} = sw; sw = null; t.style.transition = "";
+    if (dx > 60) { t.style.transform = "translateX(120%)"; t.style.opacity = "0"; setTimeout(() => t.remove(), 260); }
+    else { t.style.transform = ""; t.style.opacity = ""; }
+  };
+  const toastAt = e => e.target && e.target.closest && !e.target.closest("button") && e.target.closest("#toasts .toast");
+  document.addEventListener("touchstart", e => { const t = toastAt(e); if (t) start(t, e.touches[0].clientX); }, {passive: true});
+  document.addEventListener("touchmove", e => { if (sw) move(e.touches[0].clientX); }, {passive: true});
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+  document.addEventListener("pointerdown", e => { const t = e.pointerType === "mouse" && toastAt(e); if (t) start(t, e.clientX); });
+  document.addEventListener("pointermove", e => { if (sw && e.pointerType === "mouse") move(e.clientX); });
+  document.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
+// 1.73.2: Go live: a turning circle in the chip until the phone has found itself (or 15 s), then the strip as it is.
+let gGoing = 0;
+function gGoLive(){
+  if (gGoing) return;
+  liveStart();
+  const t0 = Date.now();
+  gGoing = setInterval(() => {
+    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); if (gme) gStripRender(gme); }
+    else if (gme) gStripRender(gme);
+  }, 400);
+  if (gme) gStripRender(gme);
 }
 // The total on flaps: a flap flips over only where the digit changed, right to left.
+// 1.73.2: always four flaps at least, leading zeros dimmed (0402)
 function gTotSet(n, anim){
-  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(4, " ");
-  if (el.children.length !== t.length) el.innerHTML = [...t].map(c => `<s>${c === " " ? "" : c}</s>`).join("");
-  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
+  const el = $("gTot"), raw = String(Math.max(0, Math.round(n || 0))), t = raw.padStart(4, "0"), lead = t.length - raw.length;
+  if (el.children.length !== t.length) el.innerHTML = [...t].map(() => "<s></s>").join("");
+  [...t].forEach((c, i) => { const s = el.children[i], v = c;
+    s.classList.toggle("z", i < lead);
     if (s.textContent === v) return;
     if (!anim) { s.textContent = v; return; }
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
@@ -2498,7 +2529,7 @@ function gStripRender(g, anim){
   if (!anim) gTotSet(g.points);
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
-  $("gRank").innerHTML = off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
+  $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
     : escH(T("Game"));
 }
 // Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.

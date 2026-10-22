@@ -10,6 +10,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.73.2: `locatedAt` (Here, an address, typed coordinates) ends live location (`liveHalt`, `S.live` and `draft.live`
+  false): before, live kept running and a Settings save turned it back on, so a phone set to another address still
+  scored where it was. `gGoLive` (a `.gSpin` in the chip until `liveFirst` clears, 15 s at most). Toasts in the app are
+  dark pills (`--box-bg`, white border) from the right under the strip, swiped right to go (`touchstart`/`pointer`
+  handlers on `#toasts .toast`). `gTotSet` pads to four flaps with dimmed zeros (`.z`). Sky view buttons get `.skyIco`.
+  Remarks FIRST TYPE / PLANE / AIRLINE / FLIGHT (no "EVER").
 - 1.73.1: the points for the plane on top are a HERO flap field `pts` (n 4, `PTS_ON` with relay 59; `seen` 15 then)
   beside the remarks; `gPtsRender` fills it, a tap on it (`#hero` click, before the other fields) toasts `gPtsText`.
   `#gPts` is gone. Where to look: `drawLook` draws a heading tape on `#lookCv` (±60°, ticks every 5°, names every 45°,
