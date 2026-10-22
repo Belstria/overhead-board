@@ -11,6 +11,10 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.79.1 / relay 62: `geo_reverse` asks Nominatim at zoom 13 (villages and suburbs; 12 stopped at the area above a
+  village) and `_geo_name` passes over names that are an administrative area (`_GEO_ADMIN`: Greece's municipal units
+  come as "city", "Ia Municipal Unit" over the village Oia), using them cleaned (`_geo_admin_clean`, "Ia") only when
+  no place is named. Checked on Nominatim's answers: Oia → Oia, the Fira rim → Firostefani, central Vienna → Vienna.
 - 1.79 (Dave's picks A, B, B from the club options): `renderGame` starts with one `.gHero` card (level, bar,
   `into / need`, the live-off note inside, `.gTiles` with today's points, `g.rank` and the streak, the `#gHow` button);
   `gHowCard` holds the rules (tier values with their icons, the extras, today's `gTaper`, the Sky view bonus); the

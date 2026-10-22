@@ -343,7 +343,8 @@ The main board has everything below. New features are tried on `/test/` first; o
     to pick from (code, name, distance) appears; with one, it is taken.
   - **Update location**: **Use current location** and **Live location** side by side. Live location (the app through
     the https address, or the Android app) makes the board watch where the phone is while the app is open, names the
-    town and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
+    town or village (relay 62: the village itself, not the area round it, e.g. Oia rather than "Ia Municipal Unit")
+    and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
     reads "On the go". Turning it off goes back to the place before. The TVs can't follow (browsers only share their
     location with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
