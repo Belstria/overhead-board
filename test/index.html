@@ -6633,6 +6633,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.76", date: "2026-10-22", notes: [
+    "Sky view turns the compass's magnetic north into true north.",
+    "Sky view rings the sun and the moon: drag the sky until they sit in their rings, and every label lines up.",
+    "AUTO in Sky view finds nearby planes in the camera picture and lines the labels up by itself (new, tap it to switch it off).",
+  ]},
   {v: "1.75.2", date: "2026-10-22", notes: [
     "Sky view places planes where they are now, not where they were a few seconds ago.",
     "Sky view follows planes that climb, descend or turn, and uses the day's air pressure for their height.",
@@ -7147,7 +7152,8 @@ function aboutHtml(){
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
     `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
-    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`;
+    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
+    `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`;
 }
 // The position sources' terms ask for a credit with a link to their home pages (AvioADSB's also to its licence).
 const SITE_LINKS = {"adsb.lol": "https://adsb.lol", "adsb.fi": "https://adsb.fi", "airplanes.live": "https://airplanes.live",

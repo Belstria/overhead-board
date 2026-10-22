@@ -387,7 +387,7 @@ body.aboutOpen{overflow:hidden}
 #arView .arTop span{color:#d6d2c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 1.72.7: frosted glass over the sky: the title in a pill, round ⓘ ⟲ ✕ (⟲ lit gold when the labels were dragged) */
 #arView .arTop{background:none;gap:8px}
-.arTitle,.arIb,.arMoved{background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
+.arTitle,.arIb,.arMoved,.arAuto{background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
 .arTitle{margin-right:auto;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px}
 .arIb{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;
   background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
@@ -396,6 +396,14 @@ body.aboutOpen{overflow:hidden}
 .arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
+/* 1.76: AUTO, Sky view lining itself up: a pill under the title, ringed gold while it holds planes, grey when off */
+.arAuto{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:12px;top:calc(var(--sa-top) + 66px);display:flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);color:#e6e1d4;font:600 var(--fs-xs)/1 var(--f-board)}
+.arAuto b{color:var(--amber);letter-spacing:.08em}
+.arAuto.on{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.arAuto.off,.arAuto.off b{color:var(--muted)}
+.arAuto:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#arView.tourBtns .arAuto{z-index:9;box-shadow:0 0 0 3px var(--amber)}
 /* the first-time walkthrough (and ⓘ): the ring, the drag, the buttons */
 .arTour{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(var(--sa-bottom) + 18px)}
 .arTour[hidden]{display:none}
@@ -456,7 +464,7 @@ body.aboutOpen{overflow:hidden}
 #arView .arCard{position:absolute;left:10px;right:10px;bottom:calc(var(--sa-bottom) + 10px);margin:0;max-height:calc(100dvh - var(--sa-top) - 80px);overflow:auto;
   background:linear-gradient(rgba(23,24,27,.96),rgba(16,17,19,.96));touch-action:pan-y}
 /* 1.66: the compass seems off: a note under the top bar until it settles */
-#arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 58px);margin:0;padding:9px 12px;border-radius:10px;
+#arView .arCal{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 106px);margin:0;padding:9px 12px;border-radius:10px;
   background:rgba(15,16,18,.85);color:var(--c-paper);font:500 var(--fs-m)/1.35 var(--f-board)}
 #arView .arCal b{color:var(--amber)}
 body.arOpen{overflow:hidden}
@@ -853,6 +861,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
     <button class="arIb" type="button" id="arInfo" aria-label="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <button class="arAuto" id="arAuto" type="button" aria-pressed="true"></button>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
