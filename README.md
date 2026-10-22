@@ -505,7 +505,9 @@ Five buttons along the bottom:
   edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
   data was made (the relay may keep it a few seconds), follows a plane round its turn and up or down its climb, and
-  makes heights true with the home airport's air pressure and temperature (from its METAR); it works upright or
+  makes heights true with the home airport's air pressure and temperature (from its METAR; with live location the airport
+  nearest you), looking from the phone's own height above the sea (its GPS, 1.76.1: on a hill or a cliff top planes
+  below you show below the horizon); the ring has marks on all four sides; it works upright or
   sideways and keeps steady pointed straight up (on iPhones the gyro steadies the compass). Since 1.76 the compass's
   magnetic north is turned into true north (NOAA's World Magnetic Model; about 5° here). Phone compasses are often a few
   degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun

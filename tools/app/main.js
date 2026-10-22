@@ -1077,11 +1077,11 @@ let lookHeading = null, lookOn = false, lookRaf = 0, lookErr = "", lookErrAt = 0
 function lookAt(){
   if (!feat || !feat.o || feat.o.ac.lat == null) return null;
   // 1.75.2: where the plane is now and how high (as Sky view has it: moved on from the data's time, its true height)
-  const ac = feat.o.ac, mv = arMove(ac, Math.min(60, (Date.now() - arListAt) / 1000 + (ac.seen_pos || 0))), h = arHeight(ac, arWeather());
+  const ac = feat.o.ac, mv = arMove(ac, Math.min(60, (Date.now() - arListAt) / 1000 + (ac.seen_pos || 0))), wx = arWeather(), h = arHeight(ac, wx);
   const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx + mv[0] / 1000, y = (ac.lat - S.lat) * 110.57 + mv[1] / 1000;
   const km = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, alt = feat.o.alt;
   if (alt == null || h == null || km > 80) return null;
-  const up = Math.round(Math.atan2(Math.max(0, h + mv[2]) - km * km * 1e6 / (2 * 6371000) * .87, Math.max(50, km * 1000)) * 180 / Math.PI);
+  const up = Math.round(Math.atan2(Math.max(0, h + mv[2] - wx.elev) - km * km * 1e6 / (2 * 6371000) * .87, Math.max(50, km * 1000)) * 180 / Math.PI);
   return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
 }
 function drawLook(){
@@ -1156,7 +1156,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    and the moon as dashed rings to line the compass up on, and AUTO, which finds nearby planes in the picture. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
 let arOn = false, arStream = null, arList = [], arListAt = 0, arQ = null, arQt = 0, arGap = null, arGapT = 0, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
-let arOff = {h: 0, p: 0}, arDec = 0, arHintText = "";
+let arOff = {h: 0, p: 0}, arDec = 0, arHintText = "", arAlt = null;
 const arOffSave = () => { try { localStorage.setItem("od.ar.off", JSON.stringify({...arOff, v: 2})); } catch {} };
 // 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
 // (the ring fills as it waits). Then it waits for the ring to be empty again.
@@ -1250,13 +1250,17 @@ async function arOpen(){
     const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
     dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
   }, {once: true});
-  $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null;
+  $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null; arAlt = null;
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
   arHintText = $("arHint").textContent;
   arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
-  if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => { arHere = {lat: p.coords.latitude, lon: p.coords.longitude}; }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
+  if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => {
+    const c = p.coords; arHere = {lat: c.latitude, lon: c.longitude};
+    // 1.76.1: the phone's own height above the sea (GPS, smoothed): on a hillside or a cliff top the airport's is far off
+    if (typeof c.altitude === "number" && !(c.altitudeAccuracy > 60)) arAlt = arAlt == null ? c.altitude : arAlt + (c.altitude - arAlt) * .3;
+  }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arQ) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
@@ -1389,11 +1393,13 @@ function arLoop(){
   for (const ac of arList) {
     if (ac.lat == null || ac.lon == null) continue;
     const h = arHeight(ac, wx), alt = typeof ac.alt_baro === "number" ? ac.alt_baro : typeof ac.alt_geom === "number" ? ac.alt_geom : null;
-    if (h == null || h < -150) continue;
+    if (h == null || h < -200) continue;
     const mv = arMove(ac, Math.min(60, dt + (ac.seen_pos || 0)));   // on to now
     const e = (ac.lon - here.lon) * kx + mv[0], n = (ac.lat - here.lat) * ky + mv[1], d = Math.hypot(e, n);
     if (d > 60000) continue;
-    const u = Math.max(0, h + mv[2]) - d * d / (2 * 6371000) * .87;  // the earth's curve (with the usual refraction)
+    // 1.76.1: from the phone's height (else the airport's), so a plane below a cliff top shows below the horizon; a
+    // descent isn't carried on below the airport. The earth's curve too (with the usual refraction).
+    const u = Math.max(h + mv[2], Math.min(h, wx.elev)) - (arAlt != null ? arAlt : wx.elev) - d * d / (2 * 6371000) * .87;
     const pr = arProject(e, n, u, R, W, H), isFeat = feat && feat.hex === ac.hex;
     if (pr.edge && !isFeat) continue;
     const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
@@ -1576,22 +1582,23 @@ function arMove(ac, t){
   const th2 = th + w * tt;
   return [v / w * (Math.cos(th) - Math.cos(th2)) + v * (t - tt) * Math.sin(th2), v / w * (Math.sin(th2) - Math.sin(th)) + v * (t - tt) * Math.cos(th2), up];
 }
-// 1.75.2: the home airport's METAR (relay /sky): its elevation, QNH and temperature, for true heights.
+// 1.75.2: the home airport's METAR (relay /sky; with live location the airport nearest the phone): its elevation (m),
+// QNH and temperature, for true heights.
 function arWeather(){
   const raw = sky && sky.raw || "", q = /\bQ(\d{4})\b/.exec(raw), a = /\bA(\d{4})\b/.exec(raw), tc = /\s(M?\d{2})\/M?\d{2}\s/.exec(" " + raw + " ");
   const qnh = q ? +q[1] : a ? +a[1] / 100 * 33.8639 : 0;
-  return {ground: sky && sky.elevation ? sky.elevation * .3048 : 0, qnh: qnh > 900 && qnh < 1100 ? qnh : 0, temp: tc ? +tc[1].replace("M", "-") : null};
+  return {elev: sky && sky.elevation ? sky.elevation * .3048 : 0, qnh: qnh > 900 && qnh < 1100 ? qnh : 0, temp: tc ? +tc[1].replace("M", "-") : null};
 }
-// A plane's height above the ground in metres. Its pressure altitude (altimeters on 1013 hPa) is moved to the day's QNH
-// (some 8 m a hectopascal) and scaled for the air's temperature (cold air: lower than it says); without a METAR as it
-// is, and without a pressure altitude its GPS height.
+// A plane's height above the sea in metres (1.76.1; was above the airport). Its pressure altitude (altimeters on 1013 hPa)
+// is moved to the day's QNH (some 8 m a hectopascal) and, above the airport, scaled for the air's temperature (cold air:
+// lower than it says); without a METAR as it is, and without a pressure altitude its GPS height.
 function arHeight(ac, wx){
   let ft;
   if (typeof ac.alt_baro === "number") ft = ac.alt_baro - (wx.qnh ? 145366.45 * (1 - Math.pow(wx.qnh / 1013.25, .190284)) : 0);
   else if (typeof ac.alt_geom === "number") ft = ac.alt_geom;
   else return null;
-  const h = ft * .3048 - wx.ground;
-  return wx.temp != null && h > 0 ? h * (wx.temp + 273.15) / (288.15 - .0065 * wx.ground) : h;
+  const m = ft * .3048, up = m - wx.elev;
+  return wx.temp != null && up > 0 ? wx.elev + up * (wx.temp + 273.15) / (288.15 - .0065 * wx.elev) : m;
 }
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
 function arAimDraw(g, W, H){
@@ -1602,7 +1609,8 @@ function arAimDraw(g, W, H){
   const k = hex && hex !== arAim.done && hex !== arSel ? Math.min(1, (now - arAim.since) / AR_AIM_MS) : hex === arSel && hex ? 1 : 0;
   g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
   g.beginPath(); g.arc(cx, cy, AR_AIM_R, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.moveTo(cx, cy - AR_AIM_R - 12); g.lineTo(cx, cy - AR_AIM_R + 6); g.moveTo(cx, cy + AR_AIM_R - 6); g.lineTo(cx, cy + AR_AIM_R + 12); g.stroke();
+  g.beginPath(); g.moveTo(cx, cy - AR_AIM_R - 12); g.lineTo(cx, cy - AR_AIM_R + 6); g.moveTo(cx, cy + AR_AIM_R - 6); g.lineTo(cx, cy + AR_AIM_R + 12);
+  g.moveTo(cx - AR_AIM_R - 12, cy); g.lineTo(cx - AR_AIM_R + 6, cy); g.moveTo(cx + AR_AIM_R - 6, cy); g.lineTo(cx + AR_AIM_R + 12, cy); g.stroke();   // 1.76.1: all four sides
   if (k > 0) {
     g.strokeStyle = "#f0b429"; g.lineWidth = 5;
     g.beginPath(); g.arc(cx, cy, AR_AIM_R, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();

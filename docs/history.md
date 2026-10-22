@@ -11,6 +11,11 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.76.1: Sky view's ring got E and W ticks (`arAimDraw`). Heights are above the sea now (`arHeight`; `arWeather` gives
+  the METAR airport's `elev`), and the eye is the phone's own GPS height (`arAlt`, smoothed, used when its accuracy is
+  60 m or better; else the airport's): on Santorini's caldera rim (260 m) a plane on final 5 km out was drawn 3.4° up,
+  really 0.8°. Planes below you show below the horizon; a descent isn't carried on below the airport. With live location
+  the airport (and its METAR) is the one nearest the phone, so all of Sky view follows a trip.
 - 1.76 (Sky view lines up): **true north**: `magField`/`magDecl` evaluate the World Magnetic Model (WMM2025, NOAA NCEI,
   public domain; `tools/app/WMM.COF`, its g h ġ ḣ packed into `WMM_C`), checked against NOAA's 100 test values (to
   0.005°; Vienna 5.4° E in 2026). Added to the heading in `arProject` (`arDec`) and in Where to look's `lookHeadingFrom`.
