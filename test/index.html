@@ -2425,6 +2425,9 @@ const FEEDS = [
 ];
 let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
+// 1.75.2: when a position source made its answer, in ms (readsb's API gives ms, its aircraft.json seconds); kept on the
+// list as list.now, so the app's Sky view can move planes on from then.
+const srcTime = n => typeof n === "number" && n > 0 ? (n < 1e11 ? n * 1000 : n) : 0;
 async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
@@ -2442,6 +2445,7 @@ async function getAircraft(){
       throw new Error(`relay answered ${res.status}${detail ? ": " + detail : ""}`);
     }
     const j = await res.json(), list = j.ac || j.aircraft || [];
+    list.now = srcTime(j.now);
     const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
     if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
     if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
@@ -2459,6 +2463,7 @@ async function getAircraft(){
       if (f.name !== feedName && feedName) dlog("info", `Now getting positions from ${f.name}`);
       feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name; lastFreshness = "live";
       const list = j.ac || j.aircraft || [];
+      list.now = srcTime(j.now);
       DIAG.polls.push({t: Date.now(), ok: true, ms: performance.now() - t0, n: list.length});
       return list;
     } catch (e) { err = new Error(`${f.name}: ${netError(e, f.name)}`); dlog("debug", err.message); }
@@ -6628,6 +6633,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.75.2", date: "2026-10-22", notes: [
+    "Sky view places planes where they are now, not where they were a few seconds ago.",
+    "Sky view follows planes that climb, descend or turn, and uses the day's air pressure for their height.",
+    "Sky view works with the phone held sideways, and keeps steady when pointed straight up.",
+    "Sky view's labels wobble less on iPhones.",
+  ]},
   {v: "1.75.1", date: "2026-10-22", notes: [
     "The phone's Logbook no longer lists the newest aircraft.",
   ]},
