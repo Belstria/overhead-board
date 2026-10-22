@@ -1687,6 +1687,68 @@ function arTour(step){
   const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
 }
 $("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
+/* 1.78: the cards (an airline, a type, an aircraft, a place …) are sheets, the way Sky view's card is: up from the bottom,
+   floating, with a grip; dragged down (or flicked) past the mark, or tapped beside, one slides away; a card that changes
+   while it is open fades into its new content and height. The board's cardOpen and cardClose call these. */
+let cardSheetHtml = "";
+function cardSheetPre(box, html){
+  const ci = box.querySelector(".cardIn"), open = !box.hidden && box.classList.contains("in") && !box.classList.contains("closing");
+  return {open, h: open && ci ? ci.offsetHeight : 0, same: open && html === cardSheetHtml, html};
+}
+function cardSheetPost(box, pre){
+  const ci = box.querySelector(".cardIn");
+  cardSheetHtml = pre.html; clearTimeout(cardSheetClose.t);
+  box.classList.remove("closing", "drag");
+  if (!pre.open) { box.classList.remove("in"); void box.offsetWidth; box.classList.add("in"); return; }   // up from below
+  if (pre.same || REDUCED) return;
+  const h1 = ci.offsetHeight;                        // another card in its place: from the old height to the new one
+  if (Math.abs(h1 - pre.h) > 2) {
+    ci.style.height = pre.h + "px"; void ci.offsetWidth; ci.style.height = h1 + "px";
+    setTimeout(() => { if (ci.isConnected) ci.style.height = ""; }, 320);
+  }
+  ci.classList.add("swap");
+}
+function cardSheetClose(b){
+  if (b.hidden || !b.classList.contains("in")) return false;
+  const ci = b.querySelector(".cardIn");
+  if (ci) ci.style.transform = "";                   // from where the finger left it
+  b.classList.remove("in", "drag"); b.classList.add("closing"); cardSheetHtml = "";
+  clearTimeout(cardSheetClose.t);
+  cardSheetClose.t = setTimeout(() => { if (b.classList.contains("closing")) { b.hidden = true; b.classList.remove("closing"); } }, 270);
+  return true;
+}
+// The finger on a card: down from its top (it isn't scrolled) drags it; let go past 90 px, or flicked, it goes, else it
+// springs back. Up, or on a scrolled card, it scrolls as before.
+{ let drag = null, dragged = 0;
+  document.addEventListener("touchstart", e => {
+    const ci = e.target.closest && e.target.closest("#cardBox:not([hidden]) .cardIn"), y = e.touches[0].clientY;
+    drag = ci ? {ci, y0: y, on: false, top: ci.scrollTop <= 0, dy: 0, v: 0, lt: performance.now(), ly: y} : null;
+  }, {passive: true});
+  document.addEventListener("touchmove", e => {
+    if (!drag) return;
+    const y = e.touches[0].clientY;
+    if (!drag.on) {
+      if (Math.abs(y - drag.y0) < 6) return;
+      if (y < drag.y0 || !drag.top) { drag = null; return; }
+      drag.on = true; drag.y0 = y; $("cardBox").classList.add("drag");
+    }
+    if (e.cancelable) e.preventDefault();
+    const now = performance.now(), d = drag.dy = y - drag.y0;
+    drag.v = (y - drag.ly) / Math.max(1, now - drag.lt); drag.ly = y; drag.lt = now;
+    drag.ci.style.transform = `translateY(${(d > 0 ? d : d / 6).toFixed(1)}px)`;   // above the start: a little give
+  }, {passive: false});
+  const end = () => {
+    const d = drag; drag = null;
+    if (!d || !d.on) return;
+    dragged = Date.now();
+    $("cardBox").classList.remove("drag");
+    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.press(); cardClose(); }
+    else d.ci.style.transform = "";                  // springs back
+  };
+  document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
+  document.addEventListener("click", e => {          // the tap that ends a drag isn't a tap on the card
+    if (Date.now() - dragged < 400 && e.target.closest && e.target.closest("#cardBox")) { e.stopPropagation(); e.preventDefault(); }
+  }, true); }
 // 1.62.1: a tap on a plane or its label opens its card (as on the radar) over the picture; a tap elsewhere closes it.
 function arTap(e){
   const r = $("arCv").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;

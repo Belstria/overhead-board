@@ -5228,13 +5228,15 @@ function cardOpen(html, wire){
     box.addEventListener("click", cardToggle);
   }
   if (cardMusic && !String(html).includes("data-music")) cardMusicStop();     // another card: its own sound, or none
+  const sheet = typeof cardSheetPre === "function" ? cardSheetPre(box, html) : null;   // 1.78: the app's cards are sheets
   box.innerHTML = `<div class="cardIn" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
   box.querySelector(".cardX").onclick = () => { ctlSound.press(); cardClose(); };
   if (wire) wire(box.querySelector(".cardIn"));
+  if (sheet) cardSheetPost(box, sheet);
   return ++cardTok;
 }
-function cardClose(){ const b = $("cardBox"); if (b) b.hidden = true; cardTok++; cardMusicStop(); if (typeof plusOn !== "undefined" && plusOn) { plusOn = null; drawStatic(); } }
+function cardClose(){ const b = $("cardBox"); if (b && !(typeof cardSheetClose === "function" && cardSheetClose(b))) b.hidden = true; cardTok++; cardMusicStop(); if (typeof plusOn !== "undefined" && plusOn) { plusOn = null; drawStatic(); } }
 // Music for a card (1.49, relay 42): the Emirates airline card plays the first 30 seconds of the boarding music,
 // fading in briefly and out over the last four; closing the card fades it out at once. The recording is copyrighted,
 // so it is never in the repository: the relay serves it from its own data folder (/media/), and without it the card
@@ -5321,7 +5323,7 @@ async function cardWhenReady(tok, html, wire){
   await imgsReady(html);
   if (tok === cardTok && cardOpenNow()) cardOpen(html, wire);
 }
-const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden; };
+const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden && !b.classList.contains("closing"); };
 addEventListener("keydown", e => {
   if (cardOpenNow() && (e.key === "Escape" || e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461)) { e.preventDefault(); e.stopPropagation(); cardClose(); }
 }, true);
@@ -6633,6 +6635,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.78", date: "2026-10-22", notes: [
+    "Cards (an airline, a type, an aircraft …) slide up from the bottom like Sky view's; drag one down, or tap beside it, to put it away.",
+    "A card that changes while open glides to its new size.",
+  ]},
   {v: "1.77", date: "2026-10-22", notes: [
     "The app's opening plays a sound: FALLBLATT flips in letter by letter like a split-flap board, each with a clack, and a whoosh as the plane takes off.",
     "Sky view comes with live location: with it off, the app asks first.",
