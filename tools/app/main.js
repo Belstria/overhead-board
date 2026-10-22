@@ -913,9 +913,9 @@ function collectionHtml(g0){
   const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${nf.format(g0.tiers[t] || 0)}</span></li>`).join("");
   const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
     `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"};opacity:1"></i></span></li>`).join("");   // 1.73: gold, green once complete
-  return `<h3>${escH(T("Collection"))}</h3><p class="sum">${escH(T("{n} points", {n: nf.format(g0.points)}))} · ${escH(T("{n} points today", {n: nf.format(g0.today)}))}` +
-    (g0.best && g0.best.points ? ` · ${escH(T("best {n}", {n: nf.format(g0.best.points)}))}` : "") + (g0.streak > 1 ? ` · ${escH(T("{n}-day streak", {n: g0.streak}))}` : "") + `</p>` +
-    `<ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Collections"))}</h3><ul class="ranks cats">${sets}</ul>`;
+  // 1.79 (Dave's pick B): "Your catch" (by rarity) and "Sets" (to complete), not Collection and Collections; the points
+  // line went (the top of the page says it)
+  return `<h3>${escH(T("Your catch"))}</h3><ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Sets"))}</h3><ul class="ranks cats">${sets}</ul>`;
 }
 function recordsHtml(all, g0){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
@@ -950,21 +950,29 @@ function tierIcon(t){
   drawTierIcon(g, n / 2, n / 2, n * .95, t, "#fbf8f0");
   return tierIcons[t] = cv.toDataURL();
 }
-// The trophies (1.55): a row for each ladder (its next tier, the count towards it and a bar), then the single ones.
+// The trophies (1.55). 1.79 (Dave's pick B): the three closest to winning first, each a line with its bar; the ones won
+// and the ones still to win folded (one line each), opened with a tap and kept open while the page updates.
+let gTrOpen = {won: false, todo: false};
 function trophiesHtml(g0){
-  const won = g0.trophies || {};
-  const lad = TROPHY_LADDERS.map(L => {
-    const st = trophyLadder(g0, L), t = st.next || st.last;
-    const n = st.next ? (st.have != null ? T("{n} of {t}", {n: nf.format(Math.min(st.have, st.next[1])), t: nf.format(st.next[1])}) : "") : fmtDay(st.won[st.last[0]]);
-    const p = !st.next ? 100 : st.have != null ? Math.min(100, st.have / st.next[1] * 100) : 0;
-    const pips = st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("");
-    return `<li class="${st.done ? "on" : ""}">${CUP}<span class="name">${escH(T(t[2]))}<span class="s">${escH(T(L[1], {n: nf.format(t[1])}))}</span></span><span class="n">${escH(n)}</span>` +
-      `<span class="tl"><span class="pips">${pips}</span><span class="bar"><i style="width:${p.toFixed(1)}%"></i></span></span></li>`;
-  }).join("");
-  const cups = TROPHY_SINGLES.map(k => { const [nm, what] = trophyText(k), d = won[k];
-    return `<li class="${d ? "on" : ""}">${CUP}<span class="name">${escH(nm)}<span class="s">${escH(what)}</span></span><span class="n">${d ? escH(fmtDay(d)) : ""}</span></li>`; }).join("");
-  return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: TROPHY_IDS.filter(k => won[k]).length, t: TROPHY_IDS.length}))}</p>` +
-    `<ul class="ranks plain cups ladders">${lad}</ul><ul class="ranks plain cups">${cups}</ul>`;
+  const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
+  const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
+  const prog = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
+  const close = lads.filter(x => x.st.next).sort((a, b) => prog(b) - prog(a)).slice(0, 3);
+  const pips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
+  const row = (on, name, what, right, extra = "") => `<li class="${on ? "on" : ""}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
+    `<span class="n">${escH(right)}</span>${extra}</li>`;
+  const toGo = x => { const t = x.st.next; return row(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : ""); };
+  const near = close.map(x => { const t = x.st.next;
+    return row(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
+      `<span class="tl">${pips(x.st)}<span class="bar"><i style="width:${(prog(x) * 100).toFixed(1)}%"></i></span></span>`); }).join("");
+  const wonRows = lads.filter(x => x.st.last).map(x => row(true, T(x.st.last[2]), T(x.L[1], {n: nf.format(x.st.last[1])}), fmtDay(x.st.won[x.st.last[0]]), `<span class="tl">${pips(x.st)}</span>`))
+    .concat(TROPHY_SINGLES.filter(k => won[k]).map(k => { const [nm, what] = trophyText(k); return row(true, nm, what, fmtDay(won[k])); })).join("");
+  const todoRows = lads.filter(x => x.st.next && !close.includes(x)).map(toGo)
+    .concat(TROPHY_SINGLES.filter(k => !won[k]).map(k => { const [nm, what] = trophyText(k); return row(false, nm, what, ""); })).join("");
+  const fold = (k, label, rows) => rows ? `<details class="trFold" data-tr="${k}"${gTrOpen[k] ? " open" : ""}><summary>${escH(label)}</summary><ul class="ranks plain cups">${rows}</ul></details>` : "";
+  return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
+    `<p class="trSub">${escH(T("Closest to winning"))}</p><ul class="ranks plain cups ladders trNear">${near}</ul>` +
+    fold("won", T("Won · {n}", {n: nWon}), wonRows) + fold("todo", T("Still to win · {n}", {n: TROPHY_IDS.length - nWon}), todoRows);
 }
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -3165,22 +3173,21 @@ function renderGame(){
   const g = gme, all = lbData() || {}, g0 = all.game;
   if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; return; }
   const next = g.level < 20 ? GAME_LEVELS[g.level] : "";
-  let h = `<div class="gCard"><div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
+  // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
+  // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
+  let h = `<div class="gCard gHero"><div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
-    `<span class="gRule">${escH(T("{n} points in all", {n: nf.format(g.points)}))} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span></div>`;
-  if (!S.live) h += `<p class="sum">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`;
+    `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
+    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</span>`) +
+    `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
+    `<div><b>${g.rank ? "#" + g.rank : "–"}</b><span>${escH(T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
+    `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button></div>`;
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
-  h += `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
+  h += `<div class="gHead"><h3>${escH(T("League"))}</h3><div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div></div>`;
   h += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
     : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}"><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
-  const pt = g.planesToday || 0, seg = (a, b) => Math.max(0, Math.min(1, (pt - a) / (b - a))) * 100;
-  h += `<div class="gCard"><div class="gBig"><b>${escH(T("Today"))}</b><span>${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}</span></div>` +
-    `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
-    `<span class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))}` +
-    `${g.streak > 1 ? " · " + escH(T("{n}-day streak", {n: g.streak})) : ""}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</span></div>`;
-  h += `<p class="gRule" style="margin-top:12px">${escH(T("How points work: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a little more for a close pass, something new or a streak. Hold a plane in Sky view's ring for a bonus."))}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
   if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cBtn" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
@@ -3188,8 +3195,24 @@ function renderGame(){
   if (box.dataset.h === h) return;
   box.dataset.h = h; box.innerHTML = h;
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
+  $("gHow").onclick = gHowCard;
+  for (const d of box.querySelectorAll("details[data-tr]")) d.ontoggle = () => { if (gTrOpen[d.dataset.tr] !== d.open) { gTrOpen[d.dataset.tr] = d.open; ctlSound.press(); } };
   const sb = $("gStyles"); if (sb) sb.onclick = () => { ctlSound.press(); stylesCard(); };
   $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+}
+// 1.79: How points work, a card: where points come from (live location, the distance), what each rarity gives, the extras,
+// today's taper (its bar where today is) and Sky view's bonus.
+function gHowCard(){
+  ctlSound.press();
+  const g = gme || {}, pt = g.planesToday || 0, seg = (a, b) => Math.max(0, Math.min(1, (pt - a) / (b - a))) * 100;
+  const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${G_BASE[t]}</span></li>`).join("");
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("How points work"))}</h3></div></div>` +
+    `<p class="gRule">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>` +
+    `<ul class="ranks cats tiers gHowTiers">${tiers}</ul>` +
+    `<p class="gRule">${escH(T("A little more for a close pass (×1.1 within 4 km, ×1.2 within 1.5 km), for something new (a type +50, an airline +25, an aircraft +5) and for a streak of days."))}</p>` +
+    `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
+    `<p class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))} ${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</p>` +
+    `<p class="gRule">${escH(T("Hold a plane in Sky view's ring for a moment: a bonus of a quarter of its points (at least 15), more for several in a row."))}</p>`);
 }
 // Sky view held a plane in its ring for 1.5 s: the relay pays a bonus once per plane a day, shown as a boarding pass
 // whose stub (the points) tears off.

@@ -379,7 +379,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   field under the board says what the plane on top gave, or would give. Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
-  Logbook), and Styles. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
+  streak as three numbers; **How points work** opens a card with the rules and today's taper), the league's switch
+  sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
+  and the trophies show the three closest to winning, with the ones won and still to win folded (a tap opens them). **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
   shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.
