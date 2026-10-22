@@ -541,7 +541,9 @@ Five buttons along the bottom:
   profile); the boards on the TVs don't have it.
 - **Search the logbook** (1.65, relay 55): the field at the top of the Logbook tab searches every sighting since the
   start, by registration, flight, type or airline (several words narrow it). Each match says how often and when it was
-  seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew.
+  seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew. Since relay 63
+  it also finds where a plane was seen: a saved place's name, or on the go the town, the area round it or the country
+  ("Oia", "Santorini", "Greece"; the relay names the phone's place, to about a kilometre, in the background).
 - **Notices** (1.65): saving answers with a short notice above the tabs (at the top while a card is open): Favourite and
   Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
   again (1.64); Settings say **Not synced yet** meanwhile.

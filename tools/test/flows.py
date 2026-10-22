@@ -5,6 +5,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - pages go packed and tagged: an unchanged page is a 304 (relay 54)
 - settings round trip through /me, a save from another site refused (relay 54)
 - favourites change one at a time, so two devices saving at once keep both (relay 54)
+- where a sighting on the go was made is named and found by the search; the hangar; a league player's card (relay 63)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64)
 """
@@ -12,6 +13,7 @@ import gzip
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -122,6 +124,35 @@ def checks():
     lg = json.loads(b) if st == 200 else {}
     expect("the league has the live player", [r["name"] for r in lg.get("rows", []) if r.get("me")], ["Test"])
     expect("the league shows no places", "lat" in b.decode() or "place" in b.decode(), False)
+
+    # relay 63: where a sighting on the go was made, named in the background and found by the search ("New guest":
+    # nobody's home screen saw these planes first); the hangar; a league player's card
+    call("/aircraft/48.2085/16.3731/25" + live, "new-device")
+    st, _, b = call("/sightings", "new-device")
+    rows = json.loads(b) if st == 200 else []
+    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+    expect("a sighting on the go keeps where the phone was", any(e.get("place") == "live" and e.get("at") == [48.21, 16.37] for e in rows), True)
+    found = None
+    for _ in range(15):
+        st, _, b = call("/search?q=vienna", "new-device")
+        found = next((p for r in (json.loads(b).get("rows", []) if st == 200 else []) for p in r.get("places", []) if p.get("k") == "live"), None)
+        if found:
+            break
+        time.sleep(1)
+    expect("a sighting on the go found by its town", (found or {}).get("n"), "Vienna")
+    st, _, b = call("/search?q=austria", "new-device")
+    expect("... and by its country", st == 200 and json.loads(b).get("total", 0) > 0, True)
+    st, _, b = call("/game/hangar", "test-device")
+    hg = json.loads(b) if st == 200 else {}
+    expect("the hangar lists the types caught", bool(hg.get("types")) and all(t.get("code") and t.get("tier") for t in hg["types"]), True)
+    expect("the hangar has the sets", len(hg.get("sets", [])), 9)
+    me_row = next((r for r in lg.get("rows", []) if r.get("me")), {})
+    st, _, b = call("/game/player?id=" + str(me_row.get("id", "")), "test-device")
+    pl = json.loads(b) if st == 200 else {}
+    expect("a league player's card", (pl.get("name"), pl.get("level", 0) >= 1, isinstance(pl.get("trophies"), list)), ("Test", True, True))
+    expect("the card shows no places", any(k in b.decode() for k in ('"lat"', '"lon"', '"at"', '"place"')), False)
+    expect("an unknown player", call("/game/player?id=000000000000", "test-device")[0], 404)
+    expect("a player's card for strangers", call("/game/player?id=x")[0] in (401, 403), True)
 
     for b_ in bad:
         print("flow:", b_)

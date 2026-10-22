@@ -7,7 +7,7 @@ an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted 
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
 """
-import json, math, os, time
+import json, math, os, time, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 LAT, LON = 48.2085, 16.3731
@@ -132,6 +132,14 @@ class H(BaseHTTPRequestHandler):
             if not a:
                 return self.send(404, "application/json", b'{"response":"unknown aircraft"}')
             return self.send(200, "application/json", json.dumps({"response": {"aircraft": a}}).encode())
+        if path == "/nominatim/reverse":   # relay 63 names where sightings on the go were made: Vienna, else a made-up village
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            lat = float((q.get("lat") or ["0"])[0])
+            a = {"city": "Vienna", "state": "Vienna", "country": "Austria"} if 47.9 < lat < 48.5 else \
+                {"city": "Ia Municipal Unit", "village": "Testdorf", "island": "Testinsel", "country": "Testland"}
+            return self.send(200, "application/json", json.dumps({"name": "", "address": a}).encode())
+        if path.startswith("/nominatim/"):
+            return self.send(200, "application/json", b"[]")
         if path.startswith("/photo/"):     # a drawn stand-in for an aircraft photo
             return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
         if not path.startswith("/ac/"):
