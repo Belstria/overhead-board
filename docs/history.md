@@ -10,6 +10,10 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.74: Spotters' Club (was the Game page, still `#t-game` / `showTab("game")`): `.lbTabs` title tabs on `#t-logbook`
+  and `#t-game` (`data-lt`), a sideways swipe switches, the tab bar lights Logbook for both; hidden without relay 59.
+  `periodHtml()` replaces `yearHtml()` and the Week & month view: `lbPeriod` (week / month / year) with a `.seg.lbPer`,
+  ◀ ▶ (`data-pb`: `yearBack` or `review.back`), the year from `yearCache` per year, week and month from `/review`.
 - 1.73.2: `locatedAt` (Here, an address, typed coordinates) ends live location (`liveHalt`, `S.live` and `draft.live`
   false): before, live kept running and a Settings save turned it back on, so a phone set to another address still
   scored where it was. `gGoLive` (a `.gSpin` in the chip until `liveFirst` clears, 15 s at most). Toasts in the app are
