@@ -11,6 +11,14 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.79.2 (Dave's picks: medals without coloured dots, and the switch): `trophiesHtml` has a `.seg.trSeg` switch
+  (`gTrTab`: near, won, todo; kept across redraws, wired by `trWire` on the club page and the Logbook's Records) in
+  place of the `trFold` folds and `gTrOpen`. Closest is the three ladders nearest their next rank; Still to win is
+  every ladder by progress (bar, as Closest) then the one-offs; Won is each ladder's highest rank won, with "Next: …"
+  when more are left, then the one-offs. A ladder row's rank is a medal by its index (`TROPHY_MEDALS`, bronze to
+  diamond; `li.medal.m0`–`m4` set `--m`, darker under daylight): the cup's outline in that metal, filled once won,
+  and a `.metal` tag before the dots, which keep their gold. Names are no longer dimmed (each list is all won or all
+  to win). Dave had asked why High scorer sat under Won with two ranks left: each rank is a trophy of its own (48).
 - 1.79.1 / relay 62: `geo_reverse` asks Nominatim at zoom 13 (villages and suburbs; 12 stopped at the area above a
   village) and `_geo_name` passes over names that are an administrative area (`_GEO_ADMIN`: Greece's municipal units
   come as "city", "Ia Municipal Unit" over the village Oia), using them cleaned (`_geo_admin_clean`, "Ia") only when

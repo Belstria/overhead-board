@@ -383,7 +383,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
   streak as three numbers; **How points work** opens a card with the rules and today's taper), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
-  and the trophies show the three closest to winning, with the ones won and still to win folded (a tap opens them). **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
+  first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
+  cup and beside its dots, and a won one with more ranks names the next. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
   shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.
