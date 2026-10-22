@@ -2548,12 +2548,11 @@ function gGoLive(){
   if (gme) gStripRender(gme);
 }
 // The total on flaps: a flap flips over only where the digit changed, right to left.
-// 1.73.2: always four flaps at least, leading zeros dimmed (0402)
+// 1.73.3: always five flaps (room for 10,000 and up), blank in front
 function gTotSet(n, anim){
-  const el = $("gTot"), raw = String(Math.max(0, Math.round(n || 0))), t = raw.padStart(4, "0"), lead = t.length - raw.length;
+  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(5, " ");
   if (el.children.length !== t.length) el.innerHTML = [...t].map(() => "<s></s>").join("");
-  [...t].forEach((c, i) => { const s = el.children[i], v = c;
-    s.classList.toggle("z", i < lead);
+  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
     if (s.textContent === v) return;
     if (!anim) { s.textContent = v; return; }
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
