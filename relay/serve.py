@@ -58,7 +58,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 60
+RELAY_VERSION = 61
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1977,12 +1977,36 @@ def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=
             "stats": day_stats(everything, over_km)}
 
 
+# Relay 61: category words in the logbook search ("military austria", "cargo A330"), the logbook's categories as
+# category_of names them.
+CATEGORY_WORDS = {"military": ("MILITARY", "MIL", "ARMY", "AIRFORCE", "NAVY"), "helicopter": ("HELICOPTER", "HELICOPTERS", "HELI", "CHOPPER"),
+                  "cargo": ("CARGO", "FREIGHT", "FREIGHTER"), "bizjet": ("BIZJET", "BIZJETS", "BUSINESS"),
+                  "private": ("PRIVATE", "LIGHT", "GA"), "passenger": ("PASSENGER", "AIRLINER", "AIRLINERS")}
+
+
+def _logbook_entries(spot):
+    """Every sighting of every saved day (today's as it is now)."""
+    with _data_lock:
+        spot.ensure_day()
+        files = sorted(spot.dir.glob("sightings-*.json"))
+        today, sday = list(spot.entries), spot.day
+    for f in files:
+        day = f.stem[len("sightings-"):]
+        for e in (today if day == sday else _load(f, [])):
+            if isinstance(e, dict):
+                yield e
+
+
 def search_json(spot, q):
     """Relay 55: the whole logbook searched (every saved day): a registration, a flight, a type or an airline. Matches
-    are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close."""
-    words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", q.upper()).split() if w][:4]
+    are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close.
+    Relay 61: a category word narrows it to that category (alone, it lists the category)."""
+    words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", q.upper()).split() if w][:5]
+    cat = next((c for w in words for c, ws in CATEGORY_WORDS.items() if w in ws), None)
+    if cat:
+        words = [w for w in words if w not in CATEGORY_WORDS[cat]][:4]
     tight = lambda t: re.sub(r"[\s-]", "", str(t or "").upper())
-    if not words or len("".join(words)) < 2:
+    if not cat and (not words or len("".join(words)) < 2):
         return {"q": q, "total": 0, "rows": []}
     groups, total = {}, 0
     with _data_lock:
@@ -1999,6 +2023,8 @@ def search_json(spot, q):
                                                        "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner")).upper()
             if not all(w in hay or tight(w) in tight(hay) for w in words):
                 continue
+            if cat and category_of(e) != cat:
+                continue
             total += 1
             by_flight = flight and any(tight(w) in (flight, tight(e.get("callsign"))) for w in words)
             key = ("f", flight) if by_flight else ("r", reg or str(e.get("hex") or ""))
@@ -2006,6 +2032,7 @@ def search_json(spot, q):
             if not g:
                 g = groups[key] = {"by": key[0], "key": key[1], "reg": e.get("reg") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
                                    "type": e.get("aircraftType") or e.get("icaoType") or e.get("typeCode") or "", "airline": e.get("airlineName") or "",
+                                   "typeCode": e.get("typeCode") or "", "callsign": e.get("callsign") or "", "airlineIata": e.get("airlineIata") or "",
                                    "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": []}
             g["n"] += 1
             t = e.get("ts") or e.get("time")
@@ -2019,7 +2046,41 @@ def search_json(spot, q):
             if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
                 g[other[0]].append(other[1])
     rows = sorted(groups.values(), key=lambda g: -(g["last"] or 0))[:40]
-    return {"q": q, "total": total, "rows": rows}
+    return {"q": q, "total": total, "rows": rows, "category": cat, "text": " ".join(words).lower()}
+
+
+_cat_cache = {}
+
+
+def category_top_json(spot, cat, places=None):
+    """Relay 61: one category of the logbook (the app's Logbook → Categories, tapped): its top ten types, aircraft and
+    operators over every saved day, optionally for some places only."""
+    key = (str(spot.dir), cat, tuple(places or ()), spot.day, spot.rev // 5)
+    hit = _cat_cache.get(key)
+    if hit and time.time() - hit[0] < 120:
+        return hit[1]
+    types, regs, ops, total = {}, {}, {}, 0
+    for e in _logbook_entries(spot):
+        if category_of(e) != cat or (places and (e.get("place") or "home") not in places):
+            continue
+        total += 1
+        tc = str(e.get("typeCode") or "").upper()
+        if tc:
+            t = types.setdefault(tc, {"code": tc, "name": e.get("aircraftType") or e.get("desc") or tc, "n": 0})
+            t["n"] += 1
+        if e.get("reg"):
+            r = regs.setdefault(e["reg"], {"reg": e["reg"], "type": e.get("aircraftType") or tc, "n": 0})
+            r["n"] += 1
+        m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+        on = e.get("airlineName") or e.get("owner") or e.get("watchOp") or (m.group(1) if m else "")
+        if on:
+            o = ops.setdefault(on, {"name": on, "icao": m.group(1) if m else "", "iata": e.get("airlineIata") or "", "n": 0})
+            o["n"] += 1
+    top = lambda d: sorted(d.values(), key=lambda x: -x["n"])[:10]
+    out = {"category": cat, "total": total, "types": top(types), "regs": top(regs), "operators": top(ops)}
+    _cat_cache.clear()
+    _cat_cache[key] = (time.time(), out)
+    return out
 
 
 def logbook_json(spot):
@@ -5598,6 +5659,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
             return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
+        if path == "/logbook/category":   # relay 61: one category's top ten (types, aircraft, operators)
+            q = self.query()
+            cat = (q.get("c") or [""])[0]
+            if cat not in ("passenger", "cargo", "bizjet", "private", "helicopter", "military", "other"):
+                return self.reply(400, "text/plain", b"category?")
+            if not allow("cat:" + (self.guest[0] if self.guest else self.client_ip()), 1, 6):
+                return self.reply(429, "text/plain", b"Too many requests")
+            places = [place_key(k) for k in (q.get("place") or [])[:6] if place_key(k)]
+            return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places)).encode())
         if path == "/logbook":
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
             place = (raw[0] if len(raw) == 1 else tuple(raw)) if all(raw) else None   # relay 40: place=a&place=b, merged
