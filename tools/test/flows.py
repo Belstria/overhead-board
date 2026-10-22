@@ -89,6 +89,13 @@ def checks():
     expect("/search answers", (st, json.loads(b).get("rows") if st == 200 else None), (200, []))
     expect("/search for strangers", call("/search?q=A320")[0] in (401, 403), True)
 
+    # relay 61: category words in the search, a category's top ten
+    st, _, b = call("/search?q=passenger", "test-device")
+    expect("a category word in the search", json.loads(b).get("category") if st == 200 else st, "passenger")
+    st, _, b = call("/logbook/category?c=passenger", "test-device")
+    expect("a category's top ten", st == 200 and isinstance(json.loads(b).get("types"), list), True)
+    expect("an unknown category", call("/logbook/category?c=spaceship", "test-device")[0], 400)
+
     # the game (relay 59): only a phone on live location scores, within 8 km; Sky view's lock-on once per plane
     live = "?pl=live&pc=48.2085,16.3731&pr=15"
     call("/aircraft/48.2085/16.3731/25" + live, "test-device")

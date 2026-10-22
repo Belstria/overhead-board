@@ -945,13 +945,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -1194,6 +1194,18 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .perArr .cBtn{min-height:34px;padding:4px 12px}
 .perArr .cBtn[disabled]{opacity:.35;pointer-events:none}
 .yearCard .seg.lbPer{margin:10px 0 4px}
+/* 1.75: categories open in place; the search reads category words; its results' parts are pills */
+.cats li.catTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
+.cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
+.cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
+.cats li.catSub::before{content:none}
+.seg.catSeg{margin:0 0 6px}
+.catRow{all:unset;cursor:pointer;display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:baseline;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font:600 var(--fs-m)/1.25 var(--f-board);color:var(--ink)}
+.catRow span{color:var(--label2);font-size:var(--fs-s)} .catRow b{color:var(--amber)}
+.lbfRead{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+.lbfRead .lbfChip{border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;font:600 var(--fs-s)/1 var(--f-board);color:var(--ink)}
+.lbfRead .lbfChip:first-child{border-color:#8fa05a;background:rgba(143,160,90,.15)}
+#lbFound li b .cLink{display:inline-block;padding:1px 9px;margin:1px 0;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:none;color:var(--ink);font:700 var(--fs-m)/1.35 var(--f-board);cursor:pointer}
 /* the boarding pass for a Sky view lock-on: band and stub in the plane's rarity colour */
 #arPass{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
 .pF{display:flex;filter:drop-shadow(0 12px 20px rgba(0,0,0,.38));text-align:left;animation:pfIn .5s cubic-bezier(.2,1.5,.4,1) both;
@@ -5910,15 +5922,70 @@ async function lbFind(){
   catch { if (tok === lbFindTok) out.innerHTML = `<p class="sum">${escH(T("The search didn't answer. Try again."))}</p>`; return; }
   if (tok !== lbFindTok) return;
   const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
-  const rows = j.rows.map(g => {
-    const title = g.by === "f" ? [g.flight, g.airline].filter(Boolean).join(" · ") : [g.reg || g.key.toUpperCase(), g.type, g.airline].filter(Boolean).join(" · ");
+  lbFoundRows = j.rows;
+  const pill = (k, i, t) => t ? `<button class="cLink" type="button" data-fp="${k}" data-fi="${i}">${escH(t)}</button>` : "";
+  const rows = j.rows.map((g, i) => {
+    // 1.75: each part a pill that opens its card (the aircraft, the model, the airline)
+    const title = g.by === "f" ? [pill("al", i, g.flight), pill("al", i, g.airline)].filter(Boolean).join(" · ")
+      : [pill("reg", i, g.reg || g.key.toUpperCase()), pill("ty", i, g.type), pill("al", i, g.airline)].filter(Boolean).join(" · ");
     const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
       : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
     const more = [g.minDist != null ? T("closest {d}", {d: distText(g.minDist)}) : "", (g.by === "f" ? g.regs : g.flights).join(", ")].filter(Boolean).join(" · ");
-    return `<li><b>${escH(title)}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
+    return `<li><b>${title}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
   });
-  out.innerHTML = `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
+  const cat = j.category && LB_CATS.find(c => c[0] === j.category);       // 1.75: how the search read the words
+  const read = cat ? `<p class="lbfRead"><span class="lbfChip">${escH(T("Category: {c}", {c: T(cat[1])}))}</span>${j.text ? `<span class="lbfChip">${escH(T("Text: {t}", {t: j.text}))}</span>` : ""}</p>` : "";
+  out.innerHTML = read + `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
     (rows.length ? `<ol>${rows.join("")}</ol>` : `<p class="sum">${escH(T("Nothing in the logbook matches that."))}</p>`);
+}
+// 1.75: Logbook → Categories: a category tapped opens in place with its top ten (types, aircraft or operators) over the
+// whole logbook (relay 61, /logbook/category); a type opens its card, an operator its airline card, an aircraft the search.
+const catOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 61;
+let lbCat = "", lbCatView = "types", lbCatData = {};
+const lbCatKey = () => lbCat + "|" + (lbPlace || "");
+function catOpenHtml(k){
+  const d = lbCatData[lbCatKey()];
+  if (!d) return `<li class="catSub"><p class="sum">${escH(T("Loading …"))}</p></li>`;
+  const seg = `<div class="seg catSeg" role="group">` + [["types", "Types"], ["regs", "Aircraft"], ["operators", "Operators"]]
+    .map(([v, l]) => `<button type="button" data-cv="${v}" aria-pressed="${lbCatView === v}">${escH(T(l))}</button>`).join("") + `</div>`;
+  const list = d[lbCatView] || [];
+  const row = (x, i) => lbCatView === "types" ? `<button type="button" class="catRow" data-ct="${escH(x.code)}" data-cn="${escH(x.name)}"><span>${i + 1}</span>${escH(typeLabel(x.code, x.name))}<b>${nf.format(x.n)}</b></button>`
+    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(x.type)}` : ""}<b>${nf.format(x.n)}</b></button>`
+    : `<button type="button" class="catRow" data-co="${escH(x.icao || "")}" data-cn="${escH(x.name)}" data-ci="${escH(x.iata || "")}"><span>${i + 1}</span>${escH((AIRLINES[x.icao] || [])[1] || x.name)}<b>${nf.format(x.n)}</b></button>`;
+  return `<li class="catSub">${seg}${list.length ? list.map(row).join("") : `<p class="sum">${escH(T("Nothing here yet."))}</p>`}</li>`;
+}
+async function catFetch(){
+  const key = lbCatKey();
+  if (lbCatData[key]) return;
+  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}`, {}, 15000); }
+  catch { lbCatData[key] = {types: [], regs: [], operators: []}; }
+  lbSig = ""; renderLogbook();
+}
+document.addEventListener("click", e => {
+  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbFound [data-fp]");
+  if (!t) return;
+  ctlSound.press();
+  if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
+  else if (t.dataset.cv) lbCatView = t.dataset.cv;
+  else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
+  else if (t.dataset.co != null && t.classList.contains("catRow")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
+  else if (t.dataset.cr) { const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
+  lbSig = ""; renderLogbook();
+});
+// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
+let lbFoundRows = [];
+function foundCard(k, g){
+  if (!g) return;
+  if (k === "ty") return typeCard({typeCode: g.typeCode, type: g.type});
+  if (k === "al") return airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
+  const reg = g.reg || g.key.toUpperCase(), when = t => t ? fmtDay(t) : "";
+  const c = {k: "reg", v: reg, n: [reg, g.type].filter(Boolean).join(" · ")};
+  cardOpen(`<div class="cHead"><div><h3>${escH(reg)}</h3><span>${escH(T("Aircraft"))}</span></div></div>` +
+    factsHtml([["Aircraft", escH(g.type || "")], ["Airline", escH(g.airline || "")],
+      ["Seen here", escH(g.n === 1 ? T("Once, {d}", {d: when(g.last)}) : T("{n} times since {d}", {n: nf.format(g.n), d: when(g.first)}))],
+      ["Last seen", escH(when(g.last))], ["Closest", g.minDist != null ? escH(distText(g.minDist)) : ""], ["Flights", escH((g.flights || []).join(", ")), true]]) +
+    (listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
 }
 function renderLogbook(){
   if (tab !== "logbook") return;
@@ -5955,7 +6022,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -5968,8 +6035,9 @@ function renderLogbook(){
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
       html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
-        return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
-          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
+        const open = lbCat === k && catOk() && n;
+        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${open ? "⌃" : "⌄"}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
+          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>";
     }
     if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
@@ -7775,6 +7843,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.75", date: "2026-10-22", notes: [
+    "Tap a category in the Logbook (Military, Cargo …) to see its top ten types, aircraft or operators.",
+    "The logbook search understands categories: try \"military\" or \"cargo A330\".",
+    "In search results the registration, type and airline open their own cards.",
+  ]},
   {v: "1.73.3", date: "2026-10-22", notes: [
     "The points total has five flaps, room for 10,000 and more.",
   ]},

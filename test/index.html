@@ -6628,6 +6628,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.75", date: "2026-10-22", notes: [
+    "Tap a category in the Logbook (Military, Cargo …) to see its top ten types, aircraft or operators.",
+    "The logbook search understands categories: try \"military\" or \"cargo A330\".",
+    "In search results the registration, type and airline open their own cards.",
+  ]},
   {v: "1.73.3", date: "2026-10-22", notes: [
     "The points total has five flaps, room for 10,000 and more.",
   ]},

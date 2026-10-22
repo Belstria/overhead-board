@@ -11,6 +11,12 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.75 / relay 61: `CATEGORY_WORDS` in `search_json` (a category word narrows to `category_of`; alone it lists the
+  category; the answer says `category` and `text`), rows carry `typeCode`, `callsign`, `airlineIata`.
+  `/logbook/category?c=&place=` → `category_top_json` (top ten types, regs, operators over `_logbook_entries`, cached
+  by `rev // 5` and 2 min). App: `.catTap` categories open in place (`lbCat`, `lbCatView`, `catOpenHtml`, `catFetch`;
+  a type opens `typeCard`, an operator `airlineCard`, an aircraft fills the search); search shows `.lbfRead` chips and
+  pills (`data-fp`) opening `typeCard`, `airlineCard` or `foundCard` (an aircraft card from the search row).
 - 1.74: Spotters' Club (was the Game page, still `#t-game` / `showTab("game")`): `.lbTabs` title tabs on `#t-logbook`
   and `#t-game` (`data-lt`), a sideways swipe switches, the tab bar lights Logbook for both; hidden without relay 59.
   `periodHtml()` replaces `yearHtml()` and the Week & month view: `lbPeriod` (week / month / year) with a `.seg.lbPer`,

@@ -774,15 +774,70 @@ async function lbFind(){
   catch { if (tok === lbFindTok) out.innerHTML = `<p class="sum">${escH(T("The search didn't answer. Try again."))}</p>`; return; }
   if (tok !== lbFindTok) return;
   const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
-  const rows = j.rows.map(g => {
-    const title = g.by === "f" ? [g.flight, g.airline].filter(Boolean).join(" · ") : [g.reg || g.key.toUpperCase(), g.type, g.airline].filter(Boolean).join(" · ");
+  lbFoundRows = j.rows;
+  const pill = (k, i, t) => t ? `<button class="cLink" type="button" data-fp="${k}" data-fi="${i}">${escH(t)}</button>` : "";
+  const rows = j.rows.map((g, i) => {
+    // 1.75: each part a pill that opens its card (the aircraft, the model, the airline)
+    const title = g.by === "f" ? [pill("al", i, g.flight), pill("al", i, g.airline)].filter(Boolean).join(" · ")
+      : [pill("reg", i, g.reg || g.key.toUpperCase()), pill("ty", i, g.type), pill("al", i, g.airline)].filter(Boolean).join(" · ");
     const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
       : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
     const more = [g.minDist != null ? T("closest {d}", {d: distText(g.minDist)}) : "", (g.by === "f" ? g.regs : g.flights).join(", ")].filter(Boolean).join(" · ");
-    return `<li><b>${escH(title)}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
+    return `<li><b>${title}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
   });
-  out.innerHTML = `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
+  const cat = j.category && LB_CATS.find(c => c[0] === j.category);       // 1.75: how the search read the words
+  const read = cat ? `<p class="lbfRead"><span class="lbfChip">${escH(T("Category: {c}", {c: T(cat[1])}))}</span>${j.text ? `<span class="lbfChip">${escH(T("Text: {t}", {t: j.text}))}</span>` : ""}</p>` : "";
+  out.innerHTML = read + `<p class="lbfHead">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total)}))}</p>` +
     (rows.length ? `<ol>${rows.join("")}</ol>` : `<p class="sum">${escH(T("Nothing in the logbook matches that."))}</p>`);
+}
+// 1.75: Logbook → Categories: a category tapped opens in place with its top ten (types, aircraft or operators) over the
+// whole logbook (relay 61, /logbook/category); a type opens its card, an operator its airline card, an aircraft the search.
+const catOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 61;
+let lbCat = "", lbCatView = "types", lbCatData = {};
+const lbCatKey = () => lbCat + "|" + (lbPlace || "");
+function catOpenHtml(k){
+  const d = lbCatData[lbCatKey()];
+  if (!d) return `<li class="catSub"><p class="sum">${escH(T("Loading …"))}</p></li>`;
+  const seg = `<div class="seg catSeg" role="group">` + [["types", "Types"], ["regs", "Aircraft"], ["operators", "Operators"]]
+    .map(([v, l]) => `<button type="button" data-cv="${v}" aria-pressed="${lbCatView === v}">${escH(T(l))}</button>`).join("") + `</div>`;
+  const list = d[lbCatView] || [];
+  const row = (x, i) => lbCatView === "types" ? `<button type="button" class="catRow" data-ct="${escH(x.code)}" data-cn="${escH(x.name)}"><span>${i + 1}</span>${escH(typeLabel(x.code, x.name))}<b>${nf.format(x.n)}</b></button>`
+    : lbCatView === "regs" ? `<button type="button" class="catRow" data-cr="${escH(x.reg)}"><span>${i + 1}</span>${escH(x.reg)}${x.type ? ` · ${escH(x.type)}` : ""}<b>${nf.format(x.n)}</b></button>`
+    : `<button type="button" class="catRow" data-co="${escH(x.icao || "")}" data-cn="${escH(x.name)}" data-ci="${escH(x.iata || "")}"><span>${i + 1}</span>${escH((AIRLINES[x.icao] || [])[1] || x.name)}<b>${nf.format(x.n)}</b></button>`;
+  return `<li class="catSub">${seg}${list.length ? list.map(row).join("") : `<p class="sum">${escH(T("Nothing here yet."))}</p>`}</li>`;
+}
+async function catFetch(){
+  const key = lbCatKey();
+  if (lbCatData[key]) return;
+  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCat}${lbPlace ? "&place=" + encodeURIComponent(lbPlace) : ""}`, {}, 15000); }
+  catch { lbCatData[key] = {types: [], regs: [], operators: []}; }
+  lbSig = ""; renderLogbook();
+}
+document.addEventListener("click", e => {
+  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbFound [data-fp]");
+  if (!t) return;
+  ctlSound.press();
+  if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
+  else if (t.dataset.cv) lbCatView = t.dataset.cv;
+  else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
+  else if (t.dataset.co != null && t.classList.contains("catRow")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
+  else if (t.dataset.cr) { const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
+  lbSig = ""; renderLogbook();
+});
+// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
+let lbFoundRows = [];
+function foundCard(k, g){
+  if (!g) return;
+  if (k === "ty") return typeCard({typeCode: g.typeCode, type: g.type});
+  if (k === "al") return airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
+  const reg = g.reg || g.key.toUpperCase(), when = t => t ? fmtDay(t) : "";
+  const c = {k: "reg", v: reg, n: [reg, g.type].filter(Boolean).join(" · ")};
+  cardOpen(`<div class="cHead"><div><h3>${escH(reg)}</h3><span>${escH(T("Aircraft"))}</span></div></div>` +
+    factsHtml([["Aircraft", escH(g.type || "")], ["Airline", escH(g.airline || "")],
+      ["Seen here", escH(g.n === 1 ? T("Once, {d}", {d: when(g.last)}) : T("{n} times since {d}", {n: nf.format(g.n), d: when(g.first)}))],
+      ["Last seen", escH(when(g.last))], ["Closest", g.minDist != null ? escH(distText(g.minDist)) : ""], ["Flights", escH((g.flights || []).join(", ")), true]]) +
+    (listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
 }
 function renderLogbook(){
   if (tab !== "logbook") return;
@@ -819,7 +874,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -832,8 +887,9 @@ function renderLogbook(){
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
       html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
-        return `<li style="--lamp:${col}"><i class="lamp"></i><span class="name">${escH(T(en))}</span><span class="n">${nf.format(n)}</span>` +
-          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>`;
+        const open = lbCat === k && catOk() && n;
+        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${open ? "⌃" : "⌄"}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
+          `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>";
     }
     if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
