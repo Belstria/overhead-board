@@ -1098,7 +1098,14 @@ function drawLook(){
   $("lookSub").textContent = [L.dir, T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()})].join(" · ") + " · " +
     (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : on ? T("The gold line is where you face.")
       : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the strip to let it turn with your phone.") : T("The plane is in the middle."));
-  const cv = $("lookCv"), px = Math.min(3, devicePixelRatio || 1), W = cv.clientWidth || 300, H = 44;
+  drawTape($("lookCv"), c, on, d);
+  $("arBtn").hidden = !arPossible();
+  skyRowRender();
+}
+// The heading tape (1.73.1): the directions around c, the gold line where you face (bright with the compass), and the
+// plane d degrees off (an arrow at the end when it is off the tape; none when d is null: 1.77, the no-plane card).
+function drawTape(cv, c, on, d){
+  const px = Math.min(3, devicePixelRatio || 1), W = cv.clientWidth || 300, H = 44;
   if (cv.width !== Math.round(W * px)) { cv.width = Math.round(W * px); cv.height = H * px; }
   const g = cv.getContext("2d"), ppd = W / 120, X = deg => W / 2 + deg * ppd;
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
@@ -1112,13 +1119,12 @@ function drawLook(){
     if (big) { g.fillStyle = deg === 0 ? "#e0372c" : "#c9c3b4"; g.font = `700 12px ${FONT}`; g.fillText(NAMES[deg], x, H - 16); }
   }
   g.fillStyle = on ? "#f0b429" : "rgba(240,180,41,.35)"; g.fillRect(W / 2 - 1, 0, 2, H);      // where you face
-  if (ad <= 58) drawPlane(g, X(d), 13, 18, "#f0b429");
+  if (d == null) return;
+  if (Math.abs(d) <= 58) drawPlane(g, X(d), 13, 18, "#f0b429");
   else {                                                         // off the tape: an arrow at its end, pointing the way
     const x = d > 0 ? W - 10 : 10, s = d > 0 ? 1 : -1;
     g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(x + 6 * s, 13); g.lineTo(x - 5 * s, 6); g.lineTo(x - 5 * s, 20); g.closePath(); g.fill();
   }
-  $("arBtn").hidden = !arPossible();
-  skyRowRender();
 }
 const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
 function lookHeadingFrom(e){
@@ -1828,13 +1834,44 @@ function arCardDismiss(){
   box.addEventListener("pointermove", e => { if (e.pointerType === "mouse") move(e.clientY, e); });
   box.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
 setInterval(() => { if (arOn && arSel) arCardRender(); }, 1000);
-$("arBtn").onclick = arOpen;
+$("arBtn").onclick = arTry;
 // 1.72.4: Sky view can always be opened: when the plane's Where to look card (with its button) isn't there, a row of
 // its own under the board takes its place.
-$("arBtn2").onclick = arOpen;
+$("arBtn2").onclick = arTry;
+$("skyCv").onclick = e => { if ($("lookCv").onclick) $("lookCv").onclick(e); };   // a tap lets the tape turn with the phone
+// 1.77: Sky view shows the planes around you, so it comes with live location (the app following the phone). With it
+// off, a card asks first: go live and open, or not now.
+function arTry(){
+  if (S.live || S.demo || !liveOk()) return arOpen();
+  ctlSound.press();
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Sky view needs live location"))}</h3></div></div>` +
+    `<p class="note">${escH(T("It shows the planes around you, wherever you are, so the app follows your location while it's open."))}</p>` +
+    `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
+    box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.press(); cardClose(); }; });
+}
+async function arGoLive(){
+  ctlSound.press(); cardClose();
+  // iPhones let a page ask for the motion sensors only straight from a tap: asked now, before waiting for the location
+  try { if (typeof DeviceOrientationEvent.requestPermission === "function") await DeviceOrientationEvent.requestPermission(); } catch {}
+  gGoLive();
+  const t0 = Date.now(), wait = setInterval(() => {
+    if (S.live && !liveFirst) { clearInterval(wait); arOpen(); }
+    else if (!S.live || Date.now() - t0 > 15000) {
+      clearInterval(wait); lookErr = T("Couldn't find where you are, so Sky view stays closed."); lookErrAt = Date.now(); lookSoon();
+    }
+  }, 300);
+}
+// 1.77: in the Where to look card's style, its tape a compass; with no plane on top it says so.
 function skyRowRender(){
-  const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden;
-  $("skyRow").hidden = look || !arPossible() || SIDEWAYS.matches;
+  const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden, box = $("skyRow");
+  box.hidden = look || !arPossible() || SIDEWAYS.matches;
+  if (box.hidden) return;
+  const on = lookOn && lookHeading != null, sig = (feat ? "f" : "n") + LANG;
+  drawTape($("skyCv"), on ? lookHeading : 0, on, null);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  $("skyB").textContent = T(feat ? "Sky view" : "No planes around right now");
+  $("skySub").textContent = T(feat ? "Hold your phone up to the sky to see every plane around you." : "Sky view shows the ones farther off too, up to 60 km.");
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;

@@ -11,6 +11,18 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.77: **Opening sound** (head.html's splash script, `splashSound`): with sound on and outside quiet hours (read
+  straight from the stored settings, the profile's or the relay defaults), where the phone lets a page play before a tap
+  (the Android app: `mediaPlaybackRequiresUserGesture = false` already; a home-screen web app on Android; never an
+  iPhone): a context of its own (closed after; given up if not running within 0.4 s), the board's clack for each letter
+  as it lands (0.46 s into the `spFlap` animations, 45 ms apart, timed from their real start via
+  `getAnimations().ready`, less the output latency) and a 1.05 s band-swept whoosh panned left to right at the
+  take-off; the app's output chain (110 Hz/6.5 kHz cut, a 0.22 s room, a limiter). The letters flip in (`spFlap`:
+  rotateX 90° → −14° → 5° → 0 in 0.32 s) instead of rising. **Sky view with live location**: `arTry` opens it with live
+  on, else a card asks (`liveGo` green like the strip's Go live, `liveNo`); `arGoLive` asks iPhones for the motion
+  sensors within the tap, runs `gGoLive` and opens Sky view at the first fix (15 s, then a note). **No plane on top**:
+  `#skyRow` is now a `.look` card (heading, `#skyCv` tape as a compass via `drawTape`, split out of `drawLook`, the Sky
+  view button, "No planes around right now").
 - 1.76.1: Sky view's ring got E and W ticks (`arAimDraw`). Heights are above the sea now (`arHeight`; `arWeather` gives
   the METAR airport's `elev`), and the eye is the phone's own GPS height (`arAlt`, smoothed, used when its accuracy is
   60 m or better; else the airport's): on Santorini's caldera rim (260 m) a plane on final 5 km out was drawn 3.4° up,
