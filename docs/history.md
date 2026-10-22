@@ -10,6 +10,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
 - 1.74: Spotters' Club (was the Game page, still `#t-game` / `showTab("game")`): `.lbTabs` title tabs on `#t-logbook`
   and `#t-game` (`data-lt`), a sideways swipe switches, the tab bar lights Logbook for both; hidden without relay 59.
   `periodHtml()` replaces `yearHtml()` and the Week & month view: `lbPeriod` (week / month / year) with a `.seg.lbPer`,
