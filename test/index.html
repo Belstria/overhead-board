@@ -570,7 +570,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=ec448803ee"></script>
+<script src="i18n.js?v=bf47bfedbf"></script>
 <script>
 (() => {
 "use strict";
@@ -3366,11 +3366,11 @@ function firstLines(ac, info){
   const t = String(ac.t || info.typeCode || "").toUpperCase(), cs = String(ac.flight || "").trim().toUpperCase();
   const icao = (cs.match(/^([A-Z]{3})\d/) || [])[1] || "";
   const reg = seenGet("reg", clean(info.reg || ac.r || "").replace(/\s/g, ""));
-  if (t && fresh(b.types[t])) out.push(T("FIRST TYPE"));                          // 1.73.2: without "ever"
-  else if (reg && !seenBefore(reg).n) out.push(T("FIRST PLANE"));
-  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST AIRLINE"));
+  if (t && fresh(b.types[t])) out.push(T("FIRST: TYPE"));                         // 1.73.2: without "ever"; 1.78.1: "FIRST:"
+  else if (reg && !seenBefore(reg).n) out.push(T("FIRST: PLANE"));
+  if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST: AIRLINE"));
   const f = icao ? seenGet("cs", cs) : null;
-  if (f && !seenBefore(f).n) out.push(T("FIRST FLIGHT"));
+  if (f && !seenBefore(f).n) out.push(T("FIRST: FLIGHT"));
   return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
@@ -6635,6 +6635,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.78.1", date: "2026-10-22", notes: [
+    "The points strip switches as soon as live location turns on or off.",
+    "Remarks say FIRST: TYPE, FIRST: PLANE, FIRST: AIRLINE and FIRST: FLIGHT.",
+    "Cards pulled up give a little and spring back, and the page behind no longer scrolls.",
+  ]},
   {v: "1.78", date: "2026-10-22", notes: [
     "Cards (an airline, a type, an aircraft …) slide up from the bottom like Sky view's; drag one down, or tap beside it, to put it away.",
     "A card that changes while open glides to its new size.",

@@ -295,8 +295,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
   picked).
 - **Model photos** (1.43) carry an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT" on the board, in the app and in cards.
-- **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST
-  EVER: TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
+- **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST:
+  TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
   flight numbers since relay 38 and learned the old ones from the saved days). Nothing during a new logbook's first day.
 - **Tips** (1.42): the first time you open each page (and for the less obvious things: swiping a row, tapping an
   airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
@@ -324,7 +324,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
-  tap beside it, and it slides away; one opened over another glides to its new size.
+  tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
+  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open.
 - **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
   in (at most a few seconds), instead of filling in piece by piece.
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
