@@ -11,6 +11,13 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.78.1: the score strip follows `S.live` at once (`gStripLive`, checked every 300 ms; a change redraws it and forces
+  `gRefresh`): it waited for the next points, up to a minute (Dave: 30 s after live went off). Remarks "FIRST: TYPE"
+  etc. (keys in i18n.js too; the translations had the colon already). Cards: a finger going up where the card can't
+  scroll (short, or at its end) pulls it against a spring (`d·0.5/(1 − d/220)`, at most ~110 px) and it springs back;
+  both ways in one movement; a finger beside the card is swallowed; `overscroll-behavior: contain` keeps a scrolling
+  card's scroll to itself. Where to look logs why a plane on top has no direction (`lookWhy`, once a plane: no
+  position, no height, too far, or an error caught).
 - 1.78: the app's cards are sheets like Sky view's card. The board's `cardOpen`/`cardClose` call the app's
   `cardSheetPre`/`cardSheetPost`/`cardSheetClose` (typeof-guarded, in lint's OPTIONAL; the TV boards keep their cards):
   `#cardBox.in` slides `.cardIn` up (0.38 s, Sky view's spring) and fades the dark in; `.closing` slides it down (0.26 s)

@@ -1074,19 +1074,25 @@ document.addEventListener("click", e => { if (e.target && e.target.id === "yShar
 // north up, or, with the compass (secure pages only; iPhones ask first), turning with the phone so the arrow points
 // at the plane.
 let lookHeading = null, lookOn = false, lookRaf = 0, lookErr = "", lookErrAt = 0;
+let lookWhy = "", lookWhyLogged = "";
 function lookAt(){
-  if (!feat || !feat.o || feat.o.ac.lat == null) return null;
+  if (!feat || !feat.o || feat.o.ac.lat == null) { lookWhy = feat ? "no position" : ""; return null; }
   // 1.75.2: where the plane is now and how high (as Sky view has it: moved on from the data's time, its true height)
   const ac = feat.o.ac, mv = arMove(ac, Math.min(60, (Date.now() - arListAt) / 1000 + (ac.seen_pos || 0))), wx = arWeather(), h = arHeight(ac, wx);
   const kx = 111.32 * Math.cos(S.lat * Math.PI / 180), x = (ac.lon - S.lon) * kx + mv[0] / 1000, y = (ac.lat - S.lat) * 110.57 + mv[1] / 1000;
   const km = Math.hypot(x, y), brg = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360, alt = feat.o.alt;
-  if (alt == null || h == null || km > 80) return null;
+  lookWhy = alt == null || h == null ? "no height" : km > 80 ? `${Math.round(km)} km away` : !isFinite(km) ? "position unclear" : "";
+  if (lookWhy) return null;
   const up = Math.round(Math.atan2(Math.max(0, h + mv[2] - wx.elev) - km * km * 1e6 / (2 * 6371000) * .87, Math.max(50, km * 1000)) * 180 / Math.PI);
   return {brg, up, km, alt, dir: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(brg / 45) % 8]};
 }
 function drawLook(){
   lookRaf = 0;
-  const box = $("look"), L = lookAt();
+  let L = null;
+  try { L = lookAt(); } catch (e) { lookWhy = "error: " + (e && e.message || e); }
+  // 1.78.1: a plane on top without a direction says why in the connection log (once a plane)
+  if (!L && feat && lookWhy && lookWhyLogged !== feat.hex + lookWhy) { lookWhyLogged = feat.hex + lookWhy; dlog(/^error/.test(lookWhy) ? "warn" : "debug", `Where to look: none for ${planeName(feat, feat.o.ac)} (${lookWhy})`); }
+  const box = $("look");
   box.hidden = !L || SIDEWAYS.matches;
   if (box.hidden) return skyRowRender();
   // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
@@ -1717,29 +1723,35 @@ function cardSheetClose(b){
   cardSheetClose.t = setTimeout(() => { if (b.classList.contains("closing")) { b.hidden = true; b.classList.remove("closing"); } }, 270);
   return true;
 }
-// The finger on a card: down from its top (it isn't scrolled) drags it; let go past 90 px, or flicked, it goes, else it
-// springs back. Up, or on a scrolled card, it scrolls as before.
+// The finger on a card: down from its top (when it isn't scrolled) drags it; let go past 90 px, or flicked, it goes,
+// else it springs back. 1.78.1: pulled up where it can't scroll any further (a short card, or at its end) it gives a
+// little against a spring and comes back when let go; both ways in one movement. A scrolling card keeps its scroll to
+// itself, and a finger on the dark beside it moves nothing: the page behind never scrolls.
 { let drag = null, dragged = 0;
   document.addEventListener("touchstart", e => {
-    const ci = e.target.closest && e.target.closest("#cardBox:not([hidden]) .cardIn"), y = e.touches[0].clientY;
-    drag = ci ? {ci, y0: y, on: false, top: ci.scrollTop <= 0, dy: 0, v: 0, lt: performance.now(), ly: y} : null;
+    const box = $("cardBox");
+    if (!box || box.hidden) { drag = null; return; }
+    const ci = e.target.closest && e.target.closest("#cardBox .cardIn"), y = e.touches[0].clientY;
+    drag = !ci ? {beside: true}
+      : {ci, y0: y, on: false, top: ci.scrollTop <= 0, end: ci.scrollTop + ci.clientHeight >= ci.scrollHeight - 1, dy: 0, v: 0, lt: performance.now(), ly: y};
   }, {passive: true});
   document.addEventListener("touchmove", e => {
     if (!drag) return;
+    if (drag.beside) { if (e.cancelable) e.preventDefault(); return; }
     const y = e.touches[0].clientY;
     if (!drag.on) {
       if (Math.abs(y - drag.y0) < 6) return;
-      if (y < drag.y0 || !drag.top) { drag = null; return; }
+      if (y > drag.y0 ? !drag.top : !drag.end) { drag = null; return; }   // the card scrolls
       drag.on = true; drag.y0 = y; $("cardBox").classList.add("drag");
     }
     if (e.cancelable) e.preventDefault();
     const now = performance.now(), d = drag.dy = y - drag.y0;
     drag.v = (y - drag.ly) / Math.max(1, now - drag.lt); drag.ly = y; drag.lt = now;
-    drag.ci.style.transform = `translateY(${(d > 0 ? d : d / 6).toFixed(1)}px)`;   // above the start: a little give
+    drag.ci.style.transform = `translateY(${(d > 0 ? d : d * .5 / (1 - d / 220)).toFixed(1)}px)`;   // up: ever harder, at most ~110 px
   }, {passive: false});
   const end = () => {
     const d = drag; drag = null;
-    if (!d || !d.on) return;
+    if (!d || d.beside || !d.on) return;
     dragged = Date.now();
     $("cardBox").classList.remove("drag");
     if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.press(); cardClose(); }
@@ -3012,10 +3024,15 @@ function gTotSet(n, anim){
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
 }
 function gLevelText(g){ return T("Lvl {n} · {t} · {a} / {b}", {n: g.level, t: T(g.title), a: nf.format(g.into), b: nf.format(g.need)}); }
+// 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
+// was redrawn only with the next points, up to a minute later.
+let gStripLive = null;
+setInterval(() => { if (gme && gStripLive != null && gStripLive !== !!S.live) { gStripRender(gme); gRefresh(true); } }, 300);
 function gStripRender(g, anim){
   const box = $("gStrip");
   if (box.hidden || !g) return;
   const off = !S.live;
+  gStripLive = !off;
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
