@@ -11,6 +11,16 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- Relay 63 (Dave's to-do list of 23 Oct: 3, 4, 6; the app's side follows his picks): a new sighting on the go keeps
+  the phone's place to about a kilometre (`at`); `where_name` names each 0.02° cell once (`_where_worker`, Nominatim
+  at zoom 13 in English, `geo_where`: the town, the area round it, the country; `data/where.json`). Older sightings on
+  the go stand in with their day's planes grouped within 30 km (`where_estimates`). `search_json` matches the place
+  too (a saved place's key, "home", or the town, area or country; accents folded, `_fold`) and each row carries
+  `places` (`{k, n, a, c}`, newest first, at most four). `/game/hangar` (`hangar_json`): the game's types with the
+  first aircraft of each (reg, hex, flight, for a photo) and its tier, and the sets with all their types.
+  `/game/player?id=` (`player_json`): a league player's card (level, week and all time, trophies won, tiers, counts,
+  the rarest type, the week's best plane, streak, lock-ons); league rows carry `id` (`_league_id`, salted afresh at
+  every start), never places. The test relay answers Nominatim from the fake source (`/nominatim/reverse`).
 - Push to main (Dave's to-do 12, 23 Oct 2026): the main board goes from 1.37 to the test board's 1.79.2, with `i18n.js` and
   `sounds.js` next to it for the first time; `push_main.py` points the main copy at `fonts/fonts.css` (the test board's
   `../fonts/` works through the relay, but on GitHub Pages' own address it leaves the project).

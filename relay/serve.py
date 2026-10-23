@@ -52,13 +52,14 @@ import struct
 import sys
 import threading
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 62
+RELAY_VERSION = 63
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -548,6 +549,8 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                     e["place"] = key
                 if key == "live":
                     e["liveMin"], e["liveSeen"] = round(d, 2), now
+                    e["at"] = [round(lat, 2), round(lon, 2)]     # relay 63: where the phone was (to about a km), for its name
+                    where_name(lat, lon)
                 w = watch_of(hx)
                 if w:
                     e["watch"], e["watchOp"] = w
@@ -1142,6 +1145,12 @@ def game3_json(book, day):
 
 
 _league_cache = {}
+_LEAGUE_SALT = secrets.token_hex(8)
+
+
+def _league_id(pid):
+    """Relay 63: a league row's handle for its player card; not the profile's id (a fresh salt every start)."""
+    return hashlib.sha256((_LEAGUE_SALT + pid).encode()).hexdigest()[:12]
 
 
 def league_json(me=None):
@@ -1178,7 +1187,7 @@ def league_json(me=None):
     prev = {r["pid"]: i for i, r in enumerate(sorted((r for r in rows if r["before"] > 0), key=lambda r: -r["before"]))}
     def out(r, i, order):
         o = {"name": r["name"], "points": r[order], "all": r["all"], "level": r["level"], "rank": i + 1,
-             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me}
+             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me, "id": _league_id(r["pid"])}
         if order == "week":
             o["best"] = r["best"]
             if r["pid"] in prev and day != wk:
@@ -1192,6 +1201,76 @@ def league_json(me=None):
     nxt = datetime.datetime.combine(datetime.date.fromisoformat(wk) + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
     return {"week": wk, "resets": int(nxt.timestamp() * 1000), "rows": week, "allTime": alltime, "lastLock": lock,
             "champion": champ["name"] if champ else None, "championMe": bool(champ and champ["pid"] == me)}
+
+
+def player_json(hid, me=None):
+    """Relay 63 (Dave's to-do 6): a league player's card: level, this week and all time, the trophies won (the app
+    shows them as medals), how many of each rarity, the rarest type and the week's best plane, the streak. Only for
+    players in the league; never places."""
+    day = board_day()
+    wk = _monday(day)
+    with _data_lock:
+        pids = [(pid, p) for pid, p in profiles()["profiles"].items() if (p.get("settings") or {}).get("league", True) is not False]
+    hit = next(((pid, p) for pid, p in pids if _league_id(pid) == hid), None)
+    if not hit:
+        return None
+    pid, p = hit
+    try:
+        sp = guest_spot(pid)
+    except Exception:
+        return None
+    with _data_lock:
+        g = sp.book().get("game3") or {}
+        pts = g.get("points", 0)
+        if not pts:
+            return None
+        lv, title, into, need = level_of(pts)
+        days, types = g.get("days", {}), g.get("types") or {}
+        rare = lambda tc: TIERS.index(tier_of({}, {"typeCode": tc}))
+        top = max(types.items(), key=lambda kv: (rare(kv[0]), -(kv[1].get("first") or 0)), default=None)
+        counts = trophy_counts(g, day=day)
+        out = {"id": hid, "name": (str(p.get("name") or "?").strip().split() or ["?"])[0][:14], "me": pid == me,
+               "level": lv, "title": title, "into": into, "need": need, "points": pts,
+               "week": sum(v for k, v in days.items() if k >= wk), "streak": _streak(g, day),
+               "tiers": {t: (g.get("tiers") or {}).get(t, 0) for t in TIERS},
+               "counts": {k: counts.get(k) for k in ("planes", "types", "airlines", "countries")},
+               "trophies": sorted(k for k, v in (g.get("trophies") or {}).items() if v),
+               "rarest": {"code": top[0], "name": top[1].get("name") or "", "tier": tier_of({}, {"typeCode": top[0]})} if top else None,
+               "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since")}
+    lg = league_json(me)
+    r = next((x for x in lg["rows"] if x["id"] == hid), None)
+    out.update(rank=r["rank"] if r else None, crown=bool(r and r["crown"]))
+    return out
+
+
+_hangar_cache = {}
+
+
+def hangar_json(spot):
+    """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type caught on the go (the game's own logbook), each
+    with the first aircraft of it (for its photo) and its rarity, the newest first; and the sets with all their types."""
+    with _data_lock:
+        types = {tc: dict(t) for tc, t in (game_book(spot.book()).get("types") or {}).items()}
+    key = (str(spot.dir), len(types), spot.day)
+    hit = _hangar_cache.get(key)
+    if hit and time.time() - hit[0] < 600:
+        return hit[1]
+    want, first = {tc: t.get("first") for tc, t in types.items()}, {}
+    for e in _logbook_entries(spot):
+        tc = str(e.get("typeCode") or "").upper()
+        if tc in want and tc not in first and e.get("ts") == want[tc]:
+            first[tc] = e
+    out = []
+    for tc, t in types.items():
+        e = first.get(tc) or {}
+        out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0),
+                    "tier": e.get("tier") or tier_of({}, {"typeCode": tc}), "reg": e.get("reg") or "", "hex": e.get("hex") or "",
+                    "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or ""})
+    out.sort(key=lambda x: -(x["first"] or 0))
+    res = {"types": out, "sets": [{"name": n, "types": ts} for n, ts in SETS]}
+    _hangar_cache.clear()
+    _hangar_cache[key] = (time.time(), res)
+    return res
 
 
 # ---------- the watchlist (relay 29): plane-alert-db, about 17,000 aircraft worth a look (police, air ambulances,
@@ -2000,8 +2079,10 @@ def _logbook_entries(spot):
 def search_json(spot, q):
     """Relay 55: the whole logbook searched (every saved day): a registration, a flight, a type or an airline. Matches
     are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close.
-    Relay 61: a category word narrows it to that category (alone, it lists the category)."""
-    words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", q.upper()).split() if w][:5]
+    Relay 61: a category word narrows it to that category (alone, it lists the category). Relay 63: where it was seen
+    counts too (a saved place's name, "home", or on the go the town, the area round it or the country: "Oia",
+    "Santorini", "Greece"), and each row says where it was seen (places, the newest first)."""
+    words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", _fold(q)).split() if w][:5]
     cat = next((c for w in words for c, ws in CATEGORY_WORDS.items() if w in ws), None)
     if cat:
         words = [w for w in words if w not in CATEGORY_WORDS[cat]][:4]
@@ -2015,25 +2096,30 @@ def search_json(spot, q):
         today = list(spot.entries)
     for f in files:
         day = f.stem[len("sightings-"):]
-        for e in (today if day == spot.day else _load(f, [])):
+        entries = today if day == spot.day else _load(f, [])
+        est = where_estimates(entries)
+        for e in entries:
             if not isinstance(e, dict):
                 continue
+            place = e.get("place") or "home"
+            w = where_of(e, est)
             flight, reg = tight(e.get("flightIata") or e.get("callsign")), tight(e.get("reg"))
-            hay = " ".join(str(e.get(k) or "") for k in ("reg", "callsign", "flightIata", "icaoType", "typeCode", "aircraftType",
-                                                       "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner")).upper()
-            if not all(w in hay or tight(w) in tight(hay) for w in words):
+            hay = _fold(" ".join(str(e.get(k) or "") for k in ("reg", "callsign", "flightIata", "icaoType", "typeCode", "aircraftType",
+                                                             "manufacturer", "airlineName", "airlineIcao", "airlineIata", "owner"))
+                        + " " + " ".join([place if place != "live" else "", w.get("n", ""), w.get("a", ""), w.get("c", "")]))
+            if not all(w2 in hay or tight(w2) in tight(hay) for w2 in words):
                 continue
             if cat and category_of(e) != cat:
                 continue
             total += 1
-            by_flight = flight and any(tight(w) in (flight, tight(e.get("callsign"))) for w in words)
+            by_flight = flight and any(tight(w2) in (flight, tight(e.get("callsign"))) for w2 in words)
             key = ("f", flight) if by_flight else ("r", reg or str(e.get("hex") or ""))
             g = groups.get(key)
             if not g:
                 g = groups[key] = {"by": key[0], "key": key[1], "reg": e.get("reg") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
                                    "type": e.get("aircraftType") or e.get("icaoType") or e.get("typeCode") or "", "airline": e.get("airlineName") or "",
                                    "typeCode": e.get("typeCode") or "", "callsign": e.get("callsign") or "", "airlineIata": e.get("airlineIata") or "",
-                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": []}
+                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": [], "_pl": {}}
             g["n"] += 1
             t = e.get("ts") or e.get("time")
             if isinstance(t, (int, float)):
@@ -2045,6 +2131,12 @@ def search_json(spot, q):
             other = ("flights", e.get("flightIata") or e.get("callsign")) if key[0] == "r" else ("regs", e.get("reg"))
             if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
                 g[other[0]].append(other[1])
+            pk = (place, w.get("n", ""))
+            seen = t if isinstance(t, (int, float)) else 0
+            if pk not in g["_pl"] or seen > g["_pl"][pk][0]:
+                g["_pl"][pk] = (seen, {"k": place, **({k: w[k] for k in ("n", "a", "c") if w.get(k)} if place == "live" else {})})
+    for g in groups.values():
+        g["places"] = [v for _, v in sorted(g.pop("_pl").values(), key=lambda x: -x[0])][:4]
     rows = sorted(groups.values(), key=lambda g: -(g["last"] or 0))[:40]
     return {"q": q, "total": total, "rows": rows, "category": cat, "text": " ".join(words).lower()}
 
@@ -4288,6 +4380,125 @@ def geo_reverse(lat, lon, lang="en"):
     return {"status": "ok", "name": _geo_name(j.get("address"), j.get("name") or "")}
 
 
+# Relay 63 (Dave's to-do 3): where a sighting on the go was made, by name ("Oia, Santorini"), for the logbook search.
+# A new sighting on the go keeps the phone's place to about a kilometre ("at"); each 0.02° cell is named once by
+# Nominatim in the background (_where_worker) and kept in data/where.json. Older sightings on the go have no "at":
+# the planes of their day, grouped within 30 km, stand in for where the phone was.
+WHERE_FILE = DATA_DIR / "where.json"
+WHERE_CELL = 0.02
+_where = None               # "lat,lon" cell -> {"n": the place, "a": the area round it, "c": the country}; "" when unknown
+_where_todo = []
+_where_lock = threading.Lock()
+
+
+def _fold(s):
+    """Upper case without accents, for matching ("Zürich" finds "ZURICH")."""
+    return unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode().upper()
+
+
+def _where_cell(lat, lon):
+    r = lambda v: round(round(float(v) / WHERE_CELL) * WHERE_CELL, 2)
+    return f"{r(lat)},{r(lon)}"
+
+
+def where_name(lat, lon):
+    """A place's name ({} until it is known: then it is asked for in the background)."""
+    global _where
+    k = _where_cell(lat, lon)
+    with _where_lock:
+        if _where is None:
+            _where = _load(WHERE_FILE, {})
+        w = _where.get(k)
+        if w is None and k not in _where_todo and len(_where_todo) < 500:
+            _where_todo.append(k)
+    return w or {}
+
+
+def geo_where(lat, lon):
+    """The town or village at a place, the area round it (an island, a county, a state) and the country; None when
+    Nominatim couldn't be asked."""
+    j = _geo_get(f"{NOMINATIM}/reverse?format=jsonv2&zoom=13&accept-language=en&lat={lat:.3f}&lon={lon:.3f}")
+    if not isinstance(j, dict):
+        return None
+    a = j.get("address") or {}
+    n = _geo_name(a, "" if j.get("error") else str(j.get("name") or ""))
+    area = next((v for v in (_geo_admin_clean(str(a.get(k) or "")) for k in ("island", "archipelago", "county", "state_district", "state"))
+                 if v and v.lower() != n.lower()), "")
+    return {"n": n[:60], "a": area[:60], "c": str(a.get("country") or "")[:60]}
+
+
+def _where_sweep():
+    """Once, a little after a start: every profile's older sightings on the go asked to be named, so the search finds them."""
+    time.sleep(20)
+    with _data_lock:
+        pids = list(profiles()["profiles"])
+    for pid in pids:
+        try:
+            sp = guest_spot(pid)
+            for f in sorted(sp.dir.glob("sightings-*.json")):
+                entries = _load(f, [])
+                est = where_estimates(entries)
+                for e in entries:
+                    if isinstance(e, dict):
+                        where_of(e, est)
+        except Exception:
+            continue
+
+
+def _where_worker():
+    """Names the places on the go, one a few seconds (Nominatim asks for one request a second at most)."""
+    while True:
+        time.sleep(3)
+        with _where_lock:
+            k = _where_todo[0] if _where_todo else None
+        if not k:
+            continue
+        try:
+            w = geo_where(*map(float, k.split(",")))
+        except Exception:
+            w = None
+        with _where_lock:
+            if k in _where_todo:
+                _where_todo.remove(k)
+            if w is not None:
+                _where[k] = w
+                try:
+                    tmp = WHERE_FILE.with_suffix(".tmp")
+                    tmp.write_text(json.dumps(_where, separators=(",", ":")), encoding="utf-8")
+                    tmp.replace(WHERE_FILE)
+                except OSError:
+                    pass
+        if w is None:
+            time.sleep(60)                  # no answer: ask again later
+
+
+def where_estimates(entries):
+    """Sightings on the go from before relay 63 have no "at": the day's planes, grouped (each within 30 km of its
+    group's middle), stand in for where the phone was. {sighting id: (lat, lon)}."""
+    groups = []
+    for e in entries:
+        if not isinstance(e, dict) or e.get("place") != "live" or e.get("at") or not isinstance(e.get("pos"), list):
+            continue
+        la, lo = e["pos"][0], e["pos"][1]
+        g = next((g for g in groups if _dist_km(g["lat"], g["lon"], la, lo) <= 30), None)
+        if g:
+            g["n"] += 1
+            g["lat"] += (la - g["lat"]) / g["n"]
+            g["lon"] += (lo - g["lon"]) / g["n"]
+            g["ids"].append(e.get("id"))
+        else:
+            groups.append({"lat": la, "lon": lo, "n": 1, "ids": [e.get("id")]})
+    return {i: (g["lat"], g["lon"]) for g in groups for i in g["ids"]}
+
+
+def where_of(e, est=None):
+    """Where a sighting on the go was made ({} when not known yet, or not on the go)."""
+    if e.get("place") != "live":
+        return {}
+    at = e.get("at") or (est or {}).get(e.get("id"))
+    return where_name(*at) if at else {}
+
+
 def lists_of(pid):
     """(favourites, hidden) of a profile."""
     with _data_lock:
@@ -5681,6 +5892,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
             return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
+        if path == "/game/player":        # relay 63: a league player's card
+            if not allow("player:" + (self.guest[0] if self.guest else self.client_ip()), 1, 10):
+                return self.reply(429, "text/plain", b"Too many requests")
+            body = player_json(((self.query().get("id") or [""])[0])[:12], self.guest[0] if self.guest else None)
+            return self.reply(200, "application/json", json.dumps(body).encode()) if body else self.reply(404, "text/plain", b"No such player")
+        if path == "/game/hangar":        # relay 63: the Spotters' Club hangar
+            return self.reply(200, "application/json", json.dumps(hangar_json(self.spot)).encode())
         if path == "/logbook/category":   # relay 61: one category's top ten (types, aircraft, operators)
             q = self.query()
             cat = (q.get("c") or [""])[0]
@@ -6115,6 +6333,8 @@ def main():
     threading.Thread(target=_push_watch, daemon=True).start()
     threading.Thread(target=_health_watch, daemon=True).start()
     threading.Thread(target=_hue_watch, daemon=True).start()
+    threading.Thread(target=_where_worker, daemon=True).start()
+    threading.Thread(target=_where_sweep, daemon=True).start()
     with _data_lock:
         _fr24_data()
         profiles()
