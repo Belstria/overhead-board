@@ -940,15 +940,18 @@ function hangarLoad(){
   hangarAt = Date.now();
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
-const modelPicNow = name => modelPics.get(String(name || "").trim().toLowerCase()) || "";
+// 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
+// as a second try; the model photo already found for them, else "".
+const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
+const modelPicNow = names => modelPics.get(names.join("|").toLowerCase()) || "";
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = code => {
-    const t = by.get(code), name = (t && t.name) || TYPES[code] || code;
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
     if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(name);
+    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names);
     return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
-      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(name)}"></span>`) +
+      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`) +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span></span></button>`;
   };
@@ -969,7 +972,7 @@ function hgWire(box){
   for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
   const ph = box.querySelectorAll(".hgPh[data-mp]");
   if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic([e.target.dataset.mp], hgSoon); } }, {rootMargin: "120px"});
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon); } }, {rootMargin: "120px"});
   for (const el of ph) io.observe(el);
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
@@ -977,7 +980,7 @@ function hangarCard(code){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
   ctlSound.press();
-  const name = t.name || TYPES[code] || code, pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(name), when = t.first ? new Date(t.first) : null;
+  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(hgNames(code, t.name)), when = t.first ? new Date(t.first) : null;
   cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
     `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
     factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
@@ -3386,7 +3389,6 @@ function renderGame(){
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cBtn" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;
@@ -3398,7 +3400,6 @@ function renderGame(){
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
-  const sb = $("gStyles"); if (sb) sb.onclick = () => { ctlSound.press(); stylesCard(); };
   $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 // 1.79: How points work, a card: where points come from (live location, the distance), what each rarity gives, the extras,

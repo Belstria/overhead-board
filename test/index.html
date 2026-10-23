@@ -4703,9 +4703,12 @@ function radarRows(n){
 // 1.64: the zoom and its centre are kept per device, so the close-up is still there after a reload.
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
-const RADAR_ZOOMS = [0, 10, 5, 2.5];
+// 1.82.2 (Dave): − and + (the app's wheel) step every 5 km from the usual range down to 5 km, then to 2.5 km, the closest
+// (the airport's gates); they were 10, 5 and 2.5 km.
+const RADAR_CLOSEST = 2.5;
+const radarSteps = () => { const out = []; for (let v = radarBase() - 5; v >= 5; v -= 5) out.push(v); return out.concat(RADAR_CLOSEST); };
 // 1.68.1: a pinch zooms smoothly (radar.live: the range under the fingers, km), and the zoom stays where it is let go
-// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of RADAR_ZOOMS from there.
+// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of radarSteps from there.
 const RADAR_MIN = 1.5;
 const radarZoomed = () => !!((radar.live || radarZoom) && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
@@ -4723,7 +4726,7 @@ function radarZoomSet(z){
 }
 function radarZoomKeep(){ try { localStorage.setItem(RADAR_ZOOM_KEY, JSON.stringify({z: radarZoom, c: radar.zc})); } catch {} }
 function radarZoomStep(d){
-  const steps = RADAR_ZOOMS.slice(1);                   // 10, 5, 2.5 km
+  const steps = radarSteps();                           // 20, 15, 10, 5, 2.5 km with a 25 km usual range
   let z = radarZoom;
   for (let i = 0; i < Math.abs(d); i++) {
     if (d > 0) z = steps.find(v => v < (z || Infinity) - .01) ?? steps[steps.length - 1];
@@ -4731,7 +4734,7 @@ function radarZoomStep(d){
   }
   radarZoomSet(z);
 }
-const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_ZOOMS[RADAR_ZOOMS.length - 1] + .01 : !!radarZoom;
+const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_CLOSEST + .01 : !!radarZoom;
 const radarBase = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);        // the usual range
 const radarRange = () => radar.live && radarZoomed() ? radar.live : radarZoomed() ? radarZoom : radarBase();
 const radarRangeText = () => nf.format(Math.round(radarRange() * 10) / 10) + " km";
@@ -6662,6 +6665,9 @@ const CHANGELOG = [
     "The radar has a reset in its corner: back to the usual range for your radius.",
     "A plane tapped on the radar shows its card right under the radar.",
     "The Points field is off the board; points show on the score strip when they come in.",
+    "The radar zooms in steps of 5 km.",
+    "Your hangar finds the photos of more models.",
+    "The Styles button is off the Spotters' Club; styles are in Settings.",
   ]},
   {v: "1.82.1", date: "2026-10-23", notes: [
     "Pictures to share or save say whose they are: Spotted by and your first name.",

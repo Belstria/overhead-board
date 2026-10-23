@@ -251,7 +251,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
   landing, passing or on the ground (1.63).
   Since 1.65 zooming works in the Overhead style too, around your place. On the phone (1.69) the controls sit on a
-  **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer, through 10, 5 and 2.5 km) and the **Map**
+  **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer; since 1.82.2 every 5 km down to 5, then
+  2.5 km, the closest; it was 10, 5 and 2.5 km) and the **Map**
   switch; pinching zooms smoothly to any range and stays there, a double tap steps closer (from the closest, back out). The zoom is kept per screen (1.64).
   In the app (1.82.2) a round ⟲ in the radar's corner, as in Sky view, goes straight back to the usual range for your
   radius (25 km for 15 km) and the middle; it is faded while the radar is there already. A tapped plane's card opens
