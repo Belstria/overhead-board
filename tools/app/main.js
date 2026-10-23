@@ -738,7 +738,7 @@ async function fetchLogbook(){
     }
   }
   if (feat) setWord("tier", tierOf(feat.o.ac, feat.info));             // the tier needs the logbook
-  achCheck((lbData() || {}).game);
+  achCheck((lbData() || {}).game); medalNudge((lbData() || {}).game);
   renderLogbook(); renderGame();
 }
 let lbSig = "", lbView = "logbook";
@@ -766,7 +766,7 @@ function lbFindSetup(){
   box.hidden = (window.OVERHEAD_RELAY_VERSION || 0) < 55 || !relay() || S.demo;
   if (box.hidden || box.firstChild) return;
   box.innerHTML = `<span class="svFind"><input type="search" data-q enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
-    `placeholder="${escH(T("Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
+    `placeholder="${escH(T((window.OVERHEAD_RELAY_VERSION || 0) >= 63 ? "Search the logbook, e.g. OE-LBN, A380, Santorini" : "Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}">` +
     `<button type="button" data-qx aria-label="${escH(T("Clear"))}" hidden>×</button></span>`;
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
   const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
@@ -792,7 +792,8 @@ async function lbFind(){
     const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
       : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
     const more = [g.minDist != null ? T("closest {d}", {d: distText(g.minDist)}) : "", (g.by === "f" ? g.regs : g.flights).join(", ")].filter(Boolean).join(" · ");
-    return `<li><b>${title}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span></li>`;
+    const pl = lbfPlaces(g);
+    return `<li><b>${title}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span>${pl.length ? `<span class="lbfPin">${PIN}${escH(pl.join(" · "))}</span>` : ""}</li>`;
   });
   const cat = j.category && LB_CATS.find(c => c[0] === j.category);       // 1.75: how the search read the words
   const read = cat ? `<p class="lbfRead"><span class="lbfChip">${escH(T("Category: {c}", {c: T(cat[1])}))}</span>${j.text ? `<span class="lbfChip">${escH(T("Text: {t}", {t: j.text}))}</span>` : ""}</p>` : "";
@@ -834,6 +835,11 @@ document.addEventListener("click", e => {
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
 });
+// 1.81 (Dave's to-do 3, his pick A): where a result was seen (relay 63's places, newest first): a line with a pin under
+// it, and Seen from on its card. A place on the go is its town and the area round it; one guessed for a sighting from
+// before relay 63 only its country (relay 64).
+const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
+const lbfPlaces = g => [...new Set((g.places || []).map(p => p.k !== "live" ? lbPlaceName(p.k) : p.n ? [p.n, p.a].filter(Boolean).join(", ") : p.c || placeName("live")).filter(Boolean))];
 // 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
 let lbFoundRows = [];
 function foundCard(k, g){
@@ -845,6 +851,7 @@ function foundCard(k, g){
   cardOpen(`<div class="cHead"><div><h3>${escH(reg)}</h3><span>${escH(T("Aircraft"))}</span></div></div>` +
     factsHtml([["Aircraft", escH(g.type || "")], ["Airline", escH(g.airline || "")],
       ["Seen here", escH(g.n === 1 ? T("Once, {d}", {d: when(g.last)}) : T("{n} times since {d}", {n: nf.format(g.n), d: when(g.first)}))],
+      ["Seen from", escH(lbfPlaces(g).join(", "))],
       ["Last seen", escH(when(g.last))], ["Closest", g.minDist != null ? escH(distText(g.minDist)) : ""], ["Flights", escH((g.flights || []).join(", ")), true]]) +
     (listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
 }
@@ -920,8 +927,68 @@ function collectionHtml(g0){
   const sets = g0.sets.map(s => `<li style="--lamp:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"}"><i class="lamp"></i><span class="name">${escH(T(s.name))}</span><span class="n">${s.have.length} / ${s.total}</span>` +
     `<span class="bar"><i style="width:${(s.have.length / s.total * 100).toFixed(1)}%;background:${s.have.length >= s.total ? "var(--c-good)" : "var(--amber)"};opacity:1"></i></span></li>`).join("");   // 1.73: gold, green once complete
   // 1.79 (Dave's pick B): "Your catch" (by rarity) and "Sets" (to complete), not Collection and Collections; the points
-  // line went (the top of the page says it)
-  return `<h3>${escH(T("Your catch"))}</h3><ul class="ranks cats tiers">${tiers}</ul><h3>${escH(T("Sets"))}</h3><ul class="ranks cats">${sets}</ul>`;
+  // line went (the top of the page says it). 1.81: on the club page the Sets list becomes the hangar once it's in.
+  hangarLoad();
+  return `<h3>${escH(T("Your catch"))}</h3><ul class="ranks cats tiers">${tiers}</ul>` +
+    (hangar && tab === "game" ? hangarHtml(hangar) : `<h3>${escH(T("Sets"))}</h3><ul class="ranks cats">${sets}</ul>`);
+}
+/* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
+   collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
+   its colour, the name, when and which; the types still missing lie face down. Types in no set get a shelf of their
+   own. A tap opens a card's details (a missing one: its model's card). Data: /game/hangar (relay 63; photos relay 64). */
+const hangarOk = () => gameOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 63;
+let hangar = null, hangarAt = 0, hgT = 0;
+const hgBad = new Set();                                         // photos that didn't load: the model's instead
+function hangarLoad(){
+  if (!hangarOk() || Date.now() - hangarAt < 5 * 60000) return;
+  hangarAt = Date.now();
+  fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
+}
+const modelPicNow = name => modelPics.get(String(name || "").trim().toLowerCase()) || "";
+function hangarHtml(hg){
+  const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
+  const card = code => {
+    const t = by.get(code), name = (t && t.name) || TYPES[code] || code;
+    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(name);
+    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
+      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(name)}"></span>`) +
+      `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
+      `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span></span></button>`;
+  };
+  const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
+    `<div class="hgRow" data-set="${escH(key)}">${codes.map(card).join("")}</div></div>`;
+  const shelves = (hg.sets || []).map(s => {
+    const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
+    return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
+  });
+  const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
+  if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
+  const n = (hg.types || []).length;
+  return `<h3>${escH(T("Your hangar"))}</h3><p class="sum">${escH(T(n === 1 ? "1 type caught · by set" : "{n} types caught · by set", {n}))}</p>${shelves.join("")}`;
+}
+// The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
+function hgWire(box){
+  for (const b of box.querySelectorAll("[data-hg]")) b.onclick = () => hangarCard(b.dataset.hg);
+  for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
+  const ph = box.querySelectorAll(".hgPh[data-mp]");
+  if (!ph.length || typeof IntersectionObserver !== "function") return;
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic([e.target.dataset.mp], hgSoon); } }, {rootMargin: "120px"});
+  for (const el of ph) io.observe(el);
+}
+function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
+function hangarCard(code){
+  const t = hangar && (hangar.types || []).find(x => x.code === code);
+  if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
+  ctlSound.press();
+  const name = t.name || TYPES[code] || code, pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(name), when = t.first ? new Date(t.first) : null;
+  cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+    `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
+    factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
+      ["First", when ? escH(`${fmtDay(t.first)} ${hhmm(when)}`) : ""], ["Aircraft", escH(t.reg)], ["Flight", escH(t.flight)], ["Airline", escH(t.airline)]]) +
+    `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`, el => {
+    el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
+  });
 }
 function recordsHtml(all, g0){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
@@ -3136,7 +3203,7 @@ function gStripSetup(){
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbPlaces, .bingo") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbPlaces, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
@@ -3332,7 +3399,7 @@ function renderGame(){
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
   h += `<div class="gHead"><h3>${escH(T("League"))}</h3><div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div></div>`;
   h += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
-    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}"><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
+    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
@@ -3340,7 +3407,11 @@ function renderGame(){
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;
+  const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
   box.dataset.h = h; box.innerHTML = h;
+  for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
+  hgWire(box);
+  for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
@@ -3360,6 +3431,71 @@ function gHowCard(){
     `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
     `<p class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))} ${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</p>` +
     `<p class="gRule">${escH(T("Hold a plane in Sky view's ring for a moment: a bonus of a quarter of its points (at least 15), more for several in a row."))}</p>`);
+}
+/* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
+   and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
+async function playerCard(id){
+  ctlSound.press();
+  const tok = cardLoading();
+  let p = null;
+  try { p = await fetchJSON(`${relay()}/game/player?id=${encodeURIComponent(id)}`, {}, 8000); } catch {}
+  if (tok !== cardTok) return;
+  if (!p) { cardOpen(`<p class="note">${escH(T("Couldn't load this player."))}</p>`); return; }
+  const metals = TROPHY_MEDALS.map(() => 0);
+  let singles = 0;
+  for (const k of p.trophies || []) {
+    const tr = TROPHY_TIER.get(k), L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
+    if (L) metals[L[2].findIndex(t => t[0] === k)]++; else singles++;
+  }
+  const medals = metals.map((n, i) => n ? `<span class="plMedal m${i}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
+    (singles ? `<span class="plMedal">${CUP}${escH(T(singles === 1 ? "1 trophy" : "{n} trophies", {n: singles}))}</span>` : "");
+  const ra = p.rarest, b = p.best;
+  cardWhenReady(tok, `<div class="plCard"><div class="cHead"><div><h3>${p.crown ? '<span class="crown">♛</span> ' : ""}${escH(p.name)}</h3>` +
+    `<span>${escH(T("Level {n} · {t}", {n: p.level, t: T(p.title)}))}${p.rank ? " · " + escH(T("#{n} this week", {n: p.rank})) : ""}</span></div></div>` +
+    `<div class="gBar"><i style="width:${(p.need ? p.into / p.need * 100 : 0).toFixed(1)}%"></i></div>` +
+    `<div class="gTiles"><div><b>${nf.format(p.week || 0)}</b><span>${escH(T("This week"))}</span></div><div><b>${nf.format(p.points || 0)}</b><span>${escH(T("All time"))}</span></div>` +
+    `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + (medals ? `<div class="plMedals">${medals}</div>` : "") +
+    `<ul class="ranks plain cups plLines">` +
+    (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
+    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`);
+}
+/* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
+   numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
+   and the board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
+const ROMAN = ["I", "II", "III", "IV", "V"];
+let medalT = 0;
+function achSpecial(a, dry){
+  const id = a && /^tr:/.test(a.k) ? a.k.slice(3) : "", tr = id ? TROPHY_TIER.get(id) : null, L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
+  if (!L || dry) return !!L;
+  const i = L[2].findIndex(t => t[0] === id);
+  let box = $("medalMo");
+  if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
+  box.className = "m" + i; box.setAttribute("aria-label", T("New medal"));
+  box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}))}</span>` +
+    `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
+  box.hidden = false; box.classList.remove("out");
+  fanfare();
+  try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {}
+  const close = () => { clearTimeout(medalT); box.classList.add("out"); medalT = setTimeout(() => { box.hidden = true; box.classList.remove("out"); }, 600); };
+  box.onclick = close; clearTimeout(medalT); medalT = setTimeout(close, 5000);
+  return true;
+}
+// The nudge: when a trophy's next rank is close (two airlines to go, say), a notice from the right, once for each rank.
+const NUDGE_UNIT = {planes: ["plane", "planes"], types: ["type", "types"], airlines: ["airline", "airlines"], regs: ["aircraft", "aircraft"],
+  countries: ["country", "countries"], points: ["point", "points"], legendary: ["special plane", "special planes"], today: ["plane today", "planes today"],
+  friend: ["time", "times"], streak: ["day", "days"]};
+function medalNudge(g0){
+  if (!g0 || !g0.trophyCounts || S.demo) return;
+  let done = [];
+  try { done = JSON.parse(localStorage.getItem(ACH_KEY + ".nudge") || "[]"); } catch {}
+  for (const L of TROPHY_LADDERS) {
+    const st = trophyLadder(g0, L), t = st.next, left = t && st.have != null ? t[1] - st.have : 0;
+    if (!t || done.includes(t[0]) || left <= 0 || left > Math.max(2, Math.round(t[1] * .02))) continue;
+    try { localStorage.setItem(ACH_KEY + ".nudge", JSON.stringify(done.concat(t[0]).slice(-80))); } catch {}
+    const u = NUDGE_UNIT[L[0]] || ["", ""];
+    toast(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), {ms: 7000});
+    return;                                                         // one at a time
+  }
 }
 // Sky view held a plane in its ring for 1.5 s: the relay pays a bonus once per plane a day, shown as a boarding pass
 // whose stub (the points) tears off.

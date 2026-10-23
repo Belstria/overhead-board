@@ -6005,6 +6005,8 @@ function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
   if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
+  const sp = typeof achSpecial === "function" ? achQueue.findIndex(a => achSpecial(a, true)) : -1;        // 1.81: the app's medals, first
+  if (sp >= 0) { achSpecial(achQueue.splice(sp, 1)[0]); achTimer = setTimeout(achNext, 6500); return; }
   const list = achQueue.splice(0, 3);
   const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
     `<p class="shH">${escH(T("Achievement"))}</p>` +
@@ -6639,6 +6641,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.81", date: "2026-10-23", notes: [
+    "The logbook search finds places too, and each result says where it was seen.",
+    "Your hangar in the Spotters' Club: a card for every type you've caught, a shelf per set; tap one for more.",
+    "A new medal swings down on a ribbon, and a notice says when the next one is close.",
+    "Tap a name in the league for the player's card: level, points, medals and best catches.",
+    "Today in numbers on the board shows your best day again.",
+  ]},
   {v: "1.80", date: "2026-10-23", notes: [
     "Settings → About → Log: the app's log, filtered to problems, Sky view or the network, with Copy.",
     "Where to look says why it can't point at the plane on top yet.",

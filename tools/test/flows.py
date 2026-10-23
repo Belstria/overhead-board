@@ -6,6 +6,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - settings round trip through /me, a save from another site refused (relay 54)
 - favourites change one at a time, so two devices saving at once keep both (relay 54)
 - where a sighting on the go was made is named and found by the search; the hangar; a league player's card (relay 63)
+- the hangar's photos (relay 64)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64)
 """
@@ -106,6 +107,7 @@ def checks():
     g = json.loads(b).get("game", {}) if st == 200 else {}
     expect("live planes score", g.get("points", 0) > 0 and g.get("v") == 3, True)
     expect("the level", (g.get("level") or 0) >= 1 and bool(g.get("title")), True)
+    expect("the best day, as the boards read it (relay 64)", (g.get("best") or {}).get("points", 0) > 0, True)
     st, _, b = call("/logbook", "owner-device")
     expect("a board without live location doesn't score", json.loads(b).get("game", {}).get("points") if st == 200 else st, 0)
     st, _, b = call("/sightings", "test-device")
@@ -146,6 +148,7 @@ def checks():
     hg = json.loads(b) if st == 200 else {}
     expect("the hangar lists the types caught", bool(hg.get("types")) and all(t.get("code") and t.get("tier") for t in hg["types"]), True)
     expect("the hangar has the sets", len(hg.get("sets", [])), 9)
+    expect("the hangar's types carry their photo (relay 64)", all("photo" in t and "thumb" in t for t in hg.get("types", [])), True)
     me_row = next((r for r in lg.get("rows", []) if r.get("me")), {})
     st, _, b = call("/game/player?id=" + str(me_row.get("id", "")), "test-device")
     pl = json.loads(b) if st == 200 else {}
