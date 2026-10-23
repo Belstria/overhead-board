@@ -59,7 +59,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 64
+RELAY_VERSION = 65
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2006,8 +2006,11 @@ def fr24_overlay(entries, radius=15.0, over_km=3.0):
     return out
 
 
-def day_stats(entries, over_km):
-    """Today in numbers, over every sighting of the day (the list itself only sends the newest ones)."""
+def day_stats(entries, over_km, over_deg=0.0):
+    """Today in numbers, over every sighting of the day (the list itself only sends the newest ones). Relay 65: with
+    `over_deg` a plane counts as overhead within over_km at any height or once it stood that many degrees up (the
+    boards' rule since 1.84: 1 km or 45°)."""
+    tan = math.tan(math.radians(over_deg)) if 0 < over_deg < 90 else 0
     airlines, types, hours, counts, names = set(), set(), collections.Counter(), collections.Counter(), {}
     overhead, low, high, fast = 0, None, None, None
     for e in entries:
@@ -2020,7 +2023,7 @@ def day_stats(entries, over_km):
         if e.get("typeCode"):
             types.add(e["typeCode"])
         md, alt, sp = e.get("minDist"), e.get("altAtMin"), e.get("maxSpeed")
-        if isinstance(md, (int, float)) and md <= over_km:
+        if isinstance(md, (int, float)) and (md <= over_km or (tan and isinstance(alt, (int, float)) and alt > 0 and md <= alt * .3048 / 1000 / tan)):
             overhead += 1
         hours[int(time.strftime("%H", time.localtime(e.get("ts", 0) / 1000)))] += 1
         if isinstance(alt, (int, float)) and alt > 0:
@@ -2047,7 +2050,7 @@ def day_stats(entries, over_km):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
-def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=None):
+def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=None, over_deg=0.0):
     """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33)."""
     with _data_lock:
         spot.ensure_day()
@@ -2056,7 +2059,7 @@ def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=
     if api:
         everything = fr24_overlay(everything, spot.radius(), over_km)
     return {"version": RELAY_VERSION, "date": day, "rev": rev, "entries": everything if everything_wanted else everything[:400],
-            "stats": day_stats(everything, over_km)}
+            "stats": day_stats(everything, over_km, over_deg)}
 
 
 # Relay 61: category words in the logbook search ("military austria", "cargo A330"), the logbook's categories as
@@ -5844,8 +5847,12 @@ class Handler(BaseHTTPRequestHandler):
                 over = min(20.0, max(0.1, float((q.get("over") or ["3"])[0])))
             except ValueError:
                 over = 3.0
+            try:
+                deg = min(89.0, max(0.0, float((q.get("deg") or ["0"])[0])))     # relay 65: the boards' angle (45)
+            except ValueError:
+                deg = 0.0
             api = (q.get("api") or [""])[0] == "1" and bool(self.guest[1].get("fr24"))
-            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]))
+            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]), deg)
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())

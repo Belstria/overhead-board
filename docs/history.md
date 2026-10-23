@@ -11,6 +11,21 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.84 (the tracking review, Dave's answers of 24 Oct; the review is a Claude Doc, "Fallblatt Plane Tracking Review"):
+  OVERHEAD is within `overKm()` (Settings → Overhead within, now 1 km by default; `overRule` moves a saved 3 to 1 once)
+  at any height, or `OVER_DEG` (45°) or more up: `overR(alt)` is that circle (as wide as the plane flies high, at most the
+  radius), `overIn(o)` the seconds until a plane's straight line takes it in (0 inside, Infinity when it won't),
+  `overEntry(e)` the same for a sighting (minDist against altAtMin) in the lists, Today in numbers and the Spotted
+  filter. `process()` gives every plane `o.tin` and the kind from it (APPROACHING = in within 180 s, sorted and counted
+  down by `tin`), and judges positions moved on to now: `ageOf(ac, list)` (seen_pos + the relay's answer age against its
+  `now`, at most 6 s, + the time since it came; `list.recvAt`) and `movedOn(ac, s)`, straight on, at most 60 s;
+  `o.ac` stays as reported (Sky view and Where to look move it on themselves). Every 2 s a timer under `poll()` calls
+  `process(lastList, true)`: the same update with the planes moved further on (no glitch check, rates, radar track;
+  not in the Airport style, while hidden or when the update is 30 s old). The ding (`setFeat`, board and app) rings
+  once per plane on top as it becomes over or soon (`feat.dinged`), not for every new plane on top. Favourites take
+  the board (`alertOn`) and chime (`checkChimes`) only when over or soon; special planes and emergencies as before.
+  Relay 65: `/sightings?deg=45` makes `day_stats` count overhead by the same rule. Checked with a scripted traffic
+  harness (the test board's /aircraft answers replaced in the browser, five scenarios at once, before and after).
 - 1.83.3 (Dave: a plane tapped on the radar should bring up the same panel and animations as elsewhere): a tap on
   the scope or a Nearest row (`radarPlaneCard`) rings the plane (`radar.sel`) and opens `planeCard(o)`, the shared
   sheet (`#cardBox`, 1.78), instead of the inline `#rvCard` under the scope (gone, with `renderRadarCard`, `rcardSig`
