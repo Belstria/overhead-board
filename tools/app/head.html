@@ -652,6 +652,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.77: the letters flip in like split flaps, each landing (with its clack) a beat after the one before */
 #splash .sp-name{perspective:420px}
 #splash .sp-name span{display:inline-block;animation:spFlap .32s calc(.3s + var(--i) * 45ms) both}
+#splash.still .sp-logo,#splash.still .sp-name span{animation:none}      /* 1.82.0.1: after Refresh now, already in place */
 @keyframes spPop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
 @keyframes spFlap{0%{opacity:0;transform:rotateX(90deg);animation-timing-function:cubic-bezier(.55,0,1,.45)}
   50%{opacity:1;transform:rotateX(-14deg);animation-timing-function:ease-out}75%{transform:rotateX(5deg)}100%{opacity:1;transform:none}}
@@ -995,12 +996,16 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 <script>
 // The opening plays when the page loads afresh, not again on a reload within a minute (a change of settings, the welcome).
 // The logo and the name show while the app starts; once the board is ready under it (splashGo, from the app; at least
-// a second in), the plane takes off and the board shows through.
-(function(){ var sp = document.getElementById("splash"), now = Date.now(), last = 0, t0 = performance.now(), gone = false;
-  try { last = +sessionStorage.getItem("od.splash") || 0; sessionStorage.setItem("od.splash", now); } catch (e) {}
-  if (now - last < 60000) { sp.remove(); window.SPLASH_END = 0; return; }
+// a second in), the plane takes off and the board shows through. 1.82.0.1: Refresh now covers the old page with it at
+// once (nvGoing, from SPLASH_HTML) and marks od.nvGo, so the new page shows it already in place, quietly, and carries on.
+(function(){ var sp = document.getElementById("splash"), now = Date.now(), last = 0, t0 = performance.now(), gone = false, still = false;
+  window.SPLASH_HTML = sp.outerHTML;
+  try { last = +sessionStorage.getItem("od.splash") || 0; sessionStorage.setItem("od.splash", now);
+    still = sessionStorage.getItem("od.nvGo") === "1"; sessionStorage.removeItem("od.nvGo"); } catch (e) {}
+  if (!still && now - last < 60000) { sp.remove(); window.SPLASH_END = 0; return; }
+  if (still) sp.classList.add("still");
   window.SPLASH_END = t0 + 1e9;
-  var snd = splashSound(t0);
+  var snd = still ? null : splashSound(t0);
   window.splashGo = function(){
     if (gone) return; gone = true;
     var wait = Math.max(0, 1100 - (performance.now() - t0));

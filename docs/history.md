@@ -11,6 +11,19 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.82.1 (Dave: the shared pictures should show whose they are): `spottedBy()` (board, next to `shareCard`) is "Spotted by"
+  and the profile's first name (`GUEST.name`), or nothing. A sighting's picture (`shareCanvas`, 40 px taller) has it at
+  the foot, level with the FALLBLATT mark; the year, week and month (`periodPicture`) under FALLBLATT by the logo; Sky
+  view's snapshot (`arSnap`) on the band's right, or after the date when the place's name leaves no room.
+- 1.82.0.1 (Dave: "Refresh now" didn't refresh at once, another box showed first): the tap's pointerdown went to
+  `nvInput`, which stopped the countdown and redrew the notice shorter before the click reloaded, and the old page then
+  stayed until the new one came over the tunnel. `nvInput` now ignores presses on the notice; `nvReload` (the button,
+  Enter, the countdown, the half-hour refresh, the board's New version button) sets `NV.going` and calls the app's
+  `nvGoing`: the notice goes, the opening (`SPLASH_HTML`, kept by the splash script) covers the page, `od.nvGo` in
+  sessionStorage makes the new page show it already in place (`#splash.still`: no intro, no sound, even within the
+  minute) until `splashGo`; a page still there after 20 s drops the cover. The board says Refreshing … in the notice.
+  `sw.js` raced the 3 s against the whole page being downloaded and kept, so a slow line got the old copy marked
+  offline: it races the relay's answer now, and keeps the copy in `waitUntil` from a clone taken first.
 - 1.82 (Dave's to-do 10 and 11, his picks A and A): the board's Today in numbers has no `stHour`; the four counters
   spread across (gaps of 7 steps) and `stFirst` shows the day's top three types (`topTypesFlaps`, "A320 12 B738 7 E195
   5", by type code from the day's list), still Rarest today in the evening review. The Records & trophies page draws

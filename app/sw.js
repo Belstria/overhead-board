@@ -5,23 +5,24 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 
-// The app comes from the relay when it answers within 3 s (it keeps loading in the background and refreshes the copy).
-// Otherwise the last copy opens, marked (OVERHEAD_OFFLINE: when it was kept) so the page says it isn't live; it shows
-// the last known board (snapLoad) and keeps trying. A refusal (signed out: the private page) forgets the copy.
+// The app comes from the relay when it answers within 3 s: since 1.82.0.1 as soon as its answer starts (the page streams
+// in while a copy is kept in the background); it used to wait for the whole page and its saving, so on a slow line the
+// last copy opened instead. Without an answer the last copy opens, marked (OVERHEAD_OFFLINE: when it was kept) so the
+// page says it isn't live; it shows the last known board (snapLoad) and keeps trying. A refusal (signed out: the
+// private page) forgets the copy.
 const SHELL = "fallblatt-shell";
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
   if (e.request.mode !== "navigate" || e.request.method !== "GET" || u.origin !== location.origin || !/\/app\/$/.test(u.pathname)) return;
   e.respondWith((async () => {
     const c = await caches.open(SHELL), key = u.origin + u.pathname;
-    const net = fetch(e.request).then(async r => {
+    const net = fetch(e.request);
+    e.waitUntil(net.then(async r => {
       if (r.ok && (r.headers.get("Content-Type") || "").startsWith("text/html")) {
-        const copy = new Response(await r.clone().text(), {headers: {"Content-Type": "text/html; charset=utf-8", "X-Kept": String(Date.now())}});
-        await c.put(key, copy);
+        const text = r.clone().text();               // cloned before the page starts reading it
+        await c.put(key, new Response(await text, {headers: {"Content-Type": "text/html; charset=utf-8", "X-Kept": String(Date.now())}}));
       } else if (r.status === 403 || r.status === 401) await c.delete(key);
-      return r;
-    });
-    e.waitUntil(net.catch(() => {}));
+    }).catch(() => {}));
     const late = new Promise(ok => setTimeout(ok, 3000));
     const first = await Promise.race([net.catch(() => null), late.then(() => null)]);
     if (first && first.status < 500) return first;
