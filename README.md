@@ -292,6 +292,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   chime (its first tone; both tones since 1.46), and it only sounds where the plane on top shows (the board without a view open, the app's
   Now), not in Settings, the radar or the lists; the chimes for special planes and favourites still sound everywhere.
   Achievements have their own short festive flourish (1.45).
+- **Today in numbers** on the board (1.82) is laid out like the phone's: planes, airlines, types and overhead across
+  the top, then the lowest and highest pass, the fastest, the most seen airline, the most seen types (the day's top
+  three) and what's new in the logbook; no busiest hour or first of the day. The Records & trophies page shows each
+  rank's medal as on the phone: the cup in its metal (filled once won) and a tag after the name.
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
   picked).

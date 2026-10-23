@@ -1027,7 +1027,6 @@ function tierIcon(t){
 // picks): a switch shows Closest, Won or Still to win, one list at a time (kept while the page updates); a trophy with
 // ranks shows its rank's medal, bronze to diamond: the cup in that metal (filled once won) and a tag before the dots.
 let gTrTab = "near";
-const TROPHY_MEDALS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"];
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
@@ -3447,7 +3446,7 @@ async function playerCard(id){
     const tr = TROPHY_TIER.get(k), L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
     if (L) metals[L[2].findIndex(t => t[0] === k)]++; else singles++;
   }
-  const medals = metals.map((n, i) => n ? `<span class="plMedal m${i}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
+  const medals = metals.map((n, i) => n ? `<span class="plMedal" style="--m:${MEDAL_COL[i]}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
     (singles ? `<span class="plMedal">${CUP}${escH(T(singles === 1 ? "1 trophy" : "{n} trophies", {n: singles}))}</span>` : "");
   const ra = p.rarest, b = p.best;
   cardWhenReady(tok, `<div class="plCard"><div class="cHead"><div><h3>${p.crown ? '<span class="crown">♛</span> ' : ""}${escH(p.name)}</h3>` +
@@ -3470,7 +3469,7 @@ function achSpecial(a, dry){
   const i = L[2].findIndex(t => t[0] === id);
   let box = $("medalMo");
   if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
-  box.className = "m" + i; box.setAttribute("aria-label", T("New medal"));
+  box.style.setProperty("--m", MEDAL_COL[i]); box.setAttribute("aria-label", T("New medal"));
   box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}))}</span>` +
     `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
   box.hidden = false; box.classList.remove("out");

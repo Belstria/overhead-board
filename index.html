@@ -925,12 +925,11 @@ pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"
 pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
 pdef("stats", "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 pdef("stats", "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead","Direkt drüber"]});
-pdef("stats", "stHour",     {kind:"chars", n:5, dur:70, drum:DRUM_DIGIT, style:"amber", label:["Busiest hour","Meiste Flüge"]});
 pdef("stats", "stLow",      {kind:"chars", n:24, dur:60, label:["Lowest pass","Tiefster Überflug"]});
 pdef("stats", "stHigh",     {kind:"chars", n:24, dur:60, label:["Highest pass","Höchster Überflug"]});
 pdef("stats", "stFast",     {kind:"chars", n:24, dur:60, label:["Fastest","Schnellster"]});
 pdef("stats", "stTop",      {kind:"chars", n:24, dur:60, label:["Most seen airline","Häufigste Airline"]});
-pdef("stats", "stFirst",    {kind:"chars", n:24, dur:60, label:["First of the day","Erster des Tages"]});
+pdef("stats", "stFirst",    {kind:"chars", n:24, dur:60, label:["Most seen types",""]});     // 1.82: was First of the day
 pdef("stats", "stNew",      {kind:"chars", n:24, dur:60, style:"amber", label:["New in the logbook","Neu im Logbuch"]});
 // 1.72: the League page: this week's five best, by first name (relay 59, /game/league)
 const LEAGUE_ROWS = 5;
@@ -1060,7 +1059,7 @@ function layout(){
     placeRow(ids, lg ? [.8, .5, .8, .8, .8, .8] : [.8, .8, .8, .8, .8], Y.list0 + i * Y.listPitch, LIST, 1.3);     // 1.55: lower flaps, more gap
   }
   const L0 = Y.list0;
-  placeRow(["stPlanes","stAirlines","stTypes","stOver","stHour"], [4, 4, 4, 4], L0, IW / 34, 1.45);
+  placeRow(["stPlanes","stAirlines","stTypes","stOver"], [7, 7, 7], L0, IW / 34, 1.45);        // 1.82: four across, no busiest hour
   [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 101 + i * 74, IW / 50, 1.45));
   for (let i = 0; i < LEAGUE_ROWS; i++)
     placeRow([`lg${i}rank`, `lg${i}name`, `lg${i}pts`, `lg${i}trend`, `lg${i}best`], [1.2, 1.2, 1.2, 1.2], L0 + i * 62, IW / 44, 1.45);
@@ -3274,6 +3273,8 @@ const TROPHY_TEXT = {
   allsets: ["Completionist", "Every set complete"],
   bingo: ["Bingo!", "A line on the weekly bingo card"],
   fullcard: ["Full card", "All nine on the weekly bingo card"]};
+// 1.79.2 (phone) and 1.82 (board): a ladder's ranks as medals, bronze to diamond, by their place in the ladder.
+const TROPHY_MEDALS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"], MEDAL_COL = ["#cf8f5a", "#c6ccd5", "#e0aa1f", "#86dccb", "#9fb9ff"];
 const TROPHY_TIER = new Map(TROPHY_LADDERS.flatMap(([key, text, tiers]) => tiers.map(([id, at, name]) => [id, {key, text, at, name}])));
 // A ladder's state: the tiers won, the next one (none when all are won), and the count towards it (null: unknown).
 function trophyLadder(g0, [key, text, tiers]){
@@ -3777,7 +3778,15 @@ function renderLeague(){
     setChars(`lg${i}best`, r && r.best ? trimTo(`${r.best.type || r.best.flight} ${r.best.pts}`, 14) : "", d + 160);
   }
 }
-/* Today in numbers */
+/* Today in numbers. 1.82 (Dave's to-do 10, his pick A): as on the phone: no busiest hour, the four counters across,
+   and the most seen types (the day's top three, "A320 12 B738 7 E195 5") in First of the day's place. */
+function topTypesFlaps(list){
+  const c = new Map();
+  for (const e of list) { const k = String(e.typeCode || "").toUpperCase(); if (k) c.set(k, (c.get(k) || 0) + 1); }
+  let out = "";
+  for (const [k, n] of [...c].sort((a, b) => b[1] - a[1]).slice(0, 3)) { const t = `${out ? out + " " : ""}${k} ${n}`; if (t.length > 24) break; out = t; }
+  return out;
+}
 function renderStats(){
   const st = relayV5() && relayStats;
   if (st) {                                           // the relay counts the whole day; its list only has the newest
@@ -3786,13 +3795,12 @@ function renderStats(){
     setChars("stAirlines", String(st.airlines), 60);
     setChars("stTypes", String(st.types), 120);
     setChars("stOver", String(st.overhead), 180);
-    setChars("stHour", st.busiestHour != null ? `${String(st.busiestHour).padStart(2, "0")}:00` : "", 240);
     setChars("stLow", st.lowest ? `${name(st.lowest)} - ${altitudeStr(st.lowest.altAtMin)}` : "-", 300);
     setChars("stHigh", st.highest ? `${name(st.highest)} - ${altitudeStr(st.highest.altAtMin)}` : "-", 360);
     setChars("stFast", st.fastest ? `${name(st.fastest)} - ${speedStr(st.fastest.maxSpeed)}` : "-", 420);
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
     setChars("stTop", t ? `${tn} - ${t.count}` : "-", 480);
-    const rev = reviewTime(), lab = rev ? ["Rarest today", ""] : ["First of the day", "Erster des Tages"];
+    const rev = reviewTime(), lab = rev ? ["Rarest today", ""] : ["Most seen types", ""];
     if (fields.stFirst.label[0] !== lab[0]) {
       fields.stFirst.label = lab; fields.stNew.label = rev ? ["Points today", ""] : ["New in the logbook", "Neu im Logbuch"];
       if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic();
@@ -3804,7 +3812,7 @@ function renderStats(){
       setChars("stNew", g0 ? (g0.best ? T("{n} POINTS · BEST {b}", {n: nf.format(g0.today), b: nf.format(g0.best.points)}) : T("{n} POINTS", {n: nf.format(g0.today)})) : "-", 600);
       return;
     }
-    setChars("stFirst", st.first ? `${st.first.time} ${name(st.first)}` : "-", 540);
+    setChars("stFirst", topTypesFlaps(spotted) || "-", 540);
     setChars("stNew", st.newTypes || st.newAirlines ? T("{a} types - {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet"), 600);
     return;
   }
@@ -3814,10 +3822,6 @@ function renderStats(){
   setChars("stAirlines", String(uniq(e => e.airlineCode || clean(e.airline))), 60);
   setChars("stTypes", String(uniq(e => e.typeCode || clean(e.type))), 120);
   setChars("stOver", String(list.filter(e => e.minDist != null && e.minDist <= OVK).length), 180);
-  const hours = {};
-  for (const e of list) { const h = new Date(entryTime(e)).getHours(); hours[h] = (hours[h] || 0) + 1; }
-  const best = Object.entries(hours).sort((a, b) => b[1] - a[1])[0];
-  setChars("stHour", best ? `${String(best[0]).padStart(2, "0")}:00` : "", 240);
   const withAlt = list.filter(e => typeof e.altAtMin === "number");
   const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
   const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
@@ -3829,8 +3833,7 @@ function renderStats(){
   for (const e of list) { const a = shortAirline(e.airline); if (a) airlines[a] = (airlines[a] || 0) + 1; }
   const top = Object.entries(airlines).sort((a, b) => b[1] - a[1])[0];
   setChars("stTop", top ? `${top[0]} - ${top[1]}` : "-", 480);
-  const first = list[list.length - 1];
-  setChars("stFirst", first ? `${first.time} ${first.flight}` : "-", 540);
+  setChars("stFirst", topTypesFlaps(list) || "-", 540);
   const nt = list.filter(e => e.newType).length, na = list.filter(e => e.newAirline).length;
   setChars("stNew", relayV5() || S.demo ? (nt || na ? T("{a} types - {b} airlines", {a: nt, b: na}) : T("Nothing new yet")) : T("Needs the home relay"), 600);
 }
@@ -4366,18 +4369,24 @@ function recordsStatic(g){
   const tx = M + 3 * 260 + 40, ty = 470, nWon = TROPHY_IDS.filter(k => won[k]).length;
   head(T("Trophies"), tx, ty);
   g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "right"; g.fillText(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}), W - M, ty); g.textAlign = "left";
-  // 1.55: a row for each ladder: the next tier (or the last, all won), its tiers as lamps, and a bar to the next one
+  // 1.55: a row for each ladder: the next tier (or the last, all won), its tiers as lamps, and a bar to the next one.
+  // 1.82 (Dave's to-do 11, his pick A): as on the phone, the cup in that rank's metal (filled once won) and a tag after
+  // the name; the lamps as they were
   const lw = 450, rowH = 43;
   TROPHY_LADDERS.forEach((L, i) => {
-    const st = trophyLadder(g0, L), y = ty + 22 + i * rowH, t = st.next || st.last, on = st.done > 0;
-    drawTrophy(g, tx + 14, y + 16, 24, on);
+    const st = trophyLadder(g0, L), y = ty + 22 + i * rowH, t = st.next || st.last, on = st.done > 0, mi = st.tiers.indexOf(t), mc = MEDAL_COL[mi];
+    drawTrophy(g, tx + 14, y + 16, 24, !!st.won[t[0]], mc);
     g.font = `700 17px ${FONT}`; g.fillStyle = on ? COL.ink : "rgba(230,226,215,.55)";
-    const nm = T(t[2]), nw = Math.min(g.measureText(nm).width, 170);
-    fit(nm, tx + 36, y + 15, 170);
+    const nm = T(t[2]), nw = Math.min(g.measureText(nm).width, 150);
+    fit(nm, tx + 36, y + 15, 150);
+    g.font = `700 11px ${FONT}`;
+    const mt = T(TROPHY_MEDALS[mi]).toUpperCase(), tw = g.measureText(mt).width + 14;
+    g.strokeStyle = mc; g.lineWidth = 1.2; rr(g, tx + 43 + nw, y + 1.5, tw, 17, 8.5); g.stroke();
+    g.fillStyle = mc; g.fillText(mt, tx + 50 + nw, y + 14);
     const right = st.next ? (st.have != null ? T("{n} of {t}", {n: nf.format(Math.min(st.have, st.next[1])), t: nf.format(st.next[1])}) : "") : fmtDay(st.won[st.last[0]]);
     g.font = `500 14px ${FONT}`; g.fillStyle = COL.muted;
-    const rw = g.measureText(right).width;
-    fit(T(L[1], {n: nf.format(t[1])}), tx + 44 + nw, y + 15, Math.max(40, lw - 52 - nw - rw - 12));
+    const rw = g.measureText(right).width, dx = tx + 51 + nw + tw;
+    fit(T(L[1], {n: nf.format(t[1])}), dx, y + 15, Math.max(40, tx + lw - dx - rw - 12));
     g.textAlign = "right"; g.fillText(right, tx + lw, y + 15); g.textAlign = "left";
     st.tiers.forEach((x, j) => { g.beginPath(); g.arc(tx + 40 + j * 13, y + 29, 4, 0, Math.PI * 2); g.fillStyle = st.won[x[0]] ? TIER_COL.legendary : "rgba(255,255,255,.14)"; g.fill(); });
     const bx = tx + 40 + st.tiers.length * 13 + 6, bw = lw - (bx - tx), p = !st.next ? 1 : st.have != null ? Math.min(1, st.have / st.next[1]) : 0;
@@ -4392,15 +4401,16 @@ function recordsStatic(g){
     g.font = `500 13.5px ${FONT}`; g.fillStyle = on ? COL.muted : "rgba(150,146,135,.55)"; fit(what, x + 34, y + 35, sw - 38);
   });
 }
-// A small cup: gold when won, a dim outline otherwise.
-function drawTrophy(g, cx, cy, s, on){
+// A small cup: gold when won, a dim outline otherwise; with a colour (1.82: a rank's metal), outlined in it, filled once won.
+function drawTrophy(g, cx, cy, s, on, col){
   g.save(); g.translate(cx, cy);
   g.beginPath(); g.moveTo(-s * .32, -s * .4); g.lineTo(s * .32, -s * .4); g.quadraticCurveTo(s * .3, s * .08, 0, s * .12); g.quadraticCurveTo(-s * .3, s * .08, -s * .32, -s * .4);
   g.moveTo(-s * .06, s * .12); g.lineTo(s * .06, s * .12); g.lineTo(s * .08, s * .3); g.lineTo(-s * .08, s * .3); g.closePath();
   g.rect(-s * .22, s * .3, s * .44, s * .09);
-  if (on) { g.fillStyle = TIER_COL.legendary; g.fill(); } else { g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.4; g.stroke(); }
+  const c = col || TIER_COL.legendary, dim = col || "rgba(255,255,255,.22)";
+  if (on) { g.fillStyle = c; g.fill(); } else { g.strokeStyle = dim; g.lineWidth = col ? 1.8 : 1.4; g.stroke(); }
   g.beginPath(); g.arc(-s * .32, -s * .22, s * .13, Math.PI * .5, Math.PI * 1.5); g.moveTo(s * .32, -s * .35); g.arc(s * .32, -s * .22, s * .13, -Math.PI * .5, Math.PI * .5);
-  g.strokeStyle = on ? TIER_COL.legendary : "rgba(255,255,255,.22)"; g.lineWidth = s * .06; g.stroke();
+  g.strokeStyle = on ? c : dim; g.lineWidth = s * .06; g.stroke();
   g.restore();
 }
 let rcSig = "";
@@ -5776,7 +5786,11 @@ async function shareCard(x){
   try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
   if (tok !== cardTok) return;
   if (!blob) { cardOpen(`<p class="note">${escH(T("Couldn't make the picture."))}</p>`); return; }
-  const fname = `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`;
+  picCard(blob, `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`);
+}
+// A picture made to share, in a card with Share (the share sheet, or the Android app's) and Save picture: a sighting's
+// card; since 1.80 also the phone's year, week and month and Sky view's snapshot.
+function picCard(blob, fname){
   const file = typeof File === "function" ? new File([blob], fname, {type: "image/png"}) : null;
   const andr = !!window.OverheadAndroid && typeof window.OverheadAndroid.shareImage === "function";
   const canShare = andr || !!(file && navigator.share && navigator.canShare && navigator.canShare({files: [file]}));
@@ -6001,6 +6015,8 @@ function achNext(){
   clearTimeout(achTimer);
   if (!achQueue.length) return;
   if (cardOpenNow()) { achTimer = setTimeout(achNext, 5000); return; }
+  const sp = typeof achSpecial === "function" ? achQueue.findIndex(a => achSpecial(a, true)) : -1;        // 1.81: the app's medals, first
+  if (sp >= 0) { achSpecial(achQueue.splice(sp, 1)[0]); achTimer = setTimeout(achNext, 6500); return; }
   const list = achQueue.splice(0, 3);
   const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
     `<p class="shH">${escH(T("Achievement"))}</p>` +
@@ -6635,6 +6651,25 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.82", date: "2026-10-23", notes: [
+    "Today in numbers on the board is like the phone's: the four counters across and the most seen types.",
+    "The board's trophies show each rank's medal, as on the phone.",
+  ]},
+  {v: "1.81", date: "2026-10-23", notes: [
+    "The logbook search finds places too, and each result says where it was seen.",
+    "Your hangar in the Spotters' Club: a card for every type you've caught, a shelf per set; tap one for more.",
+    "A new medal swings down on a ribbon, and a notice says when the next one is close.",
+    "Tap a name in the league for the player's card: level, points, medals and best catches.",
+    "Today in numbers on the board shows your best day again.",
+  ]},
+  {v: "1.80", date: "2026-10-23", notes: [
+    "Settings → About → Log: the app's log, filtered to problems, Sky view or the network, with Copy.",
+    "Where to look says why it can't point at the plane on top yet.",
+    "Sky view's ★ shows each plane's points in its rarity colour.",
+    "Once you've scanned a plane, Sky view can take a picture of the sky with its labels.",
+    "The week and the month can be shared as a picture, like the year.",
+    "About shows its own title and close button again.",
+  ]},
   {v: "1.79.2", date: "2026-10-23", notes: [
     "Trophies with ranks show the rank as a medal, from bronze to diamond.",
     "Closest, Won and Still to win are a switch; Still to win lists the nearest first.",

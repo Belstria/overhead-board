@@ -1153,7 +1153,6 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .plMedals{display:flex;flex-wrap:wrap;gap:6px}
 .plMedal{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);font:600 var(--fs-s)/1 var(--f-board);color:var(--ink);--m:#cf8f5a}
 .plMedal i{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--m) 60%)}
-.plMedal.m1{--m:#c6ccd5} .plMedal.m2{--m:#e0aa1f} .plMedal.m3{--m:#86dccb} .plMedal.m4{--m:#9fb9ff}
 .plMedal .cup{width:14px;height:14px;fill:var(--amber);stroke:var(--amber)}
 .plLines{margin:0}
 .plLines li[style] .cup{fill:var(--lamp);stroke:var(--lamp)}
@@ -1184,7 +1183,6 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
   text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}
 #medalMo[hidden]{display:none}
 #medalMo.out{opacity:0}
-#medalMo.m1{--m:#c6ccd5} #medalMo.m2{--m:#e0aa1f} #medalMo.m3{--m:#86dccb} #medalMo.m4{--m:#9fb9ff}
 .mmRib{display:grid;justify-items:center;transform-origin:50% 0;animation:mmSwing 2.6s cubic-bezier(.25,.7,.35,1) both}
 .mmRib i{width:56px;height:min(28vh,180px);background:linear-gradient(90deg,#7a1f2b 0 33%,#e7e2d6 33% 66%,#7a1f2b 66%);clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%)}
 .mmRib b{margin-top:-24px;width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font:700 var(--fs-3xl)/1 var(--f-board);color:#17140e;
@@ -5089,6 +5087,8 @@ const TROPHY_TEXT = {
   allsets: ["Completionist", "Every set complete"],
   bingo: ["Bingo!", "A line on the weekly bingo card"],
   fullcard: ["Full card", "All nine on the weekly bingo card"]};
+// 1.79.2 (phone) and 1.82 (board): a ladder's ranks as medals, bronze to diamond, by their place in the ladder.
+const TROPHY_MEDALS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"], MEDAL_COL = ["#cf8f5a", "#c6ccd5", "#e0aa1f", "#86dccb", "#9fb9ff"];
 const TROPHY_TIER = new Map(TROPHY_LADDERS.flatMap(([key, text, tiers]) => tiers.map(([id, at, name]) => [id, {key, text, at, name}])));
 // A ladder's state: the tiers won, the next one (none when all are won), and the count towards it (null: unknown).
 function trophyLadder(g0, [key, text, tiers]){
@@ -6385,7 +6385,6 @@ function tierIcon(t){
 // picks): a switch shows Closest, Won or Still to win, one list at a time (kept while the page updates); a trophy with
 // ranks shows its rank's medal, bronze to diamond: the cup in that metal (filled once won) and a tag before the dots.
 let gTrTab = "near";
-const TROPHY_MEDALS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"];
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
@@ -8633,6 +8632,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.82", date: "2026-10-23", notes: [
+    "Today in numbers on the board is like the phone's: the four counters across and the most seen types.",
+    "The board's trophies show each rank's medal, as on the phone.",
+  ]},
   {v: "1.81", date: "2026-10-23", notes: [
     "The logbook search finds places too, and each result says where it was seen.",
     "Your hangar in the Spotters' Club: a card for every type you've caught, a shelf per set; tap one for more.",
@@ -10353,7 +10356,7 @@ async function playerCard(id){
     const tr = TROPHY_TIER.get(k), L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
     if (L) metals[L[2].findIndex(t => t[0] === k)]++; else singles++;
   }
-  const medals = metals.map((n, i) => n ? `<span class="plMedal m${i}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
+  const medals = metals.map((n, i) => n ? `<span class="plMedal" style="--m:${MEDAL_COL[i]}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
     (singles ? `<span class="plMedal">${CUP}${escH(T(singles === 1 ? "1 trophy" : "{n} trophies", {n: singles}))}</span>` : "");
   const ra = p.rarest, b = p.best;
   cardWhenReady(tok, `<div class="plCard"><div class="cHead"><div><h3>${p.crown ? '<span class="crown">♛</span> ' : ""}${escH(p.name)}</h3>` +
@@ -10376,7 +10379,7 @@ function achSpecial(a, dry){
   const i = L[2].findIndex(t => t[0] === id);
   let box = $("medalMo");
   if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
-  box.className = "m" + i; box.setAttribute("aria-label", T("New medal"));
+  box.style.setProperty("--m", MEDAL_COL[i]); box.setAttribute("aria-label", T("New medal"));
   box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}))}</span>` +
     `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
   box.hidden = false; box.classList.remove("out");

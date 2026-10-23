@@ -11,6 +11,12 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.82 (Dave's to-do 10 and 11, his picks A and A): the board's Today in numbers has no `stHour`; the four counters
+  spread across (gaps of 7 steps) and `stFirst` shows the day's top three types (`topTypesFlaps`, "A320 12 B738 7 E195
+  5", by type code from the day's list), still Rarest today in the evening review. The Records & trophies page draws
+  each ladder's cup in its rank's metal (`drawTrophy(g, x, y, s, on, col)`: outlined, filled once won) with an outlined
+  metal tag after the name; `TROPHY_MEDALS` and `MEDAL_COL` moved into the board's trophy block, shared with the app
+  (its medal moment and player card take `--m` from `MEDAL_COL`).
 - 1.81 / relay 64 (Dave's to-do list of 23 Oct, the relay 63 part; his picks 3A, 4 a mix of C and B, 5 B with A's
   nudge, 6A): **Where it was spotted** (3): `lbfPlaces(g)` names a search row's `places` (a saved place by `lbPlaceName`,
   on the go its town and area, a guessed one its country) as a pin line (`.lbfPin`, `PIN`) and Seen from in
