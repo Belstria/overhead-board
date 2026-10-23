@@ -1136,10 +1136,11 @@ def game3_json(book, day):
     days = g.get("days", {})
     week = sum(v for k, v in days.items() if k >= wk)
     L = g.get("lock") or {}
+    # relay 64: the week's best plane is weekBest; as "best" it hid game_json's best day, which the boards show
     out.update(v=3, since=g.get("since"), km=GAME_KM, level=lv, title=title, into=into, need=need, week=week,
                planesToday=g.get("planes", {}).get(day, 0), taper=[25, 50], lockons=L.get("n", 0),
                combo=L.get("combo", 0) if time.time() - L.get("at", 0) <= LOCK_COMBO_S else 0,
-               comboUntil=int((L.get("at", 0) + LOCK_COMBO_S) * 1000), best=(g.get("best") or {}).get(wk),
+               comboUntil=int((L.get("at", 0) + LOCK_COMBO_S) * 1000), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}))
     return out
 

@@ -16,7 +16,9 @@ The repository is public: no addresses, keys or personal data here either.
   on the go its town and area, a guessed one its country) as a pin line (`.lbfPin`, `PIN`) and Seen from in
   `foundCard`; the hint names a place with relay 63. Relay 64: `where_of` gives a sighting without `at` (from before
   relay 63, its place only guessed from the day's planes, which on Santorini fell across the caldera) only its
-  country, Dave's choice; the search's place key carries the country. **Your hangar** (4): with `/game/hangar`
+  country, Dave's choice; the search's place key carries the country. `game3_json` sends the week's best plane as
+  `weekBest`: as `best` it had replaced `game_json`'s best day since relay 59, so the board's Today in numbers said
+  "best NaN". **Your hangar** (4): with `/game/hangar`
   (`hangarLoad`, five minutes) the club's Sets list becomes `hangarHtml`: a `.hgShelf` per set (`.hgRow` scrolls
   sideways, snapping; the page swipe leaves it alone; its scroll is kept across `renderGame`'s redraws), a `.hgCard` per
   type caught (relay 64's `thumb`/`photo` of the first one, else `modelPicNow`, asked for as cards come into view by an

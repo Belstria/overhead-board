@@ -107,6 +107,7 @@ def checks():
     g = json.loads(b).get("game", {}) if st == 200 else {}
     expect("live planes score", g.get("points", 0) > 0 and g.get("v") == 3, True)
     expect("the level", (g.get("level") or 0) >= 1 and bool(g.get("title")), True)
+    expect("the best day, as the boards read it (relay 64)", (g.get("best") or {}).get("points", 0) > 0, True)
     st, _, b = call("/logbook", "owner-device")
     expect("a board without live location doesn't score", json.loads(b).get("game", {}).get("points") if st == 200 else st, 0)
     st, _, b = call("/sightings", "test-device")
