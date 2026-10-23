@@ -11,6 +11,13 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.82.2 (Dave's reports of 23 Oct): the radar's reset (his pick B, but faded at the usual range rather than gone):
+  `#rvReset` is Sky view's `.arIb` round button in `#scope`'s corner, disabled (faded, `.rvReset:disabled`) while
+  `radarZoom` is 0 (`buildRadarLegend`); `radarZoomTo(0)` sets `radarZoomSet(0)`, the usual range (`radarBase`, from the
+  radius) and the middle. A tapped plane's card (`#rvCard`, with `#rvHint`) sits right under the scope again, above the
+  plate (1.69 had put the plate between them, so on a phone the card opened off the screen), and is scrolled into view.
+  The Now board's Points field (`fields.pts`, `gPtsRender`, `gPoints`, `gPtsWhy`, 1.73.1) is gone; the Remarks are 19
+  flaps again.
 - 1.82.1 (Dave: the shared pictures should show whose they are): `spottedBy()` (board, next to `shareCard`) is "Spotted by"
   and the profile's first name (`GUEST.name`), or nothing. A sighting's picture (`shareCanvas`, 40 px taller) has it at
   the foot, level with the FALLBLATT mark; the year, week and month (`periodPicture`) under FALLBLATT by the logo; Sky

@@ -6658,6 +6658,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.82.2", date: "2026-10-23", notes: [
+    "The radar has a reset in its corner: back to the usual range for your radius.",
+    "A plane tapped on the radar shows its card right under the radar.",
+    "The Points field is off the board; points show on the score strip when they come in.",
+  ]},
   {v: "1.82.1", date: "2026-10-23", notes: [
     "Pictures to share or save say whose they are: Spotted by and your first name.",
   ]},
