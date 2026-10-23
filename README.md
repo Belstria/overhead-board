@@ -262,7 +262,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
   tick, push buttons a thock) when the flap sound or the chimes are on.
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
-  who made it. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
+  who made it. In the app, **Log** (1.80; also in the connection card, the dot by the clock) opens the app's log on a
+  page of its own: All, Problems, Sky view or Network, and **Copy the log** to paste it into a message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
 - **Languages** (Settings → Display → Language, or `?lang=de`): English, German, French,
@@ -370,8 +371,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   +5), a daily streak (3 days ×1.05 up to 30 days ×1.2); planes 26–50 of a day count half, after that a quarter.
   **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
   within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
-  with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a gold ★ for the planes
-  within reach of points, ✓ and the bonus once locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
+  with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a ★ for the planes
+  within reach of points (since 1.80 in the plane's rarity colour, with its points: ★ 30), ✓ and the bonus once
+  locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
@@ -504,10 +506,13 @@ Five buttons along the bottom:
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the
   records, this week's bingo and the trophies with their bars. Week & month (1.52, relay 46): **this week or month in
-  review**, with Week / Month and ◀ ▶.
+  review**, with Week / Month and ◀ ▶, and since 1.80 its own **Share**: the year's picture with the week's or month's
+  dates, numbers and facts. The pictures open in a card with Share and Save picture, as a plane's does.
 - **Where to look** (Now, upright, 1.28): the direction and height of the plane on top ("LOOK SE · 32° UP") on a dial
   with north up, under This aircraft's picture. On https (the public address) it turns with the phone so the arrow
-  points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first).
+  points at the plane: by itself on Android, after tapping the dial once on an iPhone (which asks first). When it
+  can't point (1.80), it says why in its place, dimmed, with the tape grey: no position yet, no height yet, too far
+  (over 80 km) or a position that doesn't add up.
 - **Sky view** (Now → Where to look → Sky view, 1.30; https only; since 1.72.4 a Sky view card under the board when there
   is no plane on top, so it can always be opened; 1.77: in Where to look's style, saying "No planes around right now",
   its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
@@ -531,7 +536,10 @@ Five buttons along the bottom:
   meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still
   (or the iPhone says its compass is poor), a note asks for a figure of eight or a drag.
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
-  photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close.
+  photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
+  plane in the picture has been scanned (✓), a round shutter appears above the hint: it keeps the sky as on the
+  screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
+  to share or save.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
   off as the board shows through. With sound on it plays the board's clack for each letter and a whoosh for the
   take-off, where the phone lets a page play sound before the first tap (the Android app; never on an iPhone); not in

@@ -295,6 +295,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
    plane where it is), then Sky view and the words */
 .look{display:grid;gap:8px;margin:10px 0 0;padding:12px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05)}
 .look[hidden]{display:none}
+.look.why canvas{opacity:.4;filter:grayscale(1)}
+.look.why .lookTxt b{color:var(--muted)}
+.look.why .cBtn{opacity:.5}
 .look canvas{display:block;width:100%;height:44px}
 .lookH{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 .lookRow{display:flex;gap:12px;align-items:center}
@@ -313,14 +316,28 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tabX:active{background:rgba(255,255,255,.12)}
 /* 1.41: About opens over Settings as a page of its own; its title and close button stay at the top while it scrolls,
    and closing it leaves Settings where it was */
-#t-about{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+#t-about,#t-log{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(var(--sa-bottom) + 28px)}
-#t-about .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
+#t-about .tabHead,#t-log .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
   background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
-#t-about .tabHead h2{margin:0}
+#t-about .tabHead h2,#t-log .tabHead h2{margin:0}
 #t-about #aboutBox{margin-top:4px!important}
 body.aboutOpen{overflow:hidden}
+body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so the page's own title and × show */
+/* 1.80: the Log page (Settings → About → Log): over About, each line its time, a lamp (amber: a warning, red: an error) and what happened */
+#t-log #logBox{margin-top:4px}
+.logBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+.logBar span{font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
+.logList{list-style:none;margin:0;padding:0;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--ink)}
+.logList li{display:grid;grid-template-columns:auto 8px minmax(0,1fr);gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
+.logList time{font-variant-numeric:tabular-nums;color:var(--muted)}
+.logList i{width:8px;height:8px;border-radius:50%;align-self:center}
+.logList li[data-l=warn] i{background:var(--amber)}
+.logList li[data-l=error] i{background:#e0372c}
+.logList li[data-l=debug] span{color:var(--muted)}
+.logList span{overflow-wrap:anywhere}
+#logText{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0}
 /* 1.41: swipe a row right (favourite) or left (hide): the content slides, the row shows what letting go will do */
 .fl.swiping{overflow:hidden;touch-action:pan-y}
 .fl.swiping > *{transform:translateX(var(--dx,0));transition:none}
@@ -435,7 +452,18 @@ body.aboutOpen{overflow:hidden}
 @keyframes arDragLab{0%,18%{transform:translate(118px,-46px);border-color:transparent}62%,86%{transform:none;border-color:var(--c-good)}100%{transform:translate(118px,-46px);border-color:transparent}}
 @keyframes arDragFinger{0%,10%{opacity:0;transform:scale(1.4)}18%,62%{opacity:1;transform:none}70%,100%{opacity:0;transform:scale(.8)}}
 @media (prefers-reduced-motion:reduce){.arTourRing,.arTourLab,.arTourFinger{animation:none}.arTourLab{border-color:var(--c-good)}}
-#arView .arHint{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);margin:0;padding:10px 12px;border-radius:10px;
+/* 1.80: the hint at the bottom, the snapshot's shutter over it (only once a plane in view has been scanned) */
+#arView .arBot{position:absolute;left:12px;right:12px;bottom:calc(var(--sa-bottom) + 12px);display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none}
+#arView .arBot>*{pointer-events:auto}
+.arShut{all:unset;box-sizing:border-box;cursor:pointer;width:68px;height:68px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.35);-webkit-tap-highlight-color:transparent}
+.arShut[hidden]{display:none}
+.arShut i{width:50px;height:50px;border-radius:50%;background:#fff;transition:transform .12s}
+.arShut:active i{transform:scale(.86)}
+.arShut:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.arFlash{position:absolute;inset:0;z-index:6;background:#fff;pointer-events:none;animation:arFlash .4s ease-out forwards}
+@keyframes arFlash{from{opacity:.85}to{opacity:0}}
+#arView .arHint{align-self:stretch;margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
 /* 1.72.2-3: the Sky view card: the small card a lock-on opens (thumbnail, essentials, "swipe up", the line running down
    while you aim away) over the whole card, which it grows into as it's swiped up (height, fades, the thumbnail as a ghost
@@ -567,13 +595,13 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
 .lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
 .lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg,.seg.logSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
 .seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -906,7 +934,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
-  <p class="arHint" id="arHint"></p>
+  <div class="arBot"><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><p class="arHint" id="arHint"></p></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
@@ -1107,6 +1135,10 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab" id="t-about" hidden>
     <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
+  </section>
+  <section class="wrap tab" id="t-log" hidden>
+    <div class="tabHead"><h2 data-t="Log">Log</h2><button class="tabX" type="button" id="logX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
+    <div id="logBox"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>

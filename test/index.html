@@ -5776,7 +5776,11 @@ async function shareCard(x){
   try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
   if (tok !== cardTok) return;
   if (!blob) { cardOpen(`<p class="note">${escH(T("Couldn't make the picture."))}</p>`); return; }
-  const fname = `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`;
+  picCard(blob, `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`);
+}
+// A picture made to share, in a card with Share (the share sheet, or the Android app's) and Save picture: a sighting's
+// card; since 1.80 also the phone's year, week and month and Sky view's snapshot.
+function picCard(blob, fname){
   const file = typeof File === "function" ? new File([blob], fname, {type: "image/png"}) : null;
   const andr = !!window.OverheadAndroid && typeof window.OverheadAndroid.shareImage === "function";
   const canShare = andr || !!(file && navigator.share && navigator.canShare && navigator.canShare({files: [file]}));
@@ -6635,6 +6639,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.80", date: "2026-10-23", notes: [
+    "Settings → About → Log: the app's log, filtered to problems, Sky view or the network, with Copy.",
+    "Where to look says why it can't point at the plane on top yet.",
+    "Sky view's ★ shows each plane's points in its rarity colour.",
+    "Once you've scanned a plane, Sky view can take a picture of the sky with its labels.",
+    "The week and the month can be shared as a picture, like the year.",
+    "About shows its own title and close button again.",
+  ]},
   {v: "1.79.2", date: "2026-10-23", notes: [
     "Trophies with ranks show the rank as a medal, from bronze to diamond.",
     "Closest, Won and Still to win are a switch; Still to win lists the nearest first.",
