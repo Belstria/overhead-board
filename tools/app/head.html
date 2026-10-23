@@ -568,6 +568,8 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
 #lbFound li b{display:block;font:700 var(--fs-l)/1.25 var(--f-board);color:var(--ink)}
 #lbFound li span{display:block;margin-top:3px;font:500 var(--fs-m)/1.35 var(--f-board);color:var(--muted)}
+#lbFound li .lbfPin{display:flex;align-items:center;gap:5px;color:#d6d2c6;font-size:var(--fs-s)}   /* 1.81: where it was seen */
+.lbfPin svg{flex:none;width:13px;height:13px;fill:none;stroke:var(--amber);stroke-width:2}
 @media (orientation:landscape) and (max-height:500px){#toasts{--toast-b:12px}}
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
@@ -745,7 +747,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #t-game .gCard{background:var(--card2,#17181b);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px;margin-top:12px}
 #t-game .gBig{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 #t-game .gBig b{font:700 var(--fs-2xl)/1.1 var(--f-board)} #t-game .gBig span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-#t-game .gBar{height:8px}
+#t-game .gBar,.plCard .gBar{height:8px}
 #t-game .seg{margin-top:14px}
 .gLeague{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
 .gLeague li{display:grid;grid-template-columns:28px 1fr auto 30px;align-items:center;gap:8px;background:#121315;border-radius:8px;padding:9px 10px;font:600 var(--fs-m)/1 var(--f-board)}
@@ -753,17 +755,67 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .gLeague li b{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber);text-align:center}
 .gLeague li em{font-style:normal;font-variant-numeric:tabular-nums}
 .gLeague li i{font-style:normal;font-size:var(--fs-xs);text-align:right}
-.gLeague .up{color:var(--c-good)} .gLeague .dn{color:var(--c-bad)} .gLeague .crown{color:var(--amber)}
+.gLeague .up{color:var(--c-good)} .gLeague .dn{color:var(--c-bad)} .gLeague .crown,.plCard .crown{color:var(--amber)}
+.gLeague li.plTap{cursor:pointer}
+/* 1.81: a league player's card (Dave's to-do 6, pick A): the club's bar and three numbers, medals by metal, two lines */
+.plCard{display:grid;gap:10px}
+.plCard .cHead{margin:0}
+.plMedals{display:flex;flex-wrap:wrap;gap:6px}
+.plMedal{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);font:600 var(--fs-s)/1 var(--f-board);color:var(--ink);--m:#cf8f5a}
+.plMedal i{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--m) 60%)}
+.plMedal.m1{--m:#c6ccd5} .plMedal.m2{--m:#e0aa1f} .plMedal.m3{--m:#86dccb} .plMedal.m4{--m:#9fb9ff}
+.plMedal .cup{width:14px;height:14px;fill:var(--amber);stroke:var(--amber)}
+.plLines{margin:0}
+.plLines li[style] .cup{fill:var(--lamp);stroke:var(--lamp)}
+/* 1.81: Your hangar (Dave's to-do 4, his mix of C and B): a shelf per set you swipe, a collectible card per type */
+.hgShelf{margin:14px 0 0}
+.hgHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px}
+.hgHead b{font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.hgHead em{font:600 var(--fs-s)/1 var(--f-board);font-style:normal;color:var(--amber);font-variant-numeric:tabular-nums}
+.hgHead em.done{color:var(--c-good)}
+.hgRow{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;margin:0 calc(-1 * var(--gut));padding:2px var(--gut) 8px;scroll-padding:0 var(--gut);
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.hgRow::-webkit-scrollbar{display:none}
+.hgCard{all:unset;box-sizing:border-box;flex:none;width:138px;scroll-snap-align:start;display:grid;align-content:start;border-radius:12px;overflow:hidden;cursor:pointer;
+  background:var(--box-bg);border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 3px 0 var(--t,#7d838c)}
+.hgCard:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.hgCard img,.hgCard .hgPh{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:linear-gradient(160deg,#2a2d33,#16181b)}
+.hgCard .hgPh{background:center/56% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23555b64' d='M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z'/%3E%3C/svg%3E"),linear-gradient(160deg,#2a2d33,#16181b)}
+.hgT{display:grid;gap:3px;padding:8px 9px 10px}
+.hgT em{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--t,#7d838c)}
+.hgT b{font:700 var(--fs-s)/1.2 var(--f-board);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hgT>span{font:500 var(--fs-tag)/1.3 var(--f-board);color:var(--muted)}
+.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);place-content:center;justify-items:center;gap:6px;text-align:center;min-height:178px;
+  background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px)}
+.hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
+.hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
+/* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
+#medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
+  text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}
+#medalMo[hidden]{display:none}
+#medalMo.out{opacity:0}
+#medalMo.m1{--m:#c6ccd5} #medalMo.m2{--m:#e0aa1f} #medalMo.m3{--m:#86dccb} #medalMo.m4{--m:#9fb9ff}
+.mmRib{display:grid;justify-items:center;transform-origin:50% 0;animation:mmSwing 2.6s cubic-bezier(.25,.7,.35,1) both}
+.mmRib i{width:56px;height:min(28vh,180px);background:linear-gradient(90deg,#7a1f2b 0 33%,#e7e2d6 33% 66%,#7a1f2b 66%);clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%)}
+.mmRib b{margin-top:-24px;width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font:700 var(--fs-3xl)/1 var(--f-board);color:#17140e;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--m) 55%,color-mix(in srgb,var(--m) 55%,#000));box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 0 0 4px color-mix(in srgb,var(--m) 70%,#fff)}
+.mmTx{display:grid;gap:8px;padding:0 24px;animation:mmIn .5s .9s both}
+.mmTx span{font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.18em;text-transform:uppercase;color:var(--m)}
+.mmTx h3{margin:0;font:700 var(--fs-2xl)/1.1 var(--f-board);color:var(--ink)}
+.mmTx p{margin:0;font:500 var(--fs-m)/1.35 var(--f-board);color:var(--muted)}
+@keyframes mmSwing{0%{transform:translateY(-110%) rotate(-28deg)}45%{transform:translateY(0) rotate(14deg)}62%{transform:rotate(-8deg)}78%{transform:rotate(4deg)}90%{transform:rotate(-2deg)}100%{transform:none}}
+@keyframes mmIn{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.mmRib,.mmTx{animation:none}}
 .gTaper{display:grid;grid-template-columns:25fr 25fr 30fr;height:8px;border-radius:4px;overflow:hidden;background:#2a2b30;gap:2px}
 .gTaper i{display:block;background:#2a2b30} .gTaper i>u{display:block;height:100%;background:var(--amber)}
 .gTaper i:nth-child(2)>u{background:#a07a1e} .gTaper i:nth-child(3)>u{background:#6b5520}
 .gRule{font-size:var(--fs-s);color:var(--muted)}
 /* 1.79: the club's top in one card (the level; today's points, your place this week and the streak as three numbers;
    How points work), the league's heading with its switch beside it; the trophies: the closest three, the rest folded */
-#t-game .gTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:2px}
-#t-game .gTiles div{display:grid;gap:4px}
-#t-game .gTiles b{font:700 var(--fs-2xl)/1 var(--f-board);font-variant-numeric:tabular-nums}
-#t-game .gTiles span{font:600 var(--fs-tag)/1.3 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#t-game .gTiles,.plCard .gTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:2px}
+#t-game .gTiles div,.plCard .gTiles div{display:grid;gap:4px}
+#t-game .gTiles b,.plCard .gTiles b{font:700 var(--fs-2xl)/1 var(--f-board);font-variant-numeric:tabular-nums}
+#t-game .gTiles span,.plCard .gTiles span{font:600 var(--fs-tag)/1.3 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 #t-game .gHow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
 #t-game .gHow i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
 #t-game .gHow:focus-visible{outline:2px solid var(--amber);outline-offset:3px}

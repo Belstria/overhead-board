@@ -59,7 +59,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 63
+RELAY_VERSION = 64
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1248,7 +1248,8 @@ _hangar_cache = {}
 
 def hangar_json(spot):
     """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type caught on the go (the game's own logbook), each
-    with the first aircraft of it (for its photo) and its rarity, the newest first; and the sets with all their types."""
+    with the first aircraft of it (since relay 64 with its photo and thumbnail) and its rarity, the newest first; and the
+    sets with all their types."""
     with _data_lock:
         types = {tc: dict(t) for tc, t in (game_book(spot.book()).get("types") or {}).items()}
     key = (str(spot.dir), len(types), spot.day)
@@ -1265,7 +1266,8 @@ def hangar_json(spot):
         e = first.get(tc) or {}
         out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0),
                     "tier": e.get("tier") or tier_of({}, {"typeCode": tc}), "reg": e.get("reg") or "", "hex": e.get("hex") or "",
-                    "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or ""})
+                    "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or "",
+                    "photo": e.get("photo") or "", "thumb": e.get("photoThumb") or ""})          # relay 64: its own photo, when adsbdb has one
     out.sort(key=lambda x: -(x["first"] or 0))
     res = {"types": out, "sets": [{"name": n, "types": ts} for n, ts in SETS]}
     _hangar_cache.clear()
@@ -2131,7 +2133,7 @@ def search_json(spot, q):
             other = ("flights", e.get("flightIata") or e.get("callsign")) if key[0] == "r" else ("regs", e.get("reg"))
             if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
                 g[other[0]].append(other[1])
-            pk = (place, w.get("n", ""))
+            pk = (place, w.get("n", ""), w.get("c", ""))
             seen = t if isinstance(t, (int, float)) else 0
             if pk not in g["_pl"] or seen > g["_pl"][pk][0]:
                 g["_pl"][pk] = (seen, {"k": place, **({k: w[k] for k in ("n", "a", "c") if w.get(k)} if place == "live" else {})})
@@ -4492,11 +4494,16 @@ def where_estimates(entries):
 
 
 def where_of(e, est=None):
-    """Where a sighting on the go was made ({} when not known yet, or not on the go)."""
+    """Where a sighting on the go was made ({} when not known yet, or not on the go). One from before relay 63 has no
+    "at": its place is only guessed from the day's planes, which can land on the wrong side of a bay, so since relay 64
+    (Dave's choice) it gives only the country."""
     if e.get("place") != "live":
         return {}
-    at = e.get("at") or (est or {}).get(e.get("id"))
-    return where_name(*at) if at else {}
+    if e.get("at"):
+        return where_name(*e["at"])
+    at = (est or {}).get(e.get("id"))
+    w = where_name(*at) if at else {}
+    return {"c": w["c"]} if w.get("c") else {}
 
 
 def lists_of(pid):

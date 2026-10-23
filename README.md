@@ -387,7 +387,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
-  cup and beside its dots, and a won one with more ranks names the next. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  cup and beside its dots, and a won one with more ranks names the next. Since 1.81 (app) a new rank swings down as
+  its medal on a ribbon, with its rank in Roman numerals, and a notice from the right says when the next rank is close
+  ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
+  per set you swipe sideways, with a collectible card for each type caught on the go (the photo of the first one you
+  saw, or of its model; the rarity in its colour, the name, when and which), the missing types face down, and the
+  types in no set on a shelf of their own; tap a card for its details and the model. **Tap a name in the league**
+  (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
+  week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
   shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.
@@ -502,6 +509,9 @@ Five buttons along the bottom:
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+  The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
+  result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
+  on the go from before relay 63 only know their country (their place was guessed from the day's planes).
   At the top (1.28, relay 29), **the year in planes**: planes, types, airlines, airframes, countries and days, the
   busiest day, the most seen aircraft and the rarest, with **Share** (a picture of the card) and **Download the
   logbook (CSV)**, every sighting as a spreadsheet. Collection: points, tiers and the collections. Records: the

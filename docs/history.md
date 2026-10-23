@@ -11,6 +11,23 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.81 / relay 64 (Dave's to-do list of 23 Oct, the relay 63 part; his picks 3A, 4 a mix of C and B, 5 B with A's
+  nudge, 6A): **Where it was spotted** (3): `lbfPlaces(g)` names a search row's `places` (a saved place by `lbPlaceName`,
+  on the go its town and area, a guessed one its country) as a pin line (`.lbfPin`, `PIN`) and Seen from in
+  `foundCard`; the hint names a place with relay 63. Relay 64: `where_of` gives a sighting without `at` (from before
+  relay 63, its place only guessed from the day's planes, which on Santorini fell across the caldera) only its
+  country, Dave's choice; the search's place key carries the country. **Your hangar** (4): with `/game/hangar`
+  (`hangarLoad`, five minutes) the club's Sets list becomes `hangarHtml`: a `.hgShelf` per set (`.hgRow` scrolls
+  sideways, snapping; the page swipe leaves it alone; its scroll is kept across `renderGame`'s redraws), a `.hgCard` per
+  type caught (relay 64's `thumb`/`photo` of the first one, else `modelPicNow`, asked for as cards come into view by an
+  IntersectionObserver in `hgWire`; a photo that fails goes in `hgBad`), the missing ones face down (`.back`), and Other
+  types; `hangarCard` (Caught, First, Aircraft, Flight, Airline, About this model → `typeCard`; a missing one opens
+  `typeCard`). **Medal moments** (5): `achNext` (board) first asks `achSpecial(a, dry)` (app) whether a queued
+  achievement is a ladder rank: then `#medalMo` swings down (`.mmRib`, Roman numerals, `mmSwing`) with `fanfare()`, and
+  fades after 5 s; singles and the board keep the card. `medalNudge(g0)` toasts once per rank when the next is within 2
+  or 2 % (`NUDGE_UNIT`, kept in `ACH_KEY + ".nudge"`). **Player cards** (6): league rows with an `id` (`data-player`;
+  `data-pl` is a place link elsewhere) open `playerCard`: `/game/player`, the club's bar and tiles (`.plCard`), medals
+  by metal (`.plMedal.m0`–`m4`) and one-offs, rarest catch and this week's best as trophy rows.
 - 1.80 (Dave's to-do list of 23 Oct, the app's quick ones; his picks 13B, 14A, 7A, 8A, 1A): **Log** (13): `dlog(level,
   msg, kind)` keeps 400 lines, each with a kind for the filters ("net", "sky" or ""; guessed by `LOG_NET` and a "Sky view"
   / "Where to look" start when not given); `#t-log` is a page like About (`logShow`, `logHide`, `logRender`, `logCopy`:
