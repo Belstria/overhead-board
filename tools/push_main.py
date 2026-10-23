@@ -17,6 +17,9 @@ DIFFERS = [
     ("<title>Fallblatt (Test)</title>", "<title>Fallblatt</title>"),
     ("// This copy of the board (the test board) also gets real flight numbers and routes from Flightradar24, through the home",
      "// The main board also gets real flight numbers and routes from Flightradar24, through the home"),
+    # 1.79.2: the main board sits at the top, so the typefaces are next to it (../ works through the relay but not on
+    # GitHub Pages' own address, where it leaves the project)
+    ('<link rel="stylesheet" href="../fonts/fonts.css">', '<link rel="stylesheet" href="fonts/fonts.css">'),
 ]
 
 html = (REPO / "test" / "index.html").read_text(encoding="utf-8")
