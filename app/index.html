@@ -781,9 +781,23 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .acts a.cap{text-decoration:none;display:grid;place-items:center}
 /* the radar: a tapped plane's card */
 #lookCv{cursor:pointer}
-/* 1.82.2 (Dave's pick B): Sky view's round reset in the radar's corner, faded at the usual range */
-.scope .rvReset{position:absolute;right:2px;top:2px;z-index:2}
-.rvReset:disabled{opacity:.35;cursor:default}
+/* 1.83.2 (Dave's pick Y3): the radar's reset is an airliner-style square push button beside the Range km wheel; its
+   arrow lights up yellow while there's a zoom to undo and stays dark at the usual range */
+.rvRange{flex-direction:row;flex-wrap:wrap;justify-content:center;column-gap:20px}
+.rvRange>span{flex-basis:100%}
+.litKey{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:5px;color:#ffd23f;
+  background:linear-gradient(#3d3f44,#1c1d20);box-shadow:0 0 0 1px #000,0 3px 4px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.18);transition:color .3s,box-shadow .12s}
+.litKey::before,.litKey::after{content:"";position:absolute;inset:5px;border-radius:3px}
+.litKey::before{background:radial-gradient(circle,rgba(255,200,60,.2),rgba(255,200,60,0) 70%),linear-gradient(#26272b,#141518);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.8),inset 0 2px 3px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.08)}
+.litKey::after{z-index:2;background:linear-gradient(160deg,rgba(255,255,255,.13),rgba(255,255,255,0) 45%)}   /* the lens's glare */
+.litKey svg{position:relative;z-index:1;width:20px;height:20px;filter:drop-shadow(0 0 4px rgba(255,200,50,.9))}
+.litKey:active:not(:disabled){box-shadow:0 0 0 1px #000,0 1px 2px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.12)}
+.litKey:active:not(:disabled)::before,.litKey:active:not(:disabled)::after{inset:6px}
+.litKey:disabled{cursor:default;color:rgba(255,225,150,.17)}
+.litKey:disabled svg{filter:none}
+.litKey:disabled::before{background:linear-gradient(#26272b,#141518)}
+.litKey:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
 .rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 var(--fs-2xl)/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
 .rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
@@ -1577,13 +1591,13 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab cols" id="t-radar" hidden>
     <div class="lcol">
       <h2 data-t="Radar">Radar</h2>
-      <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas><button class="arIb rvReset" type="button" id="rvReset" aria-label="Back to the usual range" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button></div>
+      <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
       <!-- 1.82.2: a tapped plane's card right under the radar (under the plate since 1.69, it opened off the screen) -->
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
       <div class="rvCard cardish" id="rvCard" hidden></div>
       <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
       <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
-        <div class="inst"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><span data-t="Range km">Range km</span></div>
+        <div class="inst rvRange"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><button class="litKey" type="button" id="rvReset" aria-label="Back to the usual range" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><span data-t="Range km">Range km</span></div>
         <div class="inst"><button class="toggle" type="button" id="rvMap" aria-pressed="false" aria-label="Map"><span class="up" data-t="ON">ON</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down" data-t="OFF">OFF</span></button><span data-t="Map">Map</span></div>
       </div>
       <p class="rvCredit"><small id="rvCredit" hidden></small></p>
@@ -8678,6 +8692,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.83.2", date: "2026-10-23", notes: [
+    "The radar's reset is a push button beside the Range km wheel; its arrow lights up when there's a zoom to undo.",
+  ]},
   {v: "1.83.1", date: "2026-10-23", notes: [
     "Panel titles sit level with the top screws, and their lines end the same distance from the screws on every panel.",
   ]},
@@ -9493,9 +9510,10 @@ $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
-$("rvReset").onclick = () => radarZoomTo(0);
+$("rvReset").onclick = () => { ctlSound.press(); radarZoomTo(0); };
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
-// d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲): back to the usual range for the radius, and the middle.
+// d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
+// usual range for the radius, and the middle.
 function radarZoomTo(d){
   const was = radarZoom;
   if (d) radarZoomStep(d); else radarZoomSet(0);

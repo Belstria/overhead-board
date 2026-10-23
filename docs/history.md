@@ -11,6 +11,11 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.83.2 (Dave: a cockpit push button for the radar's reset, on the Range km cell; his pick Y3 of yellow, realistic
+  versions): `#rvReset` moved from `#scope`'s corner (`.arIb`) into the Radar plate's first cell (`.inst.rvRange`, a row
+  under its label) beside `#rvWheel`, as a `.litKey`: a square bezel and dark lens (head.html) whose ⟲ glows yellow while
+  enabled; disabled (at the usual range, `buildRadarLegend` as before) it stays dark. Pressing it plays `ctlSound.press()`,
+  then `radarZoomTo(0)` rolls the wheel back with its own sound.
 - 1.83.1 (Dave: keep the title as it was, but level with the screws, with what follows moving up too, and the lines
   ending the same distance from the screws everywhere): every plate keeps its top and side padding in `--pt` and `--px`
   (the board's `.plate`; the app's `#cockpit .plate`, `#aboutBox .plate` and `.secPlate`), and `.plate>h3` works its

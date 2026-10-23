@@ -2556,9 +2556,10 @@ $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
-$("rvReset").onclick = () => radarZoomTo(0);
+$("rvReset").onclick = () => { ctlSound.press(); radarZoomTo(0); };
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
-// d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲): back to the usual range for the radius, and the middle.
+// d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
+// usual range for the radius, and the middle.
 function radarZoomTo(d){
   const was = radarZoom;
   if (d) radarZoomStep(d); else radarZoomSet(0);
