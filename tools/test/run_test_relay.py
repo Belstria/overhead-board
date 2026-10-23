@@ -50,7 +50,8 @@ def main():
     tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
     src = (REPO / "relay" / "serve.py").read_text(encoding="utf-8")
     for real, fake in [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
-                       ("https://viennaairport.com/jart", FAKE + "/jart")]:
+                       ("https://viennaairport.com/jart", FAKE + "/jart"),
+                       ("https://nominatim.openstreetmap.org", FAKE + "/nominatim")]:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")
         src = src.replace(real, fake)
