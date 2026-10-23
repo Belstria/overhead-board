@@ -520,7 +520,7 @@ Five buttons along the bottom:
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,
   Most seen aircraft), Spotted today (Today in numbers), the Spotters' Club (Your level, League, Your catch, Your
   hangar, Records, This week's bingo, Trophies) and the radar's Nearest list sits on a plate of its own, like Settings':
-  screws in the corners, its name engraved between two lines.
+  screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
