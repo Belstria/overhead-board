@@ -254,8 +254,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer; since 1.82.2 every 5 km down to 5, then
   2.5 km, the closest; it was 10, 5 and 2.5 km) and the **Map**
   switch; pinching zooms smoothly to any range and stays there, a double tap steps closer (from the closest, back out). The zoom is kept per screen (1.64).
-  In the app (1.82.2) a round ⟲ in the radar's corner, as in Sky view, goes straight back to the usual range for your
-  radius (25 km for 15 km) and the middle; it is faded while the radar is there already. A tapped plane's card opens
+  In the app (1.82.2) the reset goes straight back to the usual range for your radius (25 km for 15 km) and the middle.
+  Since 1.83.2 it is a square push button beside the Range km wheel, like an airliner's: its ⟲ arrow lights up yellow
+  when there's a zoom to undo and stays dark while the radar is at the usual range (it was a round ⟲ in the radar's corner). A tapped plane's card opens
   right under the radar (since 1.69 it had opened under the Range and Map plate, off the screen). A departure from Vienna shows
   its gate on the plane card, and in the app's radar list while the plane stands at the airport (1.65).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
