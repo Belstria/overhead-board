@@ -161,11 +161,8 @@ def(HERO, "pos",     {kind:"chars", n:9, dur:66, drum:DRUM_POS, label:["Position
 def(HERO, "depTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Departure","Abflug"]});
 def(HERO, "arrTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Arrival","Ankunft"]});
 def(HERO, "airTime", {kind:"chars", n:5, dur:80, drum:DRUM_DIGIT, label:["Flight time","Flugzeit"]});
-// 1.73.1: the game's points for the plane on top, a flap field before the remarks (tap it for why); "-" when it can't score
-// yet. With the game (relay 59) the remarks are four flaps shorter.
-const PTS_ON = !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
-def(HERO, "seen",    {kind:"chars", n:PTS_ON ? 15 : 19, dur:60, style:"amber", label:["Remarks",""]});
-def(HERO, "pts",     {kind:"chars", n:4, dur:66, drum:" +-0123456789", align:"right", style:"amber", label:["Points",""]});
+// 1.82.2 (Dave): no Points field before the remarks (1.73.1-1.82.1); points show when they come in, on the score strip.
+def(HERO, "seen",    {kind:"chars", n:19, dur:60, style:"amber", label:["Remarks",""]});
 def(HERO, "toGo",    {kind:"chars", n:9, dur:70, drum:DRUM_ALT, align:"right", label:["To go",""]});
 fields.toGo.hidden = true;                       // filled by the shared code, not shown on the phone
 const SIDEWAYS = window.matchMedia ? matchMedia("(orientation: landscape) and (max-height: 600px)") : {matches: false};
@@ -173,7 +170,6 @@ function heroLayout(){
   const wide = SIDEWAYS.matches;
   HERO.w = wide ? 900 : 390; HERO.h = wide ? 150 : 448;
   fields.seen.hidden = wide;                    // on its side the three rows are full
-  fields.pts.hidden = wide || !PTS_ON;
   HERO.el.style.setProperty("--w", HERO.w); HERO.el.style.setProperty("--h", HERO.h);
   if (wide) {
     placeRow(["flight", "airline", "remarks", "reg"], [1, 1, 1.5], 18, 18, 1.45, UM);
@@ -189,7 +185,7 @@ function heroLayout(){
   placeRow(["reg", "alt", "trend"], [.5, .3], 279, 19.36, 1.45, UM);
   placeRow(["speed", "pos"], [.6], 323, 19.36, 1.45, UM);
   placeRow(["depTime", "arrTime", "airTime"], [1.3, 1.3], 367, 19.36, 1.45, UM);
-  placeRow(fields.pts.hidden ? ["seen"] : ["pts", "seen"], [.6], 411, 17.4, 1.45, UM);
+  placeRow(["seen"], [], 411, 17.4, 1.45, UM);
 }
 heroLayout();
 // On its side, the pages under the plane are flaps too, like the board's lower half (only the newest rows fit).
@@ -944,15 +940,18 @@ function hangarLoad(){
   hangarAt = Date.now();
   fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
-const modelPicNow = name => modelPics.get(String(name || "").trim().toLowerCase()) || "";
+// 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
+// as a second try; the model photo already found for them, else "".
+const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
+const modelPicNow = names => modelPics.get(names.join("|").toLowerCase()) || "";
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = code => {
-    const t = by.get(code), name = (t && t.name) || TYPES[code] || code;
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
     if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(name);
+    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names);
     return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
-      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(name)}"></span>`) +
+      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`) +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span></span></button>`;
   };
@@ -973,7 +972,7 @@ function hgWire(box){
   for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
   const ph = box.querySelectorAll(".hgPh[data-mp]");
   if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic([e.target.dataset.mp], hgSoon); } }, {rootMargin: "120px"});
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon); } }, {rootMargin: "120px"});
   for (const el of ph) io.observe(el);
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
@@ -981,7 +980,7 @@ function hangarCard(code){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
   ctlSound.press();
-  const name = t.name || TYPES[code] || code, pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(name), when = t.first ? new Date(t.first) : null;
+  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(hgNames(code, t.name)), when = t.first ? new Date(t.first) : null;
   cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
     `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
     factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
@@ -2148,6 +2147,7 @@ $("radarCv").addEventListener("click", e => {
   if (dbl) return radarZoomTo(radarZoomCan(1) ? 1 : -9);   // double tap: closer, from the closest back out
   radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
   ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
+  if (radar.sel) $("rvCard").scrollIntoView({behavior: "smooth", block: "nearest"});     // 1.82.2: in sight
 });
 $("rvList").addEventListener("click", e => {
   const li = e.target.closest && e.target.closest("[data-hex]");
@@ -2226,6 +2226,7 @@ function buildRadarLegend(){
   $("rvWheel").classList.toggle("off", off); $("rvWheel").setAttribute("aria-valuetext", radarRangeText());
   if (kmB.textContent !== txt) kmB.textContent = txt;
   $("rvZoomOut").disabled = off || !radarZoomCan(-1); $("rvZoomIn").disabled = off || !radarZoomCan(1);
+  $("rvReset").disabled = off || !radarZoom; $("rvReset").setAttribute("aria-label", T("Back to the usual range"));
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in"));
   $("rvMap").setAttribute("aria-pressed", String(radarMapOn));
   const cr = $("rvCredit"); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
@@ -2526,8 +2527,6 @@ function settingsExtra(){
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
   const r = HERO.el.getBoundingClientRect(), x = (e.clientX - r.left) * HERO.w / r.width, y = (e.clientY - r.top) * HERO.h / r.height;
-  const fp = fields.pts;
-  if (!fp.hidden && fp.x != null && x >= fp.x - 3 && x <= fp.x + fp.n * fp.step + 3 && y >= fp.y - 3 && y <= fp.y + fp.ch + 3) { ctlSound.press(); return gPtsWhy(); }
   const id = ["airline", "fromCode", "fromCity", "toCode", "toCity", "flight", "type", "tier", "reg", "remarks", "seen"].find(k => {
     const f = fields[k]; if (!f || f.x == null || f.hidden) return false;
     const w = f.kind === "chars" ? f.n * f.step : f.wordW || f.n * f.step;
@@ -2554,13 +2553,15 @@ $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
+$("rvReset").onclick = () => radarZoomTo(0);
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
+// d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲): back to the usual range for the radius, and the middle.
 function radarZoomTo(d){
   const was = radarZoom;
-  radarZoomStep(d);
+  if (d) radarZoomStep(d); else radarZoomSet(0);
   if (radarZoom === was) return;
   ctlSound.wheel(); buildRadarLegend(); rvSig = ""; renderRadarList();
-  const b = $("rvZoomKm"); b.className = ""; void b.offsetWidth; b.className = d < 0 ? "up" : "down";     // the wheel rolls, as in Settings
+  const b = $("rvZoomKm"); b.className = ""; void b.offsetWidth; b.className = d > 0 ? "down" : "up";     // the wheel rolls, as in Settings
 }
 // 1.65: pinch the radar to zoom; 1.68.1: really zoom: the range follows the fingers (radar.live, the map stretched
 // meanwhile), and stays where they let go (the map is then drawn afresh for it). One finger still scrolls the page.
@@ -3360,35 +3361,6 @@ function gRip(){
   src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
   src.connect(bp).connect(g).connect(sfxOut()); src.start();
 }
-// The Points field under the board on Now: what the plane on top gave, or would give.
-function gPoints(e){
-  if (!e || e.gp == null) return null;
-  const d = e.liveMin ?? 9, parts = [`<em>${escH(T(TIER_NAME[e.tier] || "Uncommon"))} ${G_BASE[e.tier] || 30}</em>`];
-  if (d <= 1.5) parts.push(T("overhead ×1.2")); else if (d <= 4) parts.push(T("close ×1.1"));
-  if (e.gNewType) parts.push(T("new type +50")); if (e.gNewAirline) parts.push(T("new airline +25")); if (e.gNewReg) parts.push(T("new aircraft +5"));
-  if (e.gk > 1) parts.push(T("streak ×{k}", {k: e.gk}));
-  if (e.gn > 25) parts.push(T("plane {n} today ×{k}", {n: e.gn, k: e.gn > 50 ? "¼" : "½"}));
-  if (e.lock) parts.push(T("Sky view +{n}", {n: e.lock}));
-  return {n: e.gp + (e.lock || 0), why: parts.join(" · ")};
-}
-// 1.73.1: the Points flaps on the board (beside the remarks): what the plane on top gave, or "-"; a tap says why.
-let gPtsText = "";
-function gPtsRender(){
-  if (fields.pts.hidden) return;
-  if (!gameOk() || !feat || !feat.o || airportMode()) { setChars("pts", ""); gPtsText = ""; return; }
-  const e = spotted.find(x => x.hex === feat.hex && x.gp != null), p = gPoints(e);
-  let n, why;
-  if (p) { n = "+" + Math.min(999, p.n); why = p.why.replace(/<[^>]+>/g, "") + (e.lock || !arOk() ? "" : " · " + T("hold it in Sky view for a bonus")); }
-  else {
-    const t = tierOf(feat.o.ac, feat.info), est = Math.round((G_BASE[t] || 30) * (feat.o.dist <= 1.5 ? 1.2 : feat.o.dist <= 4 ? 1.1 : 1));
-    n = "-";
-    why = !S.live ? T("This one would give about {n}. Turn on live location to score.", {n: est})
-      : feat.o.dist > gKm() ? T("Scores about {n} once it comes within {k} km.", {n: est, k: gKm()}) : T("Counting …");
-  }
-  setChars("pts", n); gPtsText = why;
-}
-function gPtsWhy(){ if (gPtsText) toast(gPtsText, {ms: 6000}); }
-const arOk = () => arPossible();
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
   if (!gameOk() || (!force && Date.now() - gLeagueAt < 30000)) return;
@@ -3417,7 +3389,6 @@ function renderGame(){
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  if (typeof stylesCard === "function") h += `<p style="margin-top:16px"><button class="cBtn" type="button" id="gStyles">${escH(T("Styles"))}</button></p>`;
   h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;
@@ -3429,7 +3400,6 @@ function renderGame(){
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
-  const sb = $("gStyles"); if (sb) sb.onclick = () => { ctlSound.press(); stylesCard(); };
   $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 // 1.79: How points work, a card: where points come from (live location, the distance), what each rarity gives, the extras,
@@ -3547,7 +3517,7 @@ function gameStart(){
   for (const b of document.querySelectorAll('[data-lt="game"]')) b.hidden = !gameOk();   // 1.74: no Spotters' Club without relay 59
   if (!gameOk()) return;
   gRefresh(true); gLeagueLoad();
-  setInterval(() => { gRefresh(); gPtsRender(); }, 2500);
+  setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
   setTimeout(() => tip("gstrip", () => $("gStrip"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
 }

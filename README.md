@@ -251,8 +251,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   In the Airport style the list, the plane card and the colours say what each plane does at the airport: taking off,
   landing, passing or on the ground (1.63).
   Since 1.65 zooming works in the Overhead style too, around your place. On the phone (1.69) the controls sit on a
-  **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer, through 10, 5 and 2.5 km) and the **Map**
-  switch; pinching zooms smoothly to any range and stays there, a double tap steps closer (from the closest, back out). The zoom is kept per screen (1.64). A departure from Vienna shows
+  **Radar** plate like Settings: the **Range km** thumbwheel (▲ wider, ▼ closer; since 1.82.2 every 5 km down to 5, then
+  2.5 km, the closest; it was 10, 5 and 2.5 km) and the **Map**
+  switch; pinching zooms smoothly to any range and stays there, a double tap steps closer (from the closest, back out). The zoom is kept per screen (1.64).
+  In the app (1.82.2) a round ⟲ in the radar's corner, as in Sky view, goes straight back to the usual range for your
+  radius (25 km for 15 km) and the middle; it is faded while the radar is there already. A tapped plane's card opens
+  right under the radar (since 1.69 it had opened under the Range and Map plate, off the screen). A departure from Vienna shows
   its gate on the plane card, and in the app's radar list while the plane stands at the airport (1.65).
   Planes glide between updates, counted from when each position was reported, so a late or repeated update doesn't
   pull them back; the Take-off and Landing runway screen moves its plane the same way.
@@ -382,8 +386,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
-  when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. A **Points**
-  field under the board says what the plane on top gave, or would give. Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
+  when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
+  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
