@@ -182,7 +182,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 /* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
 #cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
   font-family:var(--f-board);color:#d8d3c6}
-.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(10px*var(--k)) calc(22px*var(--k)) calc(12px*var(--k));
+.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
   display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
 /* Realistic look (Settings → Display; body.real): brushed, bevelled plates, engraved labels, metal knob caps and glowing
@@ -206,6 +206,9 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate h3{grid-column:1/-1;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
   letter-spacing:.22em;text-transform:uppercase;color:rgba(214,208,194,.72);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .plate h3::before,.plate h3::after{content:"";flex:1;height:1px;background:rgba(214,208,194,.25)}
+/* the title's middle level with the top screws' (8 + 9/2) and its lines ending 6 short of them (8 + 9 + 6), whatever the
+   plate's padding (--pt, --px); what follows moves up with it */
+.plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k))}
 /* each control sits in its own recessed cell, with its name engraved on a strip above it */
 .inst{grid-column:span var(--span,1);min-width:0;display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k));padding:calc(5px*var(--k)) calc(6px*var(--k)) calc(6px*var(--k));
   border-radius:calc(5px*var(--k));background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 calc(1px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.05)}
@@ -4703,9 +4706,12 @@ function radarRows(n){
 // 1.64: the zoom and its centre are kept per device, so the close-up is still there after a reload.
 const RADAR_ZOOM_KEY = "od.radarZoom";
 let radarZoom = (() => { try { const z = JSON.parse(localStorage.getItem(RADAR_ZOOM_KEY) || "{}"); radar.zc = z.c || null; return +z.z || 0; } catch { return 0; } })();
-const RADAR_ZOOMS = [0, 10, 5, 2.5];
+// 1.82.2 (Dave): − and + (the app's wheel) step every 5 km from the usual range down to 5 km, then to 2.5 km, the closest
+// (the airport's gates); they were 10, 5 and 2.5 km.
+const RADAR_CLOSEST = 2.5;
+const radarSteps = () => { const out = []; for (let v = radarBase() - 5; v >= 5; v -= 5) out.push(v); return out.concat(RADAR_CLOSEST); };
 // 1.68.1: a pinch zooms smoothly (radar.live: the range under the fingers, km), and the zoom stays where it is let go
-// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of RADAR_ZOOMS from there.
+// (radarZoom may be any range from RADAR_MIN up); − and + step to the next of radarSteps from there.
 const RADAR_MIN = 1.5;
 const radarZoomed = () => !!((radar.live || radarZoom) && (!airportMode() || AP.lat != null));   // 1.65: the Overhead style too, around your place
 const radarRing = range => range > 12 ? 5 : range > 6 ? 2 : range > 3 ? 1 : .5;     // km between the rings
@@ -4723,7 +4729,7 @@ function radarZoomSet(z){
 }
 function radarZoomKeep(){ try { localStorage.setItem(RADAR_ZOOM_KEY, JSON.stringify({z: radarZoom, c: radar.zc})); } catch {} }
 function radarZoomStep(d){
-  const steps = RADAR_ZOOMS.slice(1);                   // 10, 5, 2.5 km
+  const steps = radarSteps();                           // 20, 15, 10, 5, 2.5 km with a 25 km usual range
   let z = radarZoom;
   for (let i = 0; i < Math.abs(d); i++) {
     if (d > 0) z = steps.find(v => v < (z || Infinity) - .01) ?? steps[steps.length - 1];
@@ -4731,7 +4737,7 @@ function radarZoomStep(d){
   }
   radarZoomSet(z);
 }
-const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_ZOOMS[RADAR_ZOOMS.length - 1] + .01 : !!radarZoom;
+const radarZoomCan = d => d > 0 ? !radarZoom || radarZoom > RADAR_CLOSEST + .01 : !!radarZoom;
 const radarBase = () => Math.max(20, Math.ceil((+S.radiusKm || 15) * 1.6 / 5) * 5);        // the usual range
 const radarRange = () => radar.live && radarZoomed() ? radar.live : radarZoomed() ? radarZoom : radarBase();
 const radarRangeText = () => nf.format(Math.round(radarRange() * 10) / 10) + " km";
@@ -5175,7 +5181,7 @@ function updateFooter(){
 }
 
 // A newer version published: the lamp in the footer, and the notice (watchVersion, with the patch notes).
-watchVersion(v => { const b = $("btnNew"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
+watchVersion(v => { const b = $("btnNew"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => nvReload(); });
 
 /* ---------- languages ----------
    English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). Every text a viewer
@@ -5721,7 +5727,7 @@ async function shareCanvas(x){
   const font = (getComputedStyle(document.documentElement).getPropertyValue("--f-board") || "").trim() || "sans-serif";
   try { await cardWait(Promise.all(["700 40px", "600 20px"].map(w => document.fonts.load(`${w} ${font}`))), 2500); } catch {}
   const img = await shareImg(x.pic);
-  const W = 1200, PH = img ? 630 : 0, H = PH + 660, cv = document.createElement("canvas");
+  const W = 1200, PH = img ? 630 : 0, H = PH + 700, cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), up = v => String(v || "").toUpperCase();
   g.fillStyle = "#111214"; g.fillRect(0, 0, W, H);
@@ -5775,9 +5781,16 @@ async function shareCanvas(x){
   flaps(hhmm(d), 520, y + 554, 38, 58, 5, "#f6c54a");
   g.font = `500 24px ${font}`; g.textAlign = "left"; g.fillStyle = "#8d887d";
   g.fillText(d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), 760, y + 594);
-  // the mark: FALLBLATT on tiny flaps in the corner
+  // the mark: FALLBLATT on tiny flaps in the corner; 1.82.1: who spotted it, on the same line
   flaps("FALLBLATT", W - 44 - (9 * 22 - 2), H - 52, 20, 30, 9, "#f0b429");
+  const by = spottedBy();
+  if (by) { g.font = `600 24px ${font}`; g.textAlign = "left"; g.fillStyle = "#a9a496"; g.fillText(by, L, H - 30); }
   return cv;
+}
+// 1.82.1 (Dave: the pictures should say whose they are): "Spotted by" the profile's first name, on every picture made to share.
+function spottedBy(){
+  const n = String((GUEST && GUEST.name) || "").trim().split(/\s+/)[0];
+  return n ? T("Spotted by {name}", {name: n}) : "";
 }
 async function shareCard(x){
   ctlSound.press();
@@ -6651,6 +6664,27 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.83.1", date: "2026-10-23", notes: [
+    "Panel titles sit level with the top screws, and their lines end the same distance from the screws on every panel.",
+  ]},
+  {v: "1.83", date: "2026-10-23", notes: [
+    "Every part of the Logbook, Spotted today, the Spotters' Club and the radar's Nearest list sits on a panel of its own, like Settings'.",
+  ]},
+  {v: "1.82.2", date: "2026-10-23", notes: [
+    "The radar has a reset in its corner: back to the usual range for your radius.",
+    "A plane tapped on the radar shows its card right under the radar.",
+    "The Points field is off the board; points show on the score strip when they come in.",
+    "The radar zooms in steps of 5 km.",
+    "Your hangar finds the photos of more models.",
+    "The Styles button is off the Spotters' Club; styles are in Settings.",
+  ]},
+  {v: "1.82.1", date: "2026-10-23", notes: [
+    "Pictures to share or save say whose they are: Spotted by and your first name.",
+  ]},
+  {v: "1.82.0.1", date: "2026-10-23", notes: [
+    "Refresh now refreshes at once: the opening shows while the new version comes in.",
+    "On a slow connection the app no longer opens its older copy while the new one is still coming.",
+  ]},
   {v: "1.82", date: "2026-10-23", notes: [
     "Today in numbers on the board is like the phone's: the four counters across and the most seen types.",
     "The board's trophies show each rank's medal, as on the phone.",
@@ -7240,7 +7274,7 @@ function siteLinks(html){
    screen nobody has touched for half an hour refreshes then. Never while a card, Settings or a text field is open
    (`NV.busy`, set by the page). Relay 45 names the newest version cheaply (/pageversion); with an older one the page
    itself is fetched now and then. */
-const NV = {v: "", until: 0, touched: Date.now(), el: null, busy: () => false};
+const NV = {v: "", until: 0, touched: Date.now(), el: null, going: false, busy: () => false};
 function watchVersion(show){
   const sub = location.pathname.split("/").filter(x => x && !/\.html?$/.test(x))[0] || "";
   const check = async () => {
@@ -7274,7 +7308,7 @@ function nvShow(v){
     el.setAttribute("role", "status");
     el.innerHTML = `<span></span><button type="button"></button>`;
     el.lastChild.textContent = T("Refresh now");
-    el.lastChild.onclick = e => { e.stopPropagation(); location.reload(); };
+    el.lastChild.onclick = e => { e.stopPropagation(); nvReload(); };
     document.body.appendChild(el);
     for (const t of ["keydown", "pointerdown", "touchstart", "wheel"]) addEventListener(t, nvInput, {capture: true, passive: t !== "keydown"});
     setInterval(nvTick, 1000);
@@ -7285,16 +7319,25 @@ function nvShow(v){
 }
 function nvInput(e){
   NV.touched = Date.now();
-  if (!NV.v) return;
+  if (!NV.v || (e.type !== "keydown" && NV.el.contains(e.target))) return;   // 1.82.0.1: a press on the notice isn't a "stay"
   const a = document.activeElement;
   if (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13) && (a === NV.el.lastChild || a === document.body || !a)) {
-    e.preventDefault(); e.stopPropagation(); location.reload(); return;
+    e.preventDefault(); e.stopPropagation(); nvReload(); return;
   }
   if (NV.until) { NV.until = 0; nvDraw(); }
 }
 function nvTick(){
-  if (NV.until) { if (Date.now() < NV.until) nvDraw(); else if (!nvBusy()) location.reload(); }
-  else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) location.reload();
+  if (NV.going) return;
+  if (NV.until) { if (Date.now() < NV.until) nvDraw(); else if (!nvBusy()) nvReload(); }
+  else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) nvReload();
+}
+// 1.82.0.1: refreshing shows at once, as the new page can take a few seconds to come over a slow line: the phone app
+// covers the page with its opening (nvGoing; the new page carries it on), the board says so in the notice.
+function nvReload(){
+  NV.going = true;
+  if (typeof nvGoing === "function") nvGoing();
+  else if (NV.el) { NV.el.firstChild.textContent = T("Refreshing …"); NV.el.lastChild.disabled = true; }
+  location.reload();
 }
 
 /* ---------- settings: a cockpit panel ----------
