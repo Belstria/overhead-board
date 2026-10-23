@@ -799,14 +799,6 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .litKey:disabled::before{background:linear-gradient(#26272b,#141518)}
 .litKey:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
-.rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 var(--fs-2xl)/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
-.rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
-.rcHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:28px}
-.rcHead strong{font:700 var(--fs-xl) var(--f-board);color:var(--ink)}
-.rcHead span{color:var(--muted);font:600 var(--fs-m) var(--f-board)}
-.rcRoute{margin:6px 0 2px;font:600 var(--fs-m) var(--f-board);color:var(--amber)}
-.rvCard .acts{margin-top:8px}
-.rvCard .acts .cap{width:auto;padding:0 12px}
 .flights .rv{cursor:pointer}
 .flights .rv.sel{background:rgba(255,255,255,.07)}
 /* Sky view: the camera, full screen, with the labels drawn over it */
@@ -1323,7 +1315,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .cBtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:8px;
   background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.04em;box-shadow:0 2px 0 #000,0 0 0 2px #050505;text-decoration:none}
 .cBtn:active{transform:translateY(1px)} .cBtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px} .cBtn[hidden]{display:none}
-.rvCard .rcX,#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
+#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
   display:grid;place-items:center;font:600 var(--fs-xl)/1 var(--f-board);text-align:center;z-index:5}
 .cats .bar,.cups .tl .bar{height:6px;border-radius:3px;background:#2a2b30}
 .cups .tl .bar i{background:var(--amber)} .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:var(--c-good)}
@@ -1594,7 +1586,6 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
       <!-- 1.82.2: a tapped plane's card right under the radar (under the plate since 1.69, it opened off the screen) -->
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
-      <div class="rvCard cardish" id="rvCard" hidden></div>
       <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
       <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
         <div class="inst rvRange"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><button class="litKey" type="button" id="rvReset" aria-label="Back to the usual range" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><span data-t="Range km">Range km</span></div>
@@ -7547,8 +7538,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
   if (d.type === "bell") { audioInit(); chime(d.kind === "emergency" ? "emergency" : d.kind === "fav" ? "fav" : "special", {force: true}); }
 });
 
-// Tap a plane on the radar (or a row of Nearest): it is ringed, and a card under the scope says what it is, with its
-// picture, route, height, speed and where it is; ★/⊘ as in the lists.
+// Tap a plane on the radar (or a row of Nearest): it is ringed, and its card comes up from the bottom as a sheet, the one a
+// plane gets anywhere else in the app (1.83.3; it was a card under the scope). The ring goes with the card.
 $("radarCv").addEventListener("click", e => {
   if (Date.now() < pinch.quiet) return;                     // the end of a pinch
   const cv = $("radarCv"), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * RG.S / r.width, y = (e.clientY - r.top) * RG.S / r.height;
@@ -7556,32 +7547,30 @@ $("radarCv").addEventListener("click", e => {
   const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
   pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
   if (dbl) return radarZoomTo(radarZoomCan(1) ? 1 : -9);   // double tap: closer, from the closest back out
-  radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
-  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
-  if (radar.sel) $("rvCard").scrollIntoView({behavior: "smooth", block: "nearest"});     // 1.82.2: in sight
+  if (hit) radarPlaneCard(hit.hex);
 });
 $("rvList").addEventListener("click", e => {
   const li = e.target.closest && e.target.closest("[data-hex]");
-  if (!li) return;
-  radar.sel = radar.sel === li.dataset.hex ? "" : li.dataset.hex;
-  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
-  if (radar.sel) $("scope").scrollIntoView({behavior: "smooth", block: "start"});
+  if (li) radarPlaneCard(li.dataset.hex);
 });
-let rcardSig = "";
-function renderRadarCard(){
-  const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
-  if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
-  $("rvHint").hidden = true;
-  const b = planeBody(o);
-  if (b.sig === rcardSig && !box.hidden) {                 // the same plane and facts: only the numbers move
-    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
-    return;
-  }
-  rcardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
-  b.wire(box);
-  box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
+function radarPlaneCard(hex){
+  const o = radar.planes.find(p => p.ac.hex === hex);
+  if (!o) return;
+  radar.sel = hex; rvSig = ""; renderRadarList();
+  planeCard(o);
 }
-setInterval(() => { if (tab === "radar") renderRadarCard(); }, 1000);
+// Once a second on the radar: the open card's height, speed and distance keep up with its plane; once the card has gone
+// (or the plane), so has the ring.
+const radarSelOpen = () => cardOpenNow() && planeShown && planeShown.ac.hex === radar.sel;
+setInterval(() => {
+  if (tab !== "radar") return;
+  $("rvHint").hidden = !radar.planes.length;
+  if (!radar.sel) return;
+  const o = radar.planes.find(p => p.ac.hex === radar.sel);
+  if (!o || !radarSelOpen()) { radar.sel = ""; rvSig = ""; renderRadarList(); return; }
+  const dyn = planeBody(o).dyn;
+  for (const el of $("cardBox").querySelectorAll("[data-dyn]")) { const v = dyn[el.dataset.dyn]; if (v && el.textContent !== v) el.textContent = v; }
+}, 1000);
 
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
@@ -8692,6 +8681,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.83.3", date: "2026-10-23", notes: [
+    "A plane tapped on the radar or in its Nearest list opens its card from the bottom, like everywhere else in the app.",
+  ]},
   {v: "1.83.2", date: "2026-10-23", notes: [
     "The radar's reset is a push button beside the Range km wheel; its arrow lights up when there's a zoom to undo.",
   ]},
@@ -9634,7 +9626,12 @@ document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
-function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
+// A model's picture found late (planeBody asks): the radar's open card takes it, while it still shows that plane.
+function planeAgain(){
+  if (!radar.sel || !radarSelOpen() || !$("cardBox").querySelector(".cardIn [data-dyn]")) return;
+  const b = planeBody(radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
+  cardOpen(b.html, b.wire);
+}
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
   const box = $("favBox");
