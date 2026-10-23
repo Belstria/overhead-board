@@ -61,11 +61,16 @@ let meBase = {...S};                                 // the settings as last sav
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
-/* ---------- a small log, for the About plate in Settings ---------- */
-const DIAG = {log: [], polls: [], closest: null};
-function dlog(level, msg){
-  DIAG.log.unshift({t: Date.now(), level, msg: String(msg)});
-  if (DIAG.log.length > 200) DIAG.log.length = 200;
+/* ---------- the app's log: Settings → About → Log (1.80) ---------- */
+const DIAG = {log: [], polls: [], closest: null, page: false};
+// Each line has a kind for the Log page's filters: "net" (the relay, the sources, routes), "sky" (Sky view, Where to
+// look) or "" (the rest); guessed from its words when not given.
+const LOG_NET = /\b(relay|sources?|positions?|adsb\.?(lol|fi)?|adsbdb|airplanes\.live|AvioADSB|Flightradar24|routes?|offline|online|HTTP|timed out)\b/i;
+function dlog(level, msg, kind){
+  msg = String(msg);
+  DIAG.log.unshift({t: Date.now(), level, msg, kind: kind ?? (/^(Sky view|Where to look)/.test(msg) ? "sky" : LOG_NET.test(msg) ? "net" : "")});
+  if (DIAG.log.length > 400) DIAG.log.length = 400;
+  if (DIAG.page) logSoon();
 }
 const scheduleDiag = () => {};
 // Night mode (1.57): on a phone quiet hours only, the sounds check nightOn as on the board; no dimming.
@@ -1027,7 +1032,8 @@ function periodHtml(){
     const r = reviewData();
     title = T("{p} in planes", {p: reviewTitle()});
     body = `<p class="sum">${escH(reviewSummary(r))}</p>` + (r && r.planes ? nums(REVIEW_NUMS.map(([k, l]) => [r[k], l])) +
-      facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) : "");
+      facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) +
+      `<div class="yActs"><button class="cBtn" type="button" id="pShare">${escH(T("Share"))}</button></div>` : "");
   }
   return `<div class="yearCard perCard"><div class="perHead"><h3>${escH(title)}</h3>${arrows}</div>${seg}${body}</div>`;
 }
@@ -1060,23 +1066,28 @@ document.addEventListener("click", e => {
   if (b.dataset.rs) { review.span = b.dataset.rs; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.rb));
   lbSig = ""; renderLogbook();
 });
-// The year card as a picture to share (or save where sharing pictures isn't possible).
-function yearPicture(){
-  const y = yearData, cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350;
+// The year card as a picture to share (1.74); since 1.80 (Dave's to-do 8, his pick A) the week and the month in the same
+// look: the mark, the title (and the dates), six numbers and up to three facts. Shown in a card with Share and Save.
+const PIC_ONE = {planes: "plane", types: "type", airlines: "airline", airframes: "airframe", countries: "country", "new types": "new type", points: "point", days: "day"};
+function periodPicture(p){
+  const cv = document.createElement("canvas"), g = cv.getContext("2d"), W2 = 1080, H2 = 1350, dy = p.sub ? 24 : 0;
   cv.width = W2; cv.height = H2;
   g.fillStyle = "#0b0b0c"; g.fillRect(0, 0, W2, H2);
   g.fillStyle = "#f0b429"; rr(g, 80, 80, 140, 140, 18); g.fill();
   drawPlane(g, 150, 150, 120, "#0b0b0c");
   g.fillStyle = "#f3f0e8"; g.font = `700 64px ${FONT}`; g.fillText("FALLBLATT", 260, 170);
-  g.fillStyle = "#f0b429"; g.font = `700 92px ${FONT}`; g.fillText(T("{y} in planes", {y: y.year}), 80, 360);
-  const nums = [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]];
-  nums.forEach(([n, k], i) => {
-    const x = 80 + (i % 3) * 320, yy = 520 + Math.floor(i / 3) * 210;
+  let fs = 92;
+  g.font = `700 ${fs}px ${FONT}`;
+  while (fs > 52 && g.measureText(p.title).width > W2 - 160) g.font = `700 ${fs -= 4}px ${FONT}`;    // "Last month in planes" is long
+  g.fillStyle = "#f0b429"; g.fillText(p.title, 80, 360);
+  if (p.sub) { g.fillStyle = "#959aa3"; g.font = `600 38px ${FONT}`; g.fillText(p.sub, 80, 424); }
+  p.nums.forEach(([n, k], i) => {
+    const x = 80 + (i % 3) * 320, yy = 520 + dy + Math.floor(i / 3) * 210;
     g.fillStyle = "#f3f0e8"; g.font = `700 96px ${FONT}`; g.fillText(nf.format(n || 0), x, yy);
-    g.fillStyle = "#959aa3"; g.font = `600 36px ${FONT}`; g.fillText(T(k), x, yy + 52);
+    g.fillStyle = "#959aa3"; g.font = `600 36px ${FONT}`; g.fillText(T(n === 1 ? PIC_ONE[k] || k : k), x, yy + 52);
   });
-  yearFacts(y).forEach(([k, v], i) => {
-    const yy = 1000 + i * 100;
+  p.facts.slice(0, 3).forEach(([k, v], i) => {
+    const yy = 1000 + dy + i * 100;
     g.fillStyle = "#f0b429"; g.font = `600 30px ${FONT}`; g.fillText(k.toUpperCase(), 80, yy);
     g.fillStyle = "#f3f0e8"; g.font = `700 44px ${FONT}`; g.fillText(v, 80, yy + 50);
   });
@@ -1084,13 +1095,21 @@ function yearPicture(){
 }
 async function shareYear(){
   ctlSound.press();
-  const blob = await yearPicture(), name = `fallblatt-${yearData.year}.png`, file = new File([blob], name, {type: "image/png"});
-  try {
-    if (navigator.canShare && navigator.canShare({files: [file]})) return await navigator.share({files: [file], title: T("{y} in planes", {y: yearData.year})});
-  } catch (e) { if (e && e.name === "AbortError") return; }
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  const y = yearData;
+  picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: yearFacts(y),
+    nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`);
 }
+async function sharePeriod(){
+  const r = reviewData();
+  if (!r || !r.planes) return;
+  ctlSound.press();
+  const yr = {day: "numeric", month: "short", year: "numeric"};
+  const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
+  picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
+    nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.newTypeCount, "new types"], r.points != null ? [r.points, "points"] : [r.airframes, "aircraft"], [r.days, "days"]]}),
+    `fallblatt-${r.span}-${r.start}.png`);
+}
+document.addEventListener("click", e => { if (e.target && e.target.id === "pShare") sharePeriod(); });
 document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
 
 // Where to look (1.28): from the place to the plane on top, its compass direction and how high to look; a dial with
@@ -1115,9 +1134,11 @@ function drawLook(){
   try { L = lookAt(); } catch (e) { lookWhy = "error: " + (e && e.message || e); }
   // 1.78.1: a plane on top without a direction says why in the connection log (once a plane)
   if (!L && feat && lookWhy && lookWhyLogged !== feat.hex + lookWhy) { lookWhyLogged = feat.hex + lookWhy; dlog(/^error/.test(lookWhy) ? "warn" : "debug", `Where to look: none for ${planeName(feat, feat.o.ac)} (${lookWhy})`); }
-  const box = $("look");
-  box.hidden = !L || SIDEWAYS.matches;
+  const box = $("look"), why = !L && feat && feat.o ? lookWhy : "";
+  box.hidden = (!L && !why) || SIDEWAYS.matches;
+  box.classList.toggle("why", !!why);
   if (box.hidden) return skyRowRender();
+  if (why) return lookWhyDraw(why);
   // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
   // turn; without it the tape is centred on the plane
   const on = lookOn && lookHeading != null, c = on ? lookHeading : L.brg, d = ((L.brg - c + 540) % 360) - 180;
@@ -1128,6 +1149,21 @@ function drawLook(){
     (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : on ? T("The gold line is where you face.")
       : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the strip to let it turn with your phone.") : T("The plane is in the middle."));
   drawTape($("lookCv"), c, on, d);
+  $("arBtn").hidden = !arPossible();
+  skyRowRender();
+}
+// 1.80 (Dave's to-do 14, his pick A): a plane on top without a direction keeps the card: the big line names it and
+// the reason, dimmed, a sentence under it says what's missing, and the tape greys out.
+function lookWhyDraw(why){
+  const ac = feat.o.ac, info = feat.info || {}, f = info.flightNo || String(ac.flight || "").trim() || ac.r || String(ac.hex || "").toUpperCase();
+  const km = /^(\d+) km away$/.exec(why);
+  const [big, sub] = why === "no position" ? [T("{f} · NO POSITION YET", {f}), T("Its position hasn't come in yet; the arrow comes with the first one.")]
+    : why === "no height" ? [T("{f} · NO HEIGHT YET", {f}), T("It hasn't sent its height, so how high to look can't be worked out.")]
+    : km ? [T("{f} · {n} KM AWAY", {f, n: km[1]}), T("Too far to look for yet: the arrow comes once it's within 80 km.")]
+    : why === "position unclear" ? [T("{f} · POSITION UNCLEAR", {f}), T("Its position doesn't add up; the next one should.")]
+    : [T("{f} · CAN'T WORK IT OUT", {f}), T("Something went wrong working out where it is; the Log has the details.")];
+  $("lookDir").textContent = big; $("lookSub").textContent = sub;
+  drawTape($("lookCv"), lookOn && lookHeading != null ? lookHeading : 0, false, null);
   $("arBtn").hidden = !arPossible();
   skyRowRender();
 }
@@ -1190,7 +1226,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    1.76: true north (the compass points to magnetic north: the World Magnetic Model's declination is added), the sun
    and the moon as dashed rings to line the compass up on, and AUTO, which finds nearby planes in the picture. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
-let arOn = false, arStream = null, arList = [], arListAt = 0, arQ = null, arQt = 0, arGap = null, arGapT = 0, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
+let arOn = false, arSince = 0, arStream = null, arList = [], arListAt = 0, arQ = null, arQt = 0, arGap = null, arGapT = 0, arWatch = null, arHere = null, arRaf = 0, arDrag = null, arHits = [], arSel = "";
 let arOff = {h: 0, p: 0}, arDec = 0, arHintText = "", arAlt = null;
 const arOffSave = () => { try { localStorage.setItem("od.ar.off", JSON.stringify({...arOff, v: 2})); } catch {} };
 // 1.66: point to pick. A ring in the middle of the picture; the plane in it lights up, and kept there for 1.5 s it opens
@@ -1270,7 +1306,8 @@ function arOrient(e){
 }
 async function arOpen(){
   ctlSound.press();
-  const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon(); };
+  const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
+    dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") return fail();
     arStream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: "environment"}, width: {ideal: 1280}, height: {ideal: 1280}}, audio: false});
@@ -1286,6 +1323,8 @@ async function arOpen(){
     dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
   }, {once: true});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null; arAlt = null;
+  arShotAt = 0; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
+  arSince = Date.now(); dlog("info", `Sky view opened · ${arList.length} planes around · AUTO ${arAuto ? "on" : "off"}`);
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
   arHintText = $("arHint").textContent;
@@ -1296,7 +1335,7 @@ async function arOpen(){
     // 1.76.1: the phone's own height above the sea (GPS, smoothed): on a hillside or a cliff top the airport's is far off
     if (typeof c.altitude === "number" && !(c.altitudeAccuracy > 60)) arAlt = arAlt == null ? c.altitude : arAlt + (c.altitude - arAlt) * .3;
   }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
-  setTimeout(() => { if (arOn && !arQ) $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); }, 2500);
+  setTimeout(() => { if (arOn && !arQ) { $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); dlog("warn", "Sky view: no compass reading after 2.5 s"); } }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
 }
@@ -1317,6 +1356,7 @@ function arCalCheck(a, b, g, acc){
 function arClose(){
   if (!arOn) return;
   arOn = false; ctlSound.press();
+  dlog("debug", `Sky view closed after ${Math.round((Date.now() - arSince) / 1000)} s`);
   $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
@@ -1438,10 +1478,13 @@ function arLoop(){
     const pr = arProject(e, n, u, R, W, H), isFeat = feat && feat.hex === ac.hex;
     if (pr.edge && !isFeat) continue;
     const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
-    // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only)
-    const gx = gameOk() && S.live ? spotted.find(x => x.hex === ac.hex && x.lock) : null;
-    const chip = !(gameOk() && S.live) ? "" : gx ? "✓ +" + gx.lock : d / 1000 <= gKm() ? (isFeat ? T("★ POINTS") : "★") : T("NO PTS");
-    shown.push({ac, d, pr, isFeat, chip, el: Math.atan2(u, d) * 180 / Math.PI, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
+    // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only).
+    // 1.80 (Dave's to-do 7, his pick A): the ★ in the plane's rarity colour, with what it gives (what it gave, once scored).
+    const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && x.lock) : null, near = d / 1000 <= gKm();
+    const tier = tierOf(ac, info), sc = game && near && !gx ? spotted.find(x => x.hex === ac.hex && x.gp != null) : null;
+    const pts = sc ? sc.gp : Math.round((G_BASE[tier] || 30) * (d <= 1500 ? 1.2 : d <= 4000 ? 1.1 : 1));
+    const chip = !game ? "" : gx ? "✓ +" + gx.lock : near ? "★ " + nf.format(pts) : T("NO PTS");
+    shown.push({ac, d, pr, isFeat, chip, locked: !!gx, tier: game && near && !gx ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
       sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
   }
   shown.sort((a, b) => a.d - b.d);
@@ -1467,12 +1510,17 @@ function arLoop(){
     g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
     if (s.chip) {
       const cx = bx + 9 + w1 + 6;
-      g.fillStyle = s.far ? "rgba(255,255,255,.2)" : s.isFeat ? "#17140e" : "#f0b429"; rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
-      g.fillStyle = s.far ? "#e7e2d6" : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
+      const tc = TIER_COL[s.tier] && !(s.isFeat && s.tier === "legendary") ? TIER_COL[s.tier] : "";   // gold on the gold label: as before
+      g.fillStyle = s.far ? "rgba(255,255,255,.2)" : tc || (s.isFeat ? "#17140e" : "#f0b429"); rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
+      g.fillStyle = s.far ? "#e7e2d6" : tc ? (s.tier === "legendary" ? "#17140e" : "#fff") : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
     }
     g.globalAlpha = 1;
   }
   if (arAutoLock) for (const s of shown) if (!s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) arBrackets(g, s.pr.x, s.pr.y);
+  arShownN = shown.length;
+  if (shown.some(s => s.locked && !s.pr.edge)) arShotAt = Date.now();
+  const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
+  if (shut.hidden === snap) shut.hidden = !snap;
   $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
   $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   const hint = marks.some(m => m.k === "sun") ? T("Sun beside its ring? Drag the sky until it sits in it on the screen: every label follows. Don't look into the sun.")
@@ -1480,6 +1528,36 @@ function arLoop(){
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   arAimDraw(g, W, H);
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"));
+}
+// 1.80 (Dave's to-do 1, his pick A, the button only once a plane in view has been scanned): Sky view as it is on the
+// screen, the camera's picture and the labels, with a slim band under it: the mark, the place, the date and time and how
+// many planes. Shown in a card with Share and Save.
+let arShotAt = 0, arShownN = 0;
+async function arSnap(){
+  ctlSound.press();
+  const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;
+  if (!W || !H) return;
+  const cv = document.createElement("canvas"), g = cv.getContext("2d");
+  cv.width = W; cv.height = H + B;
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  if (v.videoWidth) {                                   // as the screen shows it: the video covers it, cut to fit
+    const k = Math.max(W / v.videoWidth, H / v.videoHeight), w = v.videoWidth * k, h = v.videoHeight * k;
+    g.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
+  }
+  g.drawImage(ov, 0, 0);
+  g.fillStyle = "#0b0b0c"; g.fillRect(0, H, W, B);
+  const L = Math.round(B * .56), x0 = Math.round(B * .22), y0 = H + (B - L) / 2, tx = x0 + L + B * .2, place = String(S.place || "").trim();
+  g.fillStyle = "#f0b429"; rr(g, x0, y0, L, L, L * .13); g.fill();
+  drawPlane(g, x0 + L / 2, y0 + L / 2, L * .86, "#0b0b0c");
+  g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.fillStyle = "#f3f0e8"; g.font = `700 ${Math.round(B * .24)}px ${FONT}`;
+  g.fillText(place ? T("Sky over {p}", {p: place}) : T("Sky view"), tx, H + B * .47);
+  g.fillStyle = "#959aa3"; g.font = `600 ${Math.round(B * .16)}px ${FONT}`;
+  g.fillText([d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), hhmm(d), T(n === 1 ? "1 plane" : "{n} planes", {n})].join(" · "), tx, H + B * .75);
+  const fl = document.createElement("div"); fl.className = "arFlash"; $("arView").appendChild(fl); setTimeout(() => fl.remove(), 450);
+  const blob = await new Promise(ok => cv.toBlob(ok, "image/png"));
+  dlog(blob ? "info" : "warn", blob ? `Sky view snapshot · ${n} planes · ${W}×${H + B}` : "Sky view snapshot: couldn't make the picture");
+  if (blob) picCard(blob, `fallblatt-sky-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${hhmm(d).replace(":", "")}.png`);
 }
 // 1.76: AUTO's mark on a plane it found in the picture: gold corners round its dot.
 function arBrackets(g, x, y){
@@ -1519,6 +1597,7 @@ function arAutoStep(shown, W, H, avoid){
   }
   const h = got.length ? med(got.map(x => x.h)) : 0, p = got.length ? med(got.map(x => x.p)) : 0;
   if (got.length && got.every(x => Math.abs(x.h - h) < 1.5 && Math.abs(x.p - p) < 1.5)) {
+    if (!arAutoLock) dlog("debug", `Sky view AUTO: lined up on ${got.length === 1 ? "1 plane" : got.length + " planes"}, moved ${(h - arOff.h).toFixed(1)}° across, ${(p - arOff.p).toFixed(1)}° up`);
     arAutoLock = {hexes: got.map(x => x.hex), at: now};
     const k = 1 - Math.exp(-AR_AUTO_MS / 700);       // glides there in a second or two
     arOff.h += (h - arOff.h) * k; arOff.p += (p - arOff.p) * k;
@@ -1972,6 +2051,7 @@ function skyRowRender(){
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
+$("arShut").onclick = arSnap;
 $("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {} };
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
@@ -2296,6 +2376,7 @@ function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
+    `<p class="cBtns"><button class="cBtn" type="button" id="aboutLog">${escH(T("Log"))}</button></p>` +
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
         `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
         `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>`
@@ -2307,8 +2388,61 @@ function aboutOpen(){
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
+  $("aboutLog").onclick = () => { ctlSound.press(); logShow(); };
   renderAbout();
 }
+/* 1.80 (Dave's to-do 13, his pick B): the log as a page of its own, Settings → About → Log (or Log in the connection
+   card), filtered to problems, Sky view or the network, with Copy so it can be pasted into a message. */
+const LOG_FILTERS = [["all", "All"], ["bad", "Problems"], ["sky", "Sky view"], ["net", "Network"]];
+let logFilter = "all", logRaf = 0;
+const logHits = e => logFilter === "all" || (logFilter === "bad" ? e.level === "warn" || e.level === "error" : e.kind === logFilter);
+const logTime = t => new Date(t).toLocaleTimeString("en-GB");
+function logShow(){
+  const box = $("logBox");
+  box.innerHTML = `<div class="seg logSeg" role="group">` + LOG_FILTERS.map(([k, l]) => `<button type="button" data-lf="${k}" aria-pressed="${logFilter === k}">${escH(T(l))}</button>`).join("") + `</div>` +
+    `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div>` +
+    `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
+  for (const b of box.querySelectorAll("[data-lf]")) b.onclick = () => {
+    ctlSound.press(); logFilter = b.dataset.lf;
+    for (const x of box.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
+    logRender();
+  };
+  $("logCopy").onclick = logCopy;
+  $("t-log").hidden = false; $("t-log").scrollTop = 0; DIAG.page = true;
+  document.body.classList.add("aboutOpen");
+  logRender();
+}
+function logHide(){
+  if ($("t-log").hidden) return;
+  $("t-log").hidden = true; DIAG.page = false;
+  if ($("t-about").hidden) document.body.classList.remove("aboutOpen");
+}
+function logSoon(){ if (!logRaf) logRaf = requestAnimationFrame(() => { logRaf = 0; logRender(); }); }
+function logRender(){
+  const list = $("logList");
+  if (!list || $("t-log").hidden) return;
+  const lines = DIAG.log.filter(logHits);
+  list.innerHTML = lines.map(e => `<li data-l="${escH(e.level)}"><time>${logTime(e.t)}</time><i></i><span>${escH(e.msg)}</span></li>`).join("");
+  $("logNone").hidden = !!lines.length;
+  $("logNone").textContent = T(logFilter === "bad" ? "No problems logged." : "Nothing logged yet.");
+  $("logN").textContent = T(lines.length === 1 ? "1 line" : "{n} lines", {n: lines.length});
+}
+function logText(){
+  const lines = DIAG.log.filter(logHits).map(e => `${logTime(e.t)}  ${e.level.padEnd(5)}  ${e.msg}`).join("\n");
+  return `Fallblatt log${logFilter === "all" ? "" : " (" + LOG_FILTERS.find(f => f[0] === logFilter)[1] + ")"} · ${new Date().toString()}\n` +
+    `${versionLine()} · relay ${window.OVERHEAD_RELAY_VERSION || "–"}\n${navigator.userAgent}\n${statusLine()}\n\n${lines || "Nothing logged."}\n`;
+}
+async function logCopy(){
+  ctlSound.press();
+  const text = logText(), btn = $("logCopy");
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
+  if (!ok) { const ta = $("logText"); ta.value = text; ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch {} }
+  btn.textContent = T(ok ? "Copied" : "Couldn't copy");
+  setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
+}
+$("logX").onclick = () => { ctlSound.press(); logHide(); };
+addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
   const box = $("setExtra");
@@ -2909,7 +3043,9 @@ function statusCard(){
       ["In range", escH(T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}))],
       ["Flightradar24", escH(fr)], ["Relay version", rv ? escH(String(rv)) : ""]]);
   };
-  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>`);
+  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>` +
+    `<div class="cBtns"><button class="cBtn" type="button" id="stLog">${escH(T("Log"))}</button></div>`);
+  $("stLog").onclick = () => { ctlSound.press(); cardClose(); logShow(); };
   const tick = setInterval(() => {
     const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
     if (!el) return clearInterval(tick);
@@ -3230,7 +3366,9 @@ function gHowCard(){
 async function gLockOn(hex){
   if (!gameOk() || !S.live) return;
   let r;
-  try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); } catch { return; }
+  try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); }
+  catch (e) { dlog("warn", `Sky view lock-on: no answer (${netError(e, "relay")})`); return; }
+  dlog(r && r.bonus ? "info" : "debug", `Sky view lock-on: ${String((arList.find(a => a.hex === hex) || {}).flight || hex).trim()} ${r && r.bonus ? "+" + r.bonus + ", combo " + r.combo : "no bonus (" + (r && r.why || "none") + ")"}`);
   if (!r || !r.bonus) {
     if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }
     return;
@@ -3275,7 +3413,7 @@ function run(){
   snapLoad();                                      // the last known board at once, until fresh data comes (1.51)
   renderFeatured(); renderLists(); updateFooter();
   if (relayV5()) syncSightings();
-  dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`);
+  dlog("info", `App started · ${S.demo ? "demo mode" : relay() ? "using the home relay" : "no relay"} · watching ${S.lat.toFixed(4)}, ${S.lon.toFixed(4)}, radius ${+S.radiusKm || 15} km`, "");
   // Every data source at once, so the board fills as fast as it can (positions, today's list, the logbook the tiers
   // need, the hello that tells the relay where this screen looks); then each on its usual timer.
   poll(true); if (relayV5()) fetchLogbook(); if (airportMode()) airportPos(); sayHello();

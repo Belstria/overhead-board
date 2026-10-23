@@ -11,6 +11,23 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.80 (Dave's to-do list of 23 Oct, the app's quick ones; his picks 13B, 14A, 7A, 8A, 1A): **Log** (13): `dlog(level,
+  msg, kind)` keeps 400 lines, each with a kind for the filters ("net", "sky" or ""; guessed by `LOG_NET` and a "Sky view"
+  / "Where to look" start when not given); `#t-log` is a page like About (`logShow`, `logHide`, `logRender`, `logCopy`:
+  the clipboard on https, else a hidden textarea and `execCommand`), opened by Log in About and in the connection card,
+  with a `.seg.logSeg` switch (All, Problems, Sky view, Network). Sky view now logs opening and closing, refused
+  sensors, no compass, AUTO lining up (`arAutoStep`) and each lock-on's answer. `body.aboutOpen main{z-index:6}`: main's
+  stacking (z-index 1, under the header's 5) had always kept About's own title and × under the top bar. **Where to
+  look** (14): with a plane on top but no direction (`lookWhy`), `lookWhyDraw` keeps the card (`.look.why`): the flight
+  and the reason in the big line, dimmed, a sentence under it, the tape grey, Sky view's button dimmed. **Rarity star**
+  (7): Sky view's chip is "★ n" in `TIER_COL` (n: the sighting's `gp` once scored, else `G_BASE` × the close-pass factor;
+  a special plane's chip on the gold label of the plane on top stays dark), ✓ and NO PTS as before. **Week and month**
+  (8): the period card's Share (`#pShare`, `sharePeriod`) and the year's use one `periodPicture` (title, dates, six
+  numbers, three facts; singular words from `PIC_ONE`). **Snapshot** (1): `#arShut` in `.arBot` (with the hint) shows
+  while a scanned plane (`locked`, ✓) is in the picture and 5 s after; `arSnap` draws the video as it covers the
+  screen, the label canvas and a band (the mark, "Sky over" the place, date, time, planes). All three pictures, and a
+  sighting's (`shareCard`), open in `picCard` (the board's): Share (the share sheet or `OverheadAndroid.shareImage`) and
+  Save picture; the year's Share used to call the share sheet directly, which the Android app lacks.
 - Relay 63 (Dave's to-do list of 23 Oct: 3, 4, 6; the app's side follows his picks): a new sighting on the go keeps
   the phone's place to about a kilometre (`at`); `where_name` names each 0.02° cell once (`_where_worker`, Nominatim
   at zoom 13 in English, `geo_where`: the town, the area round it, the country; `data/where.json`). Older sightings on
