@@ -523,15 +523,14 @@ body.arOpen #sheet{z-index:75}
 .legend .chip{min-width:96px}
 /* settings */
 #cockpit{position:static;display:flex;flex-direction:column;gap:14px;--k:1}
-#cockpit .plate{padding:14px 14px 16px;gap:10px}
-#cockpit .plate h3{margin:0 0 4px}
+#cockpit .plate{--pt:14px;--px:14px;padding:var(--pt) var(--px) 16px;gap:10px}
 #cockpit .inst.wide .lcd{width:100%}
 /* the airport statuses carry a small plane taking off or landing */
 .chip .apic{display:inline-grid;width:17px;height:17px;margin-right:6px}
 .chip .apic svg{width:100%;height:100%;fill:currentColor}
 .chip:has(.apic){display:inline-flex;align-items:center;justify-content:center}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
-#aboutBox .plate{padding:14px 16px 16px;gap:10px}
+#aboutBox .plate{--pt:14px;--px:16px;padding:var(--pt) var(--px) 16px;gap:10px}
 #aboutBox .lgbox{grid-column:1/-1}
 #aboutBox .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
 #aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
@@ -830,8 +829,7 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #cardBox .gRule{margin:8px 0 0;line-height:1.4}
 .gOpt{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:var(--fs-m)}
 /* 1.83 (Dave): each section on a plate of its own, as Settings' and the radar's (secPlate in main.js) */
-.secPlate{margin:16px 0 0;padding:14px 14px 22px;gap:8px}     /* the bottom screws clear of the last line */
-.secPlate>h3{margin:0 0 4px}
+.secPlate{--pt:14px;--px:14px;margin:16px 0 0;padding:var(--pt) var(--px) 22px;gap:8px}     /* the bottom screws clear of the last line */
 .secPlate[hidden]{display:none}
 .secPlate p.model{margin:4px 0 0;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
 .secPlate .facts{margin:6px 0 0}

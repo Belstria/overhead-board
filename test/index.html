@@ -182,7 +182,7 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 /* Settings: a cockpit panel. Plates with screws, rotary selectors, flip switches, thumbwheels and amber read-outs. */
 #cockpit{position:absolute;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);grid-template-rows:minmax(0,1.12fr) minmax(0,1fr);gap:calc(18px*var(--k));
   font-family:var(--f-board);color:#d8d3c6}
-.plate{position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:calc(10px*var(--k)) calc(22px*var(--k)) calc(12px*var(--k));
+.plate{--pt:calc(10px*var(--k));--px:calc(22px*var(--k));position:relative;min-width:0;overflow:hidden;background:linear-gradient(#28292c,#1a1b1d);border-radius:calc(8px*var(--k));padding:var(--pt) var(--px) calc(12px*var(--k));
   box-shadow:0 calc(6px*var(--k)) calc(16px*var(--k)) rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 4px rgba(0,0,0,.5);
   display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));align-content:start;align-items:stretch;gap:calc(8px*var(--k))}
 /* Realistic look (Settings → Display; body.real): brushed, bevelled plates, engraved labels, metal knob caps and glowing
@@ -206,6 +206,9 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate h3{grid-column:1/-1;display:flex;align-items:center;gap:calc(10px*var(--k));margin:0 0 calc(4px*var(--k));font:600 calc(13px*var(--k))/1 var(--f-board);
   letter-spacing:.22em;text-transform:uppercase;color:rgba(214,208,194,.72);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
 .plate h3::before,.plate h3::after{content:"";flex:1;height:1px;background:rgba(214,208,194,.25)}
+/* the title's middle level with the top screws' (8 + 9/2) and its lines ending 6 short of them (8 + 9 + 6), whatever the
+   plate's padding (--pt, --px); what follows moves up with it */
+.plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k))}
 /* each control sits in its own recessed cell, with its name engraved on a strip above it */
 .inst{grid-column:span var(--span,1);min-width:0;display:flex;flex-direction:column;align-items:center;gap:calc(6px*var(--k));padding:calc(5px*var(--k)) calc(6px*var(--k)) calc(6px*var(--k));
   border-radius:calc(5px*var(--k));background:linear-gradient(rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 calc(1px*var(--k)) calc(3px*var(--k)) rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.05)}
@@ -6661,6 +6664,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.83.1", date: "2026-10-23", notes: [
+    "Panel titles sit level with the top screws, and their lines end the same distance from the screws on every panel.",
+  ]},
   {v: "1.83", date: "2026-10-23", notes: [
     "Every part of the Logbook, Spotted today, the Spotters' Club and the radar's Nearest list sits on a panel of its own, like Settings'.",
   ]},

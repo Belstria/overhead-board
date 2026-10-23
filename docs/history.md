@@ -11,6 +11,13 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.83.1 (Dave: keep the title as it was, but level with the screws, with what follows moving up too, and the lines
+  ending the same distance from the screws everywhere): every plate keeps its top and side padding in `--pt` and `--px`
+  (the board's `.plate`; the app's `#cockpit .plate`, `#aboutBox .plate` and `.secPlate`), and `.plate>h3` works its
+  margins out from them: the title's middle at the top screws' (8 + 9/2) and its lines ending 6 short of the screws
+  (8 + 9 + 6, all times `--k`), so what follows moves up with it (8 px on the phone's plates, 4 on the radar's and the
+  board's). The app's own `#cockpit .plate h3` and `.secPlate>h3` margins are gone; a plate with a padding of its own
+  sets `--pt` and `--px` with it.
 - 1.83 (Dave: each header category on a panel like Settings' or the Radar plate; he confirmed the look and "the tops
   too"): `secPlate(title, body, cls)` wraps a section in Settings' `.plate` (`--cols:1`, four screws, the title engraved
   between two lines; `.secPlate` sets its padding). The Logbook's period card (`perCard`: the switch and ◀ ▶ in
