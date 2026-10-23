@@ -460,7 +460,9 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Share a plane** (1.53): the plane card's **Share** (on a computer, in the phone app and the light version; not on
   TVs) makes a picture: the plane's photo (or its model's) over a split-flap panel with the flight and airline, the
   route, the aircraft, the registration and the time, and a small Fallblatt mark (no link). Then **Share** opens the
-  phone's share sheet (WhatsApp and the like; in the Android app its own) and **Save picture** downloads it. The
+  phone's share sheet (WhatsApp and the like; in the Android app its own) and **Save picture** downloads it. Since 1.82.1
+  every picture made to share (a plane, the year, week and month, Sky view's snapshot) says **Spotted by** and your first
+  name. The
   photo comes through the relay (relay 47) so the picture can be saved; with an older relay a model photo from
   Wikimedia still works, an aircraft's own photo is left out.
 - **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
@@ -784,7 +786,9 @@ closed the phone plays its own notification sound (the "Save the bell" download 
 screens ask it every two minutes), a notice says so and counts down a minute, then the screen refreshes by itself.
 Any key, tap or click stops the countdown; the notice then stays with **Refresh now** (on a TV, OK on the remote
 presses it), and a screen nobody touches for half an hour refreshes then. It never refreshes while a card is open or
-Settings has unsaved changes. The board's footer lamp stays too.
+Settings has unsaved changes. The board's footer lamp stays too. Since 1.82.0.1 a press on the notice itself doesn't stop
+its countdown, and refreshing shows at once: the phone app covers the page with its opening (the logo and FALLBLATT),
+which the new version carries on until its board is ready; a board says Refreshing … in the notice.
 
 **The first picture (1.51).** Each screen keeps the last known board in the browser (the plane on top if it was there
 in the last half hour, Spotted today and Today in numbers of the same day), per profile, and shows it at once when it

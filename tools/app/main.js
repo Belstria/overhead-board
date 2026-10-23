@@ -1141,7 +1141,9 @@ function periodPicture(p){
   g.fillStyle = "#0b0b0c"; g.fillRect(0, 0, W2, H2);
   g.fillStyle = "#f0b429"; rr(g, 80, 80, 140, 140, 18); g.fill();
   drawPlane(g, 150, 150, 120, "#0b0b0c");
-  g.fillStyle = "#f3f0e8"; g.font = `700 64px ${FONT}`; g.fillText("FALLBLATT", 260, 170);
+  const by = spottedBy();
+  g.fillStyle = "#f3f0e8"; g.font = `700 64px ${FONT}`; g.fillText("FALLBLATT", 260, by ? 152 : 170);
+  if (by) { g.fillStyle = "#959aa3"; g.font = `600 34px ${FONT}`; g.fillText(by, 262, 204); }     // 1.82.1: whose it is
   let fs = 92;
   g.font = `700 ${fs}px ${FONT}`;
   while (fs > 52 && g.measureText(p.title).width > W2 - 160) g.font = `700 ${fs -= 4}px ${FONT}`;    // "Last month in planes" is long
@@ -1616,10 +1618,14 @@ async function arSnap(){
   g.fillStyle = "#f0b429"; rr(g, x0, y0, L, L, L * .13); g.fill();
   drawPlane(g, x0 + L / 2, y0 + L / 2, L * .86, "#0b0b0c");
   g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const title = place ? T("Sky over {p}", {p: place}) : T("Sky view"), by = spottedBy();      // 1.82.1: whose it is
   g.fillStyle = "#f3f0e8"; g.font = `700 ${Math.round(B * .24)}px ${FONT}`;
-  g.fillText(place ? T("Sky over {p}", {p: place}) : T("Sky view"), tx, H + B * .47);
+  g.fillText(title, tx, H + B * .47);
+  const tw = g.measureText(title).width;
   g.fillStyle = "#959aa3"; g.font = `600 ${Math.round(B * .16)}px ${FONT}`;
-  g.fillText([d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), hhmm(d), T(n === 1 ? "1 plane" : "{n} planes", {n})].join(" · "), tx, H + B * .75);
+  const right = by && tx + tw + B * .3 + g.measureText(by).width <= W - x0;
+  if (right) { g.textAlign = "right"; g.fillText(by, W - x0, H + B * .47); g.textAlign = "left"; }
+  g.fillText([d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), hhmm(d), T(n === 1 ? "1 plane" : "{n} planes", {n}), right ? "" : by].filter(Boolean).join(" · "), tx, H + B * .75);
   const fl = document.createElement("div"); fl.className = "arFlash"; $("arView").appendChild(fl); setTimeout(() => fl.remove(), 450);
   const blob = await new Promise(ok => cv.toBlob(ok, "image/png"));
   dlog(blob ? "info" : "warn", blob ? `Sky view snapshot · ${n} planes · ${W}×${H + B}` : "Sky view snapshot: couldn't make the picture");
@@ -3156,7 +3162,16 @@ addEventListener("resize", () => {
 });
 
 // A newer version published: a banner above the tabs, tap to update.
-watchVersion();                          // the board's notice (with the patch notes); no reload while Settings is open
+watchVersion();
+// 1.82.0.1: refreshing (Refresh now, or the notice's own countdown) covers the page at once with the opening, still; the new
+// page shows it in place (od.nvGo) until its board is ready. Should the page stay, the cover goes after 20 s.
+function nvGoing(){
+  try { sessionStorage.setItem("od.nvGo", "1"); } catch {}
+  if (NV.el) NV.el.remove();
+  if (!window.SPLASH_HTML || $("splash")) return;
+  document.body.insertAdjacentHTML("beforeend", window.SPLASH_HTML.replace('<div id="splash"', '<div id="splash" class="still" style="z-index:100"'));
+  setTimeout(() => { const c = $("splash"); if (c) c.remove(); NV.going = false; try { sessionStorage.removeItem("od.nvGo"); } catch {} }, 20000);
+}                          // the board's notice (with the patch notes); no reload while Settings is open
 NV.busy = () => tab === "settings";
 async function start(){
   try {

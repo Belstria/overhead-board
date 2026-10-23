@@ -5175,7 +5175,7 @@ function updateFooter(){
 }
 
 // A newer version published: the lamp in the footer, and the notice (watchVersion, with the patch notes).
-watchVersion(v => { const b = $("btnNew"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => location.reload(); });
+watchVersion(v => { const b = $("btnNew"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => nvReload(); });
 
 /* ---------- languages ----------
    English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). Every text a viewer
@@ -5721,7 +5721,7 @@ async function shareCanvas(x){
   const font = (getComputedStyle(document.documentElement).getPropertyValue("--f-board") || "").trim() || "sans-serif";
   try { await cardWait(Promise.all(["700 40px", "600 20px"].map(w => document.fonts.load(`${w} ${font}`))), 2500); } catch {}
   const img = await shareImg(x.pic);
-  const W = 1200, PH = img ? 630 : 0, H = PH + 660, cv = document.createElement("canvas");
+  const W = 1200, PH = img ? 630 : 0, H = PH + 700, cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), up = v => String(v || "").toUpperCase();
   g.fillStyle = "#111214"; g.fillRect(0, 0, W, H);
@@ -5775,9 +5775,16 @@ async function shareCanvas(x){
   flaps(hhmm(d), 520, y + 554, 38, 58, 5, "#f6c54a");
   g.font = `500 24px ${font}`; g.textAlign = "left"; g.fillStyle = "#8d887d";
   g.fillText(d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), 760, y + 594);
-  // the mark: FALLBLATT on tiny flaps in the corner
+  // the mark: FALLBLATT on tiny flaps in the corner; 1.82.1: who spotted it, on the same line
   flaps("FALLBLATT", W - 44 - (9 * 22 - 2), H - 52, 20, 30, 9, "#f0b429");
+  const by = spottedBy();
+  if (by) { g.font = `600 24px ${font}`; g.textAlign = "left"; g.fillStyle = "#a9a496"; g.fillText(by, L, H - 30); }
   return cv;
+}
+// 1.82.1 (Dave: the pictures should say whose they are): "Spotted by" the profile's first name, on every picture made to share.
+function spottedBy(){
+  const n = String((GUEST && GUEST.name) || "").trim().split(/\s+/)[0];
+  return n ? T("Spotted by {name}", {name: n}) : "";
 }
 async function shareCard(x){
   ctlSound.press();
@@ -6651,6 +6658,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.82.1", date: "2026-10-23", notes: [
+    "Pictures to share or save say whose they are: Spotted by and your first name.",
+  ]},
+  {v: "1.82.0.1", date: "2026-10-23", notes: [
+    "Refresh now refreshes at once: the opening shows while the new version comes in.",
+    "On a slow connection the app no longer opens its older copy while the new one is still coming.",
+  ]},
   {v: "1.82", date: "2026-10-23", notes: [
     "Today in numbers on the board is like the phone's: the four counters across and the most seen types.",
     "The board's trophies show each rank's medal, as on the phone.",
@@ -7240,7 +7254,7 @@ function siteLinks(html){
    screen nobody has touched for half an hour refreshes then. Never while a card, Settings or a text field is open
    (`NV.busy`, set by the page). Relay 45 names the newest version cheaply (/pageversion); with an older one the page
    itself is fetched now and then. */
-const NV = {v: "", until: 0, touched: Date.now(), el: null, busy: () => false};
+const NV = {v: "", until: 0, touched: Date.now(), el: null, going: false, busy: () => false};
 function watchVersion(show){
   const sub = location.pathname.split("/").filter(x => x && !/\.html?$/.test(x))[0] || "";
   const check = async () => {
@@ -7274,7 +7288,7 @@ function nvShow(v){
     el.setAttribute("role", "status");
     el.innerHTML = `<span></span><button type="button"></button>`;
     el.lastChild.textContent = T("Refresh now");
-    el.lastChild.onclick = e => { e.stopPropagation(); location.reload(); };
+    el.lastChild.onclick = e => { e.stopPropagation(); nvReload(); };
     document.body.appendChild(el);
     for (const t of ["keydown", "pointerdown", "touchstart", "wheel"]) addEventListener(t, nvInput, {capture: true, passive: t !== "keydown"});
     setInterval(nvTick, 1000);
@@ -7285,16 +7299,25 @@ function nvShow(v){
 }
 function nvInput(e){
   NV.touched = Date.now();
-  if (!NV.v) return;
+  if (!NV.v || (e.type !== "keydown" && NV.el.contains(e.target))) return;   // 1.82.0.1: a press on the notice isn't a "stay"
   const a = document.activeElement;
   if (e.type === "keydown" && (e.key === "Enter" || e.keyCode === 13) && (a === NV.el.lastChild || a === document.body || !a)) {
-    e.preventDefault(); e.stopPropagation(); location.reload(); return;
+    e.preventDefault(); e.stopPropagation(); nvReload(); return;
   }
   if (NV.until) { NV.until = 0; nvDraw(); }
 }
 function nvTick(){
-  if (NV.until) { if (Date.now() < NV.until) nvDraw(); else if (!nvBusy()) location.reload(); }
-  else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) location.reload();
+  if (NV.going) return;
+  if (NV.until) { if (Date.now() < NV.until) nvDraw(); else if (!nvBusy()) nvReload(); }
+  else if (Date.now() - NV.touched > 30 * 60000 && !nvBusy()) nvReload();
+}
+// 1.82.0.1: refreshing shows at once, as the new page can take a few seconds to come over a slow line: the phone app
+// covers the page with its opening (nvGoing; the new page carries it on), the board says so in the notice.
+function nvReload(){
+  NV.going = true;
+  if (typeof nvGoing === "function") nvGoing();
+  else if (NV.el) { NV.el.firstChild.textContent = T("Refreshing …"); NV.el.lastChild.disabled = true; }
+  location.reload();
 }
 
 /* ---------- settings: a cockpit panel ----------
