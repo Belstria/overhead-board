@@ -405,14 +405,6 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .litKey:disabled::before{background:linear-gradient(#26272b,#141518)}
 .litKey:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .rvCard{position:relative;margin:10px 0 4px;padding:12px;border-radius:12px;background:linear-gradient(#17181b,#101113);border:1px solid rgba(255,255,255,.08)}
-.rvCard .rcX{all:unset;position:absolute;right:0;top:0;width:44px;height:44px;text-align:center;font:600 var(--fs-2xl)/44px var(--f-board);color:var(--muted);cursor:pointer}   /* 1.64: a 44 px target */
-.rvCard .rcPic{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:0 0 10px}
-.rcHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:28px}
-.rcHead strong{font:700 var(--fs-xl) var(--f-board);color:var(--ink)}
-.rcHead span{color:var(--muted);font:600 var(--fs-m) var(--f-board)}
-.rcRoute{margin:6px 0 2px;font:600 var(--fs-m) var(--f-board);color:var(--amber)}
-.rvCard .acts{margin-top:8px}
-.rvCard .acts .cap{width:auto;padding:0 12px}
 .flights .rv{cursor:pointer}
 .flights .rv.sel{background:rgba(255,255,255,.07)}
 /* Sky view: the camera, full screen, with the labels drawn over it */
@@ -930,7 +922,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .cBtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:8px 16px;border-radius:8px;
   background:linear-gradient(#e7e2d6,#bdb6a6);color:#1d1b16;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.04em;box-shadow:0 2px 0 #000,0 0 0 2px #050505;text-decoration:none}
 .cBtn:active{transform:translateY(1px)} .cBtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px} .cBtn[hidden]{display:none}
-.rvCard .rcX,#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
+#cardBox .cardX{right:8px;top:8px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:var(--ink);
   display:grid;place-items:center;font:600 var(--fs-xl)/1 var(--f-board);text-align:center;z-index:5}
 .cats .bar,.cups .tl .bar{height:6px;border-radius:3px;background:#2a2b30}
 .cups .tl .bar i{background:var(--amber)} .cups li.on:not(:has(.pips b:not(.on))) .tl .bar i{background:var(--c-good)}
@@ -1201,7 +1193,6 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up"></canvas></div>
       <!-- 1.82.2: a tapped plane's card right under the radar (under the plate since 1.69, it opened off the screen) -->
       <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
-      <div class="rvCard cardish" id="rvCard" hidden></div>
       <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
       <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
         <div class="inst rvRange"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><button class="litKey" type="button" id="rvReset" aria-label="Back to the usual range" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><span data-t="Range km">Range km</span></div>

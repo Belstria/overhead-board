@@ -2139,8 +2139,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
   if (d.type === "bell") { audioInit(); chime(d.kind === "emergency" ? "emergency" : d.kind === "fav" ? "fav" : "special", {force: true}); }
 });
 
-// Tap a plane on the radar (or a row of Nearest): it is ringed, and a card under the scope says what it is, with its
-// picture, route, height, speed and where it is; ★/⊘ as in the lists.
+// Tap a plane on the radar (or a row of Nearest): it is ringed, and its card comes up from the bottom as a sheet, the one a
+// plane gets anywhere else in the app (1.83.3; it was a card under the scope). The ring goes with the card.
 $("radarCv").addEventListener("click", e => {
   if (Date.now() < pinch.quiet) return;                     // the end of a pinch
   const cv = $("radarCv"), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * RG.S / r.width, y = (e.clientY - r.top) * RG.S / r.height;
@@ -2148,32 +2148,30 @@ $("radarCv").addEventListener("click", e => {
   const dbl = !hit && Date.now() - pinch.tapAt < 350 && Math.hypot(x - pinch.tapX, y - pinch.tapY) < 30;
   pinch.tapAt = dbl ? 0 : Date.now(); pinch.tapX = x; pinch.tapY = y;
   if (dbl) return radarZoomTo(radarZoomCan(1) ? 1 : -9);   // double tap: closer, from the closest back out
-  radar.sel = hit ? (radar.sel === hit.hex ? "" : hit.hex) : "";
-  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
-  if (radar.sel) $("rvCard").scrollIntoView({behavior: "smooth", block: "nearest"});     // 1.82.2: in sight
+  if (hit) radarPlaneCard(hit.hex);
 });
 $("rvList").addEventListener("click", e => {
   const li = e.target.closest && e.target.closest("[data-hex]");
-  if (!li) return;
-  radar.sel = radar.sel === li.dataset.hex ? "" : li.dataset.hex;
-  ctlSound.press(); rvSig = ""; renderRadarList(); renderRadarCard();
-  if (radar.sel) $("scope").scrollIntoView({behavior: "smooth", block: "start"});
+  if (li) radarPlaneCard(li.dataset.hex);
 });
-let rcardSig = "";
-function renderRadarCard(){
-  const box = $("rvCard"), o = radar.sel && radar.planes.find(p => p.ac.hex === radar.sel);
-  if (!o) { box.hidden = true; $("rvHint").hidden = tab !== "radar" || !radar.planes.length; rcardSig = ""; return; }
-  $("rvHint").hidden = true;
-  const b = planeBody(o);
-  if (b.sig === rcardSig && !box.hidden) {                 // the same plane and facts: only the numbers move
-    for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
-    return;
-  }
-  rcardSig = b.sig; box.innerHTML = `<button class="rcX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; box.hidden = false;
-  b.wire(box);
-  box.querySelector(".rcX").onclick = () => { ctlSound.press(); radar.sel = ""; rvSig = ""; renderRadarList(); renderRadarCard(); };
+function radarPlaneCard(hex){
+  const o = radar.planes.find(p => p.ac.hex === hex);
+  if (!o) return;
+  radar.sel = hex; rvSig = ""; renderRadarList();
+  planeCard(o);
 }
-setInterval(() => { if (tab === "radar") renderRadarCard(); }, 1000);
+// Once a second on the radar: the open card's height, speed and distance keep up with its plane; once the card has gone
+// (or the plane), so has the ring.
+const radarSelOpen = () => cardOpenNow() && planeShown && planeShown.ac.hex === radar.sel;
+setInterval(() => {
+  if (tab !== "radar") return;
+  $("rvHint").hidden = !radar.planes.length;
+  if (!radar.sel) return;
+  const o = radar.planes.find(p => p.ac.hex === radar.sel);
+  if (!o || !radarSelOpen()) { radar.sel = ""; rvSig = ""; renderRadarList(); return; }
+  const dyn = planeBody(o).dyn;
+  for (const el of $("cardBox").querySelectorAll("[data-dyn]")) { const v = dyn[el.dataset.dyn]; if (v && el.textContent !== v) el.textContent = v; }
+}, 1000);
 
 // The logbook is read now and then even with its tab closed: the tiers need it.
 setInterval(() => { if (booted && tab !== "logbook") fetchLogbook(); }, 5 * 60000);
@@ -2680,7 +2678,12 @@ document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
-function planeAgain(){ rcardSig = ""; if (tab === "radar") renderRadarCard(); }
+// A model's picture found late (planeBody asks): the radar's open card takes it, while it still shows that plane.
+function planeAgain(){
+  if (!radar.sel || !radarSelOpen() || !$("cardBox").querySelector(".cardIn [data-dyn]")) return;
+  const b = planeBody(radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
+  cardOpen(b.html, b.wire);
+}
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
   const box = $("favBox");

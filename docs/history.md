@@ -11,6 +11,13 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.83.3 (Dave: a plane tapped on the radar should bring up the same panel and animations as elsewhere): a tap on
+  the scope or a Nearest row (`radarPlaneCard`) rings the plane (`radar.sel`) and opens `planeCard(o)`, the shared
+  sheet (`#cardBox`, 1.78), instead of the inline `#rvCard` under the scope (gone, with `renderRadarCard`, `rcardSig`
+  and the `.rcX`/`.rcHead`/`.rcRoute`/`.rcPic` styles). Once a second on the radar tab the sheet's `[data-dyn]` numbers
+  follow the plane, and the ring clears once the card is closed (`radarSelOpen`: `cardOpenNow()` and `planeShown`).
+  The app's `planeAgain` re-opens the radar's card with a model picture found late. A tap on empty scope no longer
+  deselects (the sheet's backdrop closes it); a double tap still zooms.
 - 1.83.2 (Dave: a cockpit push button for the radar's reset, on the Range km cell; his pick Y3 of yellow, realistic
   versions): `#rvReset` moved from `#scope`'s corner (`.arIb`) into the Radar plate's first cell (`.inst.rvRange`, a row
   under its label) beside `#rvWheel`, as a `.litKey`: a square bezel and dark lens (head.html) whose ⟲ glows yellow while
