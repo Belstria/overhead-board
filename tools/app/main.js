@@ -881,7 +881,7 @@ function renderLogbook(){
     : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
-  $("lbP").hidden = $("lbModel").hidden = v !== "logbook";
+  $("lbTop").hidden = v !== "logbook";
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
@@ -897,16 +897,16 @@ function renderLogbook(){
   if (v === "logbook") {
     if (b.categories) {
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      html += `<h3>${escH(T("Categories"))}</h3><ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+      html += secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
         const open = lbCat === k && catOk() && n;
         return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${open ? "⌃" : "⌄"}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
-      }).join("") + "</ul>";
+      }).join("") + "</ul>");
     }
-    if (types.length) html += `<h3>${escH(T("Aircraft types"))}</h3>` + rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0))));
-    if (airlines.length) html += `<h3>${escH(T("Airlines"))}</h3>` + rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0))));
-    if ((b.regsTop || []).length) html += `<h3>${escH(T("Most seen aircraft"))}</h3>` + rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name)));
+    if (types.length) html += secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0)))));
+    if (airlines.length) html += secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0)))));
+    if ((b.regsTop || []).length) html += secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name))));
     if (!place) html = periodHtml() + html;
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
@@ -925,8 +925,8 @@ function collectionHtml(g0){
   // 1.79 (Dave's pick B): "Your catch" (by rarity) and "Sets" (to complete), not Collection and Collections; the points
   // line went (the top of the page says it). 1.81: on the club page the Sets list becomes the hangar once it's in.
   hangarLoad();
-  return `<h3>${escH(T("Your catch"))}</h3><ul class="ranks cats tiers">${tiers}</ul>` +
-    (hangar && tab === "game" ? hangarHtml(hangar) : `<h3>${escH(T("Sets"))}</h3><ul class="ranks cats">${sets}</ul>`);
+  return secPlate(T("Your catch"), `<ul class="ranks cats tiers">${tiers}</ul>`) +
+    (hangar && tab === "game" ? hangarHtml(hangar) : secPlate(T("Sets"), `<ul class="ranks cats">${sets}</ul>`));
 }
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
    collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
@@ -964,7 +964,7 @@ function hangarHtml(hg){
   const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
   if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
   const n = (hg.types || []).length;
-  return `<h3>${escH(T("Your hangar"))}</h3><p class="sum">${escH(T(n === 1 ? "1 type caught · by set" : "{n} types caught · by set", {n}))}</p>${shelves.join("")}`;
+  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type caught · by set" : "{n} types caught · by set", {n}))}</p>${shelves.join("")}`, "hgPlate");
 }
 // The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
 function hgWire(box){
@@ -998,14 +998,14 @@ function recordsHtml(all, g0){
     const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
     const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
       ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
-    html += `<h3>${escH(T("Records"))}</h3>` + rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true);
+    html += secPlate(T("Records"), rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true));
   }
   const bg = g0 && g0.bingo;
   if (bg && bg.card) {                                 // the weekly bingo (relay 29)
     const nd = Object.keys(bg.done || {}).length;
     const cells = bg.card.map(k => { const d = (bg.done || {})[k];
       return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    html += `<h3>${escH(T("This week's bingo"))}</h3><p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`;
+    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`);
   }
   if (g0) html += trophiesHtml(g0);
   return html;
@@ -1047,14 +1047,17 @@ function trophiesHtml(g0){
     todo: todo.map(toGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
   const tabs = [["near", T("Closest")], ["won", T("Won · {n}", {n: nWon})], ["todo", T("Still to win")]];
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
-  return `<h3>${escH(T("Trophies"))}</h3><p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
+  return secPlate(T("Trophies"), `<p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
     `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
-    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`);
+    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`));
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
   for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.press(); gTrTab = b.dataset.tt; redraw(); };
 }
+// 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
+// radar's controls: screws in the corners, its name engraved between two lines.
+const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
 // The year in planes (relay 29, /year): a card at the top of the Logbook with a Share button (a picture of the card)
@@ -1100,7 +1103,7 @@ function periodHtml(){
       facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) +
       `<div class="yActs"><button class="cBtn" type="button" id="pShare">${escH(T("Share"))}</button></div>` : "");
   }
-  return `<div class="yearCard perCard"><div class="perHead"><h3>${escH(title)}</h3>${arrows}</div>${seg}${body}</div>`;
+  return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
@@ -3375,21 +3378,22 @@ function renderGame(){
   const next = g.level < 20 ? GAME_LEVELS[g.level] : "";
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
-  let h = `<div class="gCard gHero"><div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
+  // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
+  let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
     (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</span>`) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     `<div><b>${g.rank ? "#" + g.rank : "–"}</b><span>${escH(T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-    `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button></div>`;
+    `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero");
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
-  h += `<div class="gHead"><h3>${escH(T("League"))}</h3><div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div></div>`;
-  h += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
+  let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
+  lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
     : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
-  if (L && !gAll) h += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
+  if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
+  h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  h += `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`;
   const box = $("gameBox");
   if (box.dataset.h === h) return;
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);

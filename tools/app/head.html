@@ -565,7 +565,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
-#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbP,#t-logbook.finding #lbModel,#t-logbook.finding .rcol{display:none!important}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbTop,#t-logbook.finding .rcol{display:none!important}
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
@@ -829,6 +829,20 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #cardBox .gTaper{margin:12px 0 6px}
 #cardBox .gRule{margin:8px 0 0;line-height:1.4}
 .gOpt{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:var(--fs-m)}
+/* 1.83 (Dave): each section on a plate of its own, as Settings' and the radar's (secPlate in main.js) */
+.secPlate{margin:16px 0 0;padding:14px 14px 22px;gap:8px}     /* the bottom screws clear of the last line */
+.secPlate>h3{margin:0 0 4px}
+.secPlate[hidden]{display:none}
+.secPlate p.model{margin:4px 0 0;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.secPlate .facts{margin:6px 0 0}
+.secPlate .ranks,.secPlate .flights,.secPlate .bingo{margin-top:0}
+.secPlate .seg{margin:0 0 4px}
+.secPlate .gOpt{margin-top:6px;color:var(--ink)}
+.perCard .perHead{gap:10px}
+.perCard .perHead .seg{flex:1;margin:0}
+.perCard .perHead .perArr{margin-left:auto}
+.hgPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
+.hgPlate .hgShelf:first-of-type{margin-top:6px}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}
@@ -1140,8 +1154,9 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab cols" id="t-today" hidden>
     <div class="lcol">
       <h2 data-t="Spotted today">Spotted today</h2>
+      <section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-      <dl class="facts" id="todayFacts"></dl>
+      <dl class="facts" id="todayFacts"></dl></section>
     </div>
     <div class="rcol">
       <div class="groove"></div>
@@ -1160,8 +1175,9 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
       <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
-      <div class="panel" id="lbP" role="img" aria-label="Logbook totals" style="margin-top:14px"></div>
-      <p class="model" id="lbModel"></p>
+      <section class="plate secPlate" style="--cols:1" id="lbTop"><i></i><i></i><i></i><i></i><h3 data-t="Totals">Totals</h3>
+      <div class="panel" id="lbP" role="img" aria-label="Logbook totals"></div>
+      <p class="model" id="lbModel"></p></section>
     </div>
     <div class="rcol">
       <div id="lbLists"></div>
@@ -1183,8 +1199,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <ul class="rlegend" id="rLegend"></ul>
     </div>
     <div class="rcol">
-      <h3 data-t="Nearest">Nearest</h3>
-      <ol class="flights" id="rvList"></ol>
+      <section class="plate secPlate" style="--cols:1"><i></i><i></i><i></i><i></i><h3 data-t="Nearest">Nearest</h3>
+      <ol class="flights" id="rvList"></ol></section>
     </div>
   </section>
   <section class="wrap tab" id="t-game" hidden>

@@ -11,6 +11,13 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.83 (Dave: each header category on a panel like Settings' or the Radar plate; he confirmed the look and "the tops
+  too"): `secPlate(title, body, cls)` wraps a section in Settings' `.plate` (`--cols:1`, four screws, the title engraved
+  between two lines; `.secPlate` sets its padding). The Logbook's period card (`perCard`: the switch and ◀ ▶ in
+  `.perHead`), Categories, Aircraft types, Airlines and Most seen aircraft; the club's Your level (`gHero`), League
+  (`lgPlate`, with Show me in the league), Your catch, Sets or Your hangar (`hgPlate`, shelves bleeding to the plate's
+  edges), Records, This week's bingo and Trophies; in the markup the Logbook's totals and Most seen model (`#lbTop`,
+  "Totals"), Spotted today's flaps and highlights (`#todayTop`, "Today in numbers") and the radar's Nearest.
 - 1.82.2 (Dave's reports of 23 Oct): the radar's reset (his pick B, but faded at the usual range rather than gone):
   `#rvReset` is Sky view's `.arIb` round button in `#scope`'s corner, disabled (faded, `.rvReset:disabled`) while
   `radarZoom` is 0 (`buildRadarLegend`); `radarZoomTo(0)` sets `radarZoomSet(0)`, the usual range (`radarBase`, from the
