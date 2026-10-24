@@ -6,6 +6,9 @@ flight lists. The planes sit around central Vienna (the boards' default location
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
+Away from Vienna (more than 30 km) the position source has only a turboprop at 8,000 ft near the place, while
+Flightradar24's live positions also have a take-off the free networks can't hear, passing over the place every 6 minutes
+(the relay's gap filler, relay 66).
 """
 import json, math, os, time, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -66,6 +69,25 @@ SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300">
 </svg>"""
 
 
+def away(lat, lon):
+    """Planes around a place away from Vienna: (heard, missed). The take-off climbs out from 13 km south-east, passes
+    about a kilometre from the place after 2.5 minutes and starts again every 6 minutes; the turboprop circles the place
+    10 km out at 8,000 ft and is heard by everyone."""
+    kx = 111.32 * math.cos(math.radians(lat))
+    def at(x, y, **d):
+        return {"lat": lat + y / KY, "lon": lon + x / kx, **d}
+    dt = (time.time() - T0) % 360
+    s = 305 / 3600 * dt
+    th = math.radians(300)
+    x0, y0 = 13 * math.sin(math.radians(120)) + 0.6, 13 * math.cos(math.radians(120))
+    up = at(x0 + s * math.sin(th), y0 + s * math.cos(th), hex="46f001", flight="TST353", alt_baro=int(1500 + 1500 * dt / 60),
+            gs=165, track=300, baro_rate=1500)
+    a = math.radians((time.time() - T0) * 2 % 360)
+    circ = at(10 * math.sin(a), 10 * math.cos(a), hex="46f002", flight="TST477", alt_baro=8000, gs=180,
+              track=int((math.degrees(a) + 90) % 360), baro_rate=0)
+    return [circ], [up]
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -106,14 +128,29 @@ class H(BaseHTTPRequestHandler):
                   "LDM5AB": ("FR6203", "VIE", "LOWW", "PMI", "LEPA", "440B12", "LDM", "RYR", "A320")}
             FR.update({"DLH1234": ("LH1234", "FRA", "EDDF", "BUD", "LHBP", "3C6744", "DLH", "DLH", "A321"),
                        "WZZ4307": ("W64307", "VIE", "LOWW", "TLV", "LLBG", "471F8D", "WZZ", "WZZ", "A21N"),
-                       "SWR1514": ("LX1514", "ZRH", "LSZH", "VIE", "LOWW", "4B1814", "SWR", "SWR", "BCS3")})
+                       "SWR1514": ("LX1514", "ZRH", "LSZH", "VIE", "LOWW", "4B1814", "SWR", "SWR", "BCS3"),
+                       "TST353": ("TS353", "TSA", "TTSA", "TSB", "TTSB", "46F001", "TST", "TST", "AT76")})
             CAT = {"WZZ4307": "Cargo", "SWR1514": "Business_jets"}
             r = FR.get(cs)
             data = [] if not r else [{"fr24_id": "3c0ffee", "flight": r[0], "callsign": cs, "operated_as": r[6], "painted_as": r[7], "type": r[8],
+                     "reg": {"TST353": "TS-TST"}.get(cs, ""),
                      "orig_iata": r[1], "orig_icao": r[2], "dest_iata": r[3], "dest_icao": r[4],
                      "dest_iata_actual": "VIE" if cs == "DLH1234" else None, "dest_icao_actual": "LOWW" if cs == "DLH1234" else None,
                      "hex": r[5], "flight_ended": "false", "category": CAT.get(cs, "Passenger"), "datetime_takeoff": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(time.time() - 41 * 60))}]
             return self.send(200, "application/json", json.dumps({"data": data}).encode())
+        if path == "/api/live/flight-positions/light":
+            if self.headers.get("Authorization") != "Bearer goodkey" or self.headers.get("Accept-Version") != "v1":
+                return self.send(401, "application/json", b'{"message":"Unauthenticated"}')
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            n, s_, w, e = (float(x) for x in (q.get("bounds") or ["0,0,0,0"])[0].split(","))
+            lo, hi = (int(x) for x in (q.get("altitude_ranges") or ["0-99999"])[0].split("-"))
+            heard, missed = away((n + s_) / 2, (w + e) / 2) if abs((n + s_) / 2 - LAT) > .27 or abs((w + e) / 2 - LON) > .4 else ([], [])
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 3))
+            data = [{"fr24_id": "3f" + a["hex"], "hex": a["hex"].upper(), "callsign": a["flight"], "lat": round(a["lat"], 5),
+                     "lon": round(a["lon"], 5), "track": a["track"], "alt": a["alt_baro"], "gspeed": a["gs"], "vspeed": a["baro_rate"],
+                     "squawk": "4421", "timestamp": stamp, "source": "ADSB"}
+                    for a in heard + missed if s_ <= a["lat"] <= n and w <= a["lon"] <= e and lo <= a["alt_baro"] <= hi]
+            return self.send(200, "application/json", json.dumps({"data": data[:int((q.get("limit") or ["20"])[0])]}).encode())
         if path.startswith("/v0/callsign/") and path.endswith("/RYR3EG"):
             fr = {"callsign_iata": "FR3EG", "airline": {"name": "Ryanair", "iata": "FR", "icao": "RYR"},
                   "origin": {"iata_code": "NCL", "municipality": "Newcastle", "latitude": 55.037498, "longitude": -1.69167},
@@ -169,6 +206,9 @@ class H(BaseHTTPRequestHandler):
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
             ac.append(plane("44041d", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
+        qlat, qlon = (float(x) for x in path.split("/")[2:4])
+        if abs(qlat - LAT) > .27 or abs(qlon - LON) > .4:      # a place away from Vienna: only what the free networks hear there
+            ac += away(qlat, qlon)[0]
         body = json.dumps({"ac": ac, "now": time.time()}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

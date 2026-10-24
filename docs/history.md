@@ -11,7 +11,33 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
-- 1.86 (Sky view on a real sky, Dave on Santorini: the sun's ring 24° beside the sun from the start, and sliding
+- 1.87 (Dave on an island: two Sky Express ATRs, SEH353 and SEH8TR, took off over him and the app showed nothing):
+  adsb.fi, the only free source still answering the relay, first had them at about 9,000 ft and 22 km out (its map's
+  trace); airplanes.live's map had them from 1,500 ft right overhead, but it answers the relay 403 (contributors only,
+  Dave was told); adsb.lol now allows 500 requests a UTC day per address (`x-ratelimit-limit: 500, 4;w=1, 60;w=60,
+  500;w=86400`) and the relay had used them up. Relay 66, the Flightradar24 gap filler (`fill_for`, `fill_want`,
+  `fill_merge`, `_fill_ask`, `_fill_worker`, `FILL_*`): for screens of the owner's profile (`fill_for`: `HOME_OWNER`,
+  Flightradar24 on, under `FILL_SHARE` 0.8 of `fr24_limit`, not `fr24_paced(1)`) more than `FILL_AWAY_KM` 30 km from
+  `fill_home()` (the relay's --lat/--lon), the /aircraft handler keeps a record per place (one within 3 km moves along)
+  and merges the planes of its last answer (under 60 s old) that the free answer lacks: by hex, aged to the answer's
+  `now` as `seen_pos`, `src: "fr24"`, `t`/`r` from `fr24_info`. The body for the sightings holds a new plane back for up
+  to 20 s until its flight summary is in (the worker asks `fr24_want(..., 0)` when it first sees it), so its logbook
+  entry has its type. The request: `/live/flight-positions/light`, bounds ±`FILL_KM` 20 km, `altitude_ranges=100-15000`,
+  `data_sources=ADSB,MLAT,UAT`, `limit=10`; 6 credits a plane, 1 for none, counted by `fr24_spent` (the lookups use it
+  too) as "<name> · Gap filler". Every 20 s, `FILL_FAST_S` 10 s while a plane it filled in is within `GAME_KM`,
+  `FILL_SLOW_S` 300 s once 30 answers in a row with planes held nothing new (`useless`); a place nobody asked about for
+  two minutes is dropped. `fr24_slot()` paces the lookups and the gap filler together (6.5 s apart; `pause=60` after a
+  429). `_record` marks such sightings `src: "fr24"`; they are kept like the rest (Dave: "We're not sharing this data
+  externally so we can keep it longer", although Flightradar24's storage rule says 30 days). `/status` `fr24.fill`
+  (places, filled, filledToday); `X-Relay-Fill: n` on /aircraft, and the board's connection log says "Flightradar24
+  filled in a plane the free sources can't hear" (`lastFill`). `apiLookup` fills `info.type`/`info.reg` from the
+  answer's `type`/`reg` when the free databases had none (adsbdb doesn't know Sky Express's ATRs). Sources:
+  `rest_for(..., reset)` rests a source until `X-RateLimit-Reset` when a 429 says `X-RateLimit-Remaining: 0` (seconds
+  or a time; 60 s to a day). Test: fakesrc.py's `away()` (more than 30 km from the test point the source has only
+  TST477 at 8,000 ft; Flightradar24 also TST353, climbing out over the place every 6 minutes); checked as David
+  (owner-device) at 47.21, 15.37 with Live location: filled in, not doubled, every 10 s when close, ATR 72-600 and
+  TS-TST on the board, the sighting with its type; the Test profile and home get nothing.
+- 1.86 (Sky view on a real sky, Dave on an island: the sun's ring 24° beside the sun from the start, and sliding
   sideways as the phone tilted, back when held still): **the gyroscope turns the labels.** Android (Chrome, WebView)
   sends `deviceorientationabsolute` (rotation vector: gyro, gravity and compass fused) and, with a gyroscope,
   `deviceorientation` with `absolute` false (game rotation vector: gyro and gravity, its zero anywhere); `arOpen` listens

@@ -11,7 +11,8 @@ Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
 answers "too many requests" or "forbidden" is rested for a while and the next one is used. AvioADSB is the
 emergency backup: asked only when all of those fail or rest, at most every 15 s and 90 times a day.
-If every source fails, the board keeps getting the last good answer for up to two minutes.
+If every source fails, the board keeps getting the last good answer for up to two minutes. Away from home, the owner's
+screens also get the low planes only Flightradar24 hears (with a key; see "Flightradar24 fills the gaps").
 
 The relay also keeps the shared history: every plane that comes within the spotting radius is
 recorded once per pass (in data/sightings-<date>.json), looked up for its route and aircraft details,
@@ -59,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 65
+RELAY_VERSION = 66
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -99,6 +100,14 @@ FR24_GAP_S = 6.5            # the Explorer plan allows 10 requests a minute
 FR24_BUDGET = 27000         # credits a month the relay may spend unless told otherwise (Explorer includes 30,000)
 FR24_REUSE_S = 6 * 3600     # relay 45: an answer serves the same aircraft and callsign all day, or this long past midnight
 FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quarter of the radius isn't looked up
+FILL_AWAY_KM = 30           # relay 66: Flightradar24 fills in what the free sources miss only this far from home,
+FILL_KM = 20                # ... asked about a box this far each way (the radius and a minute's flying: details come first)
+FILL_FT = 15000             # ... for planes up to this high (the free networks hear the high ones from far away)
+FILL_EVERY_S = 20           # ... every 20 s while a screen watches; every 10 s while a plane it added is within GAME_KM,
+FILL_FAST_S = 10
+FILL_SLOW_S = 300           # ... and every 5 min once 30 answers in a row (ten minutes) had nothing the free sources lacked
+FILL_MAX = 10               # ... at most this many planes an answer (6 credits each, 1 for none)
+FILL_SHARE = 0.8            # ... and only while the profile has spent less than this part of its daily credits
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
 AIRPORTS_FILE = DATA_DIR / "airports.json"
 RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
@@ -181,7 +190,14 @@ def cached_or_stale(key, ttl, load, fail_ttl=60):
     return cached(key, 0, load, fail_ttl)
 
 
-def rest_for(status, strikes, retry_after):
+def rest_for(status, strikes, retry_after, reset=None):
+    if reset:       # relay 66: a day's allowance is gone (adsb.lol: 500 an address); rest until it starts again
+        try:
+            s = float(reset)
+            s = s - time.time() if s > 1e9 else s     # a time, or seconds from now
+            return int(max(60, min(86400, s + 30)))
+        except ValueError:
+            pass
     if retry_after:
         try:
             return max(5, min(900, int(retry_after)))
@@ -259,9 +275,12 @@ def aircraft(lat, lon, nm):
             st["strikes"] += 1
             st["last_status"] = status
             st["last_error"] = problem
-            rest = rest_for(status, st["strikes"], headers.get("Retry-After") if headers else None)
+            out = status == 429 and headers and str(headers.get("X-RateLimit-Remaining", "")).strip() == "0"
+            rest = rest_for(status, st["strikes"], headers.get("Retry-After") if headers else None,
+                            headers.get("X-RateLimit-Reset") if out else None)
             st["cooldown_until"] = time.time() + rest
-            event("warn", f"{src['name']} failed ({problem}); resting it for {rest} s")
+            event("warn", f"{src['name']} failed ({problem}); resting it for " +
+                  (f"{rest // 3600} h {rest % 3600 // 60} min, until its allowance starts again" if rest >= 3600 else f"{rest} s"))
             tried.append(f"{src['name']} {problem}")
         _health_seen["posFail"] = time.time()     # relay 45: every source failed (or rested) for this request
         if hit and time.time() - hit[0] < STALE_S:
@@ -545,6 +564,8 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                      "pos": [round(la, 4), round(lo, 4), ac.get("track")],
                      "military": bool(flags & 1), "interesting": bool(flags & 2), "emergency": _emergency(ac),
                      "adsbCat": str(ac.get("category") or "")}
+                if ac.get("src") == "fr24":
+                    e["src"] = "fr24"               # relay 66: only Flightradar24 had it (the gap filler)
                 if key != "home":
                     e["place"] = key
                 if key == "live":
@@ -1618,7 +1639,7 @@ def _fr24_usage():
             u.clear()
             u.update({"month": month, "credits": 0, "lookups": 0})
     if u.get("day") != day:
-        u.update({"day": day, "creditsToday": 0, "lookupsToday": 0, "savedReuseToday": 0, "savedEdgeToday": 0})
+        u.update({"day": day, "creditsToday": 0, "lookupsToday": 0, "savedReuseToday": 0, "savedEdgeToday": 0, "filledToday": 0})
         _fr24_prune()
     return u
 
@@ -1873,6 +1894,48 @@ def _fr24_lookup(cs, hx):
     return info, 200, credits
 
 
+_fr24_slot_lock = threading.Lock()
+_fr24_next = 0.0             # relay 66: when the next request may go (the lookups and the gap filler take turns)
+
+
+def fr24_slot(pause=0):
+    """Wait for a turn: Flightradar24 allows 10 requests a minute for the lookups and the gap filler together. `pause`
+    (after a "too many requests") holds both back that long."""
+    global _fr24_next
+    with _fr24_slot_lock:
+        if pause:
+            _fr24_next = max(_fr24_next, time.time() + pause)
+            return
+        wait = _fr24_next - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _fr24_next = time.time() + FR24_GAP_S
+
+
+def fr24_spent(credits, who, pid, lookups=1):
+    """Count credits spent on one request: the month, today, who asked (the admin page) and the profile's daily limit
+    (relay 42). Call under _data_lock."""
+    usage = _fr24_usage()
+    usage["credits"] = usage.get("credits", 0) + credits
+    usage["creditsToday"] = usage.get("creditsToday", 0) + credits
+    if not credits:
+        return
+    usage["lookups"] = usage.get("lookups", 0) + lookups
+    usage["lookupsToday"] = usage.get("lookupsToday", 0) + lookups
+    by = usage.setdefault("by", {}).setdefault(who, {"credits": 0, "lookups": 0})
+    by["credits"] += credits
+    by["lookups"] += lookups
+    p = profiles()["profiles"].get(pid) if pid else None
+    if p is not None:                 # relay 42: the profile's own count, for its daily limit
+        pu = fr24_use(p)
+        pu["today"] += credits
+        pu["credits"] += credits
+        pu["lookupsToday"] += lookups
+        pu["lookups"] += lookups
+        _dirty.add("profiles")
+    _dirty.add("fr24")
+
+
 def _fr24_worker():
     if fr24_key():
         _load_airports()
@@ -1897,25 +1960,11 @@ def _fr24_worker():
                                       "boards use the free sources until next month")
                     _fr24_state.update(state="budget")
                     continue
+            fr24_slot()
             info, status, credits = _fr24_lookup(cs, hx)
             with _data_lock:
+                fr24_spent(credits, who, pid)
                 usage = _fr24_usage()
-                usage["credits"] = usage.get("credits", 0) + credits
-                usage["creditsToday"] = usage.get("creditsToday", 0) + credits
-                if credits:
-                    usage["lookups"] = usage.get("lookups", 0) + 1
-                    usage["lookupsToday"] = usage.get("lookupsToday", 0) + 1
-                    by = usage.setdefault("by", {}).setdefault(who, {"credits": 0, "lookups": 0})
-                    by["credits"] += credits
-                    by["lookups"] += 1
-                    p = profiles()["profiles"].get(pid) if pid else None
-                    if p is not None:                 # relay 42: the profile's own count, for its daily limit
-                        pu = fr24_use(p)
-                        pu["today"] += credits
-                        pu["credits"] += credits
-                        pu["lookupsToday"] += 1
-                        pu["lookups"] += 1
-                        _dirty.add("profiles")
                 if info:
                     _fr24_data()["flights"][key] = info
                     for sp in all_spots():            # relay 41: lists showing this flight fetch again for the answer
@@ -1937,7 +1986,7 @@ def _fr24_worker():
                     _fr24_queued.clear()
             elif status == 429:
                 _fr24_state.update(state="ok", error="too many requests; slowing down")
-                time.sleep(60)
+                fr24_slot(pause=60)
             elif status != 200:
                 _fr24_state.update(state="error", error=f"HTTP {status}")
                 event("warn", f"Flightradar24 lookup for {cs} failed (HTTP {status})", echo=False)
@@ -1953,7 +2002,6 @@ def _fr24_worker():
         finally:
             with _fr24_cv:
                 _fr24_queued.discard(key)
-        time.sleep(FR24_GAP_S)
 
 
 def fr24_status():
@@ -1969,7 +2017,8 @@ def fr24_status():
     return {"state": state, "error": _fr24_state["error"],
             "credits": u.get("credits", 0), "budget": _fr24_budget(), "lookups": u.get("lookups", 0),
             "creditsToday": u.get("creditsToday", 0), "lookupsToday": u.get("lookupsToday", 0),
-            "queue": len(_fr24_q), "airports": len((_airports or {}).get("iata") or {})}
+            "queue": len(_fr24_q), "airports": len((_airports or {}).get("iata") or {}),
+            "fill": {"places": len(_fill), "filled": u.get("filled", 0), "filledToday": u.get("filledToday", 0)}}
 
 
 def fr24_overlay(entries, radius=15.0, over_km=3.0):
@@ -2004,6 +2053,186 @@ def fr24_overlay(entries, radius=15.0, over_km=3.0):
                 e = {**e, "fr24Wait": True}
         out.append(e)
     return out
+
+
+# ---------- Flightradar24 fills the gaps (relay 66) ----------
+# Away from big cities the free networks can be deaf down low: on an island adsb.fi first heard the planes leaving its
+# airport at 9,000 ft and 22 km out, minutes after they had flown over the house (airplanes.live heard them, but lets
+# only its feeders in). So while a screen of the owner's profile watches a place more than FILL_AWAY_KM from home, the
+# relay also asks Flightradar24 for the low planes around it and adds the ones the free answer lacks. Where ten minutes
+# of answers bring nothing new it asks only every few minutes; at home it never asks.
+_fill = []                   # a record per watched place: lat, lon, want (asked for), who, pid, at (asked), t (answered), planes
+_fill_cv = threading.Condition()
+
+
+def fill_home():
+    """The relay's own place, where the free sources hear everything."""
+    try:
+        return float(ARGS.lat), float(ARGS.lon)
+    except (TypeError, ValueError):
+        return 48.2085, 16.3731              # what boards watch when no place is set
+
+
+def fill_for(p):
+    """Does this profile's screen get the gap filler? The owner's (Dave's travels), while Flightradar24 is on for it and
+    it has spent less than FILL_SHARE of its daily credits (the rest stays for routes)."""
+    if str(p.get("name") or "").strip().lower() != HOME_OWNER.lower() or not p.get("fr24") or not fr24_on() or fr24_paced(1):
+        return False
+    with _data_lock:
+        return fr24_use(p)["today"] < fr24_limit(p) * FILL_SHARE
+
+
+def fill_want(lat, lon, pid, p, who):
+    """A screen of profile `p` asks for positions around (lat, lon): the gap filler's record for that place (made, or a
+    record within 3 km moved here), or None where the filler stays off."""
+    lat, lon = float(lat), float(lon)
+    if _dist_km(lat, lon, *fill_home()) < FILL_AWAY_KM or not fill_for(p):
+        return None
+    with _fill_cv:
+        rec = next((r for r in _fill if _dist_km(lat, lon, r["lat"], r["lon"]) < 3), None)
+        if rec is None:
+            if not _fill:
+                event("info", f"Flightradar24 fills in what the free sources miss around {p.get('name')}'s screen, away from home")
+            rec = {"at": 0.0, "t": 0.0, "planes": [], "free": set(), "first": {}, "useless": 0, "near": False}
+            _fill.append(rec)
+            _fill_cv.notify()
+        rec.update(lat=lat, lon=lon, want=time.time(), who=who, pid=pid)
+    return rec
+
+
+def fill_merge(body, rec):
+    """The free answer with the planes Flightradar24 last saw around `rec` that it lacks, aged to the answer's time.
+    Returns (body for the screen, body for the sightings, planes added): a plane joins the sightings once its type and
+    registration are looked up (or after 20 s), so its logbook entry is complete."""
+    try:
+        data = json.loads(body)
+    except ValueError:
+        return body, body, 0
+    planes = data.get("ac", data.get("aircraft"))
+    if not isinstance(planes, list):
+        return body, body, 0
+    have = {str(a.get("hex") or "").lower() for a in planes if isinstance(a, dict)}
+    now = time.time()
+    with _fill_cv:
+        rec["free"] = have
+        fresh = rec["planes"] if now - rec["t"] < 60 else []
+        first = dict(rec["first"])
+    n = data.get("now")
+    t0 = n / 1000 if isinstance(n, (int, float)) and n > 1e11 else n if isinstance(n, (int, float)) and n > 1e9 else now
+    add, hold = [], set()
+    for f in fresh:
+        if f["hex"] in have:
+            continue
+        a = {k: v for k, v in f.items() if k != "ts"}
+        a["seen_pos"] = a["seen"] = round(max(0.0, t0 - f["ts"]), 1)
+        info = fr24_info(f["flight"], f["hex"]) if f["flight"] else None
+        if info and not info.get("none"):
+            a["t"], a["r"] = info.get("type") or "", info.get("reg") or ""
+        elif not info and f["flight"] and now - first.get(f["hex"], now) < 20:
+            hold.add(f["hex"])
+        add.append(a)
+    if not add:
+        return body, body, 0
+    key = "ac" if "ac" in data else "aircraft"
+    data[key] = planes + add
+    out = json.dumps(data, separators=(",", ":")).encode()
+    if not hold:
+        return out, out, len(add)
+    data[key] = planes + [a for a in add if a["hex"] not in hold]
+    return out, json.dumps(data, separators=(",", ":")).encode(), len(add)
+
+
+def _fill_ask(lat, lon):
+    """One live-positions request for the low planes around (lat, lon). Returns (planes or None, status, credits)."""
+    dy, dx = FILL_KM / 110.57, FILL_KM / (111.32 * max(0.1, math.cos(math.radians(lat))))
+    q = urllib.parse.urlencode({"bounds": f"{min(89.9, lat + dy):.3f},{max(-89.9, lat - dy):.3f},{lon - dx:.3f},{lon + dx:.3f}",
+                                "altitude_ranges": f"100-{FILL_FT}", "data_sources": "ADSB,MLAT,UAT", "limit": FILL_MAX})
+    status, _, body, _ = fetch(f"{FR24_API}/live/flight-positions/light?{q}", timeout=15, headers={
+        "Authorization": f"Bearer {fr24_key()}", "Accept": "application/json", "Accept-Version": "v1"})
+    if status != 200:
+        return None, status, 0
+    try:
+        rows = (json.loads(body) or {}).get("data") or []
+    except ValueError:
+        return None, 502, 0
+    planes = []
+    for r in rows:
+        hx = str(r.get("hex") or "").lower()
+        if not re.fullmatch(r"[0-9a-f]{6}", hx) or not isinstance(r.get("lat"), (int, float)) or not isinstance(r.get("lon"), (int, float)):
+            continue
+        try:
+            ts = datetime.datetime.strptime(str(r.get("timestamp"))[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=datetime.timezone.utc).timestamp()
+        except ValueError:
+            ts = time.time()
+        planes.append({"hex": hx, "flight": str(r.get("callsign") or "").strip().upper(), "lat": r["lat"], "lon": r["lon"],
+                       "alt_baro": r.get("alt"), "gs": r.get("gspeed"), "track": r.get("track"), "baro_rate": r.get("vspeed"),
+                       "squawk": str(r.get("squawk") or ""), "src": "fr24", "ts": min(ts, time.time())})
+    return planes, 200, 6 * len(rows) if rows else 1
+
+
+def _fill_worker():
+    """Asks Flightradar24 about each watched place in turn: every FILL_EVERY_S, FILL_FAST_S while a plane it added is
+    close, FILL_SLOW_S where thirty answers in a row held nothing new. A place no screen asked about for two minutes is
+    dropped."""
+    while True:
+        with _fill_cv:
+            now = time.time()
+            for r in [r for r in _fill if now - r["want"] > 120]:
+                _fill.remove(r)
+            every = lambda r: FILL_SLOW_S if r["useless"] >= 30 else FILL_FAST_S if r["near"] else FILL_EVERY_S
+            due = [r for r in _fill if now - r["want"] < 30 and now - r["at"] >= every(r)]
+            if not due:
+                _fill_cv.wait(1)
+                continue
+            rec = min(due, key=lambda r: r["at"])
+            rec["at"] = now
+            lat, lon, who, pid = rec["lat"], rec["lon"], rec["who"], rec["pid"]
+        try:
+            p = profiles()["profiles"].get(pid)
+            if not p or not fill_for(p):
+                continue
+            fr24_slot()
+            planes, status, credits = _fill_ask(lat, lon)
+            with _data_lock:
+                fr24_spent(credits, who, pid)
+            if status in (401, 402, 403):
+                _fr24_state.update(state="refused", error=f"key refused (HTTP {status})", refusedAt=time.time())
+                event("warn", f"Flightradar24 refused the gap filler (HTTP {status}): boards use the free sources. "
+                              "Check the key, the credits, or the subscription has ended.")
+                continue
+            if status == 429:
+                fr24_slot(pause=60)
+                continue
+            if planes is None:
+                event("warn", f"Flightradar24 gap filler failed (HTTP {status})", echo=False)
+                continue
+            new = []
+            with _fill_cv:
+                missing = [f for f in planes if f["hex"] not in rec["free"]]
+                if missing:
+                    rec["useless"] = 0
+                elif planes:
+                    rec["useless"] += 1
+                rec["near"] = any(_dist_km(rec["lat"], rec["lon"], f["lat"], f["lon"]) < GAME_KM for f in missing)
+                rec["planes"], rec["t"] = planes, time.time()
+                for f in missing:
+                    if f["hex"] not in rec["first"]:
+                        rec["first"][f["hex"]] = rec["t"]
+                        new.append(f)
+                for hx in [hx for hx, t in rec["first"].items() if rec["t"] - t > 3600]:
+                    del rec["first"][hx]
+            for f in new:
+                if f["flight"]:
+                    fr24_want(f["flight"], f["hex"], 0, who, pid)     # its type and registration, for the sighting
+                event("debug", f"Flightradar24 filled in {f['flight'] or f['hex']} at {f['alt_baro']} ft, "
+                               f"{_dist_km(lat, lon, f['lat'], f['lon']):.1f} km away: the free sources don't have it", echo=False)
+            if new:
+                with _data_lock:
+                    u = _fr24_usage()
+                    u["filled"] = u.get("filled", 0) + len(new)
+                    u["filledToday"] = u.get("filledToday", 0) + len(new)
+        except Exception as e:  # never let the paid extra break the relay
+            event("warn", f"Flightradar24 gap filler: {e}", echo=False)
 
 
 def day_stats(entries, over_km, over_deg=0.0):
@@ -6001,13 +6230,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(429, "text/plain", b"Too many requests")
             lat, lon = f"{float(lat):.2f}", f"{float(lon):.2f}"      # within a kilometre is the same question (relay 33)
             status, body, source, freshness = aircraft(lat, lon, nm)
+            extra = {"X-Relay-Source": source, "X-Relay-Data": freshness}
             if status == 200:
+                seen = body
+                try:                    # relay 66: away from home, Flightradar24 adds the low planes the free sources miss
+                    rec = fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
+                    if rec:
+                        body, seen, n = fill_merge(body, rec)
+                        extra["X-Relay-Fill"] = str(n)
+                except Exception as e:  # never let the paid extra break the live board
+                    event("warn", f"Flightradar24 gap filler: {e}", echo=False)
                 try:
                     with _data_lock:
-                        self.spot.take(body, lat, lon, nm, screen_place(self.query()))
+                        self.spot.take(seen, lat, lon, nm, screen_place(self.query()))
                 except Exception as e:  # never let history problems break the live board
                     event("warn", f"Couldn't record sightings: {e}")
-            return self.reply(status, "application/json", body, {"X-Relay-Source": source, "X-Relay-Data": freshness, "X-Sightings-Rev": str(self.spot.rev)})
+            return self.reply(status, "application/json", body, {**extra, "X-Sightings-Rev": str(self.spot.rev)})
         self.reply(404, "text/plain", b"Not found")
 
     do_HEAD = do_GET
@@ -6344,6 +6582,7 @@ def main():
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
+    threading.Thread(target=_fill_worker, daemon=True).start()
     threading.Thread(target=_screen_watch, daemon=True).start()
     threading.Thread(target=_push_watch, daemon=True).start()
     threading.Thread(target=_health_watch, daemon=True).start()
