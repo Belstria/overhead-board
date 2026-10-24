@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 66
+RELAY_VERSION = 67
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -102,10 +102,10 @@ FR24_REUSE_S = 6 * 3600     # relay 45: an answer serves the same aircraft and c
 FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quarter of the radius isn't looked up
 FILL_AWAY_KM = 30           # relay 66: Flightradar24 fills in what the free sources miss only this far from home,
 FILL_KM = 20                # ... asked about a box this far each way (the radius and a minute's flying: details come first)
-FILL_FT = 15000             # ... for planes up to this high (the free networks hear the high ones from far away)
-FILL_EVERY_S = 20           # ... every 20 s while a screen watches; every 10 s while a plane it added is within GAME_KM,
-FILL_FAST_S = 10
-FILL_SLOW_S = 300           # ... and every 5 min once 30 answers in a row (ten minutes) had nothing the free sources lacked
+FILL_FT = 10000             # ... for planes up to this high (the free networks hear the higher ones; relay 67: from 15,000)
+FILL_EVERY_S = 30           # ... every 30 s while a screen looks on; every 15 s while a plane it added is within GAME_KM
+FILL_FAST_S = 15            #     (relay 67: from 20 and 10 s; an answer costs 6 credits for each plane in it)
+FILL_SLOW_S = 300           # ... and every 5 min once 20 answers in a row (ten minutes) had nothing the free sources lacked
 FILL_MAX = 10               # ... at most this many planes an answer (6 credits each, 1 for none)
 FILL_SHARE = 0.8            # ... and only while the profile has spent less than this part of its daily credits
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
@@ -2060,8 +2060,10 @@ def fr24_overlay(entries, radius=15.0, over_km=3.0):
 # airport at 9,000 ft and 22 km out, minutes after they had flown over the house (airplanes.live heard them, but lets
 # only its feeders in). So while a screen of the owner's profile watches a place more than FILL_AWAY_KM from home, the
 # relay also asks Flightradar24 for the low planes around it and adds the ones the free answer lacks. Where ten minutes
-# of answers bring nothing new it asks only every few minutes; at home it never asks.
-_fill = []                   # a record per watched place: lat, lon, want (asked for), who, pid, at (asked), t (answered), planes
+# of answers bring nothing new it asks only every few minutes; at home it never asks. Relay 67, as each answer costs
+# 6 credits a plane: one record per profile, following its screens (a phone finding itself made three in a minute, each
+# paying for the same plane), and only while a screen is looked at (a page in the background says bg=1).
+_fill = []                   # a record per profile: pid, lat, lon, want (asked for), who, at (asked), t (answered), planes
 _fill_cv = threading.Condition()
 
 
@@ -2083,27 +2085,31 @@ def fill_for(p):
 
 
 def fill_want(lat, lon, pid, p, who):
-    """A screen of profile `p` asks for positions around (lat, lon): the gap filler's record for that place (made, or a
-    record within 3 km moved here), or None where the filler stays off."""
+    """A screen of profile `p` asks for positions around (lat, lon): the profile's gap-filler record, moved here (made
+    when it has none), or None where the filler stays off. Somewhere else altogether, it starts afresh there."""
     lat, lon = float(lat), float(lon)
     if _dist_km(lat, lon, *fill_home()) < FILL_AWAY_KM or not fill_for(p):
         return None
     with _fill_cv:
-        rec = next((r for r in _fill if _dist_km(lat, lon, r["lat"], r["lon"]) < 3), None)
+        rec = next((r for r in _fill if r["pid"] == pid), None)
         if rec is None:
             if not _fill:
                 event("info", f"Flightradar24 fills in what the free sources miss around {p.get('name')}'s screen, away from home")
-            rec = {"at": 0.0, "t": 0.0, "planes": [], "free": set(), "first": {}, "useless": 0, "near": False}
+            rec = {"pid": pid, "at": 0.0, "t": 0.0, "planes": [], "free": set(), "first": {}, "useless": 0, "near": False}
             _fill.append(rec)
             _fill_cv.notify()
-        rec.update(lat=lat, lon=lon, want=time.time(), who=who, pid=pid)
+        elif _dist_km(lat, lon, rec["lat"], rec["lon"]) > FILL_KM:
+            rec.update(at=0.0, t=0.0, planes=[], useless=0, near=False)
+            _fill_cv.notify()
+        rec.update(lat=lat, lon=lon, want=time.time(), who=who)
     return rec
 
 
-def fill_merge(body, rec):
-    """The free answer with the planes Flightradar24 last saw around `rec` that it lacks, aged to the answer's time.
-    Returns (body for the screen, body for the sightings, planes added): a plane joins the sightings once its type and
-    registration are looked up (or after 20 s), so its logbook entry is complete."""
+def fill_merge(body, rec, lat, lon, km):
+    """The free answer for a screen watching `km` around (lat, lon) with the planes in that circle Flightradar24 last saw
+    around `rec` that it lacks, aged to the answer's time. Returns (body for the screen, body for the sightings, planes
+    added): a plane joins the sightings once its type and registration are looked up (or after 20 s), so its logbook
+    entry is complete."""
     try:
         data = json.loads(body)
     except ValueError:
@@ -2121,7 +2127,7 @@ def fill_merge(body, rec):
     t0 = n / 1000 if isinstance(n, (int, float)) and n > 1e11 else n if isinstance(n, (int, float)) and n > 1e9 else now
     add, hold = [], set()
     for f in fresh:
-        if f["hex"] in have:
+        if f["hex"] in have or _dist_km(lat, lon, f["lat"], f["lon"]) > km:
             continue
         a = {k: v for k, v in f.items() if k != "ts"}
         a["seen_pos"] = a["seen"] = round(max(0.0, t0 - f["ts"]), 1)
@@ -2171,15 +2177,15 @@ def _fill_ask(lat, lon):
 
 
 def _fill_worker():
-    """Asks Flightradar24 about each watched place in turn: every FILL_EVERY_S, FILL_FAST_S while a plane it added is
-    close, FILL_SLOW_S where thirty answers in a row held nothing new. A place no screen asked about for two minutes is
-    dropped."""
+    """Asks Flightradar24 about each profile's place in turn while one of its screens looks on (asked within 30 s): every
+    FILL_EVERY_S, FILL_FAST_S while a plane it added is close, FILL_SLOW_S where twenty answers in a row held nothing
+    new. A record no screen asked about for two minutes is dropped."""
     while True:
         with _fill_cv:
             now = time.time()
             for r in [r for r in _fill if now - r["want"] > 120]:
                 _fill.remove(r)
-            every = lambda r: FILL_SLOW_S if r["useless"] >= 30 else FILL_FAST_S if r["near"] else FILL_EVERY_S
+            every = lambda r: FILL_SLOW_S if r["useless"] >= 20 else FILL_FAST_S if r["near"] else FILL_EVERY_S
             due = [r for r in _fill if now - r["want"] < 30 and now - r["at"] >= every(r)]
             if not due:
                 _fill_cv.wait(1)
@@ -6234,9 +6240,9 @@ class Handler(BaseHTTPRequestHandler):
             if status == 200:
                 seen = body
                 try:                    # relay 66: away from home, Flightradar24 adds the low planes the free sources miss
-                    rec = fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
+                    rec = None if self.query().get("bg") else fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
                     if rec:
-                        body, seen, n = fill_merge(body, rec)
+                        body, seen, n = fill_merge(body, rec, float(lat), float(lon), int(nm) * 1.852)
                         extra["X-Relay-Fill"] = str(n)
                 except Exception as e:  # never let the paid extra break the live board
                     event("warn", f"Flightradar24 gap filler: {e}", echo=False)
