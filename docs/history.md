@@ -11,6 +11,20 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.87.1 (the gap filler on the real Flightradar24, the first evening: it filled in RYR4328 landing at 4,400 ft, but two
+  short looks cost 112 credits, not the 5–8 the old estimate implied): relay 67 trims it. **One record per profile**
+  (`fill_want` finds it by `pid` and moves it to each asking screen; more than `FILL_KM` away it starts afresh, asking
+  at once). Relay 66 kept one per place within 3 km, and a phone finding itself (from where the app was last opened to
+  where it is) made three in 20 s, each paying for the same plane; the app and Chrome on one phone could do the same.
+  `fill_merge(body, rec, lat, lon, km)` only adds planes inside the asking screen's circle, for a profile with screens
+  in two places. **Not from the background:** a page that is hidden asks for positions with `bg=1` (`getAircraft`; it
+  polls every 60 s then) and the handler skips `fill_want` for it, so the record stops asking 30 s after the last look.
+  **Cheaper answers:** `FILL_FT` 10,000 (adsb.fi hears the island's planes from about 9,000 ft, and each plane in an
+  answer costs 6 credits even when the free answer has it), `FILL_EVERY_S` 30, `FILL_FAST_S` 15, slow after 20 answers
+  that held nothing new (still ten minutes). Measured on the test relay: asks 15 s apart while TST353 is within 10 km,
+  30 s after. The app: `#snapTag` (Last known board · not live yet) at `z-index:55`, under the opening (`#splash`, 60),
+  so after Refresh now it no longer shows over the logo; it shows on the board when the data is still not live once
+  the opening has gone.
 - 1.87 (Dave on an island: two Sky Express ATRs, SEH353 and SEH8TR, took off over him and the app showed nothing):
   adsb.fi, the only free source still answering the relay, first had them at about 9,000 ft and 22 km out (its map's
   trace); airplanes.live's map had them from 1,500 ft right overhead, but it answers the relay 403 (contributors only,
