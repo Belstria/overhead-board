@@ -559,17 +559,23 @@ Five buttons along the bottom:
   makes heights true with the home airport's air pressure and temperature (from its METAR; with live location the airport
   nearest you), looking from the phone's own height above the sea (its GPS, 1.76.1: on a hill or a cliff top planes
   below you show below the horizon); the ring has marks on all four sides; it works upright or
-  sideways and keeps steady pointed straight up (on iPhones the gyro steadies the compass). Since 1.76 the compass's
-  magnetic north is turned into true north (NOAA's World Magnetic Model; about 5° here). Phone compasses are often a few
-  degrees off: drag the picture to line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun
-  and the moon (1.76) sit in dashed rings where they really are: drag until the real one is in its ring, and every label
-  lines up too (on the screen; don't look into the sun). **AUTO** (1.76, experimental, the pill under the title; tap to
-  switch it off) looks for nearby planes in the camera picture: where it keeps finding one close to its label it slides
-  the labels onto it by itself (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see,
-  labels close together and the sun, and ignores cloud edges and contrails; a drag takes over for a few seconds.
+  sideways and keeps steady pointed straight up. Since 1.86 the phone's gyroscope moves the labels, so they stay on the
+  sky as you tilt and turn; the compass only says where north is, and only while you hold the phone still (compasses
+  swing about while the phone moves). Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
+  Magnetic Model; about 5° here). Phone compasses are often a few degrees off, sometimes far more: drag the picture to
+  line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun and the moon (1.76) sit in dashed
+  rings where they really are: drag until the real one is in its ring, and every label lines up too (on the screen;
+  don't look into the sun). Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
+  Sky view closes. **AUTO** (1.76, the pill under the title; tap to switch it off) lines the labels up by itself. Since
+  1.86 it finds the sun anywhere in the picture, however far off the compass is (up to 45°): while the sun is up and
+  nothing is lined up yet, the hint asks you to point the phone near it for a moment; gold corners then frame the sun's
+  ring ("lined up · sun"). It also looks for nearby planes: where it keeps finding one close to its label it slides
+  the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
+  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
-  meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still
-  (or the iPhone says its compass is poor), a note asks for a figure of eight or a drag.
+  meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still,
+  the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
+  eight or a drag (not once the labels are lined up).
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
   plane in the picture has been scanned (✓), a round shutter appears above the hint: it keeps the sky as on the
