@@ -736,7 +736,7 @@ const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change 
 const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
-const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
+const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEXT", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED", "TAXIING", "PARKED",
   "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
@@ -789,7 +789,7 @@ const REMARK_LOOK = {
 };
 
 /* ---------- settings ---------- */
-const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", palette:"", finish:"", badge:"", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:3, demo:false,
+const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", palette:"", finish:"", badge:"", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:10, logos:true, overKm:1, demo:false,
   theme:"classic", rotateS:30, statsPage:true, ding:true, favs:"", chimes:true, imperfect:true, night:true, nightFrom:"22:30", nightTo:"07:00", nightDim:40, nightView:"dim", airtimeMin:3, quality:"auto", mode:"overhead", lang:"auto"};
 // A guest (friends and family, relay 19+) keeps their own settings: in this browser under their own key, and on their
 // profile, which the relay hands back (OVERHEAD_GUEST). Their place comes first, in the phone app's welcome.
@@ -802,8 +802,10 @@ function loadSettings(){
   if (saved.v !== 2) ["lat", "lon", "place", "home", "radiusKm", "units"].forEach(k => delete saved[k]);  // older saves stored every field
   delete saved.v;
   const {mode, live, livePrev, ...shared} = GUEST && GUEST.settings || {};      // the style stays this device's own (1.40)
-  return {...DEFAULTS, ...shared, ...saved};
+  return overRule({...DEFAULTS, ...shared, ...saved});
 }
+// 1.84: OVERHEAD became within 1 km at any height or 45° up; settings saved with the old 3 km move to 1 km, once.
+function overRule(s){ if (s.overRule == null) { if (+s.overKm === 3) s.overKm = 1; s.overRule = 2; } return s; }
 function saveSettings(){
   const changed = settingsChanged({v: 2});            // 1.68: what goes along, worked out once for board and app (E12)
   if (GUEST) Object.assign(changed, locSet());
@@ -2314,6 +2316,19 @@ function geo(ac){
   const cpa = isFinite(tcpa) ? Math.hypot(x + vx * tcpa, y + vy * tcpa) : dist;
   return {dist, dir: COMPASS[Math.round(brg / 45) % 8], tcpa, cpa};
 }
+// 1.84 (the tracking review): the board judges where a plane is now, as Sky view does. A position is a few seconds old
+// when it comes (seen_pos, and the relay's shared answer: its source time against ours, at most 6 s so a wrong clock
+// can't run away with it) and older by the time the board looks again; it moves on straight at its speed, for at most
+// a minute.
+function ageOf(ac, list){
+  const at = list && list.recvAt || Date.now(), lag = list && list.now ? Math.min(6, Math.max(0, (at - list.now) / 1000)) : 0;
+  return Math.min(60, lag + Math.max(0, +ac.seen_pos || 0) + (Date.now() - at) / 1000);
+}
+function movedOn(ac, s){
+  if (!(s > 0) || !(ac.gs > 0) || ac.track == null || ac.lat == null) return ac;
+  const km = ac.gs * 1.852 / 3600 * s, th = ac.track * Math.PI / 180;
+  return {...ac, lat: ac.lat + km * Math.cos(th) / 110.57, lon: ac.lon + km * Math.sin(th) / (111.32 * Math.cos(ac.lat * Math.PI / 180))};
+}
 
 /* ---------- network ---------- */
 // Every request to the relay carries this page's session id, so the relay can tell the screens apart (see sayHello).
@@ -2447,7 +2462,7 @@ async function getAircraft(){
       throw new Error(`relay answered ${res.status}${detail ? ": " + detail : ""}`);
     }
     const j = await res.json(), list = j.ac || j.aircraft || [];
-    list.now = srcTime(j.now);
+    list.now = srcTime(j.now); list.recvAt = Date.now();
     const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
     if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
     if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
@@ -2465,7 +2480,7 @@ async function getAircraft(){
       if (f.name !== feedName && feedName) dlog("info", `Now getting positions from ${f.name}`);
       feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name; lastFreshness = "live";
       const list = j.ac || j.aircraft || [];
-      list.now = srcTime(j.now);
+      list.now = srcTime(j.now); list.recvAt = Date.now();
       DIAG.polls.push({t: Date.now(), ok: true, ms: performance.now() - t0, n: list.length});
       return list;
     } catch (e) { err = new Error(`${f.name}: ${netError(e, f.name)}`); dlog("debug", err.message); }
@@ -2784,7 +2799,7 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
     if (j.fr24 === false) apiOff();
     const first = sightRev === null, known = new Set(spotted.map(e => e.id));
     spotted = (j.entries || []).map(fromRelay);
@@ -2808,7 +2823,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
     if (j.stats && !allPlaces) relayStats = j.stats;
     renderSpottedBoard(); updateFooter();
@@ -2946,6 +2961,9 @@ function alertKind(o){
   if (SPECIAL_BIG.has(sp) || sp === "MILITARY") return "special";
   return favList().length && isFav(liveFacts(ac)) ? "fav" : null;
 }
+// 1.84 (Dave's answer to the tracking review): special planes and emergencies take the board anywhere in the radius;
+// a favourite only once it is overhead or approaching.
+function alertOn(o){ const k = alertKind(o); return k === "fav" ? o.kind === "over" || o.kind === "soon" : !!k; }
 function checkChimes(ok, R){
   const now = Date.now();
   for (const [k, t] of chimed) if (now - t > SAME_PASS_MS) chimed.delete(k);
@@ -2955,7 +2973,7 @@ function checkChimes(ok, R){
     const ac = o.ac, sp = specialOf({typeCode: ac.t, military: !!(ac.dbFlags & 1), interesting: !!(ac.dbFlags & 2), emergency: emergencyOf(ac)});
     let k = sp === "EMERGENCY" ? "emergency" : SPECIAL_BIG.has(sp) || sp === "MILITARY" ? "special" : null;
     const x = k || favList().length ? liveFacts(ac) : null;   // favourites need the airline, so only look it up when there are any
-    if (!k && x && isFav(x)) k = "fav";
+    if (!k && x && isFav(x) && (o.kind === "over" || o.kind === "soon")) k = "fav";     // 1.84: a favourite chimes once close
     if (!k) continue;
     chimed.set(o.ac.hex, now);
     dlog("info", `${x.flight || o.ac.hex} is ${k === "fav" ? "a favourite" : sp === "EMERGENCY" ? "squawking emergency " + x.emergency : sp.toLowerCase()} (${o.dist.toFixed(1)} km away)`);
@@ -2967,7 +2985,7 @@ function checkChimes(ok, R){
 function remarkFor(e){
   const badge = badgeFor(e);
   if (badge) return badge;
-  if (e.minDist != null && e.minDist <= overKm()) return "OVERHEAD";
+  if (overEntry(e)) return "OVERHEAD";
   const home = (S.home || "").toUpperCase(), f = e.from && e.from.code, t = e.to && e.to.code;
   if (home && t === home) return "ARRIVING";
   if (home && f === home) return "DEPARTING";
@@ -2988,17 +3006,31 @@ function countdown(sec){
   const t = Math.max(5, Math.round(sec / 5) * 5);
   return t < 60 ? T("IN {n} SEC", {n: t}) : T("IN {t}", {t: `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`});
 }
-const overKm = () => Math.min(+S.overKm || 3, +S.radiusKm || 15);
+const overKm = () => Math.min(+S.overKm || 1, +S.radiusKm || 15);
+// 1.84 (Dave's rule after the tracking review): a plane is overhead within overKm (1 km) at any height, or once it
+// stands 45° or more up: inside a circle as wide as it flies high (11 km for a cruiser at 36,000 ft), never wider than
+// the radius. overIn: 0 while it is there, else the seconds until its line takes it in (Infinity when it won't).
+const OVER_DEG = 45;
+function overR(alt){ return Math.min(+S.radiusKm || 15, Math.max(overKm(), alt > 0 ? alt * .3048 / 1000 / Math.tan(OVER_DEG * Math.PI / 180) : 0)); }
+function overIn(o){
+  const r = overR(o.alt), v = (o.ac.gs || 0) * 1.852 / 3600;
+  if (o.dist <= r) return 0;
+  return o.tcpa > 0 && o.cpa <= r && v > 0 ? Math.max(0, o.tcpa - Math.sqrt(r * r - o.cpa * o.cpa) / v) : Infinity;
+}
+// A sighting in the lists: it came that close, or that high up.
+function overEntry(e){ return e.minDist != null && e.minDist <= overR(e.altAtMin); }
 function distStr(o){ return (o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)) + " KM " + o.dir; }
 
 function setFeat(o, mode, alert = false){
   const now = Date.now();
   if (!feat || feat.hex !== o.ac.hex) {
-    if (!alert) seatbeltDing();                        // a new plane on top: look up
     const p = enrich(o.ac);
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
     p.then(info => { h.info = info; if (feat === h) renderFeatured(); });
   }
+  // 1.84 (the tracking review): the ding says "look up", so it rings once, as the plane on top becomes overhead or
+  // approaching (it rang for every new plane on top, mostly ones flying by far off)
+  if (!alert && !feat.dinged && (mode === "over" || mode === "soon")) { feat.dinged = true; seatbeltDing(); }
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km${o.alt != null ? " · " + nf.format(Math.round(o.alt)) + " ft" : ""}`);
   feat.o = o; feat.mode = mode;
   if (mode === "over" || mode === "soon") feat.lastSeen = now;
@@ -3084,23 +3116,25 @@ function restingPlanes(ok, R, now){
 const recent = new Map();        // hex -> last time and place each aircraft was seen
 const MISSING_GRACE_MS = 30000;
 let emptyStreak = 0, lastCount = 0;
-function process(list){
+// again (1.84): the same update looked at again between updates, its planes moved on (the timer under poll).
+function process(list, again){
   if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || (ac.alt_baro === "ground" && !airportMode())) continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
-    all.push({ac, alt, ...geo(ac)});
+    all.push({ac, alt, ...geo(movedOn(ac, ageOf(ac, list)))});
   }
   // A source that suddenly reports an empty sky is almost always a glitch: skip a couple of those.
-  if (!all.length && lastCount > 3 && ++emptyStreak < 3) {
+  if (!again && !all.length && lastCount > 3 && ++emptyStreak < 3) {
     dlog("warn", `${feedName || "The source"} reported no aircraft at all; ignoring this update`);
     return;
   }
   if (all.length) emptyStreak = 0;
   lastCount = all.length;
   nearbyCount = all.length;
-  for (const o of all) {
+  if (again) for (const o of all) { const r = recent.get(o.ac.hex); o.rate = r ? r.o.rate : null; }
+  else for (const o of all) {
     let rate = typeof o.ac.baro_rate === "number" ? o.ac.baro_rate : typeof o.ac.geom_rate === "number" ? o.ac.geom_rate : null;
     const prev = recent.get(o.ac.hex);
     if (rate == null && prev && prev.o.alt != null && o.alt != null && now - prev.t > 4000) rate = (o.alt - prev.o.alt) / ((now - prev.t) / 60000);
@@ -3123,18 +3157,18 @@ function process(list){
   const closest = ok.reduce((a, o) => !a || o.dist < a.dist ? o : a, null);
   DIAG.closest = closest ? {name: (closest.ac.flight || "").trim() || closest.ac.r || closest.ac.hex, dist: closest.dist, alt: closest.alt, tcpa: closest.tcpa, cpa: closest.cpa} : null;
   if (!relayV5()) logPlanes(ok, R);    // with relay version 5 the relay keeps the list
-  // How each plane relates to us: directly overhead, on course to pass over, passing at a distance, or moving away.
-  const OVK = overKm();
-  for (const o of all) o.kind = o.alt != null && o.alt > S.maxAltFt ? "" : o.dist <= OVK ? "over" : (o.tcpa > 0 && o.tcpa <= 180 && o.cpa <= OVK) ? "soon" : o.tcpa > 0 ? "by" : "away";
-  radarTrack(all, now);
+  // How each plane relates to us: overhead (overIn), there within three minutes, closing but passing beside, or moving away.
+  for (const o of all) { o.tin = overIn(o); o.kind = o.alt != null && o.alt > S.maxAltFt ? "" : !o.tin ? "over" : o.tin <= 180 ? "soon" : o.tcpa > 0 ? "by" : "away"; }
+  if (!again) radarTrack(all, now);
   if (view === "radar") renderRadarList();
   if (airportMode()) { apFeature(all); checkChimes(ok, R); return; }     // the airport style picks its own plane for the top
   const rest = restingPlanes(ok, R, now), cand = (rest.size ? ok.filter(o => !rest.has(o.ac.hex)) : ok).filter(o => !hiddenAc(o.ac));
   const over = cand.filter(o => o.kind === "over").sort((a, b) => a.dist - b.dist);
-  const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tcpa - b.tcpa);
+  const soon = cand.filter(o => o.kind === "soon").sort((a, b) => a.tin - b.tin);
   const mine = arr => feat && arr.find(o => o.ac.hex === feat.hex);
-  // A plane that rings the bell (emergency, special, military, favourite) takes the board while it is in the radius.
-  const alerts = cand.filter(o => o.dist <= R && alertKind(o)).sort((a, b) => a.dist - b.dist);
+  // A plane that rings the bell (emergency, special, military) takes the board while it is in the radius; a favourite
+  // once it is overhead or approaching (alertOn, 1.84).
+  const alerts = cand.filter(o => o.dist <= R && alertOn(o)).sort((a, b) => a.dist - b.dist);
   const modeOf = o => o.kind === "over" ? "over" : o.kind === "soon" ? "soon" : o.tcpa > 0 ? "by" : "away";
   let pick = null, mode = null, alert = false;
   if (alerts.length) { pick = mine(alerts) || alerts[0]; mode = modeOf(pick); alert = true; }
@@ -3150,12 +3184,12 @@ function process(list){
     if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
     feat.mode = "passed";
   } else {
-    // Nothing overhead or on its way: show the most relevant plane in the radius, preferring ones coming closer.
-    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && cand.find(o => o.ac.hex === feat.hex);
-    const coming = (a, b) => (a.tcpa > 0 ? 0 : 1) - (b.tcpa > 0 ? 0 : 1) || a.dist - b.dist;
-    const next = keep || cand.filter(o => o.dist <= R).sort(coming)[0] || cand.slice().sort((a, b) => a.dist - b.dist)[0];
-    if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
-    else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
+    // 1.85 (Dave's pick A after the tracking review): nothing overhead or approaching, so the next plane on course to
+    // be overhead later, from anywhere the board can see, as NEXT counting down (no ding: that comes as it starts
+    // approaching); else NO TRAFFIC. It used to show the nearest plane flying by, up to 46 km away.
+    const next = cand.filter(o => o.kind === "by" && isFinite(o.tin)).sort((a, b) => a.tin - b.tin), n = mine(next) || next[0];
+    if (n) setFeat(n, "next");
+    else { if (feat) dlog("info", "Board: nothing overhead, approaching or on its way"); feat = null; }
   }
   checkChimes(ok, R);
   renderFeatured();
@@ -3440,7 +3474,7 @@ function windowWorthy(ac, info){
   const x = liveFacts(ac, info), sp = specialOf(x);
   return sp === "EMERGENCY" || SPECIAL_BIG.has(sp) || sp === "MILITARY" || !!x.watch || isFav(x);
 }
-const MODE_REMARK = {over: "OVERHEAD", soon: "APPROACHING", passed: "PASSED", by: "FLYING BY", away: "LEAVING", near: "NEARBY", ap: ""};
+const MODE_REMARK = {over: "OVERHEAD", soon: "APPROACHING", passed: "PASSED", next: "NEXT", by: "FLYING BY", away: "LEAVING", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -3464,7 +3498,7 @@ function renderFeatured(){
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
     feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
-      feat.mode === "soon" ? countdown(o.tcpa) : distStr(o), trend];
+      feat.mode === "soon" || feat.mode === "next" ? countdown(o.tin) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
   if (fields.seen) { const rl = remarkLines(ac, info); setChars("seen", rl.length ? rl[Math.floor(now / 6000) % rl.length] : "", 520); setChars("toGo", toGoText(info, o) || (done && !(info.to && info.to.lat != null) ? NA : ""), 510); }
@@ -3491,7 +3525,7 @@ function saveRecent(){ if (S.demo) return; try { localStorage.setItem(RECENT_KEY
 function noteFeatured(){
   if (!feat || !feat.o || S.demo) return;
   const now = Date.now(), ac = feat.o.ac;
-  if (now - feat.since < 5000) return;                   // it has to stay on the board for a moment to count
+  if (now - feat.since < 5000 || feat.mode === "next") return;   // it has to stay on the board for a moment to count; NEXT once it comes
   let e = recentFlights.find(x => x.hex === feat.hex && now - x.ts < SAME_PASS_MS), added = false;
   if (!e) {
     e = {ts: feat.since, time: hhmm(new Date(feat.since)), hex: feat.hex};
@@ -3819,12 +3853,12 @@ function renderStats(){
     setChars("stNew", st.newTypes || st.newAirlines ? T("{a} types - {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet"), 600);
     return;
   }
-  const list = spotted, OVK = overKm();
+  const list = spotted;
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
   setChars("stPlanes", String(list.length));
   setChars("stAirlines", String(uniq(e => e.airlineCode || clean(e.airline))), 60);
   setChars("stTypes", String(uniq(e => e.typeCode || clean(e.type))), 120);
-  setChars("stOver", String(list.filter(e => e.minDist != null && e.minDist <= OVK).length), 180);
+  setChars("stOver", String(list.filter(overEntry).length), 180);
   const withAlt = list.filter(e => typeof e.altAtMin === "number");
   const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
   const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
@@ -4054,8 +4088,8 @@ function airportChanged(){ renderAirport(); }
 /* Spotted today on the board: fourteen rows a page, newest first, a lamp lit in the colour of anything special. */
 let svFilter = "all", svPageNo = 0, svLegend = false;
 let svSig = "";function svData(){
-  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm(), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
-  const isOver = e => e.minDist != null && e.minDist <= OVK;      // 1.72: Special is special planes only; favourites have their own
+  const real = todayList().filter(e => !e.sample || S.demo), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
+  const isOver = overEntry;      // 1.72: Special is special planes only; favourites have their own
   const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecialPlane).length, fav: hit.filter(isFav).length};
   const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecialPlane : svFilter === "fav" ? isFav : () => true);
   return {real, rows, counts, pages: Math.max(1, Math.ceil(rows.length / SV_ROWS))};
@@ -4191,11 +4225,12 @@ function legendGroups(){
   const home = (S.home || "").toUpperCase() || T("your home airport"), OVK = overKm();
   return [
     [T("Status on the board"), [
-      ["OVERHEAD", T("Directly above you, within {n} km (in the lists: it came that close)", {n: OVK})],
+      ["OVERHEAD", T("Within {n} km at any height, or 45° or more up in the sky (in the lists: it came that close or that high)", {n: OVK})],
       ["APPROACHING", T("On course to pass overhead within three minutes")],
       ["FLYING BY", T("Getting closer, but won't pass overhead")],
       ["LEAVING", T("Moving away")],
       ["PASSED", T("Just passed overhead")],
+      ["NEXT", T("The next plane on course to pass overhead; Position counts down")],
       ["NO TRAFFIC", T("No planes around right now")],
       ["OFFLINE", T("No flight data for over a minute")]]],
     [T("Route"), [
@@ -6664,6 +6699,21 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.85", date: "2026-10-24", notes: [
+    "With nothing overhead or approaching, the board shows the next plane on its way as NEXT, counting down; else NO TRAFFIC.",
+  ]},
+  {v: "1.84", date: "2026-10-24", notes: [
+    "A plane counts as overhead within 1 km, or once it stands 45° or more up in the sky; the lists and today's numbers count the same way.",
+    "The board works out where planes are right now and looks again between updates, so OVERHEAD and the countdown come on time.",
+    "The new-plane ding only rings as a plane becomes overhead or approaching.",
+    "A favourite takes the board and chimes once it is overhead or approaching.",
+  ]},
+  {v: "1.83.3", date: "2026-10-23", notes: [
+    "A plane tapped on the radar or in its Nearest list opens its card from the bottom, like everywhere else in the app.",
+  ]},
+  {v: "1.83.2", date: "2026-10-23", notes: [
+    "The radar's reset is a push button beside the Range km wheel; its arrow lights up when there's a zoom to undo.",
+  ]},
   {v: "1.83.1", date: "2026-10-23", notes: [
     "Panel titles sit level with the top screws, and their lines end the same distance from the screws on every panel.",
   ]},
@@ -7442,7 +7492,7 @@ const HINTS = {
   places: "Your saved places: tap one to watch it.",
   lat: "Where to watch the sky. Use current location fills it in.",
   radiusKm: "Planes within this distance count as spotted.",
-  overKm: "Closer than this counts as directly overhead.",
+  overKm: "Closer than this counts as overhead at any height; higher planes count from 45° up.",
   maxAltFt: "Planes higher than this are left out.",
   refreshS: "How often new positions are fetched.",
   airtimeMin: "How long a hovering helicopter or circling plane may stay on top, per hour.",
@@ -8073,7 +8123,7 @@ function applySettings(n){
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
     maxAltFt: +n.maxAltFt, refreshS: +n.refreshS, rotateS: +n.rotateS, airtimeMin: +n.airtimeMin, nightDim: +n.nightDim || 40,
-    speedPct: +n.speedPct || 85, overKm: +n.overKm || 3,
+    speedPct: +n.speedPct || 85, overKm: +n.overKm || 1,
     nightFrom: n.nightFrom || DEFAULTS.nightFrom, nightTo: n.nightTo || DEFAULTS.nightTo};
   saveSettings(); audioInit();
   AP.code = "";                                               // the home airport may have changed
@@ -8118,7 +8168,7 @@ function diagRows(){
   const state = S.demo ? ["Demo mode", "meh"] : isOffline() ? ["Offline", "bad"] : failures ? [`Retrying (${failures} failed in a row)`, "meh"] : lastOk ? ["Live", "good"] : ["Starting", "meh"];
   const conn = S.demo ? "Demo data, no network" : relay() ? `Home relay at ${relay().replace(/^https?:\/\//, "")}${relayLegacy ? " (older version, please update)" : ""}` : "Direct, no relay: the position services will block this";
   const c = DIAG.closest;
-  const pass = !c ? "" : c.dist <= overKm() ? "overhead now" : c.tcpa > 0 ? `closest approach ${c.cpa.toFixed(1)} km in ${countdown(c.tcpa).replace("IN ", "").toLowerCase()}` : "moving away";
+  const pass = !c ? "" : c.dist <= overR(c.alt) ? "overhead now" : c.tcpa > 0 ? `closest approach ${c.cpa.toFixed(1)} km in ${countdown(c.tcpa).replace("IN ", "").toLowerCase()}` : "moving away";
   const closest = c ? `${c.name} · ${c.dist.toFixed(1)} km · ${c.alt != null ? nf.format(Math.round(c.alt)) + " ft" : "altitude unknown"} · ${pass} · ${c.dist <= R ? "inside" : "outside"} the ${R} km spotting radius` : "none in range";
   return [
     ["Connection", conn],
@@ -8311,7 +8361,7 @@ function wake(){ document.body.classList.remove("idle"); clearTimeout(idleT); id
 addEventListener("resize", resize);
 
 /* ---------- main loop ---------- */
-let timer = null, busy = false;
+let timer = null, busy = false, lastList = null;
 // Each update is numbered: when a forced one starts while another is on its way (a new place, a new style), only the
 // newest answer counts, and only one timer stays running. A bug while drawing isn't a failed update (it used to count
 // as one, and three in a row showed OFFLINE).
@@ -8349,9 +8399,17 @@ async function poll(force){
     }
   }
   if (!list) return;
+  lastList = list;
   try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
   catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }
 }
+// 1.84 (the tracking review): between updates (10 s on a board, 5 s in the app) the board looks at the last one again
+// every 2 s with its planes moved on, so OVERHEAD, APPROACHING and PASSED come when they happen. Not in the Airport style,
+// which picks its plane its own way, nor while the page is hidden or the update is half a minute old.
+setInterval(() => {
+  if (!lastList || busy || S.demo || airportMode() || document.hidden || Date.now() - (lastList.recvAt || 0) > 30000) return;
+  try { process(lastList, true); } catch (e) { dlog("error", `Couldn't look again: ${e && e.message || e}`); }
+}, 2000);
 
 async function start(){
   pickLang();
