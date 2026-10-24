@@ -11,6 +11,34 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.86 (Sky view on a real sky, Dave on Santorini: the sun's ring 24° beside the sun from the start, and sliding
+  sideways as the phone tilted, back when held still): **the gyroscope turns the labels.** Android (Chrome, WebView)
+  sends `deviceorientationabsolute` (rotation vector: gyro, gravity and compass fused) and, with a gyroscope,
+  `deviceorientation` with `absolute` false (game rotation vector: gyro and gravity, its zero anywhere); `arOpen` listens
+  to both. `arOrient` keeps the compass's matrix (`arAbsR`) and, while the gyroscope's reading comes (`arRelT` within
+  400 ms), turns the labels with that one plus `arGap`, the turn about the vertical between the two (`arYaw(A, B)` of
+  A·Bᵀ). `arGapStep` takes the first gap at once, then follows the compass only while the phone is held still
+  (`AR_STILL_MS` 1.5 s after `arGyroStep` last saw it turn faster than 6°/s, smoothed; then τ `AR_GAP_TAU` 2 s, 4 s when
+  an iPhone says its compass is poor), and not at all once lined up. iPhones go the same way (gyro alpha + the compass
+  heading's gap). Without the gyroscope's reading, the compass's turns the labels as before. `arGyroStep` also carries
+  north over a jump no hand makes (over 20° at over 1000°/s: the gyroscope's zero reset). `arTurn` is the old 1€-like
+  smoothing; `arLastQ` the last orientation fed. **Lined up, north is held** (`arHold`, `arHeldAt`): an AUTO lock or a
+  drag stops the compass's part until ⟲ (which also drops `arGap`, so the compass's north comes back at once) or Sky view
+  closes. **The compass check** also fires when the compass swings 12° or more against the gyroscope within 4 s (not
+  in a flick over 60°/s; not once lined up). **AUTO finds the sun** (`arSunFind`, every AUTO step while it is 1° to 75°
+  up): the whole video at 160 samples on its long side; with something burnt out (≥ 245), the patches within 10 of the
+  brightest (8-connected) are filled out, each placed in the sky with `arUnproject` (the screen back to azimuth and
+  height, `arProject`'s inverse); patches more than 6° off the sun's height are left out (the tilt is right even when
+  the compass isn't: the glint on the sea, lamps, walls); the largest must be 3 times the next, not cut by the
+  picture's edge, 0.7° to 20° across, at least 45 % of its box and at most 1.8 times as long as wide, and at most 45° off
+  the sun's azimuth. A find is the offset that puts the sun's ring on it (`hex` "sun"); 4 finds in 2.5 s, 80 % within
+  1.2°, make a lock, and the sun then decides alone (`arAutoLock.sun`). The chip says "lined up · sun", gold corners
+  (`arBrackets(g, x, y, r, arm)`, 32/10) frame the ring, and until lined up the hint asks to point the phone near the
+  sun. Tested headless with a synthetic camera (the sun's glare, a glint on the sea, a bright cloud, a lens flare,
+  drawn where they really are) and synthetic sensors (a compass 26° off, plus 0.5° per degree of tilt, 12° with heading
+  and a swing while moving that settles in 1.5 s): tilting 20° up, the ring stayed 25° off the sun (main: slid from 25
+  to 45°); AUTO lined up on the sun within about a second, 0.05° off after 4 s; turned 90° away and 30° up with the
+  compass swinging up to 100° off, the labels stayed within 1° (0.0° once still); pointed 120° away, nothing locked.
 - 1.85 (Dave's pick A of the quiet-sky mockups, "anywhere in view"; the where-to-look options were declined): with no
   alert, over, soon or PASSED hold, `process()` puts the plane with the smallest finite `o.tin` above 180 s (kind "by",
   any distance in the 46 km answer; the one on top stays while it is still due) on top as mode "next" (status NEXT, a

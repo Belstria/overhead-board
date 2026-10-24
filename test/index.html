@@ -6699,6 +6699,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.86", date: "2026-10-24", notes: [
+    "Sky view: point the phone near the sun and AUTO lines every label up on it, however far off the compass is.",
+    "Sky view: the labels stay on the sky as you tilt and turn; the compass only sets north while the phone is held still.",
+  ]},
   {v: "1.85", date: "2026-10-24", notes: [
     "With nothing overhead or approaching, the board shows the next plane on its way as NEXT, counting down; else NO TRAFFIC.",
   ]},
