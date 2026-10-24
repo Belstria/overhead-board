@@ -21,7 +21,7 @@ https://<user>.github.io/overhead-board/?lat=48.2085&lon=16.3731&place=Vienna
 | `lat`, `lon` | Spot to watch over | `lat=48.2085&lon=16.3731` |
 | `place` | Name printed under the title | `place=Vienna` |
 | `radius` | Spotting radius in km: planes within it are added to Spotted today (default 15) | `radius=8` |
-| `over` | Counts as directly overhead within this many km (default 3) | `over=2` |
+| `over` | Counts as overhead at any height within this many km (default 1; higher planes count from 45° up) | `over=2` |
 | `home` | Home airport IATA code, for Arriving / Departing | `home=VIE` |
 | `maxalt` | Ignore planes above this altitude in feet (Settings shows metres when the units are metric) | `maxalt=15000` |
 | `units` | `aviation` for feet and knots (default metres and km/h) | `units=aviation` |
@@ -46,14 +46,19 @@ values you changed are kept, so new defaults from the relay still reach that scr
 
 The top half shows one plane and how it relates to you, worked out from its position, heading and speed:
 
-- **Overhead**: directly above, within the overhead distance (3 km by default).
-- **Approaching** (called Inbound before 1.55): on course to pass over within three minutes; Position counts down to the pass.
-- **Flying by**: getting closer, but its closest approach will be further than the overhead distance.
+- **Overhead** (1.84): within the overhead distance at any height (Settings → Overhead within, 1 km by default), or 45°
+  or more up in the sky, so a cruiser at 11 km counts from about 11 km out. Until 1.84 it was within 3 km at any height.
+- **Approaching** (called Inbound before 1.55): on course to be overhead within three minutes; Position counts down to the
+  moment it gets there.
+- **Flying by**: getting closer, but it won't be overhead.
 - **Leaving** (Outbound before 1.55): moving away, soft red on the radar. **Passed** is shown for a little while after an overhead pass.
 
-Planes that are overhead or approaching always take the top spot; otherwise the board shows the plane in the
-spotting radius that is coming closer. Every plane that enters the spotting radius is added to
-**Spotted today** once per pass. The list marks the ones that flew directly overhead and otherwise shows
+Since 1.84 the board works out where each plane is right now: positions are a few seconds old when they arrive, so it
+moves them on along their track, and between updates it looks again every 2 seconds, so OVERHEAD, APPROACHING and
+PASSED change when they happen. Planes that are overhead or approaching always take the top spot (special planes and
+emergencies take it from anywhere in the radius; favourites once they are overhead or approaching, since 1.84);
+otherwise the board shows the plane in the spotting radius that is coming closer. Every plane that enters the spotting radius is added to
+**Spotted today** once per pass. The list marks the ones that came overhead (by the same rule) and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
 ## The three boards
@@ -178,7 +183,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Favourite… / Hide…** under This aircraft, opens a sheet to make its aircraft, type, airline or flight a favourite or
   hide it from now on; Settings → **Favourites & hidden** lists them with a × each and adds new ones (airlines and
   types to pick from). The lists are kept on the relay for your profile, so every board, the app and the notifications
-  follow them. Favourites are marked FAVOURITE, chime and can notify; hidden planes stay off the board's top half,
+  follow them. Favourites are marked FAVOURITE, chime and can notify (since 1.84 they take the top half and chime once
+  they are overhead or approaching); hidden planes stay off the board's top half,
   the lists, the radar and the notifications (still counted in the logbook). The board's old Favourites text in
   Settings still works and moves into the list the first time the app opens.
 - **Updates every 5 seconds in the app** (boards: 10, Settings → Update every), and planes on the radar glide: each is
@@ -292,7 +298,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   places** button; the Logbook's place buttons (All and your saved places) and a **CSV** download. Nothing on the board needs
   scrolling (TVs can't): address results and airport choices open as a window, Update location fits its cell, and
   About's patch notes and legend move with **▲ ▼** buttons.
-- **New plane ding** (1.43): a soft, subtle cabin "ding" when a new plane comes on top, so you know when to look up
+- **New plane ding** (1.43): a soft, subtle cabin "ding" when the plane on top becomes overhead or approaching (since
+  1.84; it used to ring for every new plane on top, mostly ones flying by), so you know when to look up
   (not for special planes, which have their own chime; not at night; at most every 15 seconds). Settings → Traffic
   (board) or Sounds (app) → **New plane ding**; switching it on plays it. Since 1.45 it is a recorded Airbus cabin
   chime (its first tone; both tones since 1.46), and it only sounds where the plane on top shows (the board without a view open, the app's

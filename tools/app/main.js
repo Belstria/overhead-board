@@ -12,7 +12,7 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:3, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
@@ -21,8 +21,10 @@ function loadSettings(){
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(SKEY) || "{}") || {}; } catch {}
   const {mode, live, livePrev, daylight, ...shared} = GUEST && GUEST.settings || {};      // the style (1.40) and Daylight (1.66) stay this device's own
-  return {...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})};
+  return overRule({...DEFAULTS, ...shared, ...saved, ...(LIGHT ? LIGHT_FIXED : {})});
 }
+// 1.84: OVERHEAD became within 1 km at any height or 45° up; settings saved with the old 3 km move to 1 km, once.
+function overRule(s){ if (s.overRule == null) { if (+s.overKm === 3) s.overKm = 1; s.overRule = 2; } return s; }
 // A guest's settings go to their profile a moment after a change, always with their place (`located` once they have
 // set one), so the relay knows where to count their planes even when it happens to be the default spot (locSet, E12).
 function saveMe(changed, now){
@@ -445,7 +447,7 @@ async function syncSightings(){
   if (sightBusy || !relayV5()) return;
   sightBusy = true;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
+    const j = await fetchJSON(`${relay()}/sightings?over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ()}`, {}, 8000);
     if (j.fr24 === false) apiOff();
     const first = sightRev === null;
     spotted = (j.entries || []).map(fromRelay);
@@ -463,7 +465,7 @@ async function loadFullDay(){
   if (!relayV5() || fullDay.busy || now - fullDay.at < 15000 || (fullDay.list && fullDay.rev === sightRev)) return;
   fullDay.busy = true; fullDay.at = now;
   try {
-    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
+    const j = await fetchJSON(`${relay()}/sightings?all=1&over=${overKm()}&deg=${OVER_DEG}${apiWanted() ? "&api=1" : ""}${sightPlaceQ(allPlaces)}`, {}, 20000);
     fullDay = {at: now, rev: String(j.rev), date: j.date || null, list: (j.entries || []).map(fromRelay), all: allPlaces, stats: j.stats || null};
     if (j.stats && !allPlaces) relayStats = j.stats;
     renderToday();
@@ -481,11 +483,12 @@ function dayList(){
 function setFeat(o, mode, alert = false){
   const now = Date.now();
   if (!feat || feat.hex !== o.ac.hex) {
-    if (!alert) seatbeltDing();                        // a new plane on top: look up
     const p = enrich(o.ac);
     const h = feat = {hex: o.ac.hex, since: now, logged: false, info: p.info};
     p.then(info => { h.info = info; if (feat === h) { renderFeatured(); renderAircraftInfo(); } });
   }
+  // 1.84: the ding says "look up": once, as the plane on top becomes overhead or approaching (as on the board)
+  if (!alert && !feat.dinged && (mode === "over" || mode === "soon")) { feat.dinged = true; seatbeltDing(); }
   if (feat.mode !== mode) dlog("info", `Board: ${planeName(feat, o.ac)} · ${MODE_REMARK[mode]} · ${o.dist.toFixed(1)} km`);
   feat.o = o; feat.mode = mode;
   if (mode === "over" || mode === "soon") feat.lastSeen = now;
@@ -625,8 +628,8 @@ function todayList(){
   return userLists.hide.length ? fullDay.list.filter(e => !isHidden(e)) : fullDay.list;
 }
 function svData(){
-  const real = todayList().filter(e => !e.sample || S.demo), OVK = overKm(), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
-  const isOver = e => e.minDist != null && e.minDist <= OVK;      // 1.72: Special is special planes only; favourites have their own
+  const real = todayList().filter(e => !e.sample || S.demo), hit = svQuery ? real.filter(e => spotMatch(e, svQuery)) : real;
+  const isOver = overEntry;      // 1.72: Special is special planes only; favourites have their own
   const counts = {all: hit.length, over: hit.filter(isOver).length, special: hit.filter(isSpecialPlane).length, fav: hit.filter(isFav).length};
   const rows = hit.filter(svFilter === "over" ? isOver : svFilter === "special" ? isSpecialPlane : svFilter === "fav" ? isFav : () => true);
   return {real, rows, counts};
@@ -656,7 +659,7 @@ function topTypes(list){
   return [...c].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${shortType(TYPES[k] || k)} ×${n}`).join(" · ");
 }
 function todayNumbers(){
-  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList(), OVK = overKm();
+  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList();
   if (st) {
     const name = x => x ? fromRelay(x).flight : "";
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
@@ -673,7 +676,7 @@ function todayNumbers(){
   const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
   const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
   return {planes: list.length, airlines: uniq(e => e.airlineCode || clean(e.airline)), types: uniq(e => e.typeCode || clean(e.type)),
-    over: list.filter(e => e.minDist != null && e.minDist <= OVK).length, facts: [
+    over: list.filter(overEntry).length, facts: [
       ["Lowest pass", "Tiefster", low ? `${low.flight} · ${altText(low.altAtMin)}` : ""],
       ["Highest pass", "Höchster", high ? `${high.flight} · ${altText(high.altAtMin)}` : ""],
       ["Most seen types", "", topTypes(list)]]};
@@ -2835,7 +2838,7 @@ function applySettings(n){
     lon: isFinite(lon) && Math.abs(lon) <= 180 ? lon : S.lon,
     radiusKm: Math.min(20, Math.max(1, num(n.radiusKm) || 15)),
     home: clean(n.home).slice(0, 3), favs: String(n.favs || "").trim(),
-    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 3};
+    maxAltFt: +n.maxAltFt, airtimeMin: +n.airtimeMin, speedPct: +n.speedPct || 85, overKm: +n.overKm || 1};
   const langWas = LANG;
   if (GUEST) S.located = true;                               // a guest who saved Settings has chosen their place
   saveSettings(); audioInit(); nightCheck();
