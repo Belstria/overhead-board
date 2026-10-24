@@ -11,6 +11,12 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.85 (Dave's pick A of the quiet-sky mockups, "anywhere in view"; the where-to-look options were declined): with no
+  alert, over, soon or PASSED hold, `process()` puts the plane with the smallest finite `o.tin` above 180 s (kind "by",
+  any distance in the 46 km answer; the one on top stays while it is still due) on top as mode "next" (status NEXT, a
+  plain word in `REMARKS`, `MODE_REMARK.next`); Position counts down `o.tin`; no ding until it turns soon (`feat.dinged`);
+  `noteFeatured` leaves NEXT out of Recent flights. With none, NO TRAFFIC: the old fallback (the nearest closing plane
+  in the radius kept 60 s, else the nearest up to 46 km) is gone. Legend row NEXT.
 - 1.84 (the tracking review, Dave's answers of 24 Oct; the review is a Claude Doc, "Fallblatt Plane Tracking Review"):
   OVERHEAD is within `overKm()` (Settings → Overhead within, now 1 km by default; `overRule` moves a saved 3 to 1 once)
   at any height, or `OVER_DEG` (45°) or more up: `overR(alt)` is that circle (as wide as the plane flies high, at most the

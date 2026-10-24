@@ -56,8 +56,10 @@ The top half shows one plane and how it relates to you, worked out from its posi
 Since 1.84 the board works out where each plane is right now: positions are a few seconds old when they arrive, so it
 moves them on along their track, and between updates it looks again every 2 seconds, so OVERHEAD, APPROACHING and
 PASSED change when they happen. Planes that are overhead or approaching always take the top spot (special planes and
-emergencies take it from anywhere in the radius; favourites once they are overhead or approaching, since 1.84);
-otherwise the board shows the plane in the spotting radius that is coming closer. Every plane that enters the spotting radius is added to
+emergencies take it from anywhere in the radius; favourites once they are overhead or approaching, since 1.84).
+Otherwise, since 1.85, it shows the **Next** plane on course to pass overhead, from anywhere the board can see, with
+Position counting down until it gets there (it turns Approaching three minutes out, with the ding); with none on its
+way it says **No traffic**. Before 1.85 it showed the nearest plane flying by, even one far outside the radius. Every plane that enters the spotting radius is added to
 **Spotted today** once per pass. The list marks the ones that came overhead (by the same rule) and otherwise shows
 Arriving or Departing for your home airport. The Spotted today panel also lists each plane's closest distance.
 
