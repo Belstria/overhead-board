@@ -736,7 +736,7 @@ const DRUM_ALT = " 0123456789,.FTKMH/";   /* short drums for values that change 
 const DRUM_POS = " 0123456789.:KMNESWICADORV";       // the letters of "in … sec" in every language too
 const TRENDS = ["", "UP", "LEVEL", "DOWN"];
 const TREND_COLOR = {UP: "#45d483", LEVEL: "#c9c6bf", DOWN: "#f6be35"};
-const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
+const REMARKS = ["", "OVERHEAD", "APPROACHING", "FLYING BY", "LEAVING", "PASSED", "NEXT", "NEARBY", "NO TRAFFIC", "OFFLINE", "ARRIVING", "DEPARTING", "OVERFLIGHT",
   "CLOSE BY", "NEW TYPE", "NEW AIRLINE", "FAVOURITE", "SUPERJUMBO", "JUMBO", "BELUGA", "ANTONOV", "CONCORDE", "MILITARY", "HELICOPTER", "SPECIAL", "EMERGENCY",
   "DIVERTED", "CARGO", "BIZJET", "PRIVATE", "TAKE-OFF", "CLIMBING", "APPROACH", "FINAL", "LANDED", "TAXIING", "PARKED",
   "POLICE", "AMBULANCE", "RESCUE", "FIREFIGHTER", "GOVERNMENT", "ROYAL", "HISTORIC", "CELEBRITY", "VIP",
@@ -3184,12 +3184,12 @@ function process(list, again){
     if (feat.mode !== "passed") dlog("info", `Board: ${planeName(feat)} · PASSED`);
     feat.mode = "passed";
   } else {
-    // Nothing overhead or on its way: show the most relevant plane in the radius, preferring ones coming closer.
-    const keep = feat && (feat.mode === "by" || feat.mode === "away") && now - feat.since < 60000 && cand.find(o => o.ac.hex === feat.hex);
-    const coming = (a, b) => (a.tcpa > 0 ? 0 : 1) - (b.tcpa > 0 ? 0 : 1) || a.dist - b.dist;
-    const next = keep || cand.filter(o => o.dist <= R).sort(coming)[0] || cand.slice().sort((a, b) => a.dist - b.dist)[0];
-    if (next) setFeat(next, next.tcpa > 0 ? "by" : "away");
-    else { if (feat) dlog("info", "Board: no aircraft in range"); feat = null; }
+    // 1.85 (Dave's pick A after the tracking review): nothing overhead or approaching, so the next plane on course to
+    // be overhead later, from anywhere the board can see, as NEXT counting down (no ding: that comes as it starts
+    // approaching); else NO TRAFFIC. It used to show the nearest plane flying by, up to 46 km away.
+    const next = cand.filter(o => o.kind === "by" && isFinite(o.tin)).sort((a, b) => a.tin - b.tin), n = mine(next) || next[0];
+    if (n) setFeat(n, "next");
+    else { if (feat) dlog("info", "Board: nothing overhead, approaching or on its way"); feat = null; }
   }
   checkChimes(ok, R);
   renderFeatured();
@@ -3474,7 +3474,7 @@ function windowWorthy(ac, info){
   const x = liveFacts(ac, info), sp = specialOf(x);
   return sp === "EMERGENCY" || SPECIAL_BIG.has(sp) || sp === "MILITARY" || !!x.watch || isFav(x);
 }
-const MODE_REMARK = {over: "OVERHEAD", soon: "APPROACHING", passed: "PASSED", by: "FLYING BY", away: "LEAVING", near: "NEARBY", ap: ""};
+const MODE_REMARK = {over: "OVERHEAD", soon: "APPROACHING", passed: "PASSED", next: "NEXT", by: "FLYING BY", away: "LEAVING", near: "NEARBY", ap: ""};
 function renderFeatured(){
   const ids = ["flight","fromCode","fromCity","toCode","toCity","type","reg","alt","speed","pos"];
   if (!feat) {
@@ -3498,7 +3498,7 @@ function renderFeatured(){
   if (!feat.live || feat.liveMode !== feat.mode || now - feat.liveAt >= (S.refreshS || 10) * 1000 - 500) {
     const trend = o.rate == null || o.alt == null ? "" : o.rate > 250 ? "UP" : o.rate < -250 ? "DOWN" : "LEVEL";
     feat.live = [o.alt != null ? altitudeStr(o.alt) : "", ac.gs ? speedStr(ac.gs) : "",
-      feat.mode === "soon" ? countdown(o.tin) : distStr(o), trend];
+      feat.mode === "soon" || feat.mode === "next" ? countdown(o.tin) : distStr(o), trend];
     feat.liveAt = now; feat.liveMode = feat.mode;
   }
   if (fields.seen) { const rl = remarkLines(ac, info); setChars("seen", rl.length ? rl[Math.floor(now / 6000) % rl.length] : "", 520); setChars("toGo", toGoText(info, o) || (done && !(info.to && info.to.lat != null) ? NA : ""), 510); }
@@ -3525,7 +3525,7 @@ function saveRecent(){ if (S.demo) return; try { localStorage.setItem(RECENT_KEY
 function noteFeatured(){
   if (!feat || !feat.o || S.demo) return;
   const now = Date.now(), ac = feat.o.ac;
-  if (now - feat.since < 5000) return;                   // it has to stay on the board for a moment to count
+  if (now - feat.since < 5000 || feat.mode === "next") return;   // it has to stay on the board for a moment to count; NEXT once it comes
   let e = recentFlights.find(x => x.hex === feat.hex && now - x.ts < SAME_PASS_MS), added = false;
   if (!e) {
     e = {ts: feat.since, time: hhmm(new Date(feat.since)), hex: feat.hex};
@@ -4230,6 +4230,7 @@ function legendGroups(){
       ["FLYING BY", T("Getting closer, but won't pass overhead")],
       ["LEAVING", T("Moving away")],
       ["PASSED", T("Just passed overhead")],
+      ["NEXT", T("The next plane on course to pass overhead; Position counts down")],
       ["NO TRAFFIC", T("No planes around right now")],
       ["OFFLINE", T("No flight data for over a minute")]]],
     [T("Route"), [
@@ -6698,6 +6699,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.85", date: "2026-10-24", notes: [
+    "With nothing overhead or approaching, the board shows the next plane on its way as NEXT, counting down; else NO TRAFFIC.",
+  ]},
   {v: "1.84", date: "2026-10-24", notes: [
     "A plane counts as overhead within 1 km, or once it stands 45° or more up in the sky; the lists and today's numbers count the same way.",
     "The board works out where planes are right now and looks again between updates, so OVERHEAD and the countdown come on time.",
