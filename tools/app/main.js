@@ -1298,7 +1298,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    along their turn and climb; heights are made true with the home airport's QNH and temperature.
    1.76: true north (the compass points to magnetic north: the World Magnetic Model's declination is added), the sun
    and the moon as dashed rings to line the compass up on, and AUTO, which finds nearby planes in the picture.
-   1.86 (Dave's real sky on Santorini: the sun's ring 24° off, and sliding sideways as the phone tilted): the gyroscope
+   1.86 (Dave's real sky on an island: the sun's ring 24° off, and sliding sideways as the phone tilted): the gyroscope
    turns the labels and the compass only says where north is, while the phone is held still; once lined up (AUTO or a
    drag) north is held and the compass left out; AUTO finds the sun anywhere in the picture. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";

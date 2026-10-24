@@ -104,7 +104,19 @@ py serve.py --fr24-key YOUR_KEY --save
   shares nothing is, until the next day. A busy day can't use up the month, and the free sources fill in meanwhile.
 - If the key is refused (the subscription ended) or the budget is used up, the boards quietly use the free sources.
 - To turn it off: `py serve.py --fr24-key off --save`.
-- Flightradar24 data is kept for two days at most (their terms allow 30); the lifetime logbook doesn't use it.
+- Flightradar24's answers are cached for two days at most (their terms allow 30). Planes only the gap filler found
+  (below) stay in Spotted today and the logbook like any other sighting, marked as found through Flightradar24.
+- **Away from home, Flightradar24 fills the gaps (1.87, relay 66).** Far from big cities the free networks can be deaf
+  down low: on an island they first heard the planes leaving its airport at 9,000 ft and 22 km out, minutes after
+  they had flown over. While a screen of the owner's profile watches a place more than 30 km from the relay's home,
+  the relay also asks Flightradar24's live positions for the planes below 15,000 ft within 20 km, and adds the ones
+  the free sources don't have: on the board, the radar, in Sky view and in Spotted today, with their type and
+  registration looked up first. It asks every 20 seconds, every 10 while such a plane is within 10 km, and every
+  5 minutes where ten minutes of answers brought nothing new; never at home or for other profiles. An answer costs
+  6 credits a plane (1 when there is none), about 300 to 500 credits an hour with an island airport's traffic. It
+  stops for the day at 80% of the profile's daily credits (2,000 with an account unless set on the admin page), so
+  routes keep working. The connection log says "Flightradar24 filled in a plane the free sources can't hear"; the
+  admin page lists the credits as "David · Gap filler"; `/status` counts the planes it filled in.
 - Fewer credits (1.51, relay 45): an answer serves every later sighting of the same aircraft under the same callsign
   that day (another aircraft with that callsign is looked up on its own), and planes that only pass through the outer
   quarter of the spotting radius aren't looked up unless they come closer or are on the top half. The admin page
@@ -712,7 +724,10 @@ to the board when the page loads, so nothing personal lives in this repository.
 
 Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that answers
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
-the relay keeps serving the last good data for up to two minutes. Only when all three fail or rest does it ask
+the relay keeps serving the last good data for up to two minutes. adsb.lol allows each address 500 requests a UTC
+day (since October 2026; more only for its feeders), and airplanes.live answers only those it has let in. When a
+source says its day's allowance is gone, the relay rests it until the allowance starts again (relay 66) instead of
+asking every 10 minutes. Only when all three fail or rest does it ask
 AvioADSB, the emergency backup: its free tier allows one request every 10 seconds and 100 a day, so the relay asks it
 at most every 15 seconds and 90 times a day (its day starts at midnight UTC) and serves the last good data in between. Problems are printed in the relay's
 window and appear in the board's diagnostics panel.

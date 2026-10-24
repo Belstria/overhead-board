@@ -4343,7 +4343,7 @@ const FEEDS = [
   {name:"adsb.lol", url:(la, lo, nm) => relay() ? `${relay()}/adsblol/${la}/${lo}/${nm}` : `https://api.adsb.lol/v2/point/${la}/${lo}/${nm}`},
   {name:"airplanes.live", url:(la, lo, nm) => relay() ? `${relay()}/airplaneslive/${la}/${lo}/${nm}` : `https://api.airplanes.live/v2/point/${la}/${lo}/${nm}`}
 ];
-let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false;
+let feedIdx = 0, feedName = "", lastFreshness = "", relayLegacy = false, lastFill = 0;
 const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
 // 1.75.2: when a position source made its answer, in ms (readsb's API gives ms, its aircraft.json seconds); kept on the
 // list as list.now, so the app's Sky view can move planes on from then.
@@ -4369,7 +4369,10 @@ async function getAircraft(){
     const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
     if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
     if (fresh.startsWith("stale") && !lastFreshness.startsWith("stale")) dlog("warn", `Sources unavailable; relay is serving its last good data (${fresh.split(" ")[1]} s old)`);
-    feedName = src; lastFreshness = fresh;
+    // 1.87 (relay 66): away from home the relay adds the low planes only Flightradar24 hears
+    const fill = +res.headers.get("X-Relay-Fill") || 0;
+    if (fill > lastFill) dlog("info", `Flightradar24 filled in ${fill === 1 ? "a plane" : fill + " planes"} the free sources can't hear`);
+    feedName = src; lastFreshness = fresh; lastFill = fill;
     const rev = res.headers.get("X-Sightings-Rev");
     if (relayV5() && rev != null && rev !== sightRev) syncSightings();
     DIAG.polls.push({t: Date.now(), ok: true, stale: fresh.startsWith("stale"), ms: performance.now() - t0, n: list.length});
@@ -4491,6 +4494,8 @@ function apiLookup(cs, hex, info, tries = 0){
     const before = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     if (d.flight) Object.assign(info, {flightNo: fmtFlight(d.flight)}, marketedBy(d.flight));
     if (d.from && d.to) { info.from = d.from; info.to = d.to; }
+    if (d.type && !info.typeSure) { const tn = typeName(d.type); if (tn.sure || !info.type) Object.assign(info, {type: tn.name, typeSure: tn.sure}); }
+    if (d.reg && !info.reg) info.reg = d.reg;     // 1.87: what the free databases don't know (a plane only Flightradar24 hears)
     Object.assign(info, {fr24: true, divertedTo: d.divertedTo || null, category: d.category, livery: d.livery, operator: d.operator, takeoff: d.takeoff || ""});
     const after = `${info.flightNo} ${code3(info.from)}-${code3(info.to)}`;
     dlog("debug", `Flightradar24: ${cs} is ${info.flightNo}, ${d.from ? d.from.code : "?"} → ${d.to ? d.to.code : "?"}${before !== after ? ` (free sources said ${before})` : ""}`);
@@ -6728,7 +6733,7 @@ setInterval(() => { if (tab === "now" && document.visibilityState === "visible")
    along their turn and climb; heights are made true with the home airport's QNH and temperature.
    1.76: true north (the compass points to magnetic north: the World Magnetic Model's declination is added), the sun
    and the moon as dashed rings to line the compass up on, and AUTO, which finds nearby planes in the picture.
-   1.86 (Dave's real sky on Santorini: the sun's ring 24° off, and sliding sideways as the phone tilted): the gyroscope
+   1.86 (Dave's real sky on an island: the sun's ring 24° off, and sliding sideways as the phone tilted): the gyroscope
    turns the labels and the compass only says where north is, while the phone is held still; once lined up (AUTO or a
    drag) north is held and the compass left out; AUTO finds the sun anywhere in the picture. */
 const arPossible = () => window.isSecureContext && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof DeviceOrientationEvent !== "undefined";
@@ -8846,6 +8851,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.87", date: "2026-10-24", notes: [
+    "Away from home, Flightradar24 fills in the low planes the free sources can't hear, like take-offs from a nearby airport (owner only).",
+    "A plane's type and registration come from Flightradar24 when the free databases don't know it.",
+  ]},
   {v: "1.86", date: "2026-10-24", notes: [
     "Sky view: point the phone near the sun and AUTO lines every label up on it, however far off the compass is.",
     "Sky view: the labels stay on the sky as you tilt and turn; the compass only sets north while the phone is held still.",
