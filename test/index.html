@@ -2449,7 +2449,9 @@ async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
     let res;
-    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}${placeQs()}`); }
+    // 1.87.1 (relay 67): from a page in the background the relay doesn't pay Flightradar24 to fill in planes
+    const qs = placeQs(), bg = document.hidden ? (qs ? "&" : "?") + "bg=1" : "";
+    try { res = await timedFetch(`${relay()}/aircraft/${la}/${lo}/${QUERY_NM}${qs}${bg}`); }
     catch (e) { throw new Error(netError(e, "relay")); }
     if (res.status === 404) {
       relayLegacy = true;
@@ -6704,6 +6706,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.87.1", date: "2026-10-24", notes: [
+    "Filling in low planes from Flightradar24 costs about half the credits, and nothing while the app is in the background.",
+    "The \"Last known board\" tag no longer shows over the opening.",
+  ]},
   {v: "1.87", date: "2026-10-24", notes: [
     "Away from home, Flightradar24 fills in the low planes the free sources can't hear, like take-offs from a nearby airport (owner only).",
     "A plane's type and registration come from Flightradar24 when the free databases don't know it.",

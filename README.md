@@ -109,13 +109,14 @@ py serve.py --fr24-key YOUR_KEY --save
 - **Away from home, Flightradar24 fills the gaps (1.87, relay 66).** Far from big cities the free networks can be deaf
   down low: on an island they first heard the planes leaving its airport at 9,000 ft and 22 km out, minutes after
   they had flown over. While a screen of the owner's profile watches a place more than 30 km from the relay's home,
-  the relay also asks Flightradar24's live positions for the planes below 15,000 ft within 20 km, and adds the ones
+  the relay also asks Flightradar24's live positions for the planes below 10,000 ft within 20 km, and adds the ones
   the free sources don't have: on the board, the radar, in Sky view and in Spotted today, with their type and
-  registration looked up first. It asks every 20 seconds, every 10 while such a plane is within 10 km, and every
-  5 minutes where ten minutes of answers brought nothing new; never at home or for other profiles. An answer costs
-  6 credits a plane (1 when there is none), about 300 to 500 credits an hour with an island airport's traffic. It
-  stops for the day at 80% of the profile's daily credits (2,000 with an account unless set on the admin page), so
-  routes keep working. The connection log says "Flightradar24 filled in a plane the free sources can't hear"; the
+  registration looked up first. It asks every 30 seconds, every 15 while such a plane is within 10 km, and every
+  5 minutes where ten minutes of answers brought nothing new; only while a screen is looked at (not from the
+  background), once for all the profile's screens, never at home or for other profiles. An answer costs 6 credits for
+  each plane in it (1 when there is none): a plane passing close costs in the order of 100 credits, a quiet hour with
+  the app open about 120 (1.87.1, relay 67: about half of before). It stops for the day at 80% of the profile's daily
+  credits (2,000 with an account unless set on the admin page), so routes keep working. The connection log says "Flightradar24 filled in a plane the free sources can't hear"; the
   admin page lists the credits as "David · Gap filler"; `/status` counts the planes it filled in.
 - Fewer credits (1.51, relay 45): an answer serves every later sighting of the same aircraft under the same callsign
   that day (another aircraft with that callsign is looked up on its own), and planes that only pass through the outer
@@ -832,7 +833,8 @@ which the new version carries on until its board is ready; a board says Refreshi
 
 **The first picture (1.51).** Each screen keeps the last known board in the browser (the plane on top if it was there
 in the last half hour, Spotted today and Today in numbers of the same day), per profile, and shows it at once when it
-loads, marked **Last known board · not live yet**, until fresh data comes a moment later.
+loads, marked **Last known board · not live yet**, until fresh data comes a moment later. In the phone app the tag
+stays under the opening (1.87.1), so it only shows when the board still isn't live once the opening has gone.
 
 **Health watch (relay 45).** The relay sends its owner (the profile named David) a notification when every position
 source has failed for more than 15 minutes, Flightradar24 refuses the key, the data disk is over 90% full, or the relay
