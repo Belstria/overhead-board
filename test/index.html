@@ -573,7 +573,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=92a763d195"></script>
+<script src="i18n.js?v=ff759850ff"></script>
 <script>
 (() => {
 "use strict";
@@ -3863,8 +3863,9 @@ function topTypesFlaps(list){
   const c = new Map();
   for (const e of list) { const k = String(e.typeCode || "").toUpperCase(); if (k) c.set(k, (c.get(k) || 0) + 1); }
   let out = "";
-  for (const [k, n] of [...c].sort((a, b) => b[1] - a[1]).slice(0, 3)) { const t = `${out ? out + " " : ""}${k} ${n}`; if (t.length > 24) break; out = t; }
-  return out;
+  // 1.87.2.1: only types seen twice or more; a day of one of each has no most seen
+  for (const [k, n] of [...c].filter(x => x[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3)) { const t = `${out ? out + " " : ""}${k} ${n}`; if (t.length > 24) break; out = t; }
+  return out || (c.size ? T("No type twice yet") : "");
 }
 function renderStats(){
   const st = relayV5() && relayStats;
@@ -3878,7 +3879,7 @@ function renderStats(){
     setChars("stHigh", st.highest ? `${name(st.highest)} - ${altitudeStr(st.highest.altAtMin)}` : "-", 360);
     setChars("stFast", st.fastest ? `${name(st.fastest)} - ${speedStr(st.fastest.maxSpeed)}` : "-", 420);
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
-    setChars("stTop", t ? `${tn} - ${t.count}` : "-", 480);
+    setChars("stTop", t ? (t.count > 1 ? `${tn} - ${t.count}` : T("No airline twice yet")) : "-", 480);
     const rev = reviewTime(), lab = rev ? ["Rarest today", ""] : ["Most seen types", ""];
     if (fields.stFirst.label[0] !== lab[0]) {
       fields.stFirst.label = lab; fields.stNew.label = rev ? ["Points today", ""] : ["New in the logbook", "Neu im Logbuch"];
@@ -3911,7 +3912,7 @@ function renderStats(){
   const airlines = {};
   for (const e of list) { const a = shortAirline(e.airline); if (a) airlines[a] = (airlines[a] || 0) + 1; }
   const top = Object.entries(airlines).sort((a, b) => b[1] - a[1])[0];
-  setChars("stTop", top ? `${top[0]} - ${top[1]}` : "-", 480);
+  setChars("stTop", top ? (top[1] > 1 ? `${top[0]} - ${top[1]}` : T("No airline twice yet")) : "-", 480);
   setChars("stFirst", topTypesFlaps(list) || "-", 540);
   const nt = list.filter(e => e.newType).length, na = list.filter(e => e.newAirline).length;
   setChars("stNew", relayV5() || S.demo ? (nt || na ? T("{a} types - {b} airlines", {a: nt, b: na}) : T("Nothing new yet")) : T("Needs the home relay"), 600);
@@ -4671,8 +4672,8 @@ function reviewFacts(r){
   const fp = f && f.place;
   return [["Busiest day", b ? `${reviewDay(b.day, {weekday: "short", day: "numeric", month: "short"})} · ${nf.format(b.planes)}` : ""],
     ["Rarest", ra ? `${ra.type || ra.reg} · ${T(TIER_NAME[ra.tier] || "")}` : ""],
-    ["Most seen airline", al ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],
-    ["Most seen aircraft", m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    ["Most seen airline", al && al.count > 1 ? `${(AIRLINES[al.code] || [])[1] || al.name || al.code} · ${nf.format(al.count)}` : ""],   // 1.87.2.1: none when nothing came twice
+    ["Most seen aircraft", m && m.count > 1 ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
     ["Farthest route", f ? `${who(f)} · ${fp ? fp.code || fp.city : ""} ${nf.format(f.v)} km` : ""],
     ["Lowest pass", rc.lowest ? `${who(rc.lowest)} · ${altitudeStr(rc.lowest.v).toLowerCase()}` : ""],
     ["Closest", rc.closest ? `${who(rc.closest)} · ${rc.closest.v < 10 ? rc.closest.v.toFixed(2) : Math.round(rc.closest.v)} km` : ""],
@@ -4690,7 +4691,7 @@ function renderLogbookBoard(){
   setChars("lvTypes", has ? nf.format(types.length) : "", 60);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 120);
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 180);
-  setChars("lvModel", types[0] ? typeLabel(types[0][0], types[0][1].name) : "", 240);
+  setChars("lvModel", types[0] && types[0][1].count > 1 ? typeLabel(types[0][0], types[0][1].name) : "", 240);
   LB_CATS.forEach(([k, , , col], i) => {
     setWord(`lvl_${k}`, b.categories ? col : "", 300 + i * 40);
     setChars(`lvn_${k}`, b.categories ? nf.format(b.categories[k] || 0) : "", 300 + i * 40);
@@ -5001,11 +5002,14 @@ function radarLegend(){
 }
 // Plane labels that never cover each other or leave the scope: nearest planes first, each label tries the right of its
 // plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
+// 1.87.2.1: a radar plane's details and name, the same on the scope and in Nearest: the flight number (OS 411) also
+// while its route is still being looked up, the callsign only where there is none.
+const radarInfo = o => (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
+const radarName = o => radarInfo(o).flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
 function radarLabels(g, shown, cx, cy, R, f, taken = []){
   const boxes = [...taken], out = [];
   let placed;
-  const nameOf = o => { const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info;
-    return (info && info.flightNo) || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase(); };
+  const nameOf = radarName;
   for (const s of shown.filter(s => s.o.kind).sort((a, b) => a.o.dist - b.o.dist)) {
     const name = nameOf(s.o), alt = s.o.ac.alt_baro === "ground" ? String(s.o.ac.t || "") : altShort(s.o.alt);
     g.font = `700 ${f.name}px ${FONT}`; const wn = g.measureText(name).width;
@@ -5130,10 +5134,10 @@ function renderRadarList(){
   if (view !== "radar") return;
   const rows = radarRows(RV_ROWS);                       // within the spotting radius of the radar's centre
   for (let i = 0; i < RV_ROWS; i++) {
-    const w = rows[i], o = w && w.o, d = i * 60, info = o ? (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac) : null;
+    const w = rows[i], o = w && w.o, d = i * 60, info = o ? radarInfo(o) : null;
     setWord(`rv${i}lamp`, o ? radarColor(o) : "", d);
     setWord(`rv${i}logo`, o ? airlineCodeOf(info) || "-" : "", d + 10);
-    setChars(`rv${i}flight`, o ? info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || "" : "", d + 20);
+    setChars(`rv${i}flight`, o ? radarName(o) : "", d + 20);
     setChars(`rv${i}type`, o ? String(o.ac.t || "") : "", d + 60);
     setChars(`rv${i}dist`, o ? (w.dist < 10 ? w.dist.toFixed(1) : String(Math.round(w.dist))) : "", d + 90);
     setChars(`rv${i}dir`, o ? w.dir : "", d + 110);
@@ -6741,6 +6745,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.87.2.1", date: "2026-10-26", notes: [
+    "The radar names planes by flight number on the scope too, as in Nearest.",
+    "Nearest shows the aircraft type in full under the flight number.",
+    "Most seen airline, aircraft and types only name one seen at least twice.",
+  ]},
   {v: "1.87.2", date: "2026-10-26", notes: [
     "Flights without a known route now show their airline's name too, live, in Spotted today and in the logbook.",
     "Routes and flight numbers from Flightradar24 now stay in the logbook, search and the CSV.",

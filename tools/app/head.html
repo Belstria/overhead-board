@@ -216,7 +216,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .rvLogo.ok{background:linear-gradient(#f4f1ea,#dad6ca)}
 .rvLogo img{max-width:40px;max-height:16px;object-fit:contain}
 .rv strong{font:700 var(--fs-base)/1 var(--f-board);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rv strong span{font-weight:500;color:var(--muted);font-size:var(--fs-s);margin-left:.4em}
+.rv strong span{display:block;margin-top:4px;font-weight:500;color:var(--muted);font-size:var(--fs-s)}   /* 1.87.2.1: under the flight number, never cut to "A…" */
+.rv strong span:empty{display:none}
 .rv .num{font:600 var(--fs-s)/1 var(--f-board);color:#c9c6bf;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .flights li.rv::before{content:"";position:absolute;left:4px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--lamp);box-shadow:0 0 6px var(--lamp)}
 .rv .chip{min-width:78px}

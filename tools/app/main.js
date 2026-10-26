@@ -656,7 +656,9 @@ function legendHtml(){
 function topTypes(list){
   const c = new Map();
   for (const e of list) { const k = e.typeCode || clean(e.type); if (k) c.set(k, (c.get(k) || 0) + 1); }
-  return [...c].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${shortType(TYPES[k] || k)} ×${n}`).join(" · ");
+  // 1.87.2.1: only types seen twice or more; a day of one of each has no most seen
+  return [...c].filter(x => x[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${shortType(TYPES[k] || k)} ×${n}`).join(" · ")
+    || (c.size ? T("No type twice yet") : "");
 }
 function todayNumbers(){
   const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList();
@@ -667,7 +669,7 @@ function todayNumbers(){
       ["Lowest pass", "Tiefster", st.lowest ? `${name(st.lowest)} · ${altText(st.lowest.altAtMin)}` : ""],   // 1.78.2: no busiest hour, no first
       ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
       ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
-      ["Most seen airline", "", t ? `${tn} · ${t.count}` : ""],
+      ["Most seen airline", "", t ? (t.count > 1 ? `${tn} · ${t.count}` : T("No airline twice yet")) : ""],
       ["Most seen types", "", topTypes(list)],
       ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? T("{a} types · {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet")]]};
   }
@@ -892,7 +894,7 @@ function renderLogbook(){
   const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  $("lbModel").innerHTML = types[0] ? `<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
+  $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
@@ -1076,7 +1078,7 @@ function fetchYear(){
 function yearFacts(y){
   const r = y.rarest, m = y.mostSeen, b = y.busiest;
   return [[T("Busiest day"), b ? `${fmtDay(Date.parse(b.day))} · ${nf.format(b.planes)}` : ""],
-    [T("Most seen aircraft"), m ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
+    [T("Most seen aircraft"), m && m.count > 1 ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
     [T("Rarest"), r ? `${r.type || r.reg} · ${T(TIER_NAME[r.tier] || "")}` : ""]].filter(x => x[1]);
 }
 // 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
@@ -2372,8 +2374,7 @@ function renderRadarList(){
   if (tab !== "radar") return;
   const range = +S.radiusKm || 15;
   const rows = radarRows(12).map(({o, dist, dir, st}) => {
-    const info = (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
-    const name = info.flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
+    const info = radarInfo(o), name = radarName(o);
     const code = airlineCodeOf(info), L = code ? logo(code, true) : null, g = o.ac.alt_baro === "ground" ? gateFor(info) : "";
     const lg = L && L.state === "ok" ? `<img src="${escH(L.img.src)}" alt="">` : code ? escH(code) : "";
     return `<li class="rv${radar.sel === o.ac.hex ? " sel" : ""}" data-hex="${escH(o.ac.hex)}" style="--lamp:${radarColor(o)}"><span class="rvLogo${L && L.state === "ok" ? " ok" : ""}">${lg}</span><strong>${escH(name)}<span>${escH(String(o.ac.t || ""))}</span></strong>` +
