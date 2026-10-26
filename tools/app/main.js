@@ -1341,8 +1341,11 @@ let arRaw = [], arCalAt = 0;
 // complementary filter. The gyroscope alone moves the labels; north glides to the compass's within AR_GAP_TAU, three
 // times slower while the phone turns and four times slower while the compass is unsure, and never faster than
 // AR_GAP_MAX a second (a quarter of it unsure). For the first AR_GAP_SETTLE ms it settles quickly from the first reading.
-const AR_GAP_TAU = 6, AR_GAP_MAX = 1, AR_GAP_SETTLE = 1500, AR_STILL_MS = 1500;   // seconds; degrees a second; ms; ms
-let arAbsR = null, arAbsT = 0, arRelQ = null, arRelT = 0, arLastQ = null, arRate = 0, arMovedAt = 0, arGapLog = [], arHeldAt = 0, arGap0 = 0;
+// A steady difference is no swing: while the phone is still and the compass's last AR_GAP_STEADY ms agree among
+// themselves (spread under 2.5°) but differ from north in use by over 4° (a compass that came right after the start, or
+// north carried over wrongly), north glides there within a few seconds (τ 1.5 s).
+const AR_GAP_TAU = 6, AR_GAP_MAX = 1, AR_GAP_SETTLE = 1500, AR_GAP_STEADY = 1500, AR_STILL_MS = 1500;   // s; °/s; ms; ms; ms
+let arAbsR = null, arAbsT = 0, arRelQ = null, arRelT = 0, arLastQ = null, arRate = 0, arMovedAt = 0, arGapLog = [], arHeldAt = 0, arGap0 = 0, arGapRef = null, arGapFast = false;
 let arEvN = {abs: 0, rel: 0, ios: 0}, arHeldWhy = "", arSunLast = null, arNote = {text: "", until: 0};   // 1.90: for the report
 const AR_FOV = 64;                                   // the back camera's view along the picture's long side (degrees, typical)
 // 1.75.2: the focal length in screen pixels. The video fills the screen (object-fit: cover), so its long side, however
@@ -1404,7 +1407,7 @@ function arOrient(e){
     if (a == null) return;
     // 1.86: Android's compass reading. While the gyroscope's comes too, this one only says where north is.
     arAbsR = arQMatrix(arQuat(a, e.beta, e.gamma)); arAbsT = t;
-    if (t - arRelT < 400) return arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy);
+    if (t - arRelT < 400) return arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy, true);
   }
   else {
     // 1.86: Android's gyroscope reading turns the labels, north added as the gap to the compass's
@@ -1416,17 +1419,19 @@ function arOrient(e){
     return arTurn(arQuat(a + arGap, e.beta, e.gamma), t);
   }
   if (a == null) return;
-  arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy);
+  arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy, arGap != null);
   arTurn(arQuat(a, e.beta, e.gamma), t);
 }
 // 1.86: north (the gap between the compass and the gyroscope): the first reading, then followed (1.90: slowly, see
 // AR_GAP_TAU), not at all once lined up. The compass swinging 12° or more against the gyroscope within 4 s (moving
 // or not) wants calibrating: the note asks for a figure of eight.
 function arGapStep(meas, t, poor){
-  if (arGap == null) { arGap = meas; arGapT = arGap0 = t; arGapLog = []; return; }
+  if (arGap == null) { arGap = arGapRef = meas; arGapT = arGap0 = t; arGapLog = []; return; }
+  if (arGapRef == null) arGapRef = meas;             // (after the gyroscope's zero jumped)
   const off = wrap180(meas - arGap), dt = Math.min(.2, Math.max(0, (t - arGapT) / 1000));
   arGapT = t;
-  if (arRate < 60) arGapLog.push([t, off]);         // (a fast flick puts the two readings a little apart in time)
+  // 1.90: the log keeps the compass against the gyroscope (from the first reading), not against north in use
+  if (arRate < 60) arGapLog.push([t, wrap180(meas - arGapRef)]);   // (a fast flick puts the two readings a little apart in time)
   while (arGapLog.length && t - arGapLog[0][0] > 4000) arGapLog.shift();
   if (!arHeldAt && arGapLog.length > 30) {
     let lo = Infinity, hi = -Infinity;
@@ -1435,7 +1440,16 @@ function arGapStep(meas, t, poor){
   }
   if (arHeldAt) return;
   if (t - arGap0 < AR_GAP_SETTLE) { arGap += off * (1 - Math.exp(-dt / .4)); return; }
-  const unsure = poor || Date.now() - arCalAt < 4000, tau = AR_GAP_TAU * (unsure ? 4 : 1) * (t - arMovedAt < AR_STILL_MS ? 3 : 1);
+  const still = t - arMovedAt >= AR_STILL_MS, recent = arGapLog.filter(g => t - g[0] < AR_GAP_STEADY).map(g => g[1]);
+  let steady = null;
+  if (still && recent.length >= 30) {
+    const m = recent.reduce((x, y) => x + y, 0) / recent.length, sd = Math.sqrt(recent.reduce((x, y) => x + (y - m) ** 2, 0) / recent.length);
+    if (sd < 2.5) steady = wrap180(arGapRef + m - arGap);
+  }
+  // once going there, all the way (within 1°), or until the phone moves or the compass wavers
+  arGapFast = steady != null && Math.abs(steady) > (arGapFast ? 1 : 4);
+  if (arGapFast) { arGap += steady * (1 - Math.exp(-dt / 1.5)); return; }
+  const unsure = poor || Date.now() - arCalAt < 4000, tau = AR_GAP_TAU * (unsure ? 4 : 1) * (still ? 1 : 3);
   const cap = AR_GAP_MAX * (unsure ? .25 : 1) * dt;
   arGap += Math.max(-cap, Math.min(cap, off * (1 - Math.exp(-dt / tau))));
 }
@@ -1446,7 +1460,7 @@ function arGyroStep(q, t){
     const d = Math.abs(arRelQ[0] * q[0] + arRelQ[1] * q[1] + arRelQ[2] * q[2] + arRelQ[3] * q[3]), ang = 360 / Math.PI * Math.acos(Math.min(1, d));
     const dt = Math.max(.016, (t - arRelT) / 1000);
     if (ang > 20 && ang / dt > 1000) {
-      if (arLastQ && arGap != null) arGap = arYaw(arQMatrix(arLastQ), arQMatrix(q));
+      if (arLastQ && arGap != null) { arGap = arYaw(arQMatrix(arLastQ), arQMatrix(q)); arGapRef = null; arGapLog = []; }
       dlog("debug", `Sky view: the gyroscope's zero jumped ${Math.round(ang)}°, north carried over`);
     } else {
       arRate += (ang / dt - arRate) * (1 - Math.exp(-Math.min(dt, .2) / .25));
@@ -1489,7 +1503,7 @@ async function arOpen(){
     dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
   }, {once: true});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null; arAlt = null;
-  arAbsR = null; arRelQ = null; arRelT = 0; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0;
+  arAbsR = null; arRelQ = null; arRelT = 0; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0; arGapRef = null; arGapFast = false;
   arEvN = {abs: 0, rel: 0, ios: 0}; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
   $("arFlag").hidden = !arReportOk(); $("arFlag").classList.remove("sent"); $("arFlag").setAttribute("aria-label", T("Send a report to tune Sky view"));
   arShotAt = 0; arLocked = ""; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
@@ -1509,14 +1523,16 @@ async function arOpen(){
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
   arLoop();
 }
-function arCalCheck(a, b, g, acc){
+// 1.90: with the gyroscope's reading (gyro), arGapStep's check is the exact one; the heading swinging while the tilt holds
+// is then left out, as a smooth pan looks just like that (it showed "Compass unsure" while turning).
+function arCalCheck(a, b, g, acc, gyro){
   const now = Date.now();
   arRaw.push([now, a, b, g]);
   while (arRaw.length && now - arRaw[0][0] > 1500) arRaw.shift();
   if (arRaw.length < 8) return;
   const spread = i => { const v = arRaw.map(r => r[i]); return Math.max(...v) - Math.min(...v); };
   const as = arRaw.map(r => ((r[1] - arRaw[0][1] + 540) % 360) - 180), aSpread = Math.max(...as) - Math.min(...as);
-  if ((typeof acc === "number" && acc > 25) || (spread(2) < 3 && spread(3) < 3 && aSpread > 12)) arCalAt = now;
+  if ((typeof acc === "number" && acc > 25) || (!gyro && spread(2) < 3 && spread(3) < 3 && aSpread > 12)) arCalAt = now;
   const el = $("arCal"), show = now - arCalAt < 4000 && !arHeldAt;   // 1.86: not once lined up
   if (el.hidden === show) {
     el.hidden = !show;
@@ -1701,6 +1717,9 @@ function arLoop(){
   if (arLocked && shown.some(s => s.ac.hex === arLocked && !s.pr.edge)) arShotAt = Date.now();   // 1.90: only once locked on (the ring full)
   const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
   if (shut.hidden === snap) shut.hidden = !snap;
+  // 1.90: with the small card open, the shutter sits above it (it was behind it)
+  const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
+  if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
   $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
   $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   // 1.86: until the labels are lined up, AUTO asks for a look near the sun (it finds it in the picture by itself)
@@ -1728,7 +1747,7 @@ function arReport(){
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
     facing: c && {az: arR1(c.az), el: arR1(c.el)}, q: arQ && arQ.map(x => Math.round(x * 1e4) / 1e4),
-    gapLog: arGapLog.filter((x, i) => i % 4 === 0).map(([gt, off]) => [Math.round(gt - t), arR1(off)]),
+    gapRef: arR1(arGapRef), gapLog: arGapLog.filter((x, i) => i % 4 === 0).map(([gt, rel]) => [Math.round(gt - t), arR1(rel)]),
     raw: arRaw.map(([rt, a, b, g]) => [rt - now, arR1(a), arR1(b), arR1(g)]),
     auto: {on: arAuto, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0},
     finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
@@ -1758,7 +1777,7 @@ $("arFlag").onclick = async () => {
 // locked on, the ring full, and for 5 s after it leaves the picture): Sky view as it is on the
 // screen, the camera's picture and the labels, with a slim band under it: the mark, the place, the date and time and how
 // many planes. Shown in a card with Share and Save.
-let arShotAt = 0, arShownN = 0, arLocked = "";   // arLocked (1.90): the plane the ring last filled on
+let arShotAt = 0, arShownN = 0, arLocked = "", arLift = 0;   // arLocked (1.90): the plane the ring last filled on
 async function arSnap(){
   ctlSound.press();
   const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;

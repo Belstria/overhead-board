@@ -27,15 +27,25 @@ The repository is public: no addresses, keys or personal data here either.
 - 1.90 (to-do #93): **steadier labels**: a complementary filter in `arGapStep`. North (`arGap`) follows the compass
   always, not only when still, but slowly: `AR_GAP_TAU` 6 s, ×3 while turning (`arMovedAt` within `AR_STILL_MS`), ×4
   while unsure (iOS accuracy poor, or `arCalAt` within 4 s), at most `AR_GAP_MAX` 1°/s (a quarter unsure); the first
-  `AR_GAP_SETTLE` 1.5 s after the first reading settle with τ 0.4 s. Held (AUTO or a drag) is as in 1.86.
+  `AR_GAP_SETTLE` 1.5 s after the first reading settle with τ 0.4 s. A steady difference is no swing: while still,
+  when the compass's last `AR_GAP_STEADY` 1.5 s agree among themselves (sd < 2.5°) but differ from north in use by over
+  4°, `arGapFast` glides there with τ 1.5 s, all the way (within 1°) unless the phone moves or the compass wavers (a
+  compass that comes right after Sky view opens, north carried over wrongly). `arGapLog` now keeps the compass against
+  the gyroscope from the first reading (`arGapRef`; cleared when the gyroscope's zero jumps), not against north in use,
+  so the 12° swing check sees only the compass. `arCalCheck(…, gyro)`: with the gyroscope's reading the 1.66 check
+  (heading swinging while the tilt holds) is left out, as a smooth pan looked just like it ("Compass unsure" while
+  turning). Held (AUTO or a drag) is as in 1.86.
   `tools/test/sky_jitter.js` runs main.js's own sensor code on a made-up Android stream (60 Hz, gyroscope drifting
-  .02°/s; outdoors compass ±1.5°, indoors ±3° plus ±8° swings with time and heading) and prints the label movement
-  while still. Before → after: indoors the most a label wandered in a still spell 6.4° (75 px) → 0.7° (9 px), frame
-  to frame 0.031° → 0.005°; outdoors 1.45° → 0.21°. North's average error indoors rose 3.9° → 5.9° (it follows the
-  swinging compass less; that compass's own error is about 4.5° there).
+  .02°/s; outdoors compass ±1.5°, indoors ±3° plus ±8° swings with time and heading; a compass 25° off for its first
+  4 s; the gyroscope's zero jumping 40°) and prints the label movement while still and how long north takes to come
+  right. 1.89 → 1.90: indoors the most a label wandered in a still spell 6.4° (75 px) → 0.7° (9 px), frame to frame
+  0.031° → 0.005°; outdoors 1.45° → 0.21°; the 25°-off start right (within 2°) after 9.3 s → 9.4 s; the zero jump
+  unseen in both. North's average error indoors rose 3.9° → 5.9° (it follows the swinging compass less; that
+  compass's own error is about 4.5° there).
 - 1.90 (to-do #94): **the picture button only once locked on**: `arShotAt` is set while `arLocked` (the plane the ring
   last filled on in this Sky view, set in `arAimDraw`; a tapped plane doesn't count) is in the picture, no longer for
   any plane the game had locked on earlier today (`s.locked`); it still stays 5 s after the plane leaves the picture.
+  While the small card is open the shutter sits above it (`--ar-lift` on `.arBot`, the card's height; it was behind it).
 - 1.90: **no planes before live location's first fix** (a phone whose Chrome never got a fix at home showed a trip's
   planes 1,100 km away): `liveWaiting()` (live and no `liveAt` yet) empties the list in `poll()` (with its `now`);
   the title line says only "◉ FINDING YOU …" (app `updateWhere`; board `drawStatic` without the place); after a minute
