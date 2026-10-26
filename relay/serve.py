@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 72
+RELAY_VERSION = 73
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -889,13 +889,33 @@ def _backfill_trophies(spot):
 
 
 # The weekly bingo: nine things to see between Monday and Sunday, drawn afresh each week (the same card on every
-# screen of a spot); a line of three wins the Bingo trophy, all nine the Full card.
+# screen of a spot); a line of three wins the Bingo trophy, all nine the Full card. Relay 73 (to-do #101): from the week
+# of BINGO_ROWS_FROM on, the card is three themed rows (airlines, aircraft, stats), each drawn from its theme's pool, and
+# only a full row is a line; some goals count planes over the week (BINGO_COUNT). Older weeks keep their card (drawn from
+# BINGO_V1) and their eight lines.
 LH_GROUP, GULF, LOW_COST = {"DLH", "AUA", "SWR", "EWG", "BEL", "CLH"}, {"UAE", "QTR", "ETD"}, {"RYR", "WZZ", "EZY", "EJU", "VLG", "PGT"}
+ONEWORLD = {"AAL", "BAW", "SHT", "CFE", "CPA", "FIN", "IBE", "IBS", "JAL", "MAS", "QFA", "QTR", "RAM", "RJA", "ALK", "ASA", "FJI", "OMA"}
+SKYTEAM = {"AFR", "KLM", "KLC", "HOP", "DAL", "KAL", "CAL", "AEA", "ARG", "AMX", "CES", "CXA", "GIA", "KQA", "MEA", "SVA", "ROT", "HVN",
+           "VIR", "SAS"}
+# Registration prefixes of Europe (Turkey and the Caucasus with it), for "an airline from outside Europe"
+EUROPE_REGS = {"OE", "D", "HB", "F", "G", "M", "EI", "PH", "OO", "LX", "OY", "SE", "LN", "OH", "TF", "ES", "YL", "LY", "SP", "OK", "OM",
+               "HA", "YR", "ER", "LZ", "SX", "9A", "S5", "E7", "YU", "Z3", "4O", "ZA", "9H", "5B", "EC", "CS", "I", "T7", "3A", "HV",
+               "UR", "EW", "RA", "RF", "TC", "4L", "4K", "EK"}
 def _al(e):
     m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
     return m.group(1) if m else ""
 def _tc(e):
     return str(e.get("typeCode") or "").upper()
+def _reg_pre(e):
+    """A registration's country prefix: OE-LBN → OE, N123AB → N, JA123A → JA ("" without one)."""
+    r = str(e.get("reg") or "").upper()
+    return r.split("-")[0] if "-" in r else "N" if r[:1] == "N" else r[:2]
+def _route_km(e):
+    a, b = e.get("from") or {}, e.get("to") or {}
+    try:
+        return _gc_km((float(a["lat"]), float(a["lon"])), (float(b["lat"]), float(b["lon"])))
+    except (KeyError, TypeError, ValueError):
+        return 0
 BINGO = {
     "heli": lambda e: category_of(e) == "helicopter",
     "a380": lambda e: _tc(e) == "A388",
@@ -922,31 +942,92 @@ BINGO = {
     "lowcost": lambda e: _al(e) in LOW_COST,
     "turkish": lambda e: _al(e) == "THY",
     "fast": lambda e: isinstance(e.get("maxSpeed"), (int, float)) and 520 <= e["maxSpeed"] <= 750,
+    # relay 73
+    "oneworld": lambda e: _al(e) in ONEWORLD,
+    "skyteam": lambda e: _al(e) in SKYTEAM,
+    "farline": lambda e: bool(_al(e) and e.get("reg")) and _reg_pre(e) not in EUROPE_REGS,
+    "gairline": lambda e: bool(e.get("gNewAirline")),        # new to the game, as its points say
+    "max": lambda e: _tc(e) in ("B37M", "B38M", "B39M", "B3XM"),
+    "a220": lambda e: _tc(e) in ("BCS1", "BCS3"),
+    "gtype": lambda e: bool(e.get("gNewType")),
+    "high": lambda e: isinstance(e.get("altAtMin"), (int, float)) and 40000 <= e["altAtMin"] < 60000,
+    "long": lambda e: _route_km(e) >= 4000,
 }
+# Goals that count over the week (relay 73): how many, and what counts (a key for each plane; the same key counts once)
+BINGO_COUNT = {
+    "airlines15": (15, lambda e, day: _al(e)),
+    "types12": (12, lambda e, day: _tc(e)),
+    "common25": (25, lambda e, day: e.get("id") if e.get("tier") == "common" else ""),
+    "days4": (4, lambda e, day: day),
+}
+# The goals before relay 73, in the order the cards of those weeks were drawn from: never change it.
+BINGO_V1 = ["a330", "a350", "a380", "b747", "b777", "b787", "bizjet", "cargo", "close", "early", "embraer", "fast", "gulf", "heli",
+            "lhgroup", "low", "lowcost", "military", "newtype", "night", "private", "rare", "turboprop", "turkish", "watch"]
+BINGO_ROWS_FROM = "2026-10-26"       # the first week of themed rows (Dave: from that week's card on)
+# The rows' pools: what a normal week at home brings, from 1,717 planes within 10 km over 17 days in October 2026. Each
+# goal one plane can tick came 2.5 or more times in 100 planes (most likely in a week of 50 live planes); left out for
+# now: a helicopter, an A350, a cargo plane, a 747 (1.7 to 2 in 100), an A330, a propeller plane, an A380, a military
+# or watchlist plane (under 1.5).
+BINGO_THEMES = [
+    ("airlines", ["lhgroup", "lowcost", "gulf", "turkish", "oneworld", "skyteam", "farline", "gairline", "airlines15"]),
+    ("aircraft", ["max", "embraer", "b777", "b787", "private", "bizjet", "a220", "gtype", "types12"]),
+    ("stats", ["low", "close", "rare", "fast", "high", "long", "night", "early", "common25", "days4"]),
+]
+# Goals too much alike to share a row (one plane would often tick both)
+BINGO_APART = [{"farline", "gulf"}, {"farline", "oneworld"}, {"gulf", "oneworld"}, {"low", "close"}, {"fast", "long"}]
 BINGO_LINES = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+BINGO_BY = ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg", "typeCode", "desc", "aircraftType", "manufacturer")
+
+
+def _bingo_rows(monday):
+    """Relay 73: whether a week's card has themed rows (only rows count)."""
+    return monday.isoformat() >= BINGO_ROWS_FROM
+
+
+def _bingo_card(monday):
+    """A week's nine goals, row by row: three themed rows (relay 73), or for an older week the nine drawn from
+    BINGO_V1 as then."""
+    rng = random.Random("fallblatt-" + monday.isoformat())
+    if not _bingo_rows(monday):
+        return rng.sample(BINGO_V1, 9)
+    card = []
+    for _, pool in BINGO_THEMES:
+        row = []
+        for g in rng.sample(pool, len(pool)):          # the pool shuffled: the first three that may share a row
+            if len(row) < 3 and all({g, h} not in BINGO_APART for h in row):
+                row.append(g)
+        card += row
+    return card
 
 
 def _bingo_week(spot, monday, day, live=False):
-    """A week's card and which of its goals were done (and when), up to `day`. `live`: only planes that scored in the
-    game (relay 59)."""
-    card = random.Random("fallblatt-" + monday.isoformat()).sample(sorted(BINGO), 9)
-    done = {}
+    """A week's card and which of its goals were done (and when), up to `day`; relay 73: also the sighting that ticked
+    each one, and how far the counting goals got. `live`: only planes that scored in the game (relay 59)."""
+    card = _bingo_card(monday)
+    done, by, keys = {}, {}, {g: set() for g in card if g in BINGO_COUNT}
     for i in range(7):
         d = (monday + datetime.timedelta(days=i)).isoformat()
         if d > day:
             break
-        entries = spot.entries if d == spot.day else _load(spot.dir / f"sightings-{d}.json", [])
-        for e in reversed(entries):
+        for e in reversed(spot.day_entries(d)):
             if live and "gp" not in e:
                 continue
             for g in card:
-                if g not in done:
-                    try:
-                        if BINGO[g](e):
-                            done[g] = e.get("ts")
-                    except Exception:
-                        pass
-    return card, done
+                if g in done:
+                    continue
+                try:
+                    if g in keys:
+                        k = BINGO_COUNT[g][1](e, d)
+                        if k:
+                            keys[g].add(k)
+                        ok = len(keys[g]) >= BINGO_COUNT[g][0]
+                    else:
+                        ok = BINGO[g](e)
+                except Exception:
+                    ok = False
+                if ok:
+                    done[g], by[g] = e.get("ts"), e
+    return card, done, by, {g: len(k) for g, k in keys.items()}
 
 
 def _backfill_cards(spot):
@@ -957,7 +1038,7 @@ def _backfill_cards(spot):
     days = sorted(f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json"))
     mondays = sorted({(datetime.date.fromisoformat(d) - datetime.timedelta(days=datetime.date.fromisoformat(d).weekday())) for d in days})
     for monday in mondays:
-        _, done = _bingo_week(spot, monday, (monday + datetime.timedelta(days=6)).isoformat())
+        _, done, _, _ = _bingo_week(spot, monday, (monday + datetime.timedelta(days=6)).isoformat())
         if len(done) == 9 and monday.isoformat() not in cards:
             cards[monday.isoformat()] = max(v or 0 for v in done.values())
     b["cardsV"] = 1
@@ -965,14 +1046,18 @@ def _backfill_cards(spot):
 
 
 def bingo_json(spot, day):
-    """This week's card: its nine goals, which are done (and when), and how many lines are complete."""
+    """This week's card: its nine goals, which are done (and when), and how many lines are complete. Relay 73: the rows'
+    themes, what ticked each goal (`by`, the sighting's names), the counting goals' [count, target] and the full lines
+    newest first (`fullLines`: their cells and when the last of them was ticked); `done` and `lines` stay for older apps."""
     monday = datetime.date.fromisoformat(day) - datetime.timedelta(days=datetime.date.fromisoformat(day).weekday())
     key = (monday.isoformat(), day, spot.rev)
     cached = getattr(spot, "_bingo", None)
     if cached and cached[0] == key:
         return cached[1]
-    card, done = _bingo_week(spot, monday, day, live=True)
-    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
+    card, done, by, have = _bingo_week(spot, monday, day, live=True)
+    full = sorted(([list(ln), max(done[card[i]] or 0 for i in ln)] for ln in (BINGO_LINES[:3] if _bingo_rows(monday) else BINGO_LINES)
+                   if all(card[i] in done for i in ln)), key=lambda x: -x[1])
+    lines = len(full)
     book = game_book(spot.book())           # relay 59: the game's card, from live planes only
     if len(done) == 9 and monday.isoformat() not in book.setdefault("bingoCards", {}):     # relay 51: full cards
         book["bingoCards"][monday.isoformat()] = max(v or 0 for v in done.values())
@@ -984,7 +1069,12 @@ def bingo_json(spot, day):
             got[k] = now
             spot.changed("book")
     nxt = datetime.datetime.combine(monday + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
-    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
+    out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000),
+           "by": {g: {k: e.get(k) or "" for k in BINGO_BY} for g, e in by.items()},
+           "count": {g: [n, BINGO_COUNT[g][0]] for g, n in have.items()},
+           "fullLines": [{"cells": c, "at": t} for c, t in full]}
+    if _bingo_rows(monday):
+        out["themes"] = [t for t, _ in BINGO_THEMES]
     spot._bingo = (key, out)
     return out
 

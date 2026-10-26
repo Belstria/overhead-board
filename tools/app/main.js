@@ -1025,11 +1025,9 @@ function recordsHtml(all, g0){
     html += secPlate(T("Records"), rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true));
   }
   const bg = g0 && g0.bingo;
-  if (bg && bg.card) {                                 // the weekly bingo (relay 29)
+  if (bg && bg.card) {                                 // the weekly bingo (relay 29; 1.92: themed rows, bingoHtml)
     const nd = Object.keys(bg.done || {}).length;
-    const cells = bg.card.map(k => { const d = (bg.done || {})[k];
-      return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`);
+    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T(bg.themes ? "{n} of 9 done · full rows: {l}" : "{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p>` + bingoHtml(bg));
   }
   if (g0) html += trophiesHtml(g0);
   return html;
@@ -3882,12 +3880,60 @@ async function playerCard(id){
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
     (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`);
 }
+/* 1.92 (to-do #100 and #101, relay 73): the weekly bingo card, row by row under its themes (airlines, aircraft, stats;
+   only a full row counts). The squares of the full lines (`lit`: the pop-up's one line) are lit, each with the plane that
+   ticked it and when; the other squares done are dimmed beside them; a counting goal shows how far it got. */
+const bingoRowsOk = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 73;
+const BINGO_THEME = {airlines: "Airlines", aircraft: "Aircraft", stats: "Stats"};
+const bingoWhen = ts => { const d = new Date(ts); return (d.toDateString() === new Date().toDateString() ? "" : d.toLocaleDateString(LOC(), {weekday: "short"}) + " ") + hhmm(d); };
+function bingoHtml(bg, lit){
+  const v73 = bingoRowsOk() && Array.isArray(bg.fullLines), done = bg.done || {}, by = v73 && bg.by || {}, cnt = v73 && bg.count || {};
+  const on = new Set(v73 ? lit || bg.fullLines.flatMap(l => l.cells) : []), themes = v73 && bg.themes;
+  return `<div class="bingo">` + bg.card.map((k, i) => {
+    const d = done[k], ln = on.has(i) && d, c = cnt[k], f = ln && by[k] ? fromRelay(by[k]) : null;
+    const sub = d ? [f && f.flight, bingoWhen(d)].filter(Boolean).join(" · ") : c ? `${nf.format(c[0])} / ${nf.format(c[1])}` : "";
+    return (themes && i % 3 === 0 ? `<b class="bh">${escH(T(BINGO_THEME[themes[i / 3]] || themes[i / 3]))}</b>` : "") +
+      `<div class="bc${d ? " on" : ""}${d && on.size && !ln ? " dim" : ""}"><i></i><span>${escH(goalText(k, c && c[1]))}</span>${sub ? `<small>${escH(sub)}</small>` : ""}</div>`;
+  }).join("") + `</div>`;
+}
+// Dave's pick A: a bingo line pops up with the whole card, that line lit; it stays while a finger is on it, else 15 s.
+const BINGO_POP_MS = 15000;
+let bingoPopT = 0;
+function bingoPop(a){
+  const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(a.icon)}</div><p class="shH">${escH(T("Achievement"))}</p>` +
+    `<h3>${escH(a.title)}</h3><p class="achTx">${escH(a.text)}</p>` + bingoHtml(a.bingo.card, a.bingo.cells) +
+    `<div class="achBar"><i style="animation-duration:${BINGO_POP_MS}ms"></i></div>`, el => el.classList.add("ach", "achBingo"));
+  const ci = $("cardBox").querySelector(".cardIn"), bar = ci.querySelector(".achBar i");
+  let left = BINGO_POP_MS, t0 = 0, held = false;
+  const run = () => {                                // the bar (started again where the time left puts it) and the close
+    t0 = Date.now(); clearTimeout(bingoPopT);
+    bar.style.animationName = "none"; void bar.offsetWidth; bar.style.animationName = "";
+    bar.style.animationDelay = `${left - BINGO_POP_MS}ms`;
+    bingoPopT = setTimeout(() => { if (cardTok === tok && cardOpenNow()) cardClose(); }, left);
+  };
+  const hold = () => { if (held) return; held = true; clearTimeout(bingoPopT); left -= Date.now() - t0; bar.style.animationPlayState = "paused"; };
+  const free = () => {
+    if (!held || cardTok !== tok) return;
+    held = false; left = Math.max(left, 4000);        // a moment to read on after letting go
+    bar.style.animationPlayState = "";
+    run();
+  };
+  ci.addEventListener("touchstart", hold, {passive: true});
+  for (const ev of ["touchend", "touchcancel"]) ci.addEventListener(ev, e => { if (!e.touches.length) free(); });
+  ci.addEventListener("mousedown", hold); ci.addEventListener("mouseup", free); ci.addEventListener("mouseleave", free);
+  run();
+  confetti();
+  fanfare();
+  return true;
+}
 /* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
    numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
-   and the board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal). */
+   and the board, keep their card: achNext asks achSpecial first (dry: only whether it is a medal; 1.92: or a bingo line,
+   bingoPop). */
 const ROMAN = ["I", "II", "III", "IV", "V"];
 let medalT = 0;
 function achSpecial(a, dry){
+  if (a && a.bingo) return dry || bingoPop(a);
   const id = a && /^tr:/.test(a.k) ? a.k.slice(3) : "", tr = id ? TROPHY_TIER.get(id) : null, L = tr && TROPHY_LADDERS.find(l => l[0] === tr.key);
   if (!L || dry) return !!L;
   const i = L[2].findIndex(t => t[0] === id);

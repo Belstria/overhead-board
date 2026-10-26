@@ -573,7 +573,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=9c62223c00"></script>
+<script src="i18n.js?v=768f76488f"></script>
 <script>
 (() => {
 "use strict";
@@ -3356,8 +3356,23 @@ const GOAL_TEXT = {heli: "A helicopter",
   gulf: "Emirates, Qatar or Etihad",
   lowcost: "A low-cost airline",
   turkish: "Turkish Airlines",
-  fast: "Faster than {s}"};
-const goalText = k => T(GOAL_TEXT[k] || k, {a: altitudeStr(2500).toLowerCase(), s: speedStr(520).toLowerCase()});
+  fast: "Faster than {s}",
+  // 1.92 (relay 73): the themed rows' goals; the counting ones take their number from the relay (n), else from their id
+  oneworld: "A oneworld airline",
+  skyteam: "A SkyTeam airline",
+  farline: "An airline from outside Europe",
+  gairline: "An airline new to you",
+  airlines15: "{n} airlines",
+  max: "A 737 MAX",
+  a220: "An A220",
+  gtype: "A type new to you",
+  types12: "{n} aircraft types",
+  high: "Higher than {h}",
+  long: "A flight over {km} km",
+  common25: "{n} common planes",
+  days4: "Planes on {n} days"};
+const goalText = (k, n) => T(GOAL_TEXT[k] || k, {a: altitudeStr(2500).toLowerCase(), s: speedStr(520).toLowerCase(), h: altitudeStr(40000).toLowerCase(),
+  km: nf.format(4000), n: n || (/\d+$/.exec(k) || [""])[0]});
 // 1.50: when the weekly bingo card is drawn afresh: the relay says (relay 44), else the Monday after its week at 03:00.
 function bingoReset(bg){
   if (!bg || !bg.week) return "";
@@ -5948,7 +5963,10 @@ function achList(g0){
     out.push({k: "set:" + s.name, icon: "▣", title: T("Collection complete"), text: T("{name}: all {n} seen", {name: T(s.name), n: s.total})});
   const b = g0.bingo;
   if (b && b.week) {
-    for (let n = 1; n <= Math.min(8, b.lines || 0); n++)
+    // 1.92 (relay 73): each full line by its squares, oldest first, with the card (the app's pop-up lights them)
+    if (Array.isArray(b.fullLines)) b.fullLines.slice().reverse().forEach((l, i) => out.push({k: `line:${b.week}:${l.cells.join("")}`, icon: "▦",
+      title: T("Bingo!"), text: i ? T("Line {n} on this week's bingo card", {n: i + 1}) : T("A line on this week's bingo card"), bingo: {cells: l.cells, card: b}}));
+    else for (let n = 1; n <= Math.min(8, b.lines || 0); n++)
       out.push({k: `line:${b.week}:${n}`, icon: "▦", title: T("Bingo!"), text: n === 1 ? T("A line on this week's bingo card") : T("Line {n} on this week's bingo card", {n})});
     if (Object.keys(b.done || {}).length >= 9) out.push({k: "card:" + b.week, icon: "▦", title: T("Full card"), text: T("All nine on this week's bingo card")});
   }
@@ -6649,6 +6667,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.92", date: "2026-10-26", notes: [
+    "The weekly bingo card has three themed rows: airlines, aircraft and stats. Only a full row counts as a line.",
+    "New bingo squares, some counting over the week, such as 25 common planes or planes on 4 days.",
+    "A bingo line pops up with the whole card, the line's squares lit with the plane that ticked each; it stays while you touch it.",
+    "The Spotters' Club's bingo card lights its full lines and shows their planes."]},
   {v: "1.90", date: "2026-10-26", notes: [
     "In Sky view, an arrow at the edge points to the sun or the moon when it is out of the picture.",
     "In Sky view, a compass ribbon above the hint shows which way you face, and where the sun and the moon are.",

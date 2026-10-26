@@ -259,6 +259,11 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .bingo .bc.on{background:rgba(240,180,41,.14);border-color:rgba(240,180,41,.7);color:var(--ink)}
 .bingo .bc.on i{background:var(--amber);box-shadow:0 0 6px var(--amber)}
 .bingo small{display:block;margin-top:5px;color:var(--muted);font-weight:500;font-size:var(--fs-xs)}
+/* 1.92: each themed row's name over it, the squares done beside a full line dimmed, the card in the bingo pop-up */
+.bingo .bh{grid-column:1/-1;margin:7px 0 -1px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.bingo .bh:first-child{margin-top:0}
+.bingo .bc.dim{opacity:.4}
+#cardBox .achBingo .bingo{margin:12px 0 0;text-align:left}
 .ranks.plain.cups li{grid-template-columns:24px minmax(0,1fr) auto;align-items:center}
 .cups .cup{width:20px;height:20px;fill:none;stroke:rgba(255,255,255,.25);stroke-width:1.2}
 .cups li.on .cup{fill:#e0aa1f;stroke:#e0aa1f}

@@ -15,19 +15,26 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - Sky view's reports: David's only, from this site, kept up to a cap (2 in the test relay), then rate-limited (relay 72)
+- the weekly bingo (relay 73, bingo_checks: the relay's code on made-up days): this week's card has three themed rows, only
+  a full row is a line, a counting goal counts, what ticked each square comes along (by), last week's card and its lines
+  are as they were; on the test relay, /logbook's card has the themes and a `by` for each square done
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
 """
+import datetime
 import gzip
+import importlib.util
 import json
 import os
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
+PORT =int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
 BASE = f"http://localhost:{PORT}"
 AT_HOME = {"X-Forwarded-For": "192.168.1.50"}          # through a proxy on this computer, from a phone at home
 OUTSIDE = {"Cf-Connecting-IP": "203.0.113.9"}           # through the tunnel
@@ -191,6 +198,13 @@ def checks():
     lg = json.loads(b) if st == 200 else {}
     expect("the league has the live player", [r["name"] for r in lg.get("rows", []) if r.get("me")], ["Test"])
     expect("the league shows no places", "lat" in b.decode() or "place" in b.decode(), False)
+    # relay 73: this week's bingo card in /logbook: three themed rows, and what ticked each square done
+    st, _, b = call("/logbook", "test-device")
+    bg = (json.loads(b).get("game") or {}).get("bingo") or {} if st == 200 else {}
+    expect("this week's bingo has three themed rows", (bg.get("themes"), len(bg.get("card") or [])), (["airlines", "aircraft", "stats"], 9))
+    expect("... a plane for each square done", sorted(bg.get("by") or {}), sorted(bg.get("done") or {}))
+    expect("... named by its flight and registration", all("callsign" in x and "reg" in x for x in (bg.get("by") or {}).values()), True)
+    bingo_checks(expect)
 
     # relay 63: where a sighting on the go was made, named in the background and found by the search ("New guest":
     # nobody's home screen saw these planes first); the hangar; a league player's card
@@ -300,6 +314,78 @@ def checks():
         print("flow:", b_)
     print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")
     return not bad
+
+
+def bingo_checks(expect):
+    """Relay 73 (to-do #101): the weekly bingo by the relay's own code (relay/serve.py, loaded here) on made-up days in
+    a folder of its own: themed rows, only rows count, a counting goal, what ticked each square, last week as it was."""
+    spec = importlib.util.spec_from_file_location("serve_bingo", Path(__file__).resolve().parents[2] / "relay" / "serve.py")
+    sv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sv)
+    day = datetime.date.fromisoformat
+    expect("last week's bingo card, as it was drawn", sv._bingo_card(day("2026-10-19")),
+           ["low", "a350", "turboprop", "a380", "watch", "b787", "night", "b777", "fast"])
+    pools = [set(p) for _, p in sv.BINGO_THEMES]
+    rows_ok = True
+    for w in range(104):                    # two years of cards: each row from its theme, no two goals too much alike
+        card = sv._bingo_card(day("2026-10-26") + datetime.timedelta(days=7 * w))
+        rows = [card[i:i + 3] for i in (0, 3, 6)]
+        rows_ok &= all(set(r) <= p and len(set(r)) == 3 and not any({a, b} in sv.BINGO_APART for a in r for b in r if a != b)
+                       for r, p in zip(rows, pools))
+    expect("every week's card: a row of airlines, of aircraft and of stats", rows_ok, True)
+
+    at = lambda d, h, m=0: int(datetime.datetime.fromisoformat(f"{d}T{h:02d}:{m:02d}").timestamp() * 1000)   # noqa: E731
+    n = [0]
+
+    def plane(d, h, m=0, live=True, **f):
+        n[0] += 1
+        e = {"id": f"t{n[0]}", "hex": f"a{n[0]:05x}", "ts": at(d, h, m), "callsign": "", "reg": "", "typeCode": "A320",
+             "tier": "uncommon", "minDist": 6.0, "altAtMin": 9000, "maxSpeed": 300, **f}
+        if live:
+            e["gp"] = 30
+        return e
+    with tempfile.TemporaryDirectory() as tmp:
+        # a logbook needing no catching up, so the spot never takes the real today as its day
+        (Path(tmp) / "logbook.json").write_text(json.dumps({"sightings": 0, "types": {}, "airlines": {}, "regs": {}, "gameV": sv.GAME_V,
+                                                            "recordsV": 1, "trophiesV": sv.TROPHIES_V, "cardsV": 1, "flightsV": 1}))
+        spot = sv.Spot(Path(tmp), lambda: None, lambda: 15)
+
+        def save(d, *planes):              # a day's sightings, newest first, as the relay keeps them
+            f = Path(tmp) / f"sightings-{d}.json"
+            old = json.loads(f.read_text()) if f.is_file() else []
+            f.write_text(json.dumps(sorted(list(planes) + old, key=lambda e: -e["ts"])))
+            spot.changed()
+        # last week (the card before relay 73): a diagonal still counts as a line
+        save("2026-10-20", plane("2026-10-20", 12, altAtMin=1500), plane("2026-10-20", 13, watch="Police"),
+             plane("2026-10-20", 14, maxSpeed=560))
+        b = sv.bingo_json(spot, "2026-10-22")
+        expect("last week: its diagonal is a line, no themes", (b["lines"], b.get("themes"), b["fullLines"][0]["cells"] if b["fullLines"] else None),
+               (1, None, [0, 4, 8]))
+        # this week, on a card made for the test: a column isn't a line, a row is
+        card = ["lhgroup", "lowcost", "turkish", "max", "embraer", "b777", "low", "rare", "common25"]
+        drawn = sv._bingo_card
+        sv._bingo_card = lambda monday: card if sv._bingo_rows(monday) else drawn(monday)
+        save("2026-10-26", plane("2026-10-26", 9, callsign="DLH400", tier="common"),
+             plane("2026-10-26", 10, callsign="SXS111", typeCode="B38M", tier="common"),
+             plane("2026-10-26", 11, reg="OE-KXP", typeCode="C172", altAtMin=1200),
+             plane("2026-10-26", 12, live=False, callsign="THY1886", tier="common"))        # not live: counts for nothing
+        b = sv.bingo_json(spot, "2026-10-26")
+        expect("this week: a full column", (sorted(b["done"]), b["lines"], b["fullLines"], b["themes"]),
+               (["lhgroup", "low", "max"], 0, [], ["airlines", "aircraft", "stats"]))
+        save("2026-10-27", plane("2026-10-27", 9, callsign="WZZ1234", typeCode="A21N", tier="common"),
+             plane("2026-10-27", 10, callsign="THY1885", flightIata="TK1885", reg="TC-LSA", typeCode="A21N", tier="common"))
+        b = sv.bingo_json(spot, "2026-10-27")
+        expect("... and a full row is a line", (b["lines"], b["fullLines"]), (1, [{"cells": [0, 1, 2], "at": at("2026-10-27", 10)}]))
+        expect("... which wins the Bingo trophy", "bingo" in sv.game_book(spot.book())["trophies"], True)
+        t = b["by"].get("turkish") or {}
+        expect("... with the plane that ticked each square", (t.get("callsign"), t.get("flightIata"), t.get("reg"), t.get("typeCode")),
+               ("THY1885", "TK1885", "TC-LSA", "A21N"))
+        expect("a counting goal: 4 of 25 common planes", (b["count"].get("common25"), "common25" in b["done"]), ([4, 25], False))
+        save("2026-10-28", *[plane("2026-10-28", 8, i, callsign=f"AUA{100 + i}", tier="common") for i in range(21)])
+        b = sv.bingo_json(spot, "2026-10-28")
+        expect("... the 25th ticks it", (b["count"].get("common25"), b["done"].get("common25"), (b["by"].get("common25") or {}).get("callsign")),
+               ([25, 25], at("2026-10-28", 8, 20), "AUA120"))
+        sv._bingo_card = drawn
 
 
 def browser_checks(browser):

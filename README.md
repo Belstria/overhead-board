@@ -248,9 +248,15 @@ The main board has everything below. New features are tried on `/test/` first; o
   Today in numbers: planes, types, airlines, aircraft, new types, rare planes (and points, in the app); the busiest day, the rarest
   plane, the most seen airline and aircraft, the farthest route, the lowest, closest and fastest pass, and the new types.
   **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
-  In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
-  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
-  it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday,
+  drawn afresh each week (on Monday at 03:00; next to the card it says when, and how long until then). Since 1.92
+  (relay 73) the card has three themed rows: **Airlines** (Lufthansa Group, a low-cost airline, a oneworld or SkyTeam
+  airline, one from outside Europe, an airline new to you, 15 airlines ...), **Aircraft** (a 737 MAX, a 787, a business
+  jet, a type new to you, 12 aircraft types ...) and **Stats** (lower than 760 m, faster than 963 km/h, within 1 km,
+  a rare one, a plane after 23:00, 25 common planes, planes on 4 days ...); a counting square shows how far it got
+  ("12 / 25"). Only a full row is a line (before, also columns and diagonals); all nine are a full card. The squares
+  of a full line are lit, each with the plane that ticked it and when. Only planes that score count (live location).
+  The goals are ones a normal week at home brings. And **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
   in, points, special planes, planes in one day, the same aircraft again, days running with something rare. The others
@@ -260,7 +266,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Achievements** (1.38; the phone app, and the boards until 1.89.1): when a collection is complete, a bingo line is made or a trophy is won,
   a card pops up with a little confetti and the bell (if chimes are on), and closes by itself after 10 seconds (or tap
   ×). Each one shows once on each screen; a screen opening the board for the first time doesn't celebrate everything
-  won before.
+  won before. A bingo line (1.92) pops up with the whole card: the line's squares lit with the plane and time that
+  ticked each, the other squares done dimmed; it stays while a finger is on it, else 15 seconds.
 - **Watchlist** (1.28, relay 29): the relay downloads [plane-alert-db](https://github.com/sdr-enthusiasts/plane-alert-db)
   once a day, about 17,000 aircraft worth a look, and a plane on it says what it is in its status and the lists:
   POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or

@@ -706,6 +706,18 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.92 (to-do #100, Dave's pick A; #101; relay 73): **the bingo's themed rows and the line pop-up**. `bingoHtml(bg, lit)`
+  (main.js) draws the card for the Club plate (`recordsHtml`, "{n} of 9 done · full rows: {l}" when `bg.themes`) and the
+  pop-up: a `.bh` label (amber caps, `BINGO_THEME`: Airlines, Aircraft, Stats) over each row, the squares of
+  `bg.fullLines` (or `lit`, the pop-up's one line) `.on` with `fromRelay(bg.by[k]).flight · bingoWhen(ts)` (the time;
+  another day's with its weekday), other squares done `.on.dim` (opacity .4) with the time, a counting goal's
+  `bg.count[k]` as "12 / 25"; all only with `bingoRowsOk()` (relay 73), else as before. `goalText(k, n)` (shared) fills
+  `{n}` from the relay's target (else the id's digits), `{h}` 40,000 ft, `{km}`. `achList` (shared) gives each of
+  `fullLines` (oldest first) the key `line:<week>:<cells>` (the old `line:<week>:<n>` keys, already celebrated this
+  week, can't hold it back) and `bingo: {cells, card}`; `achSpecial` hands those to `bingoPop(a)`: `cardOpen` with the
+  achievement's badge, title and text, the card (`.achBingo`) and `.achBar`; `BINGO_POP_MS` 15 s, a touch (`touchstart`,
+  `mousedown`) pauses the close and the bar (`animation-play-state`), letting go runs on with the time left (at least
+  4 s; `run()` restarts the bar with a negative `animation-delay`). confetti and fanfare as other achievements.
 - 1.88 (Dave's picks 11 A and 13 A, 26 Oct): **Settings jump bar**: `#setJump` (sticky at `top: var(--topH)`, which a
   ResizeObserver on `#top` keeps at the header's height, score strip included) holds `.seg.jumpSeg`, added to the
   shared segmented-filter rules (flex:none buttons, so it scrolls sideways). `jumpBuild()` (after `showTab("settings")`
@@ -822,6 +834,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 73 (1.92, to-do #101): **the bingo's themed rows**. From the week of `BINGO_ROWS_FROM` (2026-10-26, Dave: "from
+  this week's card on") `_bingo_card(monday)` draws three rows, one from each of `BINGO_THEMES` (airlines, aircraft,
+  stats), with the Monday's seed as before: the pool shuffled, the first three goals no pair of which is in `BINGO_APART`
+  (farline/gulf, farline/oneworld, gulf/oneworld, low/close, fast/long: one plane would often tick both). Older weeks:
+  `rng.sample(BINGO_V1, 9)`, the pre-73 goals in their old order, so their cards are unchanged (flows.py checks one), and
+  their eight `BINGO_LINES`; themed weeks count only `BINGO_LINES[:3]`. New goals in `BINGO`: oneworld, skyteam
+  (`ONEWORLD`, `SKYTEAM`, 2026 members), farline (an airline callsign whose registration prefix, `_reg_pre`, is not in
+  `EUROPE_REGS`, Turkey and the Caucasus counted in), gairline/gtype (`gNewAirline`/`gNewType`: new to the game, as its
+  points), max, a220, high (40,000 to 60,000 ft at the closest point), long (`_route_km` ≥ 4,000). `BINGO_COUNT`: goals
+  that count over the week by a key per plane (`airlines15` the airline, `types12` the type, `common25` the sighting's id
+  if common, `days4` the day). `_bingo_week` returns `card, done, by, have` (`spot.day_entries`); `bingo_json` adds `by`
+  (the ticking sighting's `BINGO_BY` names, for `fromRelay`), `count` ({goal: [have, target]}), `fullLines` ([{cells,
+  at}], newest first) and `themes`; `done` and `lines` stay. Pools: goals one plane ticks came ≥ 2.5 in 100 of 1,717
+  planes within 10 km of home (9–26 Oct, read-only from the relay's saved days), ≥ ~70 % in a week of 50 live planes;
+  the counts were set from random weeks of those planes (15 airlines and 12 types: ≥ 90 % in 30-40 planes, 25 commons
+  in about 40).
 - Relay 70 (1.88.0.1): `live_stale(q, place)`: a "live" position request with `fix` older than `LIVE_FRESH_S` (300),
   negative or not a number skips `fill_want` and `Spot.take` (no sightings, points, liveSeen for lock-ons, gap filler);
   without `fix` (older boards) nothing changes. `no_cs()` treats an all-"@" callsign as none (`_record`, the
