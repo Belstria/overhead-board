@@ -10,6 +10,57 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.90 (to-do #92, Dave's picks "A + the compass from B", relay 72): **Sky view's sun and moon pointers, compass ribbon
+  and report**. `arBodyEdge()`: a body above the horizon whose ring is out of the picture gets a dashed arrow at the
+  edge (the shape of `arEdge`'s) with "☀ SUN" and how far to turn (left/right when beyond half the picture's width,
+  else up/down), from `arUnproject` of the picture's middle. `arRibbon()` draws `#arRib` (a canvas in `.arBot` above
+  the hint, hidden with the hint while a card is open): 360° centred on the way the picture faces, ticks every 15°,
+  `AR_RIB` letters (N red, through `T()`), the picture's width bracketed, ☀/☾ at their azimuths with "{n}° up"; it
+  redraws only when its signature changes. The flag `#arFlag` (`arReportOk()`: relay 72+, `GUEST.owner`) posts
+  `arReport()` to `/skyreport`: app version, OS, event counts per kind (`arEvN`: abs/rel/ios, to see whether a phone
+  sends the gyroscope's reading at all), `arGap`, declination, `arOff`, held (`arHeldWhy`), unsure, turn rate, facing,
+  the quaternion, `arGapLog` (every 4th) and `arRaw`, AUTO's lock and finds, the sun and moon and `arSunLast` (the sun's
+  ring offset from AUTO's last sun find), screen and video size, focal length. `arNote` keeps the hint's answer for 8 s.
+  The relay (`sky_report_clean`: numbers, flags, short strings, 3 levels, place-like keys dropped; `sky_report_save`)
+  keeps them in `data/profiles/<id>/skyreports.jsonl`, the newest `SKY_REPORTS_MAX` (200), owner only, same origin,
+  1 per 10 s (burst 3).
+- 1.90 (to-do #93): **steadier labels**: a complementary filter in `arGapStep`. North (`arGap`) follows the compass
+  always, not only when still, but slowly: `AR_GAP_TAU` 6 s, ×3 while turning (`arMovedAt` within `AR_STILL_MS`), ×4
+  while unsure (iOS accuracy poor, or `arCalAt` within 4 s), at most `AR_GAP_MAX` 1°/s (a quarter unsure); the first
+  `AR_GAP_SETTLE` 1.5 s after the first reading settle with τ 0.4 s. A steady difference is no swing: while still,
+  when the compass's last `AR_GAP_STEADY` 1.5 s agree among themselves (sd < 2.5°) but differ from north in use by over
+  4°, `arGapFast` glides there with τ 1.5 s, all the way (within 1°) unless the phone moves or the compass wavers (a
+  compass that comes right after Sky view opens, north carried over wrongly). `arGapLog` now keeps the compass against
+  the gyroscope from the first reading (`arGapRef`; cleared when the gyroscope's zero jumps), not against north in use,
+  so the 12° swing check sees only the compass. `arCalCheck(…, gyro)`: with the gyroscope's reading the 1.66 check
+  (heading swinging while the tilt holds) is left out, as a smooth pan looked just like it ("Compass unsure" while
+  turning). Held (AUTO or a drag) is as in 1.86.
+  `tools/test/sky_jitter.js` runs main.js's own sensor code on a made-up Android stream (60 Hz, gyroscope drifting
+  .02°/s; outdoors compass ±1.5°, indoors ±3° plus ±8° swings with time and heading; a compass 25° off for its first
+  4 s; the gyroscope's zero jumping 40°) and prints the label movement while still and how long north takes to come
+  right. 1.89 → 1.90: indoors the most a label wandered in a still spell 6.4° (75 px) → 0.7° (9 px), frame to frame
+  0.031° → 0.005°; outdoors 1.45° → 0.21°; the 25°-off start right (within 2°) after 9.3 s → 9.4 s; the zero jump
+  unseen in both. North's average error indoors rose 3.9° → 5.9° (it follows the swinging compass less; that
+  compass's own error is about 4.5° there).
+- 1.90 (to-do #94): **the picture button only once locked on**: `arShotAt` is set while `arLocked` (the plane the ring
+  last filled on in this Sky view, set in `arAimDraw`; a tapped plane doesn't count) is in the picture, no longer for
+  any plane the game had locked on earlier today (`s.locked`); it still stays 5 s after the plane leaves the picture.
+  While the small card is open the shutter sits above it (`--ar-lift` on `.arBot`, the card's height; it was behind it).
+- 1.90: **no planes before live location's first fix** (a phone whose Chrome never got a fix at home showed a trip's
+  planes 1,100 km away): `liveWaiting()` (live and no `liveAt` yet) empties the list in `poll()` (with its `now`);
+  the title line says only "◉ FINDING YOU …" (app `updateWhere`; board `drawStatic` without the place); after a minute
+  from `liveRun` (`liveRunAt`) a red toast once says live location isn't working on this device, its Settings button
+  `switchView("settings")` on the board, `showTab("settings")` in the app. Relay 72: `live_stale()` treats a live
+  request without `fix` as stale too (only an old cached app leaves it out). The app's red toast button was red on red.
+  Nothing from before stays while finding: `liveBlank()` (from `liveRun`: going live, or the page opening live) drops
+  the plane on top, `recent` (the planes' last positions, which the 30 s missing grace kept on), `lastList` (the 2 s
+  look-again re-ran the old place's update) and the snapshot, resets `emptyStreak`/`lastCount` (an empty sky isn't taken
+  for a source's glitch), then `process([])` and each page's `liveShow()`, which now redraws the lists too. `snapLoad`
+  shows no last known board in live mode and `snapSave` saves none while finding. `dayList()` (board and app) and the
+  board's `recentShown()` are empty and Today in numbers leaves out the relay's numbers while `liveWaiting()`; the
+  status flap is blank (not NO TRAFFIC); the Now list, Spotted today and the Where to look card say "Finding where you
+  are … the planes show once live location has found you."
+
 - 1.89.1 (to-do #102, Dave: "the big main boards should just be about the overhead/airport stuff"): **no game on the
   board** (test/index.html, so the TVs and the PC); the app keeps all of it. Board-only code removed: the `league` page
   (`LEAGUE_ROWS` fields, `leagueLoad`/`renderLeague`, `/game/league` fetch, rail key, icon and tip; `ROTATION_OVERHEAD`

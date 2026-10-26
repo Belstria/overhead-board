@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 71
+RELAY_VERSION = 72
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -4218,6 +4218,42 @@ def guest_spot(pid):
         return sp
 
 
+SKY_REPORTS_MAX = 200      # relay 72: Sky view's reports kept per profile (the oldest go)
+SKY_REPORT_DROP = {"lat", "lon", "latitude", "longitude", "place", "here", "pos", "position", "image", "picture"}
+
+
+def sky_report_clean(v, depth=0):
+    """A Sky view report (relay 72) as numbers, flags and short words only: no picture, no place, nothing long."""
+    if isinstance(v, bool) or v is None:
+        return v
+    if isinstance(v, (int, float)):
+        return round(v, 3) if math.isfinite(v) else None
+    if isinstance(v, str):
+        return re.sub(r"[\x00-\x1f]", "", v)[:120]
+    if isinstance(v, list) and depth < 3:
+        return [sky_report_clean(x, depth + 1) for x in v[:240]]
+    if isinstance(v, dict) and depth < 3:
+        return {k: sky_report_clean(x, depth + 1) for k, x in list(v.items())[:40]
+                if isinstance(k, str) and re.fullmatch(r"[A-Za-z0-9_]{1,24}", k) and k.lower() not in SKY_REPORT_DROP}
+    return None
+
+
+def sky_report_save(pid, rep):
+    """Adds a report to the profile's skyreports.jsonl, keeping the newest SKY_REPORTS_MAX. Returns how many are kept."""
+    f = DATA_DIR / "profiles" / pid / "skyreports.jsonl"
+    with _data_lock:
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+        lines = (lines + [json.dumps(rep, separators=(",", ":"))])[-SKY_REPORTS_MAX:]
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        os.replace(tmp, f)
+    return len(lines)
+
+
 def fr24_limit(p):
     """A profile's Flightradar24 credits a day (relay 42): set on the admin page, else by whether it has an account."""
     v = p.get("fr24Limit")
@@ -4883,13 +4919,16 @@ def screen_place(q):
 
 # Relay 70: a live position counts only while the screen's fix is fresh. Boards since 1.88.0.1 send its age with each
 # position request (&fix=seconds, -1: none yet); a stale one (a saved spot from a trip, before the first fix) records no
-# sightings, scores nothing and starts no gap filler. Older boards don't send it and keep the old behaviour.
+# sightings, scores nothing and starts no gap filler. Relay 72: a live request without it is stale too (only an old
+# copy of the app, kept in a phone's cache, leaves it out; one logged a plane 1,100 km away from a trip's spot).
 LIVE_FRESH_S = 300
 
 
 def live_stale(q, place):
-    if not place or place[0] != "live" or "fix" not in q:
+    if not place or place[0] != "live":
         return False
+    if "fix" not in q:
+        return True
     try:
         return not 0 <= float(q["fix"][0]) <= LIVE_FRESH_S
     except ValueError:
@@ -6839,6 +6878,20 @@ class Handler(BaseHTTPRequestHandler):
             if out.get("bonus"):
                 event("info", f"Sky view lock-on for {self.guest[1].get('name')}: +{out['bonus']} (combo {out['combo']})")
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/skyreport":            # relay 72: Sky view's sensor readings, for tuning the compass (the owner's)
+            if not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from this site")
+            if not self.guest or not self.owner_ok():   # (strangers never get here; owner_ok lets the relay's own computer in)
+                return self.reply(403, "text/plain", b"Only for the owner")
+            if not allow("skyrep:" + self.guest[0], 1 / 10, 3):
+                return self.reply(429, "text/plain", b"Not now")
+            j = sky_report_clean(self.json_body())
+            if not j:
+                return self.reply(400, "text/plain", b"Nothing to keep")
+            j["at"] = int(time.time())
+            n = sky_report_save(self.guest[0], j)
+            event("info", f"Sky view report from {self.guest[1].get('name')} ({n} kept)")
+            return self.reply(200, "application/json", json.dumps({"ok": True, "kept": n}).encode())
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
