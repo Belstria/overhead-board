@@ -174,6 +174,48 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 #viewTools.rdr{display:block;pointer-events:none}
 #viewTools.rdr .cap{position:absolute;pointer-events:auto;min-width:calc(64px*var(--k))}
 #viewTools.rdr .cap[data-z]{font-size:calc(24px*var(--k));line-height:1;font-weight:700}
+#viewTools a.cap:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+/* 1.93: the Logbook's plates as buttons for the remote's ring (a click goes through to the board), and their cards */
+#lbHits{position:absolute;inset:0;z-index:2;pointer-events:none}
+#lbHits[hidden]{display:none}
+#lbHits button{position:absolute;margin:0;padding:0;border:0;border-radius:calc(8px*var(--k));background:none;pointer-events:none;outline:none;transition:box-shadow .2s}
+#lbHits button.hov{box-shadow:0 0 0 calc(1.5px*var(--k)) rgba(246,197,74,.45)}
+#lbHits button:focus-visible{box-shadow:0 0 0 calc(3px*var(--k)) #f6c54a,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(246,197,74,.35)}
+#fx.lbHov{cursor:pointer}
+body.idle #fx.lbHov{cursor:none}
+#cardBox .lbCard:focus{outline:none}
+#cardBox .lbCard .cBtn:focus-visible,#cardBox .lbCard .lbRow:focus-visible{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
+#cardBox .lbCard .cBtn:disabled{opacity:.4;cursor:default}
+#cardBox .lbSeg{margin:calc(10px*var(--ck,1)) 0 calc(4px*var(--ck,1))}
+#cardBox .lbSeg .cBtn{min-height:calc(34px*var(--ck,1));padding:calc(6px*var(--ck,1)) calc(13px*var(--ck,1))}
+#cardBox .lbNums{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(10px*var(--ck,1)) calc(8px*var(--ck,1));margin:calc(12px*var(--ck,1)) 0 calc(4px*var(--ck,1))}
+#cardBox .lbNums b{display:block;font:700 calc(26px*var(--ck,1))/1.05 var(--f-board);color:#f3f0e8}
+#cardBox .lbNums span{font:600 calc(11px*var(--ck,1))/1.3 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#959aa3}
+#cardBox .lbRk{list-style:none;margin:calc(6px*var(--ck,1)) 0 0;padding:0}
+#cardBox .lbRow{all:unset;box-sizing:border-box;display:grid;grid-template-columns:calc(26px*var(--ck,1)) minmax(0,1fr) auto;gap:calc(4px*var(--ck,1)) calc(8px*var(--ck,1));align-items:baseline;width:100%;
+  padding:calc(7px*var(--ck,1)) calc(4px*var(--ck,1));border-bottom:1px solid rgba(255,255,255,.06);border-radius:calc(4px*var(--ck,1));font:600 calc(15px*var(--ck,1))/1.25 var(--f-board);color:#f3f0e8}
+#cardBox button.lbRow{cursor:pointer}
+#cardBox button.lbRow:hover{background:rgba(255,255,255,.05)}
+#cardBox .lbRow .no{color:#6d7179;font-size:calc(12px*var(--ck,1))}
+#cardBox .lbRow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cardBox .lbRow .nm small{margin-left:.6em;color:#959aa3;font-weight:500;font-size:calc(12px*var(--ck,1))}
+#cardBox .lbRow>b{color:#f0b429;font-variant-numeric:tabular-nums}
+/* the categories: a lamp, the name, the count, and a bar for its share */
+#cardBox .lbCats>.lbRow{grid-template-columns:calc(14px*var(--ck,1)) minmax(0,1fr) auto;align-items:center}
+#cardBox .lbRow .lamp{width:calc(10px*var(--ck,1));height:calc(10px*var(--ck,1));border-radius:50%}
+#cardBox .lbRow .bar{grid-column:2/4;height:calc(3px*var(--ck,1));border-radius:2px;background:rgba(255,255,255,.06)}
+#cardBox .lbRow .bar i{display:block;height:100%;border-radius:2px;opacity:.75}
+#cardBox .lbSub{padding:0 0 calc(10px*var(--ck,1)) calc(22px*var(--ck,1))}
+#cardBox .lbRecs{margin:calc(6px*var(--ck,1)) 0 0}
+#cardBox .lbRecs>div{padding:calc(8px*var(--ck,1)) 0;border-bottom:1px solid rgba(255,255,255,.06)}
+#cardBox .lbRecs dt{color:#f0b429;font:600 calc(11px*var(--ck,1)) var(--f-board);letter-spacing:.12em;text-transform:uppercase}
+#cardBox .lbRecs dd{margin:calc(2px*var(--ck,1)) 0 0;font:600 calc(15px*var(--ck,1)) var(--f-board)}
+#cardBox .lbRecs dd b{margin-right:.45em;font-size:calc(19px*var(--ck,1))}
+#cardBox .lbRecs small{display:block;color:#959aa3;font-size:calc(12.5px*var(--ck,1))}
+#cardBox .lbFound{list-style:none;margin:0;padding:0}
+#cardBox .lbFound li{padding:calc(9px*var(--ck,1)) 0;border-top:1px solid rgba(255,255,255,.08)}
+#cardBox .lbFound b{display:block;font:700 calc(16px*var(--ck,1))/1.25 var(--f-board)}
+#cardBox .lbFound span{display:block;margin-top:calc(2px*var(--ck,1));color:#959aa3;font-size:calc(13px*var(--ck,1))}
 #modeSw button{position:absolute;z-index:3;padding:0;border:0;background:transparent;color:transparent;cursor:pointer;border-radius:calc(6px*var(--k));outline:none}
 #modeSw button:focus-visible{box-shadow:0 0 0 calc(2px*var(--k)) #f6c54a}
 #radarCv{position:absolute;z-index:1;pointer-events:none}
@@ -549,6 +591,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <div class="rail" id="railPages" aria-label="Pages"></div>
   <div class="rail" id="railViews" aria-label="Views"></div>
   <div class="rail" id="viewTools" hidden></div>
+  <div id="lbHits" hidden></div>
   <section id="cockpit" hidden aria-label="Settings"></section>
   <div id="shade"></div>
   <div id="nightView" hidden aria-live="off"></div>
@@ -573,7 +616,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=9c62223c00"></script>
+<script src="i18n.js?v=1210de3213"></script>
 <script>
 (() => {
 "use strict";
@@ -946,31 +989,37 @@ pdef("aircraft", "acRoute",   {kind:"chars", n:9,  dur:70, style:"amber", label:
 // The top half's fields, shown whenever no view is open.
 const TOP_IDS = ["flight","airline","remarks","fromCode","fromCity","toCode","toCity","type","tier","reg","alt","trend","speed","pos","depTime","arrTime","airTime","toGo","seen"];
 // Views take over the board below the header: their own flaps, hidden until the view opens.
-const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], records: [], review: [], radar: [], settings: [], about: [], account: []};
+const VIEW_FIELDS = {spotted: [], logbook: [], collection: [], radar: [], settings: [], about: [], account: []};
 function vdef(v, id, o){ def(id, {...o, pageOff: true, view: v}); VIEW_FIELDS[v].push(id); }
-const SV_ROWS = 17, LB_ROWS = 9, RV_ROWS = 12;
+// 1.92 (to-do #103, Dave's pick C): the Logbook on one screen, in plates like Settings': Totals, the week, month or year
+// in planes, Categories and Records above, Aircraft types, Airlines and Most seen aircraft below (the Records and Week &
+// month views went into it). Plate by plate: totals (lv*), the period's numbers and facts (lp*, lf*), the categories'
+// lamps and counts (lvl_*, lvn_*), the records (lrc*), and seven rows of each list (lt*, la*, lr*).
+const SV_ROWS = 17, LB_ROWS = 7, RV_ROWS = 12;
 const LB_CATS = [["passenger", "Passenger", "Passagiere", "#4f8fe0"], ["cargo", "Cargo", "Fracht", "#c8874a"], ["bizjet", "Business jets", "Bizjets", "#e6c66e"],
   ["private", "Private, light", "Privat", "#9aa4ae"], ["helicopter", "Helicopters", "Heli", "#22b0ae"], ["military", "Military", "Militär", "#8fa05a"],
   ["other", "Other", "Andere", "#6b6e75"]];
-vdef("logbook", "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Sightings","Sichtungen"]});
-vdef("logbook", "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Aircraft types","Typen"]});
-vdef("logbook", "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines","Airlines"]});
-vdef("logbook", "lvRegs",     {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Individual aircraft","Flugzeuge"]});
-vdef("logbook", "lvModel",    {kind:"chars", n:16, dur:60, style:"amber", label:["Most seen model","Häufigstes Modell"]});
-for (const [k, en, de] of LB_CATS) {
-  vdef("logbook", `lvl_${k}`, {kind:"word",  n:1, dur:90, words:"lamp", loud:.3, label:[en, de]});
+vdef("logbook", "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70});      // their labels: lbLabels
+vdef("logbook", "lvRegs",     {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70});
+vdef("logbook", "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70});
+vdef("logbook", "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70});
+vdef("logbook", "lvModel",    {kind:"chars", n:16, dur:60, style:"amber"});
+[6, 4, 4, 6, 3, 3].forEach((n, i) => vdef("logbook", `lp${i}`, {kind:"chars", n, drum:DRUM_ALT, align:"right", dur:70}));
+[0, 1, 2].forEach(i => vdef("logbook", `lf${i}`, {kind:"chars", n:18, dur:60, style: i === 2 ? "amber" : "ink"}));
+for (const [k] of LB_CATS) {
+  vdef("logbook", `lvl_${k}`, {kind:"word",  n:1, dur:90, words:"lamp", loud:.3});
   vdef("logbook", `lvn_${k}`, {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70, loud:.5});
 }
+const LB_RECS = [["closest", "Closest ever"], ["lowest", "Lowest ever"], ["fastest", "Fastest ever"], ["farthest", "Farthest route"]];
+LB_RECS.forEach((r, i) => vdef("logbook", `lrc${i}`, {kind:"chars", n:18, dur:60, style: i === 3 ? "amber" : "ink"}));
 for (let i = 0; i < LB_ROWS; i++) {
-  const lab = (en, de) => i === 0 ? [en, de] : null;
-  vdef("logbook", `lt${i}name`, {kind:"chars", n:15, dur:55, loud:.4, label:lab("Aircraft types","Flugzeugtypen")});
-  vdef("logbook", `lt${i}n`,    {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
-  vdef("logbook", `la${i}name`, {kind:"chars", n:15, dur:55, loud:.4, label:lab("Airlines","Fluglinien")});
-  vdef("logbook", `la${i}n`,    {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
-  vdef("logbook", `lr${i}reg`,  {kind:"chars", n:7, dur:55, style:"amber", loud:.4,
-    label: i === 0 ? ["Most seen aircraft","Meistgesehen"] : i === 5 ? ["Newest aircraft","Neueste"] : null});
-  vdef("logbook", `lr${i}type`, {kind:"chars", n:9, dur:55, loud:.4});
-  vdef("logbook", `lr${i}n`,    {kind:"chars", n:6, align:"right", dur:55, loud:.4});
+  vdef("logbook", `lt${i}name`, {kind:"chars", n:19, dur:55, loud:.4});
+  vdef("logbook", `lt${i}n`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
+  vdef("logbook", `la${i}name`, {kind:"chars", n:19, dur:55, loud:.4});
+  vdef("logbook", `la${i}n`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
+  vdef("logbook", `lr${i}reg`,  {kind:"chars", n:8, dur:55, style:"amber", loud:.4});
+  vdef("logbook", `lr${i}type`, {kind:"chars", n:10, dur:55, loud:.4});
+  vdef("logbook", `lr${i}n`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4});
 }
 for (let i = 0; i < RV_ROWS; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null;
@@ -983,17 +1032,6 @@ for (let i = 0; i < RV_ROWS; i++) {
   vdef("radar", `rv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
   vdef("radar", `rv${i}st`,     {kind:"word",  n:9, dur:60, words:"remarks", small:true, loud:.4, label:lab("Status","")});
 }
-// Records & trophies (1.27): the logbook's lifetime records (relay 28).
-vdef("records", "rcClose", {kind:"chars", n:24, dur:60, label:["Closest ever", ""]});
-vdef("records", "rcLow",   {kind:"chars", n:24, dur:60, label:["Lowest ever", ""]});
-vdef("records", "rcFast",  {kind:"chars", n:24, dur:60, label:["Fastest ever", ""]});
-vdef("records", "rcFar",   {kind:"chars", n:24, dur:60, style:"amber", label:["Farthest route", ""]});
-// Week and month in review (1.52): the numbers, eight facts in two columns and the new types.
-for (const [k, en] of [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"]])   // 1.89.1: no points
-  vdef("review", `rw_${k}`, {kind:"chars", n: {planes: 5, airframes: 5, newTypeCount: 3}[k] || 4, drum:DRUM_ALT, align:"right", dur:70, label:[en, ""]});
-["Busiest day", "Rarest", "Most seen airline", "Most seen aircraft", "Farthest route", "Lowest pass", "Closest", "Fastest"]
-  .forEach((en, i) => vdef("review", `rwf${i}`, {kind:"chars", n:24, dur:60, style: i < 2 ? "amber" : "ink", label:[en, ""]}));
-vdef("review", "rwNew", {kind:"chars", n:50, dur:55, label:["New types", ""]});
 // The airport style's lists page (pages layout): take-offs on the left, landings on the right, under the plane on top.
 for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null, dep = k === "d";
@@ -1026,6 +1064,14 @@ function placeRow(ids, gaps, y, step, ratio, x0 = M){
 }
 const BIG = IW / 30, MID = IW / 56.5, PLUS_W = 58;
 const Y = {row1:196, row1b:308, row2:420, row3:502, rule1:160, rule2:566, listHead:606, list0:650, listPitch:40, rail:972};
+// 1.92: the Logbook's plates in two rows, where Settings has its own (266 down to the rail): four above, three below.
+const LB_BOX = (() => {
+  const top = 266, gap = 18, h1 = 354, y2 = top + h1 + gap, w4 = (IW - 3 * gap) / 4, w3 = (IW - 2 * gap) / 3;
+  return [["totals", "Totals"], ["period", ""], ["cats", "Categories"], ["records", "Records"]].map(([k, t], i) => ({k, t, x: M + i * (w4 + gap), y: top, w: w4, h: h1}))
+    .concat([["types", "Aircraft types"], ["airlines", "Airlines"], ["regs", "Most seen aircraft"]].map(([k, t], i) => ({k, t, x: M + i * (w3 + gap), y: y2, w: w3, h: Y.rail - 18 - y2})));
+})();
+const lbBox = k => LB_BOX.find(b => b.k === k);
+const LB_CAT_Y = 304, LB_LIST_Y = 672, LB_LIST_P = 39;
 function layout(){
   placeRow(["flight","airline","remarks"], [1, 1], Y.row1, BIG, 1.45);
   placeRow(["fromCode","fromCity","toCode","toCity"], [.4, 1.2, .4], Y.row1b, BIG, 1.45);
@@ -1046,24 +1092,30 @@ function layout(){
   placeRow(["acType"], [], L0 + 86, as, 1.45, ax);
   placeRow(["acOwner"], [], L0 + 166, as, 1.45, ax);
   placeRow(["acCountry","acRoute"], [2], L0 + 246, as, 1.45, ax);
-  // views
-  placeRow(["lvSight","lvTypes","lvAirlines","lvRegs","lvModel"], [2.5, 2.5, 2.5, 2.5], 300, IW / 48, 1.45);
-  placeRow(LB_CATS.flatMap(([k]) => [`lvl_${k}`, `lvn_${k}`]), LB_CATS.flatMap((c, i) => i < LB_CATS.length - 1 ? [.3, 1.8] : [.3]), 412, IW / 62, 1.45);
-  const ls = IW / 67;
+  // views. The Logbook (1.92): on each plate the flaps start 24 in from its left edge; the lists' counts end 24 in from
+  // the right
+  const lx = k => lbBox(k).x + 24, cb = lbBox("cats");
+  placeRow(["lvSight", "lvRegs"], [1.6], 330, 24, 1.45, lx("totals"));
+  placeRow(["lvTypes", "lvAirlines"], [4.6], 428, 24, 1.45, lx("totals"));
+  placeRow(["lvModel"], [], 526, 24, 1.45, lx("totals"));
+  placeRow(["lp0", "lp1", "lp2"], [1, 2], 328, 21, 1.45, lx("period"));
+  placeRow(["lp3", "lp4", "lp5"], [1, 3], 392, 21, 1.45, lx("period"));
+  ["lf0", "lf1", "lf2"].forEach((id, i) => placeRow([id], [], 450 + i * 58, 21, 1.45, lx("period")));
+  LB_CATS.forEach(([k], i) => {
+    placeRow([`lvl_${k}`], [], LB_CAT_Y + i * 42, 24, 1.2, cb.x + 24);
+    placeRow([`lvn_${k}`], [], LB_CAT_Y + i * 42, 22, 1.2, cb.x + cb.w - 24 - 6 * 22 + 2.2);
+  });
+  LB_RECS.forEach((r, i) => placeRow([`lrc${i}`], [], 316 + i * 76, 21, 1.45, lx("records")));
   for (let i = 0; i < LB_ROWS; i++) {
-    placeRow([`lt${i}name`, `lt${i}n`, `la${i}name`, `la${i}n`], [.4, 2, .4], 500 + i * 44, ls, 1.45);
-    placeRow([`lr${i}reg`, `lr${i}type`, `lr${i}n`], [.4, .4], 500 + i * 44 + (i >= 5 ? 24 : 0), ls, 1.45, M + 44.8 * ls);
+    const y = LB_LIST_Y + i * LB_LIST_P;
+    placeRow([`lt${i}name`, `lt${i}n`], [.6], y, 21, 1.45, lx("types"));
+    placeRow([`la${i}name`, `la${i}n`], [.6], y, 21, 1.45, lx("airlines"));
+    placeRow([`lr${i}reg`, `lr${i}type`, `lr${i}n`], [.6, 1], y, 21, 1.45, lx("regs"));
   }
   const rs = (W - M - 940) / 41;
   for (let i = 0; i < RV_ROWS; i++) placeRow(["lamp","logo","flight","type","dist","dir","alt","st"].map(k => `rv${i}${k}`), [.4, .4, .6, .6, .3, .6, .6], 320 + i * 46, rs, 1.45, 940);
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
-  // the week and month in review
-  placeRow(["planes", "types", "airlines", "airframes", "newTypeCount", "rare"].map(k => `rw_${k}`), [2, 2, 2, 2, 2], 310, IW / 42, 1.45);
-  for (let i = 0; i < 4; i++) placeRow([`rwf${i * 2}`, `rwf${i * 2 + 1}`], [2], 446 + i * 94, IW / 50, 1.45);
-  placeRow(["rwNew"], [], 446 + 4 * 94, IW / 50, 1.45);
-  placeRow(["rcClose", "rcLow"], [2], 300, IW / 50, 1.45);
-  placeRow(["rcFast", "rcFar"], [2], 374, IW / 50, 1.45);
   const als = IW / 66;
   for (let i = 0; i < 5; i++) for (const [k, x0] of [["d", M], ["a", M + 34 * als]])
     placeRow(["time", "flight", "city", "st"].map(c => `apl${k}${i}${c}`), [.6, .6, .6], Y.list0 + i * 44, als, 1.45, x0);
@@ -1670,7 +1722,9 @@ function drawStatic(){
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.fillStyle = COL.housing; g.fillRect(0, 0, bg.width, bg.height);
   g.setTransform(PX, 0, 0, PX, 0, 0);
-  metal(g); slots(g);
+  metal(g);
+  if (view === "logbook") lbPlates(g);                   // 1.92: the flaps sit on the Logbook's plates
+  slots(g);
   railPlate(g);
   engravedSrc = "";
   if (view) viewStatic(g);
@@ -3951,7 +4005,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
 // 1.45: the ding for a new plane on top only sounds where the top half shows (no view open); the chimes play anywhere.
 function onMainPage(){ return !view; }
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], records: ["Records", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -3970,7 +4024,7 @@ function enterFields(ids){
   }
 }
 const BOARD_TIPS = {spotted: "Spotted today: every plane that came within your radius today, page by page. Click a row's + to make it a favourite or hide it.",
-  logbook: "Logbook: everything you've spotted: types, airlines, records and the week and month in review.",
+  logbook: "Logbook: everything you've spotted, on plates. Click one (on a remote: the arrows, then OK) for its full list.",
   radar: "Radar: the planes around you right now. Click one for its card.",
   settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
 // 1.49 (to-do #29): the first time, the board walks through the styles and every page and view button at once; the
@@ -4014,8 +4068,7 @@ function switchView(next, opts = {}){
   try { history.replaceState(null, "", location.pathname + location.search + (view ? "#" + view : "")); } catch {}
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
-  else if (view === "logbook" || view === "records") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
-  else if (view === "review") { reviewFetch(); viewTimer = setInterval(reviewFetch, 60000); }
+  else if (view === "logbook") { lbFetch(); viewTimer = setInterval(lbFetch, 30000); }
   viewLanded();
   placePhoto();
   dlog("debug", view ? `View: ${VIEW_NAMES[view][0]}` : "Back to the board");
@@ -4025,13 +4078,12 @@ function viewLanded(){
   if (view === "radar") startRadar();
   $("cockpit").hidden = view !== "settings" && view !== "about" && view !== "account";
   $("viewTools").hidden = !buildViewTools();
+  lbHitsShow();
 }
-function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; }
+function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").hidden = true; $("viewTools").hidden = true; $("lbHits").hidden = true; }
 function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
-  else if (view === "review") renderReview();
-  else if (view === "records") renderRecords();
   else if (view === "radar") renderRadarList();
 }
 setInterval(() => { if (view && !bigFlap.on && Date.now() - viewTouched > VIEW_IDLE_MS) switchView(null); }, 10000);
@@ -4041,8 +4093,6 @@ function viewSubtitle(){
   if (view === "logbook" && lbPlace) { const b = lbPlaceData[lbPlace];
     return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
   if (view === "logbook") return logbookSummary();
-  if (view === "review") return reviewSummary(reviewData());
-  if (view === "records") return T("The logbook's records: the closest, lowest and fastest pass, and the route from farthest away.");
   if (view === "radar" && radarZoomed()) {
     const r = radarRing(radarRange()) < 1 ? "500 m" : radarRing(radarRange()) + " km";
     return airportMode() ? T("Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", {ap: clean(S.home), r})
@@ -4057,12 +4107,13 @@ function viewSubtitle(){
 }
 // Engraved parts of a view: its title, a line under it, and whatever doesn't go on flaps.
 function viewStatic(g){
-  const t1 = view === "review" ? reviewTitle() : T(VIEW_NAMES[view][0]);
+  const t1 = T(VIEW_NAMES[view][0]);
   g.textBaseline = "alphabetic"; g.textAlign = "left";
   g.font = `700 40px ${FONT}`; g.fillStyle = COL.ink; g.fillText(t1, M, 214);
   staticSub = viewSubtitle();
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
   if (view === "spotted") svLegend ? drawLegend(g) : drawSpottedTable(g);
+  if (view === "logbook") lbStatic(g);
   if (view === "radar") radarStatic(g);
 }
 
@@ -4170,7 +4221,9 @@ function drawSpottedTable(g){
   head(SV_X.from, "From", "Von"); head(SV_X.to, "To", "Nach"); head(SV_X.type, "Aircraft", "Flugzeug");
   head(SV_X.dist, "Closest", "km", true); head(SV_X.alt, "Altitude", S.units === "metric" ? "m" : "ft", true); head(SV_X.rem, "Remarks", "Hinweis");
   g.font = `600 17px ${FONT}`; g.textAlign = "right"; g.fillStyle = COL.muted; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  if (rows.length) g.fillText(T("PAGE {a} OF {b}", {a: svPageNo + 1, b: pages}), W - M - 548 - (HAS_KEYS ? 280 : 0), 202);   // left of the filter box
+  // 1.93 (to-do #106): under the buttons, at the end of the line under the title (beside them the filter box and the
+  // place button hid it)
+  if (rows.length) g.fillText(T("PAGE {a} OF {b}", {a: svPageNo + 1, b: pages}), W - M, 248);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   g.textAlign = "left";
   if (!rows.length) {
@@ -4296,32 +4349,13 @@ function drawLegend(g){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"], ["prev", "◀"], ["next", "▶"]];
 function buildViewTools(){
   const box = $("viewTools");
-  box.classList.toggle("two", LB_VIEWS.includes(view)); box.classList.toggle("rdr", view === "radar");
+  box.classList.toggle("two", view === "logbook"); box.classList.toggle("rdr", view === "radar");
   box.style.left = box.style.width = box.style.height = "";
-  if (LB_VIEWS.includes(view)) {
-    // 1.55 (to-do #65): two rows that stay put: the four views in one order, the one on show lit; under them what this
-    // view offers (places and the spreadsheet, or week, month and turning back).
-    const views = LB_VIEWS.filter(v => v !== "collection" && (v !== "review" || reviewOk()));     // 1.89.1: no Collection, it's the game
-    const pl = view === "logbook" && lbPlaceOk() ? lbChips() : [];
-    if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
-    const btn = (a, t, x = "") => `<button class="cap small" type="button" ${a}${x}>${t}</button>`;
-    const opts = view === "logbook" ? (pl.length ? [["", T("All")], ...pl.map(c => [c.id, `${c.name} ${nf.format(c.n)}`])] : []).map(([k, t]) => btn(`data-p="${escH(k)}"`, escH(t), ` aria-pressed="${k === lbPlace}"`)).join("") +
-        (!S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<a class="cap small" href="${relay()}/logbook.csv" download>${T("CSV")}</a>` : "")
-      : view === "review" ? [["week", "Week"], ["month", "Month"]].map(([k, t]) => btn(`data-s="${k}"`, T(t), ` aria-pressed="${review.span === k}"`)).join("") +
-        btn('data-b="1"', "◀", ` aria-label="${escH(T("Earlier"))}"`) + btn('data-b="-1"', "▶", ` aria-label="${escH(T("Later"))}"${review.back ? "" : " disabled"}`) : "";
-    box.innerHTML = `<div class="vtRow">${views.map(v => btn(`data-v="${v}"`, T(LB_VIEW_NAMES[v]), v === view ? ' aria-current="page"' : "")).join("")}</div>` +
-      (opts ? `<div class="vtRow">${opts}</div>` : "");
-    for (const b of box.querySelectorAll("[data-v]")) b.onclick = e => { e.stopPropagation(); if (b.dataset.v === view) return; ctlSound.press(); switchView(b.dataset.v); };
-    for (const b of box.querySelectorAll("[data-s], [data-b]")) b.onclick = e => {
-      e.stopPropagation(); ctlSound.press();
-      if (b.dataset.s) { review.span = b.dataset.s; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.b));
-      buildViewTools(); drawStatic(); renderReview(); reviewFetch();
-    };
-    for (const b of box.querySelectorAll("[data-p]")) b.onclick = async e => {
-      e.stopPropagation(); ctlSound.press();
-      lbPlace = b.dataset.p; buildViewTools(); drawStatic(); renderLogbookBoard();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} drawStatic(); renderLogbookBoard(); }
-    };
+  if (view === "logbook") {
+    // 1.55 (to-do #65): rows that stay put. 1.93: one view, so no view buttons: the search, places and spreadsheet, then
+    // Week · Month · Year and ◀ ▶ (lbToolsHtml)
+    box.innerHTML = lbToolsHtml();
+    lbToolsWire(box);
     box.style.right = `calc(${M}px * var(--k))`; box.style.top = `calc(170px * var(--k))`;
     return true;
   }
@@ -4373,32 +4407,417 @@ function updateViewTools(){
 }
 
 
-/* ---------- the Records view ----------
-   1.89.1: the logbook's records only; the bingo card and the trophies are the phone app's (the game). */
-function renderRecords(){
-  if (view !== "records") return;
-  const r = (lbData() || {}).records || {};
-  const who = x => x.callsign || x.reg || x.type || "";
-  setChars("rcClose", r.closest ? `${who(r.closest)} - ${r.closest.v < 10 ? r.closest.v.toFixed(2) : Math.round(r.closest.v)} KM` : "-");
-  setChars("rcLow", r.lowest ? `${who(r.lowest)} - ${altitudeStr(r.lowest.v)}` : "-", 60);
-  setChars("rcFast", r.fastest ? `${who(r.fastest)} - ${speedStr(r.fastest.v)}` : "-", 120);
-  const p = r.farthest && r.farthest.place;
-  setChars("rcFar", r.farthest ? `${who(r.farthest)} - ${p ? p.code || p.city : ""} ${nf.format(r.farthest.v)} KM` : "-", 180);
+/* ---------- the Logbook on one screen (1.92, to-do #103, Dave's pick C) ----------
+   Seven plates like Settings', drawn on the panel with the flaps on them (lbPlates, lbStatic): Totals, the week, month
+   or year in planes, Categories and Records above; Aircraft types, Airlines and Most seen aircraft below. A click on a
+   plate, or OK on the remote, opens its full list as a card (lbCard); the remote's arrows move a ring from plate to plate
+   and up to the buttons (lbKey); Back closes a card, then the view. The buttons: with a keyboard a search through the
+   whole logbook (relay 55), the places and the spreadsheet; under them Week · Month · Year and ◀ ▶ for the period plate
+   (/review, relay 46; /year, relay 29). Those two count every place, and with a place picked the plate says so. */
+let lbPer = "year", lbYearBack = 0, lbSig = "", lbFocusK = "totals";
+const lbYears = {}, lbYearAt = {};
+const lbYearOk = () => S.demo || relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 29;
+const lbPers = () => [...(reviewOk() ? [["week", "Week"], ["month", "Month"]] : []), ...(lbYearOk() ? [["year", "Year"]] : [])];
+const lbYear = () => new Date().getFullYear() - lbYearBack;
+const demoYear = y => ({sample: true, year: y, planes: 21480, types: 96, airlines: 84, countries: 41, airframes: 6120, days: 212,
+  busiest: {day: `${y}-07-04`, planes: 214}, mostSeen: {reg: "OE-LBN", count: 96}, rarest: {reg: "UR-82008", type: "A124", tier: "legendary"},
+  records: {closest: {v: .31, callsign: "AUA411"}, lowest: {v: 1650, callsign: "OEXEN"}, fastest: {v: 541, callsign: "UAE127"},
+    farthest: {v: 7120, callsign: "UAE127", place: {code: "DXB", city: "Dubai"}}}});
+const lbPerData = () => lbPer !== "year" ? reviewData() : S.demo ? demoYear(lbYear()) : lbYears[lbYear()] || null;
+const lbPerTitle = () => lbPer === "year" ? T("{y} in planes", {y: lbYear()}) : T("{p} in planes", {p: reviewTitle()});
+const LB_NUMS = {year: [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["countries", "Countries"], ["days", "Days"]],
+  span: [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"]]};
+const lbNums = () => LB_NUMS[lbPer === "year" ? "year" : "span"];
+// the logbook on show: everything, or the place picked
+const lbBook = () => (lbPlace ? lbPlaceData[lbPlace] : lbData()) || null;
+const lbTop = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
+const lbAirline = (code, a) => (AIRLINES[code] || [])[1] || (a && a.name) || code;
+const lbDayY = ts => new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"});
+// a model's name in n letters: whole, or without its maker ("Airbus A320neo" → "A320neo"), else its code
+const MAKERS = /^(Airbus Helicopters|De Havilland Canada|De Havilland|McDonnell Douglas|Lockheed Martin|AgustaWestland|Airbus|Boeing|Embraer|Bombardier|Cessna|Dassault|Gulfstream|Pilatus|Beechcraft|Beech|Diamond|Piper|Cirrus|Lockheed|Antonov|Eurocopter|Leonardo|Sikorsky|Robinson|Fokker|Saab|ATR)\s+/i;
+function lbModel(code, name, n){
+  const full = typeLabel(code, name), short = full.replace(MAKERS, "");
+  return full.length <= n ? full : short.length <= n || !code ? short : code;
+}
+// a fact for the flaps, which have no "·": "Sat 4 Jul · 412" → "SAT 4 JUL - 412", with plain spaces where a dash won't fit
+const lbFlap = (s, n) => { s = String(s || ""); const d = s.replace(/ · /g, " - "); return d.length <= n ? d : s.replace(/ · /g, " "); };
+const lbWho = x => x.callsign || x.reg || x.type || "";
+const lbRecVal = (k, x) => k === "closest" ? `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km` : k === "lowest" ? altitudeStr(x.v).toLowerCase()
+  : k === "fastest" ? speedStr(x.v).toLowerCase() : `${x.place ? x.place.code || x.place.city || "" : ""} ${nf.format(x.v)} km`.trim();
+function lbYearFetch(){
+  const y = lbYear();
+  if (S.demo || !lbYearOk() || Date.now() - (lbYearAt[y] || 0) < 5 * 60000) return;
+  lbYearAt[y] = Date.now();
+  fetchJSON(`${relay()}/year?y=${y}`, {}, 12000).then(j => { lbYears[y] = j; lbAgain(); }).catch(() => { lbYearAt[y] = 0; });
+}
+// what the Logbook needs from the relay: the logbook (and the place's), and the period on show
+function lbFetch(){
+  fetchLogbook();
+  if (lbPer === "year") lbYearFetch(); else fetchReview(lbAgain);
+}
+// new numbers came: the plates, and a card that was still waiting for them
+function lbAgain(){ if (view !== "logbook") return; renderLogbookBoard(); if (lbCardWait) lbCardAgain(); }
+// Week · Month · Year and ◀ ▶ (above the plates, and in the period's card)
+function lbPerSet(per, step){
+  if (per && per !== lbPer) { lbPer = per; if (per !== "year") { review.span = per; review.back = 0; } }
+  else if (step && lbPer === "year") lbYearBack = Math.max(0, Math.min(10, lbYearBack + step));
+  else if (step) review.back = Math.max(0, Math.min(60, review.back + step));
+  if (lbPer === "year") lbYearFetch(); else fetchReview(lbAgain);
+  lbToolsSync(); drawStatic(); renderLogbookBoard(); lbCardAgain("period");
+}
+// a place picked (the buttons above, or the Totals card): its own numbers come from the relay the first time
+async function lbPick(id){
+  if (id === lbPlace) return;
+  lbPlace = id; lbToolsSync(); drawStatic(); renderLogbookBoard();
+  if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbAgain(); }
 }
 
-/* ---------- Week and month in review (1.52) ---------- */
-const reviewFetch = () => fetchReview(() => { if (view === "review") { drawStatic(); renderReview(); } });
-let rwSig = "";
-function renderReview(){
-  if (view !== "review") return;
-  const r = reviewData(), sig = JSON.stringify([r && r.start, r && r.planes, review.span, review.back, LANG]);
-  if (!snapping && sig !== rwSig) { rwSig = sig; drawStatic(); }
-  rwSig = sig;
-  REVIEW_NUMS.filter(([k]) => fields[`rw_${k}`]).forEach(([k], i) => setChars(`rw_${k}`, r ? nf.format(r[k] || 0) : "", i * 60));   // the board has no Points
-  const facts = r ? reviewFacts(r) : [];
-  for (let i = 0; i < 8; i++) setChars(`rwf${i}`, facts[i] ? (facts[i][1] || "-").replace(/ · /g, " - ") : "", 420 + i * 60);   // the flaps have no "·"
-  setChars("rwNew", r ? reviewNewTypes(r) || "-" : "", 900);
+// The plates themselves (from drawStatic, under the slots): Settings' .plate on the panel, with the same gradient, shadow
+// and four screws, its name engraved between two lines level with the top screws.
+function lbPlates(g){
+  for (const b of LB_BOX) plateDraw(g, b.x, b.y, b.w, b.h, b.k === "period" ? lbPerTitle() + (lbPlace ? " · " + T("All places") : "") : T(b.t));
 }
+function plateDraw(g, x, y, w, h, title){
+  const real = REAL();
+  g.save();
+  g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 16 * PX; g.shadowOffsetY = 6 * PX;
+  const gr = g.createLinearGradient(0, y, 0, y + h);
+  gr.addColorStop(0, real ? "#2e2f33" : "#28292c"); gr.addColorStop(1, real ? "#1a1b1e" : "#1a1b1d");
+  g.fillStyle = gr; rr(g, x, y, w, h, 8); g.fill();
+  g.restore();
+  g.save(); rr(g, x, y, w, h, 8); g.clip();
+  if (real) {                                            // body.real .plate: brushed, bevelled
+    for (let i = 0; i < w; i += 4) { g.fillStyle = "rgba(255,255,255,.016)"; g.fillRect(x + i, y, 1, h); g.fillStyle = "rgba(0,0,0,.022)"; g.fillRect(x + i + 1, y, 1, h); }
+    g.fillStyle = "rgba(255,255,255,.12)"; g.fillRect(x, y, w, 1);
+    g.fillStyle = "rgba(255,255,255,.05)"; g.fillRect(x, y, 1, h);
+    g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(x + w - 1, y, 1, h);
+    const sh = g.createLinearGradient(0, y + h - 12, 0, y + h); sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.35)");
+    g.fillStyle = sh; g.fillRect(x, y + h - 12, w, 12);
+    g.fillStyle = "rgba(0,0,0,.65)"; g.fillRect(x, y + h - 2, w, 2);
+  } else {
+    g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(x, y, w, 1);
+    const sh = g.createLinearGradient(0, y + h - 5, 0, y + h); sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.5)");
+    g.fillStyle = sh; g.fillRect(x, y + h - 5, w, 5);
+  }
+  g.restore();
+  for (const [sx, sy] of [[x + 12.5, y + 12.5], [x + w - 12.5, y + 12.5], [x + 12.5, y + h - 12.5], [x + w - 12.5, y + h - 12.5]]) screw(g, sx, sy, 4.5);
+  if (!title) return;
+  g.save();
+  const t = String(title).toUpperCase();
+  let fs = 13;
+  const font = () => { g.font = `600 ${fs}px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = `${(fs * .22).toFixed(2)}px`; };
+  font();
+  while (fs > 9 && g.measureText(t).width > w - 90) { fs -= .5; font(); }   // a long name, a little smaller
+  const tw = g.measureText(t).width - fs * .22, cx = x + w / 2, cy = y + 12.5;
+  g.fillStyle = "rgba(214,208,194,.25)";
+  g.fillRect(x + 23, cy, Math.max(0, cx - tw / 2 - 10 - (x + 23)), 1);
+  g.fillRect(cx + tw / 2 + 10, cy, Math.max(0, x + w - 23 - (cx + tw / 2 + 10)), 1);
+  g.textAlign = "left"; g.textBaseline = "middle";
+  if (real) { g.fillStyle = "rgba(255,255,255,.07)"; g.fillText(t, cx - tw / 2, cy + 1.5); }
+  g.fillStyle = real ? "rgba(0,0,0,.95)" : "rgba(0,0,0,.8)"; g.fillText(t, cx - tw / 2, cy - .5);
+  g.fillStyle = "rgba(214,208,194,.72)"; g.fillText(t, cx - tw / 2, cy + .5);
+  g.restore();
+}
+// The engraved parts (viewStatic): how often the most seen model came, the categories' names, each record's date and
+// plane, and what the period plate can't show. renderLogbookBoard draws them again when lbStaticSig changes.
+const lbStaticSig = () => { const b = lbBook() || {}, t = lbTop(b.types)[0]; return JSON.stringify([viewSubtitle(), lbPerTitle(), lbPlace, lbPers().length, t && t[1].count, b.records || null, LANG]); };
+// The flaps' labels, as label() draws them, each squeezed to end before the next field on its line (or the plate's edge;
+// a record's leaves room for its date): the plates are narrow, and some languages' words are long.
+const lbLabels = () => [["lvSight", "Sightings"], ["lvRegs", "Individual aircraft"], ["lvTypes", "Aircraft types"], ["lvAirlines", "Airlines"],
+  ["lvModel", "Most seen model"], ...lbNums().map(([, l], i) => [`lp${i}`, l]), ["lf0", "Busiest day"], ["lf1", "Most seen aircraft"], ["lf2", "Rarest"],
+  ...LB_RECS.map(([, l], i) => [`lrc${i}`, l])];
+function lbLabel(g, s, x, y, max){
+  g.save();
+  g.font = `600 17px ${FONT}`; g.textBaseline = "alphabetic"; g.textAlign = "left";
+  if ("letterSpacing" in g) g.letterSpacing = "1.5px";
+  const t = String(s).toUpperCase(), w = g.measureText(t).width;
+  g.fillStyle = COL.labelInk || COL.amber; g.translate(x, y); if (w > max) g.scale(max / w, 1); g.fillText(t, 0, 0);
+  g.restore();
+}
+function lbStatic(g){
+  lbSig = lbStaticSig();
+  const ls = lbLabels(), lf = ls.map(([id]) => fields[id]);
+  for (const [id, l] of ls) {
+    const f = fields[id], pb = LB_BOX.find(b => f.x >= b.x && f.x < b.x + b.w), edge = pb.x + pb.w - 24 - (id.startsWith("lrc") ? 140 : 0);
+    const next = lf.filter(o => o !== f && o.y === f.y && o.x > f.x).reduce((m, o) => Math.min(m, o.x - 12), edge);
+    lbLabel(g, T(l), f.x, f.y - 12, next - f.x);
+  }
+  const b = lbBook() || {}, t = lbTop(b.types)[0], mf = fields.lvModel, cb = lbBox("cats"), rb = lbBox("records");
+  const txt = (s, x, y, max, font = `500 17px ${FONT}`, col = COL.muted, align = "left") => {
+    g.font = font; g.fillStyle = col; g.textAlign = align; g.textBaseline = "alphabetic"; fitText(g, s, x, y, max); g.textAlign = "left";
+  };
+  if (t && t[1].count > 1) txt(T("{n} times", {n: nf.format(t[1].count)}), mf.x, mf.y + mf.ch + 26, 380, `500 18px ${FONT}`);
+  LB_CATS.forEach(([, en], i) => txt(T(en), cb.x + 24 + 34, LB_CAT_Y + i * 42 + 19, cb.w - 230, `500 19px ${FONT}`, COL.ink));
+  const r = b.records || {};
+  LB_RECS.forEach(([k], i) => {
+    const x = r[k], f = fields[`lrc${i}`];
+    if (!x) return;
+    if (x.ts) txt(lbDayY(x.ts), rb.x + rb.w - 24, f.y - 12, 130, `500 15px ${FONT}`, COL.muted, "right");
+    txt([k === "farthest" && x.place ? x.place.city : "", x.desc || x.type, x.reg].filter(Boolean).join(" · "), f.x, f.y + f.ch + 16, rb.w - 48, `500 16px ${FONT}`);
+  });
+  if (!lbPers().length) { const pb = lbBox("period"); txt(T("Needs a newer home relay (version 46)."), pb.x + 24, pb.y + 80, pb.w - 48); }
+}
+
+// The buttons above the plates: the search (with a keyboard), All and the places, the spreadsheet; Week · Month · Year
+// and ◀ ▶ under them. lbToolsSync lights the ones that changed without building them again (the remote's ring stays).
+const lbSeekOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 55;
+let lbSeek = "", lbSeekQ = "", lbSeekTok = 0, lbFound = null;
+function lbToolsHtml(){
+  const pl = lbPlaceOk() ? lbChips() : [], pers = lbPers(), v = window.OVERHEAD_RELAY_VERSION || 0;
+  if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
+  if (pers.length && !pers.some(([k]) => k === lbPer)) { lbPer = pers[pers.length - 1][0]; if (lbPer !== "year") review.span = lbPer; }
+  const back = lbPer === "year" ? lbYearBack : review.back, btn = (a, t, x = "") => `<button class="cap small" type="button" ${a}${x}>${t}</button>`;
+  const row1 = (HAS_KEYS && lbSeekOk() ? `<span class="svFind"><input type="search" data-lq enterkeyhint="search" autocomplete="off" spellcheck="false" ` +
+      `placeholder="${escH(T(v >= 63 ? "Search the logbook, e.g. OE-LBN, A380, Santorini" : "Search the logbook, e.g. OE-LBN, A380, OS 802"))}" aria-label="${escH(T("Search the logbook"))}" value="${escH(lbSeek)}">` +
+      `<button type="button" data-lqx aria-label="${escH(T("Clear"))}"${lbSeek ? "" : " hidden"}>×</button></span>` : "") +
+    (pl.length ? [["", T("All")], ...pl.map(c => [c.id, `${c.name} ${nf.format(c.n)}`])] : []).map(([k, t]) => btn(`data-p="${escH(k)}"`, escH(t), ` aria-pressed="${k === lbPlace}"`)).join("") +
+    (!S.demo && relayV5() && v >= 29 ? `<a class="cap small" href="${relay()}/logbook.csv" download>${T("CSV")}</a>` : "");
+  const row2 = pers.length ? pers.map(([k, t]) => btn(`data-per="${k}"`, T(t), ` aria-pressed="${lbPer === k}"`)).join("") +
+    btn('data-pb="1"', "◀", ` aria-label="${escH(T("Earlier"))}"`) + btn('data-pb="-1"', "▶", ` aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}`) : "";
+  return [row1, row2].filter(Boolean).map(r => `<div class="vtRow">${r}</div>`).join("");
+}
+function lbToolsWire(box){
+  for (const b of box.querySelectorAll("[data-per], [data-pb]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); };
+  for (const b of box.querySelectorAll("[data-p]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); lbPick(b.dataset.p); };
+  const inp = box.querySelector("[data-lq]"), x = box.querySelector("[data-lqx]");
+  if (!inp) return;
+  inp.oninput = () => { lbSeek = inp.value.trim(); x.hidden = !lbSeek; };
+  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); lbSearch(lbSeek); } };
+  for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
+  x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = lbSeek = ""; x.hidden = true; inp.focus(); };
+}
+function lbToolsSync(){
+  const box = $("viewTools");
+  if (view !== "logbook") return;
+  for (const b of box.querySelectorAll("[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === lbPlace));
+  for (const b of box.querySelectorAll("[data-per]")) b.setAttribute("aria-pressed", String(b.dataset.per === lbPer));
+  const nx = box.querySelector('[data-pb="-1"]');
+  if (!nx) return;
+  const had = document.activeElement === nx;
+  nx.disabled = !(lbPer === "year" ? lbYearBack : review.back);
+  if (had && nx.disabled) box.querySelector('[data-pb="1"]').focus();     // back at the latest: the ring to ◀
+}
+
+// A plate's card: its whole list, or everything about it (lbCardHtml); the period's with Week · Month · Year and ◀ ▶,
+// the categories' each opening its top ten (relay 61). A row that leads on is a button: a type opens its model's card,
+// an airline its card, an aircraft its sightings (the search); Back from there comes back to the list (lbBackTo).
+let lbCardK = "", lbCardTok = 0, lbCardWait = false, lbBackTo = null, lbCatQ = "", lbCatV = "types";
+const lbCatData = {};
+const lbCatOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION || 0) >= 61;
+const lbCatKey = () => lbCatQ + "|" + lbPlace;
+const lbCardOn = () => cardOpenNow() && cardTok === lbCardTok;
+function lbCard(k){
+  const keys = $("lbHits").contains(document.activeElement);         // OK on the remote: the card takes the ring
+  if (LB_BOX.some(b => b.k === k)) lbFocusK = k;
+  lbCardK = k; lbBackTo = null;
+  ctlSound.press();
+  lbCardShow();
+  const el = keys && $("cardBox").querySelector(".cardIn");
+  if (el) { el.tabIndex = -1; el.focus({preventScroll: true}); }
+}
+function lbCardShow(){ lbCardTok = cardOpen(lbCardHtml(lbCardK), lbCardWire); }
+// the card on show as it is now (scrolled, a button with the ring), to come back to
+function lbCardBack(){
+  const box = $("cardBox"), el = box.querySelector(".cardIn"), a = document.activeElement, k = lbCardK;
+  const top = el ? el.scrollTop : 0, lk = a && box.contains(a) && a.dataset ? a.dataset.lk || "" : "";
+  return () => {
+    lbCardK = k; lbCardShow();
+    const n = box.querySelector(".cardIn"), f = lk && box.querySelector(`[data-lk="${lk}"]`);
+    if (n) n.scrollTop = top;
+    if (f) f.focus({preventScroll: true});
+  };
+}
+// the card again with new numbers or another choice, where it was (only the card `k`, when given)
+function lbCardAgain(k){ if (lbCardOn() && (!k || k === lbCardK)) lbCardBack()(); }
+const lbRow = (i, name, n, sub, attrs) => {
+  const inner = `<span class="no">${i + 1}</span><span class="nm">${escH(name)}${sub ? `<small>${escH(sub)}</small>` : ""}</span><b>${escH(nf.format(n || 0))}</b>`;
+  return `<li>${attrs ? `<button type="button" class="lbRow" ${attrs}>${inner}</button>` : `<div class="lbRow">${inner}</div>`}</li>`;
+};
+const lbFacts = list => `<dl class="cFacts">${list.filter(f => f[1]).map(([k, v, w]) => `<div${w ? ' class="w"' : ""}><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("")}</dl>`;
+function lbCardHtml(k){
+  lbCardWait = false;
+  const head = (h, s) => `<div class="cHead"><div><h3>${escH(h)}</h3>${s ? `<span>${escH(s)}</span>` : ""}</div></div>`;
+  const note = s => `<p class="note">${escH(s)}</p>`, wait = () => { lbCardWait = true; return note(T("Loading …")); };
+  const where = lbPlace ? lbPlaceName(lbPlace) : T("All places");
+  if (k === "find") return lbFoundHtml(head);
+  if (k === "period") {
+    const p = lbPerData(), pers = lbPers(), back = lbPer === "year" ? lbYearBack : review.back;
+    if (!pers.length) return head(lbPerTitle()) + note(T("Needs a newer home relay (version 46)."));
+    const seg = `<div class="cBtns lbSeg">` + pers.map(([q, l]) => `<button type="button" class="cBtn${lbPer === q ? " go" : ""}" data-per="${q}" data-lk="per-${q}" aria-pressed="${lbPer === q}">${escH(T(l))}</button>`).join("") +
+      `<button type="button" class="cBtn" data-pb="1" data-lk="pb-e" aria-label="${escH(T("Earlier"))}">◀</button>` +
+      `<button type="button" class="cBtn" data-pb="-1" data-lk="pb-l" aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}>▶</button></div>`;
+    const sub = !p ? "" : lbPer === "year" ? T(p.days === 1 ? "{n} planes on 1 day" : "{n} planes on {d} days", {n: nf.format(p.planes || 0), d: p.days || 0}) : reviewSummary(p);
+    const body = !p ? wait() : lbPer === "year" && !p.planes ? note(T("No planes that year."))
+      : `<div class="lbNums">` + lbNums().map(([q, l]) => `<div><b>${nf.format(p[q] || 0)}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>` +
+        lbFacts(reviewFacts(p).concat(lbPer === "year" ? [] : [[T("New types"), reviewNewTypes(p)]]));
+    return head(lbPerTitle(), sub) + seg + body + (lbPlace ? note(T("Counted over every place.")) : "");
+  }
+  const b = lbBook(), title = T(lbBox(k).t);
+  if (!b) return head(title, where) + wait();
+  if (k === "totals") {
+    const types = lbTop(b.types), t0 = types[0], pl = lbPlaceOk() ? lbChips() : [], all = lbData() || {};
+    const since = b.since ? new Date(b.since + "T12:00:00").toLocaleDateString(LOC(), {day: "numeric", month: "long", year: "numeric"}) : "";
+    return head(title, where) + lbFacts([[T("Sightings"), nf.format(b.sightings || 0)], [T("Individual aircraft"), nf.format(b.regsCount || 0)],
+        [T("Aircraft types"), nf.format(types.length)], [T("Airlines"), nf.format(lbTop(b.airlines).length)],
+        [T("Most seen model"), t0 && t0[1].count > 1 ? `${typeLabel(t0[0], t0[1].name)} · ${T("{n} times", {n: nf.format(t0[1].count)})}` : "", true]]) +
+      (since ? note(T("Counting since {d}", {d: since})) : "") +
+      (pl.length ? `<p class="shH">${escH(T("Logbook for"))}</p><div class="pickList">` + [["", T("All"), all.sightings || 0], ...pl.map(c => [c.id, c.name, c.n])]
+        .map(([id, name, n], i) => `<button type="button" class="cBtn${id === lbPlace ? " go" : ""}" data-pk="${escH(id)}" data-lk="pk${i}" aria-pressed="${id === lbPlace}">${escH(name)}<small>${escH(nf.format(n))}</small></button>`).join("") + `</div>` : "");
+  }
+  if (k === "cats") {
+    if (!b.categories) return head(title, where) + note(T("categories are counted from relay version 10 on"));
+    const c = b.categories, max = Math.max(1, ...LB_CATS.map(([q]) => c[q] || 0)), tap = lbCatOk();
+    return head(title, where) + `<div class="lbCats">` + LB_CATS.map(([q, en, , col]) => {
+      const n = c[q] || 0, open = tap && n && lbCatQ === q;
+      const row = `<i class="lamp" style="background:${col};box-shadow:0 0 6px ${col}"></i><span class="nm">${escH(T(en))}</span><b>${nf.format(n)}</b>` +
+        `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%;background:${col}"></i></span>`;
+      return (tap && n ? `<button type="button" class="lbRow" data-cat="${q}" data-lk="cat-${q}" aria-expanded="${!!open}">${row}</button>` : `<div class="lbRow">${row}</div>`) +
+        (open ? lbCatHtml() : "");
+    }).join("") + `</div>`;
+  }
+  if (k === "records") {
+    const r = b.records || {}, p = lbPerData(), per = p ? reviewFacts(p).slice(4) : [];        // the period's farthest, lowest, closest, fastest
+    const rows = LB_RECS.filter(([q]) => r[q]).map(([q, en]) => { const x = r[q];
+      return `<div><dt>${escH(T(en))}</dt><dd><b>${escH(lbRecVal(q, x))}</b>${escH(lbWho(x))}</dd><small>${escH([q === "farthest" && x.place ? x.place.city : "", x.desc || x.type, x.reg,
+        x.ts ? `${lbDayY(x.ts)} ${hhmm(new Date(x.ts))}` : ""].filter(Boolean).join(" · "))}</small></div>`; });
+    return head(title, where) + (rows.length ? `<dl class="lbRecs">${rows.join("")}</dl>` : note(T("Nothing here yet."))) +
+      (per.some(f => f[1]) ? `<p class="shH">${escH(lbPerTitle())}</p>` + lbFacts(per) : "");
+  }
+  const rows = k === "types" ? lbTop(b.types).map(([c, t], i) => lbRow(i, typeLabel(c, t.name), t.count, [c, t.first ? T("First: {d}", {d: lbDayY(t.first)}) : ""].filter(Boolean).join(" · "),
+      `data-ty="${escH(c)}" data-tn="${escH(t.name || "")}" data-lk="r${i}"`))
+    : k === "airlines" ? lbTop(b.airlines).map(([c, a], i) => lbRow(i, lbAirline(c, a), a.count, [c, a.first ? T("First: {d}", {d: lbDayY(a.first)}) : ""].filter(Boolean).join(" · "),
+      `data-al="${escH(c)}" data-an="${escH(lbAirline(c, a))}" data-lk="r${i}"`))
+    : (b.regsTop || []).map((x, i) => lbRow(i, x.reg, x.count, lbModel(x.name, "", 30), lbSeekOk() ? `data-rg="${escH(x.reg)}" data-lk="r${i}"` : ""));
+  return head(title, where) + (rows.length ? `<ol class="lbRk">${rows.join("")}</ol>` : note(T("Nothing here yet.")));
+}
+// a category's top ten in its card: types, aircraft or operators (relay 61's /logbook/category)
+function lbCatHtml(){
+  const d = lbCatData[lbCatKey()];
+  if (!d) { lbCardWait = true; return `<div class="lbSub"><p class="note">${escH(T("Loading …"))}</p></div>`; }
+  const seg = `<div class="cBtns lbSeg">` + [["types", "Types"], ["regs", "Aircraft"], ["operators", "Operators"]]
+    .map(([v, l]) => `<button type="button" class="cBtn${lbCatV === v ? " go" : ""}" data-cv="${v}" data-lk="cv-${v}" aria-pressed="${lbCatV === v}">${escH(T(l))}</button>`).join("") + `</div>`;
+  const rows = (d[lbCatV] || []).map((x, i) => lbCatV === "types" ? lbRow(i, typeLabel(x.code, x.name), x.n, "", `data-ty="${escH(x.code)}" data-tn="${escH(x.name)}" data-lk="c${i}"`)
+    : lbCatV === "regs" ? lbRow(i, x.reg, x.n, x.type, lbSeekOk() ? `data-rg="${escH(x.reg)}" data-lk="c${i}"` : "")
+    : lbRow(i, lbAirline(x.icao, x), x.n, "", x.icao ? `data-al="${escH(x.icao)}" data-an="${escH(lbAirline(x.icao, x))}" data-lk="c${i}"` : ""));
+  return `<div class="lbSub">${seg}${rows.length ? `<ol class="lbRk">${rows.join("")}</ol>` : `<p class="note">${escH(T("Nothing here yet."))}</p>`}</div>`;
+}
+async function lbCatFetch(){
+  const key = lbCatKey();
+  if (lbCatData[key]) return;
+  const pq = lbPlace ? "&" + lbPlace.split("\n").map(p => "place=" + encodeURIComponent(p)).join("&") : "";
+  try { lbCatData[key] = await fetchJSON(`${relay()}/logbook/category?c=${lbCatQ}${pq}`, {}, 15000); }
+  catch { lbCatData[key] = {types: [], regs: [], operators: []}; }
+  lbCardAgain("cats");
+}
+function lbCardWire(el){
+  el.classList.add("lbCard");
+  const on = (sel, fn) => { for (const b of el.querySelectorAll(sel)) b.onclick = e => { e.stopPropagation(); fn(b, e); }; };
+  on("[data-per], [data-pb]", b => { ctlSound.press(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); });
+  on("[data-pk]", (b, e) => { ctlSound.press(); cardClose(); lbPick(b.dataset.pk); if (!e.detail) lbFocusPlate(); });   // OK on a remote: the ring back on Totals
+  on("[data-cat]", b => { ctlSound.press(); lbCatQ = lbCatQ === b.dataset.cat ? "" : b.dataset.cat; lbCatV = "types"; lbCardAgain(); if (lbCatQ) lbCatFetch(); });
+  on("[data-cv]", b => { ctlSound.press(); lbCatV = b.dataset.cv; lbCardAgain(); });
+  on("[data-ty]", b => { lbBackTo = lbCardBack(); typeCard({typeCode: b.dataset.ty, type: b.dataset.tn || TYPES[b.dataset.ty] || b.dataset.ty}); });
+  on("[data-al]", b => { lbBackTo = lbCardBack(); airlineCard({airlineIcao: b.dataset.al, airline: b.dataset.an}); });
+  on("[data-rg]", b => lbSearch(b.dataset.rg));
+}
+// The whole logbook searched (relay 55): a registration, a flight, a type or an airline, from the box above the plates
+// (Enter) or an aircraft's row; the matches in a card, as in the app's Logbook.
+async function lbSearch(q){
+  q = String(q || "").trim();
+  if (q.replace(/[\s-]/g, "").length < 2 || !lbSeekOk()) return;
+  const tok = ++lbSeekTok, back = lbCardOn() ? lbCardBack() : null;
+  ctlSound.press();
+  lbSeekQ = q; lbFound = null; lbCardK = "find"; lbBackTo = back; lbCardShow();
+  let j;
+  try { j = await fetchJSON(`${relay()}/search?q=${encodeURIComponent(q)}`, {}, 10000); } catch { j = {error: true}; }
+  if (tok !== lbSeekTok) return;
+  lbFound = j; lbCardAgain("find");
+}
+function lbFoundHtml(head){
+  const j = lbFound, h = head(T("Search the logbook"), lbSeekQ), note = s => `<p class="note">${escH(s)}</p>`;
+  if (!j) return h + note(T("Searching …"));
+  if (j.error) return h + note(T("The search didn't answer. Try again."));
+  const when = t => t ? fmtDay(t) : "", time = t => t ? hhmm(new Date(t)) : "";
+  const rows = (j.rows || []).map(g => {
+    const title = g.by === "f" ? [g.flight, g.airline] : [g.reg || String(g.key || "").toUpperCase(), g.type, g.airline];
+    const seen = g.n === 1 ? T("Seen once, {d} {t}", {d: when(g.last), t: time(g.last)})
+      : T("Seen {n} times · first {a} · last {b}", {n: nf.format(g.n), a: when(g.first), b: `${when(g.last)} ${time(g.last)}`});
+    const more = [g.minDist != null ? T("closest {d}", {d: `${+g.minDist < 10 ? (+g.minDist).toFixed(1) : Math.round(g.minDist)} km`}) : "",
+      (g.by === "f" ? g.regs || [] : g.flights || []).join(", ")].filter(Boolean).join(" · ");
+    const pl = [...new Set((g.places || []).map(p => p.k !== "live" ? lbPlaceName(p.k) : p.n ? [p.n, p.a].filter(Boolean).join(", ") : p.c || placeName("live")).filter(Boolean))];
+    return `<li><b>${escH(title.filter(Boolean).join(" · "))}</b><span>${escH(seen)}${more ? " · " + escH(more) : ""}</span>${pl.length ? `<span>${escH(pl.join(" · "))}</span>` : ""}</li>`;
+  });
+  return h + `<p class="shH">${escH(T(j.total === 1 ? "1 sighting · whole logbook" : "{n} sightings · whole logbook", {n: nf.format(j.total || 0)}))}</p>` +
+    (rows.length ? `<ol class="lbFound">${rows.join("")}</ol>` : note(T("Nothing in the logbook matches that.")));
+}
+
+// The plates as buttons over the panel (#lbHits), for the remote's ring and OK; a click goes through them to the board
+// (boardTap), which opens the same card. On a TV the ring is on a plate as soon as the Logbook opens.
+const lbBoxAt = (x, y) => LB_BOX.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+function lbHitsShow(){
+  const box = $("lbHits");
+  box.hidden = view !== "logbook";
+  if (box.hidden) { lbBackTo = null; fx.classList.remove("lbHov"); return; }
+  box.innerHTML = LB_BOX.map(b => `<button type="button" data-k="${b.k}" aria-label="${escH(b.k === "period" ? lbPerTitle() : T(b.t))}" ` +
+    `style="left:calc(${b.x}px*var(--k));top:calc(${b.y}px*var(--k));width:calc(${b.w}px*var(--k));height:calc(${b.h}px*var(--k))"></button>`).join("");
+  for (const b of box.children) b.onclick = e => { e.stopPropagation(); lbCard(b.dataset.k); };
+  if (!HAS_KEYS) lbFocusPlate();
+}
+fx.addEventListener("mousemove", e => {
+  if (view !== "logbook") return;
+  const r = stage.getBoundingClientRect(), b = lbBoxAt((e.clientX - r.left) / K, (e.clientY - r.top) / K);
+  for (const h of $("lbHits").children) h.classList.toggle("hov", !!b && h.dataset.k === b.k);
+  fx.classList.toggle("lbHov", !!b);
+});
+fx.addEventListener("mouseleave", () => { for (const h of $("lbHits").children) h.classList.remove("hov"); fx.classList.remove("lbHov"); });
+function lbFocus(x){
+  try { x.focus({preventScroll: true}); } catch { x.focus(); }
+  if (x.dataset.k) lbFocusK = x.dataset.k;
+  if (x.closest(".cardIn")) try { x.scrollIntoView({block: "nearest"}); } catch {}
+}
+function lbFocusPlate(){ const b = view === "logbook" && $("lbHits").querySelector(`[data-k="${lbFocusK}"]`); if (b) lbFocus(b); }
+// The remote in the Logbook (from the board's keys): the arrows move the ring between the plates and up to the buttons
+// above them, or between an open card's buttons and rows (where nothing lies that way, a long card scrolls); OK presses
+// what has the ring. Back with no card open goes back to the board, as Esc does.
+function lbKey(e){
+  if ((e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461) && !cardOpenNow()) { e.preventDefault(); switchView(null); return true; }
+  const d = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[e.key];
+  if (!d) return false;
+  e.preventDefault();
+  const card = cardOpenNow() ? $("cardBox").querySelector(".cardIn") : null;
+  const items = (card ? [...card.querySelectorAll("button:not(.cardX), a[href]")] : [...$("lbHits").children, ...$("viewTools").querySelectorAll("button, a[href]")])
+    .filter(x => !x.disabled && x.getClientRects().length);
+  // in a card: only to what is in sight; a button further on, or none that way, scrolls the card first
+  const seen = x => { const r = x.getBoundingClientRect(), c = card.getBoundingClientRect(); return r.top >= c.top - 1 && r.bottom <= c.bottom + 1; };
+  const from = document.activeElement, to = !items.includes(from) ? (card ? items.find(seen) : $("lbHits").querySelector(`[data-k="${lbFocusK}"]`)) : lbNear(items, from, d);
+  if (card && d[1] && (!to || !seen(to))) { card.scrollBy(0, d[1] * card.clientHeight * .6); if (!to || !seen(to)) return true; }
+  if (to) lbFocus(to);
+  return true;
+}
+// the nearest of `items` that lies past `from`'s edge in direction d ([dx, dy]); off to the side counts three times
+function lbNear(items, from, [dx, dy]){
+  const a = from.getBoundingClientRect();
+  let best = null, bd = Infinity;
+  for (const x of items) {
+    if (x === from) continue;
+    const b = x.getBoundingClientRect();
+    if (dx > 0 ? b.left < a.right - 1 : dx < 0 ? b.right > a.left + 1 : dy > 0 ? b.top < a.bottom - 1 : b.bottom > a.top + 1) continue;
+    const along = dx ? (dx > 0 ? b.left - a.right : a.left - b.right) : (dy > 0 ? b.top - a.bottom : a.top - b.bottom);
+    const side = dx ? Math.max(0, b.top - a.bottom, a.top - b.bottom) : Math.max(0, b.left - a.right, a.left - b.right);
+    const mid = dx ? Math.abs((b.top + b.bottom) - (a.top + a.bottom)) / 2 : Math.abs((b.left + b.right) - (a.left + a.right)) / 2;
+    const s = along + side * 3 + mid * .1;
+    if (s < bd) { bd = s; best = x; }
+  }
+  return best;
+}
+// Back on a card opened off a list's row (a model, an airline, a search) shows that list again, where it was; when a
+// card closes, the ring goes back to its plate. Before cardOpen's own key, which closes the card.
+addEventListener("keydown", e => {
+  if (view !== "logbook" || !cardOpenNow() || !(e.key === "Escape" || e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461)) return;
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (lbBackTo) { e.preventDefault(); e.stopImmediatePropagation(); const go = lbBackTo; lbBackTo = null; go(); return; }
+  setTimeout(() => { if (!cardOpenNow()) lbFocusPlate(); }, 0);
+}, true);
 
 // the logbook's game part (points, trophies, styles' unlocks); the board itself shows none of it but the styles
 const game = () => (lbData() || {}).game || null;
@@ -4447,7 +4866,7 @@ async function fetchLogbook(){
       try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {}
     }
   }
-  renderLogbookBoard(); renderRecords();
+  renderLogbookBoard(); if (lbCardWait) lbCardAgain();
   stylesCellRefresh();                                   // 1.89.1: no achievement pop-ups on the board, only the styles
   if (feat && !view) setWord("tier", tierOf(feat.o.ac, feat.info));      // the tier needs the logbook
 }
@@ -4524,29 +4943,30 @@ const reviewNewTypes = r => (r.newTypes || []).map(t => t.type).join(", ") + (r.
 const REVIEW_NUMS = [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]];
 function renderLogbookBoard(){
   if (view !== "logbook") return;
-  if (!snapping && viewSubtitle() !== staticSub) drawStatic();
-  const b = (lbPlace ? lbPlaceData[lbPlace] : lbData()) || {};
-  const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
-  const types = byCount(b.types), airlines = byCount(b.airlines), has = lbPlace ? !!lbPlaceData[lbPlace] : !!lbData();
+  if (!snapping && lbStaticSig() !== lbSig) drawStatic();
+  const b = lbBook() || {}, has = !!lbBook(), types = lbTop(b.types), airlines = lbTop(b.airlines), p = lbPerData(), r = b.records || {};
   setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
-  setChars("lvTypes", has ? nf.format(types.length) : "", 60);
-  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 120);
-  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 180);
+  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
+  setChars("lvTypes", has ? nf.format(types.length) : "", 120);
+  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
   setChars("lvModel", types[0] && types[0][1].count > 1 ? typeLabel(types[0][0], types[0][1].name) : "", 240);
+  lbNums().forEach(([k], i) => setChars(`lp${i}`, p ? nf.format(p[k] || 0) : "", 300 + i * 40));
+  const facts = p ? reviewFacts(p) : [];
+  [0, 3, 1].forEach((j, i) => setChars(`lf${i}`, p ? lbFlap(facts[j][1], 18) || "-" : "", 540 + i * 60));    // busiest day, most seen aircraft, rarest
   LB_CATS.forEach(([k, , , col], i) => {
     setWord(`lvl_${k}`, b.categories ? col : "", 300 + i * 40);
-    setChars(`lvn_${k}`, b.categories ? nf.format(b.categories[k] || 0) : "", 300 + i * 40);
+    setChars(`lvn_${k}`, b.categories ? nf.format(b.categories[k] || 0) : "", 320 + i * 40);
   });
+  LB_RECS.forEach(([k], i) => setChars(`lrc${i}`, !has ? "" : r[k] ? lbFlap(`${lbWho(r[k])} · ${lbRecVal(k, r[k])}`, 18) : "-", 420 + i * 60));
   for (let i = 0; i < LB_ROWS; i++) {
-    const t = types[i], a = airlines[i], d = 500 + i * 60;
-    setChars(`lt${i}name`, t ? typeLabel(t[0], t[1].name) : "", d);
-    setChars(`lt${i}n`, t ? nf.format(t[1].count || 0) : "", d + 20);
-    setChars(`la${i}name`, a ? (AIRLINES[a[0]] || [])[1] || a[1].name || a[0] : "", d + 40);
-    setChars(`la${i}n`, a ? nf.format(a[1].count || 0) : "", d + 60);
-    const r = i < 5 ? (b.regsTop || [])[i] : (b.regsRecent || [])[i - 5];
-    setChars(`lr${i}reg`, r ? r.reg : "", d + 80);
-    setChars(`lr${i}type`, r ? r.name || "" : "", d + 100);
-    setChars(`lr${i}n`, r ? (i < 5 ? nf.format(r.count || 0) : fmtDay(r.first)) : "", d + 120);
+    const t = types[i], a = airlines[i], g = (b.regsTop || [])[i], d = 600 + i * 50;
+    setChars(`lt${i}name`, t ? lbModel(t[0], t[1].name, 19) : "", d);
+    setChars(`lt${i}n`, t ? nf.format(t[1].count || 0) : "", d + 15);
+    setChars(`la${i}name`, a ? lbAirline(a[0], a[1]) : "", d + 30);
+    setChars(`la${i}n`, a ? nf.format(a[1].count || 0) : "", d + 45);
+    setChars(`lr${i}reg`, g ? g.reg : "", d + 60);
+    setChars(`lr${i}type`, g ? lbModel(g.name, "", 10) : "", d + 75);
+    setChars(`lr${i}n`, g ? nf.format(g.count || 0) : "", d + 90);
   }
 }
 
@@ -5065,7 +5485,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "records" || view === "review") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -8142,6 +8562,7 @@ document.addEventListener("keydown", e => {
   if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) { if (e.key === "Escape" || e.key === "Enter") t.blur(); return; }
   if (e.key === "Escape") { closeDiag(); if (view) switchView(null); return; }
   if (t && t.closest && t.closest("#cockpit") && /^Arrow/.test(e.key)) return;     // the knobs and wheels use the arrow keys
+  if (view === "logbook" && lbKey(e)) return;                                       // 1.93: the plates' ring, the cards
   if (e.key === "t" || e.key === "T") toggleView("spotted");
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
@@ -8308,6 +8729,7 @@ function boardTap(x, y){
     if (x >= SV_X.to && x < SV_X.type) return e.to ? placeCard(e.to) : undefined;
     if (x >= SV_X.type && x < SV_X.dist - 120) return e.type ? typeCard(e) : undefined;
   }
+  if (view === "logbook") { const b = lbBoxAt(x, y); if (b) lbCard(b.k); return; }      // 1.93: a plate's card
   if (view) return;
   const top = fieldAt(TOP_IDS, x, y);
   if (top && feat && feat.o) {
