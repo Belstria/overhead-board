@@ -21,10 +21,15 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020    # v4
         with:
           node-version: "20"
+      # A stalled package mirror must fail (or recover) within minutes, not hold the job for its 15 (to-do #110: on 26 Oct
+      # 2026 an apt-get update hung on azure.archive.ubuntu.com). apt gives up on a silent mirror after 20 s and tries
+      # again; the step has 5 minutes and tries the browser install a second time once.
       - name: Tools
+        timeout-minutes: 5
         run: |
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/80-retries
           pip install playwright cryptography
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium || { echo "The browser install failed: trying once more"; sleep 10; python -m playwright install --with-deps chromium; }
       - name: The relay compiles
         run: python -m py_compile relay/serve.py
       - name: The phone app is built from the board
