@@ -31,10 +31,10 @@ The repository is public: no addresses, keys or personal data here either.
   `_fr24_worker` for every answer, and once at start by `_fr24_keep_cached` for the cache) writes `flightIata`,
   `from`/`to` (over adsbdb's) and `divertedTo` into the sightings of that aircraft and callsign that are the same flight
   by fr24_info's rules (`_fr24_same_flight`: same day or within `FR24_REUSE_S`; the answer's board day and the one
-  `FR24_REUSE_S` before), marks them `routeSrc: "fr24"`, runs `note_records` and saves (`day_changed`, "book"). The
+  `FR24_REUSE_S` before), marks them `routeSrc: "fr24"` (only for profiles with `fr24` on, like `fr24_overlay`), runs `note_records` and saves (`day_changed`, "book"). The
   airline and `fr24` (the overlay's flag, which `marketedBy` follows) are left alone; `_enricher` no longer lays
   adsbdb's route over a `routeSrc: "fr24"` one. No extra lookups. **Also relay 68:** `SOURCES` starts with adsb.fi;
-  adsb.lol (500 a UTC day) is kept in reserve. `install.sh` saves `data/` as `/root/data-before-relay<old N>.tgz`
+  adsb.lol (500 a UTC day) is kept in reserve. `install.sh` saves `data/` as `/root/data-before-relay<new N>.tgz`
   before replacing serve.py and keeps the newest 3. `Handler.handle`/`finish` drop BrokenPipe/ConnectionReset (a
   client gone before its answer; ~24 tracebacks in 3 days, from `profile_post`), one line under `--verbose`.
   Test: fakesrc.py serves `/airlines.csv` (5 real rows, 120 made-up) and EIN6AB (no route; the board's table has no

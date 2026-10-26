@@ -718,7 +718,7 @@ systemctl restart overhead-relay
 `install.sh` puts the relay in `/opt/overhead-relay` and runs it as a service (`overhead-relay`) that starts at boot
 and restarts itself; the second line saves your location (press Ctrl+C once it has started). Running `install.sh`
 again updates the relay and keeps your settings and logbook; first it saves `data/` as
-`/root/data-before-relay<old version>.tgz` and keeps the newest three of those copies (relay 68). Set the machine's time zone (`timedatectl
+`/root/data-before-relay<new version>.tgz` and keeps the newest three of those copies (relay 68). Set the machine's time zone (`timedatectl
 set-timezone Europe/Vienna`): the logbook's days follow it. The relay's messages: `journalctl -u overhead-relay -f`.
 Moving from another computer: stop the relay there and copy its `overhead.json` and `data` folder into
 `/opt/overhead-relay` (then `chown -R overhead:overhead /opt/overhead-relay` and restart the service).

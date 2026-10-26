@@ -2158,13 +2158,16 @@ def _fr24_same_flight(info, e):
 def fr24_keep(key, info, spots=None, loaded=None):
     """Relay 68: write a Flightradar24 answer into the sightings of that flight (of its day, and of the day before
     when it came shortly after the day turned), so the logbook, search, the CSV and the records keep the flight actually flown: its flight number,
-    route (over the route database's) and diversion, marked routeSrc "fr24". The airline stays the callsign's. Returns
-    the sightings changed (`loaded` keeps the days read, for many answers at once). Call under _data_lock."""
+    route (over the route database's) and diversion, marked routeSrc "fr24". The airline stays the callsign's. Only
+    profiles with Flightradar24 on (their "fr24" flag, as for fr24_overlay) get it. Returns the sightings changed
+    (`loaded` keeps the days read, for many answers at once). Call under _data_lock."""
     if not info or info.get("none"):
         return 0
     hx, _, cs = key.partition("|")
     n = 0
     for sp in spots if spots is not None else all_spots():
+        if not (profiles()["profiles"].get(sp.dir.name) or {}).get("fr24"):     # a spot's folder is named by its profile
+            continue
         sp.ensure_day()
         t = info.get("t", 0)
         days = {board_day(t), board_day(t - FR24_REUSE_S)}

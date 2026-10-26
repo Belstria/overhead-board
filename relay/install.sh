@@ -5,7 +5,8 @@
 # the logbook (data/) in /opt/overhead-relay are kept.
 #
 # Update copies (relay 68): before an update replaces serve.py, data/ is saved as /root/data-before-relay<N>.tgz (N:
-# the version being replaced). Only the newest 3 of those are kept; older /root/data-before-relay*.tgz are removed.
+# the version about to be installed, so data-before-relay68.tgz is the data just before relay 68 went in). Only the
+# newest 3 of those (by time) are kept; older /root/data-before-relay*.tgz are removed.
 # Nothing else in /root is touched.
 #
 #   curl -fsSL https://raw.githubusercontent.com/Belstria/overhead-board/main/relay/install.sh | sh
@@ -26,11 +27,11 @@ fetch(){ # fetch NAME DEST: the copy next to this script, or the published one
 }
 fetch serve.py "$DIR/serve.py.new"
 python3 -m py_compile "$DIR/serve.py.new"            # never replace a working relay with a broken file
-OLD=$(grep -m1 -o 'RELAY_VERSION = [0-9]*' "$DIR/serve.py" 2>/dev/null | grep -o '[0-9]*$' || true)
-if [ -n "$OLD" ] && [ -n "$(ls -A "$DIR/data" 2>/dev/null)" ]; then
+NEW=$(grep -m1 -o 'RELAY_VERSION = [0-9]*' "$DIR/serve.py.new" | grep -o '[0-9]*$' || true)
+if [ -n "$NEW" ] && [ -f "$DIR/serve.py" ] && [ -n "$(ls -A "$DIR/data" 2>/dev/null)" ]; then
   # tar while the relay runs: a file written meanwhile makes tar say so (exit 1); the copy is still good
-  tar -czf "/root/data-before-relay$OLD.tgz" -C "$DIR" data || [ $? -eq 1 ]
-  echo "Saved data/ as /root/data-before-relay$OLD.tgz"
+  tar -czf "/root/data-before-relay$NEW.tgz" -C "$DIR" data || [ $? -eq 1 ]
+  echo "Saved data/ as /root/data-before-relay$NEW.tgz"
   ls -1t /root/data-before-relay*.tgz | tail -n +4 | while read -r f; do rm -f "$f" && echo "Removed the older copy $f"; done
 fi
 mv "$DIR/serve.py.new" "$DIR/serve.py"

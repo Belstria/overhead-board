@@ -191,6 +191,13 @@ def checks():
            ["EI661", "Aer Lingus", "DUB", "VIE"])
     expect("a name it had stays", row("AUA9")[8] if row("AUA9") else None, "Austrian")
     expect("Flightradar24's flight number in the CSV", row("LDM5AB")[4] if row("LDM5AB") else None, "FR6203")
+    # "New guest" has Flightradar24 off: its sighting of the same flight keeps the free route (it recorded LDM5AB on
+    # the go above, before Flightradar24 answered)
+    st, _, b = call("/sightings", "new-device")
+    rows = json.loads(b) if st == 200 else []
+    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+    g = next((r for r in rows if r.get("callsign") == "LDM5AB"), {})
+    expect("a profile with Flightradar24 off keeps its free route", (g.get("flightIata"), g.get("routeSrc")), ("OE215", None))
     st, _, b = call("/logbook", "test-device")
     expect("the logbook's airline", ((json.loads(b).get("airlines") or {}).get("EIN") or {}).get("name") if st == 200 else st, "Aer Lingus")
 
