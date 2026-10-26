@@ -5820,8 +5820,16 @@ function radarLegend(){
 // Plane labels that never cover each other or leave the scope: nearest planes first, each label tries the right of its
 // plane, then the left, above and below, and is left out if none fits (the plane itself is always drawn).
 // 1.87.2.1: a radar plane's details and name, the same on the scope and in Nearest: the flight number (OS 411) also
-// while its route is still being looked up, the callsign only where there is none.
-const radarInfo = o => (infoCache.get(o.ac.hex + "|" + String(o.ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(o.ac);
+// while its route is still being looked up, the callsign only where there is none. An airline AIRLINES lacks (EIN) is
+// asked of the relay once per code (radarAsked: the scope draws every frame); its answer redraws the list ("EI 6AB").
+const radarAsked = new Set();
+function radarInfo(o){
+  const cs = String(o.ac.flight || "").trim().toUpperCase(), p = infoCache.get(o.ac.hex + "|" + cs);
+  if (p) return p.info;                              // enrich() asks for its airline itself
+  const code = (/^([A-Z]{3})\d/.exec(cs) || [])[1];
+  if (code && !AIRLINES[code] && !radarAsked.has(code)) { radarAsked.add(code); airlineAsk(code).then(a => { if (a) renderRadarList(); }); }
+  return baseInfo(o.ac);
+}
 const radarName = o => radarInfo(o).flightNo || String(o.ac.flight || "").trim() || o.ac.r || o.ac.hex.toUpperCase();
 function radarLabels(g, shown, cx, cy, R, f, taken = []){
   const boxes = [...taken], out = [];
@@ -8895,6 +8903,7 @@ setInterval(() => {
 const CHANGELOG = [
   {v: "1.87.2.1", date: "2026-10-26", notes: [
     "The radar names planes by flight number on the scope too, as in Nearest.",
+    "The radar and Nearest show the flight number and logo for every airline, not only the best-known ones.",
     "Nearest shows the aircraft type in full under the flight number.",
     "Most seen airline, aircraft and types only name one seen at least twice.",
   ]},

@@ -13,7 +13,9 @@ The repository is public: no addresses, keys or personal data here either.
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
 - 1.87.2.1 (Dave's small fixes, 25 Oct): **radar names** come from `radarInfo(o)`/`radarName(o)` (next to
   `radarLabels`, shared with the app): the cached details or `baseInfo(o.ac)`, so the scope says OS 411 like Nearest
-  also before the route lookup is back (it fell back to the callsign). The app's Nearest puts the type on a line of its
+  also before the route lookup is back (it fell back to the callsign). A plane not in `infoCache` whose airline
+  `AIRLINES` lacks (EIN) asks `airlineAsk(code)` once per code (`radarAsked`, as the scope draws every frame); the answer
+  calls `renderRadarList()`, and `baseInfo` then gives "EI 6AB" and the logo (it was only asked for the featured plane). The app's Nearest puts the type on a line of its
   own under the flight number (`.rv strong span`, block), no longer cut to "A…". **Most seen** needs a count of two:
   Today in numbers' airline says "No airline twice yet" (board `stTop`, app `todayNumbers`), the types
   (`topTypesFlaps`, app `topTypes`) keep only types seen twice ("No type twice yet"), and the period cards
