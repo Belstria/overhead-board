@@ -10,6 +10,36 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.93.1 (to-do #111, the second try at #108: a phone's Chrome kept showing a village far away where it had been days
+  before, and the relay ran the gap filler around it): **live location takes no old position**. The cause, from Chromium's source (155, the
+  Android stable then): with `kApproximateGeolocationPermission` (on by default on Android since May 2026) a page that
+  asks without `enableHighAccuracy` is an approximate client (`GeolocationImpl`: hint and precise permission);
+  `GeolocationProviderImpl` keeps the last approximate position across page loads (`low_accuracy_result_` isn't
+  cleared when the last page stops) and hands it at once to every new watcher, whatever its age, with its own
+  timestamp; a new approximate one is passed on at most every 15 minutes (`kApproximateGeolocationUpdateInterval`).
+  `liveRun` asked without high accuracy, and `liveFix` set `liveAt = Date.now()` for whatever came: that old position
+  counted as a fresh fix at every page load and at every `liveStart`. Seen that way in the test relay: the old point in
+  the title and `fix=0` around it, so the gap filler started. Now (places block, E33): `liveRun` asks with
+  `enableHighAccuracy: true` (watch and the minute's re-ask; Chrome stops watching while the page is hidden), and a
+  position older than `LIVE_OLD_MS` (2 min) by `geoPos(p).age` is no fix: logged once a minute at most (`liveOldSaid`)
+  with `geoNote()` (age, ±accuracy, km from `S.lat/S.lon`), its accuracy kept in `liveOldAcc` (0 after `liveHalt`).
+  FINDING YOU … and `fix=-1` stay until a fresh one. `liveFix` logs each run's first position. The one-minute note says
+  to allow precise location in the browser's site settings when the last old one was approximate (±1,500 m or more).
+  `hereNow` (Settings' Here, the welcome) waits on a `watchPosition` for a fresh position (20 s) instead of taking
+  `getCurrentPosition`'s first answer; Sky view's watch (main.js) skips old ones too. With an Approximate-only site
+  permission, a page reopened within Chrome's 15 minutes waits for the next one (up to ~13 min); Dave and the main chat
+  chose that over taking approximate positions up to 15 min old.
+- 1.93.1 (Dave: "Ask each time"): **turning live location off asks where to watch**. Settings → Location's Live button
+  (`wireLocation`) calls `liveAsk()` first: with a fresh fix (`liveAt`, not `liveStale()`) and a `S.livePrev` it opens a
+  card (`cardOpen`, `.pickList.lvAsk` with two `.cBtn`s): **Stay here** (`liveStay()`: the last live point, its name from
+  `S.liveNamed` and airport from `S.liveAir` when `liveNameOk()`/`liveAirOk()`, else "Here" and the old airport until
+  `geoReverse`/`nearestAirport` answer; no `placeKey`, so the profile's own place) or **Back to {label or name}**
+  (`liveStop()`, unchanged). Without a fresh fix or a place before, `liveAsk()` returns false and the button calls
+  `liveStop()` as before. Closing the card keeps live location on. The remote: the first option has focus, the arrows
+  move between the two (the Logbook cards' focus ring, `#cardBox .lvAsk .cBtn:focus`), OK picks, Back closes (the
+  cards' capture listener). `usePlace`, `locatedAt` and the start-up `liveOk()` check still turn it off without asking.
+  `settingsSync` now copies `live` and `livePrev` into Settings' draft, so its Save no longer turns live location back
+  on (or off) after the switch was used with Settings open.
 - 1.93.0.1 (to-do #108, a phone back from a trip showed the trip's village as it opened): **live location never shows an
   old town**. Shared (places block, E33): the town's name and the airport are kept with the point they were found for,
   `S.liveNamed` `[lat, lon, name]` ("" where Nominatim has none) and `S.liveAir` `[lat, lon, code]`, saved on the device

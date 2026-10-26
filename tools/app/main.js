@@ -1522,6 +1522,7 @@ async function arOpen(){
   addEventListener(arEvent(), arOrient);
   if (arEvent() === "deviceorientationabsolute") addEventListener("deviceorientation", arOrient);   // 1.86: and the gyroscope's
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => {
+    if (geoPos(p).age > LIVE_OLD_MS) return;                           // 1.93.1: one the browser kept from earlier
     const c = p.coords; arHere = {lat: c.latitude, lon: c.longitude};
     // 1.76.1: the phone's own height above the sea (GPS, smoothed): on a hillside or a cliff top the airport's is far off
     if (typeof c.altitude === "number" && !(c.altitudeAccuracy > 60)) arAlt = arAlt == null ? c.altitude : arAlt + (c.altitude - arAlt) * .3;
