@@ -211,6 +211,7 @@ class H(BaseHTTPRequestHandler):
             plane("4ca9f1", "RYR3EG", "B38M", 3.0, -6.0, 300, 800, 5000, 0, r="9H-QEG"),       # stale route in the database
             plane("4ca123", "EIN2AB", "A320", 30.0, 30.0, 220, 800, 36000, 0),                   # far and high
             plane("4ca2b7", "EIN6AB", "A320", -2.5, -9.0, 10, 760, 6000, 0, r="EI-DEO"),          # no route listed (relay 68)
+            plane("ae0412", "@@@@@@@@", "C130", 4.0, -7.0, 0, 450, 5000, 0, dbFlags=1),          # no callsign: the sources' "@" (relay 70)
         ]
         for i, (hx, cs, t, la, lo, tr) in enumerate(APRON):     # parked at the gates
             ac.append({"hex": hx, "flight": cs, "t": t, "lat": la, "lon": lo, "alt_baro": "ground", "gs": 0, "track": tr})

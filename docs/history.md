@@ -10,6 +10,17 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.88.0.1 (to-do #88): **a live position counts only while it is fresh**. On 26 Oct a phone's Chrome loaded in live mode
+  with S.lat/S.lon still saved from a trip and asked around there as "live" before (or without) its first fix: far planes
+  became live sightings with points, and the relay ran the gap filler for them. Now `liveAt` (set by `liveFix`, 0 after
+  `liveHalt`, so never a saved fix) and `liveStale()` (live and no fix for `LIVE_FRESH_MS`, 5 min: the Android app asks
+  every minute, browsers get a `getCurrentPosition` after 2 min without a fix as a lying-still phone may not report;
+  at motorway speed 5 min is about the game's circle). `placeQs()` adds `&fix=<age s>` (-1: none yet) to live
+  position requests. While stale the line under the title (board `drawStatic`, app `updateWhere`) starts "FINDING YOUR
+  POSITION …"; a 2 s check calls `liveShow()` (each page its own) when that changes. Planes around the old spot still show.
+- 1.88.0.1 (to-do #89): **"@" callsigns**: the sources fill a blank callsign with "@@@@@@@@". `noAt()`/`noAtList()`
+  clean the position lists in `getAircraft` and the relay's sightings in `fromRelay`, so such planes show their
+  registration, then hex.
 - 1.88 (Dave, 26 Oct): **Remarks by style**: `seenLook()` (called at the top of `renderFeatured`, shared with the app)
   sets `fields.seen.style` to amber in the Airport style and plain (white) in the Overhead style, and redraws its
   cells when that changes (the tile cache keys on the style). `vieLines(info)` in the Overhead style returns only
@@ -731,6 +742,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 70 (1.88.0.1): `live_stale(q, place)`: a "live" position request with `fix` older than `LIVE_FRESH_S` (300),
+  negative or not a number skips `fill_want` and `Spot.take` (no sightings, points, liveSeen for lock-ons, gap filler);
+  without `fix` (older boards) nothing changes. `no_cs()` treats an all-"@" callsign as none (`_record`, the
+  approach/hide checks, `/flightinfo`), `AT_CS` blanks `"flight":"@@@…"` in the sources' answers before they are cached,
+  and `_scrub_at_all()` (a thread at start, once per profile: logbook `atCsV`) blanks such "callsign"/"flight" values
+  and drops such keys (the logbook's and game's "flights") in every saved day and the logbook.
 - Relay 69 (1.88): `/relayinfo` (`relay_panel_json()`): `owner_ok()` only, also through the tunnel (not in
   `ADMIN_PATHS`); 403 for other profiles, strangers refused as usual. Sources in `SOURCES` order with role (first,
   reserve, emergency for `day_cap` sources), state (ok, resting with `until` and `http`, failing, standby) and

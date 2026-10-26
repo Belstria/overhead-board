@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 69
+RELAY_VERSION = 70
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -260,6 +260,7 @@ def aircraft(lat, lon, nm):
             ms = int((time.time() - t0) * 1000)
             count, problem = None, ""
             if 200 <= status < 300:
+                body = AT_CS.sub(b'"flight":""', body)      # relay 70: a blank callsign comes as "@@@@@@@@"
                 try:
                     data = json.loads(body)
                     planes = data.get("ac", data.get("aircraft"))
@@ -587,7 +588,7 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                     e["emergency"], changed = em, True
                     event("warn", f"Emergency code {em} from {e.get('callsign') or hx}")
             elif d <= radius:
-                cs = str(ac.get("flight") or "").strip().upper()
+                cs = no_cs(ac.get("flight"))
                 flags = ac.get("dbFlags") or 0
                 e = {"id": f"{hx}-{int(now)}", "ts": int(now * 1000), "time": time.strftime("%H:%M"), "hex": hx,
                      "callsign": cs, "reg": ac.get("r") or "", "typeCode": str(ac.get("t") or "").upper(),
@@ -1550,6 +1551,69 @@ def _backfill_airlines(spot):
     b["airlinesV"] = 1
     spot.changed("book")
     return n
+
+
+AT_CS = re.compile(rb'"flight"\s*:\s*"\s*@+\s*"')
+
+
+def no_cs(v):
+    """A callsign as the sources give it, cleaned. Relay 70: they fill a blank one with "@" ("@@@@@@@@"): no callsign."""
+    v = str(v or "").strip().upper()
+    return v if v.strip("@") else ""
+
+
+def _at_cs(v):
+    return isinstance(v, str) and bool(v.strip()) and not v.strip().strip("@")
+
+
+def _scrub_at(o):
+    """Relay 70: the all-"@" callsigns saved before, anywhere in a sightings list or logbook: as a "callsign" or "flight"
+    value it becomes "", as a key (the logbook's and game's "flights") it goes. Returns how many it changed."""
+    n = 0
+    if isinstance(o, dict):
+        for k in list(o):
+            if _at_cs(k):
+                del o[k]
+                n += 1
+            elif k in ("callsign", "flight") and _at_cs(o[k]):
+                o[k] = ""
+                n += 1
+            else:
+                n += _scrub_at(o[k])
+    elif isinstance(o, list):
+        for v in o:
+            n += _scrub_at(v)
+    return n
+
+
+def _scrub_at_spot(spot):
+    """Once per profile (the logbook's "atCsV"): clean its saved days and logbook of all-"@" callsigns. Call under
+    _data_lock."""
+    n = 0
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        entries = spot.day_entries(day)
+        hits = _scrub_at(entries)
+        if hits:
+            spot.day_changed(day, entries)
+            n += hits
+    b = spot.book()
+    n += _scrub_at(b)
+    b["atCsV"] = 1
+    spot.changed("book")
+    return n
+
+
+def _scrub_at_all():
+    try:
+        for sp in _all_profile_spots():
+            with _data_lock:
+                if sp.book().get("atCsV") != 1:
+                    n = _scrub_at_spot(sp)
+                    if n:
+                        event("info", f"Removed {n} blank (\"@\") callsigns from earlier sightings", echo=False)
+    except Exception as e:  # never let the clean-up break the relay
+        event("warn", f"Cleaning blank callsigns: {e}")
 
 
 def _all_profile_spots():
@@ -4780,6 +4844,21 @@ def screen_place(q):
     return k, (lat, lon), r
 
 
+# Relay 70: a live position counts only while the screen's fix is fresh. Boards since 1.88.0.1 send its age with each
+# position request (&fix=seconds, -1: none yet); a stale one (a saved spot from a trip, before the first fix) records no
+# sightings, scores nothing and starts no gap filler. Older boards don't send it and keep the old behaviour.
+LIVE_FRESH_S = 300
+
+
+def live_stale(q, place):
+    if not place or place[0] != "live" or "fix" not in q:
+        return False
+    try:
+        return not 0 <= float(q["fix"][0]) <= LIVE_FRESH_S
+    except ValueError:
+        return True
+
+
 def _clean_places(items):
     out, seen = [], set()
     for it in (items if isinstance(items, list) else [])[:20]:
@@ -5071,7 +5150,7 @@ def now_json(pid, st):
             continue
         x, y = (ac["lon"] - lon0) * kx, (ac["lat"] - lat0) * ky
         d = math.hypot(x, y)
-        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        tc, cs, reg = str(ac.get("t") or "").upper(), no_cs(ac.get("flight")), str(ac.get("r") or "").upper()
         m_ = re.match(r"^([A-Z]{3})\d", cs)
         if d > radius or _list_hit(hide_list, tc, cs, reg, m_.group(1) if m_ else ""):
             continue
@@ -5135,7 +5214,7 @@ def window_planes(who, centre, spot, st):
         alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
         if cpa > 5 or (isinstance(alt, (int, float)) and alt > 20000):
             continue
-        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        tc, cs, reg = str(ac.get("t") or "").upper(), no_cs(ac.get("flight")), str(ac.get("r") or "").upper()
         m_ = re.match(r"^([A-Z]{3})\d", cs)
         al = m_.group(1) if m_ else ""
         if _list_hit(hide_list, tc, cs, reg, al):
@@ -6380,7 +6459,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(data).encode())
         if path == "/flightinfo":
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
-            cs = (q.get("cs") or [""])[0].strip().upper()[:8]
+            cs = no_cs((q.get("cs") or [""])[0])[:8]
             hx = (q.get("hex") or [""])[0].strip().lower()[:6]
             # Relay 41: what is already in the cache costs nothing, so it is handed out even past a guest's daily share
             # or the budget; "off" (the board stops asking for a while) only without a key or for guests without it.
@@ -6531,17 +6610,20 @@ class Handler(BaseHTTPRequestHandler):
             status, body, source, freshness = aircraft(lat, lon, nm)
             extra = {"X-Relay-Source": source, "X-Relay-Data": freshness}
             if status == 200:
-                seen = body
+                seen, q = body, self.query()
+                place = screen_place(q)
+                stale = live_stale(q, place)
                 try:                    # relay 66: away from home, Flightradar24 adds the low planes the free sources miss
-                    rec = None if self.query().get("bg") else fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
+                    rec = None if q.get("bg") or stale else fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
                     if rec:
                         body, seen, n = fill_merge(body, rec, float(lat), float(lon), int(nm) * 1.852)
                         extra["X-Relay-Fill"] = str(n)
                 except Exception as e:  # never let the paid extra break the live board
                     event("warn", f"Flightradar24 gap filler: {e}", echo=False)
                 try:
-                    with _data_lock:
-                        self.spot.take(seen, lat, lon, nm, screen_place(self.query()))
+                    if not stale:
+                        with _data_lock:
+                            self.spot.take(seen, lat, lon, nm, place)
                 except Exception as e:  # never let history problems break the live board
                     event("warn", f"Couldn't record sightings: {e}")
             return self.reply(status, "application/json", body, {**extra, "X-Sightings-Rev": str(self.spot.rev)})
@@ -6893,6 +6975,7 @@ def main():
         profiles()
         merge_home()
     threading.Thread(target=_airlines_worker, daemon=True).start()
+    threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)

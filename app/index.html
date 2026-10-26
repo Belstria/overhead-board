@@ -1675,7 +1675,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=26bf09715d"></script>
+<script src="../test/i18n.js?v=fe565ad643"></script>
 <script>
 (() => {
 "use strict";
@@ -3077,7 +3077,8 @@ const placeLabel = () => S.live ? T("On the go") : S.placeKey || clean(S.place);
 // What a position request adds: the place, its centre and radius (the profile's own place needs nothing).
 function placeQs(){
   const k = placeKeyNow();
-  return placesRelay() && k !== "home" ? `?pl=${encodeURIComponent(k)}&pc=${(+S.lat).toFixed(4)},${(+S.lon).toFixed(4)}&pr=${+S.radiusKm || 15}` : "";
+  return placesRelay() && k !== "home" ? `?pl=${encodeURIComponent(k)}&pc=${(+S.lat).toFixed(4)},${(+S.lon).toFixed(4)}&pr=${+S.radiusKm || 15}` +
+    (S.live ? `&fix=${liveAt ? Math.round((Date.now() - liveAt) / 1000) : -1}` : "") : "";
 }
 const sightPlaceQ = every => placesRelay() && !every ? `&place=${encodeURIComponent(placeKeyNow())}` : "";
 async function placesLoad(){
@@ -3120,17 +3121,30 @@ function usePlace(p){
    only move the point; a new town gets its name (OpenStreetMap, through the relay) and a new nearest airport. */
 const liveOk = () => !!(window.OverheadAndroid && window.OverheadAndroid.locate) || (window.isSecureContext && !!navigator.geolocation);
 let liveWatch = null, liveTimer = null, liveNamed = null, liveAir = null, liveSaved = 0, liveFirst = true;
+/* 1.88.0.1: a live position counts only while it is fresh: a fix this page got (never one saved days ago, say on a
+   trip) within LIVE_FRESH_MS. Position requests say how old it is (&fix=s, -1: none yet); relay 70 records no live
+   sightings, points or gap filler without a fresh one. Five minutes: the Android app asks every minute and browsers
+   are asked again after two, so it takes a few missed fixes; at motorway speed it is about the game's circle. */
+const LIVE_FRESH_MS = 5 * 60000;
+let liveAt = 0, liveWas = false;
+const liveStale = () => !!S.live && Date.now() - liveAt > LIVE_FRESH_MS;
+setInterval(() => { if (liveStale() !== liveWas) { liveWas = liveStale(); liveShow(); } }, 2000);
 function liveHalt(){
   if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
-  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true;
+  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true; liveAt = 0;
 }
 function liveRun(){
   liveHalt();
   if (window.OverheadAndroid && window.OverheadAndroid.locate) {
     const tick = () => hereNow().then(liveFix).catch(() => {});
     tick(); liveTimer = setInterval(tick, 60000);
-  } else liveWatch = navigator.geolocation.watchPosition(p => liveFix({lat: p.coords.latitude, lon: p.coords.longitude}), () => {},
-    {enableHighAccuracy: false, maximumAge: 30000, timeout: 60000});
+  } else {
+    const fix = p => liveFix({lat: p.coords.latitude, lon: p.coords.longitude});
+    liveWatch = navigator.geolocation.watchPosition(fix, () => {}, {enableHighAccuracy: false, maximumAge: 30000, timeout: 60000});
+    liveTimer = setInterval(() => {         // a phone lying still may not report again by itself
+      if (Date.now() - liveAt > 120000) navigator.geolocation.getCurrentPosition(fix, () => {}, {enableHighAccuracy: false, maximumAge: 60000, timeout: 60000});
+    }, 60000);
+  }
 }
 // Where the board looked before following the phone, to go back to (a label, or just the point).
 function liveStart(){
@@ -3155,6 +3169,7 @@ async function geoReverse(lat, lon){
 }
 async function liveFix(p){
   if (!S.live) return;
+  liveAt = Date.now();
   const lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4), moved = gcKm(S.lat, S.lon, lat, lon);
   const first = liveFirst;
   liveFirst = false;
@@ -4378,6 +4393,9 @@ const QUERY_NM = 25, QUERY_KM = Math.round(QUERY_NM * 1.852);
 // 1.75.2: when a position source made its answer, in ms (readsb's API gives ms, its aircraft.json seconds); kept on the
 // list as list.now, so the app's Sky view can move planes on from then.
 const srcTime = n => typeof n === "number" && n > 0 ? (n < 1e11 ? n * 1000 : n) : 0;
+// 1.88.0.1: the sources fill a blank callsign with "@" ("@@@@@@@@"): no callsign, so the registration or hex shows.
+const noAt = cs => String(cs || "").replace(/[@\s]/g, "") ? String(cs) : "";
+const noAtList = list => { for (const a of list) if (a && a.flight) a.flight = noAt(a.flight); return list; };
 async function getAircraft(){
   const [cla, clo] = queryCenter(), la = cla.toFixed(4), lo = clo.toFixed(4), t0 = performance.now();
   if (relay() && !relayLegacy) {          // the relay picks a working source itself
@@ -4396,7 +4414,7 @@ async function getAircraft(){
       try { const j = await res.json(); detail = res.status === 503 ? "no position source available right now (see the relay lines)" : (j.error || ""); } catch {}
       throw new Error(`relay answered ${res.status}${detail ? ": " + detail : ""}`);
     }
-    const j = await res.json(), list = j.ac || j.aircraft || [];
+    const j = await res.json(), list = noAtList(j.ac || j.aircraft || []);
     list.now = srcTime(j.now); list.recvAt = Date.now();
     const src = res.headers.get("X-Relay-Source") || "relay", fresh = res.headers.get("X-Relay-Data") || "live";
     if (src !== feedName && feedName) dlog("info", `Now getting positions from ${src}`);
@@ -4417,7 +4435,7 @@ async function getAircraft(){
       const j = await fetchJSON(f.url(la, lo, QUERY_NM));
       if (f.name !== feedName && feedName) dlog("info", `Now getting positions from ${f.name}`);
       feedIdx = (feedIdx + i) % FEEDS.length; feedName = f.name; lastFreshness = "live";
-      const list = j.ac || j.aircraft || [];
+      const list = noAtList(j.ac || j.aircraft || []);
       list.now = srcTime(j.now); list.recvAt = Date.now();
       DIAG.polls.push({t: Date.now(), ok: true, ms: performance.now() - t0, n: list.length});
       return list;
@@ -4740,7 +4758,7 @@ function snapSave(){
   try { localStorage.setItem(SNAP_KEY, JSON.stringify({t: now, day: boardDay(), feat: f, spotted: spotted.slice(0, 40), stats: relayStats, nearby: nearbyCount})); } catch {}
 }
 function fromRelay(r){
-  const cs = r.callsign || "", m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
+  const cs = noAt(r.callsign), m = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/), al = m && AIRLINES[m[1]];
   const tn = typeName(r.typeCode, r.desc);
   const dbType = [String(r.manufacturer || "").split(" ")[0], r.aircraftType].filter(Boolean).join(" ");
   return {id: r.id, time: r.time, ts: r.ts, hex: r.hex, callsign: cs, reg: r.reg || "",
@@ -8940,6 +8958,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.88.0.1", date: "2026-10-26", notes: [
+    "Live location only counts planes and points once the phone has found where it is; until then the title says so.",
+    "Planes without a callsign no longer show as @@@@@@@@: their registration shows instead."]},
   {v: "1.88", date: "2026-10-26", notes: [
     "In the app, a bar under the header jumps to any part of Settings and shows where you are.",
     "The relay's owner sees its position sources, Flightradar24 credits, backup and screens online in About.",
@@ -10479,8 +10500,9 @@ function statusCard(){
 }
 function updateWhere(){
   const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
-  $("where").textContent = `${S.live ? "◉ " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  $("where").textContent = `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOUR POSITION …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
 }
+function liveShow(){ updateWhere(); }     // live location found its position, or lost it
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

@@ -11,6 +11,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   sightings, also from the cache at start (relay 68)
 - the owner's Relay plate (/relayinfo): David only, also from outside; another profile or a stranger no (relay 69);
   only David's page says owner, /pageversion (a page built without a profile) answers, a saved "</script>" stays escaped
+- live location: a request with a stale or missing fix records nothing, scores nothing and starts no gap filler; a
+  fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
@@ -227,6 +229,38 @@ def checks():
     expect("a profile with Flightradar24 off keeps its free route", (g.get("flightIata"), g.get("routeSrc")), ("OE215", None))
     st, _, b = call("/logbook", "test-device")
     expect("the logbook's airline", ((json.loads(b).get("airlines") or {}).get("EIN") or {}).get("name") if st == 200 else st, "Aer Lingus")
+
+    # relay 70: a live position counts only while the screen's fix is fresh (&fix=seconds, -1: none yet). David's phone
+    # asks around a place far from home: stale, it records nothing and starts no gap filler; fresh, it does both
+    far = "/aircraft/41.39/2.17/25?pl=live&pc=41.3900,2.1700&pr=15"
+
+    def live_rows():
+        st, _, b = call("/sightings", "owner-device")
+        rows = json.loads(b) if st == 200 else []
+        return [e for e in (rows.get("entries", rows) if isinstance(rows, dict) else rows) if e.get("place") == "live"]
+    for fix in ("-1", "301", "x"):
+        st, h, _ = call(far + "&fix=" + fix, "owner-device")
+        expect(f"a live request with a stale fix ({fix}) starts no gap filler", (st, h.get("X-Relay-Fill")), (200, None))
+    expect("... and records no live sightings", len(live_rows()), 0)
+    st, _, b = call("/logbook", "owner-device")
+    expect("... and scores nothing", json.loads(b).get("game", {}).get("points") if st == 200 else st, 0)
+    st, h, _ = call(far + "&fix=20", "owner-device")
+    expect("a live request with a fresh fix starts the gap filler", h.get("X-Relay-Fill") is not None, True)
+    expect("... and records live sightings", len(live_rows()) > 0, True)
+    st, _, b = call("/logbook", "owner-device")
+    expect("... that score", (json.loads(b).get("game", {}).get("points") or 0) > 0 if st == 200 else st, True)
+
+    # relay 70: the sources' "@@@@@@@@" (no callsign) is no callsign: in the answer, today's sightings, and saved ones
+    st, _, b = call("/aircraft/48.2085/16.3731/25", "test-device")
+    ac = next((a for a in json.loads(b).get("ac", []) if a.get("hex") == "ae0412"), None) if st == 200 else None
+    expect("a plane without a callsign in the positions", (ac or {}).get("flight", "missing"), "")
+    st, _, b = call("/sightings", "test-device")
+    rows = json.loads(b) if st == 200 else []
+    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+    expect("... and in today's sightings", next((e.get("callsign") for e in rows if e.get("hex") == "ae0412"), "missing"), "")
+    st, _, b = call("/logbook.csv", "test-device")
+    old = next((ln.split(",") for ln in (b.decode("utf-8-sig").splitlines() if st == 200 else []) if ",TEST-AT," in ln), None)
+    expect("a saved one cleaned at start (CSV callsign, flight)", old[3:5] if old else None, ["", ""])
 
     for b_ in bad:
         print("flow:", b_)

@@ -97,7 +97,10 @@ def main():
     old = [{"id": "old-ein", "hex": "4ca2b8", "callsign": "EIN1XY", "ts": int((now - 86400) * 1000), "time": "12:00",
             "typeCode": "A320", "minDist": 6.2, "altAtMin": 9000, "looked": True},
            {"id": "old-aua", "hex": "440a99", "callsign": "AUA9", "ts": int((now - 86400) * 1000) - 60000, "time": "11:59",
-            "typeCode": "A320", "minDist": 7.1, "altAtMin": 9500, "looked": True, "airlineName": "Austrian"}]
+            "typeCode": "A320", "minDist": 7.1, "altAtMin": 9500, "looked": True, "airlineName": "Austrian"},
+           # relay 70: a plane without a callsign, saved as the sources' "@@@@@@@@", cleaned once at start
+           {"id": "old-at", "hex": "ae0413", "callsign": "@@@@@@@@", "reg": "TEST-AT", "ts": int((now - 86400) * 1000) - 120000,
+            "time": "11:58", "typeCode": "C130", "minDist": 5.0, "altAtMin": 5000, "looked": True}]
     (tmp / "data" / "profiles" / "test0001").mkdir(parents=True)
     (tmp / "data" / "profiles" / "test0001" / f"sightings-{day}.json").write_text(json.dumps(old), encoding="utf-8")
     # ... and Flightradar24's answer about it, still in the cache: written into the sighting at start
