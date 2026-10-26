@@ -104,7 +104,10 @@ py serve.py --fr24-key YOUR_KEY --save
   shares nothing is, until the next day. A busy day can't use up the month, and the free sources fill in meanwhile.
 - If the key is refused (the subscription ended) or the budget is used up, the boards quietly use the free sources.
 - To turn it off: `py serve.py --fr24-key off --save`.
-- Flightradar24's answers are cached for two days at most (their terms allow 30). Planes only the gap filler found
+- Flightradar24's answers are cached for two days at most (their terms allow 30). Since relay 68 an answer is also
+  written into the sighting it was asked for (flight number, route, diversion), so the logbook, search, the CSV and the
+  records keep the flight actually flown, on every board; the airline stays the one the callsign names. No extra
+  lookups are made for it. Planes only the gap filler found
   (below) stay in Spotted today and the logbook like any other sighting, marked as found through Flightradar24.
 - **Away from home, Flightradar24 fills the gaps (1.87, relay 66).** Far from big cities the free networks can be deaf
   down low: on an island they first heard the planes leaving its airport at 9,000 ft and 22 km out, minutes after
@@ -714,7 +717,8 @@ systemctl restart overhead-relay
 
 `install.sh` puts the relay in `/opt/overhead-relay` and runs it as a service (`overhead-relay`) that starts at boot
 and restarts itself; the second line saves your location (press Ctrl+C once it has started). Running `install.sh`
-again updates the relay and keeps your settings and logbook. Set the machine's time zone (`timedatectl
+again updates the relay and keeps your settings and logbook; first it saves `data/` as
+`/root/data-before-relay<new version>.tgz` and keeps the newest three of those copies (relay 68). Set the machine's time zone (`timedatectl
 set-timezone Europe/Vienna`): the logbook's days follow it. The relay's messages: `journalctl -u overhead-relay -f`.
 Moving from another computer: stop the relay there and copy its `overhead.json` and `data` folder into
 `/opt/overhead-relay` (then `chown -R overhead:overhead /opt/overhead-relay` and restart the service).
@@ -723,7 +727,15 @@ Then open `http://localhost:8080`, or `http://<computer-name>:8080` from the TV,
 The relay prints the addresses when it starts. Your location stays on the relay machine: it is handed
 to the board when the page loads, so nothing personal lives in this repository.
 
-Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that answers
+Airline names (relay 68): the route database names the airline only together with a route, so the relay also keeps
+Virtual Radar Server's airline list (public domain) in `data/airlines.json`, downloaded at start and refreshed weekly
+(the old copy stays if a download fails; without it, flights simply have no name). A flight with no route listed gets
+its airline's name and code from it, in Spotted today, the logbook, search and the CSV, and the live views ask the
+relay for airlines the board's own table lacks (AER LINGUS instead of NO AIRLINE LISTED). Older sightings got their
+names once, on the first start of relay 68.
+
+Positions come from adsb.fi, adsb.lol and airplanes.live, tried in that order (since relay 68 adsb.lol is kept in
+reserve for when adsb.fi fails, so its 500 requests a day last). A source that answers
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
 the relay keeps serving the last good data for up to two minutes. adsb.lol allows each address 500 requests a UTC
 day (since October 2026; more only for its feeders), and airplanes.live answers only those it has let in. When a

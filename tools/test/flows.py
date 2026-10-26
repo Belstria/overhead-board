@@ -7,6 +7,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - favourites change one at a time, so two devices saving at once keep both (relay 54)
 - where a sighting on the go was made is named and found by the search; the hangar; a league player's card (relay 63)
 - the hangar's photos (relay 64)
+- airline names from the airline list, filled in once for older sightings; Flightradar24's routes kept in the
+  sightings, also from the cache at start (relay 68)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64)
 """
@@ -156,6 +158,48 @@ def checks():
     expect("the card shows no places", any(k in b.decode() for k in ('"lat"', '"lon"', '"at"', '"place"')), False)
     expect("an unknown player", call("/game/player?id=000000000000", "test-device")[0], 404)
     expect("a player's card for strangers", call("/game/player?id=x")[0] in (401, 403), True)
+
+    # relay 68: airline names from the airline list for flights without a route, and Flightradar24's answers kept in
+    # the sightings (the test relay starts with yesterday's EIN1XY, saved without a name, and its answer in the cache)
+    st, _, b = call("/airlines?c=EIN,ZZZ", "test-device")
+    expect("/airlines", json.loads(b) if st == 200 else st, {"EIN": ["EI", "Aer Lingus"], "ZZZ": None})
+    expect("/airlines for strangers", call("/airlines?c=EIN")[0] in (401, 403), True)
+    want = {"EIN6AB": ("Aer Lingus", "EI"), "LDM5AB": ("FR6203", "VIE", "PMI", "fr24", "Lauda Europe"),
+            "DLH1234": ("VIE", "fr24")}
+    got = {}
+    for _ in range(30):
+        call("/aircraft/48.2085/16.3731/25", "test-device")
+        call("/sightings?api=1", "test-device")       # a board with Flightradar24 asks for the day's flights
+        st, _, b = call("/sightings", "test-device")
+        rows = json.loads(b) if st == 200 else []
+        rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+        e = {r.get("callsign"): r for r in rows}
+        c = lambda k: (e.get(k) or {}).get
+        got = {"EIN6AB": (c("EIN6AB")("airlineName"), c("EIN6AB")("airlineIata")),
+               "LDM5AB": (c("LDM5AB")("flightIata"), (c("LDM5AB")("from") or {}).get("code"), (c("LDM5AB")("to") or {}).get("code"),
+                          c("LDM5AB")("routeSrc"), c("LDM5AB")("airlineName")),
+               "DLH1234": ((c("DLH1234")("divertedTo") or {}).get("code"), c("DLH1234")("routeSrc"))}
+        if got == want:
+            break
+        time.sleep(1)
+    for k in want:
+        expect(f"{k} in today's sightings (without Flightradar24's overlay)", got.get(k), want[k])
+    st, _, b = call("/logbook.csv", "test-device")
+    lines = b.decode("utf-8-sig").splitlines() if st == 200 else []
+    row = lambda cs: next((ln.split(",") for ln in lines if f",{cs}," in ln), [])
+    expect("yesterday's flight got its airline once, and its answer from the cache (CSV)", [row("EIN1XY")[i] for i in (4, 8, 9, 10)] if row("EIN1XY") else None,
+           ["EI661", "Aer Lingus", "DUB", "VIE"])
+    expect("a name it had stays", row("AUA9")[8] if row("AUA9") else None, "Austrian")
+    expect("Flightradar24's flight number in the CSV", row("LDM5AB")[4] if row("LDM5AB") else None, "FR6203")
+    # "New guest" has Flightradar24 off: its sighting of the same flight keeps the free route (it recorded LDM5AB on
+    # the go above, before Flightradar24 answered)
+    st, _, b = call("/sightings", "new-device")
+    rows = json.loads(b) if st == 200 else []
+    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+    g = next((r for r in rows if r.get("callsign") == "LDM5AB"), {})
+    expect("a profile with Flightradar24 off keeps its free route", (g.get("flightIata"), g.get("routeSrc")), ("OE215", None))
+    st, _, b = call("/logbook", "test-device")
+    expect("the logbook's airline", ((json.loads(b).get("airlines") or {}).get("EIN") or {}).get("name") if st == 200 else st, "Aer Lingus")
 
     for b_ in bad:
         print("flow:", b_)

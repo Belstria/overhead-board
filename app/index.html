@@ -1662,7 +1662,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=bf47bfedbf"></script>
+<script src="../test/i18n.js?v=92a763d195"></script>
 <script>
 (() => {
 "use strict";
@@ -4526,6 +4526,32 @@ function liveryShort(info){
   const lv = String(info.livery || "").toUpperCase(), op = String(info.operator || "").toUpperCase();
   return lv && op && lv !== op ? T("IN {a} COLOURS", {a: shortAirline((AIRLINES[lv] || [])[1] || lv)}).slice(0, 20) : "";
 }
+// 1.87.2 (relay 68): the airlines AIRLINES lacks (Aer Lingus, SunExpress, ...) come from the relay's airline list, a few
+// codes a request; each is added to AIRLINES, so everything that looks there knows it from then on.
+const airlineAsked = new Map(), airlineQ = [];
+let airlineT = 0;
+function airlineAsk(code){
+  if (AIRLINES[code]) return Promise.resolve(AIRLINES[code]);
+  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 68 || !/^[A-Z]{3}$/.test(code)) return Promise.resolve(null);
+  if (!airlineAsked.has(code)) {
+    airlineAsked.set(code, new Promise(ok => airlineQ.push([code, ok])));
+    clearTimeout(airlineT);
+    airlineT = setTimeout(airlineSend, 300);
+  }
+  return airlineAsked.get(code);
+}
+async function airlineSend(){
+  const q = airlineQ.splice(0, 40);
+  if (airlineQ.length) airlineT = setTimeout(airlineSend, 300);
+  let j = {};
+  try { j = await fetchJSON(`${relay()}/airlines?c=${q.map(x => x[0]).join(",")}`, {}, 8000) || {}; }
+  catch (e) { q.forEach(([c]) => airlineAsked.delete(c)); dlog("debug", `Airline names: ${netError(e, "relay")}`); }
+  for (const [c, ok] of q) {
+    const a = j[c];
+    if (a && a[1] && !AIRLINES[c]) AIRLINES[c] = [a[0] || "", a[1]];
+    ok(AIRLINES[c] || null);
+  }
+}
 const infoCache = new Map();
 // A plane's details changed (a route, its type, Flightradar24): redraw it if it is on the board, and bring its row in
 // Recent flights up to date (1.48: an answer that came after the plane had left the top half was never shown).
@@ -4553,6 +4579,14 @@ function enrich(ac, far = false){
     // each answer shows as soon as it comes (the route doesn't wait for the aircraft lookup, or the other way round)
     if (cs) jobs.push(routeLookup(cs, ac).then(r => { if (r) { Object.assign(info, r); infoChanged(info); } }));
     if (!info.typeSure && ac.hex) jobs.push(aircraftLookup(ac.hex).then(t => { if (t) { info.type = t; infoChanged(info); } }));
+    const al = cs.match(/^([A-Z]{3})(\d[A-Z0-9]{0,4})$/);
+    if (al && !info.airline) jobs.push(airlineAsk(al[1]).then(a => {
+      if (!a || info.airline) return;
+      info.airline = a[1];
+      info.airlineCode = info.airlineCode || a[0];
+      if (a[0] && info.flightNo === cs) info.flightNo = a[0] + " " + al[2];
+      infoChanged(info);
+    }));
     await Promise.all(jobs);
     if (apiOn() && !info.far) apiLookup(cs, ac.hex, info);   // the free answer shows first; Flightradar24's replaces it
     else { info.apiLater = apiOn(); info.done = true; }
@@ -4680,7 +4714,8 @@ function fromRelay(r){
   const tn = typeName(r.typeCode, r.desc);
   const dbType = [String(r.manufacturer || "").split(" ")[0], r.aircraftType].filter(Boolean).join(" ");
   return {id: r.id, time: r.time, ts: r.ts, hex: r.hex, callsign: cs, reg: r.reg || "",
-    flight: r.flightIata ? fmtFlight(r.flightIata) : al && al[0] ? al[0] + " " + m[2] : (cs || r.reg || String(r.hex || "").toUpperCase()),
+    flight: r.flightIata ? fmtFlight(r.flightIata) : al && al[0] ? al[0] + " " + m[2] : m && r.airlineIata ? r.airlineIata + " " + m[2] :
+      (cs || r.reg || String(r.hex || "").toUpperCase()),
     airline: r.airlineName || (al ? al[1] : ""), airlineCode: r.airlineIata || (al ? al[0] : ""),
     from: r.from || null, to: r.to || null, type: TYPES[r.typeCode] || (tn.sure ? tn.name : dbType || tn.name), typeCode: r.typeCode || "",
     minDist: r.minDist, altAtMin: r.altAtMin, maxSpeed: r.maxSpeed, military: r.military, interesting: r.interesting, emergency: r.emergency,
@@ -8853,6 +8888,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.87.2", date: "2026-10-26", notes: [
+    "Flights without a known route now show their airline's name too, live, in Spotted today and in the logbook.",
+    "Routes and flight numbers from Flightradar24 now stay in the logbook, search and the CSV.",
+  ]},
   {v: "1.87.1", date: "2026-10-24", notes: [
     "Filling in low planes from Flightradar24 costs about half the credits, and nothing while the app is in the background.",
     "The \"Last known board\" tag no longer shows over the opening.",
@@ -9472,7 +9511,7 @@ function aboutHtml(){
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
     `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`;
 }

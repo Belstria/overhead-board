@@ -11,6 +11,35 @@ The repository is public: no addresses, keys or personal data here either.
 ## How the board works (index.html and the test board)
 
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
+- 1.87.2 (relay 68; Dave's logbook since 9 Oct: 263 of 3,118 airline flights without an airline name, as adsbdb names
+  the airline only with a route; Flightradar24's routes lived only in its rolling cache). **Airline names:** the relay
+  keeps Virtual Radar Server's standing data (`AIRLINES_CSV`, CC0; BOM, columns Code,Name,ICAO,IATA,...) as
+  `data/airlines.json` (`{"v":1,"fetched","codes":{ICAO:[name, IATA]}}`); `_airlines_worker` loads it at start,
+  downloads when it is over `AIRLINES_EVERY_S` (a week) old or missing, keeps the old copy when a download fails or
+  holds under 100 airlines, and runs without it. `airline_fields(cs)` (callsigns `^[A-Z]{3}\d`) fills
+  `airlineName`/`airlineIata`/`airlineIcao` in `_enricher` where the route lookup brought none (also keys a route left
+  empty), and the logbook's `airlines[code]` name and IATA code. Once per profile (`airlinesV: 1` in the logbook,
+  `_backfill_airlines`, every profile's spot via `_all_profile_spots`) the saved days get the missing names
+  (`_airline_fill`: only those three keys, only where `airlineName` is empty), written by the saver: `Spot.days`
+  (`day_entries`, `day_changed`) holds older days changed after the fact, and `_days_of` reads through it.
+  `/airlines?c=EIN,SXS` (up to 40 codes, profiles only) answers `{code: [IATA, name] | null}`; the board's
+  `airlineAsk(code)` (relay ≥ 68, batched 300 ms) adds the answer to `AIRLINES`, and `enrich()` sets the plane's
+  airline and flight number ("EI 6AB") from it when the route lookup brought none. `fromRelay()` makes the flight
+  number from the relay's `airlineIata` when `AIRLINES` lacks the code. About credits "airline names from Virtual
+  Radar Server". Routes from the standing data are not used (they matched Flightradar24's real routes less often than
+  ours on 25 Oct; to re-check in early November). **Flightradar24 kept:** `fr24_keep(key, info)` (called by
+  `_fr24_worker` for every answer, and once at start by `_fr24_keep_cached` for the cache) writes `flightIata`,
+  `from`/`to` (over adsbdb's) and `divertedTo` into the sightings of that aircraft and callsign that are the same flight
+  by fr24_info's rules (`_fr24_same_flight`: same day or within `FR24_REUSE_S`; the answer's board day and the one
+  `FR24_REUSE_S` before), marks them `routeSrc: "fr24"` (only for profiles with `fr24` on, like `fr24_overlay`), runs `note_records` and saves (`day_changed`, "book"). The
+  airline and `fr24` (the overlay's flag, which `marketedBy` follows) are left alone; `_enricher` no longer lays
+  adsbdb's route over a `routeSrc: "fr24"` one. No extra lookups. **Also relay 68:** `SOURCES` starts with adsb.fi;
+  adsb.lol (500 a UTC day) is kept in reserve. `install.sh` saves `data/` as `/root/data-before-relay<new N>.tgz`
+  before replacing serve.py and keeps the newest 3. `Handler.handle`/`finish` drop BrokenPipe/ConnectionReset (a
+  client gone before its answer; ~24 tracebacks in 3 days, from `profile_post`), one line under `--verbose`.
+  Test: fakesrc.py serves `/airlines.csv` (5 real rows, 120 made-up) and EIN6AB (no route; the board's table has no
+  EIN); run_test_relay.py starts the Test profile with yesterday's EIN1XY (no name) and AUA9 (named), and EIN1XY's
+  answer in `fr24.json`; flows.py checks the names, the backfill, the CSV and the written answers.
 - 1.87.1 (the gap filler on the real Flightradar24, the first evening: it filled in RYR4328 landing at 4,400 ft, but two
   short looks cost 112 credits, not the 5–8 the old estimate implied): relay 67 trims it. **One record per profile**
   (`fill_want` finds it by `pid` and moves it to each asking screen; more than `FILL_KM` away it starts afresh, asking
