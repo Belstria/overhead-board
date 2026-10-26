@@ -1798,7 +1798,7 @@ async function arSnap(){
   }
   g.drawImage(ov, 0, 0);
   g.fillStyle = "#0b0b0c"; g.fillRect(0, H, W, B);
-  const L = Math.round(B * .56), x0 = Math.round(B * .22), y0 = H + (B - L) / 2, tx = x0 + L + B * .2, place = String(S.place || "").trim();
+  const L = Math.round(B * .56), x0 = Math.round(B * .22), y0 = H + (B - L) / 2, tx = x0 + L + B * .2, place = String(placeNow() || "").trim();
   g.fillStyle = "#f0b429"; rr(g, x0, y0, L, L, L * .13); g.fill();
   drawPlane(g, x0 + L / 2, y0 + L / 2, L * .86, "#0b0b0c");
   g.textAlign = "left"; g.textBaseline = "alphabetic";
@@ -3528,8 +3528,11 @@ function statusCard(){
 }
 function updateWhere(){
   const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
-  // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone)
-  $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone); 1.93.0.1: then
+  // only ON THE GO until live location has the name of where it is (placeNow)
+  const name = placeNow();
+  $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : S.live && !name ? "◉ " + (liveStale() ? T("FINDING YOU …") : clean(T("On the go"))) :
+    `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(name)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
 }
 function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){

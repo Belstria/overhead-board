@@ -147,6 +147,13 @@ def pages():
             pg.wait_for_timeout(2000)
             for o in pg.evaluate(OVERFLOW_JS):
                 errors.append(f"Fire TV Account & device: plate {o}")
+            # 1.93.0.1: and About's (its Keys and About plates ran past their edges, the last credits cut off)
+            pg.evaluate("location.hash = '#about'")
+            pg.wait_for_timeout(1500)
+            if pg.evaluate("document.querySelectorAll('#cockpit:not([hidden]) .plate').length") != 3:
+                errors.append("Fire TV About: the view didn't open with its three plates")
+            for o in pg.evaluate(OVERFLOW_JS):
+                errors.append(f"Fire TV About: plate {o}")
             # 1.92: the Logbook's plates at that size: its buttons end above them, the remote's ring is on a plate, and
             # a plate's card opens
             pg.evaluate("location.hash = '#logbook'")

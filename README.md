@@ -316,7 +316,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
   tick, push buttons a thock) when the flap sound or the chimes are on.
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
-  who made it. In the app, **Log** (1.80; also in the connection card, the dot by the clock) opens the app's log on a
+  who made it. On the boards (1.93.0.1) the patch notes take the left half (▲ ▼ scroll them), the keys (two to a row)
+  and who made it the right half, so every credit fits on every screen. In the app, **Log** (1.80; also in the connection card, the dot by the clock) opens the app's log on a
   page of its own: All, Problems, Sky view or Network, and **Copy the log** to paste it into a message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
@@ -413,7 +414,10 @@ The main board has everything below. New features are tried on `/test/` first; o
     title says FINDING YOU … and its planes don't count or score; since 1.90 the board stays empty until this page has
     found the phone once (the saved spot may be far away): no plane on top, no last known board, no rows in the lists,
     just "Finding where you are …"; after a minute without a position a note says live
-    location isn't working on this device, with a button to Settings. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
+    location isn't working on this device, with a button to Settings. Since 1.93.0.1 a town's name only shows within
+    2 km of where it was found (the airport within 15 km): until the new name comes, the title says ON THE GO and City
+    reads "On the go", and neither an old name nor an old airport goes to the profile; a lookup the relay didn't answer
+    is made again on a later position, a minute on. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
     location with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
     board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.

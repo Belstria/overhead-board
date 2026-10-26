@@ -9,6 +9,7 @@ pass over). The planes sit around central Vienna (the boards' default location) 
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
+SLOW_NAMES=1: OpenStreetMap's place names take 5 s, and the first lookup of each point fails (live location, 1.93.0.1).
 Away from Vienna (more than 30 km) the position source has only a turboprop at 8,000 ft near the place, while
 Flightradar24's live positions also have a take-off the free networks can't hear, passing over the place every 6 minutes
 (the relay's gap filler, relay 66).
@@ -77,6 +78,7 @@ PS_PHOTOS = {"reg/OE-LBN": ("1000001", "oe-lbn-austrian-airlines-airbus-a320-214
              "hex/896180": ("1000002", "a6-evb-emirates-airbus-a380-861"),
              "hex/44D0AB": ("1000003", "oo-tek-tea-belgium-boeing-737-2q9-adv")}
 PS_ASKED = collections.Counter()
+NAMES_FAILED = set()        # SLOW_NAMES=1 (run_test_relay.py --slow-names): the points whose first name lookup failed
 PS_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" viewBox="0 0 420 280">
 <defs><linearGradient id="e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3c63"/><stop offset=".7" stop-color="#d9825b"/><stop offset="1" stop-color="#f2c38b"/></linearGradient></defs>
 <rect width="420" height="280" fill="url(#e)"/><rect y="236" width="420" height="44" fill="#3a3f45"/>
@@ -198,6 +200,12 @@ class H(BaseHTTPRequestHandler):
         if path == "/nominatim/reverse":   # relay 63 names where sightings on the go were made: Vienna, else a made-up village
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
             lat = float((q.get("lat") or ["0"])[0])
+            if os.environ.get("SLOW_NAMES"):   # 1.93.0.1: names take 5 s, and the first lookup of each point fails
+                time.sleep(5)
+                k = f"{(q.get('lat') or [''])[0]},{(q.get('lon') or [''])[0]}"
+                if k not in NAMES_FAILED:
+                    NAMES_FAILED.add(k)
+                    return self.send(503, "text/plain", b"Busy")
             a = {"city": "Vienna", "state": "Vienna", "country": "Austria"} if 47.9 < lat < 48.5 else \
                 {"city": "Ia Municipal Unit", "village": "Testdorf", "island": "Testinsel", "country": "Testland"}
             return self.send(200, "application/json", json.dumps({"name": "", "address": a}).encode())

@@ -10,6 +10,31 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.93.0.1 (to-do #108, a phone back from a trip showed the trip's village as it opened): **live location never shows an
+  old town**. Shared (places block, E33): the town's name and the airport are kept with the point they were found for,
+  `S.liveNamed` `[lat, lon, name]` ("" where Nominatim has none) and `S.liveAir` `[lat, lon, code]`, saved on the device
+  only (`meSend` drops both keys); `liveNameOk()` (a name, within 2 km of `S.lat`/`S.lon`) and `liveAirOk()` (15 km)
+  are true when not live. `placeNow()` is the name to show, "" while live and waiting or not `liveNameOk()`: the board's
+  title and the app's `updateWhere` say ON THE GO then (the app without the radius, as with FINDING YOU …, so it fits
+  390 px), the radar's close-up subtitle On the go, a Sky view picture "Sky view", `placeOfS` (Saved places' Update)
+  no name, and Settings' City field is empty and disabled with the placeholder On the go (`itemHtml`, `settingsSync`,
+  which also copies both keys into Settings' draft, so its Save doesn't bring back older ones).
+  `meSend` leaves out `place` while `!liveNameOk()` and `home` while `!liveAirOk()`, so the relay's profile never gets
+  an old one. `liveFix`: `liveShow()` at the first fix (FINDING YOU … used to stay until the lookups ended: the 2 s
+  check could miss the change) and when the name turns old; `geoReverse` returns null when the relay didn't answer;
+  the name and the airport are asked side by side (`Promise.all`) when the fix is past 2 / 15 km from their point and
+  the last unanswered lookup is `LIVE_RETRY_MS` (a minute) back (`liveNameAsk`/`liveAirAsk`: its time, Infinity while
+  one is on its way, 0 after an answer); a point is marked only after an answer. A result for an older `liveRunAt` is
+  dropped. `liveStart` deletes both (a place set by hand isn't named for the phone's point). `tools/test/fakesrc.py`
+  `SLOW_NAMES=1` (`run_test_relay.py --slow-names`): names take 5 s and the first lookup of each point fails.
+- 1.93.0.1 (to-do #107): **About on the boards in two halves**. In Settings' third column (630 board px) the About
+  plate ran 73 px past its edge on every screen (92 at 1366x768, where text wraps differently) and Keys 5, cutting off
+  the radar map's and the World Magnetic Model's credits. `aboutOpen` sets `#cockpit.about` (`cockpitOpen` and
+  `accountOpen` clear it): two equal columns, rows `auto minmax(0,1fr)`; Patch notes (`.plate.notes`, both rows, ▲ ▼
+  as before) on the left, Keys as tall as it needs over the About plate on the right. `dl.keys` has four tracks (two
+  keys a row) and `KEYS` the photo link's row again (↑ ↓ "This aircraft: the photo's link (OK opens it)", 1.93 left it
+  out for room). About has 111 px to spare in English, 77 or more in the other languages, at every size tried (Fire TV,
+  1080p, 1280x720 to 1920x1200). smoke.py opens About at the Fire TV's size too and fails on an overflowing plate.
 - 1.93 (to-do #95, Dave's mockup A and wording B; relay 73): **the plane's own photo from Planespotters.net**. Shared
   (cards block, so the app has it too): `psPhoto(reg, hex, onReady)` asks the relay's `/planephoto` once per
   registration (`psPhotos`: `{at, photo, cbs}`, photo `undefined` while asking and `null` for none, kept `PS_KEEP_MS`,
