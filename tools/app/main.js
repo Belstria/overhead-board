@@ -865,25 +865,29 @@ function renderLogbook(){
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
-  const chips = $("lbPlaces");
-  chips.hidden = !pl.length;
-  const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
+  // 1.89 (to-do #90, Dave's pick): All · On the go · Saved places, a bar like Week · Month · Year; the saved places are
+  // picked in a sheet, and the third part then names the one picked. Counting since and a place's own line are the
+  // footnote at the bottom.
+  const bar = $("lbPlaces"), live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live");
+  const cur = saved.find(c => c.id === lbPlace);
+  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", (cur ? cur.name : T("Saved places")) + " ⌄"]] : [])];
+  bar.hidden = want.length < 2;
   const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (pl.length && chips.dataset.sig !== csig) {
-    chips.dataset.sig = csig;
-    chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
-    for (const btn of chips.children) btn.onclick = async () => {
-      if (btn.dataset.p === lbPlace) return;
-      ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+  if (!bar.hidden && bar.dataset.sig !== csig) {
+    bar.dataset.sig = csig;
+    bar.innerHTML = want.map(([k, name]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === "saved" ? !!cur : k === lbPlace}">${escH(name)}</button>`).join("");
+    for (const btn of bar.children) btn.onclick = () => {
+      if (btn.dataset.p === "saved") return lbPlaceSheet();
+      if (btn.dataset.p !== lbPlace) { ctlSound.press(); lbPick(btn.dataset.p); }
     };
   }
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
-  $("lbSum").hidden = v === "review";
+  $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.")
-    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.")
-    : !place ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
+  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
+    logbookSummary()].filter(Boolean).map(escH).join("<br>");
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   $("lbTop").hidden = v !== "logbook";
@@ -891,7 +895,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -916,9 +920,23 @@ function renderLogbook(){
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
-  $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
+  $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
+}
+// 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
+async function lbPick(id){
+  lbPlace = id; lbSig = ""; renderLogbook();
+  if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+}
+// 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
+function lbPlaceSheet(){
+  ctlSound.press();
+  const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
+    `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
+    `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
+    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.press(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -3456,16 +3474,16 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T("Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
+  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
   $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
 }
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbPlaces, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
@@ -3638,6 +3656,7 @@ function renderGame(){
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
+  h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
@@ -3663,6 +3682,46 @@ function gHowCard(){
     `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
     `<p class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))} ${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</p>` +
     `<p class="gRule">${escH(T("Hold a plane in Sky view's ring for a moment: a bonus of a quarter of its points (at least 15), more for several in a row."))}</p>`);
+}
+/* 1.89 (to-do #91, Dave's pick A): Recent points, from a tap on the strip's points: today's total and planes, then each
+   plane that scored, newest first (time, flight, airline, type with its rarity, how close, its total) with its awards
+   under it: the first score and why, close-pass top-ups, Sky view's lock-on. The relay keeps the awards from relay 71
+   on (/game/today); planes scored before show their totals without times. */
+const gRecentOk = () => gameOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 71;
+const gPlus = n => (n < 0 ? "−" : "+") + nf.format(Math.abs(n));
+function gWhy(r, a){
+  if (a.k === "lock") return T("Sky view lock-on · +{p}%", {p: Math.round((a.pct || .25) * 100)});
+  if (a.k === "fix") return T("Points corrected");
+  const d = a.d != null ? a.d : r.km, near = d != null && d <= 1.5 ? 1.5 : d != null && d <= 4 ? 4 : 0;
+  if (a.k === "close") return T("Close pass · within {k} km", {k: nf.format(near || 4)});
+  const NEW = {type: "New type", airline: "New airline", reg: "New aircraft"};
+  const n = r.gn || 1, taper = n <= 25 ? "" : n <= 50 ? "×½" : "×¼";
+  return [T(TIER_NAME[r.tier] || "Uncommon") + " +" + nf.format(r.base), ...(r.new || []).map(([k, v]) => T(NEW[k] || k) + " +" + nf.format(v)),
+    near ? T("Close pass ×{x}", {x: near === 1.5 ? "1.2" : "1.1"}) : "",
+    r.gk > 1 ? T("Streak ×{x}", {x: nf.format(r.gk)}) : "",
+    taper ? T("Plane {n} of the day {x}", {n: nf.format(n), x: taper}) : ""].filter(Boolean).join(" · ");
+}
+async function gRecentCard(){
+  const tok = cardLoading();
+  let j = null;
+  try { j = await fetchJSON(`${relay()}/game/today`, {}, 8000); } catch {}
+  if (tok !== cardTok) return;
+  if (!j) { cardOpen(`<p class="note">${escH(T("Couldn't load today's points."))}</p>`); return; }
+  const at = t => t ? hhmm(new Date(t)) : "";
+  const rows = j.rows.map(r => {
+    // a plane scored before relay 71: its totals, the first score and a lock-on without their times
+    const aw = r.aw.length ? [...r.aw].reverse() : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
+    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common";
+    const lines = aw.map(a => `<div class="meta${a.k !== "first" ? " top" : ""}"><span>${escH([at(a.t), gWhy(r, a)].filter(Boolean).join(" · "))}</span><span>${gPlus(a.p)}</span></div>`).join("");
+    const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(typeLabel(r.typeCode, r.type) || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
+    return `<li class="fl sp" style="--lamp:${col}${hot ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
+      `<div class="who"><strong>${escH(r.flight || String(r.hex || "").toUpperCase())}</strong>${r.airline ? `<span>${escH(r.airline)}</span>` : ""}</div><b class="pts">${gPlus(r.gp + (r.lock || 0))}</b>` +
+      `<div class="rt">${what}</div>${lines}</li>`;
+  }).join("");
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
+    (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you." : "Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`) +
+    `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
+    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.press(); cardClose(); showTab("game"); }; });
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */

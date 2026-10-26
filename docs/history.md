@@ -10,6 +10,24 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.89 (to-do #90, Dave's mockup picks): **the app's Logbook places**: the chips went; `#lbPlaces` is a `.seg
+  lbPlaceSeg` bar (the Week · Month · Year style) with All, On the go (the "live" chip of `lbChips()`) and Saved places
+  (each part only when it has sightings; no bar with only All). Saved places opens `lbPlaceSheet()` (a card sheet:
+  lamp rows with counts, the one picked lit, "Places are saved in Settings → Places."); once one is picked the third
+  part shows its name with ⌄. `lbPick(id)` sets `lbPlace` and fetches its numbers. `logbookSummary()` (Counting since
+  … · N points) moved from `#lbSum` to a footnote at the bottom of the Logbook (`.sum.lbFoot`), under a place's own
+  "N planes seen from X since …" line; `renderGame` puts the same footnote under the Spotters' Club. The board's
+  logbook view is unchanged.
+- 1.89 (to-do #91, relay 71): **Recent points**: the strip's points (`.gMain`) open `gRecentCard()` (relay 71, else the
+  club as before): today's total and planes, each scored plane newest first (`.fl` rows in `.rpList`: newest award's
+  time, flight, airline, tier icon, type, rarity, distance, total) with its awards under it, explained by `gWhy()`:
+  the first score (rarity +base, New type/airline/aircraft +n; close pass, streak and taper multipliers only when they
+  apply), "Close pass · within 4 km" top-ups, "Sky view lock-on · +25%" (the combo's real share), a lowered score as
+  "Points corrected". The relay keeps `ga` on each sighting (`_game_award`: `t` ms, `k` first/close/fix/lock, `p`
+  points, `d` km or `pct`/`c` for a lock-on; last 8) from `game_note()` and `game_lockon()`; `/game/today`
+  (`game_today()`, the profile's own, like `/game/me`) hands today's scored planes with `base`, `new`, `gk`, `gn` and
+  `aw`. Planes scored before relay 71 have no `aw` and show their first score and lock-on without times.
+
 - 1.88.0.1 (to-do #88): **a live position counts only while it is fresh**. On 26 Oct a phone's Chrome loaded in live mode
   with S.lat/S.lon still saved from a trip and asked around there as "live" before (or without) its first fix: far planes
   became live sightings with points, and the relay ran the gap filler for them. Now `liveAt` (set by `liveFix`, 0 after

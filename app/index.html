@@ -962,7 +962,6 @@ html.daylight .acCheck b,html.daylight .devTile{color:#191919}
 html.daylight .devTile{background:#fbf8f1;border-color:#d3cab7}
 html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
-html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
 #t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbTop,#t-logbook.finding .rcol{display:none!important}
@@ -1006,18 +1005,14 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 .apPick .cap{flex:1;height:40px;margin:0;font-size:var(--fs-xs)}
 #t-now.ap .apPick{display:flex}
 .title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lbPlaces{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
-.lbPlaces[hidden]{display:none}
-.lbPlaces button{height:32px;padding:0 12px;border-radius:16px;border:1px solid #44474d;background:none;color:var(--ink);font:600 var(--fs-s)/1 var(--f-board)}
-.lbPlaces button small{color:var(--muted);margin-left:5px;font-weight:500}
-.lbPlaces button[aria-pressed=true]{border-color:var(--c-gold);background:rgba(240,180,41,.12)}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
-.seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.lbPlaceSeg,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden],.seg.lbViews[hidden],.seg.lbPlaceSeg[hidden]{display:none}
+.seg.lbPlaceSeg{margin:10px 0 0}
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.lbPlaceSeg button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.lbPlaceSeg button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -1228,9 +1223,18 @@ html.daylight .lbPlaces button[aria-pressed=true]{background:rgba(168,83,0,.12)}
 #t-game .gTiles div,.plCard .gTiles div{display:grid;gap:4px}
 #t-game .gTiles b,.plCard .gTiles b{font:700 var(--fs-2xl)/1 var(--f-board);font-variant-numeric:tabular-nums}
 #t-game .gTiles span,.plCard .gTiles span{font:600 var(--fs-tag)/1.3 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-#t-game .gHow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
-#t-game .gHow i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
-#t-game .gHow:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+/* 1.89: Recent points (a sheet): Spotted today's rows, each plane's awards under it, the total on the right */
+#cardBox .rpList{margin-top:10px}
+#cardBox .rpList .fl .tc{align-self:start;padding-top:2px}
+#cardBox .rpList .fl .pts{font:700 var(--fs-l)/1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+#cardBox .rpList .fl .rt{display:flex;align-items:center;white-space:nowrap}
+#cardBox .rpList .fl .meta,#cardBox .rpList .fl .meta span:first-child{white-space:normal}
+#cardBox .rpList .fl .meta.top span:first-child{color:var(--ink)}
+#cardBox .rpList .tico{width:14px;height:14px;border-radius:3px;margin-right:5px}
+#t-game .gHow,#cardBox .gHow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
+#t-game .gHow i,#cardBox .gHow i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
+#t-game .gHow:focus-visible,#cardBox .gHow:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+#cardBox .gHow{margin-top:8px;padding-top:12px;width:100%}
 #t-game .gOff{color:#e7a39d}
 #t-game .gHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
 #t-game .gHead h3{margin:0}
@@ -1359,6 +1363,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .perArr .cBtn[disabled]{opacity:.35;pointer-events:none}
 .yearCard .seg.lbPer{margin:10px 0 4px}
 /* 1.75: categories open in place; the search reads category words; its results' parts are pills */
+/* 1.89: the footnote at the bottom of Logbook and Spotters' Club (counting since, the points; a place's own line) */
+.sum.lbFoot{margin:22px 0 4px;text-align:center}
 .cats li.catTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
 .cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
 .cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
@@ -1583,7 +1589,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
-      <div class="lbPlaces" id="lbPlaces" role="group" hidden></div>
+      <div class="seg lbPlaceSeg" id="lbPlaces" role="group" hidden></div>
       <section class="plate secPlate" style="--cols:1" id="lbTop"><i></i><i></i><i></i><i></i><h3 data-t="Totals">Totals</h3>
       <div class="panel" id="lbP" role="img" aria-label="Logbook totals"></div>
       <p class="model" id="lbModel"></p></section>
@@ -1675,7 +1681,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=fe565ad643"></script>
+<script src="../test/i18n.js?v=76980b14f3"></script>
 <script>
 (() => {
 "use strict";
@@ -6406,25 +6412,29 @@ function renderLogbook(){
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
-  const chips = $("lbPlaces");
-  chips.hidden = !pl.length;
-  const want = [["", T("All")], ...pl.map(c => [c.id, c.name, c.n])];
+  // 1.89 (to-do #90, Dave's pick): All · On the go · Saved places, a bar like Week · Month · Year; the saved places are
+  // picked in a sheet, and the third part then names the one picked. Counting since and a place's own line are the
+  // footnote at the bottom.
+  const bar = $("lbPlaces"), live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live");
+  const cur = saved.find(c => c.id === lbPlace);
+  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", (cur ? cur.name : T("Saved places")) + " ⌄"]] : [])];
+  bar.hidden = want.length < 2;
   const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (pl.length && chips.dataset.sig !== csig) {
-    chips.dataset.sig = csig;
-    chips.innerHTML = want.map(([k, name, n]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}${n != null ? `<small>${nf.format(n)}</small>` : ""}</button>`).join("");
-    for (const btn of chips.children) btn.onclick = async () => {
-      if (btn.dataset.p === lbPlace) return;
-      ctlSound.press(); lbPlace = btn.dataset.p; lbSig = ""; renderLogbook();
-      if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+  if (!bar.hidden && bar.dataset.sig !== csig) {
+    bar.dataset.sig = csig;
+    bar.innerHTML = want.map(([k, name]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === "saved" ? !!cur : k === lbPlace}">${escH(name)}</button>`).join("");
+    for (const btn of bar.children) btn.onclick = () => {
+      if (btn.dataset.p === "saved") return lbPlaceSheet();
+      if (btn.dataset.p !== lbPlace) { ctlSound.press(); lbPick(btn.dataset.p); }
     };
   }
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
-  $("lbSum").hidden = v === "review";
+  $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.")
-    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.")
-    : !place ? logbookSummary() : !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"});
+    : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
+  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
+    logbookSummary()].filter(Boolean).map(escH).join("<br>");
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
   $("lbTop").hidden = v !== "logbook";
@@ -6432,7 +6442,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -6457,9 +6467,23 @@ function renderLogbook(){
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
-  $("lbLists").innerHTML = html || `<p class="sum">${escH(T("Loading …"))}</p>`;
+  $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
   const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
+}
+// 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
+async function lbPick(id){
+  lbPlace = id; lbSig = ""; renderLogbook();
+  if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
+}
+// 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
+function lbPlaceSheet(){
+  ctlSound.press();
+  const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
+    `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
+    `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
+    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.press(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -8958,6 +8982,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.89", date: "2026-10-26", notes: [
+    "In the app, the Logbook picks All, On the go or one of your saved places in a bar; the saved places open in a list.",
+    "Counting since and your points are at the bottom of the Logbook and the Spotters' Club.",
+    "In the app, tapping your points shows today's points: each plane, when it scored and why."]},
   {v: "1.88.0.1", date: "2026-10-26", notes: [
     "Live location only counts planes and points once the phone has found where it is; until then the title says so.",
     "Planes without a callsign no longer show as @@@@@@@@: their registration shows instead."]},
@@ -10632,16 +10660,16 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T("Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); showTab("game"); };
+  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
   $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
 }
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .lbPlaces, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
@@ -10814,6 +10842,7 @@ function renderGame(){
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
+  h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
@@ -10839,6 +10868,46 @@ function gHowCard(){
     `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
     `<p class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))} ${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</p>` +
     `<p class="gRule">${escH(T("Hold a plane in Sky view's ring for a moment: a bonus of a quarter of its points (at least 15), more for several in a row."))}</p>`);
+}
+/* 1.89 (to-do #91, Dave's pick A): Recent points, from a tap on the strip's points: today's total and planes, then each
+   plane that scored, newest first (time, flight, airline, type with its rarity, how close, its total) with its awards
+   under it: the first score and why, close-pass top-ups, Sky view's lock-on. The relay keeps the awards from relay 71
+   on (/game/today); planes scored before show their totals without times. */
+const gRecentOk = () => gameOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 71;
+const gPlus = n => (n < 0 ? "−" : "+") + nf.format(Math.abs(n));
+function gWhy(r, a){
+  if (a.k === "lock") return T("Sky view lock-on · +{p}%", {p: Math.round((a.pct || .25) * 100)});
+  if (a.k === "fix") return T("Points corrected");
+  const d = a.d != null ? a.d : r.km, near = d != null && d <= 1.5 ? 1.5 : d != null && d <= 4 ? 4 : 0;
+  if (a.k === "close") return T("Close pass · within {k} km", {k: nf.format(near || 4)});
+  const NEW = {type: "New type", airline: "New airline", reg: "New aircraft"};
+  const n = r.gn || 1, taper = n <= 25 ? "" : n <= 50 ? "×½" : "×¼";
+  return [T(TIER_NAME[r.tier] || "Uncommon") + " +" + nf.format(r.base), ...(r.new || []).map(([k, v]) => T(NEW[k] || k) + " +" + nf.format(v)),
+    near ? T("Close pass ×{x}", {x: near === 1.5 ? "1.2" : "1.1"}) : "",
+    r.gk > 1 ? T("Streak ×{x}", {x: nf.format(r.gk)}) : "",
+    taper ? T("Plane {n} of the day {x}", {n: nf.format(n), x: taper}) : ""].filter(Boolean).join(" · ");
+}
+async function gRecentCard(){
+  const tok = cardLoading();
+  let j = null;
+  try { j = await fetchJSON(`${relay()}/game/today`, {}, 8000); } catch {}
+  if (tok !== cardTok) return;
+  if (!j) { cardOpen(`<p class="note">${escH(T("Couldn't load today's points."))}</p>`); return; }
+  const at = t => t ? hhmm(new Date(t)) : "";
+  const rows = j.rows.map(r => {
+    // a plane scored before relay 71: its totals, the first score and a lock-on without their times
+    const aw = r.aw.length ? [...r.aw].reverse() : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
+    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common";
+    const lines = aw.map(a => `<div class="meta${a.k !== "first" ? " top" : ""}"><span>${escH([at(a.t), gWhy(r, a)].filter(Boolean).join(" · "))}</span><span>${gPlus(a.p)}</span></div>`).join("");
+    const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(typeLabel(r.typeCode, r.type) || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
+    return `<li class="fl sp" style="--lamp:${col}${hot ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
+      `<div class="who"><strong>${escH(r.flight || String(r.hex || "").toUpperCase())}</strong>${r.airline ? `<span>${escH(r.airline)}</span>` : ""}</div><b class="pts">${gPlus(r.gp + (r.lock || 0))}</b>` +
+      `<div class="rt">${what}</div>${lines}</li>`;
+  }).join("");
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
+    (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you." : "Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`) +
+    `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
+    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.press(); cardClose(); showTab("game"); }; });
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
