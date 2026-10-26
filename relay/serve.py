@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 72
+RELAY_VERSION = 73
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -5455,8 +5455,9 @@ def review_check(who, subs, spot, st):
 
 # A plane's photo for the boards' share picture (relay 47, to-do #51): a browser can't save a picture that has another
 # site's photo in it, so the relay passes the photo on, from the photo sites the boards use only, images only, a few MB
-# at most. The last few are kept an hour.
-PHOTO_HOSTS = ("upload.wikimedia.org", "airport-data.com", ".airport-data.com", "cdn.jetphotos.com", ".plnspttrs.net")
+# at most. The last few are kept an hour. Relay 73: never Planespotters.net's photos (their terms forbid passing them on);
+# Wikipedia's model pictures now also come from thumb.wikimedia.org.
+PHOTO_HOSTS = ("upload.wikimedia.org", "thumb.wikimedia.org", "airport-data.com", ".airport-data.com", "cdn.jetphotos.com")
 PHOTO_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
 PHOTO_MAX = 4 * 1024 * 1024
 _photos = collections.OrderedDict()        # url -> (time, content type, bytes)
@@ -5493,6 +5494,100 @@ def photo_get(u):
         while len(_photos) > 30:
             _photos.popitem(last=False)
     return 200, ctype, body
+
+
+# A plane's own photo from Planespotters.net (relay 73, to-do #95), for This aircraft and the plane cards: asked by
+# registration (by hex only when that finds none) and kept only when the photo's page names the same registration (a
+# hex can belong to another aircraft by now: 44D0AB gave OO-TEK's photo, not the Belgian Air Force's CH-10). Their
+# terms (planespotters.net/photo/api): a User-Agent naming the app with a contact address; answers kept 24 hours at
+# most (23 here, the boards keep theirs an hour more at most); the photo itself loaded only by the screen that shows
+# it, straight from the address given, never kept or passed on (so not through /photo, nor in the share picture); every
+# address used unchanged; the photographer credited next to the photo, which links to its page.
+PS_API = "https://api.planespotters.net/pub/photos"
+PS_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
+PS_KEEP, PS_FAIL, PS_GAP, PS_WAIT, PS_REST = 23 * 3600, 600, 1.0, 4.0, 1800
+PS_IMG = ("https://",)                     # the photo's own address must be one of these
+_ps_cache = collections.OrderedDict()      # registration -> (time, photo or None, answered)
+_ps_next = [0.0]                           # the earliest time for the next request: one a second
+_ps_rest = [0.0]                           # refused (403, 429): no requests until then
+
+
+def _ps_like(reg):
+    """A registration as the start of a photo page's name (/photo/<id>/oe-lbp-austrian-airlines-...): its letters and
+    digits in order, a dash allowed between them, then a dash or the end."""
+    chars = re.sub(r"[^a-z0-9]", "", reg.lower())
+    return re.compile("-?".join(chars) + "(-|$)") if chars else None
+
+
+def _ps_first(photos, like):
+    """The board's part of the first photo in an answer that shows this registration, with addresses that are theirs."""
+    for p in photos or []:
+        try:
+            img, link = p["thumbnail_large"], p["link"]
+            src, size, page = img["src"], img.get("size") or {}, urllib.parse.urlsplit(link)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        name = page.path.rstrip("/").rsplit("/", 1)[-1].lower()
+        if (like and like.match(name) and page.scheme == "https" and (page.hostname or "").endswith("planespotters.net")
+                and str(src).startswith(PS_IMG)):
+            return {"src": src, "w": size.get("width"), "h": size.get("height"), "link": link,
+                    "by": str(p.get("photographer") or "").strip()[:80]}
+    return None
+
+
+def _ps_ask(kind, value):
+    """Planespotters' photos for a registration or a hex (a list, maybe empty), or None when they can't be asked now
+    (refused a while ago, too many lookups waiting) or didn't answer."""
+    now = time.time()
+    with _lock:
+        if now < _ps_rest[0]:
+            return None
+        at = max(now, _ps_next[0])
+        if at - now > PS_WAIT:
+            return None
+        _ps_next[0] = at + PS_GAP
+    if at > now:
+        time.sleep(at - now)
+    status, _, body, _ = fetch(f"{PS_API}/{kind}/{urllib.parse.quote(value, safe='')}", timeout=8,
+                               headers={"User-Agent": PS_AGENT, "Accept": "application/json"})
+    if status in (403, 429):
+        with _lock:
+            _ps_rest[0] = time.time() + PS_REST
+        event("warn", f"Planespotters.net refused a photo lookup (HTTP {status}); asking again in {PS_REST // 60} minutes")
+        return None
+    try:
+        j = json.loads(body) if status == 200 else None
+    except ValueError:
+        j = None
+    if not isinstance(j, dict):
+        return None
+    return j["photos"] if isinstance(j.get("photos"), list) else [] if "error" in j else None   # "Reg input missing": none
+
+
+def plane_photo(reg, hex_=""):
+    """{"photo": {src, w, h, link, by} or None} for a registration, or None when Planespotters couldn't be asked."""
+    key = re.sub(r"[^A-Z0-9-]", "", str(reg or "").upper())[:12]
+    hex_ = re.sub(r"[^0-9A-F]", "", str(hex_ or "").upper())[:6]
+    like = _ps_like(key)
+    if not like:
+        return {"photo": None}
+    now = time.time()
+    with _lock:
+        hit = _ps_cache.get(key)
+        if hit and now - hit[0] < (PS_KEEP if hit[2] else PS_FAIL):
+            return {"photo": hit[1]} if hit[2] else None
+    photos = _ps_ask("reg", key)
+    photo = _ps_first(photos, like)
+    if photos is not None and not photo and len(hex_) == 6:
+        photos = _ps_ask("hex", hex_)
+        photo = _ps_first(photos, like)
+    answered = photos is not None
+    with _lock:
+        _ps_cache[key] = (now, photo, answered)
+        _ps_cache.move_to_end(key)
+        while len(_ps_cache) > 3000:
+            _ps_cache.popitem(last=False)
+    return {"photo": photo} if answered else None
 
 
 # Hue light pulse (relay 47, to-do #46; a test feature, the owner's only). When a special or favourite plane is about to
@@ -6472,6 +6567,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(429, "text/plain", b"Too many requests")
             status, ctype, body = photo_get((self.query().get("u") or [""])[0])
             return self.reply(status, ctype, body)
+        if path == "/planephoto":           # relay 73: a plane's own photo from Planespotters.net
+            if not allow("pphoto:" + self.guest[0], 2, 30):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = self.query()
+            r = plane_photo((q.get("reg") or [""])[0], (q.get("hex") or [""])[0])
+            if r is None:
+                return self.reply(503, "text/plain", b"Planespotters.net can't be asked right now", {"Retry-After": "120"})
+            return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "no-store"})
         if path == "/relayinfo":           # relay 69: the owner's Relay plate (also away from home, through the tunnel)
             if not self.owner_ok():
                 return self.reply(403, "text/plain", b"Only for the owner")
@@ -6479,7 +6582,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/airlines", "/relayinfo"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()

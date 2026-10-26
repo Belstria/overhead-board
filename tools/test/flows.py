@@ -15,9 +15,12 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - Sky view's reports: David's only, from this site, kept up to a cap (2 in the test relay), then rate-limited (relay 72)
+- a plane's own photo from Planespotters.net (the fake's): profiles only, asked once and kept, by hex only with the same
+  registration on the photo, not kept by the browser; /photo doesn't pass their photos on (relay 73)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
-  the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
+  the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88);
+  a Planespotters photo first, credited and linked, never for the share picture, none of another aircraft (1.93)
 """
 import gzip
 import json
@@ -25,6 +28,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else int(os.environ.get("PORT") or 8096)
@@ -296,6 +300,28 @@ def checks():
     old = next((ln.split(",") for ln in (b.decode("utf-8-sig").splitlines() if st == 200 else []) if ",TEST-AT," in ln), None)
     expect("a saved one cleaned at start (CSV callsign, flight)", old[3:5] if old else None, ["", ""])
 
+    # relay 73: a plane's own photo from Planespotters.net (the fake source's: OE-LBN by registration, the A380 by hex, and
+    # for the C-130's hex a photo of OO-TEK, another aircraft)
+    fake = f"http://127.0.0.1:{int(BASE.rsplit(':', 1)[1]) - 1}"
+    asked = lambda: json.loads(urllib.request.urlopen(fake + "/ps/asked", timeout=5).read())     # noqa: E731
+    photo = lambda q, ck="test-device": call("/planephoto?" + q, ck)                            # noqa: E731
+    st, h, b = photo("reg=OE-LBN&hex=440a01")
+    ph = (json.loads(b).get("photo") or {}) if st == 200 else {}
+    expect("/planephoto by registration (status, credit, link, photo)", (st, ph.get("by"), ph.get("link"), ph.get("src", "")[-9:]),
+           (200, "Test Photographer", "https://www.planespotters.net/photo/1000001/oe-lbn-austrian-airlines-airbus-a320-214?utm_source=api", "1_280.svg"))
+    expect("... not kept by the browser", h.get("Cache-Control"), "no-store")
+    photo("reg=oe-lbn&hex=440a01", "owner-device")
+    expect("... asked once for two screens", asked().get("reg/OE-LBN"), 1)
+    st, _, b = photo("reg=CH-10&hex=44d0ab")
+    expect("a photo of another aircraft under the same hex is passed over", (st, json.loads(b).get("photo", "-") if st == 200 else None, asked().get("hex/44D0AB")), (200, None, 1))
+    st, _, b = photo("reg=A6-EVB&hex=896180")
+    expect("a photo found by hex with the same registration on it", ((json.loads(b).get("photo") or {}).get("link") or "").split("/")[-1] if st == 200 else st,
+           "a6-evb-emirates-airbus-a380-861?utm_source=api")
+    st, _, b = photo("hex=440a01")
+    expect("no registration: no photo, nothing asked", (st, json.loads(b).get("photo", "-") if st == 200 else None, asked().get("hex/440A01")), (200, None, None))
+    expect("/planephoto for strangers", call("/planephoto?reg=OE-LBN")[0] in (401, 403), True)
+    expect("/photo doesn't pass Planespotters' photos on", call("/photo?u=" + urllib.parse.quote("https://t.plnspttrs.net/1/1_280.jpg", safe=""), "test-device")[0], 400)
+
     for b_ in bad:
         print("flow:", b_)
     print("relay rules and saves hold" if not bad else f"{len(bad)} flow check(s) failed")
@@ -370,6 +396,21 @@ def browser_checks(browser):
     for k, v in want.items():
         if got[k] != v:
             bad.append(f"Remarks {k}: got {got[k]!r}, expected {v!r}")
+
+    # 1.93: a plane's own photo from Planespotters.net first (the fake's OE-LBN), its credit on it and a link to its page;
+    # never in the share picture (noPs); the C-130 (another aircraft's photo under its hex) gets none from there
+    pic = "planePic({hex: '%s', r: '%s', t: '%s'}, {}, {}, null%s)"
+    for args in (("440a01", "OE-LBN", "A320", ""), ("44d0ab", "CH-10", "C130", "")):
+        e(pic % args)                                          # asks the relay; the answer comes in a moment
+    pg.wait_for_timeout(2000)
+    got = e("(p => [p.kind, picCredit(p), picHtml(p).includes('<a class=\"cPicA\" href=\"https://www.planespotters.net/photo/1000001/oe-lbn-')])(" +
+            pic % ("440a01", "OE-LBN", "A320", "") + ")")
+    if got != ["ps", "© Test Photographer · Planespotters.net", True]:
+        bad.append(f"Planespotters photo in the app: got {got!r}")
+    if e((pic % ("440a01", "OE-LBN", "A320", ", true")) + ".kind") == "ps":
+        bad.append("the share picture would get a Planespotters photo")
+    if e((pic % ("44d0ab", "CH-10", "C130", "")) + ".kind") == "ps":
+        bad.append("a photo of another aircraft under the same hex was shown")
     ctx.close()
     for b_ in bad:
         print("flow:", b_)

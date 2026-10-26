@@ -566,9 +566,10 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels(); skyRowRender();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type, feat.o.ac.desc], () => renderAircraftInfo());
-  $("screen").querySelector(".credit").textContent = isModelPic(src) ? "Wikimedia Commons" : "airport-data.com";
-  $("screen").classList.toggle("model", isModelPic(src));
+  // 1.93: Planespotters' photo first (not on the runway screen, which has no room for its credit), its credit a link
+  const p = planePic(feat.o.ac, info, d, () => renderAircraftInfo(), !!rwyE()), src = p.src, a = $("photoLink");
+  $("photoCr").innerHTML = picCreditHtml(p);
+  if (p.kind === "ps") Object.assign(a, {href: p.link, target: "_blank", rel: "noopener"}); else a.removeAttribute("href");
   if (src !== shownPhoto) {
     shownPhoto = src;
     const scr = $("screen"), img = $("photo");
@@ -579,7 +580,7 @@ function renderAircraftInfo(){
         scr.classList.add("has"); paintRwy();
         if (!REDUCED) { void scr.offsetWidth; scr.classList.add("on"); }
       };
-      img.onerror = () => scr.classList.remove("has");
+      img.onerror = () => { scr.classList.remove("has"); if (p.kind === "ps" && img.getAttribute("src") === src) { psBad.add(src); renderAircraftInfo(); } };
       img.src = src;
     } else img.removeAttribute("src");
   }
@@ -601,9 +602,10 @@ function drawCover(g, img, x, y, w, h){
   g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
 }
 let rwyKey = "";
+function rwyE(){ return airportMode() && (nowPage === "dep" || nowPage === "land") && feat && feat.apE && AP.rwys.length && AP.lat != null ? feat.apE : null; }
 function paintRwy(){
   const scr = $("screen"), cv = $("rwyCv"), img = $("photo");
-  const e = airportMode() && (nowPage === "dep" || nowPage === "land") && feat && feat.apE && AP.rwys.length && AP.lat != null ? feat.apE : null;
+  const e = rwyE();
   scr.classList.toggle("rwyOn", !!e);
   if (!e) { rwyKey = ""; return; }
   const w = scr.clientWidth, h = scr.clientHeight;
@@ -2245,7 +2247,8 @@ function arPeekHtml(o){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, badge = badgeFor(liveFacts(ac, info)) || radarStatus(o);
-  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } });
+  // 1.93: the thumbnail has no room for Planespotters' credit and link, so it shows the next photo (the whole card has theirs)
+  const pic = planePic(ac, info, d, () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } }, true).src;
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
   const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
@@ -2741,7 +2744,7 @@ function aboutOpen(){
     `<p class="cBtns"><button class="cBtn" type="button" id="aboutLog">${escH(T("Log"))}</button></p>` +
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
         `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
-        `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>`
+        `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>`
     : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>`
       : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
         `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`)) +

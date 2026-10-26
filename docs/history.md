@@ -10,6 +10,28 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.93 (to-do #95, Dave's mockup A and wording B; relay 73): **the plane's own photo from Planespotters.net**. Shared
+  (cards block, so the app has it too): `psPhoto(reg, hex, onReady)` asks the relay's `/planephoto` once per
+  registration (`psPhotos`: `{at, photo, cbs}`, photo `undefined` while asking and `null` for none, kept `PS_KEEP_MS`,
+  an hour; not answered: asked again after two minutes; `psOk()`: relay 73+, not in demo mode). `planePic(ac, info, d,
+  onReady, noPs)` gives `{src, kind: "ps" | "own" | "model" | "", by, link}` in the order Planespotters → adsbdb
+  (`d.photo`) → `modelPic`; while Planespotters is being asked there is no photo yet, so a screen doesn't change twice.
+  `picCreditParts`/`picCredit`/`picCreditHtml`: "© name · Planespotters.net ↗", "Photo · airport-data.com", "Model only
+  · Wikimedia Commons" (the first part, `.crBy`, gives way on a narrow screen; `.crSrc` stays whole). `picHtml(p, cls,
+  over)` is a card's photo: `.cPicW` with the credit `.cCr` on it, a Planespotters photo inside `a.cPicA` to its page
+  (target _blank); `picFailed` puts a Planespotters photo that doesn't load in `psBad`, and the next one shows. The amber
+  "MODEL PHOTO · NOT THIS AIRCRAFT" tag is gone everywhere (`modelTag`, `.cTag`, the app's `.mtag`, `isModelPic`).
+  Board: `featPic()` (`rwyFeat()`: the runway screen of the Landing and Take-off pages has no room for the credit and
+  link, so no Planespotters there), `featPhoto()` its src. `paintScreen` no longer draws a credit: `#photoLink` (`.pLink`,
+  an `<a>` over the whole screen in `#photoFrame`; `#photoCr` the credit, in `FONT`) is set by `photoLinkSet(p)` from
+  `placePhoto`, with an href only for Planespotters (without one it is plain text and takes no clicks). The remote
+  (Dave, 26 Oct: no QR code, the credit is the link): `photoKey(e)`, from the board's keydown, puts the ring (the Logbook
+  plates' amber one, on `:focus` for the older TV browsers) on the credit with Up or Down and takes it off again; OK is
+  the link's own, and its click takes the ring off (a mouse click left the focus there); the rotation's 1 s tick holds
+  the page while the credit has the ring. The share picture
+  (`shareCanvas`): `x.pic` is `planePic` without Planespotters (their terms), its credit in the same small caps;
+  `shareImg` also loads `thumb.wikimedia.org` directly (Wikipedia's thumbnails come from there now). `planeCard` waits
+  for a photo (up to 2.5 s) whatever adsbdb has.
 - 1.92 (to-do #103, Dave's mockup C without Newest aircraft): **the Logbook on one screen**. The Records and Week &
   month views went into it (`VIEW_NAMES`/`VIEW_FIELDS` lose `records` and `review`, with `renderRecords`,
   `renderReview`, `reviewFetch` and the `rc*`/`rw*` flaps; `LB_VIEWS` stays for the app). `LB_BOX`: seven plates, four
@@ -743,6 +765,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.93 (to-do #95): Now's screen takes `planePic` in `renderAircraftInfo` (none from Planespotters on the runway
+  screen: `rwyE()`, which `paintRwy` uses too), with `#photoLink` (`a.plink` over the whole screen, an href for
+  Planespotters) and `#photoCr` (`picCreditHtml`); `.screen .mtag` is gone. Sky view: the whole card's photo is
+  `picHtml`'s (the credit at the top, `.arFullL .cSkyPic .cCr`, clear of `.cOv`); the small card's thumbnail
+  (`arPeekHtml`) has no room for a credit or a link, so it takes `planePic(..., true)` (adsbdb's or the model's).
 - 1.91 (to-do #104): **the Logbook and Spotters' Club tabs stay at the top**: `.lbTabs` is sticky at `top: var(--topH)`
   under the header, with `#setJump`'s metal and shadow (negative margins and padding to the screen's edges; the line
   under the tabs is an `::after`, in from the edges as before). On `#t-logbook` the tabs are now a child of the section,
@@ -872,6 +899,24 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 73 (1.93, to-do #95): `/planephoto?reg=&hex=` (profiles only, `allow("pphoto:"…, 2, 30)`, `Cache-Control:
+  no-store`; 503 with Retry-After 120 when Planespotters.net can't be asked) → `plane_photo(reg, hex)`: `_ps_ask("reg")`,
+  then by hex only when that has no photo. `_ps_first` keeps the first photo whose page name (`/photo/<id>/<reg>-…`)
+  starts with the registration (`_ps_like`: its letters and digits in order, a dash allowed between them, then a dash or
+  the end), with their own https addresses, and gives src (`thumbnail_large`, the biggest they give: 420x280 or so), w,
+  h, link (unchanged, `?utm_source=api` and all) and by. `_ps_cache` (3,000 registrations, memory only): answers for
+  `PS_KEEP` (23 h: their limit is 24 h and the boards keep theirs an hour), failures `PS_FAIL` (10 min). `_ps_ask` makes
+  one request a second (`PS_GAP`; a lookup that would wait more than `PS_WAIT`, 4 s, isn't made), sends `PS_AGENT`
+  ("Fallblatt/<relay version> (+https://github.com/Belstria/overhead-board)": they refuse library defaults), and after a
+  403 or 429 asks nothing for `PS_REST` (30 min, one warning). `PHOTO_HOSTS` loses `.plnspttrs.net` (their photos must
+  not be passed on) and gains `thumb.wikimedia.org`. Their terms (planespotters.net/photo/api, 26 Oct 2026): the
+  photographer named next to the photo, the photo a plain link to its page (on a screen nobody can tap, a QR code or
+  NFC; Dave chose the credit as a link the remote reaches), images loaded only by the screen showing them and never
+  kept or passed on, every address unchanged, answers kept 24 h at most. Test relay: fakesrc's `/ps/pub/photos/…`
+  (OE-LBN by registration, the A380 by hex, the C-130's hex with OO-TEK's photo; a User-Agent without a contact is
+  refused; `/ps/asked` counts the lookups), `PS_IMG` allows 127.0.0.1, `PS_GAP` 0.1 s; `--live-photos` asks the real
+  Planespotters.net (for screenshots). The fake photos have a size now: an SVG without one has naturalWidth 0, so the
+  board never showed them.
 - Relay 70 (1.88.0.1): `live_stale(q, place)`: a "live" position request with `fix` older than `LIVE_FRESH_S` (300),
   negative or not a number skips `fill_want` and `Spot.take` (no sightings, points, liveSeen for lock-ons, gap filler);
   without `fix` (older boards) nothing changes. `no_cs()` treats an all-"@" callsign as none (`_record`, the

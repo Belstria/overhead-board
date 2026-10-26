@@ -174,6 +174,15 @@ The main board has everything below. New features are tried on `/test/` first; o
   `#spotted`, `#logbook`, `#radar` or `#settings` to the address to open one at start.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
   screen is off while the page falls into place and warms up after it lands.
+- **Whose photo** (1.93, relay 73): the plane's own photo from **Planespotters.net** comes first, looked up by its
+  registration through the relay (and only kept when the photo shows that registration); then its own photo from
+  airport-data.com (through adsbdb); then its model's picture. Each says where it comes from on the photo, in small
+  capitals: "© photographer · Planespotters.net ↗", "Photo · airport-data.com" or "Model only · Wikimedia Commons".
+  A Planespotters photo is a link to its page there (their terms): click or tap the photo, in the app, on the board and
+  in the cards. On a TV, Up or Down on the remote puts the yellow ring on the credit and OK opens the photo's page (in a
+  new tab where the TV's browser has tabs; Back comes back where it doesn't); opening it, or Up or Down again, takes the
+  ring away. The page doesn't turn while the credit has the ring. The runway screen of Take-off and Landing and Sky view's small card
+  have no room for the credit, so they show the next photo.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
@@ -195,8 +204,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
-  Commons), credited as such. Since 1.88 a model whose name is ambiguous on its own (Black Hawk, Hercules) is looked up
-  in Wikipedia's search too.
+  Commons), credited as such ("Model only · Wikimedia Commons" since 1.93). Since 1.88 a model whose name is ambiguous
+  on its own (Black Hawk, Hercules) is looked up in Wikipedia's search too.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
   **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘ in grey, turning yellow or red once letting
   go will do it; that half of the sheet opens; the + ring on the app's rows is gone since 1.42, the boards keep their
@@ -345,7 +354,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
   picked).
-- **Model photos** (1.43) carry an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT" on the board, in the app and in cards.
+- **Model photos** (1.43) carried an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT"; since 1.93 only their credit line
+  says so ("Model only").
 - **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST:
   TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
   flight numbers since relay 38 and learned the old ones from the saved days). Nothing during a new logbook's first day.
@@ -520,7 +530,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   every picture made to share (a plane, the year, week and month, Sky view's snapshot) says **Spotted by** and your first
   name. The
   photo comes through the relay (relay 47) so the picture can be saved; with an older relay a model photo from
-  Wikimedia still works, an aircraft's own photo is left out.
+  Wikimedia still works, an aircraft's own photo is left out. Since 1.93 a Planespotters.net photo is never in it
+  (their photos may not be passed on): the picture takes the plane's airport-data.com photo or its model's, with its
+  credit.
 - **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
   big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
@@ -703,6 +715,8 @@ the remote).
 - Press **A** for About: patch notes, the keys and who made it.
 - In the Logbook the arrow keys move a ring from plate to plate (and up to the buttons); Enter opens the plate's list,
   Esc closes it.
+- On This aircraft, the up or down arrow puts the ring on a Planespotters.net photo's credit and Enter opens the photo's
+  page (1.93).
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
