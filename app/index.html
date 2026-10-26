@@ -1681,7 +1681,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=76980b14f3"></script>
+<script src="../test/i18n.js?v=57c6f8f229"></script>
 <script>
 (() => {
 "use strict";
@@ -2687,6 +2687,7 @@ function stylesCount(){
   return g0 ? {n: all.filter(x => styleOk(x[2], g0, x[0])).length, t: all.length} : null;
 }
 function stylesNote(){
+  if (COCKPIT_FOR === "tv") return "";                  // 1.89.1: the TVs show the styles they have, without the game's unlocks
   const c = stylesCount();
   return c ? T("{n} of {t} unlocked", c) : T("Colours, flaps, badges and board styles to unlock.");
 }
@@ -2720,9 +2721,10 @@ setInterval(lcdMarquee, 4500);
 // Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
 // is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
 // style their rows are greyed out (the choice stays saved). Remote and keyboard: Up/Down move between rows, Left/Right
-// (or ◀ ▶) step, OK steps on.
+// (or ◀ ▶) step, OK steps on. 1.89.1: on the TVs (no game there) only the unlocked choices, with no hints or count.
 function stylesCard(focusKind){
-  const g0 = styleGame(), kinds = new Map(styleKinds().map(([k, , o]) => [k, o]));
+  const g0 = styleGame(), tv = COCKPIT_FOR === "tv";
+  const kinds = new Map(styleKinds().map(([k, , o]) => [k, tv ? o.filter(x => styleOk(x[2], g0, x[0])) : o]).filter(([, o]) => o.length));
   const rows = STYLE_ROWS.filter(([k]) => kinds.has(k)), pos = {};
   for (const [k] of rows) pos[k] = Math.max(0, kinds.get(k).findIndex(x => x[0] === styleVal(k)));
   const lock = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -2733,7 +2735,7 @@ function stylesCard(focusKind){
     `<b class="lcd stVal" data-val></b><button class="cap stArr" type="button" tabindex="-1" data-step="1" aria-label="${escH(T("Next"))}">▶</button>` +
     `<p class="stWhy" data-why hidden></p></div>`).join("") + `</div>` +
     `<p class="note stClassic" data-classic hidden>${escH(T("Colours and flaps only change with the Classic board."))}</p>` +
-    `<p class="note stCnt">${escH(c ? T("{n} of {t} unlocked", c) : stylesNote())}</p>`, el => {
+    (tv ? "" : `<p class="note stCnt">${escH(c ? T("{n} of {t} unlocked", c) : stylesNote())}</p>`), el => {
     el.classList.add("styles");
     const line = k => el.querySelector(`[data-row="${k}"]`);
     const off = k => (k === "palette" || k === "finish") && !classicLook();
@@ -2993,7 +2995,6 @@ const MODE_TIP = "Two styles: Overhead shows the planes flying over you, Airport
 const PAGE_TIPS = {spotted: "Recent flights: the planes that were on the board today, newest first.",
   aircraft: "This aircraft: the plane on top in detail, with its photo.",
   stats: "Today in numbers: the day so far, and after 21:00 the day in review.",
-  league: "League: this week's points of everyone spotting with live location on their phone.",
   aplists: "Coming up: the next take-offs and landings at your airport, side by side.",
   apdep: "Take-off: the plane taking off next, on top, with the runway it uses.",
   apland: "Landing: the plane landing next, on top, with the runway and when it lands."};
@@ -5572,7 +5573,7 @@ function logbookSummary(){
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
-    (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
+    (b.game && COCKPIT_FOR !== "tv" ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 /* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
    or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
@@ -8067,6 +8068,7 @@ const HINTS = {
   favs: "Planes that match light up and get a chime.",
   lang: "AUTO follows this device's language.",
   styles: "The board's style, colours, flaps and a badge by the title. More unlock with points, trophies and full bingo cards.",
+  stylesTv: "The board's style, colours, flaps and a badge by the title.",
   quality: "Lower it if the board stutters on a TV.",
   rotateS: "How long each page stays before the next one turns.",
   statsPage: "Today in numbers comes round every tenth turn of the pages; off: only when you pick it.",
@@ -8188,7 +8190,7 @@ function wireViews(box){
 }
 function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
-  const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
+  const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.type === "styles" && COCKPIT_FOR === "tv" ? "stylesTv" : it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
@@ -8982,6 +8984,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.89.1", date: "2026-10-26", notes: [
+    "The TV boards show only the planes: the league, points, bingo, trophies and collections stay in the phone app.",
+    "On the TV boards, Settings → Styles offers the styles you have, without how to unlock more."]},
   {v: "1.89", date: "2026-10-26", notes: [
     "In the app, the Logbook picks All, On the go or one of your saved places in a bar; the saved places open in a list.",
     "Counting since and your points are at the bottom of the Logbook and the Spotters' Club.",
