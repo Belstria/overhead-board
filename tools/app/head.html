@@ -963,8 +963,13 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 @keyframes toastIn{from{transform:translateX(120%)}}
 @media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
 /* 1.74: the Logbook's title is two tabs, Logbook and Spotters' Club (the game part); swipe sideways between them.
+   1.93 (to-do #104): stuck under the header while either page scrolls, like Settings' jump bar, so the other page is
+   one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
+   the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{display:flex;gap:20px;align-items:flex-end;margin:4px 0 12px;border-bottom:1px solid var(--line)}
+.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+  background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
+.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
 .lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
 .lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
 .lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
@@ -978,6 +983,15 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 /* 1.89: the footnote at the bottom of Logbook and Spotters' Club (counting since, the points; a place's own line) */
 .sum.lbFoot{margin:22px 0 4px;text-align:center}
 .cats li.catTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
+/* 1.93 (to-do #105, Dave's pick C at 14 px): the arrow of what opens (DD in main.js), a chevron in a small grey ring:
+   the place bar's Saved places (the name keeps its ellipsis, the arrow stays whole) and the Categories rows, turned up
+   with the ring amber while one is open. The Favourites & hidden picker draws the same (the board's .favAdd select). */
+.dd{flex:none;display:inline-block;width:14px;height:14px;vertical-align:middle;overflow:visible}
+.cats li.catTap .chev .dd{margin-left:2px}
+.cats li.catTap.open .dd{transform:rotate(180deg)}
+.cats li.catTap.open .dd circle{stroke:rgba(240,180,41,.55)}
+#lbPlaces button[data-p=saved]{display:flex;align-items:center;justify-content:center;gap:5px}
+#lbPlaces .ddL{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
 .cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
 .cats li.catSub::before{content:none}
@@ -1195,8 +1209,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
     <div class="lcol">
-      <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>

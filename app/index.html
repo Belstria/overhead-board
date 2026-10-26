@@ -291,6 +291,10 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 #cardBox .favAdd,.cardish .favAdd{display:flex;gap:calc(8px*var(--ck,1));margin-top:calc(12px*var(--ck,1));flex-wrap:wrap}
 #cardBox .favAdd select,#cardBox .favAdd input,.cardish .favAdd select,.cardish .favAdd input{background:#0f1012;color:#f3f0e8;border:1px solid rgba(255,255,255,.12);border-radius:calc(8px*var(--ck,1));padding:calc(9px*var(--ck,1)) calc(10px*var(--ck,1));font:600 calc(14px*var(--ck,1)) var(--f-board)}
 #cardBox .favAdd input,.cardish .favAdd input{flex:1;min-width:calc(160px*var(--ck,1))}
+/* 1.93 (to-do #105, Dave's pick C): the list picker's arrow is the app's dropdown arrow (DD in its main.js), a chevron
+   in a small grey ring, instead of the browser's own */
+#cardBox .favAdd select,.cardish .favAdd select{-webkit-appearance:none;appearance:none;padding-right:calc(32px*var(--ck,1));
+  background:#0f1012 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='9.25' fill='none' stroke='%234a4c52' stroke-width='1.5'/%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%23959aa3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right calc(10px*var(--ck,1)) center/calc(14px*var(--ck,1)) calc(14px*var(--ck,1))}
 #cardBox .plRow{display:flex;gap:calc(8px*var(--ck,1));margin:calc(8px*var(--ck,1)) 0}
 #cardBox .plGo{flex:1;display:flex;flex-direction:column;gap:calc(2px*var(--ck,1))}
 #cardBox .plGo small{font-weight:500;opacity:.7;letter-spacing:0}
@@ -1356,8 +1360,13 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 @keyframes toastIn{from{transform:translateX(120%)}}
 @media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
 /* 1.74: the Logbook's title is two tabs, Logbook and Spotters' Club (the game part); swipe sideways between them.
+   1.93 (to-do #104): stuck under the header while either page scrolls, like Settings' jump bar, so the other page is
+   one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
+   the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{display:flex;gap:20px;align-items:flex-end;margin:4px 0 12px;border-bottom:1px solid var(--line)}
+.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+  background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
+.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
 .lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
 .lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
 .lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
@@ -1371,6 +1380,15 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 /* 1.89: the footnote at the bottom of Logbook and Spotters' Club (counting since, the points; a place's own line) */
 .sum.lbFoot{margin:22px 0 4px;text-align:center}
 .cats li.catTap{cursor:pointer} .cats li.catTap .chev{color:var(--muted);font-size:var(--fs-s)}
+/* 1.93 (to-do #105, Dave's pick C at 14 px): the arrow of what opens (DD in main.js), a chevron in a small grey ring:
+   the place bar's Saved places (the name keeps its ellipsis, the arrow stays whole) and the Categories rows, turned up
+   with the ring amber while one is open. The Favourites & hidden picker draws the same (the board's .favAdd select). */
+.dd{flex:none;display:inline-block;width:14px;height:14px;vertical-align:middle;overflow:visible}
+.cats li.catTap .chev .dd{margin-left:2px}
+.cats li.catTap.open .dd{transform:rotate(180deg)}
+.cats li.catTap.open .dd circle{stroke:rgba(240,180,41,.55)}
+#lbPlaces button[data-p=saved]{display:flex;align-items:center;justify-content:center;gap:5px}
+#lbPlaces .ddL{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
 .cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
 .cats li.catSub::before{content:none}
@@ -1588,8 +1606,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
+    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
     <div class="lcol">
-      <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
@@ -6416,6 +6434,9 @@ document.addEventListener("click", e => {
 // it, and Seen from on its card. A place on the go is its town and the area round it; one guessed for a sighting from
 // before relay 63 only its country (relay 64).
 const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>';
+// 1.93 (to-do #105, Dave's pick C): the arrow of whatever opens, a chevron in a small ring (.dd), for the place bar's
+// Saved places and the Categories rows; the Favourites & hidden picker has the same drawing in the board's CSS.
+const DD = '<svg class="dd" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9.25" fill="none" stroke="#4a4c52" stroke-width="1.5"/><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const lbfPlaces = g => [...new Set((g.places || []).map(p => p.k !== "live" ? lbPlaceName(p.k) : p.n ? [p.n, p.a].filter(Boolean).join(", ") : p.c || placeName("live")).filter(Boolean))];
 // 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
 let lbFoundRows = [];
@@ -6446,12 +6467,13 @@ function renderLogbook(){
   // footnote at the bottom.
   const bar = $("lbPlaces"), live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live");
   const cur = saved.find(c => c.id === lbPlace);
-  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", (cur ? cur.name : T("Saved places")) + " ⌄"]] : [])];
+  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", cur ? cur.name : T("Saved places")]] : [])];
   bar.hidden = want.length < 2;
   const csig = JSON.stringify([want, lbPlace, LANG]);
   if (!bar.hidden && bar.dataset.sig !== csig) {
     bar.dataset.sig = csig;
-    bar.innerHTML = want.map(([k, name]) => `<button type="button" data-p="${escH(k)}" aria-pressed="${k === "saved" ? !!cur : k === lbPlace}">${escH(name)}</button>`).join("");
+    bar.innerHTML = want.map(([k, name]) => k === "saved" ? `<button type="button" data-p="saved" aria-pressed="${!!cur}" aria-haspopup="dialog"><span class="ddL">${escH(name)}</span>${DD}</button>`
+      : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
     for (const btn of bar.children) btn.onclick = () => {
       if (btn.dataset.p === "saved") return lbPlaceSheet();
       if (btn.dataset.p !== lbPlace) { ctlSound.press(); lbPick(btn.dataset.p); }
@@ -6471,7 +6493,7 @@ function renderLogbook(){
   setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
   setChars("lvTypes", has ? nf.format(types.length) : "", 120);
   setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, b.regsRecent, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
   $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
@@ -6485,7 +6507,7 @@ function renderLogbook(){
       html += secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
         const open = lbCat === k && catOk() && n;
-        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${open ? "⌃" : "⌄"}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
+        return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>");
     }
@@ -9141,6 +9163,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.93", date: "2026-10-26", notes: [
+    "In the app, the Logbook and Spotters' Club tabs stay at the top while you scroll.",
+    "A new arrow marks what opens: Saved places, the Logbook's categories and the Favourites & hidden picker."]},
   {v: "1.90", date: "2026-10-26", notes: [
     "In Sky view, an arrow at the edge points to the sun or the moon when it is out of the picture.",
     "In Sky view, a compass ribbon above the hint shows which way you face, and where the sun and the moon are.",
