@@ -234,18 +234,21 @@ The main board has everything below. New features are tried on `/test/` first; o
   military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
   relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
   marked NEW TYPE or NEW AIRLINE on the board.
-- **The Logbook's buttons** (1.55): one row at the top right, always in the same order (Logbook, Collection, Records,
+- **The game stays in the phone app** (1.89.1): the TV boards (and the board on a computer) show only the planes:
+  no League page, points, levels, streak, Collection, bingo, trophies or achievement pop-ups. Settings → Styles there
+  offers the styles the profile already has, without how to unlock more. The relay keeps scoring for the app.
+- **The Logbook's buttons** (1.55): one row at the top right, always in the same order (Logbook, Records,
   Week & month), the view on show lit; under it what that view offers: the place buttons and CSV under Logbook, Week /
   Month and ◀ ▶ under Week & month. The place buttons are your saved places and On the go; planes seen from a removed
   place, or from the unnamed spot before you saved places, count under All (that spot joins a saved place called Home).
-- **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
+- **Records** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
 - **Week & month** (from the Logbook's buttons, 1.52, relay 46): the week (Monday to Sunday) or month in review, like
-  Today in numbers: planes, types, airlines, aircraft, new types, rare planes and points; the busiest day, the rarest
+  Today in numbers: planes, types, airlines, aircraft, new types, rare planes (and points, in the app); the busiest day, the rarest
   plane, the most seen airline and aircraft, the farthest route, the lowest, closest and fastest pass, and the new types.
   **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
-  Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
+  In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
   it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
@@ -254,7 +257,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
-- **Achievements** (1.38; boards and phone app): when a collection is complete, a bingo line is made or a trophy is won,
+- **Achievements** (1.38; the phone app, and the boards until 1.89.1): when a collection is complete, a bingo line is made or a trophy is won,
   a card pops up with a little confetti and the bell (if chimes are on), and closes by itself after 10 seconds (or tap
   ×). Each one shows once on each screen; a screen opening the board for the first time doesn't celebrate everything
   won before.
@@ -263,7 +266,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or
   UNUSUAL (air forces stay MILITARY). The list is © its contributors, under the ODbL 1.0 / DbCL 1.0.
 - **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes, and its last
-  row shows the rarest plane of the day and the day's points.
+  row shows the rarest plane of the day (the day's points only until 1.89.1).
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the planes within the spotting radius on flaps beside it. In the
   Airport style (1.33) it is centred on the home airport, with the spotting radius around the airport and the logo
@@ -443,7 +446,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
-  shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
+  showed the week's league as a **League** page in its rotation until 1.89.1. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.
 - **Rarity and the Collection** (1.21, relay 24; by fleet size since 1.25, relay 26): every plane gets a tier, shown in
   colour with an icon on the flap after its type, from how many of its type fly today: common (grey: 1,000 or more),

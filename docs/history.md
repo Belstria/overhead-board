@@ -43,6 +43,17 @@ The repository is public: no addresses, keys or personal data here either.
   `switchView("settings")` on the board, `showTab("settings")` in the app. Relay 72: `live_stale()` treats a live
   request without `fix` as stale too (only an old cached app leaves it out). The app's red toast button was red on red.
 
+- 1.89.1 (to-do #102, Dave: "the big main boards should just be about the overhead/airport stuff"): **no game on the
+  board** (test/index.html, so the TVs and the PC); the app keeps all of it. Board-only code removed: the `league` page
+  (`LEAGUE_ROWS` fields, `leagueLoad`/`renderLeague`, `/game/league` fetch, rail key, icon and tip; `ROTATION_OVERHEAD`
+  back to four steps), the Collection view (`cv*`/`cs*` fields, `renderCollection`, `collectionStatic`; `LB_VIEWS` is
+  shared, so `buildViewTools` filters "collection" out), the Records view's bingo and trophies (`recordsStatic`,
+  `drawTrophy`; the view is "Records", four flaps), Today in numbers' points (header line and the evening's Points today
+  row: in review time `stNew` keeps New in the logbook), the Week & month Points flap (`rw_points`; `renderReview` skips
+  REVIEW_NUMS without a field) and the achievement pop-ups (`fetchLogbook` calls only `stylesCellRefresh`). Shared code
+  checks `COCKPIT_FOR === "tv"`: `logbookSummary` leaves out points and streak, `stylesNote` is empty, `stylesCard`
+  offers only unlocked choices (`styleOk`) with no hints or count, and the Styles hint is `HINTS.stylesTv`. The rarity
+  tier flap stays (it is about the plane).
 - 1.89 (to-do #90, Dave's mockup picks): **the app's Logbook places**: the chips went; `#lbPlaces` is a `.seg
   lbPlaceSeg` bar (the Week · Month · Year style) with All, On the go (the "live" chip of `lbChips()`) and Saved places
   (each part only when it has sightings; no bar with only All). Saved places opens `lbPlaceSheet()` (a card sheet:
