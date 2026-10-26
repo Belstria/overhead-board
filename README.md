@@ -542,7 +542,8 @@ Five buttons along the bottom:
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (lowest and highest pass, fastest, most seen airline, the
-  most seen aircraft types since 1.78.2, what's new in the logbook), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
+  most seen aircraft types since 1.78.2, what's new in the logbook; since 1.87.2.1 "most seen" only counts what came at
+  least twice, else "No airline twice yet"), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,
   Most seen aircraft), Spotted today (Today in numbers), the Spotters' Club (Your level, League, Your catch, Your
