@@ -174,17 +174,21 @@ body.lite .cap[aria-current=page],body.lite .cap[aria-pressed=true]{animation:no
 #viewTools.rdr{display:block;pointer-events:none}
 #viewTools.rdr .cap{position:absolute;pointer-events:auto;min-width:calc(64px*var(--k))}
 #viewTools.rdr .cap[data-z]{font-size:calc(24px*var(--k));line-height:1;font-weight:700}
-#viewTools a.cap:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-/* 1.93: the Logbook's plates as buttons for the remote's ring (a click goes through to the board), and their cards */
+/* 1.92: the Logbook's plates as buttons for the remote's ring (a click goes through to the board), and their cards. The
+   rings are on :focus, taken back with :not(:focus-visible) for a mouse; a TV browser too old for :focus-visible drops
+   that rule and keeps the ring (the plates only ever get focus from keys). */
+#viewTools .cap:focus{outline:2px solid var(--amber);outline-offset:2px}
+#viewTools .cap:focus:not(:focus-visible){outline:none}
 #lbHits{position:absolute;inset:0;z-index:2;pointer-events:none}
 #lbHits[hidden]{display:none}
 #lbHits button{position:absolute;margin:0;padding:0;border:0;border-radius:calc(8px*var(--k));background:none;pointer-events:none;outline:none;transition:box-shadow .2s}
 #lbHits button.hov{box-shadow:0 0 0 calc(1.5px*var(--k)) rgba(246,197,74,.45)}
-#lbHits button:focus-visible{box-shadow:0 0 0 calc(3px*var(--k)) #f6c54a,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(246,197,74,.35)}
+#lbHits button:focus{box-shadow:0 0 0 calc(3px*var(--k)) #f6c54a,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(246,197,74,.35)}
 #fx.lbHov{cursor:pointer}
 body.idle #fx.lbHov{cursor:none}
 #cardBox .lbCard:focus{outline:none}
-#cardBox .lbCard .cBtn:focus-visible,#cardBox .lbCard .lbRow:focus-visible{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
+#cardBox .lbCard .cBtn:focus,#cardBox .lbCard .lbRow:focus{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
+#cardBox .lbCard .cBtn:focus:not(:focus-visible),#cardBox .lbCard .lbRow:focus:not(:focus-visible){outline:none}
 #cardBox .lbCard .cBtn:disabled{opacity:.4;cursor:default}
 #cardBox .lbSeg{margin:calc(10px*var(--ck,1)) 0 calc(4px*var(--ck,1))}
 #cardBox .lbSeg .cBtn{min-height:calc(34px*var(--ck,1));padding:calc(6px*var(--ck,1)) calc(13px*var(--ck,1))}
@@ -4225,7 +4229,7 @@ function drawSpottedTable(g){
   head(SV_X.from, "From", "Von"); head(SV_X.to, "To", "Nach"); head(SV_X.type, "Aircraft", "Flugzeug");
   head(SV_X.dist, "Closest", "km", true); head(SV_X.alt, "Altitude", S.units === "metric" ? "m" : "ft", true); head(SV_X.rem, "Remarks", "Hinweis");
   g.font = `600 17px ${FONT}`; g.textAlign = "right"; g.fillStyle = COL.muted; if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  // 1.93 (to-do #106): under the buttons, at the end of the line under the title (beside them the filter box and the
+  // 1.92 (to-do #106): under the buttons, at the end of the line under the title (beside them the filter box and the
   // place button hid it)
   if (rows.length) g.fillText(T("PAGE {a} OF {b}", {a: svPageNo + 1, b: pages}), W - M, 248);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
@@ -4356,7 +4360,7 @@ function buildViewTools(){
   box.classList.toggle("two", view === "logbook"); box.classList.toggle("rdr", view === "radar");
   box.style.left = box.style.width = box.style.height = "";
   if (view === "logbook") {
-    // 1.55 (to-do #65): rows that stay put. 1.93: one view, so no view buttons: the search, places and spreadsheet, then
+    // 1.55 (to-do #65): rows that stay put. 1.92: one view, so no view buttons: the search, places and spreadsheet, then
     // Week · Month · Year and ◀ ▶ (lbToolsHtml)
     box.innerHTML = lbToolsHtml();
     lbToolsWire(box);
@@ -4628,7 +4632,8 @@ function lbCardBack(){
     lbCardK = k; lbCardShow();
     const n = box.querySelector(".cardIn"), f = lk && box.querySelector(`[data-lk="${lk}"]`);
     if (n) n.scrollTop = top;
-    if (f) f.focus({preventScroll: true});
+    const p = f && f.previousElementSibling, to = f && f.disabled ? (p && !p.disabled ? p : f.parentNode.querySelector("button:not(:disabled)")) : f;   // ▶ at the latest: ◀
+    if (to) to.focus({preventScroll: true});
   };
 }
 // the card again with new numbers or another choice, where it was (only the card `k`, when given)
@@ -7073,6 +7078,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.92", date: "2026-10-26", notes: [
+    "On the TV boards the Logbook fits on one screen: totals, the week, month or year, categories, records and the top types, airlines and aircraft.",
+    "Click a plate of the Logbook, or press OK on the remote, for its whole list; the remote's arrows go from plate to plate.",
+    "On a computer, a search box above the Logbook looks through every sighting.",
+    "Spotted today's page count no longer hides behind its buttons."]},
   {v: "1.91", date: "2026-10-26", notes: [
     "In the app, the Logbook and Spotters' Club tabs stay at the top while you scroll.",
     "A new arrow marks what opens: Saved places, the Logbook's categories and the Favourites & hidden picker."]},
@@ -8569,7 +8579,7 @@ document.addEventListener("keydown", e => {
   if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) { if (e.key === "Escape" || e.key === "Enter") t.blur(); return; }
   if (e.key === "Escape") { closeDiag(); if (view) switchView(null); return; }
   if (t && t.closest && t.closest("#cockpit") && /^Arrow/.test(e.key)) return;     // the knobs and wheels use the arrow keys
-  if (view === "logbook" && lbKey(e)) return;                                       // 1.93: the plates' ring, the cards
+  if (view === "logbook" && lbKey(e)) return;                                       // 1.92: the plates' ring, the cards
   if (e.key === "t" || e.key === "T") toggleView("spotted");
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");
@@ -8736,7 +8746,7 @@ function boardTap(x, y){
     if (x >= SV_X.to && x < SV_X.type) return e.to ? placeCard(e.to) : undefined;
     if (x >= SV_X.type && x < SV_X.dist - 120) return e.type ? typeCard(e) : undefined;
   }
-  if (view === "logbook") { const b = lbBoxAt(x, y); if (b) lbCard(b.k); return; }      // 1.93: a plate's card
+  if (view === "logbook") { const b = lbBoxAt(x, y); if (b) lbCard(b.k); return; }      // 1.92: a plate's card
   if (view) return;
   const top = fieldAt(TOP_IDS, x, y);
   if (top && feat && feat.o) {

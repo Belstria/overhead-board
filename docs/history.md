@@ -10,6 +10,43 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.92 (to-do #103, Dave's mockup C without Newest aircraft): **the Logbook on one screen**. The Records and Week &
+  month views went into it (`VIEW_NAMES`/`VIEW_FIELDS` lose `records` and `review`, with `renderRecords`,
+  `renderReview`, `reviewFetch` and the `rc*`/`rw*` flaps; `LB_VIEWS` stays for the app). `LB_BOX`: seven plates, four
+  above (266 to 620, Settings' first row: totals, period, cats, records) and three below to the rail (types, airlines,
+  regs, a third of the width each). `lbPlates` draws them from `drawStatic` before `slots` (`plateDraw`: Settings'
+  `.plate` on the canvas, its gradient, shadow, screws, `body.real` brushing and the engraved title between two lines).
+  Their flaps: `lvSight`, `lvRegs`, `lvTypes`, `lvAirlines`, `lvModel`; `lp0-5` (the period's numbers, `LB_NUMS` for
+  a year or a week/month) and `lf0-2` (busiest day, most seen aircraft, rarest: `reviewFacts`, which reads `/year`'s
+  answer too); `lvl_*`/`lvn_*`; `lrc0-3` (`LB_RECS`); seven rows of `lt*`/`la*` (names 19 flaps, `lbModel` drops the
+  maker only when it doesn't fit) and `lr*`. `lbStatic` engraves the rest: the labels (`lbLabels`, `lbLabel` squeezes
+  one to end before the next field), the model's count, the categories' names, each record's date and plane;
+  `renderLogbookBoard` draws it again when `lbStaticSig` changes. The period: `lbPer` ("year" at first), `lbYearBack` or
+  the shared `review.back`; `lbYearFetch` (relay 29, kept in `lbYears`, 5 min) and `fetchReview`; `lbFetch` every
+  30 s while the view is open; `lbPerSet` from the buttons and the card; `demoYear()` in demo mode. `/year` and
+  `/review` count every place, so with a place picked (`lbPick`) the plate's title adds "· All places".
+  `#viewTools` (`lbToolsHtml`, `lbToolsWire`, `lbToolsSync`, which lights buttons without building them again): the
+  search (`HAS_KEYS`, relay 55; Enter runs `lbSearch`), All and the places, the CSV; then Week · Month · Year and ◀ ▶.
+- 1.92: **the Logbook's cards** (`lbCard(k)`, `lbCardHtml`, `lbCardWire`): Totals (and Logbook for: the places as
+  buttons), the period (Week · Month · Year, ◀ ▶, the numbers, every fact, the new types; "Counted over every place."
+  with a place picked), Categories (each a button that opens its top ten, Types · Aircraft · Operators, from
+  `/logbook/category`, relay 61: `lbCatFetch`, `lbCatData`), Records (with plane and day, and the period's), and the
+  three lists in full (`lbRow`). A type's row opens `typeCard`, an airline's `airlineCard`, an aircraft's its sightings
+  (`lbSearch`, which `lbFoundHtml` lists like the app's search); `lbBackTo` (`lbCardBack()`) brings back the list on
+  Back. `lbCardAgain` draws an open card again where it was (scroll, and the button that had the ring, by `data-lk`);
+  `lbCardWait` marks a card still loading, which new data fills in. Chosen buttons in these cards are `.cBtn.go` (gold),
+  so the remote's ring (an amber outline) stays clear.
+- 1.92: **the Logbook with a remote**: `#lbHits` holds a transparent button per plate (pointer-events none, so a
+  click still reaches `boardTap`, which opens the plate under it via `lbBoxAt`; `.hov` and `#fx.lbHov` show the mouse
+  what is clickable). `lbKey`, called by the board's keydown in the Logbook, moves the focus with `lbNear` (the nearest
+  past the edge in that direction, off to the side counting three times) among the plates and `#viewTools`'s buttons,
+  or among an open card's buttons and rows, only to what is in sight (else the card scrolls). OK is the focused
+  button's own click (`lbCard` then focuses the card). Backspace, Samsung's 10009 or LG's 461 with no card open leave
+  the view, as Esc does. A capture keydown before cardOpen's own puts the ring back on its plate when a card closes, or
+  runs `lbBackTo`. On a TV (no `HAS_KEYS`) `lbHitsShow` puts the ring on the last plate as the view opens. The board's
+  first-run tip takes the first key, as everywhere.
+- 1.92 (to-do #106): Spotted today's PAGE x OF y is drawn at the end of the line under the title (`W - M`, 248), under
+  ◀ ▶; it stood at a fixed place left of the filter box, and with the place button the box covered it.
 - 1.90 (to-do #92, Dave's picks "A + the compass from B", relay 72): **Sky view's sun and moon pointers, compass ribbon
   and report**. `arBodyEdge()`: a body above the horizon whose ring is out of the picture gets a dashed arrow at the
   edge (the shape of `arEdge`'s) with "☀ SUN" and how far to turn (left/right when beyond half the picture's width,

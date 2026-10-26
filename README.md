@@ -229,25 +229,34 @@ The main board has everything below. New features are tried on `/test/` first; o
   or airport (name or code), aircraft type, registration or remark (OVERFLIGHT, JUMBO, NEW AIRLINE ..., in English or the
   board's language; 1.55); words separated by commas must all match ("Austrian, VIE"
   is Austrian's flights from or to Vienna). × clears it; it is per device and empty again after a reload.
-- **Logbook** (press **L**): totals, the most seen model, the categories, and the top aircraft types, airlines and
-  individual aircraft, with the newest ones, all on flaps. How many were passenger, cargo, business jet, private and light, helicopter,
-  military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
-  relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
-  marked NEW TYPE or NEW AIRLINE on the board.
+- **Logbook** (press **L**; on one screen since 1.92): seven plates like Settings', the numbers on flaps: **Totals**
+  (sightings, individual aircraft, types, airlines and the most seen model), the **week, month or year in planes**,
+  **Categories**, **Records**, and the top seven **aircraft types**, **airlines** and **aircraft**. How many were
+  passenger, cargo, business jet, private and light, helicopter, military or other flights is sorted by the relay from
+  the free data, so the numbers are the same on every board (relay 10 or newer, which also counts the days already
+  saved). Click a plate, or press OK on the remote, for its whole list as a card: every type, airline or most seen
+  aircraft (a row opens the model's or the airline's card, or the aircraft's sightings, and Back comes back to the
+  list), every fact of the period, each category's top ten types, aircraft and operators (relay 61), the records with
+  their plane and day. On a remote (or with the arrow keys) the arrows move a yellow ring from plate to plate and up to
+  the buttons; Back (or Esc) closes a card, then the Logbook. The first sighting of a new type or airline is marked
+  NEW TYPE or NEW AIRLINE on the board.
 - **The game stays in the phone app** (1.89.1): the TV boards (and the board on a computer) show only the planes:
   no League page, points, levels, streak, Collection, bingo, trophies or achievement pop-ups. Settings → Styles there
   offers the styles the profile already has, without how to unlock more. The relay keeps scoring for the app.
-- **The Logbook's buttons** (1.55): one row at the top right, always in the same order (Logbook, Records,
-  Week & month), the view on show lit; under it what that view offers: the place buttons and CSV under Logbook, Week /
-  Month and ◀ ▶ under Week & month. The place buttons are your saved places and On the go; planes seen from a removed
-  place, or from the unnamed spot before you saved places, count under All (that spot joins a saved place called Home).
-- **Records** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
+- **The Logbook's buttons** (1.55; the Logbook, Records and Week & month views until 1.92): at the top right, All and
+  a button for each of your saved places and On the go (planes seen from a removed place, or from the unnamed spot
+  before you saved places, count under All; that spot joins a saved place called Home), the CSV, and on a computer a
+  **search** through the whole logbook, as in the app (Enter shows what it found; relay 55). Under them **Week** ·
+  **Month** · **Year** and ◀ ▶ for the period plate.
+- **Records** (a plate of the Logbook; 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
-- **Week & month** (from the Logbook's buttons, 1.52, relay 46): the week (Monday to Sunday) or month in review, like
-  Today in numbers: planes, types, airlines, aircraft, new types, rare planes (and points, in the app); the busiest day, the rarest
-  plane, the most seen airline and aircraft, the farthest route, the lowest, closest and fastest pass, and the new types.
-  **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
+- **Week, month and year** (the Logbook's period plate; 1.52, relay 46; the year relay 29): the week
+  (Monday to Sunday), month or year in review, like Today in numbers: planes, types, airlines, aircraft, new types and
+  rare planes (a year: countries and days; and points, in the app); on the plate the busiest day, the most seen aircraft
+  and the rarest plane, in its card also the most seen airline, the farthest route, the lowest, closest and fastest
+  pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
+  compared with the one before. They count every place.
   In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
   it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
@@ -692,6 +701,8 @@ the remote).
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
 - Press **A** for About: patch notes, the keys and who made it.
+- In the Logbook the arrow keys move a ring from plate to plate (and up to the buttons); Enter opens the plate's list,
+  Esc closes it.
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.

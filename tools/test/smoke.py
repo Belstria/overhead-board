@@ -147,6 +147,21 @@ def pages():
             pg.wait_for_timeout(2000)
             for o in pg.evaluate(OVERFLOW_JS):
                 errors.append(f"Fire TV Account & device: plate {o}")
+            # 1.92: the Logbook's plates at that size: its buttons end above them, the remote's ring is on a plate, and
+            # a plate's card opens
+            pg.evaluate("location.hash = '#logbook'")
+            pg.wait_for_timeout(2500)
+            lb = pg.evaluate("""() => { const s = document.getElementById('stage').getBoundingClientRect(), k = s.height / 1080,
+              t = document.getElementById('viewTools').getBoundingClientRect(), a = document.activeElement;
+              return {gap: 266 * k - (t.bottom - s.top), plates: document.querySelectorAll('#lbHits button').length, ring: (a && a.dataset && a.dataset.k) || ''}; }""")
+            if lb["gap"] < 0:
+                errors.append(f"Fire TV Logbook: its buttons run {-lb['gap']:.1f} px into the plates")
+            if lb["plates"] != 7 or not lb["ring"]:
+                errors.append(f"Fire TV Logbook: {lb['plates']} plates, the remote's ring on {lb['ring'] or 'none'}")
+            pg.evaluate("document.querySelector('#lbHits [data-k=types]').click()")
+            pg.wait_for_timeout(800)
+            if not pg.evaluate("!!document.querySelector('#cardBox:not([hidden]) .lbCard')"):
+                errors.append("Fire TV Logbook: a plate's card didn't open")
             print("plates fit at 960x540 (Fire TV)" if not any(e.startswith("Fire TV") for e in errors) else "plates overflow at 960x540")
             ctx.close()
             b.close()
