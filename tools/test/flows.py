@@ -9,8 +9,11 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the hangar's photos (relay 64)
 - airline names from the airline list, filled in once for older sightings; Flightradar24's routes kept in the
   sightings, also from the cache at start (relay 68)
+- the owner's Relay plate (/relayinfo): David only, also from outside; another profile or a stranger no (relay 69);
+  only David's page says owner, /pageversion (a page built without a profile) answers, a saved "</script>" stays escaped
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
-  phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64)
+  phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
+  the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
 """
 import gzip
 import json
@@ -57,6 +60,30 @@ def checks():
     expect("/admin from outside, David", call("/admin", "owner-device", OUTSIDE)[0] in (403, 404), True)
     expect("/admin on the relay's own computer", call("/admin")[0], 200)
     expect("/status at home, no profile", call("/status", headers=AT_HOME)[0], 403)
+    # relay 69: the page knows the owner (and only the owner); without a profile (the update check) it still builds,
+    # and what a profile saved stays escaped inside the page's script
+    st, _, b = call("/pageversion?p=test", "test-device")
+    expect("/pageversion", (st, bool(json.loads(b).get("v")) if st == 200 else None), (200, True))
+    page = lambda ck: gzip.decompress(call("/app/", ck, {"Accept-Encoding": "gzip"})[2]).decode()   # noqa: E731
+    guest = lambda ck: page(ck).split("window.OVERHEAD_GUEST=", 1)[-1].split(";window.OVERHEAD_PAGE_DATE", 1)[0]   # noqa: E731
+    expect("the owner's page says owner", '"owner": true' in guest("owner-device"), True)
+    expect("another profile's page doesn't", '"owner"' in guest("test-device"), False)
+    st, _, b = call("/me", "test-device")
+    was = (json.loads(b).get("settings") or {}).get("place") if st == 200 else None
+    call("/me", "test-device", body={"settings": {"place": "X</script><b>y"}})
+    html = page("test-device")
+    expect("a saved </script> stays escaped", ("X</script><b>y" in html, "X\\u003c/script>\\u003cb>y" in html), (False, True))
+    call("/me", "test-device", body={"settings": {"place": was or "Vienna"}})
+
+    # relay 69: the owner's Relay plate, also away from home; nobody else
+    st, _, b = call("/relayinfo", "owner-device", OUTSIDE)
+    ri = json.loads(b) if st == 200 else {}
+    expect("/relayinfo for David from outside", (st, [s.get("role") for s in ri.get("sources", [])][:1], sorted(ri)),
+           (200, ["first"], ["backup", "fr24", "screens", "sources", "up", "version"]))
+    expect("/relayinfo shows no addresses", any(k in b.decode() for k in ('"ip"', '"host"', '"ua"', "192.168.")), False)
+    expect("/relayinfo for another profile", call("/relayinfo", "test-device", AT_HOME)[0], 403)
+    expect("/relayinfo for strangers", call("/relayinfo")[0] in (401, 403), True)
+    expect("/relayinfo for strangers at home", call("/relayinfo", headers=AT_HOME)[0] in (401, 403), True)
 
     # packed and tagged pages
     st, h, body = call("/app/", "test-device", {"Accept-Encoding": "gzip"})
@@ -259,6 +286,22 @@ def browser_checks(browser):
         bad.append("a favourite that couldn't be saved didn't go back")
     pg.unroute("**/lists*")
     pg.evaluate("fetch('/lists', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fav: [], hide: []})})")
+
+    # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
+    # them amber with ON TIME, every delay and the gate
+    e("window.__tf = timesFor; window.__md = S.mode; timesFor = () => window.__t")
+    inf = "{from: {code: 'VIE'}, to: {code: 'LHR'}}"
+    got = {}
+    for mode in ("overhead", "airport"):
+        for delay in (45, 10, 0):
+            got[mode, delay] = e(f"S.mode = '{mode}'; window.__t = {{kind: 'dep', delay: {delay}, gate: 'C35'}}; vieLines({inf}).join('|')")
+        got[mode] = e(f"S.mode = '{mode}'; renderFeatured(); fields.seen.style || 'white'")
+    e("timesFor = window.__tf; S.mode = window.__md; renderFeatured()")
+    want = {("overhead", 45): "DELAY 45 MIN", ("overhead", 10): "", ("overhead", 0): "", "overhead": "white",
+            ("airport", 45): "DELAY 45 MIN|GATE C35", ("airport", 10): "DELAY 10 MIN|GATE C35", ("airport", 0): "ON TIME|GATE C35", "airport": "amber"}
+    for k, v in want.items():
+        if got[k] != v:
+            bad.append(f"Remarks {k}: got {got[k]!r}, expected {v!r}")
     ctx.close()
     for b_ in bad:
         print("flow:", b_)

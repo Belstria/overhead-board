@@ -10,6 +10,20 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.88 (Dave, 26 Oct): **Remarks by style**: `seenLook()` (called at the top of `renderFeatured`, shared with the app)
+  sets `fields.seen.style` to amber in the Airport style and plain (white) in the Overhead style, and redraws its
+  cells when that changes (the tile cache keys on the style). `vieLines(info)` in the Overhead style returns only
+  "DELAY n MIN" for a delay over 30 minutes (no ON TIME, no "DELAY /", no GATE); the Airport style is unchanged. The
+  plane card's Remarks follow (they use `remarkLines`). Checked by flows.py's browser checks.
+- 1.88: **model pictures** (Dave's Black Hawk, H60, had none: Wikipedia's "Black Hawk" is a disambiguation page, which
+  `wikiPage` drops). `modelWiki(names)` (now async, `MODEL_LIKE`) tries `modelTitles` as before; when nothing fits it
+  asks Wikipedia's search ("<name> aircraft", cached in `modelSearches`) for each name and tries the results whose
+  title holds the name (or the other way round). The callers also pass the source's description (`ac.desc`,
+  `fromRelay`'s new `desc`, `typeCard`'s `x.desc`), e.g. "SIKORSKY UH-60 Black Hawk". Checked against Wikipedia on
+  26 Oct: Black Hawk → Sikorsky UH-60 Black Hawk, Hercules → Lockheed C-130 Hercules, now with pictures; Super Puma,
+  A320, 737-800, A320neo, E195, 787-9, Cessna 172, A350-900, R44 and ATR 72-600 find the same pages as before.
+  A "NEW AIRLINE" seen on BLACK71's Status was the word drum passing it (NEW TYPE → NEW AIRLINE → ... on the turn back
+  to the mode word every 6 s), not a mark: the relay only marks `^[A-Z]{3}\d` callsigns.
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
 - 1.87.2.1 (Dave's small fixes, 25 Oct): **radar names** come from `radarInfo(o)`/`radarName(o)` (next to
   `radarLabels`, shared with the app): the cached details or `baseInfo(o.ac)`, so the scope says OS 411 like Nearest
@@ -601,6 +615,18 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.88 (Dave's picks 11 A and 13 A, 26 Oct): **Settings jump bar**: `#setJump` (sticky at `top: var(--topH)`, which a
+  ResizeObserver on `#top` keeps at the header's height, score strip included) holds `.seg.jumpSeg`, added to the
+  shared segmented-filter rules (flex:none buttons, so it scrolls sideways). `jumpBuild()` (after `showTab("settings")`
+  and `renderFavBox`) lists the visible plates by `data-pid` (`plateHtml` adds it; the favourites plate is "favs"),
+  named from `PLATES`/`VIEW_PLATES` (`jumpName`, Favourites & hidden as Favourites). `jumpGo(id)` scrolls the plate to
+  just under the header and the bar; `jumpSpy()` (window scroll, rAF) lights the last plate whose top passed that line,
+  the last plate at the page end; a tapped name stays lit (`jumpHold`) until a touch, wheel or key (a plate near the end
+  can't reach the top). `jumpLight` centres the lit name in the bar. **Relay plate**: `#relayPlate` at the top of
+  `aboutOpen()`, hidden until `relayLoad()` gets `/relayinfo` (relay 69+, only when `GUEST.owner`; every 30 s while
+  About is open); `relayPlate(d)` draws `.ranks.cats` lamp rows with 6-px bars under the Legend's amber `.lgbox h3`
+  headings. Backup: amber when missing or `late`, red when not ok.
+
 `app/index.html` is generated: `py tools/app/build.py` copies the flap engine, reference tables, network, tracking,
 times, specials, logbook, radar and Settings control code out of `test/index.html` by marker strings and wraps them in the phone layout
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
@@ -704,6 +730,17 @@ and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1;
 it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
+
+- Relay 69 (1.88): `/relayinfo` (`relay_panel_json()`): `owner_ok()` only, also through the tunnel (not in
+  `ADMIN_PATHS`); 403 for other profiles, strangers refused as usual. Sources in `SOURCES` order with role (first,
+  reserve, emergency for `day_cap` sources), state (ok, resting with `until` and `http`, failing, standby) and
+  requests this UTC day (`STATE` `asked`/`askedDay`, counted before each fetch; adsb.lol's `allow: 500`). Flightradar24:
+  month credits/budget, today's credits and lookups, and the gap filler's credits (the `usage.by` rows ending
+  " · Gap filler"; they are cleared with the month total in `_fr24_usage`, so no month counter is needed). Backup from
+  `data/backup.json` (`BACKUP_FILE`, written by the host's nightly job: t, ok, bytes, kept, error; `late` past 36 h).
+  Screens from `screens_list()` without ip, host or user agent. The page's `OVERHEAD_GUEST` gets `owner: true` for the
+  `HOME_OWNER` profile, so other guests don't ask. Fixed with it: `--source` (the test relay) built a `STATE` entry
+  without the new keys.
 
 - Since 12 Oct 2026 it runs on Dave's homelab: a Debian LXC container on Proxmox (`overhead-relay`, always on), as the
   systemd service `overhead-relay` (`relay/overhead-relay.service`) in `/opt/overhead-relay`, which also holds

@@ -565,7 +565,7 @@ function renderAircraftInfo(){
   nowEmptyNote(); nowPanels(); skyRowRender();
   if (!feat) return;
   const info = feat.info || baseInfo(feat.o.ac), d = detailsOf(feat.hex) || {};
-  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type], () => renderAircraftInfo());
+  const src = d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type, feat.o.ac.desc], () => renderAircraftInfo());
   $("screen").querySelector(".credit").textContent = isModelPic(src) ? "Wikimedia Commons" : "airport-data.com";
   $("screen").classList.toggle("model", isModelPic(src));
   if (src !== shownPhoto) {
@@ -2094,7 +2094,7 @@ function arPeekHtml(o){
   const ac = o.ac, info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || enrich(ac)).info || baseInfo(ac);
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, badge = badgeFor(liveFacts(ac, info)) || radarStatus(o);
-  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type], () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } });
+  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], () => { if (arOn && arSel === ac.hex) { arCardSig = ""; arCardRender(); } });
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const type = shortType(d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "");
   const sub = [o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : "", badge ? T(badge) : ""].filter(Boolean).join(" · ");
@@ -2548,7 +2548,7 @@ setInterval(() => {
 }, 1000);
 //@E31
 function plateHtml(p){
-  return `<div class="plate${p.cls ? " " + p.cls : ""}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${p.items.map(itemHtml).join("")}</div>`;
+  return `<div class="plate${p.cls ? " " + p.cls : ""}" data-pid="${p.id}" style="--cols:${p.cols || 2}"><i></i><i></i><i></i><i></i><h3>${escH(T(p.title))}</h3>${p.items.map(itemHtml).join("")}</div>`;
 }
 function cockpitOpen(){
   draft = cockpitDraft();
@@ -2584,6 +2584,7 @@ function buildSaveBar(){
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
+    `<div class="plate relayP" style="--cols:1" id="relayPlate" hidden>${screws}<h3>${T("Relay")}</h3><p class="owner" id="relaySub"></p><div class="lgbox" id="relayBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
     `<p class="cBtns"><button class="cBtn" type="button" id="aboutLog">${escH(T("Log"))}</button></p>` +
     (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
@@ -2599,6 +2600,55 @@ function aboutOpen(){
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
   $("aboutLog").onclick = () => { ctlSound.press(); logShow(); };
   renderAbout();
+  relayLoad();
+}
+/* 1.88 (Dave's pick 13 A): the owner's Relay plate at the top of About: the position sources, Flightradar24, the
+   nightly backup and the screens online, from the relay's /relayinfo (69+), which answers only the owner. */
+let relayTimer = 0;
+async function relayLoad(){
+  clearTimeout(relayTimer);
+  if ((window.OVERHEAD_RELAY_VERSION || 0) < 69 || !relay() || !(GUEST && GUEST.owner) || $("t-about").hidden) return;
+  const d = await fetch(`${relay()}/relayinfo`).then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!d || !$("relayPlate")) return;
+  relayPlate(d);
+  relayTimer = setTimeout(relayLoad, 30000);
+}
+function relayPlate(d){
+  const G = "var(--c-good)", A = "var(--amber)", R = "var(--c-bad)", N = "var(--label2)";
+  const row = (lamp, name, n, sub = "", pct = null) => `<li style="--lamp:${lamp}"><i class="lamp"></i><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span>` +
+    (pct != null ? `<span class="bar"><i style="width:${Math.min(100, Math.max(0, pct)).toFixed(1)}%;opacity:1"></i></span>` : "") + `</li>`;
+  const list = rows => `<ol class="ranks cats">${rows}</ol>`;
+  const span = s => s < 3600 ? T("{n} min", {n: Math.max(1, Math.round(s / 60))}) : s < 172800 ? T("{n} h", {n: Math.floor(s / 3600)}) : T("{n} days", {n: Math.floor(s / 86400)});
+  const ago = s => s < 120 ? T("{n} s ago", {n: s}) : T("{n} min ago", {n: Math.round(s / 60)});
+  const when = t => { const d = new Date(t * 1000);
+    return Date.now() - d < 864e5 ? T("Last night, {t}", {t: hhmm(d)}) : d.toLocaleString(LOC(), {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}); };
+  const ROLE = {first: "first", reserve: "in reserve", emergency: "emergencies only"};
+  const sources = d.sources.map(s => {
+    const role = T(ROLE[s.role]);
+    if (s.state === "resting") return row(A, s.name, T("resting"), role + " · " + T("until {t}", {t: hhmm(new Date(s.until * 1000))}) + (s.http ? " · HTTP " + s.http : ""));
+    if (s.state === "failing") return row(R, s.name, T("failing"), role + (s.http ? " · HTTP " + s.http : ""));
+    if (s.allow) return row(s.state === "ok" ? G : N, s.name, `${nf.format(s.today)} / ${nf.format(s.allow)}`, role + " · " + T("today"), s.today / s.allow * 100);
+    if (s.state === "ok") return row(G, s.name, T("working"), role + (s.okAge != null ? " · " + ago(s.okAge) : ""));
+    return row(N, s.name, T("standby"), role);
+  }).join("");
+  const f = d.fr24;
+  const fr24 = !f.on ? row(N, T("Off"), "", T("no key on the relay")) :
+    row(A, T("This month"), `${nf.format(f.credits)} / ${nf.format(f.budget)}`, T("credits"), f.credits / f.budget * 100) +
+    row(A, T("Today"), nf.format(f.creditsToday), T("credits") + " · " + T(f.lookupsToday === 1 ? "1 lookup" : "{n} lookups", {n: nf.format(f.lookupsToday)})) +
+    row(A, T("Gap filler"), nf.format(f.fill), T("this month") + " · " + (f.credits ? Math.round(f.fill / f.credits * 100) : 0) + " %", f.credits ? f.fill / f.credits * 100 : 0);
+  const b = d.backup, size = b && b.bytes != null ? (b.bytes >= 1e9 ? (b.bytes / 1e9).toFixed(1) + " GB" : (b.bytes / 1e6).toFixed(1) + " MB") : "";
+  const kept = b && b.kept != null ? T(b.kept === 1 ? "1 copy kept" : "{n} copies kept", {n: b.kept}) : "";
+  const backup = !b ? row(A, T("No backup reported"), "", T("nothing from the backup job yet")) :
+    !b.ok ? row(R, T("Failed"), "", [when(b.t), b.error].filter(Boolean).join(" · ")) :
+    b.late ? row(A, when(b.t), size, T("over 36 hours ago")) : row(G, when(b.t), size, kept);
+  const screens = d.screens.map(s => { const quiet = s.hidden || s.quiet > 60;
+    return row(quiet ? A : G, [s.who, s.device].filter(Boolean).join(" · "), T(s.kind === "app" ? "app" : "board"),
+      s.hidden ? T("in the background") : quiet ? T("quiet {t}", {t: span(s.quiet)}) : s.on < 60 ? T("now") : T("on {t}", {t: span(s.on)})); }).join("")
+    || row(N, T("None right now"), "");
+  $("relaySub").textContent = T("Only you see this · relay {v} · up {t}", {v: d.version, t: span(d.up)});
+  $("relayBox").innerHTML = `<h3>${escH(T("Position sources"))}</h3>${list(sources)}<h3>Flightradar24</h3>${list(fr24)}` +
+    `<h3>${escH(T("Nightly backup"))}</h3>${list(backup)}<h3>${escH(T("Screens online · {n}", {n: d.screens.length}))}</h3>${list(screens)}`;
+  $("relayPlate").hidden = false;
 }
 /* 1.80 (Dave's to-do 13, his pick B): the log as a page of its own, Settings → About → Log (or Log in the connection
    card), filtered to problems, Sky view or the network, with Copy so it can be pasted into a message. */
@@ -2659,6 +2709,59 @@ function settingsExtra(){
   box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
   wireViews(box);
 }
+/* 1.88 (Dave's pick 11 A): Settings' plates by name in a bar under the header, the app's segmented style. It scrolls
+   sideways; a name scrolls to its plate; the plate on screen is lit while Settings scrolls, its name kept in view.
+   The names are the cockpit's (per target, translated); Favourites & hidden is Favourites there. */
+const jumpPlates = () => [...document.querySelectorAll("#cockpit > .plate, #favBox:not([hidden]) > .plate, #setExtra > .plate")].filter(p => p.getClientRects().length);
+const jumpName = id => id === "favs" ? T("Favourites") : T((PLATES.find(p => p.id === id) || VIEW_PLATES.find(p => p.id === id) || {title: id}).title);
+let jumpOn = "", jumpHold = null;
+function jumpBuild(){
+  const bar = $("setJump"), seg = $("setJumpSeg");
+  if (!bar || tab !== "settings") return;
+  const ids = jumpPlates().map(p => p.dataset.pid);
+  if (seg.dataset.ids !== ids.join() + LANG) {
+    seg.dataset.ids = ids.join() + LANG;
+    seg.innerHTML = ids.map(id => `<button type="button" data-jump="${id}" aria-pressed="false">${escH(jumpName(id))}</button>`).join("");
+    for (const b of seg.children) b.onclick = () => { ctlSound.press(); jumpGo(b.dataset.jump); };
+    seg.setAttribute("aria-label", T("Jump to"));
+    jumpOn = "";
+  }
+  bar.hidden = ids.length < 2;
+  jumpSpy();
+}
+// A plate's top just under the header and the bar (the bar is stuck there once Settings has scrolled).
+const jumpLine = () => $("top").offsetHeight + $("setJump").offsetHeight + 10;
+function jumpGo(id){
+  const p = document.querySelector(`#t-settings .plate[data-pid="${id}"]`);
+  if (!p) return;
+  jumpHold = id;
+  jumpLight(id);
+  scrollTo({top: Math.max(0, p.getBoundingClientRect().top + scrollY - jumpLine()), behavior: "smooth"});
+}
+function jumpSpy(){
+  if (tab !== "settings" || $("setJump").hidden) return;
+  if (jumpHold) return jumpLight(jumpHold);       // the name tapped stays lit (a plate near the end can't reach the top)
+  const plates = jumpPlates(), line = jumpLine() + 14;
+  if (!plates.length) return;
+  let on = plates[0];
+  for (const p of plates) if (p.getBoundingClientRect().top <= line) on = p;
+  if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) on = plates[plates.length - 1];   // the end: About
+  jumpLight(on.dataset.pid);
+}
+function jumpLight(id){
+  if (id === jumpOn) return;
+  jumpOn = id;
+  const seg = $("setJumpSeg");
+  let lit = null;
+  for (const b of seg.children) { const on = b.dataset.jump === id; b.setAttribute("aria-pressed", String(on)); if (on) lit = b; }
+  if (lit) seg.scrollTo({left: lit.offsetLeft - (seg.clientWidth - lit.offsetWidth) / 2, behavior: "smooth"});
+}
+// The bar sticks under the header, whose height changes with the score strip and the text size.
+const topSize = () => document.documentElement.style.setProperty("--topH", $("top").offsetHeight + "px");
+if (window.ResizeObserver) new ResizeObserver(topSize).observe($("top")); else topSize();
+let jumpRaf = 0;
+addEventListener("scroll", () => { if (tab === "settings" && !jumpRaf) jumpRaf = requestAnimationFrame(() => { jumpRaf = 0; jumpSpy(); }); }, {passive: true});
+for (const e of ["touchstart", "wheel", "keydown"]) addEventListener(e, () => { jumpHold = null; }, {passive: true, capture: true});   // until Settings is scrolled by hand
 //@L:taps
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
@@ -2673,7 +2776,7 @@ $("hero").addEventListener("click", e => {
   if (id === "airline") airlineCard(liveFacts(feat.o.ac, info));
   else if (id === "fromCode" || id === "fromCity") placeCard(info.from);
   else if (id === "toCode" || id === "toCity") placeCard(info.to);
-  else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type});
+  else if (id === "type") typeCard({typeCode: feat.o.ac.t, type: info.type, desc: feat.o.ac.desc});
   else planeCard(feat.o);
 });
 for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", e => {
@@ -2825,8 +2928,9 @@ function renderFavBox(){
   if (!box) return;
   if (!listsOk()) { box.hidden = true; return; }
   box.hidden = false;
-  box.innerHTML = `<div class="plate cardish" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3><div data-fm></div></div>`;
+  box.innerHTML = `<div class="plate cardish" data-pid="favs" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3><div data-fm></div></div>`;
   favManager(box.querySelector("[data-fm]"));
+  jumpBuild();
 }
 
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
@@ -3208,7 +3312,7 @@ function showTab(t){
   else if (t === "today") { svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
-  else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); }
+  else if (t === "settings") { jumpHold = null; cockpitOpen(); settingsExtra(); renderFavBox(); jumpBuild(); }
   else if (t === "game") { $("gameBox").dataset.h = ""; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
