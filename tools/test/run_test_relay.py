@@ -53,7 +53,8 @@ def main():
     src = (REPO / "relay" / "serve.py").read_text(encoding="utf-8")
     for real, fake in [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
                        ("https://viennaairport.com/jart", FAKE + "/jart"),
-                       ("https://nominatim.openstreetmap.org", FAKE + "/nominatim")]:
+                       ("https://nominatim.openstreetmap.org", FAKE + "/nominatim"),
+                       ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv")]:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")
         src = src.replace(real, fake)
@@ -90,6 +91,19 @@ def main():
         "own00001": {"name": "David", "created": now, "lastSeen": now, "fr24": True, "devices": dev("owner-device"),
                      "settings": {"lat": 48.2085, "lon": 16.3731, "place": "Vienna", "home": "VIE", "radiusKm": 15, "located": True}}}}),
         encoding="utf-8")
+    # relay 68: a sighting from yesterday saved before the relay knew airline names (the Test profile), which the relay
+    # fills in once; the Austrian one already has its name and must stay as it is
+    day = time.strftime("%Y-%m-%d", time.localtime(now - 3 * 3600 - 86400))
+    old = [{"id": "old-ein", "hex": "4ca2b8", "callsign": "EIN1XY", "ts": int((now - 86400) * 1000), "time": "12:00",
+            "typeCode": "A320", "minDist": 6.2, "altAtMin": 9000, "looked": True},
+           {"id": "old-aua", "hex": "440a99", "callsign": "AUA9", "ts": int((now - 86400) * 1000) - 60000, "time": "11:59",
+            "typeCode": "A320", "minDist": 7.1, "altAtMin": 9500, "looked": True, "airlineName": "Austrian"}]
+    (tmp / "data" / "profiles" / "test0001").mkdir(parents=True)
+    (tmp / "data" / "profiles" / "test0001" / f"sightings-{day}.json").write_text(json.dumps(old), encoding="utf-8")
+    # ... and Flightradar24's answer about it, still in the cache: written into the sighting at start
+    (tmp / "data" / "fr24.json").write_text(json.dumps({"usage": {}, "flights": {"4ca2b8|EIN1XY": {
+        "t": now - 86400 + 300, "flight": "EI661", "callsign": "EIN1XY", "from": {"code": "DUB", "city": "Dublin"},
+        "to": {"code": "VIE", "city": "Vienna"}, "operator": "EIN", "livery": "EIN", "category": "Passenger"}}}), encoding="utf-8")
     music = REPO / "sounds-src" / "emirates-boarding.m4a"
     if music.is_file():
         (tmp / "data" / "media").mkdir()

@@ -1,8 +1,9 @@
 """Made-up flight data for testing the relay and the boards, on http://127.0.0.1:8095 (env FAKE_PORT for another
 port). Started by run_test_relay.py.
 
-It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey") and Vienna Airport's
-flight lists. The planes sit around central Vienna (the boards' default location) and include the special cases:
+It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey"), Vienna Airport's
+flight lists and the airline list (relay 68: a few real rows and made-up ones; EIN6AB, an Aer Lingus flight with no
+route listed, is an airline the board's own table lacks). The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
@@ -88,6 +89,14 @@ def away(lat, lon):
     return [circ], [up]
 
 
+# The airline list (Virtual Radar Server's standing data: a BOM, then Code,Name,ICAO,IATA,...), with enough made-up
+# rows that the relay takes it for a whole list.
+AIRLINES_CSV = "\ufeffCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\r\n" + "".join(
+    f"{c},{n},{c},{i},,\r\n" for c, n, i in [("AUA", "Austrian Airlines", "OS"), ("EIN", "Aer Lingus", "EI"),
+                                             ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE")]) + "".join(
+    f"Q{a}{b},Made-up Air {a}{b},Q{a}{b},,,\r\n" for a in "ABCDEFGHIJ" for b in "ABCDEFGHIJKL")
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -169,6 +178,8 @@ class H(BaseHTTPRequestHandler):
             if not a:
                 return self.send(404, "application/json", b'{"response":"unknown aircraft"}')
             return self.send(200, "application/json", json.dumps({"response": {"aircraft": a}}).encode())
+        if path == "/airlines.csv":
+            return self.send(200, "text/csv", AIRLINES_CSV.encode("utf-8"))
         if path == "/nominatim/reverse":   # relay 63 names where sightings on the go were made: Vienna, else a made-up village
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
             lat = float((q.get("lat") or ["0"])[0])
@@ -199,6 +210,7 @@ class H(BaseHTTPRequestHandler):
             plane("4b1814", "SWR1514", "BCS3", 18.0, 10.0, 250, 750, 12000, -1200, r="HB-JCA"),
             plane("4ca9f1", "RYR3EG", "B38M", 3.0, -6.0, 300, 800, 5000, 0, r="9H-QEG"),       # stale route in the database
             plane("4ca123", "EIN2AB", "A320", 30.0, 30.0, 220, 800, 36000, 0),                   # far and high
+            plane("4ca2b7", "EIN6AB", "A320", -2.5, -9.0, 10, 760, 6000, 0, r="EI-DEO"),          # no route listed (relay 68)
         ]
         for i, (hx, cs, t, la, lo, tr) in enumerate(APRON):     # parked at the gates
             ac.append({"hex": hx, "flight": cs, "t": t, "lat": la, "lon": lo, "alt_baro": "ground", "gs": 0, "track": tr})

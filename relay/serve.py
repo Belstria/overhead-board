@@ -8,7 +8,7 @@ turn away cloud servers, so the requests need to come from a machine in your hom
 Run:   python serve.py --lat 48.2085 --lon 16.3731 --place Vienna --save
 Open:  http://localhost:8080  (or http://<this-computer>:8080 from any screen at home)
 
-Positions come from adsb.lol, adsb.fi and airplanes.live, tried in that order. A source that
+Positions come from adsb.fi, adsb.lol (in reserve, relay 68) and airplanes.live, tried in that order. A source that
 answers "too many requests" or "forbidden" is rested for a while and the next one is used. AvioADSB is the
 emergency backup: asked only when all of those fail or rest, at most every 15 s and 90 times a day.
 If every source fails, the board keeps getting the last good answer for up to two minutes. Away from home, the owner's
@@ -60,12 +60,14 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 67
+RELAY_VERSION = 68
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
-    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
+    # Relay 68: adsb.fi first, adsb.lol in reserve. adsb.lol allows 500 requests a UTC day per address; asked first, it
+    # had used them up within hours and rested until midnight, so it wasn't there when adsb.fi failed.
     {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v3/lat/{lat}/lon/{lon}/dist/{nm}"},
+    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
     {"key": "airplaneslive", "name": "airplanes.live", "url": "https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}"},
     # Emergency only (relay 36): its free anonymous tier allows 1 request per 10 s and 100 a day per network, for
     # personal, non-commercial use (data CC BY 4.0, credited in the boards' About). Asked only once every source above
@@ -110,6 +112,11 @@ FILL_MAX = 10               # ... at most this many planes an answer (6 credits 
 FILL_SHARE = 0.8            # ... and only while the profile has spent less than this part of its daily credits
 AIRPORTS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
 AIRPORTS_FILE = DATA_DIR / "airports.json"
+# Relay 68: airline names by ICAO code, from Virtual Radar Server's standing data (public domain), for the flights the
+# route database has no route for (it brings the airline only with one). Refreshed weekly; the old copy stays on a failure.
+AIRLINES_CSV = "https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv"
+AIRLINES_FILE = DATA_DIR / "airlines.json"
+AIRLINES_EVERY_S = 7 * 86400
 RUNWAYS_CSV = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
 CITY_FIX = {"SAW": "Istanbul", "NCL": "Newcastle", "STN": "London", "LGW": "London", "LTN": "London", "BVA": "Paris",
             "CRL": "Brussels", "NYO": "Stockholm", "BGY": "Milan", "MXP": "Milan", "LIN": "Milan", "CIA": "Rome", "FCO": "Rome"}
@@ -327,6 +334,23 @@ class Spot:
         self.rev = 0
         self.dirty = set()
         self.last_body = None
+        self.days = {}          # relay 68: older days changed after the fact (day -> entries), written by the saver
+
+    def day_entries(self, day):
+        """The sightings of a saved day: today's live list, a changed day still to write, or the file."""
+        if day == self.day:
+            return self.entries
+        if day in self.days:
+            return self.days[day]
+        return _load(self.dir / f"sightings-{day}.json", [])
+
+    def day_changed(self, day, entries):
+        if day == self.day:
+            self.changed("day")
+            return
+        self.days[day] = entries
+        _place_days.pop((str(self.dir), day), None)
+        self.changed()
 
     def ensure_day(self):
         d = board_day()
@@ -371,6 +395,9 @@ class Spot:
             out.append((self.dir / f"sightings-{self.day}.json", json.dumps(self.entries, separators=(",", ":"))))
         if "book" in todo and self.logbook is not None:
             out.append((self.dir / "logbook.json", json.dumps(self.logbook, separators=(",", ":"))))
+        for day, entries in self.days.items():
+            out.append((self.dir / f"sightings-{day}.json", json.dumps(entries, separators=(",", ":"))))
+        self.days = {}
         return out
 
     def take(self, body, lat, lon, nm, place=None):
@@ -1433,6 +1460,117 @@ def _route_for(cs):
     return out
 
 
+_airlines = None             # relay 68: {ICAO code: [name, IATA code]} from AIRLINES_CSV, None until loaded
+
+
+def airline_fields(cs):
+    """The airline of an airline-style callsign (AUA411, EIN6AB) from the standing data: {airlineName, airlineIata,
+    airlineIcao}, or {} (another kind of callsign, an unknown code, or the table not loaded)."""
+    m = re.match(r"^([A-Z]{3})\d", cs or "")
+    row = (_airlines or {}).get(m.group(1)) if m else None
+    if not row or not row[0]:
+        return {}
+    out = {"airlineName": row[0], "airlineIcao": m.group(1)}
+    if row[1]:
+        out["airlineIata"] = row[1]
+    return out
+
+
+def _load_airlines(force=False):
+    """The airline table: the copy in data/ while it is under a week old (or the download fails), else downloaded.
+    True when it was downloaded now."""
+    global _airlines
+    db = _load(AIRLINES_FILE, None)
+    if isinstance(db, dict) and db.get("v") == 1 and isinstance(db.get("codes"), dict):
+        _airlines = db["codes"]
+        if not force and time.time() - db.get("fetched", 0) < AIRLINES_EVERY_S:
+            return False
+    status, _, body, _ = fetch(AIRLINES_CSV, timeout=60)
+    codes = {}
+    if status == 200:
+        for r in csv.DictReader(io.StringIO(body.decode("utf-8-sig", "replace"))):
+            icao, name = (r.get("ICAO") or "").strip().upper(), (r.get("Name") or "").strip()
+            if re.fullmatch(r"[A-Z]{3}", icao) and name:
+                codes[icao] = [name, (r.get("IATA") or "").strip().upper()[:2]]
+    if len(codes) < 100:                       # a failed or broken download: keep what we have
+        if _airlines is None:
+            _airlines = {}
+        event("warn", "Couldn't download the airline list" + (f" (HTTP {status})" if status != 200 else "") +
+              ("; keeping the copy from before" if _airlines else "; flights without a route show no airline name for now"))
+        return False
+    _airlines = codes
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        tmp = AIRLINES_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"v": 1, "fetched": time.time(), "codes": codes}, separators=(",", ":")), encoding="utf-8")
+        os.replace(tmp, AIRLINES_FILE)
+    except OSError:
+        pass
+    event("info", f"Airline list ready: {len(codes)} airlines")
+    return True
+
+
+def _airline_fill(e):
+    """Give a saved sighting without an airline name the table's. True when it changed."""
+    if e.get("airlineName"):
+        return False
+    add = airline_fields(str(e.get("callsign") or "").strip().upper())
+    if not add:
+        return False
+    for k, v in add.items():
+        if not e.get(k):
+            e[k] = v
+    return True
+
+
+def _backfill_airlines(spot):
+    """Relay 68, once per profile: the sightings and logbook from before the airline list get its names (only the
+    airline's name and codes; nothing else in the files changes). Call under _data_lock."""
+    b = spot.book()
+    n = 0
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        entries = spot.day_entries(day)
+        hits = sum(1 for e in entries if _airline_fill(e))
+        if hits:
+            spot.day_changed(day, entries)
+            n += hits
+    for code, a in (b.get("airlines") or {}).items():
+        row = (_airlines or {}).get(code)
+        if row and isinstance(a, dict):
+            if not a.get("name"):
+                a["name"] = row[0]
+            if not a.get("iata") and row[1]:
+                a["iata"] = row[1]
+    b["airlinesV"] = 1
+    spot.changed("book")
+    return n
+
+
+def _all_profile_spots():
+    """Every profile's spot that has a folder (loading the ones no screen has asked for yet)."""
+    with _data_lock:
+        pids = [pid for pid in profiles()["profiles"] if (DATA_DIR / "profiles" / pid).is_dir()]
+    return [guest_spot(pid) for pid in pids]
+
+
+def _airlines_worker():
+    """Load the airline list, fill in the names missing from before (once), and refresh the list weekly."""
+    while True:
+        try:
+            _load_airlines()
+            if _airlines:
+                for sp in _all_profile_spots():
+                    with _data_lock:
+                        if sp.book().get("airlinesV") != 1:
+                            n = _backfill_airlines(sp)
+                            if n:
+                                event("info", f"Airline names filled in for {n} earlier sightings", echo=False)
+        except Exception as e:  # never let the list break the relay
+            event("warn", f"Airline list: {e}")
+        time.sleep(6 * 3600 if not _airlines else AIRLINES_EVERY_S / 7)
+
+
 def _route_fits(route, pos):
     """Callsigns get reused (Ryanair's RYR3EG is listed as Newcastle to Dublin, whatever it is flying today),
     so a listed route only counts when the plane is actually along it and heading the right way."""
@@ -1519,6 +1657,8 @@ def _enricher():
             continue
         route = _route_for(cs) if cs else None
         airline = {k: route[k] for k in ("airlineName", "airlineIata", "airlineIcao") if route and route.get(k)}
+        for k, v in airline_fields(cs).items():      # relay 68: no route (or a route without its airline): the table's
+            airline.setdefault(k, v)
         if route and not _route_fits(route, e.get("pos")):
             event("info", f"Ignoring the listed route {route['from']['code']} → {route['to']['code']} for {cs}: "
                           "the plane is nowhere near it (the callsign is used for other flights too)")
@@ -1533,6 +1673,8 @@ def _enricher():
                 e["watch"], e["watchOp"] = w
             if airline:
                 e.update(airline)
+            if route and e.get("routeSrc") == "fr24":   # relay 68: Flightradar24 answered first; its route stays
+                route = None
             if route:
                 e.update(route)
             if info:
@@ -1555,9 +1697,9 @@ def _enricher():
                 t["name"] = " ".join(x for x in (info.get("manufacturer", "").split(" ")[0], info.get("aircraftType")) if x)
             m = re.match(r"^([A-Z]{3})\d", cs or "")
             a = book["airlines"].get(m.group(1)) if m else None
-            if a is not None and route:
-                a["name"] = a.get("name") or route.get("airlineName", "")
-                a["iata"] = a.get("iata") or route.get("airlineIata", "")
+            if a is not None and airline:
+                a["name"] = a.get("name") or airline.get("airlineName", "")
+                a["iata"] = a.get("iata") or airline.get("airlineIata", "")
             spot.changed("day", "book")
         time.sleep(.4)
 
@@ -1967,6 +2109,7 @@ def _fr24_worker():
                 usage = _fr24_usage()
                 if info:
                     _fr24_data()["flights"][key] = info
+                    fr24_keep(key, info)
                     for sp in all_spots():            # relay 41: lists showing this flight fetch again for the answer
                         if any(x.get("hex") == hx and x.get("callsign") == cs for x in sp.entries[:400]):
                             sp.rev += 1
@@ -2002,6 +2145,78 @@ def _fr24_worker():
         finally:
             with _fr24_cv:
                 _fr24_queued.discard(key)
+
+
+def _fr24_same_flight(info, e):
+    """Is this sighting the flight Flightradar24 answered about? By fr24_info's rules: the same day, or within
+    FR24_REUSE_S (the caller has checked the aircraft and callsign)."""
+    t, ts = info.get("t", 0), (e.get("ts") or 0) / 1000
+    return time.strftime("%Y-%m-%d", time.localtime(t)) == time.strftime("%Y-%m-%d", time.localtime(ts)) or \
+        abs(t - ts) < FR24_REUSE_S
+
+
+def fr24_keep(key, info, spots=None, loaded=None):
+    """Relay 68: write a Flightradar24 answer into the sightings of that flight (of its day, and of the day before
+    when it came shortly after the day turned), so the logbook, search, the CSV and the records keep the flight actually flown: its flight number,
+    route (over the route database's) and diversion, marked routeSrc "fr24". The airline stays the callsign's. Returns
+    the sightings changed (`loaded` keeps the days read, for many answers at once). Call under _data_lock."""
+    if not info or info.get("none"):
+        return 0
+    hx, _, cs = key.partition("|")
+    n = 0
+    for sp in spots if spots is not None else all_spots():
+        sp.ensure_day()
+        t = info.get("t", 0)
+        days = {board_day(t), board_day(t - FR24_REUSE_S)}
+        book = None
+        for day in sorted(days):
+            if day != sp.day and not (sp.dir / f"sightings-{day}.json").exists():
+                continue
+            if loaded is None:
+                entries = sp.day_entries(day)
+            else:
+                entries = loaded.get((str(sp.dir), day))
+                if entries is None or day == sp.day or day in sp.days:
+                    entries = loaded[(str(sp.dir), day)] = sp.day_entries(day)
+            hit = False
+            for e in entries:
+                if e.get("hex") != hx or e.get("callsign") != cs or not _fr24_same_flight(info, e):
+                    continue
+                new = {}
+                if info.get("flight"):
+                    new["flightIata"] = info["flight"]
+                if info.get("from") and info.get("to"):
+                    new["from"], new["to"] = info["from"], info["to"]
+                if info.get("divertedTo"):
+                    new["divertedTo"] = info["divertedTo"]
+                if not new:
+                    continue
+                new["routeSrc"] = "fr24"
+                if all(e.get(k) == v for k, v in new.items()):
+                    continue
+                e.update(new)
+                book = book or sp.book()
+                note_records(book, e, sp.center() if sp.center else None)
+                hit = True
+                n += 1
+            if hit:
+                sp.day_changed(day, entries)
+                sp.changed("book")
+    return n
+
+
+def _fr24_keep_cached():
+    """Once, at start: the answers still in the cache into their sightings (relay 68)."""
+    try:
+        spots = _all_profile_spots()
+        with _data_lock:
+            flights = dict(_fr24_data()["flights"])
+            loaded = {}
+            n = sum(fr24_keep(k, v, spots, loaded) for k, v in flights.items())
+        if n:
+            event("info", f"Flightradar24's routes kept in {n} sightings", echo=False)
+    except Exception as e:
+        event("warn", f"Keeping Flightradar24's routes failed: {e}")
 
 
 def fr24_status():
@@ -2531,7 +2746,7 @@ def _days_of(spot, prefix=""):
     """(day, entries) for each saved day of a spot, oldest first, today's from memory."""
     for f in sorted(spot.dir.glob(f"sightings-{prefix}*.json")):
         day = f.stem[len("sightings-"):]
-        yield day, (spot.entries if day == spot.day else _load(f, []))
+        yield day, spot.day_entries(day)
 
 
 def year_json(spot, year):
@@ -5533,6 +5748,22 @@ class Handler(BaseHTTPRequestHandler):
         if ARGS.verbose:
             super().log_message(fmt, *args)
 
+    # Relay 68: a client that went away before its answer was written (a phone locked mid-save) is no error worth a
+    # traceback in the journal: one short line under --verbose.
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError):
+            self.close_connection = True
+            if ARGS and ARGS.verbose:
+                print(f"{time.strftime('%H:%M:%S')} {self.command or '?'} {self.path.split('?')[0] if hasattr(self, 'path') else '?'}: the client went away before the answer", flush=True)
+
+    def finish(self):
+        try:
+            super().finish()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def reply(self, status, content_type, body, extra=None):
         extra = dict(extra or {})
         if status == 200 and len(body) > 1024 and content_type.startswith(PACKED_TYPES):
@@ -6037,7 +6268,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/airlines"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -6121,6 +6352,12 @@ class Handler(BaseHTTPRequestHandler):
             if len(code) != 3:
                 return self.reply(400, "text/plain", b"code=XXX (an IATA airport code) is required")
             return self.reply(200, "application/json", json.dumps(airport_info(code)).encode())
+        if path == "/airlines":             # relay 68: names for the airline codes the board's own table lacks
+            body = {}
+            for c in re.findall(r"[A-Z]{3}", ((self.query().get("c") or [""])[0]).upper())[:40]:
+                f = airline_fields(c + "1")
+                body[c] = [f.get("airlineIata", ""), f["airlineName"]] if f else None
+            return self.reply(200, "application/json", json.dumps(body).encode(), {"Cache-Control": "private, max-age=86400"} if _airlines else None)
         if path == "/airports/near":
             q = self.query()
             try:
@@ -6599,6 +6836,8 @@ def main():
         _fr24_data()
         profiles()
         merge_home()
+    threading.Thread(target=_airlines_worker, daemon=True).start()
+    threading.Thread(target=_fr24_keep_cached, daemon=True).start()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Fallblatt relay {RELAY_VERSION} running. Open the board at:")
