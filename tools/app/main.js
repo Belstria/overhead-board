@@ -3373,8 +3373,9 @@ function statusCard(){
 }
 function updateWhere(){
   const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
-  $("where").textContent = `${S.live ? "◉ " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  $("where").textContent = `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOUR POSITION …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
 }
+function liveShow(){ updateWhere(); }     // live location found its position, or lost it
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

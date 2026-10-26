@@ -384,7 +384,8 @@ The main board has everything below. New features are tried on `/test/` first; o
     the https address, or the Android app) makes the board watch where the phone is while the app is open, names the
     town or village (relay 62: the village itself, not the area round it, e.g. Oia rather than "Ia Municipal Unit")
     and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
-    reads "On the go". Turning it off goes back to the place before. The TVs can't follow (browsers only share their
+    reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
+    title says FINDING YOUR POSITION and its planes don't count or score. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
     location with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
     board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.

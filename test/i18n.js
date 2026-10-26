@@ -584,6 +584,7 @@ window.I18N_ROWS = [
   ["Overhead (board style)", "Überflüge", "Survols", "Sobrevuelos", "Overvluchten"],
   ["Airport (board style)", "Flughafen", "Aéroport", "Aeropuerto", "Luchthaven"],
   ["RADIUS {n} KM", "RADIUS {n} KM", "RAYON {n} KM", "RADIO {n} KM", "STRAAL {n} KM"],
+  ["FINDING YOUR POSITION …", "STANDORT WIRD GESUCHT …", "RECHERCHE DE VOTRE POSITION …", "BUSCANDO TU UBICACIÓN …", "POSITIE WORDT GEZOCHT …"],
   ["Landings", "Landungen", "Atterrissages", "Aterrizajes", "Landingen"],
   ["Aircraft model", "Flugzeugmuster", "Modèle d'avion", "Modelo de avión", "Vliegtuigtype"],
   ["Code", "Code", "Code", "Código", "Code"],
