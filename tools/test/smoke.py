@@ -2,7 +2,8 @@
 check.yml), and handy before a commit.
 
     py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps and their separate files (i18n.js,
-                                       sounds.js) parse, and the boards name those files' current versions (needs Node)
+                                       sounds.js) parse, and the boards name those files' current versions (needs Node);
+                                       the code map is complete (tools/codemap.py --check)
     py tools/test/smoke.py             the test relay with made-up flights, its rules and saves (flows.py), then /, /test/, /app/,
                                        and /test-api/ in a headless browser (needs Playwright); fails on any page error
     py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
@@ -59,6 +60,9 @@ def syntax():
         bad += 1
     import lint                                    # 1.68: no undefined names in the pages' code (ESLint)
     if not lint.check():
+        bad += 1
+    import codemap                                 # to-do #109: every function and CSS rule is in an area of the code map
+    if not codemap.check():
         bad += 1
     print("scripts parse" if not bad else f"{bad} script(s) don't parse")
     return bad == 0

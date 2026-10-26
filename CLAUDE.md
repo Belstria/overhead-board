@@ -12,6 +12,11 @@ an Android app. The README is the user guide; keep it current with every change 
 **Version-by-version details (what each version added, function names): `docs/history.md`; read it when touching that
 area.** Where it and the code disagree, the code wins.
 
+**Finding the code: `py tools/codemap.py` lists the areas, `py tools/codemap.py AREA` every place of one (all files,
+current lines), `--uses NAME` what else touches a name. Read small ranges (`sed -n`), never a big file whole or
+`app/index.html`. `docs/code-map.md`: how, and the checklists of changes that go together.** `smoke.py --syntax` fails
+on a function or CSS rule in no area: add it to `tools/codemap_areas.txt`.
+
 ## Rules Dave set (keep to them)
 
 - **Test first.** Visual and feature changes go to the test board first. Copy to the main board (`index.html`) only

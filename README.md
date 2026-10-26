@@ -950,4 +950,6 @@ each other, and `smoke.py` takes `--port` too);
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
-`py tools/app/build.py`, so it gets new features together with that board.
+`py tools/app/build.py`, so it gets new features together with that board. `py tools/codemap.py` shows where each
+part of the code lives, area by area, in every file (`docs/code-map.md`); `smoke.py --syntax` also checks that every
+function and CSS rule is on that map.

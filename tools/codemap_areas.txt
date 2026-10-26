@@ -1,0 +1,710 @@
+# The code map's areas (to-do #109), read by tools/codemap.py. Each area lists every place it has in every file, the
+# small ones too, so a session that changes one part finds all of it: `py tools/codemap.py AREA` shows them with their
+# current lines. Places are named, never numbered, so this list survives edits. docs/code-map.md says how to use it.
+#
+#   [name] one line: what the area is
+#   path: places in that file, separated by spaces; more lines for the same file start with spaces
+#   changelog: a regular expression that finds the area's notes in the board's CHANGELOG
+#
+# A place is one of:
+#   name           a top-level function, const, let, class or statement (JS); a def, class, Class.method or variable (Python)
+#   #id            a markup id: the element (id="...") and the CSS rules of that id
+#   .class         the CSS rules of that class (`.cap` takes .cap.big and .cap:hover too), and the rules that name it inside
+#                  another selector (#cardBox .cCr)
+#   css:selector   the CSS rules of an element or another selector (css:body, css:body.lite, css:[hidden])
+#   @name          a CSS @keyframes
+#   /path          a relay endpoint or address: every line naming it (in serve.py its handler and the path lists)
+#   "text"         the lines containing that text (README bullets, history notes, a test's comment); 'text' if it has a "
+# A + in front (+planeBody) marks a place another area owns that this one reaches into: it shows with the owner's name.
+# [every-change] lists what every change goes with (the version, the stamps); each area's page ends with it.
+#
+# Every top-level function, const, let and class in test/index.html, tools/app/main.js and relay/serve.py, and every CSS
+# rule of the board and tools/app/head.html, must be in an area (an item may be in several). `py tools/codemap.py --check`
+# (smoke.py --syntax runs it) names what isn't, and any place listed here that no longer exists. Top-level statements go
+# with the function above them (or the one their first line names) unless an area names them. i18n rows and most
+# docs/history.md entries aren't listed: the tool finds them from the area's code.
+
+[base] The page skeleton both pages share: stage and canvases, scaling, helpers ($, escH, text, geometry), base CSS, notices (toast)
+test/index.html: $ W H M IW REDUCED clean trimTo nf hhmm stage bg fx bgx fxx PX K resize COMPASS geo toast escH
+    addEventListener("resize") css::root css:* css:[hidden] css:html css:body #stage #fx css:body.tiny .actions
+    css:button .empty css:form css:label css:label.check css:input css:output .row .primary .span2 .full #toasts
+tools/app/head.html: css::root css:* css:[hidden] css:html css:button css:body .wrap css:main css:h2 css:h3 .groove
+    .sum .acts #toasts .vh @toastIn
+tools/app/main.js: $ escH resizeQ addEventListener("resize")
+CLAUDE.md: "fixed 1920x1080 layout in board units"
+README.md: "## The three boards"
+changelog: notice|scal|screen size|sharper
+
+[flaps] The split-flap engine: fields and drums, flap faces (tile), drawing a flap mid-flip, the animation loop, the app's flap panels
+test/index.html: DRUM_ALPHA DRUM_DIGIT DRUM_ALT DRUM_POS TRENDS TREND_COLOR fields allCells LIST_ROWS def LIST_IDS
+    PAGE_FIELDS pdef TOP_IDS VIEW_FIELDS vdef placeRow BIG MID PLUS_W Y layout geometry mix tiles tileBytes clearTiles
+    IVORY rr shade tile drawCell paintCell redrawAll running lastFrame kick frame path snapping pace QUICK_MS retarget
+    setChars setWord +drawStatic +label +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .panel
+tools/app/main.js: fields allCells panels makePanel def placeRow panelSpeech drawCell redrawAll sizePanel showPanel
+    refreshPanels drawPanelStatic label +DEFAULTS +applySettings
+tools/app/build.py: "E3" "E4" "E5"
+CLAUDE.md: "engine: `def()` fields of cells"
+README.md: "- **Quick flaps**" "- **Worn hardware**"
+changelog: \bflap|drum|letter
+
+[housing] The board's printed parts: brushed metal, wear, slots and screws, engraved labels and pictograms (drawStatic)
+test/index.html: label drawPlane pictogram metalCache metal paintMetal wearRnd wear edgeWear shadowSprites slotShadow
+    slots drawStatic screw #bg +METAL +railPlate
+tools/app/main.js: metalUrl metalTile
+README.md: "- **Worn hardware**"
+changelog: metal|housing|engrav|worn|screw
+
+[styles] Looks: board styles (THEMES), unlockable styles, palettes, flap finishes, title badges and icons, realistic look, Daylight
+test/index.html: FONT COL FLAP THEMES THEMES.frankfurt70 THEMES.tokyo THEMES.goldleaf THEMES.firstclass leatherGrain
+    leatherSeam METAL PALETTES STYLES BADGE_IDS styleGame styleOk classicLook themeNow DAYLIGHT daylightOn badgeGlyph
+    iconDraw favDefault badgeIcons drawPlaneShape FINISH WHITE_FLAP LED_FONT ledText LED_FLAP REAL applyLook grainCv
+    grain applyTheme styleKinds styleRuleText stylesCount stylesNote STYLE_ROWS STYLE_SHORT styleVal lookKind
+    styleShort stylesCellRefresh +lcdMarquee stylesCard stylesPreview #glass css:body.real .inst.styl +tile +pictogram
+    .styles .stLine .stVal .stArr .stWhy .stPrev .stRows .stL .stClassic .stCnt +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: css:html.daylight css:html.leather css:html.gilt
+tools/app/main.js: applyTheme +metalTile +drawMark +DEFAULTS +applySettings
+relay/serve.py: STYLE_GRANTS style_grants BADGES badge_manifest /admin/styles
+tools/app/make_icons.py: main
+tools/fonts.py: main
+CLAUDE.md: "Unlockable styles (1.59)" "Realistic look is `S.real`/`REAL()`"
+README.md: "- **Board styles**" "- **Styles to unlock**" "- **Title badges**" "- **Realistic look**" "- **Daylight**"
+    "- **Typefaces**"
+changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|LED
+
+[header] Title and header: the place, the Overhead/Airport switch, the clock, the status dot and line, the board's footer
+test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
+    .dot #modeSw #dot #pip #statusText +drawStatic
+tools/app/head.html: #top #mark .title .clockbox #clockP .dot .status #dot #modes .stOk
+tools/app/main.js: CLOCK drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusCard
+    updateWhere liveShow tickClock
+README.md: "The footer shows the name" "- **Connection** (1.38)"
+changelog: title|header|clock|footer|status line|the dot
+
+[featured] The plane on top: tracking (process, overhead rules, airtime), its flaps, times and delays, remarks; This aircraft
+test/index.html: REMARKS AP_ICON AP_PATH AP_LEVEL apSvgInner apSvg apPaths drawApIcon GOLD REMARK_LOOK +dingAt
+    +seatbeltDing ageOf movedOn remarkFor feat nearbyCount failures lastOk wasOffline OFFLINE_AFTER isOffline
+    planeName HOLD altitudeStr speedStr countdown overKm OVER_DEG overR overIn overEntry distStr setFeat logPlanes
+    airtime restLogged airTick SLOW_KT NORMAL_PASS_MS airUsed noteAirtime hangsAround restingPlanes recent
+    MISSING_GRACE_MS emptyStreak lastCount process timesCache timesFor timesSettled utcMs demoTimes gcKm estArrival
+    renderTimes seenCache seenGet seenBefore seenText firstLines vieLines gateFor remarkLines toGoText sky skyAt
+    skyCheck aboveCloud windowWorthy MODE_REMARK seenLook renderFeatured featRemark acDetails detailsOf lookupDetails
+    detailsDone renderAircraft +liveBlank +remarkChip +legendHtml +photoBox +renderPage +isAc +noteFeatured +chime
+    +specialOf +alertOn +badgeFor +watchOf +relayV5 +enrich +infoChanged +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .facts #hero #t-now
+tools/app/main.js: UM HERO fields.toGo.hidden SIDEWAYS heroLayout setFeat shownPhoto renderAircraftInfo
+    $("hero").addEventListener("click") +DEFAULTS +applySettings
+relay/serve.py: seen_json metar sky_json VIE_FLIGHTS _vie _vie_lock vie_on fn_key _iso_ms _vie_load vie_refresh
+    vie_times vie_status /times /sky /seen
+CLAUDE.md: "Top half: the plane overhead"
+README.md: "## What the board shows" "- **Overhead** (1.84)" "- **Approaching**" "- **Flight times**"
+    "- **ABOVE CLOUD**" "- **Remarks** (top half" "- **Remarks: what's new**" "- **Airtime limit**"
+    "- **Not known: /**" "- **Take-off and landing pictograms**" "- **New plane ding**" "- **Now**:"
+tools/test/fakesrc.py: "/jart/prj3/va/data/flights/"
+tools/test/flows.py: "1.88: the Remarks in the Overhead style"
+tools/test/run_test_relay.py: "--far" "--hover" "--quiet"
+changelog: overhead|on top|remark|delay|approach|inbound|airtime|this aircraft|leaving
+
+[specials] Special planes: giants, military, emergencies, the watchlist, chimes and alerts that take the board
+test/index.html: SPECIAL_TYPES +BELL_NOTES +airportBell +chime SPECIAL_BIG emergencyOf specialOf isSpecialPlane
+    badgeFor watchCache watchBusy watchAsk watchOf watchOpOf liveFacts chimed alertKind alertOn checkChimes +process
+    +renderFeatured +featRemark
+tools/app/main.js: #sideAlert
+relay/serve.py: PLANE_ALERT_CSV PLANE_ALERT_FILE WATCH_WORDS WATCH_OF_CAT _watch _watch_lock _watch_load watch_of
+    +category_of /watch +window_planes +hue_check
+README.md: "- **Special planes take the board**" "- **Special aircraft**" "- **Watchlist**" "- **Chimes**"
+changelog: special|watchlist|emergenc|military|chime|alert
+
+[photos] The plane's photo and its credit: Planespotters.net, adsbdb, the model's picture; the board's screen, link and remote
+test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey photoBox rwyFeat featPic featPhoto
+    photoReady photoCredit drawCover drawBezel glass paintScreen paintPlain drawPlaque engrave preloadPhoto placePhoto
+    $("photoImg").onload $("photoImg").onerror photoLinkSet photoLinkOn photoKey
+    $("photoLink").addEventListener("click") modelPics modelTitles MODEL_LIKE modelSearches modelWiki modelPic
+    PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml picHtml picFailed +shareImg
+    +shareCanvas +picCard +planeAgain .photo @screenOnLite @screenOn #photoImg .pLink #photoCr .crBy .crSrc #photoCv
+    #photoFrame #photoLink +aboutHtml +SITE_LINKS +siteLinks +viewItemHtml +planeBody +wikiImg +wikiPage +wikiFind
+    +renderAircraft +isAc +pageHold +pickPage +document.addEventListener("keydown") +placeCard +typeCard +KEYS
+    +pageAvailable +SHARE_OK +planeCard 'document.activeElement === $("photoLink")' .cPicA .cCr .cPic .cPicW .cCredit
+    +fromRelay +boardTap
+tools/app/head.html: .bezel .led .screen @screenOn .cOv .cOvF #bezel #photo #photoCr #photoLink #screen .cCr
+tools/app/main.js: +shownPhoto +renderAircraftInfo +rwyE +hgBad +modelPicNow +planeAgain +arPeekHtml +aboutOpen
+    +hangarHtml +arCardRender +paintRwy
+relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
+    PS_FAIL PS_GAP PS_WAIT PS_REST PS_IMG _ps_cache _ps_next _ps_rest _ps_like _ps_first _ps_ask plane_photo
+    /planephoto /photo
+CLAUDE.md: "photos in the order Planespotters.net"
+README.md: "- **The aircraft photo**" "- **Whose photo**" "- **Model photos** (1.34)" "- **Model photos** (1.43)"
+    "photo's credit" "- **Share a plane**"
+tools/test/fakesrc.py: PS_PHOTOS PS_ASKED PS_PHOTO PHOTO SVG_PHOTO /ps/pub/photos/ /ps/asked /psimg/ /photo/
+tools/test/flows.py: "relay 73: a plane's own photo" "1.93: a plane's own photo"
+tools/test/run_test_relay.py: "--live-photos" "the share picture's photos"
+changelog: photo|credit|planespotters|model picture
+
+[pages] Rotating pages in the lower half: Recent flights, This aircraft, Today in numbers; the falling page; the app on its side
+test/index.html: shownEmpty emptyNote recentFlights RECENT_KEY loadRecent saveRecent noteFeatured recentInfo
+    withShared recentShown renderSpotted PAGE_ORDER_OVERHEAD pageOrder isAc ROTATION_OVERHEAD rotLoops statsTurn
+    rotation rotStep page pageSince switching reviewTime pageTitle fieldsOf pageAvailable goPage PANEL bigFlap FLIP_PX
+    capturePanel FALL startBigFlap endBigFlap nextPage syncRotation pageHold pickPage stepPage renderPage
+    topTypesFlaps renderStats #flipCv +PAGE_FIELDS +pdef +renderAircraft +PAGE_KEYS 'pdef("stats"' 'pdef("aircraft"'
+    +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: #recent .lcol .pages #t-now #sideAlert #acP #acSec #acTitle #nowEmpty #nowPages #recentP
+    #recentSec .pageEmpty
+tools/app/main.js: NOW_ROWS nowRows lowUnits setNowRows RECENTP APP ACP RECENTP.off +rowHtml recentSig renderRecent
+    +renderLists nowPage nowHold nowTurn rotI isAcPage PAGE_NAME nowPageList appApPage pageHas buildNowPages
+    showNowPage fitSideways sideFrom sideways nowPanels nowEmptyNote +DEFAULTS +applySettings
+relay/serve.py: +day_stats
+CLAUDE.md: "Lower half: rotating pages"
+README.md: "- **Rotating pages**" "- **Today in numbers** on the board" "- **Today in numbers** (1.43)"
+    "- **Day in review**"
+changelog: page|recent flights|today in numbers|rotation|sideways|on its side
+
+[views] Views and the rail: switching views, the rail's push buttons, the view tools; the app's tabs
+test/index.html: view viewTimer viewTouched staticSub onMainPage VIEW_NAMES VIEWS VIEW_IDLE_MS boardIds leaveFields
+    enterFields switchView toggleView viewLanded hideViewParts renderView viewSubtitle viewStatic buildViewTools
+    updateViewTools PAGE_KEYS RAIL_SVG ICO_PLANE RAIL_ICONS PAGE_ICON VIEW_ICON RAIL_VIEWS buildRail placeRail
+    updateRail updatePager railPlate addEventListener("hashchange") +boardTap .rail .cap #railPages @lampOn #viewTools
+    #railViews +document.addEventListener("keydown")
+tools/app/head.html: .tools #tabs .cap.ping @ping .tabHead .tabX #tabRow
+tools/app/main.js: ICON TAB_ICONS TABS tab tabTimer onMainPage buildTabs pingNow showTab
+    addEventListener("hashchange")
+README.md: "- **Views on the board**" "Press **S** for settings"
+changelog: view|rail|button|tab\b|tabs
+
+[spotted] Spotted today: the day's sightings from the relay, the board's table, filter and legend, the app's Today tab and lists
+test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS_MS entryTime dedupe spotted logDay
+    rollDay sightRev sightBusy relayStats sightDay fromRelay sightDone syncSightings fullDay loadFullDay dayList
+    todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary svQuery spotMatch svFindHtml svFindWire lampOf
+    altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
+    legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
+tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts #todayP
+    #todayTop
+tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
+    placeHtml rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
+    todayFactsSig renderTodayNumbers renderToday renderLists
+relay/serve.py: day_stats sightings_json /sightings +Spot.day_entries
+README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
+    "- **The day runs from 03:00"
+docs/history.md: "Spotted today's PAGE x OF y"
+changelog: spotted today|today tab|\btoday\b|legend|filter
+
+[logbook] Logbook and records: the board's one-screen Logbook, the app's Logbook tab, search, categories, places, week/month/year
+test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB_CAT_Y LB_LIST_Y LB_LIST_P lbCache
+    lbError lbPer lbYearBack lbSig lbFocusK lbYears lbYearAt lbYearOk lbPers lbYear demoYear lbPerData lbPerTitle
+    LB_NUMS lbNums lbBook lbTop lbAirline lbDayY MAKERS lbModel lbFlap lbWho lbRecVal lbYearFetch lbFetch lbAgain
+    lbPerSet lbPick lbPlates plateDraw lbStaticSig lbLabels lbLabel lbStatic lbSeekOk lbSeek lbSeekQ lbSeekTok lbFound
+    lbToolsHtml lbToolsWire lbToolsSync lbCardK lbCardTok lbCardWait lbBackTo lbCatQ lbCatV lbCatData lbCatOk lbCatKey
+    lbCardOn lbCard lbCardShow lbCardBack lbCardAgain lbRow lbFacts lbCardHtml lbCatHtml lbCatFetch lbCardWire
+    lbSearch lbFoundHtml lbBoxAt lbHitsShow fx.addEventListener("mousemove") fx.addEventListener("mouseleave") lbFocus
+    lbFocusPlate lbKey lbNear fmtDay typeLabel demoLogbook lbData lbPlace lbPlaceData LB_VIEWS LB_VIEW_NAMES lbPlaceOk
+    lbChips lbPlaceName lbPlaceUrl fetchLogbook logbookSummary review reviewOk reviewKey fetchReview demoReview
+    reviewData reviewTitle reviewDay reviewSummary reviewFacts reviewNewTypes REVIEW_NUMS renderLogbookBoard #lbHits
+    #fx.lbHov 'if (view !== "logbook" || !cardOpenNow()' .lbRow .lbRecs .lbCard .lbFound .lbNums .lbSeg .lbRk .lbCats
+    .lbSub .pickList +VIEW_FIELDS +layout +drawStatic +BOARD_TIPS +document.addEventListener("keydown") +boardTap
+    +#viewTools 'vdef("logbook"'
+tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
+    #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .lbTabs .perHead .perArr .sum.lbFoot .dd
+    #lbPlaces .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbModel #lbP #lbSum #lbTop #lbViews #t-logbook
+    +.seg.lbPlaceSeg
+tools/app/main.js: LBP lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
+    lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
+    renderLogbook lbPick lbPlaceSheet recordsHtml secPlate yearData yearAt yearCache fetchYear yearFacts lbPeriod
+    yearBack periodHtml reviewHtml +periodPicture +shareYear +sharePeriod
+relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
+    MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
+    logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
+    REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT _reviews review_range review_json CSV_COLS _csv_safe logbook_csv
+    +seen_json +where_name +geo_where +where_of +review_check /logbook /search /logbook/category /year /review
+    /logbook.csv /seen
+README.md: "- **Logbook** (press" "- **The Logbook's buttons**" "- **Records** (a plate" "- **Week, month and year**"
+    "- **Logbook by place**" "- **Search the logbook**" "- **Panels** (1.83)" "- **Logbook** (1.55)"
+    "In the Logbook the arrow keys move a ring"
+tools/test/flows.py: "the whole logbook searched (relay 55)" "relay 61: category words in the search"
+    "relay 63: where a sighting on the go was made"
+tools/test/smoke.py: "Fire TV Logbook"
+changelog: logbook|record|categor|week|month|year|search|most seen
+
+[radar] Radar and its map: the instrument, plane labels, zoom, OpenFreeMap tiles; the app's Radar tab and a plane's card there
+test/index.html: radar RADAR_COL RADAR_GEO rgba radarTrack radarPos radarCentre radarStatus radarRows RADAR_ZOOM_KEY
+    radarZoom RADAR_CLOSEST radarSteps RADAR_MIN radarZoomed radarRing radarZoomSet radarZoomKeep radarZoomStep
+    radarZoomCan radarBase radarRange radarRangeText RADAR_MAP_KEY RADAR_MAP_CREDIT radarMapOn radarMapSet radarMap
+    radarMapDraw MVT_LAYERS mvtRead mvtPath RADAR_MAP_LOOK radarMapTiles radarMapBuild radarBox resizeRadar startRadar
+    stopRadar radarStatic altShort radarColor radarLegend radarAsked radarInfo radarName radarLabels ringLabels
+    paintRadar drawRadar renderRadarList radarObj +boardTap #radarCv 'vdef("radar"'
+tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend #rLegend #radarBg
+    #radarCv #rvCredit #rvHint #rvList #rvMap #rvReset #rvWheel #rvZoomIn #rvZoomKm #rvZoomOut #scope #t-radar
+tools/app/main.js: +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
+    radarPlaneCard radarSelOpen RG radarSize radarStatic startRadar stopRadar drawRadar buildRadarLegend rvSig
+    renderRadarList $("rvMap").onclick $("rvReset").onclick $("rvWheel").onkeydown radarZoomTo pinch
+CLAUDE.md: "The radar's optional map (1.55)"
+README.md: "- **Radar** (press" "- **Radar**: the radar instrument"
+changelog: radar|map\b|nearest
+
+[settings] Settings: the cockpit (COCKPIT, plates, controls, Save/Cancel, jump bar), the settings kept and synced to the relay
+test/index.html: DEFAULTS GUEST SKEY loadSettings overRule saveSettings S meBase settingsChanged locSet cockpitKeys
+    ME_KEY mePending meTimer meFails meBusy meSend meFlush meUnsynced syncShow addEventListener("online") lcdMarquee
+    COCKPIT_FOR COCKPIT cockpitFor PLATES VIEW_PLATES ITEMS draft rotaryAngles rotOpts rotaryIndex HINTS +DEV_ICON
+    +viewItemHtml +acctHas +wireViews itemHtml wheelStep cockpitDraft wireCockpit cockpitShow cockpitUnsaved
+    cockpitDirty cockpitSave cockpitCancel ctlCap plateHtml cockpitOpen savedFlash cockpitDone cockpitMark
+    +accountOpen +ctlNoise +ctlReady +ctlBurst +ctlRing +ctlSound +hereNow +nearestAirport +nearbyAirports +putDraft
+    +locatedAt +wireLocation +settingsSync +wireSearch applySettings #cockpit .plate .inst #hintTip .lcd .rotary
+    .toggle .wheels .wheel @rollUp @rollDown .ctlCap .ctlTop .ctlBot +stylesCard +favCounts +accountBox
+tools/app/head.html: #cockpit .syncNote .savebar #t-settings.dirty #setJump .seg.jumpSeg #cancelBtn #saveBtn #setExtra
+    #setJumpSeg #setSum #t-settings
+tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings overRule saveMe located saveSettings S meBase
+    COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark buildSaveBar settingsExtra jumpPlates
+    jumpName jumpOn jumpHold jumpBuild jumpLine jumpGo jumpSpy jumpLight topSize jumpRaf addEventListener("scroll")
+    applySettings +renderPush +renderFavBox +renderAbout +showTab
+relay/serve.py: /me +Handler.profile_post
+CLAUDE.md: "are one `COCKPIT` for board, app and light"
+README.md: "- **Settings** (press" "- **Settings** also holds" "- **Jump bar**" "- **Settings**: the cockpit plates"
+tools/test/cockpit_list.py: DUMP VIEW
+tools/test/flows.py: "settings round trip, and a save from another site"
+tools/test/plates.py: OVERFLOW_JS FIRE_TV
+tools/test/smoke.py: "Fire TV Settings"
+changelog: setting|cockpit|save|jump bar|knob|switch
+
+[about] About: patch notes (CHANGELOG, VERSION), the keys, credits, the owner's Relay plate; the new-version notice
+test/index.html: +aboutTaps +aboutTap CHANGELOG VERSION fmtVerDate publishedText versionLine changelogHtml aboutHtml
+    SITE_LINKS siteLinks NV watchVersion nvBusy nvDraw nvShow nvInput nvTick nvReload NV.busy +viewItemHtml KEYS
+    aboutOpen remarkChip legendHtml #nvBox #btnNew #cockpit.about .scrollBtns +accountOpen .notes .vers .keys .legend
+    .lg .ver .log .tabs +cockpitOpen +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: #nvBox #t-about css:body.aboutOpen #aboutBox .about .relayP #aboutX
+tools/app/main.js: aboutOpen relayTimer relayLoad relayPlate renderAbout aboutShow aboutHide nvGoing NV.busy +DEFAULTS
+    +applySettings
+relay/serve.py: BACKUP_FILE BACKUP_LATE_S relay_panel_json /pageversion /relayinfo +main +STATE +SOURCES +aircraft
+    +board_html
+CLAUDE.md: "**Versions and patch notes.**"
+README.md: "- **About** (Settings → About" "- **Tap About seven times**" "- **Relay** (1.88, relay 69)"
+    "**New versions (1.51).**"
+tools/test/flows.py: "relay 69: the owner's Relay plate" "relay 69: the page knows the owner"
+tools/test/plates.py: OVERFLOW_JS
+tools/test/smoke.py: "Fire TV About" "1.93.0.1: and About's"
+changelog: about|patch notes|new version|refresh|credits
+
+[places] Live location, saved places and the place bar; Settings → Location; the address search; where sightings were made
+test/index.html: liveShow placesRelay places allPlaces placeKeyNow placeName placeLabel placeQs sightPlaceQ placesLoad
+    placesSave placeOfS placeKeySet placeAt placeCheck placeAfter usePlace liveOk liveWatch liveTimer liveSaved
+    liveFirst LIVE_RETRY_MS liveNameAsk liveAirAsk liveNameOk liveAirOk placeNow LIVE_FRESH_MS liveAt liveWas
+    liveRunAt liveToldAt liveStale liveWaiting liveBlank liveHalt liveRun liveStart liveStop geoReverse liveFix
+    geoSearch placesCard hereNow nearestAirport nearbyAirports putDraft locatedAt wireLocation settingsSync wireSearch
+    .inst.loc .geoQ .geoRes .lblF .upd .apList .inst.updAll +queryCenter +meSend +#modeSw +drawStatic +viewSubtitle
+    +itemHtml .plRow .plGo .plRm .plUp .pickList +snapLoad +snapSave +dayList +renderFeatured +recentShown
+    +renderStats +spottedSummary +poll +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .seg.svPlaces .seg.lbPlaceSeg #svPlaces #where
+tools/app/main.js: +located +arTry +arGoLive $("where").onclick +updateWhere +liveShow +gGoLive +lbPlaceSheet
+    #svPlaces #where +arSnap +dayList +renderRecent +todayNumbers +renderToday +DEFAULTS +applySettings
+relay/serve.py: airports_near _guest_center _guest_radius guest_spot PLACE_KEY place_key screen_place LIVE_FRESH_S
+    live_stale _clean_places places_of NOMINATIM _geo_lock _geo_last _geo_cache _geo_get _GEO_ADMIN _geo_admin_clean
+    _geo_name geo_search geo_reverse WHERE_FILE WHERE_CELL _where _where_todo _where_lock _fold _where_cell where_name
+    geo_where _where_sweep _where_worker where_estimates where_of /places /geo/search /geo/reverse /airports/near
+    +main /aircraft/
+README.md: "## Choosing the location" "- **Settings → Location**" "- **Use current location** (Settings"
+    "**Saved places**" "**Find an address**" "**Update location**"
+tools/test/fakesrc.py: "/nominatim/reverse" "NAMES_FAILED" /nominatim/reverse
+tools/test/flows.py: "relay 70: a live position counts only while" "relay 63: where a sighting on the go was made"
+    "the game (relay 59): only a phone on live location" "relay 71: Recent points"
+tools/test/run_test_relay.py: "--slow-names" "SLOW_NAMES"
+changelog: live location|location|place|address|on the go|town
+
+[airport] Airport style: the airport's planes, runways in use, the runway screen, the take-off and landing lists
+test/index.html: AIRPORTS +AP_ICON +AP_PATH +AP_LEVEL +apSvgInner +apSvg +apPaths +drawApIcon +rwyFeat +pageOrder
+    renderAirport rwyChanged renderApLists airportChanged airportMode AP_ROWS AP airportPos queryCenter airportProcess
+    rwyFrom RWY_USED rwyGeo rwyMatch rwyTrack rwyInUse rwyLine RWY_MIX RWY_MIX_MS rwyClose rwyMix paintRunwayScreen
+    rwyTimer rwyAgain AP_LINGER_KM apFocus apFeature apTimer scheduleAirport apFlight apPlace +nearestAirport
+    +nearbyAirports 'pdef("aplists"' 'for (const k of ["d", "a"]) for (let i = 0; i < 5; i++)'
+tools/app/head.html: .screen.rwyOn .apPick #t-now.ap #apAP #apDP #apP #apPick #apSec #apSub #rwyCv .ap
+tools/app/main.js: APDP APAP drawCover rwyKey rwyE paintRwy apSig renderAirport airportChanged +appApPage
+relay/serve.py: RUNWAYS_CSV _runways runways_of airport_info /airport /times
+CLAUDE.md: '**Airport style** (`S.mode === "airport"`'
+README.md: "- **Airport style** (tap" "- **Runways in use**"
+tools/test/flows.py: "the Airport style keeps"
+changelog: airport style|runway|take-off|landing|gate
+
+[names] Names: airlines, aircraft types and airports (the reference tables, logos, the relay's airline and airport lists)
+test/index.html: +AIRPORTS logos logo drawLogo airlineCodeOf AIRLINE_WORDS AIRLINES TYPES typeName fmtFlight
+    shortAirline code3 airlineAsked airlineQ airlineT airlineAsk airlineSend +liveryLine +enrich +fromRelay
+relay/serve.py: AIRPORTS_CSV AIRPORTS_FILE AIRLINES_CSV AIRLINES_FILE AIRLINES_EVERY_S CITY_FIX ICAO_FOR _airlines
+    airline_fields _load_airlines _airline_fill _backfill_airlines _airlines_worker _airports _airports_lock _airport
+    _load_airports _airports_ready +airports_near /airlines +main +_enricher +_all_profile_spots +_days_of
+    +Spot.day_entries +Spot.day_changed +Spot.files
+README.md: "Airline names (relay 68)" "- Airline logos:"
+tools/test/fakesrc.py: "/airlines.csv" AIRLINES_CSV
+tools/test/flows.py: "relay 68: airline names from the airline list"
+tools/test/run_test_relay.py: "relay 68: a sighting from yesterday" /airlines.csv
+changelog: airline name|airline|logo|type name|airport name
+
+[cards] Cards: a plane, a model, an airline, a place; card music; Wikipedia's words; the taps and clicks that open them
+test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUSIC_S MUSIC_FADE_S cardMusic
+    MUSIC_BYTES musicBufs musicBuf cardMusicStart cardMusicStop cardWait cardLoading imgsReady cardWhenReady
+    cardOpenNow factsHtml wikiHtml chipHtml wikiCache wikiPage wikiFind wikiImg airlineOf AIRLINE_TAIL airlineWiki
+    airlineFacts airlineInfo countryName logoReady airlineCard placeCard planeBody typeOf typeCard planeShown
+    planeCard tapAt tapTimer fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
+    +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +photoKey
+tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
+tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetClose planeAgain +radarPlaneCard +arTap
+    +foundCard +hangarCard +playerCard
+relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/
+README.md: "- **Cards** (1.34)" "- **Model card**" "- **Cards** (1.78, app)" "- **Cards** (1.42)"
+    "- **Emirates boarding music**"
+changelog: \bcard|wikipedia|music
+
+[favourites] Favourites and hidden planes: the lists, the sheet, the manager, swipes; the relay's lists
+test/index.html: plusOn plusBtn plusOpen plusBox userLists listsLoad favCache favList listHit isHidden hiddenAc isFav
+    +liveFacts listsOk KIND_NAME listsSave SAVE_FAILED listsQ listsWaiting listsServer listsApply listsShow listOps
+    listChoices sameItem inList listFlip togBtn cardToggle listSheet favManager favCard favCounts parseListEntry
+    listsMigrate listsChanged css:textarea.fav .cap.favCap .inst.favs +listHints .favAdd .chips .shRow .shH .shImg
+    +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .fl.swiping #sheet .shH .shRow #favBox .chips .favAdd
+tools/app/main.js: SWIPE_AT swipe swipeEnded swipeRow document.addEventListener("touchstart")
+    document.addEventListener("touchmove") swipeDone document.addEventListener("touchend")
+    document.addEventListener("touchcancel") listsChanged renderFavBox #favBox +DEFAULTS +applySettings
+relay/serve.py: LIST_KINDS _clean_list lists_of _list_hit /lists +_fav_tokens
+README.md: "- **Favourites and hidden planes**"
+tools/test/flows.py: "favourites, one change at a time"
+changelog: favourite|hidden|hide|swipe
+
+[share] The share picture: a sighting, the year or a period as a split-flap picture to share (and its photo)
+test/index.html: SHARE_OK shareImg shareCanvas spottedBy shareCard picCard +planeBody +photoCredit +psOk +planePic
+tools/app/main.js: PIC_ONE periodPicture shareYear sharePeriod +arSnap
+relay/serve.py: PHOTO_HOSTS PHOTO_TYPES PHOTO_MAX _photos _photo_host_ok photo_get /photo
+android/app/src/main/java/io/github/belstria/overhead/MainActivity.kt: "fun shareImage"
+android/app/src/main/java/io/github/belstria/overhead/ShareProvider.kt: "class ShareProvider"
+README.md: "- **Share a plane**"
+tools/test/run_test_relay.py: "the share picture's photos"
+changelog: share|picture
+
+[game] The game (the app only): points, levels, league, hangar, trophies, bingo, achievements, Sky view's lock-on
+test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME drawTierIcon +fanfare LEGENDARY FLEET
+    fleetTier tierOf TROPHY_LADDERS TROPHY_SINGLES TROPHY_IDS TROPHY_TEXT TROPHY_MEDALS MEDAL_COL TROPHY_TIER
+    trophyLadder GOAL_TEXT goalText bingoReset trophyText game ACH_KEY ACH_MS achQueue achTimer achList achCheck
+    achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx
+tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @gFlp .gLv .gBar @gShine @gGlow .gChip
+    .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
+    .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gTaper .gRule .gHowTiers .gOpt .hgPlate #gLvUp
+    @gPop #arPass .pF @pfIn @pfTear #arBurst @pfSpark #gameBox .rpList .gHow
+tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow hangarHtml hgWire
+    hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk G_BASE gKm gme gmeAt gBusy
+    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh
+    gCoins gStyleAt gLevelUp gJingle gRip gLeagueLoad renderGame gHowCard gRecentOk gPlus gWhy gRecentCard playerCard
+    ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
+relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
+    TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
+    _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
+    game_json GAME3_V GAME_KM TIER_BASE GAME_NEW LOCK_PCT LOCK_MIN LOCK_COMBO_S LOCK_FRESH_S LEVEL_TITLES game_book
+    _monday _streak_mult game_points level_of _game_add game_note _game_award game_today _game_best game_lockon
+    game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
+    /game/today /game/league /game/player /game/hangar /game/lockon
+CLAUDE.md: "The game (1.72, relay 59)"
+README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **Rarity and the Collection**"
+    "- **Achievements**"
+tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: where a sighting on the go was made"
+changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
+
+[skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
+tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arAuto .arTour
+    .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
+    @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
+    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAuto #arBtn #arBtn2 #arCal #arCard
+    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #look #lookDir
+    #lookSub #skyB #skyRow #skySub
+tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
+    drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
+    arWatch arHere arRaf arDrag arHits arSel arOff arDec arHintText arAlt arOffSave AR_AIM_R AR_AIM_MS arAim arRaw
+    arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
+    arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arTurns
+    arFeed arEvent arQuat arQMatrix wrap180 arYaw arOrient arGapStep arGyroStep arTurn arHold arOpen arCalCheck
+    arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arLoop arReportOk arR1 arReport
+    $("arFlag").onclick arShotAt arShownN arLocked arLift arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N arAuto
+    arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arAutoSig arCan arCx arAutoStep arFind arSunCan arSunCx
+    arSunFind arAutoChip $("arAuto").onclick arBody arBodyAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arWeather arHeight arAimDraw arEdge shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
+    $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
+    arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoLive skyRowRender
+    $("arClose").onclick $("arShut").onclick $("arReset").onclick $("lookCv").onclick lookAuto
+    addEventListener("pointerup") +gLockOn
+relay/serve.py: +metar +sky_json SKY_REPORTS_MAX SKY_REPORT_DROP sky_report_clean sky_report_save /skyreport /sky
+tools/app/WMM.COF: "WMM"
+README.md: "- **Where to look**" "- **Sky view** (Now"
+tools/test/flows.py: "Sky view's reports (relay 72)"
+tools/test/run_test_relay.py: "SKY_REPORTS_MAX"
+tools/test/sky_jitter.js: "const arPossible"
+changelog: sky view|where to look|compass|gyro|auto\b|sun|moon
+
+[push] Notifications: Web Push and Firebase (Android), the service worker, window alerts, the evening summary, the widget
+test/index.html: +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .pushOpt #pushBox .pushKinds
+tools/app/main.js: PUSH_KINDS PUSH_KIND_DEFAULTS PUSH_PREFS SW_DIR NATIVE_PUSH NATIVE_ON nativeOn nativeToken pushSub
+    pushPossible swReady swRegister enablePush renderPush sendSub +DEFAULTS +applySettings
+relay/serve.py: try: VAPID_FILE _vapid SUMMARY_AT _sent _b64u _ub64 vapid _hkdf FCM_FILE _fcm fcm_ready _fcm_token
+    fcm_send push_send PUSH_TEXT DIRS ptext push_targets PUSH_HOSTS push_endpoint_ok _deliver _fav_tokens PUSH_KINDS
+    WINDOW_GAP_S _last_window _countdown _push_prefs now_json window_planes window_check countdown_send summary_check
+    review_check _push_watch /push/key /push/test /push/subscribe /push/unsubscribe /now +main
+android/app/src/main/java/io/github/belstria/overhead/MainActivity.kt: "fun pushEnable" "fun pushToken"
+android/app/src/main/java/io/github/belstria/overhead/NowWidget.kt: "class NowWidget"
+android/app/src/main/java/io/github/belstria/overhead/PushService.kt: "class PushService"
+app/sw.js: self.addEventListener("push") self.addEventListener("notificationclick")
+CLAUDE.md: "Android notifications (1.70)"
+README.md: "**Notifications (relay version 25).**" "- **Home-screen widgets**" "- **Look up now**"
+tools/test/flows.py: "the plane overhead now, for the Android widget"
+changelog: notification|push|widget|summary|look up now
+
+[account] Accounts, profiles and sign-in: invite links, passkeys, passwords, QR pairing, devices, the owner, Account & device
+test/index.html: b64u ub64 accountsOk passkeysHere acctPost deviceName passkeyAdd pwCard acRow accountBox DEV_ICON
+    viewItemHtml acctHas wireViews accountOpen .acIn .acHead .acAv .acWho .acctPlate .acOutBtn .cap.danger .acCheck
+    .acTick .acGo .devTiles .devTile .devIco .devLinks +GUEST +COCKPIT +DEFAULTS +applySettings
+tools/app/head.html: .acIn #acctBox .acHead .acAv .acWho .acctPlate .acCheck .acTick .acGo .devTiles .devTile .devIco
+    .devLinks .cap.danger .acKeys
+tools/app/main.js: +GUEST +androidHandover +DEFAULTS +applySettings
+relay/serve.py: PROFILES_FILE COOKIE INVITE_DAYS _profiles +_made _hash PREVIEW_BOT profiles peek_invite new_invite
+    redeem _QR_ECC _QR_BLOCKS _qr_raw_modules _rs_mul _rs_ecc qr_matrix qr_svg PAIR_ALPHA PAIR_S _pairs pair_new
+    pair_find pair_html pair_page_js ACCOUNT_RE _challenges _challenge _take_challenge _cbor _cose_to_spki
+    _client_data _auth_data passkey_register passkey_signin _pw_hash _pw_ok account_of account_json add_device
+    signin_html SIGNIN_JS profile_for remove_device remove_profile HOME_OWNER SKIP_FILL _merge_day _rebuild_book
+    _write_json merge_home _pw_fails _DUMMY_PW pw_wait pw_failed Handler.identify Handler.cookie_token Handler.refuse
+    Handler.secure Handler.rp Handler.signed_in Handler.account_post Handler.pair_who Handler.pair_page
+    Handler.pair_post Handler.join_page Handler.join_gone Handler.join /signin /signin/begin /signin/passkey
+    /signin/password /account /account/user /account/password /account/passkey/begin /account/passkey/finish
+    /account/passkey/remove /pair /pair/new /pair/wait /join/ /signout /handover /me
+CLAUDE.md: "**Profiles and access (relay 42+)**"
+README.md: "**Friends and family (relay version 19).**" "**Every screen is a profile's (relay 42, 1.49).**"
+    "**Accounts (relay version 30, app 1.29).**" "**Sign in a TV with your phone**" "- **Settings → Account**"
+tools/test/flows.py: "C1: the admin pages"
+tools/test/run_test_relay.py: /test-signin
+tools/test/smoke.py: "This board is private" "Fire TV Account & device"
+changelog: account|sign in|signed in|passkey|password|invite|profile|device
+
+[welcome] A guest's first visit (the app's welcome and its greeting flaps) and the opening splash
+tools/app/head.html: #welcome @wPulse @wIn #splash @spPop @spFlap @spFly @spSink @spOut #wAcct #wAcctBox #wAcctNo
+    #wApp #wBoard #wFor #wGo #wHello #wHi #wHome #wLat #wLater #wLoc #wLon #wNote #wOpen #wPick #wPlace #wPush
+    #wPushNo #wPushNote #wPushYes #wStep1 "The opening plays when the page loads afresh"
+tools/app/main.js: GREET_DRUM greetText greetW centred splashLeft greetFlaps greeted COAST rollTo GREET_MS greetRoll
+    wSwap welcome
+README.md: "- **The opening** (app)"
+changelog: welcome|greeting|opening|first visit
+
+[sounds] Sounds: recorded and synthesised flap clatter, the bell and chimes, the ding, the controls' sounds, fanfares
+test/index.html: actx noise lastClack soundForced SOUNDS_JS SND sndLoading sndFile sndFailed soundFile loadSounds
+    sample audioInit sfxBus sfxHall sfxOut clack BELL_NOTES airportBell chime fanfare dingAt seatbeltDing aboutTaps
+    aboutTap +onMainPage ctlNoise ctlReady ctlBurst ctlRing ctlSound +COCKPIT +DEFAULTS +applySettings
+tools/app/main.js: +onMainPage +gJingle +gCoins +DEFAULTS +applySettings
+tools/sounds/README.md: "#"
+tools/sounds/build_sounds.py: main
+CLAUDE.md: "Sounds: recordings in `SOUND_DATA`"
+README.md: "- **Sounds** (1.17)" "- **New plane ding**" "- **Chimes**" "Flap sound is on by default"
+tools/test/smoke.py: "isn't served as a lasting file by its version"
+changelog: sound|chime|ding|bell|clack|fanfare|music
+
+[i18n] Languages: T() and the rows of test/i18n.js, the language picker, the app's data-t texts
+test/index.html: LANGS LOCALES UNIT LANG pickLang LOC T I18N_ROWS I18N +COCKPIT +DEFAULTS +applySettings
+tools/app/main.js: applyLang +DEFAULTS +applySettings
+relay/serve.py: +PUSH_TEXT +ptext
+test/i18n.js: "window.I18N_ROWS"
+tools/assets.py: stamp ASSETS
+CLAUDE.md: "**Every visible text goes through `T()`**"
+README.md: "- **Languages**"
+tools/test/smoke.py: "no translations (i18n.js didn't load)" "isn't served as a lasting file by its version"
+changelog: language|translat|german|french|spanish|dutch
+
+[tv] TV screens: WEAK_TV, LITE, drawing quality, --k scaling, the remote's keys and ring, Fire TV plate checks
+test/index.html: WEAK_TV HAS_KEYS quality LITE pxCap +KEYS document.addEventListener("keydown") css:body.lite +lbKey
+    +lbNear +lbFocus +lbHitsShow +photoKey +#hintTip +.scrollBtns 'if (view !== "logbook" || !cardOpenNow()'
+    'if (cardOpenNow() && (e.key === "Escape"' +COCKPIT +DEFAULTS +applySettings
+tools/app/main.js: LITE +DEFAULTS +applySettings
+keys/index.html: "<script>"
+CLAUDE.md: "Fire TV and LG (`WEAK_TV`)"
+README.md: "- **Drawing quality**" "- **The full board has what the app has**" "## Controls"
+tools/test/plates.py: FIRE_TV OVERFLOW_JS
+tools/test/smoke.py: "Fire TV Settings" "Fire TV Account & device" "Fire TV About" "Fire TV Logbook"
+changelog: \bTV|remote|fire tv|LG\b|frame|quality|keys?\b
+
+[night] Night mode and the night view
+test/index.html: nightOn nightKnown nightNow applyNight nightPeekUntil nightSig nightHideT nightViewWanted nightPeek
+    renderNightView #shade #nightView +COCKPIT +DEFAULTS +applySettings
+tools/app/main.js: nightOn nightCheck +DEFAULTS +applySettings
+README.md: "- **Night mode**"
+changelog: night
+
+[diagnostics] Diagnostics and logs: the board's diagnostics panel, the app's Log page, the relay's events
+test/index.html: DIAG diagQueued dlog scheduleDiag clockStr agoStr diagRows mergedLog renderDiag refreshRelayStatus
+    diagTimer openDiag closeDiag diagText $("btnDiag").onclick $("diagClose").onclick $("diagCopy").onclick forText
+    #diag .dstats .spark .dsrc #diagLogWrap #diagLog .lv-warn .lv-error .lv-debug .good .bad .meh #diagText #btnDiag
+    #diagClose #diagCopy #diagSources #diagStats
+tools/app/head.html: #t-log .logBar .logList #logText #logBox #logX
+tools/app/main.js: DIAG LOG_NET dlog scheduleDiag LOG_FILTERS logFilter logRaf logHits logTime logShow logHide logSoon
+    logRender logText logCopy $("logX").onclick
+relay/serve.py: +EVENTS +_event_id +event /status +status_json
+README.md: "Press **D**, or use **Diagnostics**"
+changelog: diagnostic|log page|connection log|\blog\b
+
+[network] Fetching data: the relay's address, positions (getAircraft), route and aircraft lookups (adsbdb, adsb.lol), demo
+test/index.html: SID tagged timedFetch netError fetchJSON PROXY relay relayV5 FEEDS feedIdx feedName lastFreshness
+    relayLegacy lastFill QUERY_NM QUERY_KM srcTime noAt noAtList getAircraft baseInfo routeFits routeLookup routeDb
+    routeLol aircraftLookup NA orNA lookedUp infoCache infoChanged edgeKm enrich DEMO DEMO_CYCLE DEMO_FLY DEMO_KMS
+    demoAircraft DEMO.push demoLog +queryCenter +COCKPIT +DEFAULTS +applySettings
+tools/app/main.js: +DEFAULTS +applySettings
+relay/serve.py: /aircraft/ /routeset /adsblol/ /airplaneslive/
+CLAUDE.md: "**Data**: positions from the relay"
+README.md: "## Data" "- **Updates every 5 seconds in the app**"
+docs/history.md: '**"@" callsigns**'
+tools/test/fakesrc.py: "/v0/callsign/" "/v0/aircraft/" ROUTES AIRCRAFT
+changelog: route|lookup|source|demo|update every|position
+
+[fr24] Flightradar24: the boards' lookups, the relay's queue, budget and limits, the gap filler, the admin plan
+test/index.html: USE_API apiWanted apiOffAt API_PAUSE_MS apiOn apiOff apiLookup liveryLine liveryShort +edgeKm
+    marketedBy categoryBadge +recentInfo API_NOTE
+tools/app/main.js: API_NOTE +statusCard
+relay/serve.py: FR24_API FR24_FILE FR24_KEEP_S FR24_GAP_S FR24_BUDGET FR24_REUSE_S FR24_EDGE FILL_AWAY_KM FILL_KM
+    FILL_FT FILL_EVERY_S FILL_FAST_S FILL_SLOW_S FILL_MAX FILL_SHARE _fr24 _fr24_q _fr24_queued _fr24_cv _fr24_order
+    _fr24_state fr24_key fr24_on _fr24_data _fr24_prune _fr24_reset_day fr24_period _fr24_usage _fr24_base_budget
+    _fr24_promo _fr24_budget fr24_paced fr24_info _fr24_saved fr24_want _fr24_lookup _fr24_slot_lock _fr24_next
+    fr24_slot fr24_spent _fr24_worker _fr24_same_flight fr24_keep _fr24_keep_cached fr24_status fr24_overlay _fill
+    _fill_cv fill_home fill_for fill_want fill_merge _fill_ask _fill_worker FR24_DAY_GUEST FR24_DAY_ACCOUNT fr24_limit
+    fr24_use guest_fr24 fr24_admin_html /flightinfo /admin/fr24plan /admin/fr24 +main +Spot.__init__ +Spot.day_entries
+    +Spot.day_changed +Spot.files +_days_of
+README.md: "### Flightradar24 on the main board and the test board" "- **Away from home, Flightradar24 fills the gaps"
+    "- **Painted as**"
+tools/test/fakesrc.py: "/api/flight-summary/full" "/api/live/flight-positions/light" away
+tools/test/flows.py: "relay 68: airline names from the airline list" '"New guest" has Flightradar24 off'
+    "relay 70: a live position counts"
+tools/test/run_test_relay.py: "--fr24" "and Flightradar24's answer about it"
+changelog: flightradar24|fr24|gap|painted as|credits
+
+[startup] Start and the main loop: poll, start, the first picture, hello to the relay, fullscreen, wake lock, idle cursor
+test/index.html: SNAP_KEY snapShown snapAt snapLoad snapLive snapSave relayV12 sayHello addEventListener("pagehide")
+    wakeLock keepAwake toggleFullscreen +tapAt +tapTimer idleT wake ["mousemove","keydown","touchstart"].fo… timer
+    busy lastList pollSeq poll start css:body.idle #snapTag
+tools/app/head.html: #snapTag
+tools/app/main.js: relayV12 sayHello addEventListener("pagehide") start booted run
+relay/serve.py: +board_html /hello /bye
+README.md: "**The first picture (1.51).**" "Click the board, or press **F**, for fullscreen."
+changelog: start|first picture|fullscreen|wake|idle|opens
+
+[tips] Tips: the first-time walkthroughs and the tips for each page, on the board and in the app
+test/index.html: BOARD_TIPS boardTips TIPS_KEY tipsSeen tipQueue tipCur tipsReset MODE_TIP PAGE_TIPS tip tipBand
+    tipNext #tipLayer @tipPulse
+tools/app/main.js: TAB_TIPS appTips
+README.md: "- **Tips** (1.42)"
+changelog: \btips?\b|walkthrough|first time
+
+[app-shell] The phone app's frame: the Android WebView app and handover, the service worker's caching, manifest and icons
+tools/app/head.html: css:html.android .brandline
+tools/app/main.js: ANDROID APK_URL androidHandover
+relay/serve.py: +now_json /health +BOARD_FILE +board_file +badge_manifest
+.github/workflows/android.yml: "name:"
+android/app/src/main/AndroidManifest.xml: "<application"
+android/app/src/main/java/io/github/belstria/overhead/MainActivity.kt: "class MainActivity" "fun findRelay"
+    "fun checkUpdate"
+android/app/src/main/java/io/github/belstria/overhead/Updater.kt: "class Updater"
+app/manifest.webmanifest: "icons"
+app/sw.js: SHELL KEEP self.addEventListener("install") self.addEventListener("activate")
+tools/app/make_badge.py: BODY plane
+tools/app/make_icons.py: main
+CLAUDE.md: "**Phone app**: `app/index.html` is generated" "On Android, the Overhead app (`android/`)"
+README.md: "## Phone app" "### Light version and Glass (parked)"
+changelog: android|app\b|apk|home screen|install
+
+[app-build] The app build: tools/app/build.py's markers (//@E) and patches, main.js's //@L regions, assets, push to main
+tools/app/head.html: "/*CAPS_AND_COCKPIT*/" "/*@ui*/"
+tools/app/main.js: LIGHT +LIGHT_FIXED "//@E" "//@L:"
+.github/workflows/check.yml: "The phone app is built from the board"
+tools/app/build.py: ex patched extract assemble REGION
+tools/assets.py: version stamped stamp ASSETS
+tools/light/build.py: "def "
+tools/push_main.py: DIFFERS
+CLAUDE.md: "If the build stops on a marker" "**Light version and Glass: parked (1.71.3).**"
+
+[relay-core] The relay's core: version, arguments and settings, serving the boards and files, caching, the request handler
+relay/serve.py: RELAY_VERSION BOARD_URL PAGE_TTL USER_AGENT PAGE BOARD_FILE PACKED_TYPES FILE_TYPES CONFIG_FILE
+    SAVED_KEYS DATA_DIR ARGS STARTED STATE EVENTS _event_id _cache _lock event fetch cached _fail_until
+    cached_or_stale +BOARD_PATHS _board_seen _board_date _board_file_try file_version board_file board_html _buckets
+    _gzip allow +save_config +ADMIN_PATHS Handler Handler.log_message Handler.handle Handler.finish Handler.reply
+    Handler.query Handler.client_ip Handler.at_home Handler.owner_ok Handler.on_this_computer Handler.https
+    Handler.host_ok Handler.same_origin Handler.form Handler.json_body Handler.jerr Handler.do_GET Handler.do_POST
+    Handler.profile_post lan_address main
+relay/install.sh: "#!"
+relay/overhead-relay.service: "[Service]"
+CLAUDE.md: "**Relay** (`relay/serve.py`): serves the published boards"
+README.md: "## Running the home relay" "**Names the relay answers to (relay 33).**"
+tools/test/flows.py: "packed and tagged pages" "relay 69: the page knows the owner"
+
+[relay-positions] The relay's position sources: adsb.fi, adsb.lol, airplanes.live, AvioADSB; resting, sharing and caching
+test/index.html: +aboutHtml +SITE_LINKS
+relay/serve.py: SOURCES ROUTESET FRESH_S SOURCE_GAP_S STALE_S NUM AIRCRAFT LEGACY _positions _fetch_lock rest_for
+    aircraft /aircraft/ /adsblol/ /airplaneslive/ /routeset +main
+CLAUDE.md: "adsb.lol (in reserve for its 500 a day"
+README.md: "Positions come from adsb.fi, adsb.lol and airplanes.live"
+tools/test/fakesrc.py: plane APRON along /ac/
+tools/test/smoke.py: "the test relay served no positions"
+changelog: source|adsb|airplanes\.live|avioadsb
+
+[relay-sightings] The relay's recording: Spot, a sighting per pass, the saver, route and aircraft enrichment, callsigns
+test/index.html: +noAt +noAtList +getAircraft +fromRelay
+relay/serve.py: LOGBOOK_FILE SAME_PASS_S DAY_STARTS_H LEARN_S _data_lock _dirty _enrich_q _route_cache _aircraft_cache
+    _load board_day Spot Spot.__init__ Spot.day_entries Spot.day_changed Spot.ensure_day Spot.book Spot.changed
+    Spot.files Spot.take _guest_spots all_spots _saver _dist_km _emergency _note_first _record _route_for AT_CS no_cs
+    _at_cs _scrub_at _scrub_at_spot _scrub_at_all _all_profile_spots _route_fits _routeset_for _aircraft_for _enricher
+    +_guest_center +_guest_radius +guest_spot +main +aircraft +now_json +window_planes /flightinfo
+README.md: "**Shared history (relay version 5).**"
+docs/history.md: '**"@" callsigns**'
+tools/test/fakesrc.py: /ac/
+tools/test/flows.py: "is no callsign: in the answer"
+tools/test/run_test_relay.py: "relay 70: a plane without a callsign" "relay 68: a sighting from yesterday"
+changelog: sighting|callsign
+
+[relay-screens] The relay's list of screens: which boards use it, /screens, /status, hello and bye
+test/index.html: +relayV12 +sayHello
+tools/app/main.js: +relayV12 +sayHello
+relay/serve.py: SCREEN_GONE_S SCREEN_NEW_S BOARD_PATHS _screens _screens_gone _screens_lock _hosts device_of board_of
+    _lookup_host host_of fmt_for screen_seen screen_info describe screens_list _screen_watch print_screens _console
+    screens_html status_json Handler.note_screen /screens /status /hello /bye +main
+README.md: "**Screens (relay version 12).**" "- **Screens**:"
+changelog: screens
+
+[relay-admin] The owner's admin page and the relay's health watch; installing and updating the relay
+relay/serve.py: +STYLE_GRANTS +style_grants +relay_panel_json _made +HOME_OWNER _ago PAGE_CSS plain_page WORDMARK
+    COPY_JS ADMIN_CSS _pform admin_stats admin_html save_config HEALTH_FILE HEALTH_REPEAT_S HEALTH_SOURCES_S
+    HEALTH_DISK _health_seen _health HEALTH_TEXT _owner_push _health_say _health_set _health_alive health_check
+    _health_watch ADMIN_PATHS Handler.admin_post /admin /admin/invite /admin/link /admin/limit /admin/styles
+    /admin/username /admin/password /admin/device /admin/resetaccount /admin/remove +Handler.owner_ok +Handler.at_home
+    +main
+relay/install.sh: "#!"
+CLAUDE.md: "## The relay's home and how to update it"
+README.md: "**The admin page (relay 42).**" "**Health watch (relay 45).**"
+tools/test/flows.py: "C1: the admin pages"
+changelog: admin|health
+
+[hue] The owner's Hue light pulse (relay 47): the bridge, pairing, lamps, the admin section, the fake bridge
+relay/serve.py: HUE_FILE HUE_DISCOVERY HUE_GAP_S HUE_PAIR_S HUE_AMBER HUE_COLOURS _hue _hue_lock _hue_seen _hue_run
+    hue_state hue_save hue_say hue_pairing hue_addr hue_call _hue_error hue_find hue_use hue_pair hue_lamps _xy
+    hue_pulse _hue_quiet hue_check _hue_watch hue_admin_html hue_admin_post /admin/hue/ +main
+README.md: "**Hue lights (relay 47"
+tools/test/fakehue.py: "class"
+tools/test/run_test_relay.py: "--hue"
+changelog: \bhue\b|lamp|light pulse
+
+[tests] Tests and tools: smoke.py, flows.py, the test relay and fake source, screenshots, lint, CI workflows, this code map
+.github/workflows/check.yml: "name: Check"
+docs/code-map.md: "## How to read here" "## Keeping the map current" "## Changes that go together"
+tools/codemap.py: check main
+CLAUDE.md: "## Testing a change" "**Finding the code:"
+README.md: "## Working on the board" "`py tools/codemap.py` shows where each"
+tools/test/cockpit_list.py: DUMP
+tools/test/fakesrc.py: H H.do_GET
+tools/test/flows.py: checks browser_checks call
+tools/test/lint.py: OPTIONAL check
+tools/test/plates.py: OVERFLOW_JS FIRE_TV
+tools/test/run_test_relay.py: main
+tools/test/shoot.py: "def "
+tools/test/sky_jitter.js: "const src"
+tools/test/smoke.py: syntax pages
+tools/test/tokens.py: check
+
+[misc] Small leftovers that belong to no other area (named here so the check knows them)
+test/index.html: .times
+
+[every-change] What every change goes with: the version (CHANGELOG, RELAY_VERSION), the asset stamps, history's parts
+test/index.html: +CHANGELOG +VERSION '<script src="i18n.js?v='
+relay/serve.py: +RELAY_VERSION
+CLAUDE.md: "`RELAY_VERSION` at the top"
+docs/history.md: "## How the board works" "## The phone app" "## The relay"
+tools/test/lint.py: OPTIONAL
