@@ -11,6 +11,8 @@ are not touched: the test relay runs from a temporary folder.
                                                gap filler's take-off that only Flightradar24 hears (relay 66)
     py tools/test/run_test_relay.py --hue      a fake Hue Bridge (fakehue.py, two ports below the relay) for the admin
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
+    py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
+                                               for screenshots) instead of the fake's (relay 73)
     py tools/test/run_test_relay.py --port 8296   other ports (the fake source then on 8295), so test relays of
                                                   several checkouts don't answer for each other (or env PORT)
 
@@ -45,22 +47,30 @@ def main():
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
+    p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
     fake_port = a.port - 1
     FAKE = f"http://127.0.0.1:{fake_port}"
     tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
     src = (REPO / "relay" / "serve.py").read_text(encoding="utf-8")
-    for real, fake in [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
-                       ("https://viennaairport.com/jart", FAKE + "/jart"),
-                       ("https://nominatim.openstreetmap.org", FAKE + "/nominatim"),
-                       ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv")]:
+    fakes = [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
+             ("https://viennaairport.com/jart", FAKE + "/jart"),
+             ("https://nominatim.openstreetmap.org", FAKE + "/nominatim"),
+             ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv")]
+    if not a.live_photos:
+        fakes.append(("https://api.planespotters.net/pub/photos", FAKE + "/ps/pub/photos"))
+    for real, fake in fakes:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")
         src = src.replace(real, fake)
-    # the share picture's photos: the fake source draws them (SVG, at 127.0.0.1), so this copy lets those through
-    for real, fake in [('PHOTO_HOSTS = (', 'PHOTO_HOSTS = ("127.0.0.1", '), ('PHOTO_TYPES = (', 'PHOTO_TYPES = ("image/svg+xml", '),
-                       ("https://discovery.meethue.com", f"http://127.0.0.1:{a.port - 2}/discovery")]:
+    # the share picture's photos and Planespotters' (relay 73): the fake source draws them (SVG, at 127.0.0.1), so this
+    # copy lets those through, and asks the fake Planespotters without waiting a second between lookups
+    swaps = [('PHOTO_HOSTS = (', 'PHOTO_HOSTS = ("127.0.0.1", '), ('PHOTO_TYPES = (', 'PHOTO_TYPES = ("image/svg+xml", '),
+             ('PS_IMG = (', 'PS_IMG = ("http://127.0.0.1:", '), ("https://discovery.meethue.com", f"http://127.0.0.1:{a.port - 2}/discovery")]
+    if not a.live_photos:
+        swaps.append(("600, 1.0, 4.0, 1800", "600, 0.1, 4.0, 1800"))       # PS_GAP
+    for real, fake in swaps:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer has {real}; update run_test_relay.py")
         src = src.replace(real, fake, 1)

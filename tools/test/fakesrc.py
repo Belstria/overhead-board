@@ -3,7 +3,9 @@ port). Started by run_test_relay.py.
 
 It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey"), Vienna Airport's
 flight lists and the airline list (relay 68: a few real rows and made-up ones; EIN6AB, an Aer Lingus flight with no
-route listed, is an airline the board's own table lacks). The planes sit around central Vienna (the boards' default location) and include the special cases:
+route listed, is an airline the board's own table lacks), and Planespotters.net's photo API (relay 73: OE-LBN by its
+registration, the A380 only by its hex, and for the military C-130's hex another aircraft's photo, which the relay must
+pass over). The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
@@ -11,7 +13,7 @@ Away from Vienna (more than 30 km) the position source has only a turboprop at 8
 Flightradar24's live positions also have a take-off the free networks can't hear, passing over the place every 6 minutes
 (the relay's gap filler, relay 66).
 """
-import json, math, os, time, urllib.parse
+import collections, json, math, os, re, time, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 LAT, LON = 48.2085, 16.3731
@@ -61,12 +63,25 @@ AIRCRAFT = {"440b11": {"type": "A320 271N", "icao_type": "A20N", "manufacturer":
                        "registered_owner": "Christophorus Flugrettungsverein", "registered_owner_country_name": "Austria", "url_photo": ""}}
 
 
-SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300">
+SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
 <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b86b8"/><stop offset="1" stop-color="#b9cfe6"/></linearGradient></defs>
 <rect width="600" height="300" fill="url(#s)"/>
 <path d="M120 160 L470 150 Q500 150 505 160 Q500 170 470 172 L120 168 Q100 164 120 160 Z" fill="#f4f4f2"/>
 <path d="M455 152 L500 70 L530 70 L500 155 Z" fill="#c8102e"/><path d="M250 166 L330 230 L360 230 L320 166 Z" fill="#d9d9d6"/>
 <path d="M240 158 L300 120 L325 120 L300 158 Z" fill="#d9d9d6"/><rect x="140" y="162" width="340" height="3" fill="#c8102e"/>
+</svg>"""
+
+# Planespotters.net's photo API (relay 73): which lookups find a photo (id, the photo page's name), and how often each was
+# asked (/ps/asked, for flows.py's cache check). Their photos are 420 px wide at most; the stand-in is an evening sky.
+PS_PHOTOS = {"reg/OE-LBN": ("1000001", "oe-lbn-austrian-airlines-airbus-a320-214"),
+             "hex/896180": ("1000002", "a6-evb-emirates-airbus-a380-861"),
+             "hex/44D0AB": ("1000003", "oo-tek-tea-belgium-boeing-737-2q9-adv")}
+PS_ASKED = collections.Counter()
+PS_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" viewBox="0 0 420 280">
+<defs><linearGradient id="e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3c63"/><stop offset=".7" stop-color="#d9825b"/><stop offset="1" stop-color="#f2c38b"/></linearGradient></defs>
+<rect width="420" height="280" fill="url(#e)"/><rect y="236" width="420" height="44" fill="#3a3f45"/>
+<path d="M70 190 L340 182 Q362 182 366 190 Q362 198 340 199 L70 197 Q55 194 70 190 Z" fill="#eceae4"/>
+<path d="M330 184 L360 120 L382 120 L362 187 Z" fill="#c8102e"/><path d="M170 196 L230 244 L254 244 L222 196 Z" fill="#cfcfcb"/>
 </svg>"""
 
 
@@ -190,6 +205,21 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, "application/json", b"[]")
         if path.startswith("/photo/"):     # a drawn stand-in for an aircraft photo
             return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
+        if path.startswith("/ps/pub/photos/"):     # Planespotters.net: like theirs, no answer without a User-Agent naming the app and a contact
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):
+                return self.send(403, "application/json", b'{"title":"Error 1010: Access denied"}')
+            kind, _, v = path[len("/ps/pub/photos/"):].partition("/")
+            k = f"{kind}/{urllib.parse.unquote(v).upper()}"
+            PS_ASKED[k] += 1
+            p = PS_PHOTOS.get(k)
+            img = lambda w, h, s: {"src": f"http://127.0.0.1:{PORT}/psimg/{p[0]}_{s}.svg", "size": {"width": w, "height": h}}   # noqa: E731
+            photos = [{"id": p[0], "thumbnail": img(200, 133, "t"), "thumbnail_large": img(420, 280, "280"),
+                       "link": f"https://www.planespotters.net/photo/{p[0]}/{p[1]}?utm_source=api", "photographer": "Test Photographer"}] if p else []
+            return self.send(200, "application/json", json.dumps({"photos": photos}).encode())
+        if path == "/ps/asked":
+            return self.send(200, "application/json", json.dumps(PS_ASKED).encode())
+        if path.startswith("/psimg/"):
+            return self.send(200, "image/svg+xml", PS_PHOTO.encode())
         if not path.startswith("/ac/"):
             self.send_response(404); self.end_headers(); return
         far = os.environ.get("FAR")      # the landing still far out: it reaches its final approach about 4 minutes later

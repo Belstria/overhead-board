@@ -128,6 +128,16 @@ body.lite .photo.screen.on{animation:screenOnLite .8s ease-out both}
 @keyframes screenOnLite{0%{opacity:0}16%{opacity:.8}24%{opacity:.45}100%{opacity:1}}
 @keyframes screenOn{0%{opacity:0;filter:brightness(.5) saturate(.2)}16%{opacity:.8}24%{opacity:.45}38%{opacity:1;filter:brightness(1.4) saturate(.75)}100%{opacity:1;filter:none}}
 #photoImg{display:none}
+/* 1.93: the photo's credit on its screen, in its small caps; a Planespotters photo is a link to its page (the whole
+   screen for a mouse, the credit for the remote's ring, which shows on :focus: older TV browsers lack :focus-visible) */
+.pLink{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 calc(7px*var(--k)) calc(6px*var(--k)) 0;
+  pointer-events:none;text-decoration:none;outline:none;-webkit-tap-highlight-color:transparent}
+.pLink[href]{pointer-events:auto;cursor:pointer}
+#photoCr{display:flex;max-width:100%;box-sizing:border-box;padding:calc(3px*var(--k)) calc(5px*var(--k));border-radius:calc(4px*var(--k));
+  font-weight:600;font-size:calc(13px*var(--k));line-height:1.1;letter-spacing:calc(1.5px*var(--k));text-transform:uppercase;color:rgba(235,240,245,.62);text-shadow:0 0 calc(3px*var(--k)) rgba(0,0,0,.8)}
+.pLink[href]:hover #photoCr{color:rgba(243,240,232,.92)}
+.pLink:focus #photoCr{color:#f3f0e8;background:rgba(0,0,0,.45);box-shadow:0 0 0 calc(3px*var(--k)) #f6c54a,0 0 calc(22px*var(--k)) calc(2px*var(--k)) rgba(246,197,74,.35)}
+.pLink:focus:not(:focus-visible) #photoCr{color:rgba(235,240,245,.62);background:none;box-shadow:none}
 #stage canvas#flipCv{z-index:2;pointer-events:none}
 /* push buttons: plain ivory caps that light up warm white, with a small flicker as the bulb comes on */
 .rail{position:absolute;display:flex;z-index:2}
@@ -532,8 +542,15 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cSpin{width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));border-radius:50%;border:calc(3px*var(--ck,1)) solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
 @keyframes cSpin{to{transform:rotate(360deg)}}
 #cardBox .cPicW,.cardish .cPicW{position:relative}
-#cardBox .cTag,.cardish .cTag{position:absolute;left:calc(10px*var(--ck,1));top:calc(10px*var(--ck,1));padding:calc(5px*var(--ck,1)) calc(9px*var(--ck,1));border-radius:calc(6px*var(--ck,1));background:rgba(240,180,41,.94);color:#141414;
-  font:700 calc(11.5px*var(--ck,1))/1 "Archivo Narrow","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+/* 1.93: a photo's credit on it, in the photo screen's small caps; a Planespotters photo is a link to its page there */
+#cardBox .cCr,.cardish .cCr{position:absolute;right:calc(10px*var(--ck,1));bottom:calc(12px*var(--ck,1));max-width:calc(100% - 20px*var(--ck,1));display:flex;
+  font:600 calc(11px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:rgba(240,243,247,.8);text-shadow:0 0 3px rgba(0,0,0,.95),0 1px 2px rgba(0,0,0,.8);pointer-events:none}
+.crBy{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.crSrc{flex:none;white-space:pre}
+.crSrc i{font-style:normal}
+#cardBox .cPicA,.cardish .cPicA{display:block;color:inherit;text-decoration:none;border-radius:calc(10px*var(--ck,1))}
+#cardBox .cPicA:focus,.cardish .cPicA:focus{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
+#cardBox .cPicA:focus:not(:focus-visible),.cardish .cPicA:focus:not(:focus-visible){outline:none}
 .acIn{display:block;width:100%;box-sizing:border-box;margin:calc(8px*var(--k)) 0;padding:calc(10px*var(--k)) calc(12px*var(--k));border-radius:calc(8px*var(--k));border:1px solid rgba(255,255,255,.12);background:#0f1012;color:#f3f0e8;font:500 calc(15px*var(--k)) "Archivo Narrow",sans-serif}
 .acHead{display:flex;align-items:center;gap:calc(14px*var(--k));margin:calc(2px*var(--k)) 0 calc(8px*var(--k));padding:calc(12px*var(--k)) calc(14px*var(--k));border-radius:calc(12px*var(--k));background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
 .acAv{flex:none;width:calc(46px*var(--k));height:calc(46px*var(--k));border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 calc(22px*var(--k))/1 "Archivo Narrow",sans-serif}
@@ -592,7 +609,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <canvas id="fx" role="img" aria-label="Flight board showing planes passing overhead"></canvas>
   <div id="glass" aria-hidden="true"></div>
   <div id="modeSw"><button type="button" data-mode="overhead" aria-label="Overhead">​</button><button type="button" data-mode="airport" aria-label="Airport">​</button></div>
-  <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas></div>
+  <div class="photo screen" id="photoFrame" hidden><canvas id="photoCv"></canvas><a id="photoLink" class="pLink"><span id="photoCr"></span></a></div>
   <img id="photoImg" alt="" referrerpolicy="no-referrer">
   <canvas id="radarCv" hidden aria-hidden="true"></canvas>
   <canvas id="flipCv" hidden aria-hidden="true"></canvas>
@@ -624,7 +641,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=1210de3213"></script>
+<script src="i18n.js?v=c4cd956d39"></script>
 <script>
 (() => {
 "use strict";
@@ -1837,17 +1854,19 @@ function photoBox(){              // where the picture itself goes, in board uni
   if (st === "engraved") return {x: x + 18, y: y + 18, w: w - 36, h: h - 36};
   return {x, y, w, h};
 }
-// The plane on top's photo: its own (adsbdb), or else its model's (Wikipedia) once found.
-function featPhoto(){
-  if (!feat || !feat.o) return "";
-  const d = detailsOf(feat.hex) || {}, info = feat.info || baseInfo(feat.o.ac);
-  return d.photo || modelPic([TYPES[String(feat.o.ac.t || "").toUpperCase()], info.type, d.type, feat.o.ac.desc], () => { preloadPhoto(); if (isAc(page)) renderAircraft(); });
+// The plane on top's photo (1.93: Planespotters', adsbdb's or its model's, planePic). The runway screen of the Landing
+// and Take-off pages has no room for Planespotters' credit and link, so it takes the next one there.
+const rwyFeat = () => !!(feat && feat.apE && AP.rwys.length && AP.lat != null);
+function featPic(){
+  if (!feat || !feat.o) return {src: "", kind: ""};
+  return planePic(feat.o.ac, feat.info || baseInfo(feat.o.ac), detailsOf(feat.hex) || {}, () => { preloadPhoto(); if (isAc(page)) renderAircraft(); }, rwyFeat());
 }
+const featPhoto = () => featPic().src;
 function photoReady(){
   const src = featPhoto(), img = $("photoImg");
   return src && img.getAttribute("src") === src && img.complete && img.naturalWidth ? img : null;
 }
-const photoCredit = () => isModelPic($("photoImg").getAttribute("src")) ? T("MODEL") + "  WIKIMEDIA COMMONS" : T("PHOTO") + "  AIRPORT-DATA.COM";
+const photoCredit = () => picCredit(featPic()).toUpperCase();
 function drawCover(g, img, x, y, w, h){
   const sc = Math.max(w / img.naturalWidth, h / img.naturalHeight), iw = img.naturalWidth * sc, ih = img.naturalHeight * sc;
   g.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
@@ -1871,7 +1890,7 @@ function drawBezel(g){
   g.save(); rr(g, b.x, b.y, b.w, b.h, 5); g.clip();
   g.fillStyle = "#08090b"; g.fillRect(b.x, b.y, b.w, b.h);                                  // the screen, switched off
   g.translate(b.x, b.y); glass(g, b.w, b.h, 1.4);
-  if (!(feat && (detailsOf(feat.hex) || {}).photo)) {
+  if (!(feat && ((detailsOf(feat.hex) || {}).photo || featPic().kind === "ps"))) {
     g.font = `600 15px ${FONT}`; g.textAlign = "center"; if ("letterSpacing" in g) g.letterSpacing = "3px";
     const note = emptyNote();
     if (note) {                                       // a page opened by hand with no plane on it: the screen says so
@@ -1914,26 +1933,7 @@ function paintScreen(g, w, h, img){
   const v = g.createRadialGradient(w / 2, h / 2, h * .32, w / 2, h / 2, w * .62);
   v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.42)");
   g.fillStyle = v; g.fillRect(0, 0, w, h);
-  g.font = `600 13px ${FONT}`; g.textAlign = "right"; g.textBaseline = "alphabetic";
-  if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 3 * PX;
-  g.fillStyle = "rgba(235,240,245,.62)"; g.fillText(photoCredit(), w - 12, h - 11);
-  g.shadowColor = "transparent"; g.shadowBlur = 0;
-  if ("letterSpacing" in g) g.letterSpacing = "0px";
-  g.textAlign = "left";
-  if (isModelPic($("photoImg").getAttribute("src"))) modelTag(g, 12, 12);
-  glass(g, w, h);
-}
-// 1.43: a picture of the model, not of this aircraft, carries an amber tag in its top corner.
-function modelTag(g, x, y){
-  const t = T("MODEL PHOTO · NOT THIS AIRCRAFT");
-  g.save();
-  g.font = `700 15px ${FONT}`; g.textBaseline = "middle"; g.textAlign = "left";
-  if ("letterSpacing" in g) g.letterSpacing = "1.5px";
-  const tw = g.measureText(t).width;
-  g.fillStyle = "rgba(240,180,41,.94)"; rr(g, x, y, tw + 22, 28, 6); g.fill();
-  g.fillStyle = "#141414"; g.fillText(t, x + 11, y + 15);
-  g.restore();
+  glass(g, w, h);                     // the credit lies on top, as the link #photoLink (1.93; drawn here before)
 }
 function paintPlain(g, w, h, img){
   g.fillStyle = "#060607"; g.fillRect(0, 0, w, h);
@@ -3682,7 +3682,7 @@ const fieldsOf = p => p === "spotted" ? LIST_IDS : isAc(p) ? PAGE_FIELDS.aircraf
 function pageAvailable(p){
   if (p === "spotted") return true;
   if (p === "stats") return spotted.length > 0;
-  if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo) || !!(feat && feat.alert); }
+  if (p === "aircraft") { const d = feat && detailsOf(feat.hex), f = featPic(); return !!(d && d.photo) || f.kind === "ps" || !!f.asking || !!(feat && feat.alert); }   // 1.93: Planespotters' too
   if (p === "aplists") return true;
   if (p === "apland") return !!apFocus("arr");
   if (p === "apdep") return !!apFocus("dep");
@@ -3865,6 +3865,7 @@ setInterval(() => {
   updatePager();
   if (switching || bigFlap.on || view) return;
   if (feat && feat.alert && isAc(page)) pageHold = Math.max(pageHold, Date.now() + 20000);   // a special plane keeps its page
+  if (document.activeElement === $("photoLink")) pageHold = Math.max(pageHold, Date.now() + 15000);   // 1.93: and its photo's link with the ring
   const em = emptyNote();
   if (em !== shownEmpty) drawStatic();                // a plane came along, or went: the note comes or goes
   if (!pageAvailable(page) && Date.now() > pageHold) return goPage(pageOrder()[0]);   // picked by hand: it stays a while
@@ -3968,6 +3969,7 @@ function placePhoto(){
   const ape = (page === "apland" || page === "apdep") && feat && feat.apE && AP.rwys.length && AP.lat != null ? feat.apE : null;
   const show = here && !bigFlap.on && (!!img || !!ape) && st !== "engraved";
   fr.hidden = !show;
+  photoLinkSet(show && img && !ape ? featPic() : {kind: ""});
   if (!show) { photoShown = null; return; }
   fr.classList.toggle("screen", st === "screen"); fr.classList.toggle("plain", st === "plain");
   const b = photoBox(), cv = $("photoCv"), src = img ? img.getAttribute("src") : "runway";
@@ -3988,6 +3990,30 @@ function placePhoto(){
   }
 }
 $("photoImg").onload = () => placePhoto();
+$("photoImg").onerror = () => { const s = $("photoImg").getAttribute("src"); if (featPic().kind === "ps" && featPhoto() === s) { psBad.add(s); preloadPhoto(); } };
+// The photo's credit on its screen (1.93). Planespotters' is a link to the photo's page (their terms), in a new tab
+// where the browser has them: a click anywhere on the photo, or the remote: Up or Down puts the ring on it, OK opens
+// it, which or Up or Down again takes the ring away (photoKey); the page stays while it has the ring.
+function photoLinkSet(p){
+  const a = $("photoLink"), t = picCredit(p), href = p.kind === "ps" ? p.link : "";
+  if (a.dataset.k === t + "|" + href + "|" + FONT) return;
+  a.dataset.k = t + "|" + href + "|" + FONT;
+  a.style.fontFamily = FONT;
+  $("photoCr").innerHTML = picCreditHtml(p);
+  if (href) Object.assign(a, {href, target: "_blank", rel: "noopener"});
+  else { if (document.activeElement === a) a.blur(); a.removeAttribute("href"); }
+}
+const photoLinkOn = () => { const a = $("photoLink"); return a.hasAttribute("href") && !$("photoFrame").hidden; };
+function photoKey(e){
+  if (view || cardOpenNow() || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return false;
+  const a = $("photoLink"), on = document.activeElement === a;
+  if (!on && !photoLinkOn()) return false;
+  e.preventDefault();
+  if (on) a.blur(); else try { a.focus({preventScroll: true}); } catch { a.focus(); }
+  return true;
+}
+// opened: the ring goes (a click leaves the focus on it, which would hold the page for good)
+$("photoLink").addEventListener("click", e => { e.stopPropagation(); ctlSound.press(); setTimeout(() => $("photoLink").blur(), 0); });
 function renderAircraft(){
   const ids = ["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"];
   if (!feat) { ids.forEach(id => setChars(id, "")); placePhoto(); return; }
@@ -5767,7 +5793,59 @@ function modelPic(names, onReady){
   modelWiki(names).then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 500)); if (onReady) onReady(); } });
   return "";
 }
-const isModelPic = src => /wikimedia\.org|wikipedia\.org/.test(String(src || ""));
+/* 1.93 (to-do #95, Dave's mockup A): a plane's own photo from Planespotters.net comes first (relay 73, /planephoto,
+   looked up by its registration and checked against it), then adsbdb's (airport-data.com), then its model's (Wikimedia
+   Commons). Each has its credit line on the photo in the screen's small caps; Planespotters' names the photographer and
+   links to the photo's page, and a model photo says so only there. Their terms: the photo loaded straight from their
+   address by the screen that shows it, never kept or passed on, so the share picture takes the next one (noPs). */
+const PS_KEEP_MS = 3600000;                   // the relay keeps an answer 23 hours, a screen one more at most
+const psPhotos = new Map(), psBad = new Set();   // registration -> {at, photo (null: none, undefined: asking), cbs}; photos that didn't load
+const psOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 73;
+function psPhoto(reg, hex, onReady){
+  reg = String(reg || "").trim().toUpperCase();
+  if (!reg || !psOk()) return null;
+  const h = psPhotos.get(reg);
+  if (h && Date.now() - h.at < PS_KEEP_MS) {
+    if (h.photo === undefined && onReady && h.cbs.length < 8) h.cbs.push(onReady);
+    return h.photo;
+  }
+  const ask = {at: Date.now(), photo: undefined, cbs: onReady ? [onReady] : []};
+  psPhotos.set(reg, ask);
+  fetchJSON(`${relay()}/planephoto?reg=${encodeURIComponent(reg)}&hex=${encodeURIComponent(hex || "")}`, {}, 9000)
+    .then(j => { ask.photo = j && j.photo && j.photo.src && j.photo.link ? j.photo : null; },
+      () => { ask.photo = null; ask.at = Date.now() - PS_KEEP_MS + 120000; })     // not answered: asked again in two minutes
+    .then(() => { for (const f of ask.cbs.splice(0)) try { f(); } catch {} });
+  return undefined;
+}
+// The photo for a plane: {src, kind: "ps" (Planespotters), "own" (adsbdb), "model" or "", by, link}; src is "" while
+// Planespotters is being asked (so the screen doesn't change twice) or nothing was found.
+function planePic(ac, info, d, onReady, noPs){
+  const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady);
+  if (ps === undefined) return {src: "", kind: "", asking: true};
+  if (ps && !psBad.has(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
+  if (d.photo) return {src: d.photo, kind: "own"};
+  const m = modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], onReady);
+  return {src: m, kind: m ? "model" : ""};
+}
+// A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
+const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
+  : p.kind === "model" ? [T("Model only"), "Wikimedia Commons"] : ["", ""];
+const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
+const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
+  return a ? `<span class="crBy">${escH(a)}</span><span class="crSrc">${b ? " · " + escH(b) : ""}${go}</span>` : ""; };
+// A plane's photo in a card, its credit on it; Planespotters' a link to the photo's page. `over`: more on the photo.
+function picHtml(p, cls = "", over = ""){
+  if (!p.src) return "";
+  const ps = p.kind === "ps", img = `<img class="cPic" src="${escH(p.src)}" alt="" referrerpolicy="no-referrer">`;
+  const cr = `<span class="cCr">${picCreditHtml(p)}</span>`;
+  return `<div class="cPicW${cls}">` + (ps ? `<a class="cPicA" href="${escH(p.link)}" target="_blank" rel="noopener">${img}${cr}</a>` : img + cr) + over + "</div>";
+}
+// A Planespotters photo that doesn't load gives way to the next one.
+function picFailed(img, again){
+  const s = img.getAttribute("src");
+  if (!s || !img.closest(".cPicA") || psBad.has(s)) return;
+  psBad.add(s); if (again) again();
+}
 
 // Favourites and hidden planes (lists on the relay): the sheet for one plane, the toggles on the cards, the manager.
 const KIND_NAME = {reg: "Aircraft", type: "Type", airline: "Airline", flight: "Flight"};
@@ -6014,15 +6092,16 @@ function planeBody(o, sky){
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || radarStatus(o);
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
-  const pic = d.photo || modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], () => { if (typeof planeAgain === "function") planeAgain(); });
+  const again = () => { if (typeof planeAgain === "function") planeAgain(); };
+  const pic = planePic(ac, info, d, again);
+  if (SHARE_OK) planePic(ac, info, d, null, true);         // the share picture's, without Planespotters': found meanwhile
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
   const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
   const btns = listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
     (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "";
-  const html = sky ? skyBody() : (pic ? `<div class="cPicW"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
-      (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span></div><p class="cCredit">Wikimedia Commons</p>` : "</div>") : "") +
+  const html = sky ? skyBody() : picHtml(pic) +
     `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
     (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
     factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
@@ -6037,22 +6116,20 @@ function planeBody(o, sky){
     const tile = (k, l) => `<div class="cTile"><span>${escH(T(l))}</span><b data-dyn="${k}">${escH(dyn[k] || NA)}</b></div>`;
     const det = [["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)} ›</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")],
       ["Operator", escH(d.owner || info.airline || "")], ["Gate", escH(gateFor(info))], ["Remarks", escH(remarkLines(ac, info).join(" · "))]].filter(x => x[1]);
-    return (pic ? `<div class="cPicW cSkyPic"><img class="cPic" src="${escH(pic)}" alt="" referrerpolicy="no-referrer">` +
-        (isModelPic(pic) ? `<span class="cTag">${escH(T("Model photo · not this aircraft"))}</span>` : "") + `<div class="cOv">${head}</div></div>` +
-        (isModelPic(pic) ? `<p class="cCredit">Wikimedia Commons</p>` : "")
-      : `<div class="cOv cOvPlain">${head}</div>`) +
+    return (pic.src ? picHtml(pic, " cSkyPic", `<div class="cOv">${head}</div>`) : `<div class="cOv cOvPlain">${head}</div>`) +
       (info.from || info.to ? `<div class="cRouteB">${end(info.from, "from")}<i>— ✈ —</i>${end(info.to, "to")}</div>` : "") +
       `<div class="cTiles">${tile("alt", "Altitude")}${tile("speed", "Speed")}${tile("dist", "Distance")}</div>` +
       `<div class="cDet">${det.map(([l, v]) => `<div><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` + btns;
   }
   const facts = {...f, reg: f.reg || d.reg, type: f.type || d.type, flight: f.flight || f.callsign};
-  const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || "", pic, model: !!pic && isModelPic(pic)};
+  const share = {flight: name, airline: info.airline || "", from: info.from, to: info.to, type, reg: info.reg || d.reg || ac.r || ""};
   const wire = el => {
+    for (const im of el.querySelectorAll(".cPicA img")) im.onerror = () => picFailed(im, sky ? null : again);
     const al = el.querySelector("[data-al]"); if (al) al.onclick = () => airlineCard(f);
     const ty = el.querySelector("[data-ty]"); if (ty) ty.onclick = () => typeCard({typeCode: ac.t, type, desc: ac.desc});
     for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(info[b.dataset.pl]);
     const sh = el.querySelector("[data-sheet]"); if (sh) sh.onclick = () => listSheet(facts);
-    const sp = el.querySelector("[data-share]"); if (sp) sp.onclick = () => shareCard(share);
+    const sp = el.querySelector("[data-share]"); if (sp) sp.onclick = () => shareCard({...share, pic: planePic(ac, info, detailsOf(ac.hex) || {}, null, true)});
   };
   // the card without its changing numbers: the same signature means only those need updating (the radar's card)
   return {html, wire, dyn, sig: html.replace(/<span data-dyn="\w+">[^<]*<\/span>/g, "")};
@@ -6084,6 +6161,7 @@ async function typeCard(x){
 /* Share a sighting as a picture (1.53): a split-flap panel (flight, route, aircraft, registration, time) under the
    plane's photo, with a small Fallblatt mark and no link. The photo comes through the relay (relay 47, /photo) or
    straight from Wikimedia (which allows it), so the canvas can be saved; if neither works the picture has no photo.
+   1.93: never Planespotters' (their terms): adsbdb's or the model's (x.pic: planePic's without it), with its credit.
    A first tap makes the picture and shows it; Share (the share sheet, or the Android app's) or Save picture then. */
 const SHARE_OK = !/Tizen|SMART-TV|SmartTV|HbbTV|CrKey|Web0S|webOS|NetCast|AFT[A-Z]|AmazonWebAppPlatform|Silk\/|Android TV|GoogleTV|BRAVIA|AndroidTV/i.test(navigator.userAgent || "");
 function shareImg(src){
@@ -6097,12 +6175,12 @@ function shareImg(src){
     try { return await load(u); } finally { setTimeout(() => URL.revokeObjectURL(u), 1000); }
   };
   if (!src) return Promise.resolve(null);
-  return cardWait(viaRelay().catch(() => /^https:\/\/upload\.wikimedia\.org\//.test(src) ? load(src, true) : null), 8000);
+  return cardWait(viaRelay().catch(() => /^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(src) ? load(src, true) : null), 8000);
 }
 async function shareCanvas(x){
   const font = (getComputedStyle(document.documentElement).getPropertyValue("--f-board") || "").trim() || "sans-serif";
   try { await cardWait(Promise.all(["700 40px", "600 20px"].map(w => document.fonts.load(`${w} ${font}`))), 2500); } catch {}
-  const img = await shareImg(x.pic);
+  const img = await shareImg(x.pic && x.pic.kind !== "ps" ? x.pic.src : "");
   const W = 1200, PH = img ? 630 : 0, H = PH + 700, cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), up = v => String(v || "").toUpperCase();
@@ -6112,8 +6190,10 @@ async function shareCanvas(x){
     g.drawImage(img, (W - iw) / 2, (PH - ih) / 2, iw, ih);
     const fade = g.createLinearGradient(0, PH - 90, 0, PH); fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,.55)");
     g.fillStyle = fade; g.fillRect(0, PH - 90, W, 90);
-    g.font = `500 20px ${font}`; g.fillStyle = "rgba(255,255,255,.75)"; g.textAlign = "left";
-    g.fillText(x.model ? T("Model photo · not this aircraft") + " · Wikimedia Commons" : /wikimedia/.test(x.pic) ? "Wikimedia Commons" : /airport-data/.test(x.pic) ? "airport-data.com" : "", 28, PH - 22);
+    g.font = `600 19px ${font}`; g.fillStyle = "rgba(255,255,255,.75)"; g.textAlign = "left";      // the credit, in the screen's small caps
+    if ("letterSpacing" in g) g.letterSpacing = "2px";
+    g.fillText(up(picCredit(x.pic)), 28, PH - 22);
+    if ("letterSpacing" in g) g.letterSpacing = "0px";
   }
   const bg = g.createLinearGradient(0, PH, 0, H); bg.addColorStop(0, "#202124"); bg.addColorStop(1, "#141517");
   g.fillStyle = bg; g.fillRect(0, PH, W, H - PH);
@@ -6211,10 +6291,9 @@ async function planeCard(o){
   ctlSound.press();
   planeShown = o;
   const tok = cardLoading(), hex = o.ac.hex, until = async (ok, ms) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms && tok === cardTok) await new Promise(r => setTimeout(r, 150)); };
-  planeBody(o);                                          // asks for its details and its model's picture
+  planeBody(o);                                          // asks for its details and its photo
   await until(() => acDetails.get(hex) !== null, 2500);
-  const d = detailsOf(hex) || {};
-  if (!d.photo) await until(() => /<img/.test(planeBody(o).html), 2500);
+  await until(() => /<img/.test(planeBody(o).html), 2500);       // its photo: Planespotters' answer, adsbdb's, or its model's
   if (tok !== cardTok) return;
   const b = planeBody(o);
   cardWhenReady(tok, b.html, b.wire);
@@ -7078,6 +7157,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.93", date: "2026-10-26", notes: [
+    "Planes show their own photo from Planespotters.net first, with the photographer's name on it: tap the photo to see it there.",
+    "Every photo has its credit on it, and a picture of the model says so only there (the yellow tag is gone).",
+    "On a TV, Up or Down on the remote picks the photo's credit and OK opens the photo; the page stays while it is picked.",
+    "Pictures made to share use the plane's other photo or its model's: Planespotters.net's photos may not be passed on."]},
   {v: "1.92", date: "2026-10-26", notes: [
     "On the TV boards the Logbook fits on one screen: totals, the week, month or year, categories, records and the top types, airlines and aircraft.",
     "Click a plate of the Logbook, or press OK on the remote, for its whole list; the remote's arrows go from plate to plate.",
@@ -7738,17 +7822,17 @@ function aboutHtml(){
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
     `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from airport-data.com, logos from Aviasales.")))}</p>` +
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
     `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`;
 }
 // The position sources' terms ask for a credit with a link to their home pages (AvioADSB's also to its licence).
 const SITE_LINKS = {"adsb.lol": "https://adsb.lol", "adsb.fi": "https://adsb.fi", "airplanes.live": "https://airplanes.live",
-  "AvioADSB": "https://avioadsb.org", "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/"};
+  "AvioADSB": "https://avioadsb.org", "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/", "Planespotters.net": "https://www.planespotters.net"};
 function siteLinks(html){
   const a = k => `<a href="${SITE_LINKS[k]}" target="_blank" rel="noopener">${k}</a>`;
   return html.replace(/AvioADSB \(CC BY 4\.0\)/g, () => `${a("AvioADSB")} (${a("CC BY 4.0")})`)
-    .replace(/(adsb\.lol|adsb\.fi|airplanes\.live)/g, m => a(m));
+    .replace(/(adsb\.lol|adsb\.fi|airplanes\.live|Planespotters\.net)/g, m => a(m));
 }
 
 /* A newer version published (1.51): a notice says so and counts a minute down, then the page refreshes by itself.
@@ -8021,7 +8105,7 @@ function viewItemHtml(it){
       (window.OverheadAndroid && window.OverheadAndroid.checkUpdate && !tv ? `<button class="lnk" type="button" id="updBtn">${T("Check for app updates")}</button>` : "") +   // 1.71.1
       (tv ? `<button class="lnk" type="button" id="acBack">${T("Back to Settings")}</button>` : "") + `</div>`;
   }
-  if (it.type === "privacy") return `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from airport-data.com.")))}</p>` +
+  if (it.type === "privacy") return `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>` +
     `<p class="ver">${escH(versionLine())}</p>`;
   return `<p class="ver">${escH(versionLine())}</p><p>${escH(T("What's new in each version, the relay and who made it."))}</p>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBtn">${T("About")}</button></div>`;
@@ -8580,6 +8664,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") { closeDiag(); if (view) switchView(null); return; }
   if (t && t.closest && t.closest("#cockpit") && /^Arrow/.test(e.key)) return;     // the knobs and wheels use the arrow keys
   if (view === "logbook" && lbKey(e)) return;                                       // 1.92: the plates' ring, the cards
+  if (photoKey(e)) return;                                                          // 1.93: the photo's link
   if (e.key === "t" || e.key === "T") toggleView("spotted");
   if (e.key === "l" || e.key === "L") toggleView("logbook");
   if (e.key === "r" || e.key === "R") toggleView("radar");

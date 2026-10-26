@@ -58,7 +58,7 @@ area.** Where it and the code disagree, the code wins.
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/`, `glass/` | Parked since 1.71.3: each `index.html` only forwards to `/app/`. Not built, checked or linked. |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (72 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (73 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). `WMM.COF`: NOAA's World Magnetic Model (public domain), packed into main.js's `WMM_C` for Sky view's true north. |
 | `tools/light/`, `tools/glass/` | Parked source of the light version (`light.js` for main.js's `//@L:name` ... `//@L:end` regions, `light.css`) and Glass (`glass.js`, `glass.css`). Kept for later; running their `build.py` overwrites the forwarders. |
@@ -95,7 +95,8 @@ apdep (`pageOrder()`), `apFeature` picks the plane; runways from `AIRPORTS` or t
 
 **Data**: positions from the relay (`/aircraft/...`); routes and aircraft from adsbdb (browser) and adsb.lol's routeset
 (via the relay); Spotted today and the logbook from the relay (`/sightings`, `/logbook`); times from Vienna Airport
-(`/times`); Flightradar24 via `/flightinfo`. Unknown details show "/" (`NA`/`orNA`). Features check
+(`/times`); Flightradar24 via `/flightinfo`; photos in the order Planespotters.net (`/planephoto`, relay 73; never kept
+or passed on, so never in the share picture), adsbdb's, the model's from Wikipedia (`planePic`, 1.93). Unknown details show "/" (`NA`/`orNA`). Features check
 `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints. Shared blocks (cards, places, tips, achievements,
 account, game/records) live in the board and are copied by the app build.
 
