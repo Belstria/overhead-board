@@ -12,9 +12,10 @@ of other areas it reaches into (marked `+`).
 ## How to read here
 
 1. `py tools/codemap.py`: the areas, one line each. Pick the one (or the few) your change belongs to.
-2. `py tools/codemap.py AREA`: every place of that area, file by file, with its current lines and its comment, and
-   what goes together with it: its i18n rows, README bullets, history entries, CHANGELOG notes and tests. `[app E21]`
-   on a board line means the app build copies it (see `--build`). The start of an area's name will do.
+2. `py tools/codemap.py AREA`: every place of that area, file by file, with its current lines and its comment; who
+   calls its relay endpoints (board, app, flows.py) and the relay version each caller checks; and what goes together
+   with it: its i18n rows, README bullets, history entries, CHANGELOG notes and tests. `[app E21]` on a board line
+   means the app build copies it (see `--build`). The start of an area's name will do.
 3. `py tools/codemap.py --uses NAME` for each name you will change: every line in the sources, tests and docs that
    mentions it, and the function it sits in. This is the "what else touches this" check.
 4. Then read small ranges: `sed -n 4003,4020p test/index.html`, or `grep -n` for a word. Never `cat` a big file whole.

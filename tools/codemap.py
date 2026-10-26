@@ -656,15 +656,29 @@ def ranges(nums):
 GATE = re.compile(r"OVERHEAD_RELAY_VERSION\s*\|\|\s*0\)\s*(>=|<=|<|>)\s*(\d+)|\b(relayV\d+)\(\)")
 
 
-def gates(o, it):
-    """The relay versions a function checks for (`(window.OVERHEAD_RELAY_VERSION || 0) >= 73`, relayV12())."""
-    if not it or (it.kind == "statement" and it.end - it.start > 200):
-        return ""
+def gate_list(text):
     found = []
-    for m in GATE.finditer("\n".join(o.lines[it.start - 1:it.end])):
+    for m in GATE.finditer(text):
         g = m.group(3) or f"{m.group(1)} {m.group(2)}"
         if g not in found:
             found.append(g)
+    return found
+
+
+def gates(o, it):
+    """The relay versions a function checks for: `(window.OVERHEAD_RELAY_VERSION || 0) >= 73`, relayV12(), or through a
+    short check it calls (`psOk()` → >= 73 via psOk)."""
+    if not it or (it.kind == "statement" and it.end - it.start > 200):
+        return ""
+    if not hasattr(o, "_gated"):                    # the short checks: a one- or two-line function or const with a gate
+        raw = {x.name: gate_list("\n".join(o.lines[x.start - 1:x.end])) for x in o.items
+               if x.kind != "statement" and x.end - x.start < 2}
+        raw = {k: v for k, v in raw.items() if v}
+        o._gated = {k: [g for g in v if g not in raw] or v for k, v in raw.items()}
+    body = "\n".join(o.lines[it.start - 1:it.end])
+    found = [g for g in gate_list(body) if g not in o._gated]          # relayV5() is told as ">= 5 via relayV5"
+    for name in sorted(set(re.findall(r"\b([A-Za-z_$][\w$]*)\(", body)) & set(o._gated) - {it.name}):
+        found += [f"{g} via {name}" for g in o._gated[name] if g not in found]
     return f" (relay {', '.join(found)})" if found else ""
 
 
@@ -943,6 +957,24 @@ def history_hits(names):
     return out
 
 
+def endpoint_calls(paths):
+    """[(path, ["board:4904 fn fetchLogbook (relay >= 5)", …])]: where the board, the app and flows.py call each relay
+    path, and the relay version each caller checks first."""
+    out = []
+    for tok in paths:
+        hits = {}
+        for rel, short in ((BOARD, "board"), (MAIN, "main.js"), ("tools/test/flows.py", "flows.py")):
+            o = outline(rel)
+            for ln in find_lines(o, tok, r"[\w-]") if o else []:
+                it = o.at(ln) if o.items else None
+                if (it and it.name == "CHANGELOG") or ln in o.comments or (it is None and rel.endswith(".py")):
+                    continue
+                key = f"{short} {where(o, ln)}" + (gates(o, it) if rel != "tools/test/flows.py" else "")
+                hits.setdefault(key, []).append(ln)
+        out.append((tok, [f"{k.split(' ', 1)[0]}:{ranges(v)} {k.split(' ', 1)[1]}" for k, v in hits.items()] or ["(no caller found)"]))
+    return out
+
+
 def show_area(a, areas):
     print(f"[{a.name}] {a.about}")
     print("Its places now (lines), file by file; + marks another area's place that this one touches too.\n"
@@ -1007,6 +1039,11 @@ def show_area(a, areas):
             together.append([rel] + out)
         else:
             print("\n".join([rel] + out))
+    calls = endpoint_calls([tok for tok, _ in a.places.get(RELAY, []) if tok.startswith("/")])
+    if calls:
+        print("Its endpoints' callers (the board, the app, flows.py) and the relay version they check:")
+        for tok, where_ in calls:
+            print(f"  {tok:<18} " + " · ".join(where_))
     print("\nGoes together")
     rows = i18n_rows()
     texts = area_texts(spans, rows)
