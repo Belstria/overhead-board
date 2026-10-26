@@ -706,6 +706,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.91 (to-do #104): **the Logbook and Spotters' Club tabs stay at the top**: `.lbTabs` is sticky at `top: var(--topH)`
+  under the header, with `#setJump`'s metal and shadow (negative margins and padding to the screen's edges; the line
+  under the tabs is an `::after`, in from the edges as before). On `#t-logbook` the tabs are now a child of the section,
+  no longer of `.lcol`: sticky only holds within its parent, and `.lcol` ends above the lists. A switch (`showTab`)
+  still scrolls to the top, so the other page starts under the tabs.
+- 1.91 (to-do #105, Dave's pick C at 14 px): **the dropdown arrow**: `DD` (next to `PIN`), a chevron in `currentColor`
+  inside a grey ring (#4a4c52), `.dd`, 14 px. The place bar's Saved places part is the name in `.ddL` (it keeps the
+  ellipsis) and `DD` (always whole), with `aria-haspopup="dialog"`; Categories' `.chev` holds `DD`, and `.catTap.open`
+  turns it up and makes the ring amber (they were "⌄" and "⌃"). The Favourites & hidden list picker (`favManager`'s
+  `<select>`) draws the same as a background picture, `appearance: none`, in the board's `#cardBox .favAdd select,
+  .cardish .favAdd select` rule (scaled by `--ck` on the TVs), which the app build copies with the Settings CSS.
+- 1.91 (to-do #103, the app's part): the app's Logbook lost Newest aircraft in 1.75.1; `renderLogbook`'s signature no
+  longer carries `regsRecent`.
 - 1.88 (Dave's picks 11 A and 13 A, 26 Oct): **Settings jump bar**: `#setJump` (sticky at `top: var(--topH)`, which a
   ResizeObserver on `#top` keeps at the header's height, score strip included) holds `.seg.jumpSeg`, added to the
   shared segmented-filter rules (flex:none buttons, so it scrolls sideways). `jumpBuild()` (after `showTab("settings")`
