@@ -573,7 +573,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=76980b14f3"></script>
+<script src="i18n.js?v=57c6f8f229"></script>
 <script>
 (() => {
 "use strict";
@@ -924,7 +924,7 @@ for (let i = 0; i < LIST_ROWS; i++) {
 // The lower half rotates between pages. Spotted today uses the list flaps; the other pages have their own.
 const LIST_IDS = [];
 for (let i = 0; i < LIST_ROWS; i++) LIST_IDS.push(`l${i}time`, `l${i}logo`, `l${i}flight`, `l${i}from`, `l${i}to`, `l${i}type`, `l${i}remarks`);
-const PAGE_FIELDS = {stats: [], aircraft: [], aplists: [], league: []};
+const PAGE_FIELDS = {stats: [], aircraft: [], aplists: []};
 function pdef(pg, id, o){ def(id, {...o, pageOff: true}); PAGE_FIELDS[pg].push(id); }
 pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flugzeuge"]});
 pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
@@ -936,16 +936,6 @@ pdef("stats", "stFast",     {kind:"chars", n:24, dur:60, label:["Fastest","Schne
 pdef("stats", "stTop",      {kind:"chars", n:24, dur:60, label:["Most seen airline","Häufigste Airline"]});
 pdef("stats", "stFirst",    {kind:"chars", n:24, dur:60, label:["Most seen types",""]});     // 1.82: was First of the day
 pdef("stats", "stNew",      {kind:"chars", n:24, dur:60, style:"amber", label:["New in the logbook","Neu im Logbuch"]});
-// 1.72: the League page: this week's five best, by first name (relay 59, /game/league)
-const LEAGUE_ROWS = 5;
-for (let i = 0; i < LEAGUE_ROWS; i++) {
-  const lab = (en, de) => i === 0 ? [en, de] : null;
-  pdef("league", `lg${i}rank`, {kind:"chars", n:1, dur:70, drum:DRUM_DIGIT, style:"amber", label:lab("Place","")});
-  pdef("league", `lg${i}name`, {kind:"chars", n:10, dur:60, label:lab("Spotter","")});
-  pdef("league", `lg${i}pts`,  {kind:"chars", n:6, dur:70, drum:DRUM_DIGIT, align:"right", style:"amber", label:lab("Points","")});
-  pdef("league", `lg${i}trend`,{kind:"chars", n:6, dur:60, label:lab("Trend","")});
-  pdef("league", `lg${i}best`, {kind:"chars", n:14, dur:60, label:lab("Best this week","")});
-}
 pdef("aircraft", "acReg",     {kind:"chars", n:8,  dur:70, style:"amber", label:["Registration","Kennzeichen"]});
 pdef("aircraft", "acHex",     {kind:"chars", n:6,  dur:70, label:["Mode S","Mode S"]});
 pdef("aircraft", "acFlight",  {kind:"chars", n:9,  dur:70, label:["Flight","Flug"]});
@@ -993,32 +983,17 @@ for (let i = 0; i < RV_ROWS; i++) {
   vdef("radar", `rv${i}alt`,    {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:55, loud:.4, label:lab("Altitude","m")});
   vdef("radar", `rv${i}st`,     {kind:"word",  n:9, dur:60, words:"remarks", small:true, loud:.4, label:lab("Status","")});
 }
-// The Collection view (opened from the Logbook): points, the tiers seen, and sets of types to complete.
-const CV_SETS = 9, CV_TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
-const CV_TNAME = {common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Very rare", legendary: "Special"};
-vdef("collection", "cvPoints", {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Points", ""]});
-vdef("collection", "cvToday",  {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Today", ""]});
-vdef("collection", "cvBest",   {kind:"chars", n:5, drum:DRUM_ALT, align:"right", dur:70, label:["Best day", ""]});
-vdef("collection", "cvStreak", {kind:"chars", n:3, drum:DRUM_ALT, align:"right", dur:70, label:["Streak, days", ""]});
-for (const t of CV_TIERS) {
-  vdef("collection", `cvl_${t}`, {kind:"word", n:1, dur:90, words:"tier", loud:.3, label:[CV_TNAME[t], ""]});
-  vdef("collection", `cvn_${t}`, {kind:"chars", n:6, drum:DRUM_ALT, align:"right", dur:70, loud:.5});
-}
 // Records & trophies (1.27): the logbook's lifetime records (relay 28).
 vdef("records", "rcClose", {kind:"chars", n:24, dur:60, label:["Closest ever", ""]});
 vdef("records", "rcLow",   {kind:"chars", n:24, dur:60, label:["Lowest ever", ""]});
 vdef("records", "rcFast",  {kind:"chars", n:24, dur:60, label:["Fastest ever", ""]});
 vdef("records", "rcFar",   {kind:"chars", n:24, dur:60, style:"amber", label:["Farthest route", ""]});
 // Week and month in review (1.52): the numbers, eight facts in two columns and the new types.
-for (const [k, en] of [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["points", "Points"]])
-  vdef("review", `rw_${k}`, {kind:"chars", n: {planes: 5, airframes: 5, points: 6, newTypeCount: 3}[k] || 4, drum:DRUM_ALT, align:"right", dur:70, label:[en, ""]});
+for (const [k, en] of [["planes", "Planes"], ["types", "Types"], ["airlines", "Airlines"], ["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"]])   // 1.89.1: no points
+  vdef("review", `rw_${k}`, {kind:"chars", n: {planes: 5, airframes: 5, newTypeCount: 3}[k] || 4, drum:DRUM_ALT, align:"right", dur:70, label:[en, ""]});
 ["Busiest day", "Rarest", "Most seen airline", "Most seen aircraft", "Farthest route", "Lowest pass", "Closest", "Fastest"]
   .forEach((en, i) => vdef("review", `rwf${i}`, {kind:"chars", n:24, dur:60, style: i < 2 ? "amber" : "ink", label:[en, ""]}));
 vdef("review", "rwNew", {kind:"chars", n:50, dur:55, label:["New types", ""]});
-for (let i = 0; i < CV_SETS; i++) {
-  vdef("collection", `cs${i}name`, {kind:"chars", n:22, dur:55, loud:.4, label: i === 0 ? ["Sets", ""] : null});   // 1.79: not "Collections"
-  vdef("collection", `cs${i}n`,    {kind:"chars", n:7, dur:55, loud:.4});
-}
 // The airport style's lists page (pages layout): take-offs on the left, landings on the right, under the plane on top.
 for (const k of ["d", "a"]) for (let i = 0; i < 5; i++) {
   const lab = (en, de) => i === 0 ? [en, de] : null, dep = k === "d";
@@ -1066,8 +1041,6 @@ function layout(){
   const L0 = Y.list0;
   placeRow(["stPlanes","stAirlines","stTypes","stOver"], [7, 7, 7], L0, IW / 34, 1.45);        // 1.82: four across, no busiest hour
   [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 101 + i * 74, IW / 50, 1.45));
-  for (let i = 0; i < LEAGUE_ROWS; i++)
-    placeRow([`lg${i}rank`, `lg${i}name`, `lg${i}pts`, `lg${i}trend`, `lg${i}best`], [1.2, 1.2, 1.2, 1.2], L0 + i * 62, IW / 44, 1.45);
   const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 29;
   placeRow(["acReg","acHex","acFlight"], [1.5, 1.5], L0 + 6, as, 1.45, ax);
   placeRow(["acType"], [], L0 + 86, as, 1.45, ax);
@@ -1086,13 +1059,9 @@ function layout(){
   const unit = S.units === "metric" ? "m" : "ft";
   fields.rv0alt.label = ["Altitude", unit];
   // the week and month in review
-  placeRow(["planes", "types", "airlines", "airframes", "newTypeCount", "rare", "points"].map(k => `rw_${k}`), [1.7, 1.7, 1.7, 1.7, 1.7, 1.7], 310, IW / 42, 1.45);
+  placeRow(["planes", "types", "airlines", "airframes", "newTypeCount", "rare"].map(k => `rw_${k}`), [2, 2, 2, 2, 2], 310, IW / 42, 1.45);
   for (let i = 0; i < 4; i++) placeRow([`rwf${i * 2}`, `rwf${i * 2 + 1}`], [2], 446 + i * 94, IW / 50, 1.45);
   placeRow(["rwNew"], [], 446 + 4 * 94, IW / 50, 1.45);
-  // the collection view
-  placeRow(["cvPoints", "cvToday", "cvBest", "cvStreak"], [3, 3, 3], 300, IW / 40, 1.45);
-  placeRow(CV_TIERS.flatMap(t => [`cvl_${t}`, `cvn_${t}`]), CV_TIERS.slice(1).flatMap(() => [.3, 2.4]).concat([.3]), 412, IW / 50, 1.45);
-  for (let i = 0; i < CV_SETS; i++) placeRow([`cs${i}name`, `cs${i}n`], [.6], 500 + i * 44, IW / 67, 1.45);
   placeRow(["rcClose", "rcLow"], [2], 300, IW / 50, 1.45);
   placeRow(["rcFast", "rcFar"], [2], 374, IW / 50, 1.45);
   const als = IW / 66;
@@ -1737,12 +1706,6 @@ function drawStatic(){
   if (page === "spotted") listHints(g);
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(T(pageTitle(page)[0]), M, Y.listHead);
   if (page === "aplists") g.fillText(T("Landings"), M + 34 * IW / 66, Y.listHead);     // the right-hand list's own title
-  const g0 = game();
-  if (page === "stats" && g0 && !shownEmpty) {
-    g.font = `700 30px ${FONT}`; const tw = g.measureText(T(pageTitle(page)[0])).width;
-    g.font = `600 19px ${FONT}`; g.fillStyle = COL.amber;
-    g.fillText((T("{n} points today", {n: nf.format(g0.today)}) + (g0.best ? " · " + T("best {n}", {n: nf.format(g0.best.points)}) : "")).toUpperCase(), M + tw + 26, Y.listHead - 2);
-  }
   if (airportMode() && !isAc(page) && AP.rwyLine) {                                    // the runways in use
     g.font = `700 30px ${FONT}`; const tw = g.measureText(T(pageTitle(page)[0])).width;
     g.font = `600 19px ${FONT}`; g.fillStyle = COL.amber; g.fillText(AP.rwyLine.toUpperCase(), M + tw + 26, Y.listHead - 2);
@@ -3631,7 +3594,7 @@ function renderSpotted(){
   }
 }
 /* ---------- rotating pages in the lower half ---------- */
-const PAGE_ORDER_OVERHEAD = ["spotted", "aircraft", "stats", "league"];
+const PAGE_ORDER_OVERHEAD = ["spotted", "aircraft", "stats"];   // 1.89.1: no League: the game is the phone app's
 // Airport style: the lists (a page under the plane on top, or the full-screen lists in the screens layout), then the
 // plane landing and the plane taking off, each shown like This aircraft.
 const pageOrder = () => airportMode() ? ["aplists", "apdep", "apland"] : PAGE_ORDER_OVERHEAD;
@@ -3639,24 +3602,23 @@ const isAc = p => p === "aircraft" || p === "apland" || p === "apdep";      // p
 // The rotation: Recent flights → This aircraft → Recent flights → This aircraft → Today in numbers, and round again.
 // A turn whose page has nothing to show stays on (or goes back to) Recent flights.
 // 1.43: Today in numbers isn't in the round any more: it comes after every tenth round (S.statsPage), or never by itself.
-const ROTATION_OVERHEAD = ["spotted", "aircraft", "spotted", "aircraft", "league"];   // 1.72: the league, when there is one
+const ROTATION_OVERHEAD = ["spotted", "aircraft", "spotted", "aircraft"];   // 1.89.1: the League left the round (the game is the phone app's)
 let rotLoops = 0, statsTurn = false;
 const rotation = () => !airportMode() ? ROTATION_OVERHEAD : ["aplists", "apdep", "aplists", "apland"];
 let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
-// From 21:00 until the day ends (03:00), Today in numbers is the day in review: its last row says the rarest plane of
-// the day and the day's points.
+// From 21:00 until the day ends (03:00), Today in numbers is the day in review: the rarest plane of the day in place of
+// the most seen types (1.89.1: no day's points on the board, the game is the phone app's).
 const reviewTime = () => { const h = new Date().getHours(); return h >= 21 || h < 3; };
 function pageTitle(p){
   return {spotted: ["Recent flights", "Letzte Flüge"], stats: reviewTime() && relayV5() ? ["Your day in planes", ""] : ["Today in numbers", "Heute in Zahlen"],
     aircraft: ["This aircraft", "Dieses Flugzeug"], aplists: ["Take-offs", "Abflüge"], apland: ["Landing", "Landung"],
-    apdep: ["Take-off", "Start"], league: ["League · this week", ""]}[p];
+    apdep: ["Take-off", "Start"]}[p];
 }
 const fieldsOf = p => p === "spotted" ? LIST_IDS : isAc(p) ? PAGE_FIELDS.aircraft : PAGE_FIELDS[p];
 function pageAvailable(p){
   if (p === "spotted") return true;
   if (p === "stats") return spotted.length > 0;
-  if (p === "league") return !!(boardLeague && boardLeague.rows && boardLeague.rows.length);
   if (p === "aircraft") { const d = feat && detailsOf(feat.hex); return !!(d && d.photo) || !!(feat && feat.alert); }
   if (p === "aplists") return true;
   if (p === "apland") return !!apFocus("arr");
@@ -3849,29 +3811,8 @@ function renderPage(){
   if (switching) return;
   if (page === "spotted") renderSpotted();
   else if (page === "stats") renderStats();
-  else if (page === "league") renderLeague();
   else if (page === "aplists") renderApLists();
   else if (isAc(page)) renderAircraft();
-}
-/* 1.72: the League page: this week's standings (relay 59), read every two minutes. A board can't score (it has no live
-   location), so it shows the game: places, points, who climbed, last week's winner, each one's best plane. */
-let boardLeague = null, boardLeagueAt = 0;
-function leagueLoad(){
-  if (S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 59 || airportMode() || Date.now() - boardLeagueAt < 120000) return;
-  boardLeagueAt = Date.now();
-  fetchJSON(`${relay()}/game/league`, {}, 8000).then(j => { boardLeague = j; if (page === "league" && !view) renderLeague(); }).catch(() => {});
-}
-setInterval(leagueLoad, 30000); setTimeout(leagueLoad, 6000);
-function renderLeague(){
-  const rows = (boardLeague && boardLeague.rows) || [];
-  for (let i = 0; i < LEAGUE_ROWS; i++) {
-    const r = rows[i], d = i * 60;
-    setChars(`lg${i}rank`, r ? String(r.rank) : "", d);
-    setChars(`lg${i}name`, r ? trimTo(clean(r.name), 10) : "", d + 40);
-    setChars(`lg${i}pts`, r ? String(r.points) : "", d + 80);
-    setChars(`lg${i}trend`, !r ? "" : r.crown ? T("WINNER") : r.was && r.was > r.rank ? T("UP {n}", {n: r.was - r.rank}) : r.was && r.was < r.rank ? T("DOWN {n}", {n: r.rank - r.was}) : "", d + 120);
-    setChars(`lg${i}best`, r && r.best ? trimTo(`${r.best.type || r.best.flight} ${r.best.pts}`, 14) : "", d + 160);
-  }
 }
 /* Today in numbers. 1.82 (Dave's to-do 10, his pick A): as on the phone: no busiest hour, the four counters across,
    and the most seen types (the day's top three, "A320 12 B738 7 E195 5") in First of the day's place. */
@@ -3898,17 +3839,14 @@ function renderStats(){
     setChars("stTop", t ? (t.count > 1 ? `${tn} - ${t.count}` : T("No airline twice yet")) : "-", 480);
     const rev = reviewTime(), lab = rev ? ["Rarest today", ""] : ["Most seen types", ""];
     if (fields.stFirst.label[0] !== lab[0]) {
-      fields.stFirst.label = lab; fields.stNew.label = rev ? ["Points today", ""] : ["New in the logbook", "Neu im Logbuch"];
+      fields.stFirst.label = lab;
       if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic();
     }
     if (rev) {
       const order = {common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5};
-      const rar = spotted.reduce((a, e) => !a || (order[e.tier] || 0) > (order[a.tier] || 0) ? e : a, null), g0 = game();
+      const rar = spotted.reduce((a, e) => !a || (order[e.tier] || 0) > (order[a.tier] || 0) ? e : a, null);
       setChars("stFirst", rar && rar.tier ? `${trimTo(rar.type || rar.typeCode || "", 15)} - ${T(TIER_NAME[rar.tier] || "").toUpperCase()}` : "-", 540);
-      setChars("stNew", g0 ? (g0.best ? T("{n} POINTS · BEST {b}", {n: nf.format(g0.today), b: nf.format(g0.best.points)}) : T("{n} POINTS", {n: nf.format(g0.today)})) : "-", 600);
-      return;
-    }
-    setChars("stFirst", topTypesFlaps(spotted) || "-", 540);
+    } else setChars("stFirst", topTypesFlaps(spotted) || "-", 540);
     setChars("stNew", st.newTypes || st.newAirlines ? T("{a} types - {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet"), 600);
     return;
   }
@@ -4012,7 +3950,7 @@ const API_NOTE = () => apiOn() ? " · " + T("flight numbers and routes from Flig
 let view = null, viewTimer = null, viewTouched = Date.now(), lbCache = null, lbError = "", staticSub = "";
 // 1.45: the ding for a new plane on top only sounds where the top half shows (no view open); the chimes play anywhere.
 function onMainPage(){ return !view; }
-const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], collection: ["Your catch", ""], records: ["Records & trophies", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
+const VIEW_NAMES = {spotted: ["Spotted today", "Heute gesichtet"], logbook: ["Logbook", "Logbuch"], records: ["Records", ""], review: ["In review", ""], radar: ["Radar", "Radar"], settings: ["Settings", "Einstellungen"], about: ["About", "Info"], account: ["Account & device", ""]};
 const VIEWS = Object.keys(VIEW_NAMES);
 const VIEW_IDLE_MS = 5 * 60000;
 const boardIds = () => [...TOP_IDS, ...fieldsOf(page)];
@@ -4031,7 +3969,7 @@ function enterFields(ids){
   }
 }
 const BOARD_TIPS = {spotted: "Spotted today: every plane that came within your radius today, page by page. Click a row's + to make it a favourite or hide it.",
-  logbook: "Logbook: everything you've spotted: types, airlines, records, the collection and the weekly bingo.",
+  logbook: "Logbook: everything you've spotted: types, airlines, records and the week and month in review.",
   radar: "Radar: the planes around you right now. Click one for its card.",
   settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
 // 1.49 (to-do #29): the first time, the board walks through the styles and every page and view button at once; the
@@ -4075,7 +4013,7 @@ function switchView(next, opts = {}){
   try { history.replaceState(null, "", location.pathname + location.search + (view ? "#" + view : "")); } catch {}
   clearInterval(viewTimer);
   if (view === "spotted") viewTimer = setInterval(renderView, 20000);
-  else if (view === "logbook" || view === "collection" || view === "records") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
+  else if (view === "logbook" || view === "records") { fetchLogbook(); viewTimer = setInterval(fetchLogbook, 30000); }
   else if (view === "review") { reviewFetch(); viewTimer = setInterval(reviewFetch, 60000); }
   viewLanded();
   placePhoto();
@@ -4091,7 +4029,6 @@ function hideViewParts(){ stopRadar(); $("radarCv").hidden = true; $("cockpit").
 function renderView(){
   if (view === "spotted") renderSpottedBoard();
   else if (view === "logbook") renderLogbookBoard();
-  else if (view === "collection") renderCollection();
   else if (view === "review") renderReview();
   else if (view === "records") renderRecords();
   else if (view === "radar") renderRadarList();
@@ -4104,8 +4041,7 @@ function viewSubtitle(){
     return !b ? T("Loading …") : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(lbPlace), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}); }
   if (view === "logbook") return logbookSummary();
   if (view === "review") return reviewSummary(reviewData());
-  if (view === "collection") return T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.");
-  if (view === "records") return T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.");
+  if (view === "records") return T("The logbook's records: the closest, lowest and fastest pass, and the route from farthest away.");
   if (view === "radar" && radarZoomed()) {
     const r = radarRing(radarRange()) < 1 ? "500 m" : radarRing(radarRange()) + " km";
     return airportMode() ? T("Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", {ap: clean(S.home), r})
@@ -4127,8 +4063,6 @@ function viewStatic(g){
   g.font = `500 19px ${FONT}`; g.fillStyle = COL.muted; g.fillText(staticSub, M, 248);
   if (view === "spotted") svLegend ? drawLegend(g) : drawSpottedTable(g);
   if (view === "radar") radarStatic(g);
-  if (view === "collection") collectionStatic(g);
-  if (view === "records") recordsStatic(g);
 }
 
 function renderAirport(){ if (!view && page === "aplists") renderApLists(); }
@@ -4366,7 +4300,7 @@ function buildViewTools(){
   if (LB_VIEWS.includes(view)) {
     // 1.55 (to-do #65): two rows that stay put: the four views in one order, the one on show lit; under them what this
     // view offers (places and the spreadsheet, or week, month and turning back).
-    const views = LB_VIEWS.filter(v => v !== "review" || reviewOk());
+    const views = LB_VIEWS.filter(v => v !== "collection" && (v !== "review" || reviewOk()));     // 1.89.1: no Collection, it's the game
     const pl = view === "logbook" && lbPlaceOk() ? lbChips() : [];
     if (lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
     const btn = (a, t, x = "") => `<button class="cap small" type="button" ${a}${x}>${t}</button>`;
@@ -4438,83 +4372,10 @@ function updateViewTools(){
 }
 
 
-/* ---------- the Records & trophies view ---------- */
-// The bingo card (3 x 3, a lamp in each square that's done) and the trophies (lit when won, with the day), engraved
-// under the records.
-function recordsStatic(g){
-  const g0 = game() || {}, bg = g0.bingo, won = g0.trophies || {};
-  const head = (t, x, y) => { g.font = `600 15px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px"; g.fillStyle = COL.amber; g.fillText(t.toUpperCase(), x, y); if ("letterSpacing" in g) g.letterSpacing = "0px"; };
-  const fit = (t, x, y, max) => { const w = g.measureText(t).width; g.save(); g.translate(x, y); if (w > max) g.scale(max / w, 1); g.fillText(t, 0, 0); g.restore(); };
-  if (bg && bg.card) {
-    const x0 = M, y0 = 470, cw = 250, ch = 128, gap = 10, nd = Object.keys(bg.done || {}).length;
-    head(T("This week's bingo"), x0, y0);
-    const hw = (g.font = `600 15px ${FONT}`, g.measureText(T("This week's bingo").toUpperCase()).width + T("This week's bingo").length * 2);
-    g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; fit(bingoReset(bg), x0 + hw + 18, y0, 3 * (cw + gap) - 180 - hw - 36);
-    g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; g.fillText(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}), x0 + 3 * (cw + gap) - 160, y0);
-    bg.card.forEach((k, i) => {
-      const x = x0 + (i % 3) * (cw + gap), y = y0 + 16 + Math.floor(i / 3) * (ch + gap), done = !!(bg.done || {})[k];
-      g.fillStyle = done ? "rgba(240,180,41,.16)" : "rgba(0,0,0,.45)"; rr(g, x, y, cw, ch, 8); g.fill();
-      g.strokeStyle = done ? rgba(COL.amber, .8) : "rgba(255,255,255,.07)"; g.lineWidth = done ? 2 : 1; rr(g, x + .5, y + .5, cw - 1, ch - 1, 8); g.stroke();
-      g.beginPath(); g.arc(x + 22, y + 24, 7, 0, Math.PI * 2); g.fillStyle = done ? COL.amber : "rgba(255,255,255,.12)"; g.fill();
-      g.font = `600 20px ${FONT}`; g.fillStyle = done ? COL.ink : "rgba(230,226,215,.55)";
-      const words = goalText(k).split(" "), lines = [""];
-      for (const w of words) { const t = (lines[lines.length - 1] + " " + w).trim(); if (g.measureText(t).width > cw - 32 && lines[lines.length - 1]) lines.push(w); else lines[lines.length - 1] = t; }
-      lines.slice(0, 3).forEach((t, j) => fit(t, x + 16, y + 66 + j * 24, cw - 32));
-      if (done) { g.font = `500 14px ${FONT}`; g.fillStyle = COL.muted; g.fillText(fmtDay(bg.done[k]), x + 40, y + 29); }
-    });
-  }
-  const tx = M + 3 * 260 + 40, ty = 470, nWon = TROPHY_IDS.filter(k => won[k]).length;
-  head(T("Trophies"), tx, ty);
-  g.font = `500 15px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "right"; g.fillText(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}), W - M, ty); g.textAlign = "left";
-  // 1.55: a row for each ladder: the next tier (or the last, all won), its tiers as lamps, and a bar to the next one.
-  // 1.82 (Dave's to-do 11, his pick A): as on the phone, the cup in that rank's metal (filled once won) and a tag after
-  // the name; the lamps as they were
-  const lw = 450, rowH = 43;
-  TROPHY_LADDERS.forEach((L, i) => {
-    const st = trophyLadder(g0, L), y = ty + 22 + i * rowH, t = st.next || st.last, on = st.done > 0, mi = st.tiers.indexOf(t), mc = MEDAL_COL[mi];
-    drawTrophy(g, tx + 14, y + 16, 24, !!st.won[t[0]], mc);
-    g.font = `700 17px ${FONT}`; g.fillStyle = on ? COL.ink : "rgba(230,226,215,.55)";
-    const nm = T(t[2]), nw = Math.min(g.measureText(nm).width, 150);
-    fit(nm, tx + 36, y + 15, 150);
-    g.font = `700 11px ${FONT}`;
-    const mt = T(TROPHY_MEDALS[mi]).toUpperCase(), tw = g.measureText(mt).width + 14;
-    g.strokeStyle = mc; g.lineWidth = 1.2; rr(g, tx + 43 + nw, y + 1.5, tw, 17, 8.5); g.stroke();
-    g.fillStyle = mc; g.fillText(mt, tx + 50 + nw, y + 14);
-    const right = st.next ? (st.have != null ? T("{n} of {t}", {n: nf.format(Math.min(st.have, st.next[1])), t: nf.format(st.next[1])}) : "") : fmtDay(st.won[st.last[0]]);
-    g.font = `500 14px ${FONT}`; g.fillStyle = COL.muted;
-    const rw = g.measureText(right).width, dx = tx + 51 + nw + tw;
-    fit(T(L[1], {n: nf.format(t[1])}), dx, y + 15, Math.max(40, tx + lw - dx - rw - 12));
-    g.textAlign = "right"; g.fillText(right, tx + lw, y + 15); g.textAlign = "left";
-    st.tiers.forEach((x, j) => { g.beginPath(); g.arc(tx + 40 + j * 13, y + 29, 4, 0, Math.PI * 2); g.fillStyle = st.won[x[0]] ? TIER_COL.legendary : "rgba(255,255,255,.14)"; g.fill(); });
-    const bx = tx + 40 + st.tiers.length * 13 + 6, bw = lw - (bx - tx), p = !st.next ? 1 : st.have != null ? Math.min(1, st.have / st.next[1]) : 0;
-    g.fillStyle = "rgba(0,0,0,.55)"; rr(g, bx, y + 25, bw, 8, 3); g.fill();
-    if (p > 0) { g.fillStyle = st.next ? "#c99a2e" : TIER_COL.legendary; rr(g, bx + 1, y + 26, Math.max(4, (bw - 2) * p), 6, 2.5); g.fill(); }
-  });
-  const sx = tx + lw + 30, sw = (W - M - sx - 16) / 2;
-  TROPHY_SINGLES.forEach((k, i) => {
-    const x = sx + Math.floor(i / 8) * (sw + 16), y = ty + 22 + (i % 8) * 54, on = !!won[k], [nm, what] = trophyText(k);
-    drawTrophy(g, x + 14, y + 18, 24, on);
-    g.font = `700 17px ${FONT}`; g.fillStyle = on ? COL.ink : "rgba(230,226,215,.45)"; fit(nm + (on ? "  · " + fmtDay(won[k]) : ""), x + 34, y + 16, sw - 38);
-    g.font = `500 13.5px ${FONT}`; g.fillStyle = on ? COL.muted : "rgba(150,146,135,.55)"; fit(what, x + 34, y + 35, sw - 38);
-  });
-}
-// A small cup: gold when won, a dim outline otherwise; with a colour (1.82: a rank's metal), outlined in it, filled once won.
-function drawTrophy(g, cx, cy, s, on, col){
-  g.save(); g.translate(cx, cy);
-  g.beginPath(); g.moveTo(-s * .32, -s * .4); g.lineTo(s * .32, -s * .4); g.quadraticCurveTo(s * .3, s * .08, 0, s * .12); g.quadraticCurveTo(-s * .3, s * .08, -s * .32, -s * .4);
-  g.moveTo(-s * .06, s * .12); g.lineTo(s * .06, s * .12); g.lineTo(s * .08, s * .3); g.lineTo(-s * .08, s * .3); g.closePath();
-  g.rect(-s * .22, s * .3, s * .44, s * .09);
-  const c = col || TIER_COL.legendary, dim = col || "rgba(255,255,255,.22)";
-  if (on) { g.fillStyle = c; g.fill(); } else { g.strokeStyle = dim; g.lineWidth = col ? 1.8 : 1.4; g.stroke(); }
-  g.beginPath(); g.arc(-s * .32, -s * .22, s * .13, Math.PI * .5, Math.PI * 1.5); g.moveTo(s * .32, -s * .35); g.arc(s * .32, -s * .22, s * .13, -Math.PI * .5, Math.PI * .5);
-  g.strokeStyle = on ? c : dim; g.lineWidth = s * .06; g.stroke();
-  g.restore();
-}
-let rcSig = "";
+/* ---------- the Records view ----------
+   1.89.1: the logbook's records only; the bingo card and the trophies are the phone app's (the game). */
 function renderRecords(){
   if (view !== "records") return;
-  const g1 = game() || {}, sig = JSON.stringify([g1.bingo, g1.trophies, LANG, bingoReset(g1.bingo)]);
-  if (!snapping && sig !== rcSig) { rcSig = sig; drawStatic(); }
   const r = (lbData() || {}).records || {};
   const who = x => x.callsign || x.reg || x.type || "";
   setChars("rcClose", r.closest ? `${who(r.closest)} - ${r.closest.v < 10 ? r.closest.v.toFixed(2) : Math.round(r.closest.v)} KM` : "-");
@@ -4532,48 +4393,14 @@ function renderReview(){
   const r = reviewData(), sig = JSON.stringify([r && r.start, r && r.planes, review.span, review.back, LANG]);
   if (!snapping && sig !== rwSig) { rwSig = sig; drawStatic(); }
   rwSig = sig;
-  REVIEW_NUMS.forEach(([k], i) => setChars(`rw_${k}`, r ? nf.format(r[k] || 0) : "", i * 60));
+  REVIEW_NUMS.filter(([k]) => fields[`rw_${k}`]).forEach(([k], i) => setChars(`rw_${k}`, r ? nf.format(r[k] || 0) : "", i * 60));   // the board has no Points
   const facts = r ? reviewFacts(r) : [];
   for (let i = 0; i < 8; i++) setChars(`rwf${i}`, facts[i] ? (facts[i][1] || "-").replace(/ · /g, " - ") : "", 420 + i * 60);   // the flaps have no "·"
   setChars("rwNew", r ? reviewNewTypes(r) || "-" : "", 900);
 }
 
-/* ---------- the Collection view ---------- */
+// the logbook's game part (points, trophies, styles' unlocks); the board itself shows none of it but the styles
 const game = () => (lbData() || {}).game || null;
-let cvSig = "";
-function renderCollection(){
-  if (view !== "collection") return;
-  const g0 = game(), sig = JSON.stringify(g0 && g0.sets);
-  if (!snapping && sig !== cvSig) { cvSig = sig; drawStatic(); }
-  setChars("cvPoints", g0 ? nf.format(g0.points) : "");
-  setChars("cvToday", g0 ? nf.format(g0.today) : "", 60);
-  setChars("cvBest", g0 && g0.best ? nf.format(g0.best.points) : "", 120);
-  setChars("cvStreak", g0 ? String(g0.streak) : "", 180);
-  TIER_DRUM.slice(1).forEach((t, i) => { setWord(`cvl_${t}`, g0 ? t : "", 240 + i * 40); setChars(`cvn_${t}`, g0 ? nf.format(g0.tiers[t] || 0) : "", 240 + i * 40); });
-  for (let i = 0; i < CV_SETS; i++) {
-    const s = g0 && g0.sets[i], d = 400 + i * 60;
-    setChars(`cs${i}name`, s ? T(s.name) : "", d);
-    setChars(`cs${i}n`, s ? `${s.have.length} / ${s.total}` : "", d + 30);
-  }
-}
-// The progress bar of each set, engraved next to its flaps; a gold rim when it is complete.
-function collectionStatic(g){
-  const g0 = game();
-  if (!g0) return;
-  const ls = IW / 67, x0 = M + 31 * ls, w = W - M - x0;
-  g0.sets.forEach((s, i) => {
-    if (i >= CV_SETS) return;
-    const y = 500 + i * 44 + 8, h = 16, p = s.total ? s.have.length / s.total : 0, done = p >= 1;
-    g.fillStyle = "rgba(0,0,0,.55)"; rr(g, x0, y, w, h, 4); g.fill();
-    g.strokeStyle = "rgba(255,255,255,.06)"; g.lineWidth = 1; rr(g, x0 + .5, y + .5, w - 1, h - 1, 4); g.stroke();
-    if (p > 0) {
-      const gr = g.createLinearGradient(0, y, 0, y + h);
-      gr.addColorStop(0, done ? "#f2c44e" : "#d5a03a"); gr.addColorStop(1, done ? "#b8861a" : "#8a6a24");
-      g.fillStyle = gr; rr(g, x0 + 2, y + 2, Math.max(6, (w - 4) * p), h - 4, 3); g.fill();
-    }
-    if (done) { g.strokeStyle = TIER_COL.legendary; g.lineWidth = 2; rr(g, x0 - 1, y - 1, w + 2, h + 2, 5); g.stroke(); }
-  });
-}
 
 /* The logbook on the board: totals, categories, and the top of each list on flaps. */
 const fmtDay = ts => ts ? new Date(ts).toLocaleDateString(LOC(), {day: "numeric", month: "short"}) : "";
@@ -4619,16 +4446,13 @@ async function fetchLogbook(){
       try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {}
     }
   }
-  renderLogbookBoard(); renderCollection(); renderRecords();
-  achCheck(game());
+  renderLogbookBoard(); renderRecords();
+  stylesCellRefresh();                                   // 1.89.1: no achievement pop-ups on the board, only the styles
   if (feat && !view) setWord("tier", tierOf(feat.o.ac, feat.info));      // the tier needs the logbook
-  const g0 = game(), gs = g0 ? `${g0.today}|${g0.best && g0.best.points}` : "";
-  if (gs !== gameSig) { gameSig = gs; if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic(); }
 }
-let gameSig = "";
 // The logbook is read now and then even with its view closed: the tiers need it.
 setTimeout(() => fetchLogbook(), 4000);
-setInterval(() => { if (view !== "logbook" && view !== "collection") fetchLogbook(); }, 5 * 60000);
+setInterval(() => { if (view !== "logbook") fetchLogbook(); }, 5 * 60000);
 function logbookSummary(){
   if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
   const b = lbData();
@@ -4638,7 +4462,7 @@ function logbookSummary(){
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
-    (b.game ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
+    (b.game && COCKPIT_FOR !== "tv" ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 /* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
    or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
@@ -5172,7 +4996,7 @@ function renderRadarList(){
 
 /* ---------- the rail: push buttons along the bottom of the board ---------- */
 const PAGE_KEYS = {spotted: "Recent<br>flights", stats: "Today in<br>numbers", aircraft: "This<br>aircraft", aplists: "Coming up",
-  apland: "Landing", apdep: "Take-off", league: "League"};
+  apland: "Landing", apdep: "Take-off"};
 // The same line icons as the phone app's tabs (tools/app/main.js TAB_ICONS), plus a clock, bars and the plane taking
 // off or landing (the airport statuses' pictogram) for the pages that have no tab there.
 const RAIL_SVG = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
@@ -5189,7 +5013,7 @@ const RAIL_ICONS = {
   up: RAIL_SVG(`<g fill="currentColor">${apSvgInner("dep")}</g>`),               // as on the TAKE-OFF and CLIMBING flaps
   down: RAIL_SVG(`<g fill="currentColor">${apSvgInner("arr")}</g>`),             // as on APPROACH and FINAL
 };
-const PAGE_ICON = {spotted: "clock", aircraft: "plane", stats: "bars", aplists: "list", apdep: "up", apland: "down", league: "cup"};
+const PAGE_ICON = {spotted: "clock", aircraft: "plane", stats: "bars", aplists: "list", apdep: "up", apland: "down"};
 const VIEW_ICON = {spotted: "list", logbook: "book", radar: "radar", settings: "knob"};
 const RAIL_VIEWS = [["spotted", "Spotted<br>today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
 function buildRail(){
@@ -5240,7 +5064,7 @@ function updateRail(){
     if (on) { if (b.getAttribute("aria-current") !== "page") b.setAttribute("aria-current", "page"); }
     else b.removeAttribute("aria-current");
   }
-  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "collection" || view === "records" || view === "review") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
+  for (const b of $("railViews").children) { const on = String(view === b.dataset.view || ((view === "about" || view === "account") && b.dataset.view === "settings") || ((view === "records" || view === "review") && b.dataset.view === "logbook")); if (b.getAttribute("aria-pressed") !== on) b.setAttribute("aria-pressed", on); }
 }
 const updatePager = updateRail;
 // The rail: a groove above it, its two engraved titles, and a slightly darker band where hands have been.
@@ -5989,6 +5813,7 @@ function stylesCount(){
   return g0 ? {n: all.filter(x => styleOk(x[2], g0, x[0])).length, t: all.length} : null;
 }
 function stylesNote(){
+  if (COCKPIT_FOR === "tv") return "";                  // 1.89.1: the TVs show the styles they have, without the game's unlocks
   const c = stylesCount();
   return c ? T("{n} of {t} unlocked", c) : T("Colours, flaps, badges and board styles to unlock.");
 }
@@ -6022,9 +5847,10 @@ setInterval(lcdMarquee, 4500);
 // Locked choices are stepped through too, dimmed with a lock and what unlocks them under the row (so you see what there
 // is to get); only unlocked ones are applied. Colours and flaps only change with the Classic board: with another board
 // style their rows are greyed out (the choice stays saved). Remote and keyboard: Up/Down move between rows, Left/Right
-// (or ◀ ▶) step, OK steps on.
+// (or ◀ ▶) step, OK steps on. 1.89.1: on the TVs (no game there) only the unlocked choices, with no hints or count.
 function stylesCard(focusKind){
-  const g0 = styleGame(), kinds = new Map(styleKinds().map(([k, , o]) => [k, o]));
+  const g0 = styleGame(), tv = COCKPIT_FOR === "tv";
+  const kinds = new Map(styleKinds().map(([k, , o]) => [k, tv ? o.filter(x => styleOk(x[2], g0, x[0])) : o]).filter(([, o]) => o.length));
   const rows = STYLE_ROWS.filter(([k]) => kinds.has(k)), pos = {};
   for (const [k] of rows) pos[k] = Math.max(0, kinds.get(k).findIndex(x => x[0] === styleVal(k)));
   const lock = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -6035,7 +5861,7 @@ function stylesCard(focusKind){
     `<b class="lcd stVal" data-val></b><button class="cap stArr" type="button" tabindex="-1" data-step="1" aria-label="${escH(T("Next"))}">▶</button>` +
     `<p class="stWhy" data-why hidden></p></div>`).join("") + `</div>` +
     `<p class="note stClassic" data-classic hidden>${escH(T("Colours and flaps only change with the Classic board."))}</p>` +
-    `<p class="note stCnt">${escH(c ? T("{n} of {t} unlocked", c) : stylesNote())}</p>`, el => {
+    (tv ? "" : `<p class="note stCnt">${escH(c ? T("{n} of {t} unlocked", c) : stylesNote())}</p>`), el => {
     el.classList.add("styles");
     const line = k => el.querySelector(`[data-row="${k}"]`);
     const off = k => (k === "palette" || k === "finish") && !classicLook();
@@ -6295,7 +6121,6 @@ const MODE_TIP = "Two styles: Overhead shows the planes flying over you, Airport
 const PAGE_TIPS = {spotted: "Recent flights: the planes that were on the board today, newest first.",
   aircraft: "This aircraft: the plane on top in detail, with its photo.",
   stats: "Today in numbers: the day so far, and after 21:00 the day in review.",
-  league: "League: this week's points of everyone spotting with live location on their phone.",
   aplists: "Coming up: the next take-offs and landings at your airport, side by side.",
   apdep: "Take-off: the plane taking off next, on top, with the runway it uses.",
   apland: "Landing: the plane landing next, on top, with the runway and when it lands."};
@@ -6801,6 +6626,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.89.1", date: "2026-10-26", notes: [
+    "The TV boards show only the planes: the league, points, bingo, trophies and collections stay in the phone app.",
+    "On the TV boards, Settings → Styles offers the styles you have, without how to unlock more."]},
   {v: "1.89", date: "2026-10-26", notes: [
     "In the app, the Logbook picks All, On the go or one of your saved places in a bar; the saved places open in a list.",
     "Counting since and your points are at the bottom of the Logbook and the Spotters' Club.",
@@ -7635,6 +7463,7 @@ const HINTS = {
   favs: "Planes that match light up and get a chime.",
   lang: "AUTO follows this device's language.",
   styles: "The board's style, colours, flaps and a badge by the title. More unlock with points, trophies and full bingo cards.",
+  stylesTv: "The board's style, colours, flaps and a badge by the title.",
   quality: "Lower it if the board stutters on a TV.",
   rotateS: "How long each page stays before the next one turns.",
   statsPage: "Today in numbers comes round every tenth turn of the pages; off: only when you pick it.",
@@ -7756,7 +7585,7 @@ function wireViews(box){
 }
 function itemHtml(it){
   if (!it.k && /^(account|push|device|privacy|about)$/.test(it.type)) return viewItemHtml(it);
-  const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.k || it.type];
+  const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.type === "styles" && COCKPIT_FOR === "tv" ? "stylesTv" : it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
   if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
