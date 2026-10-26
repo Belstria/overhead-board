@@ -567,7 +567,7 @@ Five buttons along the bottom:
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
-  Since 1.93 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
+  Since 1.91 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
   open) and the Favourites & hidden list picker.
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
