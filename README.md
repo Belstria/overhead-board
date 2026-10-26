@@ -139,9 +139,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
   take-off time for any flight. When there is no arrival time but the destination is
   known, the board estimates one from the distance still to fly and the plane's speed, plus a few minutes to land.
-  **Delay and gate** (1.52, relay 46): a flight to or from Vienna shows in the Remarks DELAY 25 MIN or ON TIME (within
-  four minutes; planned against expected or actual time, from Vienna Airport) and, when leaving Vienna, GATE F07 (the
-  pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no gate in its lists.
+  **Delay and gate** (1.52, relay 46): in the Airport style a flight to or from Vienna shows in the Remarks DELAY 25 MIN
+  or ON TIME (within four minutes; planned against expected or actual time, from Vienna Airport) and, when leaving
+  Vienna, GATE F07 (the pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no
+  gate in its lists. In the Overhead style (1.88) the Remarks are white, not amber, and only say DELAY 45 MIN when a
+  flight is more than 30 minutes late: no ON TIME and no gate.
   Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
   often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
   been away for two months or more. The phone app shows both under This aircraft.
@@ -193,7 +195,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
-  Commons), credited as such.
+  Commons), credited as such. Since 1.88 a model whose name is ambiguous on its own (Black Hawk, Hercules) is looked up
+  in Wikipedia's search too.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
   **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘ in grey, turning yellow or red once letting
   go will do it; that half of the sheet opens; the + ring on the app's rows is gone since 1.42, the boards keep their
@@ -623,6 +626,15 @@ Five buttons along the bottom:
   more as **Look up now**, with where to look and how high. Settings → Notifications → **Count down to the plane**.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
+- **Jump bar** (1.88): under the header, Settings has a bar with the names of its parts (Location, Traffic, Display,
+  Flaps & sound, Night, Favourites, Account, Notifications, Device, About). It stays at the top while Settings scrolls
+  and scrolls sideways; tap a name to go to that part. The part on screen is lit.
+- **Relay** (1.88, relay 69): only the relay's owner sees this plate at the top of Settings → About: each position
+  source with its role (first, in reserve, emergencies only) and state (working, resting until a time with the error
+  code, standby, failing), adsb.lol's requests today of its daily 500; Flightradar24's credits this month of the
+  budget, today's credits and lookups and the gap filler's share; last night's backup (amber when none is reported or
+  it is over 36 hours old, red when it failed); and the screens online, by profile and device. It refreshes every
+  30 seconds while About is open.
 - **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**

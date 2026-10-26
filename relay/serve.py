@@ -60,14 +60,14 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 68
+RELAY_VERSION = 69
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
     # Relay 68: adsb.fi first, adsb.lol in reserve. adsb.lol allows 500 requests a UTC day per address; asked first, it
     # had used them up within hours and rested until midnight, so it wasn't there when adsb.fi failed.
     {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v3/lat/{lat}/lon/{lon}/dist/{nm}"},
-    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
+    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}", "allow": 500},
     {"key": "airplaneslive", "name": "airplanes.live", "url": "https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}"},
     # Emergency only (relay 36): its free anonymous tier allows 1 request per 10 s and 100 a day per network, for
     # personal, non-commercial use (data CC BY 4.0, credited in the boards' About). Asked only once every source above
@@ -126,7 +126,8 @@ ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "
 ARGS = None
 STARTED = time.time()
 STATE = {s["key"]: {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None,
-                    "last_error": "", "last_ok": 0.0, "last_call": 0.0, "day": "", "used": 0} for s in SOURCES}
+                    "last_error": "", "last_ok": 0.0, "last_call": 0.0, "day": "", "used": 0,
+                    "askedDay": "", "asked": 0} for s in SOURCES}      # relay 69: requests this UTC day, for the owner's panel
 EVENTS = collections.deque(maxlen=200)
 _event_id = 0
 _positions = {}            # key -> (time, body, source name)
@@ -247,6 +248,10 @@ def aircraft(lat, lon, nm):
                 time.sleep(wait)
             if cap:
                 st["used"] += 1
+            utc = time.strftime("%Y-%m-%d", time.gmtime())
+            if st["askedDay"] != utc:
+                st["askedDay"], st["asked"] = utc, 0
+            st["asked"] += 1
             t0 = time.time()
             status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=min(int(nm), src.get("max_nm", 999))))
             st["last_call"] = time.time()
@@ -3326,6 +3331,45 @@ def status_json():
             "vie": vie_status(), "screens": live}
 
 
+BACKUP_FILE = DATA_DIR / "backup.json"    # relay 69: written by the nightly backup on the host, read for the owner's panel
+BACKUP_LATE_S = 36 * 3600
+
+
+def relay_panel_json():
+    """Relay 69: the owner's Relay plate in the app's Settings → About: the position sources, Flightradar24, the nightly
+    backup and the screens online. Read-only, and no addresses or secrets."""
+    now = time.time()
+    utc = time.strftime("%Y-%m-%d", time.gmtime())
+    sources = []
+    for i, src in enumerate(SOURCES):
+        st = STATE[src["key"]]
+        resting = st["cooldown_until"] > now
+        state = "resting" if resting else "ok" if st["ok"] and not st["strikes"] else "failing" if st["strikes"] else "standby"
+        sources.append({"name": src["name"], "role": "emergency" if src.get("day_cap") else "first" if i == 0 else "reserve",
+                        "state": state, "until": int(st["cooldown_until"]) if resting else None,
+                        "http": st["last_status"] if state in ("resting", "failing") else None,
+                        "okAge": int(now - st["last_ok"]) if st["last_ok"] else None,
+                        "today": st["asked"] if st["askedDay"] == utc else 0, "allow": src.get("allow")})
+    fr = {"on": False}
+    if fr24_key():
+        with _data_lock:
+            u = _fr24_usage()
+            # the per-user rows start again with the month's total (_fr24_usage clears them together)
+            fill = sum(v.get("credits", 0) for k, v in (u.get("by") or {}).items() if k.endswith(" · Gap filler"))
+            fr = {"on": True, "credits": u.get("credits", 0), "budget": _fr24_budget(), "creditsToday": u.get("creditsToday", 0),
+                  "lookupsToday": u.get("lookupsToday", 0), "fill": fill}
+    b = _load(BACKUP_FILE, None)
+    backup = None
+    if isinstance(b, dict) and isinstance(b.get("t"), (int, float)):
+        num = lambda k: b[k] if isinstance(b.get(k), int) else None
+        backup = {"t": int(b["t"]), "ok": b.get("ok") is True, "bytes": num("bytes"), "kept": num("kept"),
+                  "error": str(b.get("error") or "")[:120], "late": now - b["t"] > BACKUP_LATE_S}
+    live, _ = screens_list()
+    screens = [{"who": i["name"], "device": i["device"], "kind": "app" if i["board"] == "APP" else "board",
+                "on": i["on_s"], "quiet": i["quiet_s"], "hidden": i["hidden"]} for i in live]
+    return {"version": RELAY_VERSION, "up": int(now - STARTED), "sources": sources, "fr24": fr, "backup": backup, "screens": screens}
+
+
 _board_seen = {}
 _board_date = {}             # when each board was published (GitHub's Last-Modified), in ms since 1970
 
@@ -3436,7 +3480,8 @@ def board_html(sub="", guest=None):
         defaults.pop("lat", None)
         defaults.pop("lon", None)
     config = json.dumps(defaults).replace("<", "\\u003c")
-    who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
+    who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings"),
+                      **({"owner": True} if str(guest["name"] or "").strip().lower() == HOME_OWNER.lower() else {})})   # relay 69: the Relay plate.replace("<", "\\u003c") if guest is not None else "null"
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
               f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};"
@@ -6268,10 +6313,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(429, "text/plain", b"Too many requests")
             status, ctype, body = photo_get((self.query().get("u") or [""])[0])
             return self.reply(status, ctype, body)
+        if path == "/relayinfo":           # relay 69: the owner's Relay plate (also away from home, through the tunnel)
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
+            return self.reply(200, "application/json", json.dumps(relay_panel_json()).encode(), {"Cache-Control": "no-store"})
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/airlines"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/airlines", "/relayinfo"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -6824,7 +6873,7 @@ def main():
         SOURCES[:] = [{"key": "custom", "name": re.sub(r"^https?://([^/]+).*$", r"\1", ARGS.source), "url": ARGS.source}]
         STATE.clear()
         STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0,
-                           "last_call": 0.0, "day": "", "used": 0}   # relay 35: without it, relay 34 failed every request to a --source
+                           "last_call": 0.0, "day": "", "used": 0, "askedDay": "", "asked": 0}   # relay 35: without it, relay 34 failed every request to a --source
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
