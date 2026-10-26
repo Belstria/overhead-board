@@ -1335,11 +1335,15 @@ let arRaw = [], arCalAt = 0;
 // 1.86: Android sends two readings: the compass's (gyroscope, gravity and compass fused; a compass that is off swings it
 // about while the phone moves and settles after) and the gyroscope's (gyroscope and gravity: it turns exactly as the
 // phone does, but its zero is anywhere). The labels follow the gyroscope's; the gap between the two (arGap) is north,
-// taken from the compass only while the phone is held still (AR_STILL_MS after it last turned, then within AR_GAP_TAU).
-// iPhones work the same way with their gyro alpha and compass heading. Lined up (AUTO or a drag, arHeldAt), north
-// stays where it is until ⟲.
-const AR_GAP_TAU = 2, AR_STILL_MS = 1500;            // seconds; ms
-let arAbsR = null, arAbsT = 0, arRelQ = null, arRelT = 0, arLastQ = null, arRate = 0, arMovedAt = 0, arGapLog = [], arHeldAt = 0;
+// nudged towards the compass's slowly (1.90). iPhones work the same way with their gyro alpha and compass heading. Lined
+// up (AUTO or a drag, arHeldAt), north stays where it is until ⟲.
+// 1.90 (Dave's indoor try: the labels wandered while the phone was held still, following the compass's swings): a
+// complementary filter. The gyroscope alone moves the labels; north glides to the compass's within AR_GAP_TAU, three
+// times slower while the phone turns and four times slower while the compass is unsure, and never faster than
+// AR_GAP_MAX a second (a quarter of it unsure). For the first AR_GAP_SETTLE ms it settles quickly from the first reading.
+const AR_GAP_TAU = 6, AR_GAP_MAX = 1, AR_GAP_SETTLE = 1500, AR_STILL_MS = 1500;   // seconds; degrees a second; ms; ms
+let arAbsR = null, arAbsT = 0, arRelQ = null, arRelT = 0, arLastQ = null, arRate = 0, arMovedAt = 0, arGapLog = [], arHeldAt = 0, arGap0 = 0;
+let arEvN = {abs: 0, rel: 0, ios: 0}, arHeldWhy = "", arSunLast = null, arNote = {text: "", until: 0};   // 1.90: for the report
 const AR_FOV = 64;                                   // the back camera's view along the picture's long side (degrees, typical)
 // 1.75.2: the focal length in screen pixels. The video fills the screen (object-fit: cover), so its long side, however
 // much of it is cut off, spans AR_FOV; this holds upright, sideways and on a tablet alike. Camera sensors are 4:3:
@@ -1384,6 +1388,7 @@ const arYaw = (A, B) => Math.atan2(A[1][0] * B[0][0] + A[1][1] * B[0][1] + A[1][
 function arOrient(e){
   if (e.beta == null || e.gamma == null) return;
   const t = performance.now();
+  arEvN[typeof e.webkitCompassHeading === "number" ? "ios" : e.type === "deviceorientationabsolute" || e.absolute ? "abs" : "rel"]++;   // 1.90: for the report
   let a = e.alpha, raw = a;
   if (typeof e.webkitCompassHeading === "number" && e.webkitCompassHeading >= 0) {
     // iPhone: alpha comes from the gyro (steady, but with its own zero) and the compass says where north is
@@ -1414,11 +1419,11 @@ function arOrient(e){
   arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy);
   arTurn(arQuat(a, e.beta, e.gamma), t);
 }
-// 1.86: north (the gap between the compass and the gyroscope): the first reading, then followed only while the phone
-// is held still, not at all once lined up. The compass swinging 12° or more against the gyroscope within 4 s (moving
+// 1.86: north (the gap between the compass and the gyroscope): the first reading, then followed (1.90: slowly, see
+// AR_GAP_TAU), not at all once lined up. The compass swinging 12° or more against the gyroscope within 4 s (moving
 // or not) wants calibrating: the note asks for a figure of eight.
 function arGapStep(meas, t, poor){
-  if (arGap == null) { arGap = meas; arGapT = t; arGapLog = []; return; }
+  if (arGap == null) { arGap = meas; arGapT = arGap0 = t; arGapLog = []; return; }
   const off = wrap180(meas - arGap), dt = Math.min(.2, Math.max(0, (t - arGapT) / 1000));
   arGapT = t;
   if (arRate < 60) arGapLog.push([t, off]);         // (a fast flick puts the two readings a little apart in time)
@@ -1428,8 +1433,11 @@ function arGapStep(meas, t, poor){
     for (const g of arGapLog) { lo = Math.min(lo, g[1]); hi = Math.max(hi, g[1]); }
     if (hi - lo > 12) arCalAt = Date.now();
   }
-  if (arHeldAt || t - arMovedAt < AR_STILL_MS) return;
-  arGap += off * (1 - Math.exp(-dt / (AR_GAP_TAU * (poor ? 2 : 1))));
+  if (arHeldAt) return;
+  if (t - arGap0 < AR_GAP_SETTLE) { arGap += off * (1 - Math.exp(-dt / .4)); return; }
+  const unsure = poor || Date.now() - arCalAt < 4000, tau = AR_GAP_TAU * (unsure ? 4 : 1) * (t - arMovedAt < AR_STILL_MS ? 3 : 1);
+  const cap = AR_GAP_MAX * (unsure ? .25 : 1) * dt;
+  arGap += Math.max(-cap, Math.min(cap, off * (1 - Math.exp(-dt / tau))));
 }
 // The gyroscope's reading: how fast the phone turns (smoothed; over 6°/s it moves), and a jump no hand makes (its zero
 // was reset): then north is carried over, so the labels stay put.
@@ -1460,7 +1468,7 @@ function arTurn(q, t){
 // 1.86: lined up (AUTO or a drag): north is held, the gyroscope alone turns the labels until ⟲ or Sky view closes.
 function arHold(why){
   if (!arHeldAt && arGap != null) dlog("debug", `Sky view: lined up (${why}); north held, the compass left out`);
-  arHeldAt = Date.now();
+  arHeldAt = Date.now(); arHeldWhy = why;
 }
 async function arOpen(){
   ctlSound.press();
@@ -1482,7 +1490,9 @@ async function arOpen(){
   }, {once: true});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null; arAlt = null;
   arAbsR = null; arRelQ = null; arRelT = 0; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0;
-  arShotAt = 0; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
+  arEvN = {abs: 0, rel: 0, ios: 0}; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
+  $("arFlag").hidden = !arReportOk(); $("arFlag").classList.remove("sent"); $("arFlag").setAttribute("aria-label", T("Send a report to tune Sky view"));
+  arShotAt = 0; arLocked = ""; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
   arSince = Date.now(); dlog("info", `Sky view opened · ${arList.length} planes around · AUTO ${arAuto ? "on" : "off"}`);
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ scores a bonus · NO PTS: more than {k} km away.", {k: gKm()}) : "");
@@ -1688,24 +1698,67 @@ function arLoop(){
   if (arAutoLock) for (const s of shown) if (!s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) arBrackets(g, s.pr.x, s.pr.y);
   if (arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
   arShownN = shown.length;
-  if (shown.some(s => s.locked && !s.pr.edge)) arShotAt = Date.now();
+  if (arLocked && shown.some(s => s.ac.hex === arLocked && !s.pr.edge)) arShotAt = Date.now();   // 1.90: only once locked on (the ring full)
   const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
   if (shut.hidden === snap) shut.hidden = !snap;
   $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
   $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
   // 1.86: until the labels are lined up, AUTO asks for a look near the sun (it finds it in the picture by itself)
   const sunUp = arBody && arBody.sun.el > 1 && arBody.sun.el < 75;
-  const hint = arHeldAt ? arHintText : arAuto && sunUp ? T("Point the phone near the sun for a moment, without looking into it: AUTO finds it and lines every label up.")
+  const hint = Date.now() < arNote.until ? arNote.text : arHeldAt ? arHintText : arAuto && sunUp ? T("Point the phone near the sun for a moment, without looking into it: AUTO finds it and lines every label up.")
     : marks.some(m => m.k === "sun") ? T("Sun beside its ring? Drag the sky until it sits in it on the screen: every label follows. Don't look into the sun.")
     : marks.length ? T("Moon beside its ring? Drag the sky until it sits in it: every label follows.") : arHintText;
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   arAimDraw(g, W, H);
+  arRibbon(R, W, H);
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"), R);
 }
-// 1.80 (Dave's to-do 1, his pick A, the button only once a plane in view has been scanned): Sky view as it is on the
+/* 1.90 (Dave's pick A, relay 72): the flag in the top bar sends the relay what Sky view knows about the compass, so it can
+   be tuned from real phones: the readings the sensors gave, north as the compass says and as it is in use, the gyroscope's
+   turn, what AUTO found and how far off the sun's ring was. No picture and no place (only the declination, rounded).
+   The owner's devices only; the relay keeps the newest 200. */
+const arReportOk = () => (window.OVERHEAD_RELAY_VERSION || 0) >= 72 && !!relay() && !!(GUEST && GUEST.owner);
+const arR1 = v => typeof v === "number" && isFinite(v) ? Math.round(v * 10) / 10 : null;
+function arReport(){
+  const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
+  const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
+  return {
+    v: 1, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
+    held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
+    unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
+    facing: c && {az: arR1(c.az), el: arR1(c.el)}, q: arQ && arQ.map(x => Math.round(x * 1e4) / 1e4),
+    gapLog: arGapLog.filter((x, i) => i % 4 === 0).map(([gt, off]) => [Math.round(gt - t), arR1(off)]),
+    raw: arRaw.map(([rt, a, b, g]) => [rt - now, arR1(a), arR1(b), arR1(g)]),
+    auto: {on: arAuto, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0},
+    finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
+    sun: sun && {az: arR1(sun.az), el: arR1(sun.el), ring: arSunLast && {secs: Math.round((now - arSunLast.t) / 1000), h: arR1(arSunLast.h), p: arR1(arSunLast.p)}},
+    moon: moon && moon.el > -.5 ? {az: arR1(moon.az), el: arR1(moon.el)} : null,
+    screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), turned: (screen.orientation && screen.orientation.angle) || 0},
+    planes: arShownN,
+  };
+}
+$("arFlag").onclick = async () => {
+  ctlSound.press();
+  const b = $("arFlag"), say = text => { arNote = {text, until: Date.now() + 8000}; $("arHint").textContent = text; };
+  b.disabled = true;
+  try {
+    const r = await fetch(`${relay()}/skyreport`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(arReport())});
+    if (!r.ok) throw new Error(r.status === 429 ? "too soon" : "HTTP " + r.status);
+    b.classList.add("sent");
+    say(T("✓ Report sent: the compass and gyroscope readings, AUTO's finds and the sun's offset went to the relay, to tune Sky view. No picture, no place."));
+    dlog("info", "Sky view: report sent");
+  } catch (e) {
+    say(T(String(e.message) === "too soon" ? "A report was just sent: try again in a moment." : "Couldn't send the report: the relay didn't answer."));
+    dlog("warn", `Sky view report: not sent (${e.message})`);
+  }
+  b.disabled = false;
+};
+// 1.80 (Dave's to-do 1, his pick A, the button only once a plane in view has been scanned; 1.90: once a plane in view is
+// locked on, the ring full, and for 5 s after it leaves the picture): Sky view as it is on the
 // screen, the camera's picture and the labels, with a slim band under it: the mark, the place, the date and time and how
 // many planes. Shown in a card with Share and Save.
-let arShotAt = 0, arShownN = 0;
+let arShotAt = 0, arShownN = 0, arLocked = "";   // arLocked (1.90): the plane the ring last filled on
 async function arSnap(){
   ctlSound.press();
   const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;
@@ -1758,7 +1811,10 @@ function arAutoStep(shown, W, H, avoid, R){
   const sun = arBody && arBody.sun;
   if (sun && sun.el > 1 && sun.el < 75) {
     const hit = arSunFind(v, R, W, H, sun);
-    if (hit) arAutoFinds.push({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el});
+    if (hit) {
+      arAutoFinds.push({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el});
+      arSunLast = {t: now, h: wrap180(sun.az - hit.az), p: sun.el - hit.el};   // 1.90: how far off the sun's ring was, for the report
+    }
   }
   const f = arFocal(W, H), r = f * Math.tan(AR_AUTO_R * Math.PI / 180);
   const near = shown.filter(o => !o.pr.edge && o.d < 15000 && o.el > 2 && o.pr.x > 0 && o.pr.x < W && o.pr.y > 0 && o.pr.y < H);
@@ -1902,7 +1958,7 @@ function arBodiesDraw(g, R, here, W, H){
   for (const [k, b, name] of [["sun", arBody.sun, "SUN"], ["moon", arBody.moon, "MOON"]]) {
     if (b.el < -.5 || (k === "moon" && b.lit < .04)) continue;
     const pr = arProject(Math.sin(b.az * r) * Math.cos(b.el * r), Math.cos(b.az * r) * Math.cos(b.el * r), Math.sin(b.el * r), R, W, H);
-    if (pr.edge) continue;
+    if (pr.edge) { arBodyEdge(g, k, b, pr, R, W, H); continue; }
     out.push({k, x: pr.x, y: pr.y});
     g.save(); g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 4;
     g.setLineDash([6, 5]); g.strokeStyle = "#f0b429"; g.lineWidth = 2.5; g.beginPath(); g.arc(pr.x, pr.y, 22, 0, Math.PI * 2); g.stroke();
@@ -1910,6 +1966,59 @@ function arBodiesDraw(g, R, here, W, H){
     g.restore();
   }
   return out;
+}
+// 1.90 (Dave's pick A): the sun or the moon out of the picture: a dashed arrow at the edge pointing the way, as the plane
+// on top's arrow does, with how far to turn ("☀ SUN · 139° right"; up or down when it is above or below the picture).
+function arBodyEdge(g, k, b, pr, R, W, H){
+  const [dx, dy] = pr.edge, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  const t = Math.min((W / 2 - 40) / Math.abs(ux || 1e-6), Math.max(30, H / 2 - 150) / Math.abs(uy || 1e-6)), x = W / 2 + ux * t, y = H / 2 + uy * t;
+  const c = arUnproject(W / 2, H / 2, R, W, H), da = wrap180(b.az - c.az), half = Math.atan(W / 2 / arFocal(W, H)) * 180 / Math.PI;
+  const how = Math.abs(da) > half ? T(da > 0 ? "{n}° right" : "{n}° left", {n: Math.round(Math.abs(da))})
+    : T(b.el > c.el ? "{n}° up" : "{n}° down", {n: Math.round(Math.abs(b.el - c.el))});
+  g.save(); g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 4;
+  g.translate(x, y); g.rotate(Math.atan2(uy, ux));
+  g.setLineDash([5, 4]); g.strokeStyle = "#f0b429"; g.lineWidth = 2.5; g.lineJoin = "round";
+  g.beginPath(); g.moveTo(18, 0); g.lineTo(-10, -12); g.lineTo(-4, 0); g.lineTo(-10, 12); g.closePath(); g.stroke();
+  g.restore();
+  g.save(); g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 4; g.fillStyle = "#f0b429";
+  g.textAlign = ux > .5 ? "right" : ux < -.5 ? "left" : "center";
+  const tx = x - ux * 28, ty = y - uy * 28;
+  g.font = `700 13px ${FONT}`; g.fillText((k === "sun" ? "☀ " : "☾ ") + T(k === "sun" ? "SUN" : "MOON"), tx, ty - 2);
+  g.font = `600 12px ${FONT}`; g.fillText(how, tx, ty + 13);
+  g.restore();
+}
+// 1.90 (Dave's pick: B's compass): a ribbon of the whole compass above the hint, the way the picture faces in the middle,
+// the picture's width bracketed, the sun and the moon (when up) at their bearings with how high they are.
+const AR_RIB = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+let arRibSig = "";
+function arRibbon(R, W, H){
+  const cv = $("arRib"), w = cv.clientWidth, h = cv.clientHeight, px = Math.min(2, devicePixelRatio || 1);
+  if (!w || !arBody) return;
+  const c = arUnproject(W / 2, H / 2, R, W, H), half = Math.atan(W / 2 / arFocal(W, H)) * 180 / Math.PI;
+  const bodies = [["sun", arBody.sun], ["moon", arBody.moon]].filter(([k, b]) => b.el > -.5 && !(k === "moon" && b.lit < .04));
+  const sig = [w, Math.round(c.az * 4), Math.round(half), ...bodies.map(([k, b]) => k + Math.round(b.az * 2) + "," + Math.round(b.el))].join("|");
+  if (sig === arRibSig) return;
+  arRibSig = sig;
+  if (cv.width !== Math.round(w * px) || cv.height !== Math.round(h * px)) { cv.width = Math.round(w * px); cv.height = Math.round(h * px); }
+  const g = cv.getContext("2d"), k = (w - 16) / 360, X = az => w / 2 + wrap180(az - c.az) * k, top = 16;
+  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, w, h);
+  g.fillStyle = "rgba(11,11,12,.6)"; rr(g, 0, top, w, h - top, 9); g.fill();
+  g.save(); rr(g, 0, top, w, h - top, 9); g.clip();
+  g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1; g.beginPath();
+  for (let a = 0; a < 360; a += 15) { const x = X(a), big = a % 45 === 0; g.moveTo(x, h - (big ? 9 : 5)); g.lineTo(x, h); }
+  g.stroke();
+  g.font = `700 11px ${FONT}`; g.textAlign = "center";
+  AR_RIB.forEach((n, i) => { g.fillStyle = i ? "#e6e1d4" : "#ff5a4f"; g.fillText(T(n), X(i * 45), h - 12); });
+  g.strokeStyle = "#f0b429"; g.lineWidth = 2; g.fillStyle = "rgba(240,180,41,.14)";   // the picture's width
+  g.fillRect(w / 2 - half * k, top + 2, 2 * half * k, h - top - 4); g.strokeRect(w / 2 - half * k, top + 2, 2 * half * k, h - top - 4);
+  g.restore();
+  g.textAlign = "center"; g.shadowColor = "rgba(0,0,0,.6)"; g.shadowBlur = 3;
+  for (const [n, b] of bodies) {
+    const x = Math.max(10, Math.min(w - 10, X(b.az)));
+    g.fillStyle = "#f0b429"; g.font = `700 15px ${FONT}`; g.fillText(n === "sun" ? "☀" : "☾", x, top + 17);
+    g.font = `600 11px ${FONT}`; g.fillText(T("{n}° up", {n: Math.max(0, Math.round(b.el))}), x, top - 4);
+  }
+  g.shadowBlur = 0;
 }
 // 1.75.2: how far a plane has come since its position: along its track, round its turn (the rate it sends, or the one
 // measured between two updates; at most 20 s of it) and up or down at its climb or descent rate. [east, north, up] m.
@@ -1957,7 +2066,7 @@ function arAimDraw(g, W, H){
   }
   arPeekWatch(hex);
   if (hex && k >= 1 && hex !== arSel && hex !== arAim.done) {
-    arAim.done = hex; arSel = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.press(); arCardRender();
+    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.press(); arCardRender();
     gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
@@ -2124,11 +2233,11 @@ function arPeekHtml(o){
 }
 function arCardRender(){
   const box = $("arCard"), ac = arSel && arList.find(a => a.hex === arSel);
-  if (!ac) { box.hidden = true; $("arHint").hidden = false; arCardSig = ""; arP = 0; return; }
+  if (!ac) { box.hidden = true; $("arHint").hidden = false; $("arRib").hidden = false; arCardSig = ""; arP = 0; return; }
   if (box.classList.contains("drag") || box.classList.contains("anim")) return;   // not under the finger
   const o = radar.planes.find(p => p.ac.hex === arSel) || {ac, alt: typeof ac.alt_baro === "number" ? ac.alt_baro : null};
   const pk = arPeekHtml(o), b = planeBody(o, true), sig = pk.sig + "|" + b.sig;
-  $("arHint").hidden = true;
+  $("arHint").hidden = true; $("arRib").hidden = true;   // 1.90: the ribbon goes with the hint
   if (sig === arCardSig && !box.hidden) {
     for (const el of box.querySelectorAll("[data-dyn]")) if (el.textContent !== b.dyn[el.dataset.dyn]) el.textContent = b.dyn[el.dataset.dyn];
     return;
@@ -3391,7 +3500,8 @@ function statusCard(){
 }
 function updateWhere(){
   const lab = !S.live && S.placeKey && clean(S.placeKey) !== clean(S.place) ? clean(S.placeKey) + "  ·  " : "";
-  $("where").textContent = `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOUR POSITION …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
+  // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone)
+  $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
 }
 function liveShow(){ updateWhere(); }     // live location found its position, or lost it
 function tickClock(){

@@ -573,7 +573,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=76980b14f3"></script>
+<script src="i18n.js?v=ef557dc590"></script>
 <script>
 (() => {
 "use strict";
@@ -1723,7 +1723,7 @@ function drawStatic(){
   placeModeSwitch(x1, w1, x2, w2);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted;
-  g.fillText(`${liveStale() ? T("FINDING YOUR POSITION …") + "   ·   " : ""}${clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
+  g.fillText(`${liveWaiting() ? T("FINDING YOU …") : (liveStale() ? T("FINDING YOU …") + "   ·   " : "") + clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
@@ -6434,15 +6434,29 @@ let liveWatch = null, liveTimer = null, liveNamed = null, liveAir = null, liveSa
    sightings, points or gap filler without a fresh one. Five minutes: the Android app asks every minute and browsers
    are asked again after two, so it takes a few missed fixes; at motorway speed it is about the game's circle. */
 const LIVE_FRESH_MS = 5 * 60000;
-let liveAt = 0, liveWas = false;
+let liveAt = 0, liveWas = "", liveRunAt = 0, liveToldAt = 0;
 const liveStale = () => !!S.live && Date.now() - liveAt > LIVE_FRESH_MS;
-setInterval(() => { if (liveStale() !== liveWas) { liveWas = liveStale(); liveShow(); } }, 2000);
+/* 1.90 (a phone whose browser never found itself at home showed the planes around a trip's spot, 1,100 km away): until
+   this page has had its first fix, live location shows no planes and the title says FINDING YOU …; after a minute
+   without one a note says live location isn't working here, with the way to Settings → Location. */
+const liveWaiting = () => !!S.live && !liveAt;
+setInterval(() => {
+  const st = liveWaiting() ? "wait" : liveStale() ? "stale" : "";
+  if (st !== liveWas) { liveWas = st; liveShow(); }
+  if (st === "wait" && liveRunAt && Date.now() - liveRunAt > 60000 && !liveToldAt && typeof toast === "function") {
+    liveToldAt = Date.now();
+    dlog("warn", "Live location: no position from this device after a minute");
+    toast(T("Live location isn't working on this device. Pick a place in Settings → Location instead."), {err: true, ms: 15000, action: T("Settings"),
+      run: () => { if (typeof switchView === "function") switchView("settings"); else showTab("settings"); }});
+  }
+}, 2000);
 function liveHalt(){
   if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
-  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true; liveAt = 0;
+  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true; liveAt = 0; liveRunAt = liveToldAt = 0;
 }
 function liveRun(){
   liveHalt();
+  liveRunAt = Date.now();
   if (window.OverheadAndroid && window.OverheadAndroid.locate) {
     const tick = () => hereNow().then(liveFix).catch(() => {});
     tick(); liveTimer = setInterval(tick, 60000);
@@ -6801,6 +6815,14 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.90", date: "2026-10-26", notes: [
+    "In Sky view, an arrow at the edge points to the sun or the moon when it is out of the picture.",
+    "In Sky view, a compass ribbon above the hint shows which way you face, and where the sun and the moon are.",
+    "Sky view's labels stay steadier while you hold the phone still, also indoors.",
+    "In Sky view, the picture button shows once a plane is locked on.",
+    "In Sky view, a flag can send a report that helps tune the compass (no picture, no place).",
+    "Live location shows no planes until it has found where you are, and says so when it can't.",
+    "The button on red notices in the app can be read again."]},
   {v: "1.89", date: "2026-10-26", notes: [
     "In the app, the Logbook picks All, On the go or one of your saved places in a bar; the saved places open in a list.",
     "Counting since and your points are at the bottom of the Logbook and the Spotters' Club.",
@@ -8535,6 +8557,7 @@ async function poll(force){
     }
   }
   if (!list) return;
+  if (liveWaiting() && !S.demo) { const none = []; none.now = list.now; list = none; }   // 1.90: not around a spot saved before
   lastList = list;
   try { skyCheck(); listsLoad(); process(list); watchAsk(list); if (typeof arFeed === "function") arFeed(list); snapSave(); }
   catch (e) { dlog("error", `Couldn't draw the update: ${e && e.message || e}`); }

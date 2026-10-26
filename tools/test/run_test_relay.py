@@ -65,6 +65,7 @@ def main():
             raise SystemExit(f"relay/serve.py no longer has {real}; update run_test_relay.py")
         src = src.replace(real, fake, 1)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
+    src = re.sub(r"^SKY_REPORTS_MAX = \d+", "SKY_REPORTS_MAX = 2", src, flags=re.M)   # flows.py checks the cap
     # A page that sets a test profile's cookie (only in this copy of the relay).
     hook = '        if path == "/signin":'
     if hook not in src:

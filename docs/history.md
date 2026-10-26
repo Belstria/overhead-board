@@ -10,6 +10,39 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.90 (to-do #92, Dave's picks "A + the compass from B", relay 72): **Sky view's sun and moon pointers, compass ribbon
+  and report**. `arBodyEdge()`: a body above the horizon whose ring is out of the picture gets a dashed arrow at the
+  edge (the shape of `arEdge`'s) with "☀ SUN" and how far to turn (left/right when beyond half the picture's width,
+  else up/down), from `arUnproject` of the picture's middle. `arRibbon()` draws `#arRib` (a canvas in `.arBot` above
+  the hint, hidden with the hint while a card is open): 360° centred on the way the picture faces, ticks every 15°,
+  `AR_RIB` letters (N red, through `T()`), the picture's width bracketed, ☀/☾ at their azimuths with "{n}° up"; it
+  redraws only when its signature changes. The flag `#arFlag` (`arReportOk()`: relay 72+, `GUEST.owner`) posts
+  `arReport()` to `/skyreport`: app version, OS, event counts per kind (`arEvN`: abs/rel/ios, to see whether a phone
+  sends the gyroscope's reading at all), `arGap`, declination, `arOff`, held (`arHeldWhy`), unsure, turn rate, facing,
+  the quaternion, `arGapLog` (every 4th) and `arRaw`, AUTO's lock and finds, the sun and moon and `arSunLast` (the sun's
+  ring offset from AUTO's last sun find), screen and video size, focal length. `arNote` keeps the hint's answer for 8 s.
+  The relay (`sky_report_clean`: numbers, flags, short strings, 3 levels, place-like keys dropped; `sky_report_save`)
+  keeps them in `data/profiles/<id>/skyreports.jsonl`, the newest `SKY_REPORTS_MAX` (200), owner only, same origin,
+  1 per 10 s (burst 3).
+- 1.90 (to-do #93): **steadier labels**: a complementary filter in `arGapStep`. North (`arGap`) follows the compass
+  always, not only when still, but slowly: `AR_GAP_TAU` 6 s, ×3 while turning (`arMovedAt` within `AR_STILL_MS`), ×4
+  while unsure (iOS accuracy poor, or `arCalAt` within 4 s), at most `AR_GAP_MAX` 1°/s (a quarter unsure); the first
+  `AR_GAP_SETTLE` 1.5 s after the first reading settle with τ 0.4 s. Held (AUTO or a drag) is as in 1.86.
+  `tools/test/sky_jitter.js` runs main.js's own sensor code on a made-up Android stream (60 Hz, gyroscope drifting
+  .02°/s; outdoors compass ±1.5°, indoors ±3° plus ±8° swings with time and heading) and prints the label movement
+  while still. Before → after: indoors the most a label wandered in a still spell 6.4° (75 px) → 0.7° (9 px), frame
+  to frame 0.031° → 0.005°; outdoors 1.45° → 0.21°. North's average error indoors rose 3.9° → 5.9° (it follows the
+  swinging compass less; that compass's own error is about 4.5° there).
+- 1.90 (to-do #94): **the picture button only once locked on**: `arShotAt` is set while `arLocked` (the plane the ring
+  last filled on in this Sky view, set in `arAimDraw`; a tapped plane doesn't count) is in the picture, no longer for
+  any plane the game had locked on earlier today (`s.locked`); it still stays 5 s after the plane leaves the picture.
+- 1.90: **no planes before live location's first fix** (a phone whose Chrome never got a fix at home showed a trip's
+  planes 1,100 km away): `liveWaiting()` (live and no `liveAt` yet) empties the list in `poll()` (with its `now`);
+  the title line says only "◉ FINDING YOU …" (app `updateWhere`; board `drawStatic` without the place); after a minute
+  from `liveRun` (`liveRunAt`) a red toast once says live location isn't working on this device, its Settings button
+  `switchView("settings")` on the board, `showTab("settings")` in the app. Relay 72: `live_stale()` treats a live
+  request without `fix` as stale too (only an old cached app leaves it out). The app's red toast button was red on red.
+
 - 1.89 (to-do #90, Dave's mockup picks): **the app's Logbook places**: the chips went; `#lbPlaces` is a `.seg
   lbPlaceSeg` bar (the Week · Month · Year style) with All, On the go (the "live" chip of `lbChips()`) and Saved places
   (each part only when it has sightings; no bar with only All). Saved places opens `lbPlaceSheet()` (a card sheet:

@@ -388,7 +388,9 @@ The main board has everything below. New features are tried on `/test/` first; o
     town or village (relay 62: the village itself, not the area round it, e.g. Oia rather than "Ia Municipal Unit")
     and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
     reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
-    title says FINDING YOUR POSITION and its planes don't count or score. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
+    title says FINDING YOU … and its planes don't count or score; since 1.90 no planes show at all until this page has
+    found the phone once (the saved spot may be far away), and after a minute without a position a note says live
+    location isn't working on this device, with a button to Settings. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
     location with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
     board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.
@@ -587,12 +589,16 @@ Five buttons along the bottom:
   nearest you), looking from the phone's own height above the sea (its GPS, 1.76.1: on a hill or a cliff top planes
   below you show below the horizon); the ring has marks on all four sides; it works upright or
   sideways and keeps steady pointed straight up. Since 1.86 the phone's gyroscope moves the labels, so they stay on the
-  sky as you tilt and turn; the compass only says where north is, and only while you hold the phone still (compasses
-  swing about while the phone moves). Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
+  sky as you tilt and turn; the compass only says where north is. Since 1.90 north only glides towards the compass
+  slowly (over several seconds, even slower while the phone turns or the compass is unsure), so labels stay put while
+  you hold the phone still, also indoors where compasses swing. Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
   Magnetic Model; about 5° here). Phone compasses are often a few degrees off, sometimes far more: drag the picture to
   line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun and the moon (1.76) sit in dashed
   rings where they really are: drag until the real one is in its ring, and every label lines up too (on the screen;
-  don't look into the sun). Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
+  don't look into the sun). Since 1.90, when the sun or the moon is up but out of the picture, a dashed arrow at the
+  edge points to it with how far to turn ("☀ SUN · 139° right"), and a **compass ribbon** above the hint shows the
+  whole compass round the way you face, the picture's width in a gold frame and the sun and the moon at their bearings
+  with how high they are. Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
   Sky view closes. **AUTO** (1.76, the pill under the title; tap to switch it off) lines the labels up by itself. Since
   1.86 it finds the sun anywhere in the picture, however far off the compass is (up to 45°): while the sun is up and
   nothing is lined up yet, the hint asks you to point the phone near it for a moment; gold corners then frame the sun's
@@ -602,10 +608,13 @@ Five buttons along the bottom:
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
   meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still,
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
-  eight or a drag (not once the labels are lined up).
+  eight or a drag (not once the labels are lined up). **Report** (1.90, the flag in the top bar, the owner's phones
+  only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
+  and how far off the sun's ring was; no picture and no place), to tune Sky view from real phones; the hint says what
+  was sent.
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
-  plane in the picture has been scanned (✓), a round shutter appears above the hint: it keeps the sky as on the
+  plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint: it keeps the sky as on the
   screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
   to share or save.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking

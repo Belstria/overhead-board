@@ -11,9 +11,10 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   sightings, also from the cache at start (relay 68)
 - the owner's Relay plate (/relayinfo): David only, also from outside; another profile or a stranger no (relay 69);
   only David's page says owner, /pageversion (a page built without a profile) answers, a saved "</script>" stays escaped
-- live location: a request with a stale or missing fix records nothing, scores nothing and starts no gap filler; a
+- live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
+- Sky view's reports: David's only, from this site, kept up to a cap (2 in the test relay), then rate-limited (relay 72)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
@@ -132,7 +133,7 @@ def checks():
     expect("an unknown category", call("/logbook/category?c=spaceship", "test-device")[0], 400)
 
     # the game (relay 59): only a phone on live location scores, within 8 km; Sky view's lock-on once per plane
-    live = "?pl=live&pc=48.2085,16.3731&pr=15"
+    live = "?pl=live&pc=48.2085,16.3731&pr=15&fix=5"   # relay 72: a live request without fix is stale
     call("/aircraft/48.2085/16.3731/25" + live, "test-device")
     call("/aircraft/48.2085/16.3731/25", "owner-device")
     st, _, b = call("/logbook", "test-device")
@@ -170,7 +171,7 @@ def checks():
         ac = next((a for a in json.loads(b).get("ac", []) if a.get("hex") == far_one["hex"]), None) if st == 200 else None
         if ac:
             at = f"{ac['lat']:.4f}/{ac['lon']:.4f}"
-            call(f"/aircraft/{at}/25?pl=live&pc={at.replace('/', ',')}&pr=15", "test-device")
+            call(f"/aircraft/{at}/25?pl=live&pc={at.replace('/', ',')}&pr=15&fix=5", "test-device")
             row = next((r for r in today("test-device").get("rows", []) if r.get("hex") == far_one["hex"]), {})
             close = next((a for a in row.get("aw", []) if a.get("k") == "close"), {})
             expect("a close pass tops up its plane", (close.get("p", 0) > 0, (close.get("d") or 99) <= 1.5), (True, True))
@@ -178,6 +179,14 @@ def checks():
     expect("Recent points for another profile", today("owner-device").get("rows"), [])
     expect("Recent points for strangers", call("/game/today")[0] in (401, 403), True)
     expect("a lock-on from another site", call("/game/lockon", "test-device", {"Origin": "https://evil.example"}, {"hex": "abcdef"})[0] in (403, 429), True)
+    # Sky view's reports (relay 72)
+    rep = {"v": 1, "gap": 3.2, "lat": 48.2, "readings": [[0, 1.5, 2.5]]}
+    expect("a Sky view report from another profile", call("/skyreport", "test-device", OUTSIDE, rep)[0], 403)
+    expect("a Sky view report from a stranger", call("/skyreport", None, OUTSIDE, rep)[0] in (401, 403), True)
+    expect("a Sky view report from another site", call("/skyreport", "owner-device", {**OUTSIDE, "Origin": "https://evil.example"}, rep)[0], 403)
+    kept = [json.loads(b).get("kept") if st == 200 else st for st, _, b in (call("/skyreport", "owner-device", OUTSIDE, rep) for _ in range(3))]
+    expect("Sky view reports kept up to the cap", kept, [1, 2, 2])
+    expect("a fourth Sky view report at once", call("/skyreport", "owner-device", OUTSIDE, rep)[0], 429)
     st, _, b = call("/game/league", "test-device")
     lg = json.loads(b) if st == 200 else {}
     expect("the league has the live player", [r["name"] for r in lg.get("rows", []) if r.get("me")], ["Test"])
@@ -263,8 +272,8 @@ def checks():
         st, _, b = call("/sightings", "owner-device")
         rows = json.loads(b) if st == 200 else []
         return [e for e in (rows.get("entries", rows) if isinstance(rows, dict) else rows) if e.get("place") == "live"]
-    for fix in ("-1", "301", "x"):
-        st, h, _ = call(far + "&fix=" + fix, "owner-device")
+    for fix in ("-1", "301", "x", None):        # relay 72: no fix at all (an old cached app) is stale too
+        st, h, _ = call(far + ("&fix=" + fix if fix else ""), "owner-device")
         expect(f"a live request with a stale fix ({fix}) starts no gap filler", (st, h.get("X-Relay-Fill")), (200, None))
     expect("... and records no live sightings", len(live_rows()), 0)
     st, _, b = call("/logbook", "owner-device")
