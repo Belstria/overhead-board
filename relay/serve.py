@@ -1168,9 +1168,10 @@ def game_today(spot):
         out = []
         for e in rows:
             aw = [dict(a) for a in e.get("ga") or []]
-            out.append({"hex": e.get("hex") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
-                        "airline": e.get("airlineName") or "", "type": e.get("aircraftType") or e.get("desc") or "",
-                        "typeCode": e.get("typeCode") or "", "tier": e.get("tier") or "", "km": e.get("liveMin"),
+            # the fields the boards' fromRelay() names a plane from, so it reads as in Spotted today
+            out.append({**{k: e.get(k) or "" for k in ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg",
+                                                       "typeCode", "desc", "aircraftType", "manufacturer")},
+                        "tier": e.get("tier") or "", "km": e.get("liveMin"),
                         "gp": e["gp"], "lock": e.get("lock", 0), "base": TIER_BASE.get(e.get("tier"), 30),
                         "new": [[k[4:].lower(), v] for k, v in GAME_NEW if e.get(k)], "gk": e.get("gk") or 1.0,
                         "gn": e.get("gn") or 1, "ts": e.get("ts"), "aw": aw})

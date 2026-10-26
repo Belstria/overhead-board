@@ -25,7 +25,7 @@ The repository is public: no addresses, keys or personal data here either.
   apply), "Close pass · within 4 km" top-ups, "Sky view lock-on · +25%" (the combo's real share), a lowered score as
   "Points corrected". The relay keeps `ga` on each sighting (`_game_award`: `t` ms, `k` first/close/fix/lock, `p`
   points, `d` km or `pct`/`c` for a lock-on; last 8) from `game_note()` and `game_lockon()`; `/game/today`
-  (`game_today()`, the profile's own, like `/game/me`) hands today's scored planes with `base`, `new`, `gk`, `gn` and
+  (`game_today()`, the profile's own, like `/game/me`) hands today's scored planes (with the fields `fromRelay()` names them from, so they read as in Spotted today) with `base`, `new`, `gk`, `gn` and
   `aw`. Planes scored before relay 71 have no `aw` and show their first score and lock-on without times.
 
 - 1.88.0.1 (to-do #88): **a live position counts only while it is fresh**. On 26 Oct a phone's Chrome loaded in live mode

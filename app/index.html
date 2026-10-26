@@ -10895,13 +10895,14 @@ async function gRecentCard(){
   if (!j) { cardOpen(`<p class="note">${escH(T("Couldn't load today's points."))}</p>`); return; }
   const at = t => t ? hhmm(new Date(t)) : "";
   const rows = j.rows.map(r => {
+    const f = fromRelay(r);                  // named as in Spotted today (FR 3EG, not RYR3EG)
     // a plane scored before relay 71: its totals, the first score and a lock-on without their times
     const aw = r.aw.length ? [...r.aw].reverse() : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
     const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common";
     const lines = aw.map(a => `<div class="meta${a.k !== "first" ? " top" : ""}"><span>${escH([at(a.t), gWhy(r, a)].filter(Boolean).join(" · "))}</span><span>${gPlus(a.p)}</span></div>`).join("");
-    const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(typeLabel(r.typeCode, r.type) || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
+    const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(f.type || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
     return `<li class="fl sp" style="--lamp:${col}${hot ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
-      `<div class="who"><strong>${escH(r.flight || String(r.hex || "").toUpperCase())}</strong>${r.airline ? `<span>${escH(r.airline)}</span>` : ""}</div><b class="pts">${gPlus(r.gp + (r.lock || 0))}</b>` +
+      `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus(r.gp + (r.lock || 0))}</b>` +
       `<div class="rt">${what}</div>${lines}</li>`;
   }).join("");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
