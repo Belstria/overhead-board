@@ -3480,8 +3480,12 @@ def board_html(sub="", guest=None):
         defaults.pop("lat", None)
         defaults.pop("lon", None)
     config = json.dumps(defaults).replace("<", "\\u003c")
-    who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings"),
-                      **({"owner": True} if str(guest["name"] or "").strip().lower() == HOME_OWNER.lower() else {})})   # relay 69: the Relay plate.replace("<", "\\u003c") if guest is not None else "null"
+    who = "null"
+    if guest is not None:
+        me = {"id": gid, "name": guest["name"], "settings": guest.get("settings")}
+        if str(guest["name"] or "").strip().lower() == HOME_OWNER.lower():
+            me["owner"] = True                  # relay 69: the app shows the owner the Relay plate
+        who = json.dumps(me).replace("<", "\\u003c")
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
               f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};"
