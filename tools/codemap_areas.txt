@@ -285,7 +285,8 @@ changelog: about|patch notes|new version|refresh|credits
 test/index.html: liveShow placesRelay places allPlaces placeKeyNow placeName placeLabel placeQs sightPlaceQ placesLoad
     placesSave placeOfS placeKeySet placeAt placeCheck placeAfter usePlace liveOk liveWatch liveTimer liveSaved
     liveFirst LIVE_RETRY_MS liveNameAsk liveAirAsk liveNameOk liveAirOk placeNow LIVE_FRESH_MS liveAt liveWas
-    liveRunAt liveToldAt liveStale liveWaiting liveBlank liveHalt liveRun liveStart liveStop geoReverse liveFix
+    liveRunAt liveToldAt liveStale liveWaiting liveBlank LIVE_OLD_MS liveOldSaid liveOldAcc geoPos geoNote liveHalt
+    liveRun liveStart liveStop liveAsk liveStay geoReverse liveFix
     geoSearch placesCard hereNow nearestAirport nearbyAirports putDraft locatedAt wireLocation settingsSync wireSearch
     .inst.loc .geoQ .geoRes .lblF .upd .apList .inst.updAll +queryCenter +meSend +#modeSw +drawStatic +viewSubtitle
     +itemHtml .plRow .plGo .plRm .plUp .pickList +snapLoad +snapSave +dayList +renderFeatured +recentShown

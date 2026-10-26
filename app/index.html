@@ -1715,7 +1715,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=619e224846"></script>
+<script src="../test/i18n.js?v=c93d1c13a1"></script>
 <script>
 (() => {
 "use strict";
@@ -3250,14 +3250,32 @@ setInterval(() => {
   if (st !== liveWas) { liveWas = st; liveShow(); }
   if (st === "wait" && liveRunAt && Date.now() - liveRunAt > 60000 && !liveToldAt && typeof toast === "function") {
     liveToldAt = Date.now();
-    dlog("warn", "Live location: no position from this device after a minute");
-    toast(T("Live location isn't working on this device. Pick a place in Settings → Location instead."), {err: true, ms: 15000, action: T("Settings"),
+    const approx = liveOldAcc >= 1500;        // 1.93.1: only an old approximate one came (an Approximate-only site?)
+    dlog("warn", "Live location: no position from this device after a minute" + (approx ? " (only an old, approximate one)" : ""));
+    toast(T(approx ? "Live location only got an old, approximate position from this device. Allow precise location for this site in the browser's site settings." :
+      "Live location isn't working on this device. Pick a place in Settings → Location instead."), {err: true, ms: 15000, action: T("Settings"),
       run: () => { if (typeof switchView === "function") switchView("settings"); else showTab("settings"); }});
   }
 }, 2000);
 function liveHalt(){
   if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
   clearInterval(liveTimer); liveWatch = liveTimer = null; liveNameAsk = liveAirAsk = 0; liveFirst = true; liveAt = 0; liveRunAt = liveToldAt = 0;
+  liveOldAcc = 0;
+}
+/* 1.93.1 (to-do #111, a phone kept showing a village far away where it had been days before): Chrome on Android (155)
+   gives a page that asks without enableHighAccuracy only approximate positions, keeps the last one across page loads
+   and hands it to a page that starts watching at once, however old, and passes on a new one at most every 15 minutes.
+   Live location asks for a precise position (Chrome stops watching while the page is hidden), and one more than
+   LIVE_OLD_MS old by its timestamp is no fix: FINDING YOU … and fix=-1 stay until a fresh one comes. The Log says what
+   came; the accuracy of the last old one (liveOldAcc) picks the note after a minute. */
+const LIVE_OLD_MS = 120000;
+let liveOldSaid = 0, liveOldAcc = 0;
+const geoPos = p => ({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, age: Math.max(0, Date.now() - (+p.timestamp || Date.now()))});
+// A position for the Log: its age (browsers only), how exact it is, how far from the point being watched.
+function geoNote(p){
+  const s = p.age / 1000, km = gcKm(S.lat, S.lon, +p.lat, +p.lon);
+  const age = p.age == null ? "" : (s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : s < 172800 ? Math.round(s / 3600) + " h" : Math.round(s / 86400) + " days") + " old, ";
+  return `${age}±${p.acc != null ? Math.round(p.acc) : "?"} m, ${km < 10 ? km.toFixed(1) : Math.round(km)} km from the last point`;
 }
 function liveRun(){
   liveHalt();
@@ -3266,10 +3284,15 @@ function liveRun(){
     const tick = () => hereNow().then(liveFix).catch(() => {});
     tick(); liveTimer = setInterval(tick, 60000);
   } else {
-    const fix = p => liveFix({lat: p.coords.latitude, lon: p.coords.longitude});
-    liveWatch = navigator.geolocation.watchPosition(fix, () => {}, {enableHighAccuracy: false, maximumAge: 30000, timeout: 60000});
+    const fix = p => {
+      const q = geoPos(p);
+      if (q.age <= LIVE_OLD_MS) return liveFix(q);
+      liveOldAcc = q.acc || 0;
+      if (Date.now() - liveOldSaid > 60000) { liveOldSaid = Date.now(); dlog("warn", `Live location: the browser gave an old position (${geoNote(q)}); waiting for a fresh one`); }
+    };
+    liveWatch = navigator.geolocation.watchPosition(fix, () => {}, {enableHighAccuracy: true, maximumAge: 30000, timeout: 60000});
     liveTimer = setInterval(() => {         // a phone lying still may not report again by itself
-      if (Date.now() - liveAt > 120000) navigator.geolocation.getCurrentPosition(fix, () => {}, {enableHighAccuracy: false, maximumAge: 60000, timeout: 60000});
+      if (Date.now() - liveAt > 120000) navigator.geolocation.getCurrentPosition(fix, () => {}, {enableHighAccuracy: true, maximumAge: 60000, timeout: 60000});
     }, 60000);
   }
 }
@@ -3291,6 +3314,46 @@ function liveStop(){
   else { delete S.placeKey; applySettings({...S}); }
   placeAfter(); settingsSync();
 }
+/* 1.93.1 (Dave: ask each time): turning live location off with its switch asks where to watch now: Stay here (the
+   last fresh position, with the name and airport live location found for it, no label: liveStay) or Back to the place
+   before (livePrev: liveStop, as always). Without a fresh fix or a place before there is no choice to make: false, and
+   the switch calls liveStop. Closing the card (×, Back, beside it) keeps live location on. Picking or setting a place
+   while live still just goes there. */
+function liveAsk(){
+  const was = S.livePrev && typeof S.livePrev === "object" ? S.livePrev : null;
+  if (!S.live || !liveAt || liveStale() || !was) return false;
+  const name = liveNameOk() ? S.liveNamed[2] : "", air = liveAirOk() ? S.liveAir[2] : "";
+  const back = was.k || was.n || `${(+was.lat).toFixed(2)}, ${(+was.lon).toFixed(2)}`;
+  const opt = (k, title, sub) => `<button class="cBtn" type="button" data-lv="${k}"><b>${escH(title)}</b>${sub ? `<small>${escH(sub)}</small>` : ""}</button>`;
+  cardOpen(`<h3>${escH(T("Turn off live location"))}</h3><div class="pickList lvAsk">` + opt("stay", T("Stay here"), [name, air].filter(Boolean).join(" · ")) +
+    opt("back", T("Back to {place}", {place: back}), [was.k && was.n !== was.k ? was.n : "", was.home].filter(Boolean).join(" · ")) + `</div>`, el => {
+    const pick = f => () => { cardClose(); if (!S.live) return; ctlSound.toggle(false); f(); };
+    el.querySelector('[data-lv="stay"]').onclick = pick(liveStay);
+    el.querySelector('[data-lv="back"]').onclick = pick(liveStop);
+    const ring = [...el.querySelectorAll("[data-lv]")];    // the remote: the arrows go between them (the Logbook cards' ring), OK picks, Back closes
+    el.onkeydown = e => {
+      const d = {ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1}[e.key];
+      if (!d) return;
+      e.preventDefault(); e.stopPropagation();
+      ring[Math.max(0, Math.min(ring.length - 1, ring.indexOf(document.activeElement) + d))].focus();
+    };
+    try { ring[0].focus({preventScroll: true}); } catch { ring[0].focus(); }
+  });
+  return true;
+}
+// Stay here: the last fresh position becomes the place, without a label (the profile's own place). A name or airport
+// live location didn't have for it yet is asked for (Here until the name comes).
+async function liveStay(){
+  const lat = +S.lat, lon = +S.lon, name = liveNameOk() ? S.liveNamed[2] : "", air = liveAirOk() ? S.liveAir[2] : "";
+  liveHalt();
+  S.live = false; delete S.livePrev; delete S.placeKey;
+  applySettings({...S, lat, lon, place: name || T("Here"), home: air || S.home});
+  placeAfter(); settingsSync();
+  if (name && air) return;
+  const [n, a] = await Promise.all([name ? null : geoReverse(lat, lon), air ? null : nearestAirport(lat, lon).catch(() => null)]);
+  if (S.live || S.lat !== lat || S.lon !== lon || !n && !a) return;
+  applySettings({...S, ...(n ? {place: n} : {}), ...(a ? {home: a.code} : {})}); settingsSync();
+}
 // A place's name: "" where there is none (out at sea), null when the relay didn't answer (1.93.0.1)
 async function geoReverse(lat, lon){
   try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? String(j.name || "").trim() : null; }
@@ -3302,6 +3365,7 @@ async function liveFix(p){
   const lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4), moved = gcKm(S.lat, S.lon, lat, lon), run = liveRunAt;
   const first = liveFirst, named = liveNameOk();
   liveFirst = false;
+  if (first) dlog("info", `Live location: first position (${geoNote(p)})`);
   if (first || moved > 0.3) { S.lat = lat; S.lon = lon; }
   if (first || named && !liveNameOk()) liveShow(); // 1.93.0.1: FINDING YOU … and a name from 2 km back go at once
   const extra = {}, far = (a, km) => !Array.isArray(a) || gcKm(a[0], a[1], lat, lon) > km;
@@ -7203,6 +7267,7 @@ async function arOpen(){
   addEventListener(arEvent(), arOrient);
   if (arEvent() === "deviceorientationabsolute") addEventListener("deviceorientation", arOrient);   // 1.86: and the gyroscope's
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => {
+    if (geoPos(p).age > LIVE_OLD_MS) return;                           // 1.93.1: one the browser kept from earlier
     const c = p.coords; arHere = {lat: c.latitude, lon: c.longitude};
     // 1.76.1: the phone's own height above the sea (GPS, smoothed): on a hillside or a cliff top the airport's is far off
     if (typeof c.altitude === "number" && !(c.altitudeAccuracy > 60)) arAlt = arAlt == null ? c.altitude : arAlt + (c.altitude - arAlt) * .3;
@@ -8674,10 +8739,16 @@ function hereNow(){
     if (!window.isSecureContext || !navigator.geolocation)
       return no(new Error(T(A ? "Update the Fallblatt app to use the phone's location." :
         "This screen can't share its location: browsers only do that for https pages or pages opened on the relay's own computer. Type the latitude and longitude instead.")));
-    navigator.geolocation.getCurrentPosition(
-      p => ok({lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy}),
-      e => no(new Error(T(e.code === 1 ? "Location access was turned down. Allow it in the browser's site settings." : "The location isn't available right now."))),
-      {enableHighAccuracy: true, timeout: 20000, maximumAge: 60000});
+    // 1.93.1: a position the browser kept from earlier (say on a trip) is no answer: wait for a fresh one
+    let watch = null;
+    const end = () => { clearTimeout(timer); navigator.geolocation.clearWatch(watch); };
+    const timer = setTimeout(() => { end(); no(new Error(T("The location isn't available right now."))); }, 20000);
+    watch = navigator.geolocation.watchPosition(p => {
+      const q = geoPos(p);
+      if (q.age > LIVE_OLD_MS) return dlog("warn", `Current location: the browser gave an old position (${geoNote(q)}); waiting for a fresh one`);
+      end(); ok(q);
+    }, e => { end(); no(new Error(T(e.code === 1 ? "Location access was turned down. Allow it in the browser's site settings." : "The location isn't available right now."))); },
+    {enableHighAccuracy: true, timeout: 20000, maximumAge: 60000});
   });
 }
 // The nearest airport with scheduled flights, from the relay's airport list (relay 16 or newer); null if unknown.
@@ -8764,7 +8835,10 @@ function wireLocation(box){
   if (live) {
     live.disabled = !liveOk() || !placesRelay();
     if (live.disabled) { const n = box.querySelector("[data-lnote]"); if (n) n.textContent = T("Following your location needs the https address or the Fallblatt Android app."); }
-    live.onclick = () => { ctlSound.toggle(!S.live); if (S.live) liveStop(); else liveStart(); settingsSync(); };
+    live.onclick = () => {
+      if (S.live && liveAsk()) return ctlSound.press();      // 1.93.1: stay here, or back to the place before
+      ctlSound.toggle(!S.live); if (S.live) liveStop(); else liveStart(); settingsSync();
+    };
   }
   // typed coordinates: once both are numbers and the point moved, the town and airports follow
   let typed = 0;
@@ -8815,6 +8889,7 @@ function settingsSync(){
     if (el && document.activeElement !== el) el.value = draft[k];
   }
   draft.liveNamed = S.liveNamed; draft.liveAir = S.liveAir;    // 1.93.0.1: Save mustn't bring back older ones
+  draft.live = !!S.live; draft.livePrev = S.livePrev;           // 1.93.1: nor turn live location back on or off
   const pl = box && box.querySelector('.lcd[data-k="place"]'), wait = !placeNow();   // as itemHtml
   if (pl) { pl.disabled = wait; pl.placeholder = wait ? T("On the go") : ""; if (wait) pl.value = ""; }
   const live = box && box.querySelector("[data-live]");
@@ -9260,6 +9335,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.93.1", date: "2026-10-26", notes: [
+    "Live location no longer starts from an old position the phone kept, say from a trip: it waits for a fresh one.",
+    "Turning live location off asks whether to stay where you are or go back to the place you watched before."]},
   {v: "1.93.0.1", date: "2026-10-26", notes: [
     "Live location never shows the town you were in before: until it knows where you are now, the title says On the go.",
     "On the boards, About fits every screen: the patch notes on the left, the keys and the credits on the right."]},

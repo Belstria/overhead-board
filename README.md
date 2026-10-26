@@ -417,8 +417,18 @@ The main board has everything below. New features are tried on `/test/` first; o
     location isn't working on this device, with a button to Settings. Since 1.93.0.1 a town's name only shows within
     2 km of where it was found (the airport within 15 km): until the new name comes, the title says ON THE GO and City
     reads "On the go", and neither an old name nor an old airport goes to the profile; a lookup the relay didn't answer
-    is made again on a later position, a minute on. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
-    location with https pages).
+    is made again on a later position, a minute on. Since 1.93.1 live location asks the browser for the precise
+    position (Chrome on Android otherwise shares only an approximate one, a new one at most every 15 minutes) and takes
+    no position more than two minutes old: a browser hands over the last one it kept, which can be days old and far
+    away, say from a trip, so FINDING YOU … stays until a fresh one comes, and the Log (Settings → About → Log) says
+    how old, how exact and how far away each refused one was. When only an old approximate position came, the note
+    after a minute says to allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
+    Settings → Site settings → Location: "Allowed • Precise"). **Use current location** waits for a fresh position too.
+    Turning live location off asks (1.93.1): **Stay here** watches the last position live location found, with its
+    town and airport and no place name, **Back to …** goes back to the place before; closing the card (×, Back, beside
+    it) keeps live location on. Without a fresh position it goes straight back to the place before. Picking a saved
+    place or setting a location while live just goes there. The TVs can't follow (browsers only share their location
+    with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
     board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.
   - **Find an address**: type an address or a place and pick it from the list (OpenStreetMap's Nominatim, through the
