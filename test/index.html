@@ -573,7 +573,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=fe565ad643"></script>
+<script src="i18n.js?v=76980b14f3"></script>
 <script>
 (() => {
 "use strict";
@@ -6801,6 +6801,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.89", date: "2026-10-26", notes: [
+    "In the app, the Logbook picks All, On the go or one of your saved places in a bar; the saved places open in a list.",
+    "Counting since and your points are at the bottom of the Logbook and the Spotters' Club.",
+    "In the app, tapping your points shows today's points: each plane, when it scored and why."]},
   {v: "1.88.0.1", date: "2026-10-26", notes: [
     "Live location only counts planes and points once the phone has found where it is; until then the title says so.",
     "Planes without a callsign no longer show as @@@@@@@@: their registration shows instead."]},

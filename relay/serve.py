@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 70
+RELAY_VERSION = 71
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1126,6 +1126,7 @@ def game_note(spot, e):
         if _hour(e) not in hrs:
             g["hours"] = sorted(hrs | {_hour(e)})
         e["gp"] = game_points(e)
+        _game_award(e, "first", e["gp"])
         _game_add(g, day, e["gp"])
         note_records(g, e)
         for k in trophy_check(g, e, [x for x in spot.entries if "gp" in x]):
@@ -1135,12 +1136,47 @@ def game_note(spot, e):
         if p == e["gp"]:
             return False
         _game_add(g, day, p - e["gp"])
+        _game_award(e, "close" if p > e["gp"] else "fix", p - e["gp"])
         e["gp"] = p
         note_records(g, e)
         trophy_pass(g, e)
     _game_best(g, day, e)
     spot.changed("book")
     return True
+
+
+def _game_award(e, kind, pts, **more):
+    """Relay 71: what a sighting scored and when, for the app's Recent points: the first score, close-pass top-ups
+    ("fix" when a later look lowered them) and Sky view's lock-on, with the distance or the share at the time."""
+    a = {"t": int(time.time() * 1000), "k": kind, "p": pts, **more}
+    if kind != "lock" and e.get("liveMin") is not None:
+        a["d"] = round(e["liveMin"], 1)
+    aw = e.setdefault("ga", [])
+    aw.append(a)
+    del aw[:-8]
+
+
+def game_today(spot):
+    """Relay 71: today's scored planes for the app's Recent points, newest award first: the plane, its total and its
+    awards. Sightings scored before relay 71 have no awards (only their totals)."""
+    with _data_lock:
+        spot.ensure_day()
+        g = game_book(spot.book())
+        day = spot.day
+        rows = [e for e in spot.entries if "gp" in e]
+        total, planes = g.get("days", {}).get(day, 0), g.get("planes", {}).get(day, 0)
+        out = []
+        for e in rows:
+            aw = [dict(a) for a in e.get("ga") or []]
+            # the fields the boards' fromRelay() names a plane from, so it reads as in Spotted today
+            out.append({**{k: e.get(k) or "" for k in ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg",
+                                                       "typeCode", "desc", "aircraftType", "manufacturer")},
+                        "tier": e.get("tier") or "", "km": e.get("liveMin"),
+                        "gp": e["gp"], "lock": e.get("lock", 0), "base": TIER_BASE.get(e.get("tier"), 30),
+                        "new": [[k[4:].lower(), v] for k, v in GAME_NEW if e.get(k)], "gk": e.get("gk") or 1.0,
+                        "gn": e.get("gn") or 1, "ts": e.get("ts"), "aw": aw})
+    out.sort(key=lambda r: max([a["t"] for a in r["aw"]] or [r["ts"] or 0]), reverse=True)
+    return {"day": day, "today": total, "planes": planes, "taper": [25, 50], "rows": out}
 
 
 def _game_best(g, day, e):
@@ -1171,6 +1207,7 @@ def game_lockon(spot, hx):
         combo = min(len(LOCK_PCT), L.get("combo", 0) + 1) if now - L.get("at", 0) <= LOCK_COMBO_S else 1
         bonus = max(LOCK_MIN, round(e["gp"] * LOCK_PCT[combo - 1]))
         e["lock"] = bonus
+        _game_award(e, "lock", bonus, pct=LOCK_PCT[combo - 1], c=combo)
         L.update(at=now, combo=combo, n=L.get("n", 0) + 1, last={"ts": int(now * 1000), "flight": e.get("callsign") or "",
                                                                   "type": e.get("typeCode") or "", "pts": bonus})
         _game_add(g, spot.day, bonus)
@@ -6512,6 +6549,8 @@ class Handler(BaseHTTPRequestHandler):
             out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],
                        below=(lg["rows"][me["rank"]]["name"] if me and me["rank"] < len(lg["rows"]) else None), players=len(lg["rows"]))
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/today":         # relay 71: Recent points, today's scored planes and their awards
+            return self.reply(200, "application/json", json.dumps(game_today(self.spot)).encode())
         if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
             return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
         if path == "/game/player":        # relay 63: a league player's card

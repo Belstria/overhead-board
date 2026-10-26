@@ -13,6 +13,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   only David's page says owner, /pageversion (a page built without a profile) answers, a saved "</script>" stays escaped
 - live location: a request with a stale or missing fix records nothing, scores nothing and starts no gap filler; a
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
+- Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88)
@@ -152,6 +153,30 @@ def checks():
         expect("a lock-on pays at least 15", lk.get("bonus", 0) >= 15 and lk.get("combo") == 1, True)
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
         expect("the same plane locked on twice", json.loads(b).get("why") if st == 200 else st, "done")
+    # relay 71: Recent points, today's awards per plane (the first score, a close-pass top-up, the lock-on); the
+    # profile's own only
+    today = lambda ck: json.loads(call("/game/today", ck)[2])     # noqa: E731
+    td = today("test-device")
+    row = next((r for r in td.get("rows", []) if r.get("hex") == hx), {})
+    kinds = [a.get("k") for a in row.get("aw", [])]
+    expect("Recent points: the first score and the lock-on", ("first" in kinds, "lock" in kinds), (True, True))
+    lock = next((a for a in row.get("aw", []) if a.get("k") == "lock"), {})
+    expect("... the lock-on's share and points", (lock.get("pct"), lock.get("p") == row.get("lock")), (0.25, True))
+    expect("... the day's total", td.get("today", 0) > 0 and td.get("planes", 0) >= len(td.get("rows", [])) > 0, True)
+    far_one = next((r for r in td.get("rows", []) if (r.get("km") or 0) > 4.5 and len(r.get("aw", [])) == 1), None)
+    expect("a scored plane more than 4.5 km away", bool(far_one), True)
+    if far_one:
+        st, _, b = call("/aircraft/48.2085/16.3731/25", "test-device")
+        ac = next((a for a in json.loads(b).get("ac", []) if a.get("hex") == far_one["hex"]), None) if st == 200 else None
+        if ac:
+            at = f"{ac['lat']:.4f}/{ac['lon']:.4f}"
+            call(f"/aircraft/{at}/25?pl=live&pc={at.replace('/', ',')}&pr=15", "test-device")
+            row = next((r for r in today("test-device").get("rows", []) if r.get("hex") == far_one["hex"]), {})
+            close = next((a for a in row.get("aw", []) if a.get("k") == "close"), {})
+            expect("a close pass tops up its plane", (close.get("p", 0) > 0, (close.get("d") or 99) <= 1.5), (True, True))
+            expect("... and the plane's total follows", sum(a["p"] for a in row.get("aw", []) if a["k"] != "lock"), row.get("gp"))
+    expect("Recent points for another profile", today("owner-device").get("rows"), [])
+    expect("Recent points for strangers", call("/game/today")[0] in (401, 403), True)
     expect("a lock-on from another site", call("/game/lockon", "test-device", {"Origin": "https://evil.example"}, {"hex": "abcdef"})[0] in (403, 429), True)
     st, _, b = call("/game/league", "test-device")
     lg = json.loads(b) if st == 200 else {}

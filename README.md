@@ -360,7 +360,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   chips above the Logbook pick **All** or one place (with its count); a place shows its own numbers, top types, airlines
   and aircraft and its records (the collection, bingo, trophies and the year card count every place, so they show
   under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
-  counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip.
+  counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip. Since 1.89 the
+  app picks in a bar instead of chips: **All**, **On the go** and **Saved places**, which opens a list of your saved
+  places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). "Counting
+  since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
@@ -418,7 +421,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
-  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
+  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71): today's
+  total and every plane that scored, newest first, with when and why (its rarity and what was new, close-pass top-ups,
+  Sky view's lock-on; points from before relay 71 show without times); at its foot a link to the club. Tap the place
+  chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
