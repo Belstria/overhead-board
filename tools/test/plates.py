@@ -2,6 +2,7 @@
 
 A board's plates have a fixed size and clip what sticks out (a TV can't scroll), so every child of a plate must end
 inside it. OVERFLOW_JS lists the plates on the page whose content runs past their bottom or right edge (empty: all fit).
+smoke.py runs it at the Fire TV's size in Settings, Account & device and About (1.93.0.1).
 """
 
 OVERFLOW_JS = r"""() => [...document.querySelectorAll("#cockpit .plate")].map(p => {

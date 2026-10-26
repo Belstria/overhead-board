@@ -936,6 +936,7 @@ window.I18N_ROWS = [
   ["Connection log", "Verbindungsprotokoll", "Journal de connexion", "Registro de conexión", "Verbindingslogboek"],
   ["Full screen (or click the board)", "Vollbild (oder auf die Tafel klicken)", "Plein écran (ou cliquez sur le tableau)", "Pantalla completa (o haz clic en el panel)", "Volledig scherm (of klik op het bord)"],
   ["Back to the board", "Zurück zur Tafel", "Retour au tableau", "Volver al panel", "Terug naar het bord"],
+  ["This aircraft: the photo's link (OK opens it)", "Dieses Flugzeug: der Link des Fotos (OK öffnet ihn)", "Cet avion : le lien de la photo (OK l'ouvre)", "Este avión: el enlace de la foto (OK lo abre)", "Dit toestel: de link van de foto (OK opent hem)"],
   ["Recent<br>flights", "Letzte<br>Flüge", "Vols<br>récents", "Vuelos<br>recientes", "Recente<br>vluchten"],
   ["Today in<br>numbers", "Heute in<br>Zahlen", "Aujourd'hui<br>en chiffres", "Hoy en<br>cifras", "Vandaag in<br>cijfers"],
   ["This<br>aircraft", "Dieses<br>Flugzeug", "Cet<br>avion", "Este<br>avión", "Dit<br>toestel"],

@@ -355,8 +355,11 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .ctlBot .ctlCap[data-act=cancel]{flex:1 1 0}
 .ctlBot .ctlCap[data-act=save]{flex:1.6 1 0}
 .plate .acts{grid-column:1/-1;display:flex;gap:calc(22px*var(--k));justify-content:center;padding:calc(10px*var(--k)) 0}
-/* About: patch notes, keys and information, on the same plates as Settings */
-#cockpit .plate.notes{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+/* About: patch notes, keys and information, on the same plates as Settings. 1.93.0.1: in two halves, the patch notes
+   on the left; on the right the keys, two to a row and as tall as they need, over the information, which gets the
+   rest (in Settings' third column its credits ran past the plate on every screen) */
+#cockpit.about{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+#cockpit .plate.notes{grid-row:span 2;display:flex;flex-direction:column}
 #cockpit .syncNote{position:absolute;right:0;bottom:calc(-30px*var(--k));margin:0;font-size:calc(17px*var(--k));color:#f0b429}   /* 1.64 */
 .plate .log{grid-column:1/-1;flex:1;min-height:0;overflow:auto;margin:0;padding:0 calc(10px*var(--k)) 0 0;list-style:none;outline:none}
 .plate .log::-webkit-scrollbar{width:calc(8px*var(--k))}
@@ -376,7 +379,7 @@ body.real .lcd{text-shadow:0 0 calc(6px*var(--k)) rgba(246,197,74,.55),0 0 1px r
 .plate ul.legend li{display:grid;grid-template-columns:calc(124px*var(--k)) minmax(0,1fr);gap:calc(12px*var(--k));align-items:center;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
 .plate .chip{display:grid;place-items:center;height:calc(25px*var(--k));padding:0 calc(6px*var(--k));border-radius:calc(3px*var(--k));
   font:700 calc(12.5px*var(--k))/1 var(--f-board);letter-spacing:.06em;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45)}
-.plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
+.plate dl.keys{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:calc(6px*var(--k)) calc(14px*var(--k));margin:0;align-items:center}
 .plate dl.keys dt{justify-self:end;min-width:calc(30px*var(--k));padding:calc(3px*var(--k)) calc(8px*var(--k));border-radius:calc(4px*var(--k));text-align:center;
   font:700 calc(13px*var(--k))/1.25 var(--f-board);color:#17140e;background:linear-gradient(#efe9da,#bdb5a2);box-shadow:0 calc(2px*var(--k)) 0 #050505}
 .plate dl.keys dd{margin:0;font:500 calc(15px*var(--k))/1.25 var(--f-board);color:rgba(232,227,214,.84)}
@@ -641,7 +644,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=c4cd956d39"></script>
+<script src="i18n.js?v=619e224846"></script>
 <script>
 (() => {
 "use strict";
@@ -1771,7 +1774,7 @@ function drawStatic(){
   placeModeSwitch(x1, w1, x2, w2);
   g.font = `600 21px ${FONT}`; if ("letterSpacing" in g) g.letterSpacing = "2px";
   g.fillStyle = COL.muted;
-  g.fillText(`${liveWaiting() ? T("FINDING YOU …") : (liveStale() ? T("FINDING YOU …") + "   ·   " : "") + clean(S.place)}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
+  g.fillText(`${liveWaiting() ? T("FINDING YOU …") : (liveStale() ? T("FINDING YOU …") + "   ·   " : "") + clean(placeNow() || T("On the go"))}   ·   ${T("RADIUS {n} KM", {n: S.radiusKm})}`, M + 118, 128);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
   for (const y of view ? [Y.rule1] : [Y.rule1, Y.rule2]) {               // engraved grooves
     g.fillStyle = "rgba(0,0,0,.7)"; g.fillRect(M, y, IW, 2);
@@ -2410,7 +2413,10 @@ const ME_KEY = "od.mePending." + ((window.OVERHEAD_GUEST || {}).id || "");
 let mePending = (() => { try { return JSON.parse(localStorage.getItem(ME_KEY) || "null"); } catch { return null; } })();
 let meTimer = 0, meFails = 0, meBusy = null;
 function meSend(settings, now){
-  mePending = {...(mePending || {}), ...settings};
+  const {liveNamed, liveAir, ...st} = settings;       // 1.93.0.1: where live location found them stays on this device,
+  mePending = {...(mePending || {}), ...st};
+  if (!liveNameOk()) delete mePending.place;          // and the name or airport of a place it has moved on from isn't sent
+  if (!liveAirOk()) delete mePending.home;
   try { localStorage.setItem(ME_KEY, JSON.stringify(mePending)); } catch {}
   clearTimeout(meTimer);
   if (now) return meFlush();
@@ -4130,7 +4136,7 @@ function viewSubtitle(){
   if (view === "radar" && radarZoomed()) {
     const r = radarRing(radarRange()) < 1 ? "500 m" : radarRing(radarRange()) + " km";
     return airportMode() ? T("Close-up of {ap} · rings every {r} · the planes standing and moving on the ground", {ap: clean(S.home), r})
-      : T("Close-up around {place} · rings every {r}", {place: clean(S.place), r});
+      : T("Close-up around {place} · rings every {r}", {place: clean(placeNow() || T("On the go")), r});
   }
   if (view === "radar" && radarCentre().ap) return T("Centred on {ap} · rings every 5 km · dashed: {n} km around the airport · the logo: your place", {ap: clean(S.home), n: +S.radiusKm || 15});
   if (view === "radar") return T("Rings every 5 km · dashed: the {n} km spotting radius · green: directly overhead", {n: +S.radiusKm || 15});
@@ -6733,7 +6739,7 @@ async function placesSave(list){
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   places = {list: (await r.json()).places || [], at: Date.now()};
 }
-const placeOfS = k => ({k, n: String(S.place || "").trim().slice(0, 24), lat: +(+S.lat).toFixed(5), lon: +(+S.lon).toFixed(5), home: clean(S.home).slice(0, 3), r: +S.radiusKm || 15});
+const placeOfS = k => ({k, n: String(placeNow() || "").trim().slice(0, 24), lat: +(+S.lat).toFixed(5), lon: +(+S.lon).toFixed(5), home: clean(S.home).slice(0, 3), r: +S.radiusKm || 15});
 // Watch the same point under another label, or none (k empty).
 function placeKeySet(k){
   const was = placeKeyNow();
@@ -6762,7 +6768,18 @@ function usePlace(p){
 /* Live location: the phone's position drives the board while the page is open (https, or the Android app). Small moves
    only move the point; a new town gets its name (OpenStreetMap, through the relay) and a new nearest airport. */
 const liveOk = () => !!(window.OverheadAndroid && window.OverheadAndroid.locate) || (window.isSecureContext && !!navigator.geolocation);
-let liveWatch = null, liveTimer = null, liveNamed = null, liveAir = null, liveSaved = 0, liveFirst = true;
+let liveWatch = null, liveTimer = null, liveSaved = 0, liveFirst = true;
+/* 1.93.0.1 (a phone back from a trip showed the trip's village, for good when the relay didn't answer): the town's name
+   and the airport are kept with the point they were found for (S.liveNamed: [lat, lon, name], "" where there is none;
+   S.liveAir: [lat, lon, code]; this device's own) and count within 2 and 15 km of it. Until new ones come the title and
+   Settings say On the go (placeNow) and neither goes to the relay (meSend). A point is marked only after an answer; a
+   lookup that got none is made again on a later fix, a minute on. */
+const LIVE_RETRY_MS = 60000;
+let liveNameAsk = 0, liveAirAsk = 0;           // when the last lookup without an answer was made (Infinity: one on its way)
+function liveNameOk(){ const a = S.liveNamed; return !S.live || Array.isArray(a) && !!a[2] && gcKm(a[0], a[1], S.lat, S.lon) <= 2; }
+function liveAirOk(){ const a = S.liveAir; return !S.live || Array.isArray(a) && gcKm(a[0], a[1], S.lat, S.lon) <= 15; }
+// The place's name as the title, the radar, a Sky view picture and Settings show it: "" while live location has none
+function placeNow(){ return S.live && (liveWaiting() || !liveNameOk()) ? "" : S.place; }
 /* 1.88.0.1: a live position counts only while it is fresh: a fix this page got (never one saved days ago, say on a
    trip) within LIVE_FRESH_MS. Position requests say how old it is (&fix=s, -1: none yet); relay 70 records no live
    sightings, points or gap filler without a fresh one. Five minutes: the Android app asks every minute and browsers
@@ -6794,7 +6811,7 @@ setInterval(() => {
 }, 2000);
 function liveHalt(){
   if (liveWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatch);
-  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNamed = liveAir = null; liveFirst = true; liveAt = 0; liveRunAt = liveToldAt = 0;
+  clearInterval(liveTimer); liveWatch = liveTimer = null; liveNameAsk = liveAirAsk = 0; liveFirst = true; liveAt = 0; liveRunAt = liveToldAt = 0;
 }
 function liveRun(){
   liveHalt();
@@ -6814,6 +6831,7 @@ function liveRun(){
 function liveStart(){
   if (!liveOk()) return;
   if (!S.live) S.livePrev = placeOfS(S.placeKey || "");
+  delete S.liveNamed; delete S.liveAir;         // 1.93.0.1: a place set by hand isn't named for where the phone is
   S.live = true; saveSettings();
   liveRun(); placeAfter(); settingsSync();
 }
@@ -6827,29 +6845,38 @@ function liveStop(){
   else { delete S.placeKey; applySettings({...S}); }
   placeAfter(); settingsSync();
 }
+// A place's name: "" where there is none (out at sea), null when the relay didn't answer (1.93.0.1)
 async function geoReverse(lat, lon){
-  try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? j.name : ""; }
-  catch { return ""; }
+  try { const j = await fetchJSON(`${relay()}/geo/reverse?lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&lang=${LANG}`, {}, 15000); return j.status === "ok" ? String(j.name || "").trim() : null; }
+  catch { return null; }
 }
 async function liveFix(p){
   if (!S.live) return;
   liveAt = Date.now();
-  const lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4), moved = gcKm(S.lat, S.lon, lat, lon);
-  const first = liveFirst;
+  const lat = +(+p.lat).toFixed(4), lon = +(+p.lon).toFixed(4), moved = gcKm(S.lat, S.lon, lat, lon), run = liveRunAt;
+  const first = liveFirst, named = liveNameOk();
   liveFirst = false;
   if (first || moved > 0.3) { S.lat = lat; S.lon = lon; }
-  const extra = {};
-  if (!liveNamed || gcKm(liveNamed[0], liveNamed[1], lat, lon) > 2) {
-    liveNamed = [lat, lon];
-    const n = await geoReverse(lat, lon);
-    if (n && n !== S.place) extra.place = n;
+  if (first || named && !liveNameOk()) liveShow(); // 1.93.0.1: FINDING YOU … and a name from 2 km back go at once
+  const extra = {}, far = (a, km) => !Array.isArray(a) || gcKm(a[0], a[1], lat, lon) > km;
+  const askName = far(S.liveNamed, 2) && Date.now() - liveNameAsk > LIVE_RETRY_MS, askAir = far(S.liveAir, 15) && Date.now() - liveAirAsk > LIVE_RETRY_MS;
+  if (askName) liveNameAsk = Infinity;
+  if (askAir) liveAirAsk = Infinity;
+  const [n, a] = await Promise.all([askName ? geoReverse(lat, lon) : null, askAir ? nearestAirport(lat, lon).catch(() => null) : null]);
+  if (run !== liveRunAt) return;
+  if (askName) {
+    liveNameAsk = n == null ? Date.now() : 0;
+    if (n == null) dlog("warn", "Live location: no name for this place from the relay; asking again in a minute");
+    else { S.liveNamed = [lat, lon, n]; if (n && n !== S.place) extra.place = n; }
   }
-  if (!liveAir || gcKm(liveAir[0], liveAir[1], lat, lon) > 15) {
-    liveAir = [lat, lon];
-    try { const a = await nearestAirport(lat, lon); if (a && a.code !== clean(S.home)) extra.home = a.code; } catch {}
+  if (askAir) {
+    liveAirAsk = a ? 0 : Date.now();
+    if (!a) dlog("warn", "Live location: no nearest airport from the relay; asking again in a minute");
+    else { S.liveAir = [lat, lon, a.code]; if (a.code !== clean(S.home)) extra.home = a.code; }
   }
+  const marked = askName && n != null || askAir && !!a;
   if (!S.live) return;
-  if (first || Object.keys(extra).length) { applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon}); settingsSync(); }
+  if (first || marked || Object.keys(extra).length) { applySettings({...S, ...extra, live: true, lat: S.lat, lon: S.lon}); settingsSync(); }
   else if (moved > 0.3 && Date.now() - liveSaved > 60000) { liveSaved = Date.now(); saveSettings(); }
 }
 setTimeout(() => { placesLoad().then(placeCheck); if (S.live) { if (liveOk()) liveRun(); else { S.live = false; saveSettings(); } } }, 1500);
@@ -7157,6 +7184,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.93.0.1", date: "2026-10-26", notes: [
+    "Live location never shows the town you were in before: until it knows where you are now, the title says On the go.",
+    "On the boards, About fits every screen: the patch notes on the left, the keys and the credits on the right."]},
   {v: "1.93", date: "2026-10-26", notes: [
     "Planes show their own photo from Planespotters.net first, with the photographer's name on it: tap the photo to see it there.",
     "Every photo has its credit on it, and a picture of the model says so only there (the yellow tag is gone).",
@@ -8140,8 +8170,11 @@ function itemHtml(it){
   const cap = `<span>${escH(T(it.label))}</span>`, hint = it.hint || HINTS[it.type === "styles" && COCKPIT_FOR === "tv" ? "stylesTv" : it.k || it.type];
   const cell = (cls, body) => `<div class="inst${cls ? " " + cls : ""}"${it.span > 1 && !it.wide ? ` style="--span:${it.span}"` : ""}${hint ? ` data-hint="${escH(T(hint))}"` : ""}>${body}${cap}</div>`;
   if (it.type === "location") return itemHtml({...it, type: "update", inline: it.layout === "split"});
-  if (it.type === "lcd") return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
-    `aria-label="${escH(T(it.label))}" value="${escH(String(draft[it.k] ?? ""))}">`);
+  if (it.type === "lcd") {
+    const wait = it.k === "place" && !placeNow();          // 1.93.0.1: live location's name still to come: On the go, like Place name
+    return cell(it.wide ? "wide" : "", `<input class="lcd" data-k="${it.k}" maxlength="${it.max || 12}" spellcheck="false" autocomplete="off" ` +
+      `aria-label="${escH(T(it.label))}" value="${wait ? "" : escH(String(draft[it.k] ?? ""))}"${wait ? ` placeholder="${escH(T("On the go"))}" disabled` : ""}>`);
+  }
   if (it.type === "rotary") {
     const ang = rotaryAngles(it.opts.length), opts = rotOpts(it);
     // 1.54: each position sits clear of the knob's ring (27 + 5): a long word at the side moves out by half its width
@@ -8277,6 +8310,7 @@ function plateHtml(p){
 function cockpitOpen(){
   draft = cockpitDraft();
   const box = $("cockpit");
+  box.className = "";
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML = PLATES.map(plateHtml).join("") + `<p class="syncNote" data-syncnote hidden></p>`;
   syncShow();
@@ -8312,11 +8346,13 @@ function cockpitMark(dirty){
 /* About: the patch notes on a tall plate, the keys, and who made it, with a way back to Settings. */
 const KEYS = [["1 – 3", "The pages of the lower half"], ["← →", "Turn the page (in Spotted today: its pages)"],
   ["T", "Spotted today"], ["L", "Logbook"], ["R", "Radar"], ["S", "Settings"], ["A", "About"], ["D", "Connection log"],
-  ["F", "Full screen (or double-click the board)"], ["", "Click a row, a logo, a place or a plane on the radar for more"], ["Esc", "Back to the board"]];
+  ["F", "Full screen (or double-click the board)"], ["", "Click a row, a logo, a place or a plane on the radar for more"], ["Esc", "Back to the board"],
+  ["↑ ↓", "This aircraft: the photo's link (OK opens it)"]];
 // Account & device (1.44; since 1.56 the shared view plates, VIEW_PLATES): who this screen is signed in as, the
 // sign-in methods and Sign out; the phone app and its light version; privacy.
 function accountOpen(){
   const box = $("cockpit");
+  box.className = "";
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
   box.onclick = e => e.stopPropagation();
@@ -8324,6 +8360,7 @@ function accountOpen(){
 }
 function aboutOpen(){
   const box = $("cockpit"), screws = "<i></i><i></i><i></i><i></i>";
+  box.className = "about";                                  // 1.93.0.1: its own two halves (the CSS)
   Object.assign(box.style, {left: `calc(${M}px * var(--k))`, top: `calc(266px * var(--k))`, width: `calc(${IW}px * var(--k))`, height: `calc(${Y.rail - 18 - 266}px * var(--k))`});
   box.innerHTML =
     `<div class="plate notes">${screws}<h3 id="abTitle">${T("Patch notes")}</h3>` +
@@ -8584,6 +8621,9 @@ function settingsSync(){
     const el = box && box.querySelector(`.lcd[data-k="${k}"]`);
     if (el && document.activeElement !== el) el.value = draft[k];
   }
+  draft.liveNamed = S.liveNamed; draft.liveAir = S.liveAir;    // 1.93.0.1: Save mustn't bring back older ones
+  const pl = box && box.querySelector('.lcd[data-k="place"]'), wait = !placeNow();   // as itemHtml
+  if (pl) { pl.disabled = wait; pl.placeholder = wait ? T("On the go") : ""; if (wait) pl.value = ""; }
   const live = box && box.querySelector("[data-live]");
   if (live) { live.setAttribute("aria-pressed", String(!!S.live)); live.title = live.ariaLabel = T(S.live ? "Live location on" : "Live location"); }
   const n = box && box.querySelector("[data-lnote]");

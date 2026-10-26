@@ -13,6 +13,9 @@ are not touched: the test relay runs from a temporary folder.
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
                                                for screenshots) instead of the fake's (relay 73)
+    py tools/test/run_test_relay.py --slow-names   place names (OpenStreetMap's reverse lookup) take 5 s, and the first lookup
+                                               of each point fails: live location says ON THE GO until the name comes, and
+                                               asks again a minute on (1.93.0.1)
     py tools/test/run_test_relay.py --port 8296   other ports (the fake source then on 8295), so test relays of
                                                   several checkouts don't answer for each other (or env PORT)
 
@@ -48,6 +51,7 @@ def main():
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
+    p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
     fake_port = a.port - 1
@@ -122,7 +126,8 @@ def main():
     if music.is_file():
         (tmp / "data" / "media").mkdir()
         shutil.copy(music, tmp / "data" / "media" / music.name)
-    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "", PYTHONIOENCODING="utf-8",
+    env = dict(os.environ, QUIET="1" if a.quiet else "", HOVER="1" if a.hover else "", FAR="1" if a.far else "",
+               SLOW_NAMES="1" if a.slow_names else "", PYTHONIOENCODING="utf-8",
                FAKE_PORT=str(fake_port))
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
     hue = subprocess.Popen([sys.executable, str(HERE / "fakehue.py"), str(a.port - 2)], env=env) if a.hue else None
