@@ -473,6 +473,7 @@ async function loadFullDay(){
   finally { fullDay.busy = false; }
 }
 function dayList(){
+  if (liveWaiting()) return [];                      // 1.90: live location before its first fix: nothing from the old spot
   const shown = l => userLists.hide.length ? l.filter(e => !isHidden(e)) : l;      // hidden planes stay in the logbook, not in the lists
   if (!relayV5() || !fullDay.list || fullDay.date !== sightDay || fullDay.all) return shown(spotted);
   const ids = new Set(spotted.map(e => e.id));
@@ -543,11 +544,11 @@ const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, 
 let recentSig = "";
 function renderRecent(){
   const list = dayList().filter(e => !e.sample || S.demo).slice(0, 8);
-  const sig = list.map(rowSig).join("~") + S.units;
+  const sig = list.map(rowSig).join("~") + S.units + liveWaiting();
   if (sig === recentSig) return;
   recentSig = sig;
   $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
-    : `<li class="empty">${escH(T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
+    : `<li class="empty">${escH(liveWaiting() ? T("Finding where you are … the planes show once live location has found you.") : T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
     setChars(id("time"), e ? e.time || "" : "", d);
@@ -661,7 +662,7 @@ function topTypes(list){
     || (c.size ? T("No type twice yet") : "");
 }
 function todayNumbers(){
-  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : relayStats), list = todayList();
+  const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : !liveWaiting() && relayStats), list = todayList();
   if (st) {
     const name = x => x ? fromRelay(x).flight : "";
     const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
@@ -711,7 +712,7 @@ function renderToday(){
     one.textContent = placeLabel(); all.textContent = T("All places");
     one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
-  const sig = svFilter + svQuery + S.units + allPlaces + d.rows.map(rowSig).join("~");
+  const sig = svFilter + svQuery + S.units + allPlaces + liveWaiting() + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
   const waiting = allPlaces && !(fullDay.all && fullDay.list), L = $("svList");
   // 1.55 (to-do #72): every place's list keeps this place's on show, dimmed, until it has come in
@@ -720,7 +721,7 @@ function renderToday(){
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
   $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
-    : `<li class="empty">${svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet.")}</li>`;
+    : `<li class="empty">${escH(liveWaiting() && !allPlaces ? T("Finding where you are … the planes show once live location has found you.") : svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet."))}</li>`;
 }
 function renderLists(){
   renderRecent();
@@ -2397,12 +2398,13 @@ function skyRowRender(){
   const look = !$("look").hidden && !$("acSec").hidden && !$("arBtn").hidden, box = $("skyRow");
   box.hidden = look || !arPossible() || SIDEWAYS.matches;
   if (box.hidden) return;
-  const on = lookOn && lookHeading != null, sig = (feat ? "f" : "n") + LANG;
+  const wait = liveWaiting(), on = lookOn && lookHeading != null, sig = (wait ? "w" : feat ? "f" : "n") + LANG;
   drawTape($("skyCv"), on ? lookHeading : 0, on, null);
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
-  $("skyB").textContent = T(feat ? "Sky view" : "No planes around right now");
-  $("skySub").textContent = T(feat ? "Hold your phone up to the sky to see every plane around you." : "Sky view shows the ones farther off too, up to 60 km.");
+  $("skyB").textContent = T(feat || wait ? "Sky view" : "No planes around right now");   // 1.90: live location finding you: says so
+  $("skySub").textContent = wait ? T("Finding where you are … the planes show once live location has found you.")
+    : T(feat ? "Hold your phone up to the sky to see every plane around you." : "Sky view shows the ones farther off too, up to 60 km.");
 }
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
@@ -3522,7 +3524,7 @@ function updateWhere(){
   // 1.90: before the first fix only FINDING YOU … (the place is an old one, and the line fits a phone)
   $("where").textContent = liveWaiting() ? "◉ " + T("FINDING YOU …") : `${S.live ? "◉ " : ""}${liveStale() ? T("FINDING YOU …") + "  ·  " : ""}${lab}${clean(S.place)}  ·  ${T("RADIUS {n} KM", {n: +S.radiusKm || 15})}`;
 }
-function liveShow(){ updateWhere(); }     // live location found its position, or lost it
+function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){
   setChars("clock", hhmm()); rollDay(); updateFooter();
   if (feat && !isOffline()) setWord("remarks", featRemark());

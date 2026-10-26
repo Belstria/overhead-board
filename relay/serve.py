@@ -6881,7 +6881,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/skyreport":            # relay 72: Sky view's sensor readings, for tuning the compass (the owner's)
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
-            if not self.owner_ok():
+            if not self.guest or not self.owner_ok():   # (strangers never get here; owner_ok lets the relay's own computer in)
                 return self.reply(403, "text/plain", b"Only for the owner")
             if not allow("skyrep:" + self.guest[0], 1 / 10, 3):
                 return self.reply(429, "text/plain", b"Not now")

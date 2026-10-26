@@ -391,8 +391,9 @@ The main board has everything below. New features are tried on `/test/` first; o
     town or village (relay 62: the village itself, not the area round it, e.g. Oia rather than "Ia Municipal Unit")
     and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
     reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
-    title says FINDING YOU … and its planes don't count or score; since 1.90 no planes show at all until this page has
-    found the phone once (the saved spot may be far away), and after a minute without a position a note says live
+    title says FINDING YOU … and its planes don't count or score; since 1.90 the board stays empty until this page has
+    found the phone once (the saved spot may be far away): no plane on top, no last known board, no rows in the lists,
+    just "Finding where you are …"; after a minute without a position a note says live
     location isn't working on this device, with a button to Settings. Turning it off goes back to the place before. The TVs can't follow (browsers only share their
     location with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the

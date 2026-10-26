@@ -52,6 +52,14 @@ The repository is public: no addresses, keys or personal data here either.
   from `liveRun` (`liveRunAt`) a red toast once says live location isn't working on this device, its Settings button
   `switchView("settings")` on the board, `showTab("settings")` in the app. Relay 72: `live_stale()` treats a live
   request without `fix` as stale too (only an old cached app leaves it out). The app's red toast button was red on red.
+  Nothing from before stays while finding: `liveBlank()` (from `liveRun`: going live, or the page opening live) drops
+  the plane on top, `recent` (the planes' last positions, which the 30 s missing grace kept on), `lastList` (the 2 s
+  look-again re-ran the old place's update) and the snapshot, resets `emptyStreak`/`lastCount` (an empty sky isn't taken
+  for a source's glitch), then `process([])` and each page's `liveShow()`, which now redraws the lists too. `snapLoad`
+  shows no last known board in live mode and `snapSave` saves none while finding. `dayList()` (board and app) and the
+  board's `recentShown()` are empty and Today in numbers leaves out the relay's numbers while `liveWaiting()`; the
+  status flap is blank (not NO TRAFFIC); the Now list, Spotted today and the Where to look card say "Finding where you
+  are … the planes show once live location has found you."
 
 - 1.89.1 (to-do #102, Dave: "the big main boards should just be about the overhead/airport stuff"): **no game on the
   board** (test/index.html, so the TVs and the PC); the app keeps all of it. Board-only code removed: the `league` page
