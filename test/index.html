@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=4eccd39ba1"></script>
+<script src="i18n.js?v=98324cbb09"></script>
 <script>
 (() => {
 "use strict";
@@ -7775,8 +7775,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.97.6", date: "2026-10-28", notes: [
+  {v: "1.97.7", date: "2026-10-28", notes: [
     "In the web app, the back gesture or button now closes what is open first (a card, Sky view, another tab) and only then leaves the page.",
+  ]},
+  {v: "1.97.6", date: "2026-10-27", notes: [
+    "Planes only count while the app is open on screen: in the background nothing is recorded, scored or levelled up.",
   ]},
   {v: "1.97.5", date: "2026-10-27", notes: [
     "In the Android app, the back gesture now closes what is open first (a card, Sky view, another tab) and only then leaves the app.",
@@ -9503,6 +9506,8 @@ function sayHello(){
 setTimeout(sayHello, 2000);
 setInterval(sayHello, 60000);
 document.addEventListener("visibilitychange", sayHello);
+// 1.97.6: back on screen, look at once (the relay counts nothing from a hidden page: its requests say bg=1)
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !busy && !S.demo) poll(); });
 addEventListener("pagehide", () => { try { if (relayV12() && navigator.sendBeacon) navigator.sendBeacon(tagged(`${relay()}/bye`)); } catch {} });
 
 /* ---------- fullscreen, wake lock, idle cursor ---------- */

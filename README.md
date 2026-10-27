@@ -478,6 +478,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
+- **Only with the app on screen** (1.97.6, relay 81): nothing counts while the app is in the background. A page that is
+  hidden says so with its position requests and the relay records no sightings, scores nothing and fills no bingo square,
+  medal or level from them; it all resumes the moment the app is on screen again (it looks at once, so a plane overhead
+  then counts). Home and saved places (the TV boards) and push notifications are unchanged.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
   come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
   again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has
@@ -627,7 +631,7 @@ app, because it installs web apps only from https addresses and the relay is pla
 In the Android app (1.97.5) the back gesture or button closes what is open first, one layer at a time: a pop-up, a first-time
 tip, a card, then Sky view's card or Sky view itself (back to the board), About or the Log, a plane opened in a list, and then
 any tab other than Now (back to Now). On Now with nothing open it leaves the app, which stays in the background; the
-welcome does the same. Back makes no sound. The web app (1.97.6, in a browser or added to the home screen, an iPhone too) does the
+welcome does the same. Back makes no sound. The web app (1.97.7, in a browser or added to the home screen, an iPhone too) does the
 same with the browser's back: it closes the same layers one by one, and on Now with nothing open back leaves the page as usual
 (closing an installed web app). The tab stays in the address (`#logbook`), and switching tabs does not add steps to back.
 

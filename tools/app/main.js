@@ -2737,7 +2737,7 @@ setTimeout(androidHandover, 4000);
 /* 1.97.5: the phone's back gesture (or button). The app (MainActivity) asks the page first: this closes the top layer
    and answers true, or answers false on Now with nothing open, and the app then goes to the background. Quietly:
    back is the system's, so the closings play none of the controls' sounds.
-   1.97.6: `backStep()` picks the closing (without doing it) and is shared with the web app's history guard below. */
+   1.97.7: `backStep()` picks the closing (without doing it) and is shared with the web app's history guard below. */
 function backStep(){
   const shown = el => !!el && !el.hidden && el.getClientRects().length > 0;
   if (shown($("welcome"))) return null;                                    // the welcome has no step to go back to
@@ -2769,7 +2769,7 @@ function fallblattBack(){
   return true;
 }
 if (ANDROID) window.fallblattBack = fallblattBack;
-/* 1.97.6: back in a browser and in an installed web app. The page keeps ONE extra history entry (the guard, state
+/* 1.97.7: back in a browser and in an installed web app. The page keeps ONE extra history entry (the guard, state
    {fbGuard}) while anything is open or another tab than Now shows; none on Now with nothing open, so that back leaves as
    usual. Back onto the entry below the guard (popstate) runs the same step as the Android app (`backStep`); if something
    is still open the guard is pushed again. Closing by hand (x, a tap) leaves the guard behind: `guardSync` (every 200 ms
@@ -3805,7 +3805,7 @@ function showTab(t){
   setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
-addEventListener("hashchange", () => { if (location.hash !== tabHash()) showTab(location.hash.slice(1)); });   // 1.97.6: not when it's the page's own back putting the URL right
+addEventListener("hashchange", () => { if (location.hash !== tabHash()) showTab(location.hash.slice(1)); });   // 1.97.7: not when it's the page's own back putting the URL right
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){
@@ -4256,7 +4256,7 @@ function gHowCard(){
   const sd = R ? Array.from({length: 7}, (_, i) => `<i class="${i < (g.streak || 0) ? "on" : ""}">${escH(T("Day {n}", {n: i + 1}))}<b>+${nf.format(R.streak * (i + 1))}</b></i>`).join("") : "";
   const p = (a, b) => `<p class="gRule"><em>${escH(a)}</em> ${escH(b)}</p>`;
   cardOpen(`<div class="cHead"><div><h3>${escH(T("How points work"))}</h3></div></div>` +
-    `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))}</p>` +
+    `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))} ${escH(T("Nothing counts while the app is in the background."))}</p>` +
     (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
       `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
       p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +

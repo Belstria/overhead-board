@@ -943,7 +943,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.97.6 (to-do #141, Dave's request of 27 Oct): **back in the web app closes what's open.** `fallblattBack()` was split:
+- 1.97.7 (to-do #141, Dave's request of 27 Oct): **back in the web app closes what's open.** `fallblattBack()` was split:
   `backStep()` returns the closing for the top layer (or null; same order as 1.97.5) and `backQuiet(step)` runs it with
   the controls' sounds silenced; the Android handler is unchanged in behaviour. In a browser or installed web app (not
   `ANDROID`) the page keeps ONE guard history entry (`history.state.fbGuard`, same URL) while `backStep()` finds something
@@ -956,6 +956,14 @@ The repository is public: no addresses, keys or personal data here either.
   `hashchange` only calls `showTab` when the hash differs from the tab. Now with nothing open pushes nothing: back leaves
   as the browser does. A reload on the guard keeps it (`guardOn` from `history.state`). Chrome skips entries added before
   any tap on the page (history manipulation intervention): a layer that opens without one is left by back.
+- 1.97.6 (to-do #140, Dave's report of 27 Oct, relay 81): **nothing counts while the app is in the background.** "I often
+  come back to the app and I suddenly have a bingo or am level up": with the app in the pocket its position requests go on
+  (more slowly) and a live fix counts as fresh for 5 minutes, so the relay went on recording sightings, filling bingo squares
+  and giving points. The board needed no new flag: `getAircraft` already says `bg=1` when `document.hidden` (1.87.1, for the
+  gap filler); relay 81 reads it as stale too (`live_stale`). New in the board: a `visibilitychange` handler polls at once
+  when the page is shown again (before, the next timer tick, up to a minute after a throttled background), so a plane
+  overhead at that moment counts as usual. The How points work card adds "Nothing counts while the app is in the
+  background." Closed paths and the ones left open, see the relay entry.
 - 1.97.5 (to-do #139, Dave's request of 27 Oct): **back in the Android app closes what's open.** `MainActivity.goBack()`
   (an `OnBackInvokedCallback` from Android 13, `onBackPressed` before; the manifest sets `enableOnBackInvokedCallback`)
   asks the page `window.fallblattBack ? fallblattBack() : false` through `evaluateJavascript`. Only the answer `"true"`
@@ -1228,6 +1236,17 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 81 (1.97.6, to-do #140): **a hidden page's live request is stale.** `live_stale(q, place)` is also true for a "live"
+  place when the request has `bg` (`bg=1`, sent by `getAircraft` while `document.hidden`; since 1.87.1 for the gap filler).
+  So `Spot.take` (sightings, and with them every point, bingo square, medal, level, league week and Recent points award:
+  they are all computed from the recorded sightings), the gap filler and the live lock-on window (`liveSeen`) get nothing
+  from it. Saved places and home are unchanged (TV boards, a board at home, hidden or not); a page without the flag
+  counts as visible. **Other paths:** `/sightings`, `/logbook`, `/game/*` and `/now` (the widget) only read; `syncSightings`
+  fetches and records nothing itself (the app keeps no local log with a relay); `/game/lockon` (a scan) needs Sky view on
+  screen and is left as it was; push notifications are sent by the relay's own watch, not by a request, and are unchanged.
+  Not used as a second signal: `/hello`'s `vis` (relay 80's Screens list), as a lost "visible" hello would silence a phone
+  for good; each request carries its own state. Test: flows.py `live_hidden_checks` and the hidden live request in
+  `checks`.
 - Relay 80 (to-do #137, admin only): **a screen hidden for 15 s counts as left.** `screen_seen()` keeps `hidden_at` (set by
   a hello with vis=hidden, cleared by one saying anything else); `_screen_sweep(now)` (the body of `_screen_watch`, one pass)
   drops a screen hidden for `SCREEN_HIDDEN_S` = 15 whatever its `last` says, puts its key in `_screens_left` and its
