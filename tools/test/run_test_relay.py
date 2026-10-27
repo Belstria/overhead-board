@@ -69,7 +69,8 @@ def main():
         fakes.append(("https://api.planespotters.net/pub/photos", FAKE + "/ps/pub/photos"))
     if not a.live_facts:                  # relay 74: the cards' facts from the fake's few pages
         fakes += [("https://en.wikipedia.org/w/api.php", FAKE + "/wiki/w/api.php"), ("https://www.wikidata.org/w/api.php", FAKE + "/wikidata/w/api.php"),
-                  ("https://commons.wikimedia.org/wiki/Special:FilePath/", FAKE + "/commons/")]
+                  ("https://commons.wikimedia.org/wiki/Special:FilePath/", FAKE + "/commons/"),
+                  ("https://commons.wikimedia.org/w/api.php", FAKE + "/commons-api/w/api.php"), ("https://query.wikidata.org/sparql", FAKE + "/sparql")]
     for real, fake in fakes:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")
@@ -128,6 +129,10 @@ def main():
     (tmp / "data" / "fr24.json").write_text(json.dumps({"usage": {}, "flights": {"4ca2b8|EIN1XY": {
         "t": now - 86400 + 300, "flight": "EI661", "callsign": "EIN1XY", "from": {"code": "DUB", "city": "Dublin"},
         "to": {"code": "VIE", "city": "Vienna"}, "operator": "EIN", "livery": "EIN", "category": "Passenger"}}}), encoding="utf-8")
+    # relay 78: relay 74–77's kept facts, moved into the facts database at start (relay 74's airline answers aren't)
+    (tmp / "data" / "facts.json").write_text(json.dumps({
+        "model:Seeded Model": {"t": now - 3600, "v": {"kind": "model", "title": "Seeded Model", "text": "Kept in facts.json.", "facts": {"built": 7}}},
+        "airline:AUA": {"t": now - 3600, "v": {"kind": "airline", "title": "Relay 74's Austrian", "facts": {}}}}), encoding="utf-8")
     music = REPO / "sounds-src" / "emirates-boarding.m4a"
     if music.is_file():
         (tmp / "data" / "media").mkdir()

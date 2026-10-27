@@ -49,6 +49,7 @@ import secrets
 import shutil
 import signal
 import socket
+import sqlite3
 import struct
 import sys
 import threading
@@ -60,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 77
+RELAY_VERSION = 78
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -445,8 +446,6 @@ def _saver():
                 files.append((FR24_FILE, json.dumps(_fr24, separators=(",", ":"))))
             if "profiles" in todo and _profiles is not None:
                 files.append((PROFILES_FILE, json.dumps(_profiles, separators=(",", ":"))))
-            if "facts" in todo and _facts is not None:              # relay 74: the cards' facts
-                files.append((FACTS_FILE, json.dumps(_facts, separators=(",", ":"))))
         for path, text in files:
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -5719,17 +5718,30 @@ def plane_photo(reg, hex_=""):
 # references and units taken apart. A model by its Wikipedia page (the one the board's model lookup found); an airline by
 # its ICAO code through Wikidata (P230: the very company, subsidiaries too; by name, TUI and DHL found the wrong one);
 # an airport by its IATA code (P238). Wikipedia's words are CC BY-SA (the cards link the page); Wikidata's are CC0.
+# Relay 78 (1.96.2, to-do #129): the facts database. They live in data/facts.db (SQLite, read per card, not held in
+# memory; facts.json's moved in once), and once a month at night a background job (_facts_worker) refreshes every
+# airline still flying, every airport with an IATA code and the models (MODEL_TITLES, and every page a card asked for),
+# so a first tap finds its facts at once. The cards' lookups below stay the same: run in the job they ask for what they
+# need (_Need), the job fetches it for 50 cards together (50 items or pages a request) and runs them again. A key the
+# database doesn't have yet (a new type) is still looked up on its first tap.
 WM_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 COMMONS_FILE = "https://commons.wikimedia.org/wiki/Special:FilePath/"
-FACTS_FILE = DATA_DIR / "facts.json"
-FACTS_KEEP, FACTS_FAIL, FACTS_MAX, FACTS_GAP = 30 * 86400, 900, 4000, 0.2
+COMMONS_API = "https://commons.wikimedia.org/w/api.php"
+SPARQL_API = "https://query.wikidata.org/sparql"
+FACTS_FILE = DATA_DIR / "facts.json"          # relay 74–77's; moved into FACTS_DB once (and left as it was)
+FACTS_DB = DATA_DIR / "facts.db"
+FACTS_KEEP, FACTS_FAIL, FACTS_GAP = 40 * 86400, 900, 0.2
+FACTS_EVERY = 28 * 86400       # the whole database is refreshed this often ...
+FACTS_NIGHT = (4 * 60 + 10, 6 * 60)   # ... between these minutes of the night (the relay's time): after the 03:40 backup
+FACTS_IMG_W = 500              # the photos' width on the cards (the refresh keeps the photo's own address at this size)
 FACTS_TEXT = 1500              # Wikipedia's introduction, at most this many characters (More info)
-_facts = None                  # "kind:key" -> {"t": time, "v": the facts or None (nothing there)}; saved to FACTS_FILE
 _facts_busy = {}               # "kind:key" -> threading.Event while one request looks it up (the others wait for it)
 _facts_failed = {}             # "kind:key" -> when Wikimedia last couldn't be asked about it
 _wm_next = [0.0]               # the next request to Wikimedia, at most five a second
+# The board's model pages (its TYPES and MODEL_PAGES as its model lookup finds them): node tools/test/model_pics.js --relay
+MODEL_TITLES ="ATR 42|ATR 72|Aero Commander 500 family|Aero L-39 Albatros|AgustaWestland AW101|AgustaWestland AW109|AgustaWestland AW119 Koala|AgustaWestland AW139|AgustaWestland AW169|AgustaWestland AW189|Airbus A220|Airbus A300|Airbus A310|Airbus A318|Airbus A319|Airbus A320 family|Airbus A320neo family|Airbus A321|Airbus A321neo|Airbus A330|Airbus A330neo|Airbus A340|Airbus A350|Airbus A380|Airbus A400M Atlas|Airbus Beluga|Airbus BelugaXL|Airbus C295|Airbus Helicopters H160|Airbus Helicopters H175|Airship|Antonov An-12|Antonov An-124 Ruslan|Antonov An-140|Antonov An-148|Antonov An-2|Antonov An-22|Antonov An-225 Mriya|Antonov An-24|Antonov An-26|Antonov An-28|Antonov An-30|Antonov An-32|Antonov An-72|Aquila A 210|Autogyro|Aviat Husky|Aérospatiale Alouette II|Aérospatiale Alouette III|Aérospatiale Corvette|Aérospatiale Gazelle|Aérospatiale N 262|BAC One-Eleven|Beechcraft 1900|Beechcraft Baron|Beechcraft Bonanza|Beechcraft Duke|Beechcraft King Air|Beechcraft Model 18|Beechcraft Model 99|Beechcraft Premier I|Beechcraft Super King Air|Bell 206|Bell 212|Bell 407|Bell 412|Bell 429 GlobalRanger|Bell 505 Jet Ranger X|Bell UH-1 Iroquois|Beriev Be-200|Boeing 707|Boeing 717|Boeing 720|Boeing 727|Boeing 737|Boeing 737 Classic|Boeing 737 MAX|Boeing 737 Next Generation|Boeing 747|Boeing 747-400|Boeing 747-8|Boeing 747SP|Boeing 757|Boeing 767|Boeing 777|Boeing 777X|Boeing 787 Dreamliner|Boeing AH-64 Apache|Boeing B-52 Stratofortress|Boeing C-17 Globemaster III|Boeing CH-47 Chinook|Boeing Dreamlifter|Boeing E-3 Sentry|Boeing KC-135 Stratotanker|Boeing P-8 Poseidon|Boeing RC-135|Bombardier CRJ100/200|Bombardier CRJ700 series|Bombardier Challenger 300|Bombardier Challenger 600 series|Bombardier Global 7500|Bombardier Global Express|British Aerospace 125|British Aerospace 146|British Aerospace ATP|British Aerospace Jetstream|British Aerospace Jetstream 41|Britten-Norman BN-2 Islander|CASA C-212 Aviocar|CASA/IPTN CN-235|Canadair CL-415|Cessna 150|Cessna 152|Cessna 170|Cessna 172|Cessna 177 Cardinal|Cessna 180 Skywagon|Cessna 182 Skylane|Cessna 185 Skywagon|Cessna 206|Cessna 208 Caravan|Cessna 210 Centurion|Cessna 310|Cessna 340|Cessna 402|Cessna 404 Titan|Cessna 408 SkyCourier|Cessna 414|Cessna 421 Golden Eagle|Cessna 441 Conquest II|Cessna Citation Excel|Cessna Citation I|Cessna Citation II|Cessna Citation III|Cessna Citation Latitude|Cessna Citation Longitude|Cessna Citation Mustang|Cessna Citation Sovereign|Cessna Citation V|Cessna Citation X|Cessna CitationJet/M2|Cessna Skymaster|Cessna T303 Crusader|Cirrus SR20|Cirrus SR22|Cirrus Vision SF50|Comac C909|Comac C919|Concorde|Convair CV-240 family|Daher Kodiak|Dassault Falcon 10|Dassault Falcon 20|Dassault Falcon 2000|Dassault Falcon 50|Dassault Falcon 6X|Dassault Falcon 7X|Dassault Falcon 900|Dassault Rafale|De Havilland Canada DHC-5 Buffalo|De Havilland Canada DHC-6 Twin Otter|De Havilland Canada Dash 7|De Havilland Canada Dash 8|Diamond DA20 Katana|Diamond DA40 Diamond Star|Diamond DA42 Twin Star|Diamond DA50|Diamond DA62|Diamond HK36 Super Dimona|Dornier 228|Dornier 328|Douglas DC-3|Douglas DC-8|Eclipse 500|Embraer C-390 Millennium|Embraer E-Jet E2 family|Embraer E-Jet family|Embraer EMB 110 Bandeirante|Embraer EMB 120 Brasilia|Embraer ERJ family|Embraer Legacy 450/500 and Praetor 500/600|Embraer Legacy 600|Embraer Phenom 100|Embraer Phenom 300|Enstrom F-28|Eurocopter AS332 Super Puma|Eurocopter AS350 Écureuil|Eurocopter AS355 Écureuil 2|Eurocopter AS365 Dauphin|Eurocopter EC120 Colibri|Eurocopter EC130|Eurocopter EC135|Eurocopter EC145|Eurocopter EC155|Eurocopter EC725|Eurocopter Tiger|Eurofighter Typhoon|Evektor SportStar|Extra EA-300|Fairchild Dornier 328JET|Fairchild Swearingen Metroliner|Fokker 100|Fokker 50|Fokker 70|Fokker F27 Friendship|Fokker F28 Fellowship|GAF Nomad|General Dynamics F-16 Fighting Falcon|Glider (sailplane)|Grob G 109|Grob G 115|Grob G 120|Grumman G-73 Mallard|Grumman Gulfstream I|Guimbal Cabri G2|Gulfstream G100|Gulfstream G200|Gulfstream G280|Gulfstream G400/G500/G600|Gulfstream G550|Gulfstream G650/G700/G800|Gulfstream III|Gulfstream IV|Harbin Y-12|Hawker 400|Hawker 4000|Hawker 800|Hawker Siddeley HS 748|Honda HA-420 HondaJet|Hot air balloon|IAI Westwind|Ilyushin Il-114|Ilyushin Il-18|Ilyushin Il-62|Ilyushin Il-76|Ilyushin Il-86|Ilyushin Il-96|Junkers Ju 52|Kamov Ka-27|Learjet 31|Learjet 35|Learjet 40|Learjet 45|Learjet 55|Learjet 60|Learjet 70/75|Leonardo M-346|Let L-410 Turbolet|Lockheed C-130 Hercules|Lockheed C-5 Galaxy|Lockheed L-1011 TriStar|Lockheed L-188 Electra|Lockheed Martin C-130J Super Hercules|Lockheed Martin F-35 Lightning II|Lockheed P-3 Orion|MBB Bo 105|MBB/Kawasaki BK 117|MD Helicopters MD 500|MD Helicopters MD Explorer|McDonnell Douglas DC-10|McDonnell Douglas DC-9|McDonnell Douglas MD-11|McDonnell Douglas MD-80|McDonnell Douglas MD-90|Mil Mi-24|Mil Mi-8|Mitsubishi MU-2|Mooney M20|Mudry CAP 10|NAMC YS-11|NHIndustries NH90|Panavia Tornado|Partenavia P.68|Piaggio P.180 Avanti|Pilatus PC-12|Pilatus PC-21|Pilatus PC-24|Pilatus PC-6 Porter|Pilatus PC-7|Pilatus PC-9|Piper Aerostar|Piper J-3 Cub|Piper PA-18 Super Cub|Piper PA-20 Pacer|Piper PA-24 Comanche|Piper PA-28 Cherokee|Piper PA-30 Twin Comanche|Piper PA-31 Navajo|Piper PA-31T Cheyenne|Piper PA-32 Cherokee Six|Piper PA-32R|Piper PA-34 Seneca|Piper PA-38 Tomahawk|Piper PA-42 Cheyenne|Piper PA-44 Seminole|Piper PA-46|Reims-Cessna F406 Caravan II|Robin DR400|Robinson R22|Robinson R44|Robinson R66|SOCATA TB family|SOCATA TBM|Saab 105|Saab 2000|Saab 340|Schweizer S300|Short 330|Short 360|Short Belfast|Short SC.7 Skyvan|Sikorsky S-76|Sikorsky S-92|Sikorsky UH-60 Black Hawk|Tupolev Tu-134|Tupolev Tu-154|Tupolev Tu-204|Ultralight aviation|Yakovlev SJ-100|Yakovlev Yak-40|Yakovlev Yak-42".split("|")
 _MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
 
 
@@ -5748,6 +5760,81 @@ def _wm_get(url, params):
         return json.loads(body)
     except ValueError:
         return None
+
+
+class _Need(Exception):
+    """In the monthly refresh: a card's lookup needs something not fetched yet (in _wm_batch.need)."""
+
+
+class _Stop(Exception):
+    """The monthly refresh stops for tonight: the night is over, or Wikimedia doesn't answer."""
+
+
+_wm_batch = threading.local()  # the refresh's own thread: .on, .since, .stop_at, .need, .stats and what it fetched
+
+
+def _batch():
+    """The monthly refresh's state when this thread is the refresh, else None (a card asked: the lookups ask alone)."""
+    return _wm_batch if getattr(_wm_batch, "on", False) else None
+
+
+def _need(what):
+    _wm_batch.need.update(what)
+    raise _Need()
+
+
+def _wm_batch_get(url, params, timeout=60):
+    """One request of the refresh: Wikimedia's answer (JSON). One at a time, waiting as Retry-After and maxlag ask, and
+    again after an error (five times, longer each time); _Stop when it still doesn't answer or the night is over."""
+    b, sparql = _wm_batch, url == SPARQL_API
+    params = {"format": "json", **({} if sparql else {"formatversion": "2", "maxlag": "5"}), **params}
+    status = None
+    for i in range(6):
+        with _lock:
+            at = max(time.time(), _wm_next[0])
+            _wm_next[0] = at + FACTS_GAP
+        if at > time.time():
+            time.sleep(at - time.time())
+        if time.time() > b.stop_at:
+            raise _Stop("the night is over")
+        status, _, body, hdrs = fetch(url + "?" + urllib.parse.urlencode(params), timeout=timeout, headers={
+            "User-Agent": WM_AGENT, "Accept": "application/sparql-results+json" if sparql else "application/json"})
+        b.stats["requests"] += 1
+        b.stats["bytes"] += len(body or b"")
+        try:
+            j = json.loads(body) if status == 200 else None
+        except ValueError:
+            j = None
+        err = (j.get("error") or {}) if isinstance(j, dict) else {}
+        if isinstance(j, dict) and not err:
+            return j
+        if err and err.get("code") not in ("maxlag", "ratelimited", "internal_api_error_DBQueryTimeoutError"):
+            event("warn", f"Card facts refresh: Wikimedia said {err.get('code')} ({str(err.get('info'))[:120]})", echo=False)
+            return {}                                   # (those cards get what the others had; not the whole night stopped)
+        wait = _num(str((hdrs or {}).get("Retry-After") or "")) if status in (429, 503) or err else None
+        time.sleep(min(600, max(1, wait) if wait else 15 * 3 ** i))
+    raise _Stop(f"Wikimedia didn't answer ({status})")
+
+
+def _wm_pages(url, titles, params):
+    """Pages by title in one request (and its continuations: extracts come 20 at a time, long pages later): {asked
+    title: page or None}, through normalized titles and redirects."""
+    pages, alias, cont = {}, {}, {"continue": ""}
+    while cont:
+        j = _wm_batch_get(url, {"action": "query", "titles": "|".join(titles), "redirects": "1", **params, **cont})
+        q, cont = j.get("query") or {}, j.get("continue")
+        for x in (q.get("normalized") or []) + (q.get("redirects") or []):
+            alias[x.get("from")] = x.get("to")
+        for p in q.get("pages") or []:
+            have = pages.setdefault(p.get("title"), {})
+            have.update({k: v for k, v in p.items() if not have.get(k)})
+    out = {}
+    for t in titles:
+        f = t
+        for _ in range(4):
+            f = alias.get(f, f)
+        out[t] = pages.get(f)
+    return out
 
 
 def _wt_templates(text, prefixes):
@@ -5910,11 +5997,17 @@ def _date(s):
 
 def _wiki_page(title):
     """An English Wikipedia page: (title, wikitext, its introduction as plain text), or None; False when not answered."""
-    j = _wm_get(WIKI_API, {"action": "query", "prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main",
-                           "exintro": "1", "explaintext": "1", "ppprop": "disambiguation", "redirects": "1", "titles": title})
-    if j is None:
-        return False
-    p = ((j.get("query") or {}).get("pages") or [{}])[0]
+    b = _batch()
+    if b:
+        if not b.pages.get(title, (False,))[0]:
+            _need([("page", title)])
+        p = b.pages[title][1]
+    else:
+        j = _wm_get(WIKI_API, {"action": "query", "prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main",
+                               "exintro": "1", "explaintext": "1", "ppprop": "disambiguation", "redirects": "1", "titles": title})
+        if j is None:
+            return False
+        p = ((j.get("query") or {}).get("pages") or [{}])[0]
     if p.get("missing") or p.get("invalid") or "disambiguation" in (p.get("pageprops") or {}):
         return None
     try:
@@ -5933,6 +6026,21 @@ def _intro(text):
         out.append(p)
     t = "\n".join(out)
     return t if len(t) <= FACTS_TEXT + 400 else t[:FACTS_TEXT].rsplit(" ", 1)[0] + " …"
+
+
+def _wiki_extract(title):
+    """A page's introduction for More info (an airport's, without its wikitext), or None: not answered."""
+    b = _batch()
+    if b:
+        if title not in b.pages:
+            _need([("extract", title)])
+        p = b.pages[title][1]
+    else:
+        j = _wm_get(WIKI_API, {"action": "query", "prop": "extracts", "exintro": "1", "explaintext": "1", "redirects": "1", "titles": title})
+        if j is None:
+            return None
+        p = ((j.get("query") or {}).get("pages") or [{}])[0]
+    return _intro(p.get("extract") or "")
 
 
 def _wiki_url(title):
@@ -6112,6 +6220,9 @@ def model_facts(title):
 
 def _wd_find(prop, value):
     """The Wikidata items with this identifier (an airline's ICAO code, an airport's IATA code): their ids, or None."""
+    b = _batch()
+    if b and prop in b.find:                     # the refresh has the whole list from Wikidata's query service
+        return list(b.find[prop].get(value, []))
     j = _wm_get(WIKIDATA_API, {"action": "query", "list": "search", "srlimit": "10", "srsearch": f"haswbstatement:{prop}={value}"})
     if j is None:
         return None
@@ -6121,6 +6232,13 @@ def _wd_find(prop, value):
 def _wd_items(ids, props="claims|sitelinks|labels"):
     if not ids:
         return {}
+    b = _batch()
+    if b:
+        want = set(props.split("|"))
+        miss = [q for q in ids[:50] if not want <= b.ents.get(q, (set(), None))[0]]
+        if miss:
+            _need(("ent", props, q) for q in miss)
+        return {q: b.ents[q][1] for q in ids[:50] if b.ents[q][1] is not None}
     j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(ids[:50]), "props": props, "languages": "en", "sitefilter": "enwiki"})
     return (j or {}).get("entities") or {}
 
@@ -6157,11 +6275,22 @@ def _wd_pick(ids, items):
 
 
 def _commons(name, w=640):
+    b = _batch() if name else None
+    if b:                                        # the refresh: the photo's own address at the cards' size (no redirects)
+        if name not in b.imgs:
+            _need([("img", name)])
+        if b.imgs[name]:
+            return b.imgs[name]
     return COMMONS_FILE + urllib.parse.quote(name.replace(" ", "_")) + f"?width={w}" if name else ""
 
 
 def _wd_title(title):
     """The Wikidata item of an English Wikipedia page: (id, item), (None, {}) when there is none; None: not answered."""
+    b = _batch()
+    if b:
+        if title not in b.titles:
+            _need([("title", title)])
+        return b.titles[title]
     j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": title, "props": "claims|sitelinks|labels",
                                "languages": "en", "sitefilter": "enwiki", "normalize": "1"})
     if j is None:
@@ -6284,13 +6413,19 @@ def org_facts(q):
     ki = _wd_items(kids[:20]) if kids else {}
     kids = [k for k, ke in ki.items() if "P230" in (ke.get("claims") or {}) and "P576" not in (ke.get("claims") or {})
             and "enwiki" in (ke.get("sitelinks") or {}) and _wd_label(ke).casefold().startswith(brand + " ")][:8]
-    fleets = []
+    fleets, need = [], False
     for k in kids:
-        kv = _airline_item_facts(k, ki[k], {})
+        try:
+            kv = _airline_item_facts(k, ki[k], {})
+        except _Need:                          # the refresh: what all the companies need, asked for together
+            need = True
+            continue
         if kv is False:
             return False
         if kv and (kv.get("facts") or {}).get("fleet") and kv.get("text") != v.get("text"):    # not a page leading back to the brand's (KLM Asia)
             fleets.append(kv["facts"]["fleet"])
+    if need:
+        raise _Need()
     if sum(fleets) > f["fleet"]:
         f["fleet"], f["fleetAll"] = f["fleet"] + sum(fleets), True
     return v
@@ -6314,7 +6449,11 @@ def _airline_item_facts(q, e, parents=None):
             v = _wd_val(c)
             if isinstance(v, dict) and v.get("id"):
                 refs[v["id"]] = None
-    more = _wd_items(list(refs), "labels|claims") if refs else {}
+    b = _batch()
+    if b:                                    # the refresh: their names only, a hub's code from the airports' list (their statements are large)
+        more = _wd_items(list(refs), "labels") if refs else {}
+    else:
+        more = _wd_items(list(refs), "labels|claims") if refs else {}
     lab = lambda c: _wd_label(more.get((_wd_val(c) or {}).get("id")))           # noqa: E731
     f = {}
     founded = _first(_wd_time(_wd_val(next(iter(_wd_claims(e, "P571", False)), {}))), _date(_wt_text(ib.get("founded", ""))))
@@ -6326,7 +6465,7 @@ def _airline_item_facts(q, e, parents=None):
     hubs = []
     for c in _wd_claims(e, "P113")[:4]:
         h = more.get((_wd_val(c) or {}).get("id")) or {}
-        code = next((str(_wd_val(x) or "") for x in _wd_claims(h, "P238")), "")
+        code = b.iata.get((_wd_val(c) or {}).get("id"), "") if b else next((str(_wd_val(x) or "") for x in _wd_claims(h, "P238")), "")
         if _wd_label(h):
             hubs.append({"name": _wd_label(h), **({"code": code} if re.fullmatch(r"[A-Z]{3}", code) else {})})
     if not hubs:
@@ -6402,10 +6541,9 @@ def airport_facts(iata):
     title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
     f, text = {}, ""
     if title:
-        j = _wm_get(WIKI_API, {"action": "query", "prop": "extracts", "exintro": "1", "explaintext": "1", "redirects": "1", "titles": title})
-        if j is None:
+        text = _wiki_extract(title)
+        if text is None:
             return False
-        text = _intro((((j.get("query") or {}).get("pages") or [{}])[0]).get("extract") or "")
     pax = []
     for c in _wd_claims(e, "P3872", False):
         v, qy = _wd_val(c) or {}, (((c.get("qualifiers") or {}).get("P585") or [{}])[0].get("datavalue") or {}).get("value")
@@ -6447,28 +6585,89 @@ def airport_facts(iata):
 
 FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airline-own": airline_own_facts, "org": org_facts, "airport": airport_facts}
 FACTS_VER = {"airline": "2"}   # relay 77: an airline's card is its brand's now (to-do #122): relay 74's kept answers are asked again
+_FACTS_PREFIX = {f"{kind}{FACTS_VER.get(kind, '')}": kind for kind in FACTS_KINDS}    # a key's beginning -> its kind
 
 
-def _facts_cache():
-    """The kept facts (under _data_lock), loaded from FACTS_FILE the first time."""
-    global _facts
-    if _facts is None:
-        raw = _load(FACTS_FILE, {})
-        _facts = collections.OrderedDict(sorted(((k, v) for k, v in (raw if isinstance(raw, dict) else {}).items()
-                                                 if isinstance(v, dict) and "t" in v), key=lambda kv: kv[1]["t"]))
-    return _facts
+_fdb = None                    # the facts database's connection (relay 78), shared by the threads under _fdb_lock
+_fdb_lock = threading.Lock()
+
+
+def _facts_db():
+    """The facts database, opened the first time; relay 74–77's facts.json moves in once (and stays as it was)."""
+    global _fdb
+    moved = 0
+    with _fdb_lock:
+        if _fdb is None:
+            FACTS_DB.parent.mkdir(parents=True, exist_ok=True)
+            db = sqlite3.connect(str(FACTS_DB), check_same_thread=False)
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("PRAGMA synchronous=NORMAL")
+            db.execute("CREATE TABLE IF NOT EXISTS facts (k TEXT PRIMARY KEY, t REAL NOT NULL, v TEXT)")
+            db.execute("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)")
+            if not db.execute("SELECT 1 FROM meta WHERE k = 'moved'").fetchone():
+                raw, now = _load(FACTS_FILE, {}), set(_FACTS_PREFIX)
+                rows = [(k, float(v["t"]), json.dumps(v.get("v"), separators=(",", ":"))) for k, v in (raw if isinstance(raw, dict) else {}).items()
+                        if isinstance(v, dict) and isinstance(v.get("t"), (int, float)) and k.split(":", 1)[0] in now]   # not relay 74's airlines
+                with db:
+                    db.executemany("INSERT OR IGNORE INTO facts VALUES (?, ?, ?)", rows)
+                    db.execute("INSERT INTO meta VALUES ('moved', ?)", (json.dumps({"at": time.time(), "entries": len(rows)}),))
+                moved = len(rows)
+            _fdb = db
+    if moved:
+        event("info", f"Moved {moved} cards' facts into {FACTS_DB.name}", echo=False)
+    return _fdb
+
+
+def _facts_get(k):
+    """A kept answer: {"t": when, "v": the facts or None (nothing there)}, or None."""
+    db = _facts_db()
+    with _fdb_lock:
+        r = db.execute("SELECT t, v FROM facts WHERE k = ?", (k,)).fetchone()
+    return {"t": r[0], "v": json.loads(r[1]) if r[1] else None} if r else None
+
+
+def _facts_put(k, v):
+    db = _facts_db()
+    with _fdb_lock, db:
+        db.execute("INSERT OR REPLACE INTO facts VALUES (?, ?, ?)", (k, time.time(), json.dumps(v, separators=(",", ":"))))
+
+
+def _facts_meta(k, v=...):
+    """The database's notes (the refresh going on, its last one): one read, or set (None removes it)."""
+    db = _facts_db()
+    with _fdb_lock:
+        if v is ...:
+            r = db.execute("SELECT v FROM meta WHERE k = ?", (k,)).fetchone()
+            return json.loads(r[0]) if r else None
+        with db:
+            if v is None:
+                db.execute("DELETE FROM meta WHERE k = ?", (k,))
+            else:
+                db.execute("INSERT OR REPLACE INTO meta VALUES (?, ?)", (k, json.dumps(v)))
+
+
+def _facts_keys(since=None):
+    """The kept keys by kind ({kind: [key, ...]}), all or those refreshed since then."""
+    db, out = _facts_db(), {}
+    with _fdb_lock:
+        rows = db.execute("SELECT k FROM facts" + (" WHERE t >= ?" if since else ""), (since,) if since else ()).fetchall()
+    for (k,) in rows:
+        pre, _, key = k.partition(":")
+        if pre in _FACTS_PREFIX:
+            out.setdefault(_FACTS_PREFIX[pre], []).append(key)
+    return out
 
 
 def facts_json(kind, key):
     """The facts for one card: {kind, title, name, url, text, img, facts}, or {kind, none: true} when there are none;
     None when Wikipedia or Wikidata can't be asked now (and nothing older is kept). One lookup per page a month: a
-    second screen asking meanwhile waits for the first one's answer."""
-    k, hit = f"{kind}{FACTS_VER.get(kind, '')}:{key}", None
+    second screen asking meanwhile waits for the first one's answer. The monthly refresh asks again what it hasn't
+    refreshed yet."""
+    k, hit, b = f"{kind}{FACTS_VER.get(kind, '')}:{key}", None, _batch()
     for _ in range(2):
+        hit = _facts_get(k)
         with _data_lock:
-            F = _facts_cache()
-            hit = F.get(k)
-            if hit and time.time() - hit["t"] < FACTS_KEEP:
+            if hit and time.time() - hit["t"] < FACTS_KEEP and (not b or hit["t"] >= b.since):
                 return hit["v"] or {"kind": kind, "none": True}
             if time.time() - _facts_failed.get(k, 0) < FACTS_FAIL:
                 return (hit["v"] or {"kind": kind, "none": True}) if hit else None
@@ -6480,25 +6679,239 @@ def facts_json(kind, key):
         busy.wait(40)
     else:
         return None
+    v = _Need
     try:
         v = FACTS_KINDS[kind](key)
+    except _Need:                              # the refresh: fetched with other cards' needs first, then asked again
+        raise
     except Exception as e:                     # a page this code doesn't understand must never break the relay
         event("warn", f"Couldn't read the facts for {k}: {e!r}", echo=False)
         v = None
-    with _data_lock:
-        _facts_busy.pop(k, None)
-        if v is False:
-            _facts_failed[k] = time.time()
-        else:
-            F[k] = {"t": time.time(), "v": v}
-            F.move_to_end(k)
-            while len(F) > FACTS_MAX:
-                F.popitem(last=False)
-            _dirty.add("facts")
-    busy.set()
+    finally:
+        try:
+            if v is not False and v is not _Need:
+                _facts_put(k, v)
+        finally:
+            with _data_lock:
+                _facts_busy.pop(k, None)
+                if v is False:
+                    _facts_failed[k] = time.time()
+            busy.set()
     if v is False:
         return (hit["v"] or {"kind": kind, "none": True}) if hit else None    # the old answer while it can't be asked
     return v or {"kind": kind, "none": True}
+
+
+# ---------- the facts database's monthly refresh (relay 78, to-do #129) ----------
+_facts_running = threading.Lock()   # held while a refresh runs
+_facts_progress = {}           # what the refresh going on is doing (the owner's /facts?status=1)
+
+
+def _facts_lists():
+    """What the refresh covers, from Wikidata's query service (three requests): the items by airline ICAO code (P230),
+    airport IATA code (P238) and the airlines under each company (P749, a brand's whole fleet), as _wd_find finds them
+    ({prop: {value: [ids]}}); the ICAO codes of the airlines still flying (an item without a dissolution date, P576)
+    and the IATA codes; each airport's code by its id."""
+    def ask(q):
+        rows = (_wm_batch_get(SPARQL_API, {"query": q}, timeout=120).get("results") or {}).get("bindings") or []
+        return [{k: str((v or {}).get("value", "")).rsplit("/", 1)[-1] for k, v in r.items()} for r in rows]
+
+    find, flying = {"P230": {}, "P238": {}, "P749": {}}, set()
+
+    def add(prop, value, q):
+        if re.fullmatch(r"Q\d+", q) and q not in find[prop].setdefault(value, []):
+            find[prop][value].append(q)
+    for r in ask("SELECT ?i ?c ?gone WHERE { ?i p:P230/ps:P230 ?c . BIND(EXISTS { ?i p:P576 [] } AS ?gone) }"):
+        c = r.get("c", "").strip().upper()
+        if re.fullmatch(r"[A-Z]{3}", c):
+            add("P230", c, r.get("i", ""))
+            if r.get("gone") != "true":
+                flying.add(c)
+    iata = {}                                    # an airport's code (its current one first): an airline's hubs
+    for r in ask("SELECT ?i ?c ?best WHERE { ?i p:P238/ps:P238 ?c . BIND(EXISTS { ?i wdt:P238 ?c } AS ?best) }"):
+        c = r.get("c", "").strip().upper()
+        if re.fullmatch(r"[A-Z]{3}", c):
+            add("P238", c, r.get("i", ""))
+            if r.get("best") == "true" or r.get("i") not in iata:
+                iata[r.get("i")] = c
+    for r in ask("SELECT ?i ?p WHERE { ?i p:P749/ps:P749 ?p . ?i p:P230 [] }"):   # (only those with an ICAO code count)
+        add("P749", r.get("p", ""), r.get("i", ""))
+    for m in find.values():
+        for ids in m.values():
+            ids.sort(key=lambda q: int(q[1:]))
+    return find, sorted(flying), sorted(find["P238"]), iata
+
+
+def _facts_fetch(b):
+    """Fetch what the refresh's cards asked for (_Need), together: 50 items, pages or photos a request (introductions
+    alone, 20)."""
+    need, b.need, groups = b.need, set(), collections.defaultdict(list)
+    for n in sorted(need):
+        if n[0] == "ent":                      # an item asked for again with more: all of it
+            groups[("ent", "|".join(sorted(set(n[1].split("|")) | b.ents.get(n[2], (set(), None))[0])))].append(n[2])
+        else:
+            groups[(n[0], "")].append(n[1])
+    for (kind, props), keys in sorted(groups.items(), key=lambda g: ["ent", "title", "page", "extract", "img"].index(g[0][0])):
+        keys = list(dict.fromkeys(keys))
+        if kind == "ent":
+            for i in range(0, len(keys), 50):
+                c = keys[i:i + 50]
+                es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(c), "props": props, "languages": "en",
+                                                  "sitefilter": "enwiki"}).get("entities") or {}
+                for q in c:
+                    b.ents[q] = (set(props.split("|")), es.get(q))
+        elif kind == "title":
+            for i in range(0, len(keys), 50):
+                c = [t for t in keys[i:i + 50] if "|" not in t]
+                es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": "|".join(c), "props": "claims|sitelinks|labels",
+                                                  "languages": "en", "sitefilter": "enwiki"}).get("entities") or {} if c else {}
+                by = {((e.get("sitelinks") or {}).get("enwiki") or {}).get("title"): (q, e) for q, e in es.items() if re.fullmatch(r"Q\d+", q)}
+                for t in keys[i:i + 50]:
+                    hit = by.get(t)
+                    if not hit and t in c:     # not under this very title (another spelling, a redirect): asked alone, normalized
+                        es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": t, "props": "claims|sitelinks|labels",
+                                                          "languages": "en", "sitefilter": "enwiki", "normalize": "1"}).get("entities") or {}
+                        hit = next(((q, e) for q, e in es.items() if re.fullmatch(r"Q\d+", q)), None)
+                    b.titles[t] = hit or (None, {})
+                    if hit:
+                        b.ents[hit[0]] = ({"claims", "sitelinks", "labels"}, hit[1])
+        elif kind in ("page", "extract"):      # (a page asked for whole has its introduction too)
+            full = kind == "page"
+            keys = [t for t in keys if not (t in b.pages and (b.pages[t][0] or not full))]
+            for t in [t for t in keys if "|" in t or not t.strip()]:
+                b.pages[t] = (True, {"title": t, "invalid": True})
+            keys = [t for t in keys if not (t in b.pages and b.pages[t][1].get("invalid"))]
+            n, params = (50, {"prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main", "ppprop": "disambiguation",
+                              **({"rvsection": "0"} if b.lead else {})}) if full else (20, {"prop": "extracts"})
+            for i in range(0, len(keys), n):
+                c = keys[i:i + n]
+                got = _wm_pages(WIKI_API, c, {**params, "exintro": "1", "explaintext": "1", "exlimit": "max"})
+                for t in c:
+                    b.pages[t] = (full, got.get(t) or {"title": t, "missing": True})
+        elif kind == "img":                    # the photo's own address at the cards' size, from Commons
+            for i in range(0, len(keys), 50):
+                c = [x for x in keys[i:i + 50] if "|" not in x]
+                got = _wm_pages(COMMONS_API, ["File:" + x for x in c], {"prop": "imageinfo", "iiprop": "url", "iiurlwidth": str(FACTS_IMG_W)}) if c else {}
+                for x in keys[i:i + 50]:
+                    b.imgs[x] = ((((got.get("File:" + x) or {}).get("imageinfo") or [{}])[0]).get("thumburl") or "").split("?utm_")[0]   # (without Commons' tracking)
+
+
+def _facts_chunk(b, keys):
+    """Refresh some cards together: run their lookups, fetch what they ask for for all of them at once, run them
+    again (a brand's card needs its company, then its group, then the group's page ...). How many are left over."""
+    for _ in range(20):
+        left = []
+        for kind, key in keys:
+            try:
+                facts_json(kind, key)
+            except _Need:
+                left.append((kind, key))
+        if not left:
+            return 0
+        keys = left
+        _facts_fetch(b)
+    b.need.clear()
+    event("warn", f"Card facts refresh: still asking after 20 rounds: {', '.join(f'{k}:{v}' for k, v in keys[:5])}", echo=False)
+    return len(keys)
+
+
+def facts_refresh(stop_at):
+    """One night's part of the monthly refresh: the models (MODEL_TITLES), every airline still flying, the groups and
+    companies their cards open, every airport with an IATA code, and every other key a card asked for, 50 at a time;
+    what isn't done by `stop_at` goes on next time (the keys refreshed since the run began are skipped). True when
+    the whole run is done."""
+    if not _facts_running.acquire(blocking=False):
+        return False
+    b, t0, why = _wm_batch, time.time(), ""
+    run = _facts_meta("run") or {"since": t0, "requests": 0, "bytes": 0, "seconds": 0, "nights": 0, "left": 0}
+    b.on, b.since, b.stop_at, b.need, b.stats = True, run["since"], stop_at, set(), {"requests": 0, "bytes": 0}
+    b.ents, b.pages, b.titles, b.imgs, b.find, b.iata, b.lead = {}, {}, {}, {}, {}, {}, False
+    _facts_progress.clear()
+    _facts_progress.update(stage="lists", started=t0, stats=b.stats)
+    try:
+        b.find, airlines, airports, b.iata = _facts_lists()
+        known = _facts_keys()
+        for kind in ("model", "airline", "org", "airline-own", "airport"):
+            keys = {"model": MODEL_TITLES, "airline": airlines, "airport": airports}.get(kind, [])
+            if kind in ("org", "airline-own"):         # what the airline cards open: their group (Part of), their company (Flown by)
+                for v in _facts_opens():
+                    keys.append(((v.get("group") or {}).get("qid") if kind == "org" else (v.get("flownBy") or {}).get("icao")) or "")
+            keys = list(dict.fromkeys(k for k in keys + known.get(kind, []) if k))
+            b.lead = kind != "model"            # an airline's or group's page: only its first section (the infobox; a model's specs are further down)
+            _facts_progress.update(stage=kind, of=len(keys), done=0)
+            n = 100 if kind == "airport" else 50         # (an airport needs fewer and smaller things: more go together)
+            for i in range(0, len(keys), n):
+                run["left"] += _facts_chunk(b, [(kind, k) for k in keys[i:i + n]])
+                _facts_progress["done"] = min(len(keys), i + n)
+                b.pages, b.imgs, b.titles = {}, {}, {}     # kept for the next cards: only names (a country, a city, an alliance)
+                b.ents = {q: x for q, x in b.ents.items() if x[0] == {"labels"}} if len(b.ents) < 20000 else {}
+    except _Stop as e:
+        why = str(e)
+    finally:
+        b.on = False
+        b.ents, b.pages, b.titles, b.imgs, b.find, b.iata = {}, {}, {}, {}, {}, {}
+        run["requests"] += b.stats["requests"]
+        run["bytes"] += b.stats["bytes"]
+        run["seconds"] += round(time.time() - t0)
+        run["nights"] += 1
+        _facts_progress.clear()
+        try:
+            _facts_meta("run", run)                     # (also when something unforeseen stopped it)
+        finally:
+            _facts_running.release()
+    if why:
+        event("info", f"Card facts: the refresh goes on next night ({why})", echo=False)
+        return False
+    counts = facts_status()["entries"]
+    _facts_meta("done", {"at": time.time(), "since": run["since"], "requests": run["requests"], "mb": round(run["bytes"] / 1e6, 1),
+                         "minutes": round(run["seconds"] / 60, 1), "nights": run["nights"], "left": run["left"], "entries": counts})
+    _facts_meta("run", None)
+    event("info", f"Card facts refreshed ({', '.join(f'{n} {k}' for k, n in counts.items())}): {run['requests']} requests, "
+                  f"{run['bytes'] / 1e6:.0f} MB, {run['seconds'] / 60:.0f} min", echo=False)
+    return True
+
+
+def _facts_opens():
+    """The airline cards refreshed in this run (what they open: their group, their company)."""
+    db = _facts_db()
+    with _fdb_lock:
+        rows = db.execute("SELECT v FROM facts WHERE k LIKE ? AND t >= ?", (f"airline{FACTS_VER.get('airline', '')}:%", _wm_batch.since)).fetchall()
+    return [v for v in (json.loads(r[0]) for r in rows if r[0]) if isinstance(v, dict)]
+
+
+def facts_status():
+    """The facts database for the owner: entries per kind, its size (with its journal), the refresh going on and the last one."""
+    db = _facts_db()
+    with _fdb_lock:
+        rows = db.execute("SELECT substr(k, 1, instr(k, ':') - 1), count(*) FROM facts GROUP BY 1").fetchall()
+    return {"entries": {_FACTS_PREFIX[p]: n for p, n in rows if p in _FACTS_PREFIX},
+            "bytes": sum(f.stat().st_size for f in FACTS_DB.parent.glob(FACTS_DB.name + "*")),
+            "running": {k: v for k, v in _facts_progress.items()} if _facts_running.locked() else None,
+            "run": _facts_meta("run"), "last": _facts_meta("done")}
+
+
+def _facts_worker():
+    """Moves facts.json into the database, then refreshes it once a month at night (FACTS_NIGHT, the relay's time),
+    going on the next night with what one night didn't finish (or when Wikimedia didn't answer)."""
+    try:
+        _facts_db()
+    except (OSError, sqlite3.Error) as e:
+        event("warn", f"Card facts database: {e}")
+        return
+    while True:
+        time.sleep(300)
+        try:
+            lt = time.localtime()
+            m = lt.tm_hour * 60 + lt.tm_min
+            if not FACTS_NIGHT[0] <= m < FACTS_NIGHT[1]:
+                continue
+            if not _facts_meta("run") and time.time() - (_facts_meta("done") or {}).get("at", 0) < FACTS_EVERY:
+                continue
+            end = time.time() + (FACTS_NIGHT[1] - m) * 60
+            facts_refresh(end)
+            time.sleep(max(0, end - time.time()))    # done, or stopped: not again tonight
+        except Exception as e:  # never let the refresh break the relay
+            event("warn", f"Card facts refresh: {e!r}")
 
 
 # What a profile spotted of one airline, model or airport (relay 74, the cards' Spotted): its planes (different
@@ -7535,6 +7948,13 @@ class Handler(BaseHTTPRequestHandler):
             if r is None:
                 return self.reply(503, "text/plain", b"Planespotters.net can't be asked right now", {"Retry-After": "120"})
             return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "no-store"})
+        if path == "/facts" and {"status", "refresh"} & set(self.query()):   # relay 78: the owner's look at the facts database
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
+            if "refresh" in self.query() and not _facts_running.locked():      # the monthly refresh now (three hours at most)
+                threading.Thread(target=facts_refresh, args=(time.time() + 3 * 3600,), daemon=True).start()
+                time.sleep(0.2)
+            return self.reply(200, "application/json", json.dumps(facts_status()).encode(), {"Cache-Control": "no-store"})
         if path == "/facts":                # relay 74: a model's, airline's or airport's facts for its card
             if not allow("facts:" + self.guest[0], 2, 20):
                 return self.reply(429, "text/plain", b"Too many requests")
@@ -8176,6 +8596,7 @@ def main():
     threading.Thread(target=_airlines_worker, daemon=True).start()
     threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()
+    threading.Thread(target=_facts_worker, daemon=True).start()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Fallblatt relay {RELAY_VERSION} running. Open the board at:")

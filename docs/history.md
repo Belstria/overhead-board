@@ -1140,6 +1140,32 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 78 (1.96.2, to-do #129): **the facts database**. A first tap on a card took 3–5 s (four Wikimedia lookups in
+  a row). The facts now live in `data/facts.db` (SQLite, `facts(k, t, v)` and `meta(k, v)`: read per card by
+  `_facts_get`, written by `_facts_put`, never held in memory; `_facts_db` opens it and moves relay 74–77's
+  `facts.json` in once, without relay 74's airline keys, leaving the file as it was). Same keys as before
+  (`FACTS_VER`, `_FACTS_PREFIX`); kept `FACTS_KEEP` = 40 days. **The monthly refresh** (`_facts_worker`, every
+  `FACTS_EVERY` = 28 days, in `FACTS_NIGHT` 04:10–06:00 relay time, after the 03:40 backup; what a night doesn't
+  finish goes on the next one, the run's start in `meta` "run": keys refreshed since then are skipped): `facts_refresh`
+  takes the lists from Wikidata's query service (`_facts_lists`, `SPARQL_API`: every item by ICAO code with whether
+  it stopped flying, by IATA code with each airport's current code, the airlines under each company), then the models
+  (`MODEL_TITLES`: the board's TYPES and MODEL_PAGES as its model lookup finds them, written by
+  `node tools/test/model_pics.js --relay`), every airline still flying, the groups and companies their cards open
+  (`_facts_opens`), every airport and every other key a card asked for, 50 at a time (airports 100). The card code
+  stays the one a tap runs: in the refresh's thread (`_wm_batch`, `_batch()`), `_wd_find` answers from the lists,
+  `_wd_items`, `_wiki_page`, `_wiki_extract`, `_wd_title` and `_commons` answer from what was fetched or raise `_Need`
+  (what is missing in `_wm_batch.need`); `_facts_chunk` runs the chunk's cards, `_facts_fetch` fetches all their needs
+  together (`wbgetentities` 50 ids or titles, Wikipedia 50 pages with `_wm_pages` following `continue` (introductions
+  come 20 at a time) and redirects, Commons `imageinfo` 50 files) and runs the cards again, up to 20 rounds; a brand's
+  fleet sum asks for all its companies together. Differences from a tap, to keep it small: an airline's or group's page
+  is only its first section (the infobox; a model's whole page), the hubs, headquarters and owners are names only (a
+  hub's code from the airports' list), and a photo is Commons' own 500 px address (`FACTS_IMG_W`), no redirect.
+  `_wm_batch_get`: one request at a time with `maxlag=5`, waits as Retry-After asks, tries again after an error
+  (15 s, 45 s, …, five times), then `_Stop` (the night ends, the run goes on the next night); an API error other than
+  lag stops only that request. The owner's `/facts?status=1` (entries per kind, size, the run going on and the last
+  one) and `/facts?refresh=1` (a refresh now, three hours at most). flows.py: the move from facts.json, the first-tap
+  lookup, the refresh against the fakes (the query service, several titles a request, continued introductions, a
+  maxlag, Commons' `imageinfo`) with every card the same as on its first tap but the photo, then nothing asked again.
 - Relay 77 (1.96.1, to-do #122): **an airline's brand**. `airline_facts(icao)` finds the company (P230), its parents
   (`_airline_parents`: current P749 parent organization, then P127 owned by; people dropped; `_part` when P749 or at
   least half owned) and `_airline_brand`: a parent whose name without a company word (`CORP_TAIL`: Holdings, Group,

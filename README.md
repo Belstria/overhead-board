@@ -871,6 +871,14 @@ its airline's name and code from it, in Spotted today, the logbook, search and t
 relay for airlines the board's own table lacks (AER LINGUS instead of NO AIRLINE LISTED). Older sightings got their
 names once, on the first start of relay 68.
 
+The cards' facts (relay 78): the relay keeps the facts of every airline still flying, every airport with an IATA
+code and the board's aircraft models in `data/facts.db` (SQLite, read card by card, about 15 MB), so a card opens at
+once. Once a month, between 04:10 and 06:00, it refreshes them from Wikipedia, Wikidata and Commons in the
+background (in batches, one request at a time; about 40 minutes and 400 MB). What one night doesn't finish goes on
+the next. Anything it doesn't have yet (a rare model) is looked up on the card's first tap and kept. On its first
+start relay 78 moves the facts relay 74–77 kept in `data/facts.json` into the database (the file stays as it was).
+The owner can see the database at `/facts?status=1` and start a refresh with `/facts?refresh=1`.
+
 Positions come from adsb.fi, adsb.lol and airplanes.live, tried in that order (since relay 68 adsb.lol is kept in
 reserve for when adsb.fi fails, so its 500 requests a day last). A source that answers
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,

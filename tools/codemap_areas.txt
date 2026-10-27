@@ -354,13 +354,13 @@ test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUS
 tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
 tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetGrow cardSheetClose planeAgain +radarPlaneCard
     +arTap +foundCard +hangarCard +playerCard +tlCardHtml +tlOpen +sightPlane
-relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE FACTS_FILE
-    FACTS_KEEP FACTS_FAIL FACTS_MAX FACTS_GAP FACTS_TEXT _facts _facts_busy _facts_failed _wm_next _MONTHS _wm_get
-    _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_url
+relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE COMMONS_API SPARQL_API FACTS_FILE FACTS_DB FACTS_EVERY FACTS_NIGHT FACTS_IMG_W MODEL_TITLES
+    FACTS_KEEP FACTS_FAIL FACTS_GAP FACTS_TEXT _facts_busy _facts_failed _wm_next _MONTHS _wm_get _Need _Stop _wm_batch _batch _need _wm_batch_get _wm_pages
+    _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_extract _wiki_url
     _infobox _spec_rows _WORDS _qty _seats _first _list model_facts _wd_find _wd_items _wd_claims _wd_val _wd_time
-    _wd_label _wd_pick _commons _wd_title CORP_TAIL _airline_parents _airline_brand airline_facts airline_own_facts org_facts _airline_item_facts airport_facts FACTS_KINDS FACTS_VER _facts_cache facts_json _spotted_days
+    _wd_label _wd_pick _commons _wd_title CORP_TAIL _airline_parents _airline_brand airline_facts airline_own_facts org_facts _airline_item_facts airport_facts FACTS_KINDS FACTS_VER _FACTS_PREFIX _fdb _fdb_lock _facts_db _facts_get _facts_put _facts_meta _facts_keys facts_json _facts_running _facts_progress _facts_lists _facts_fetch _facts_chunk facts_refresh _facts_opens facts_status _facts_worker _spotted_days
     _spotted_summary spotted_json /facts /logbook/spotted +search_json +_saver
-tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata /wiki/w/api.php
+tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata sparql commons /wiki/w/api.php /sparql /commons-api/w/api.php
     /wikidata/w/api.php /wm/asked /commons/
 tools/test/flows.py: "relay 74: the cards' facts" "the cards' facts (the fake Wikipedia"
 tools/test/run_test_relay.py: "--live-facts" "relay 74: the cards' facts"
