@@ -9105,33 +9105,76 @@ function androidHandover(){
 setTimeout(androidHandover, 4000);
 /* 1.97.5: the phone's back gesture (or button). The app (MainActivity) asks the page first: this closes the top layer
    and answers true, or answers false on Now with nothing open, and the app then goes to the background. Quietly:
-   back is the system's, so the closings play none of the controls' sounds. */
-function fallblattBack(){
+   back is the system's, so the closings play none of the controls' sounds.
+   1.97.6: `backStep()` picks the closing (without doing it) and is shared with the web app's history guard below. */
+function backStep(){
   const shown = el => !!el && !el.hidden && el.getClientRects().length > 0;
-  const quiet = fn => {
-    const keep = {};
-    for (const k of Object.keys(ctlSound)) if (typeof ctlSound[k] === "function") { keep[k] = ctlSound[k]; ctlSound[k] = () => {}; }
-    try { fn(); } finally { Object.assign(ctlSound, keep); }
-    return true;
-  };
-  if (shown($("welcome"))) return false;                                   // the welcome has no step to go back to
-  for (const id of ["medalMo", "gLvUp"]) if (shown($(id))) return quiet(() => $(id).click());   // a pop-up: as a tap on it
+  if (shown($("welcome"))) return null;                                    // the welcome has no step to go back to
+  for (const id of ["medalMo", "gLvUp"]) if (shown($(id))) return () => $(id).click();   // a pop-up: as a tap on it
   const tipL = $("tipLayer");
-  if (tipL && !tipL.style.pointerEvents) return quiet(() => tipL.click());  // a first-time tip: "Got it"
-  if (cardOpenNow()) return quiet(cardClose);                              // a card or sheet, also over Sky view
+  if (shown(tipL) && !tipL.style.pointerEvents) return () => tipL.click();      // a first-time tip: "Got it"
+  if (cardOpenNow()) return cardClose;                                     // a card or sheet, also over Sky view
   if (arOn) {
-    if (shown($("arTour"))) return quiet(() => arTour(AR_TOUR.length));    // the walkthrough: skipped
-    if (shown($("arCard")) && !$("arCard").classList.contains("out")) return quiet(arCardDismiss);
-    return quiet(arClose);                                   // Sky view: back to the board
+    if (shown($("arTour"))) return () => arTour(AR_TOUR.length);           // the walkthrough: skipped
+    if (shown($("arCard")) && !$("arCard").classList.contains("out")) return arCardDismiss;
+    return arClose;                                                        // Sky view: back to the board
   }
-  if (shown($("t-log"))) return quiet(logHide);
-  if (shown($("t-about"))) return quiet(aboutHide);
+  if (shown($("t-log"))) return logHide;
+  if (shown($("t-about"))) return aboutHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
-  if (row) return quiet(() => tlFold(row, true));                          // a plane opened in place in a list: folded
-  if (tab !== "now") return quiet(() => showTab("now"));
-  return false;
+  if (row) return () => tlFold(row, true);                                 // a plane opened in place in a list: folded
+  if (tab !== "now") return () => showTab("now");
+  return null;
+}
+function backQuiet(step){
+  const keep = {};
+  for (const k of Object.keys(ctlSound)) if (typeof ctlSound[k] === "function") { keep[k] = ctlSound[k]; ctlSound[k] = () => {}; }
+  try { step(); } finally { Object.assign(ctlSound, keep); }
+}
+function fallblattBack(){
+  const step = backStep();
+  if (!step) return false;
+  backQuiet(step);
+  return true;
 }
 if (ANDROID) window.fallblattBack = fallblattBack;
+/* 1.97.6: back in a browser and in an installed web app. The page keeps ONE extra history entry (the guard, state
+   {fbGuard}) while anything is open or another tab than Now shows; none on Now with nothing open, so that back leaves as
+   usual. Back onto the entry below the guard (popstate) runs the same step as the Android app (`backStep`); if something
+   is still open the guard is pushed again. Closing by hand (x, a tap) leaves the guard behind: `guardSync` (every 200 ms
+   and after each back) then takes it away with history.back(), its own popstate ignored (`guardSelf`), so the next back
+   is never a dead one. showTab only replaces the URL (the hash) of the entry it is on, so tab switches never pile up.
+   The entry below keeps the URL it had, so after a back its hash is put right (replaceState) before hashchange runs.
+   Not in the Android app (its own back handler does this). */
+let guardOn = !ANDROID && !!(history.state && history.state.fbGuard);   // after a reload the guard may still be there
+let guardSelf = false;
+function tabHash(){ return tab === "now" ? "" : "#" + tab; }
+function guardSync(){
+  if (ANDROID || guardSelf || document.hidden) return;
+  const need = !!backStep();
+  if (need && !guardOn) {
+    guardOn = true;
+    history.pushState({fbGuard: 1}, "", location.pathname + location.search + tabHash());
+  } else if (!need && guardOn) {
+    guardOn = false; guardSelf = true;
+    setTimeout(() => { guardSelf = false; }, 600);      // in case the browser never answers
+    history.back();
+  }
+}
+if (!ANDROID) {
+  addEventListener("popstate", e => {
+    if (guardSelf) { guardSelf = false; return; }                         // our own history.back()
+    if (e.state && e.state.fbGuard) { guardOn = true; return; }           // forward onto the guard again
+    if (!guardOn) return;                                                 // not ours (a typed hash, ...)
+    guardOn = false;
+    const step = backStep();
+    if (!step) { history.back(); return; }                                // stale guard, nothing open: pass through
+    backQuiet(step);
+    history.replaceState(null, "", location.pathname + location.search + tabHash());
+    guardSync();
+  });
+  setInterval(guardSync, 200);
+}
 /* Settings, once for every screen (1.53.2): the board (tv), the phone app (phone) and its light version (light) show these
    plates; tools/app/build.py copies this part into the app. Each plate is a grid of `cols` cells (two on a phone); `span`
    widens a control to several cells, `wide` to the whole plate. `for: "tv"` or `"phone"` keeps a plate or a control to
@@ -10182,6 +10225,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.6", date: "2026-10-28", notes: [
+    "In the web app, the back gesture or button now closes what is open first (a card, Sky view, another tab) and only then leaves the page.",
+  ]},
   {v: "1.97.5", date: "2026-10-27", notes: [
     "In the Android app, the back gesture now closes what is open first (a card, Sky view, another tab) and only then leaves the app.",
   ]},
@@ -11843,7 +11889,7 @@ function showTab(t){
   setTimeout(() => appTips(t), 900);
   if (was !== t) window.scrollTo(0, 0);
 }
-addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+addEventListener("hashchange", () => { if (location.hash !== tabHash()) showTab(location.hash.slice(1)); });   // 1.97.6: not when it's the page's own back putting the URL right
 
 /* ---------- status: a dot by the clock, a line under the lists ---------- */
 function statusLine(){

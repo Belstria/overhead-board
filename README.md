@@ -627,7 +627,9 @@ app, because it installs web apps only from https addresses and the relay is pla
 In the Android app (1.97.5) the back gesture or button closes what is open first, one layer at a time: a pop-up, a first-time
 tip, a card, then Sky view's card or Sky view itself (back to the board), About or the Log, a plane opened in a list, and then
 any tab other than Now (back to Now). On Now with nothing open it leaves the app, which stays in the background; the
-welcome does the same. Back makes no sound. A browser or an iPhone keeps its own back button.
+welcome does the same. Back makes no sound. The web app (1.97.6, in a browser or added to the home screen, an iPhone too) does the
+same with the browser's back: it closes the same layers one by one, and on Now with nothing open back leaves the page as usual
+(closing an installed web app). The tab stays in the address (`#logbook`), and switching tabs does not add steps to back.
 
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen. Opened from the
 home screen it has no browser bars, so on its side the board gets the whole height.
