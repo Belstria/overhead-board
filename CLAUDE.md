@@ -70,7 +70,8 @@ on a function or CSS rule in no area: add it to `tools/codemap_areas.txt`.
 | `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
 | `fonts/` | The typefaces (woff2, Latin and Latin Extended, named by content) and `fonts.css`, loaded by every board and app as `../fonts/fonts.css` (1.64); made by `tools/fonts.py`. |
 | `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js` into the boards (the app build does it first); make the main board. |
-| `tools/test/` | `flows.py` (the relay's access rules and saves, run by smoke.py), `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target), `sky_jitter.js` (Sky view's label jitter on a made-up sensor stream, 1.90). |
+| `tools/model_pages.py` | Writes `MODEL_PAGES` (type code → Wikipedia page, for model pictures) into `test/index.html` from Wikipedia's list of type designators plus its own fixes and additions, all checked online; run by hand, then rebuild the app (1.93.1.1). |
+| `tools/test/` | `flows.py` (the relay's access rules and saves, run by smoke.py), `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target), `sky_jitter.js` (Sky view's label jitter on a made-up sensor stream, 1.90), `model_pics.js` (the model pictures' lookup over a list of types, against Wikipedia, 1.93.1.1). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |
 
 ## How it works
@@ -101,7 +102,7 @@ apdep (`pageOrder()`), `apFeature` picks the plane; runways from `AIRPORTS` or t
 **Data**: positions from the relay (`/aircraft/...`); routes and aircraft from adsbdb (browser) and adsb.lol's routeset
 (via the relay); Spotted today and the logbook from the relay (`/sightings`, `/logbook`); times from Vienna Airport
 (`/times`); Flightradar24 via `/flightinfo`; photos in the order Planespotters.net (`/planephoto`, relay 73; never kept
-or passed on, so never in the share picture), adsbdb's, the model's from Wikipedia (`planePic`, 1.93). Unknown details show "/" (`NA`/`orNA`). Features check
+or passed on, so never in the share picture), adsbdb's, the model's from Wikipedia (`planePic`, 1.93; found by `modelPage`: the code's page in `MODEL_PAGES`, then the names, never another model's, 1.93.1.1). Unknown details show "/" (`NA`/`orNA`). Features check
 `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints. Shared blocks (cards, places, tips, achievements,
 account, game/records) live in the board and are copied by the app build.
 

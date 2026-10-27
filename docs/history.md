@@ -10,6 +10,39 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.93.1.1 (to-do #112: Dave's BE20 "BEECH 200 Super King Air" and C210 "CESSNA 201 Centurion" had no picture):
+  **model pictures for nearly every type, never another model's**. Measured over Dave's 122 logbook types with their
+  names as the sources gave them (`tools/test/model_pics.js`): before, 87 had a picture for every name, two of them
+  wrong (BALL got "Ball turret": the code itself was searched; E35L's "EMBRAER EMB-135 Legacy" the Embraer company
+  page); now 121, none wrong (checked by eye on a contact sheet and against the pictures' file names); the miss is PULS
+  ("Aero Pulsar XP-II"; Wikipedia's page is "Aero Designs Pulsar"). Every code in MODEL_PAGES and TYPES: 428 of 428.
+  Shared (cards block, so the app too): `modelPage(names, code)` checks in one action-API request (`wikiPages`, `WIKI_API`:
+  up to 50 titles with their redirects, disambiguation flag, short description, intro extract (20 pages at most),
+  picture and Wikidata id) the code's page (`MODEL_PAGES`) and the names' spellings (`modelTitles`, `modelSplit`: the
+  maker as Wikipedia writes it (title case, `MODEL_MAKERS`: BEECH → Beechcraft, TEXTRON → Cessna, AGUSTA →
+  AgustaWestland ...), `numForms` ("PA-28R-201T" ... "PA-28"), the words without the number, the number without the
+  words, the model without its maker ("Learjet 45"), another name's maker ("Cessna" + "Citation CJ2"), "Cessna NNN" from
+  a C+3-digit code); Wikipedia's search (generator=search, two names at most) only when none fits. The code's page and
+  whole names are taken as they come; a title made from part of a name must not contradict the rest (`modelClash`:
+  numbers by their start, `numCore` a320 / pa28 / 737, the code's digits count as the model's; words: the page has its
+  own while the name has others) nor be a family's page without a number ("Cessna Citation" leads to the family's,
+  which shows a CJ3); a search hit (`modelHit`) needs the maker and the number (all words when there is none). Every
+  page must be about an aircraft (`modelOk`: `MODEL_LIKE` on description and extract, `MODEL_NOT` (company, airline,
+  list ...) on the description without brackets: the YS-11's names its maker's Corporation). The first fitting page
+  wins; without a picture of the aircraft (none: the Cessna 150's, for now; a file named "logo": the BAe 146's;
+  `MODEL_OTHER`: the Citation Latitude's is a Citation XLS) `wikidataPic` takes its Wikidata picture (P18) as a 500 px
+  Commons thumbnail (imageinfo). The code is never a name (`modelPage` drops a name equal to it). `MODEL_PAGES` comes
+  from `tools/model_pages.py`: the list's link per code, its mistakes fixed (PAY2 is the PA-31T, C130 the military
+  Hercules, AC90 linked the company, H25B shows the Hawker 800), common light aircraft, helicopters and military types
+  added (codes checked against ICAO Doc 8643), every title checked; a code whose TYPES name leads to a page is left out;
+  BALL, GLID, GYRO, SHIP and ULAC are kinds ("*"), tried after the names. One request per model as a rule, three at
+  most (Wikidata), 9 s each; Wikimedia allows a browser 200 a minute, a script without a proper User-Agent 10 (the
+  tools send one). `modelLook` keeps each lookup by `modelKey(names, code)` (main.js's `modelPicNow(names, code)` too);
+  one that failed is asked again a minute later. `modelPic(names, onReady, code)` calls every caller waiting
+  (`modelAsk`), not only the first. Late pictures: `cardWhenReady` returns the opened card's number (`cardTok`);
+  `typeCard` redraws when `modelWiki` answers after its 4.5 s, while that card is open; `planeCard` keeps `planeTok`
+  and `planeAgain` redraws only that card (one opened from it stays), and a photo found while the card waited for its
+  pictures goes in at once; `planeLate` is the one callback (`psPhoto` keeps it once too).
 - 1.93.1 (to-do #111, the second try at #108: a phone's Chrome kept showing a village far away where it had been days
   before, and the relay ran the gap filler around it): **live location takes no old position**. The cause, from Chromium's source (155, the
   Android stable then): with `kApproximateGeolocationPermission` (on by default on Android since May 2026) a page that
@@ -820,6 +853,10 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.93.1.1 (to-do #112): `planeAgain` redraws any plane card `planeCard` opened (Now, the airport lists, the radar)
+  while it shows (`planeTok === cardTok`), not only the radar's, and a plane on the radar with where it is now; the
+  hangar asks for model pictures with the type's code (`hgWire`, `modelPicNow(names, code)`), and `hangarCard(code,
+  again)` asks for its model's picture and redraws with it (`again`: no click sound).
 - 1.93 (to-do #95): Now's screen takes `planePic` in `renderAircraftInfo` (none from Planespotters on the runway
   screen: `rwyE()`, which `paintRwy` uses too), with `#photoLink` (`a.plink` over the whole screen, an href for
   Planespotters) and `#photoCr` (`picCreditHtml`); `.screen .mtag` is gone. Sky view: the whole card's photo is

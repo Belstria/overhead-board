@@ -2172,9 +2172,10 @@ function imgsReady(html, ms = 3000){
   const srcs = [...String(html).matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => m[1].replace(/&amp;/g, "&"));
   return cardWait(Promise.all(srcs.map(s => new Promise(r => { const i = new Image(); i.referrerPolicy = "no-referrer"; i.onload = i.onerror = r; i.src = s; }))), ms);
 }
+// 1.93.1.1: the card's number (cardTok) once it is open, 0 when another one came first.
 async function cardWhenReady(tok, html, wire){
   await imgsReady(html);
-  if (tok === cardTok && cardOpenNow()) cardOpen(html, wire);
+  return tok === cardTok && cardOpenNow() ? cardOpen(html, wire) : 0;
 }
 const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden && !b.classList.contains("closing"); };
 addEventListener("keydown", e => {
@@ -2208,41 +2209,180 @@ async function wikiFind(titles, like){
 }
 const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
 // A picture of the aircraft model, for planes with no photo of their own (1.34): the model's Wikipedia picture.
-const modelPics = new Map();
-// The names to try for a model: as given, "747 8F" as "747-8F", without a freighter/variant letter, the family.
-function modelTitles(names){
+/* 1.93.1.1 (to-do #112): found in a request or two, and never another model's. The type code's page (MODEL_PAGES,
+   made from Wikipedia's list of type designators by tools/model_pages.py) and the names as titles in many spellings
+   ("BEECH 200 Super King Air" also as "Beechcraft 200 Super King Air", "Beechcraft Super King Air", "Beechcraft 200"
+   ...) are checked together in one request; Wikipedia's search only when none of them is a page about an aircraft. A
+   page reached from part of a name must not contradict the rest: another number ("Bombardier Regional Jet" leads to
+   the Airbus A220; the code's digits count as the model's, for the "CESSNA 201 Centurion" the sources call a C210),
+   other words ("Cessna 680" leads to the Citation Sovereign, not the "CESSNA 680 Citation Latitude"), or a family's
+   page reached without a number ("Cessna Citation family" shows a CJ3); a search hit needs the model's number. A page
+   without a picture of the aircraft takes Wikidata's picture of it: the Cessna 150's has none (for now), the BAe 146's
+   is a logo, the Citation Latitude's a Citation XLS (MODEL_OTHER). */
+const MODEL_PAGES = Object.fromEntries("A109=AgustaWestland AW109|A119=AgustaWestland AW119 Koala|A140=Antonov An-140|A148=Antonov An-148|A158=Antonov An-148|A189=AgustaWestland AW189|A210=Aquila A 210|A30B=Airbus A300|A342=Airbus A340|A345=Airbus A340|A748=Hawker Siddeley HS 748|AC68=Aero Commander 500 family|AC6L=Aero Commander 500 family|AC90=Aero Commander 500 family|AC95=Aero Commander 500 family|AEST=Piper Aerostar|AJ27=Comac C909|ALO2=Aérospatiale Alouette II|ALO3=Aérospatiale Alouette III|AN12=Antonov An-12|AN2=Antonov An-2|AN24=Antonov An-24|AN26=Antonov An-26|AN28=Antonov An-28|AN30=Antonov An-30|AN32=Antonov An-32|AN72=Antonov An-72|AS3B=Eurocopter AS332 Super Puma|AS55=Eurocopter AS355 Écureuil 2|AS65=Eurocopter AS365 Dauphin|ASTR=Gulfstream G100|AT73=ATR 72|ATP=British Aerospace ATP|B105=MBB Bo 105|B212=Bell 212|B350=Beechcraft Super King Air|B412=Bell 412|B429=Bell 429 GlobalRanger|B461=British Aerospace 146|B462=British Aerospace 146|B463=British Aerospace 146|B505=Bell 505 Jet Ranger X|B52=Boeing B-52 Stratofortress|B703=Boeing 707|B720=Boeing 720|B721=Boeing 727|B722=Boeing 727|B732=Boeing 737|B742=Boeing 747|BA11=BAC One-Eleven|BALL=*Hot air balloon|BE10=Beechcraft King Air|BE18=Beechcraft Model 18|BE20=Beechcraft Super King Air|BE30=Beechcraft Super King Air|BE33=Beechcraft Bonanza|BE35=Beechcraft Bonanza|BE36=Beechcraft Bonanza|BE40=Hawker 400|BE55=Beechcraft Baron|BE58=Beechcraft Baron|BE60=Beechcraft Duke|BE99=Beechcraft Model 99|BE9L=Beechcraft King Air|BE9T=Beechcraft King Air|BELF=Short Belfast|BER2=Beriev Be-200|BK17=MBB/Kawasaki BK 117|BLCF=Boeing Dreamlifter|BN2P=Britten-Norman BN-2 Islander|C150=Cessna 150|C152=Cessna 152|C170=Cessna 170|C177=Cessna 177 Cardinal|C180=Cessna 180 Skywagon|C185=Cessna 185 Skywagon|C206=Cessna 206|C207=Cessna 206|C208=Cessna 208 Caravan|C210=Cessna 210 Centurion|C212=CASA C-212 Aviocar|C25A=Cessna CitationJet/M2|C25B=Cessna CitationJet/M2|C25M=Cessna CitationJet/M2|C303=Cessna T303 Crusader|C310=Cessna 310|C337=Cessna Skymaster|C340=Cessna 340|C402=Cessna 402|C404=Cessna 404 Titan|C408=Cessna 408 SkyCourier|C414=Cessna 414|C421=Cessna 421 Golden Eagle|C441=Cessna 441 Conquest II|C500=Cessna Citation I|C501=Cessna Citation I|C510=Cessna Citation Mustang|C525=Cessna CitationJet/M2|C550=Cessna Citation II|C551=Cessna Citation II|C55B=Cessna Citation II|C560=Cessna Citation V|C650=Cessna Citation III|C680=Cessna Citation Sovereign|C750=Cessna Citation X|C77R=Cessna 177 Cardinal|C919=Comac C919|CL2T=Canadair CL-415|CL30=Bombardier Challenger 300|CL35=Bombardier Challenger 300|CN35=CASA/IPTN CN-235|CP10=Mudry CAP 10|CRJ1=Bombardier CRJ100/200|CVLT=Convair CV-240 family|D228=Dornier 228|D328=Dornier 328|DA50=Diamond DA50|DC10=McDonnell Douglas DC-10|DC3=Douglas DC-3|DC85=Douglas DC-8|DC86=Douglas DC-8|DC87=Douglas DC-8|DC91=McDonnell Douglas DC-9|DC92=McDonnell Douglas DC-9|DC93=McDonnell Douglas DC-9|DC94=McDonnell Douglas DC-9|DC95=McDonnell Douglas DC-9|DH8A=De Havilland Canada Dash 8|DH8B=De Havilland Canada Dash 8|DH8C=De Havilland Canada Dash 8|DHC5=De Havilland Canada DHC-5 Buffalo|DHC6=De Havilland Canada DHC-6 Twin Otter|DHC7=De Havilland Canada Dash 7|DIMO=Diamond HK36 Super Dimona|DR40=Robin DR400|DV20=Diamond DA20 Katana|E110=Embraer EMB 110 Bandeirante|E120=Embraer EMB 120 Brasilia|E300=Extra EA-300|E35L=Embraer Legacy 600|E3TF=Boeing E-3 Sentry|E50P=Embraer Phenom 100|E545=Embraer Legacy 450/500 and Praetor 500/600|E550=Embraer Legacy 450/500 and Praetor 500/600|EA50=Eclipse 500|EC20=Eurocopter EC120 Colibri|EC25=Eurocopter EC725|EC55=Eurocopter EC155|EH10=AgustaWestland AW101|EN28=Enstrom F-28|EVSS=Evektor SportStar|EXPL=MD Helicopters MD Explorer|F27=Fokker F27 Friendship|F28=Fokker F28 Fellowship|F406=Reims-Cessna F406 Caravan II|F50=Fokker 50|FA10=Dassault Falcon 10|FA20=Dassault Falcon 20|FA50=Dassault Falcon 50|FA6X=Dassault Falcon 6X|G109=Grob G 109|G115=Grob G 115|G120=Grob G 120|G159=Grumman Gulfstream I|G280=Gulfstream G280|G2CA=Guimbal Cabri G2|G73T=Grumman G-73 Mallard|GA5C=Gulfstream G400/G500/G600|GA6C=Gulfstream G400/G500/G600|GA7C=Gulfstream G650/G700/G800|GALX=Gulfstream G200|GAZL=Aérospatiale Gazelle|GLEX=Bombardier Global Express|GLF3=Gulfstream III|GLF4=Gulfstream IV|GLID=*Glider (sailplane)|GYRO=*Autogyro|H160=Airbus Helicopters H160|H25B=Hawker 800|H25C=British Aerospace 125|H269=Schweizer S300|H47=Boeing CH-47 Chinook|H500=MD Helicopters MD 500|H60=Sikorsky UH-60 Black Hawk|H64=Boeing AH-64 Apache|HA4T=Hawker 4000|HDJT=Honda HA-420 HondaJet|HUSK=Aviat Husky|I114=Ilyushin Il-114|IL18=Ilyushin Il-18|IL62=Ilyushin Il-62|IL76=Ilyushin Il-76|IL86=Ilyushin Il-86|IL96=Ilyushin Il-96|J3=Piper J-3 Cub|J328=Fairchild Dornier 328JET|JS31=British Aerospace Jetstream|JS32=British Aerospace Jetstream|JS41=British Aerospace Jetstream 41|JU52=Junkers Ju 52|K100=Daher Kodiak|K900=Daher Kodiak|KA27=Kamov Ka-27|L101=Lockheed L-1011 TriStar|L188=Lockheed L-188 Electra|L39=Aero L-39 Albatros|L410=Let L-410 Turbolet|LJ31=Learjet 31|LJ35=Learjet 35|LJ40=Learjet 40|LJ55=Learjet 55|LJ60=Learjet 60|LJ70=Learjet 70/75|M20P=Mooney M20|M20T=Mooney M20|M346=Leonardo M-346|MD11=McDonnell Douglas MD-11|MD81=McDonnell Douglas MD-80|MD82=McDonnell Douglas MD-80|MD83=McDonnell Douglas MD-80|MD87=McDonnell Douglas MD-80|MD88=McDonnell Douglas MD-80|MD90=McDonnell Douglas MD-90|MI24=Mil Mi-24|MI8=Mil Mi-8|MU2=Mitsubishi MU-2|N262=Aérospatiale N 262|NH90=NHIndustries NH90|NOMA=GAF Nomad|P180=Piaggio P.180 Avanti|P210=Cessna 210 Centurion|P28B=Piper PA-28 Cherokee|P28R=Piper PA-28 Cherokee|P28T=Piper PA-28 Cherokee|P32R=Piper PA-32R|P32T=Piper PA-32R|P46T=Piper PA-46|P68=Partenavia P.68|P8=Boeing P-8 Poseidon|PA18=Piper PA-18 Super Cub|PA22=Piper PA-20 Pacer|PA24=Piper PA-24 Comanche|PA30=Piper PA-30 Twin Comanche|PA31=Piper PA-31 Navajo|PA32=Piper PA-32 Cherokee Six|PA34=Piper PA-34 Seneca|PA38=Piper PA-38 Tomahawk|PA44=Piper PA-44 Seminole|PA46=Piper PA-46|PAY1=Piper PA-31T Cheyenne|PAY2=Piper PA-31T Cheyenne|PAY3=Piper PA-42 Cheyenne|PAY4=Piper PA-42 Cheyenne|PC21=Pilatus PC-21|PC6T=Pilatus PC-6 Porter|PC7=Pilatus PC-7|PC9=Pilatus PC-9|PRM1=Beechcraft Premier I|R135=Boeing RC-135|R22=Robinson R22|RFAL=Dassault Rafale|RJ1H=British Aerospace 146|RJ70=British Aerospace 146|RJ85=British Aerospace 146|S22T=Cirrus SR22|S601=Aérospatiale Corvette|S92=Sikorsky S-92|SB05=Saab 105|SC7=Short SC.7 Skyvan|SF50=Cirrus Vision SF50|SH33=Short 330|SH36=Short 360|SHIP=*Airship|SR20=Cirrus SR20|SR22=Cirrus SR22|SU95=Yakovlev SJ-100|SW4=Fairchild Swearingen Metroliner|T134=Tupolev Tu-134|T154=Tupolev Tu-154|T204=Tupolev Tu-204|T210=Cessna 210 Centurion|TB20=SOCATA TB family|TB21=SOCATA TB family|TBM7=SOCATA TBM|TBM8=SOCATA TBM|TIGR=Eurocopter Tiger|TOBA=SOCATA TB family|TOR=Panavia Tornado|ULAC=*Ultralight aviation|WW24=IAI Westwind|Y12=Harbin Y-12|YK40=Yakovlev Yak-40|YK42=Yakovlev Yak-42|YS11=NAMC YS-11".split("|").map(p => p.split("=")));
+const MODEL_OTHER = new Set(["Cessna Citation Latitude"]);                 // pages whose own picture is another model's
+const modelPics = new Map(), modelAsk = new Map(), modelLooks = new Map();  // key -> picture ("": none or not yet), waiting callbacks, page
+const MODEL_MAKERS = {beech: "Beechcraft", "reims/cessna": "Cessna", reims: "Cessna", textron: "Cessna", "hawker beechcraft": "Hawker",
+  raytheon: "Hawker", "de havilland": "De Havilland Canada", agusta: "AgustaWestland", leonardo: "AgustaWestland", "airbus helicopters": "Eurocopter"};
+const MODEL_LIKE = /aircraft|airliner|airplane|aeroplane|helicopter|\bjet|airlifter|plane\b|glider|gyroplane|autogyro|rotorcraft|airship|balloon|seaplane|flying boat|amphibian|tiltrotor/i;
+const MODEL_NOT = /manufacturer|\bcompany\b|corporation|conglomerate|\bairline\b|airport|museum|index of|list of/i;
+const MODEL_FILL = new Set(["family", "series", "aircraft", "airliner", "airplane", "helicopter", "and", "the", "of", "short", "long", "wing", "range", "variants"]);
+const isRoman = w => /^(i{1,3}|iv|vi{0,3}|ix|x)$/i.test(w);
+const modelFold = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const modelNear = (a, b) => a === b || (a.length > 3 && b.length > 3 && (a.startsWith(b) || b.startsWith(a)));
+// A number's start, as compared: its letters and first digits ("A-320neo" a320, "PA-28R-201T" pa28, "737-800" 737).
+const numCore = w => { const k = modelFold(w).replace(/^([a-z]+)-(?=\d)/, "$1"); return (k.match(/^[a-z]*\d+/) || [k])[0]; };
+// A name's maker (its first word, or the words in capitals at its start), its numbers, other words and roman numerals.
+function modelSplit(name){
+  const w = String(name || "").replace(/\([^)]*\)/g, " ").replace(/[#<>[\]{}|_]/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (!w.length) return null;
+  let i = w.length > 1 && !/\d/.test(w[0]) ? 1 : 0;
+  if (i && /^[A-Z][A-Z&./-]+$/.test(w[0])) while (i < w.length - 1 && /^[A-Z][A-Z&./-]+$/.test(w[i])) i++;
+  const maker = w.slice(0, i).join(" "), model = w.slice(i);
+  if (/^[A-Z]{1,3}$/.test(model[0] || "") && /^\d/.test(model[1] || "")) model.splice(0, 2, model[0] + model[1]);   // "HK 36TTC", "A 210"
+  const toks = model.map(t => t.split("/")[0]).filter(Boolean);                     // "Hawker 750/850": the first
+  return {name: w.join(" "), maker, toks, nums: toks.filter(t => /\d/.test(t)), romans: toks.filter(isRoman),
+    words: toks.filter(t => !/\d/.test(t) && !isRoman(t) && !MODEL_FILL.has(t.toLowerCase()))};
+}
+// A maker as Wikipedia writes it: "BEECH" as "Beech" and "Beechcraft", "ATR" also as it is.
+function modelMakers(m){
+  if (!m) return [""];
+  const k = m.toLowerCase().replace(/ (aerospace|aviation|aircraft|industries|design|corporation|company)$/, "");
+  return [...new Set([k.replace(/(^|[\s/-])(\w)/g, (s, a, b) => a + b.toUpperCase()), MODEL_MAKERS[k], /^[A-Z]{2,4}$/.test(m) ? m : ""].filter(Boolean))];
+}
+// A number's spellings, the most precise first: "PA-28R-201T", "PA28R-201T", "PA-28R-201", ..., "PA-28R", "PA-28", "PA28".
+function numForms(t){
   const out = [];
-  for (const n0 of [].concat(names)) {
-    const n = String(n0 || "").trim().replace(/(\d)\s+(\d)/, "$1-$2");
-    if (n) out.push(n, n.replace(/neo$/i, "neo family"), n.replace(/(\d)[A-Z]{1,3}$/, "$1"), n.replace(/-\d+\w*$/, ""));
+  for (let s = t, i = 0; i < 5 && /\d/.test(s); i++) {
+    out.push(s, s.replace(/^([A-Za-z]+)-(?=\d)/, "$1"));
+    const n = s.replace(/(\d)[A-Za-z]+$/, "$1"), m = n !== s ? n : s.replace(/-[^-]*$/, "");
+    if (m === s) break;
+    s = m;
   }
+  return [...new Set(out)];
+}
+// Does this page contradict the name? Numbers: none of its numbers is the name's (or the code's digits). Words: it has
+// words the name hasn't while the name has words it hasn't (its first word, the maker, doesn't count).
+function modelClash(title, p, code, nums = true){
+  const tt = String(title).replace(/[/,]/g, " ").split(/\s+/).filter(Boolean), tf = tt.map(modelFold);
+  const tn = tt.filter(t => /\d/.test(t) || isRoman(t)), nn = p.nums.concat(p.romans), digits = String(code || "").replace(/\D/g, "");
+  if (nums && tn.length && nn.length && !tn.some(a => nn.some(b => numCore(a) === numCore(b)) || numCore(a) === digits)) return true;
+  const mine = [...p.words, ...modelMakers(p.maker), p.maker].join(" ").split(/[\s/-]/).map(modelFold).filter(Boolean);
+  const tw = tf.slice(1).filter(t => !/\d/.test(t) && !isRoman(t) && !MODEL_FILL.has(t) && !mine.some(m => modelNear(t, m)));
+  return tw.length > 0 && p.words.some(w => !tf.some(t => modelNear(t, modelFold(w))));
+}
+// Is this search hit about the model: its maker, its number (or the code's digits; all its words if it has no number),
+// and nothing against them?
+function modelHit(title, p, code){
+  const tf = String(title).replace(/[/,]/g, " ").split(/\s+/).map(modelFold);
+  const mk = [...modelMakers(p.maker), p.maker].join(" ").split(/[\s/-]/).map(modelFold).filter(Boolean);
+  const nn = p.nums.concat(p.romans), digits = String(code || "").replace(/\D/g, "");
+  const num = tf.some(t => (/\d/.test(t) || isRoman(t)) && (nn.some(n => numCore(t) === numCore(n)) || numCore(t) === digits));
+  const words = !nn.length && p.words.length > 0 && p.words.every(w => tf.some(t => modelNear(t, modelFold(w))));
+  return (!mk.length || mk.some(m => tf.includes(m))) && (num || words) && !modelClash(title, p, code) && (num || !/\b(family|series)\b/i.test(title));
+}
+// The titles to try, in order, each with what it left out of its name and must not be contradicted on: "" nothing
+// (the code's page, a whole name), "w" words, "nw" numbers and words. A kind of aircraft (BALL, GLID: "*") comes last.
+function modelTitles(names, code){
+  const out = [], seen = new Set(), add = (t, chk, p) => {
+    t = String(t || "").replace(/\s+/g, " ").trim();
+    if (t.length > 2 && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); out.push({t, chk, p}); }
+  };
+  const pg = MODEL_PAGES[code] || "", ps = names.map(modelSplit).filter(Boolean), up = s => s === s.toUpperCase();
+  if (pg && pg[0] !== "*") add(pg, "");
+  for (const p of ps) {
+    add(p.name.replace(/(\d) (\d)/, "$1-$2"), "", p);
+    const m0 = p.toks.join(" ").replace(/(\d) (\d)/, "$1-$2"), m1 = m0.replace(/\b([A-Za-z]+)-(?=\d)/g, "$1");
+    for (const M of modelMakers(p.maker)) for (const m of [m0, m1]) add(m.toLowerCase().startsWith(M.toLowerCase()) ? m : `${M} ${m}`, "", p);
+    for (const q of ps) if (q.maker && up(q.maker) && p.nums.length && !modelFold(p.name).startsWith(modelFold(modelMakers(q.maker)[0])))
+      add(`${modelMakers(q.maker)[0]} ${p.name}`, "", p);                       // "Citation CJ2" by "CESSNA 525A Citation CJ2"
+  }
+  for (const p of ps) {
+    const [n0, ...nr] = p.nums, W = p.words.join(" "), rest = p.toks.filter(t => t !== n0 && !isRoman(t)).join(" ");
+    for (const M of modelMakers(p.maker)) {
+      if (n0) for (const f of numForms(n0)) add(`${M} ${f} ${W}`, "nw", p);         // "Piper PA-34 Seneca", "Diamond HK36 Super Dimona"
+      if (n0 && nr.length + p.words.length) add(`${M} ${rest}`, "nw", p);           // "Bombardier Challenger 300", "Cessna Citation M2"
+      if (W) add(`${M} ${W}`, "nw", p);                                           // "Beechcraft Super King Air", "Cessna Centurion"
+      if (n0 && W) for (const f of numForms(n0).slice(-2)) add(`${M} ${W} ${f}`, "nw", p);   // "Cirrus Vision SF50", "Guimbal Cabri G2"
+    }
+  }
+  for (const p of ps) {
+    const n0 = p.nums[0], Ms = modelMakers(p.maker), c = String(code || "").match(/^C(\d{3})$/);
+    if (!n0) continue;
+    for (const M of Ms) for (const f of numForms(n0)) {
+      add(`${M} ${f}`, f === n0 ? "w" : "nw", p);                                // "Cessna 525", "Piper PA-28"
+      const d = f.match(/^[A-Za-z]{1,3}-?(\d{3})$/);
+      if (d) add(`${M} ${d[1]}`, "nw", p);                                        // "Embraer 190", "Cessna 152" (F152)
+    }
+    if (p.toks.length > 1 && /^[A-Za-z]/.test(p.toks[0])) add(p.toks.join(" "), "nw", p);   // "Learjet 45" by "Bombardier Learjet 45"
+    if (c && Ms.includes("Cessna")) add(`Cessna ${c[1]}`, "nw", p);
+  }
+  if (pg[0] === "*") add(pg.slice(1), "");
   return out;
 }
-const MODEL_LIKE = /aircraft|airliner|airplane|aeroplane|helicopter|jet|plane|airlifter|transport/i;
-// 1.88: a name that is ambiguous on its own (Black Hawk, Super Puma, Hercules: Wikipedia's page is a disambiguation)
-// is looked up in Wikipedia's search, as airlines are; a result counts when its title holds one of the names.
-const modelSearches = new Map();
-async function modelWiki(names){
-  const p = await wikiFind(modelTitles(names), MODEL_LIKE);
-  if (p || S.demo) return p;
-  const ns = [...new Set([].concat(names).map(n => String(n || "").trim()).filter(n => n.length > 2))];
-  for (const n of ns) {
-    const k = n.toLowerCase();
-    if (!modelSearches.has(k)) modelSearches.set(k, fetchJSON(`https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=5&format=json&origin=*&srsearch=${encodeURIComponent(n + " aircraft")}`, {}, 4000)
-      .then(j => ((j.query || {}).search || []).map(h => h.title)).catch(() => []));
-    const hits = (await modelSearches.get(k)).filter(t => ns.some(x => t.toLowerCase().includes(x.toLowerCase()) || x.toLowerCase().includes(t.toLowerCase())));
-    const q = await wikiFind(hits, MODEL_LIKE);
-    if (q) return q;
-  }
-  return null;
+const WIKI_API = "https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*&redirects=1&prop=pageimages|description|pageprops|extracts" +
+  "&piprop=thumbnail&pithumbsize=500&ppprop=disambiguation|wikibase_item&exintro=1&explaintext=1&exchars=200&exlimit=20";
+const wikiOne = p => p && !p.missing && !p.invalid && !(p.pageprops && "disambiguation" in p.pageprops) ? {title: p.title, desc: p.description || "",
+  text: p.extract || "", img: p.thumbnail && !MODEL_OTHER.has(p.title) && !/logo/i.test(p.thumbnail.source) ? p.thumbnail.source : "",
+  qid: (p.pageprops || {}).wikibase_item || ""} : null;
+// Wikipedia's pages for up to 50 titles in one request: title asked -> {title, desc, text, img, qid}, or null (none, or a disambiguation).
+async function wikiPages(titles){
+  const q = (await fetchJSON(`${WIKI_API}&titles=${encodeURIComponent(titles.join("|"))}`)).query || {};
+  const to = new Map([...(q.normalized || []), ...(q.redirects || [])].map(r => [r.from, r.to])), pages = new Map((q.pages || []).map(p => [p.title, p]));
+  return new Map(titles.map(t => { let k = t; for (let i = 0; i < 3 && to.has(k); i++) k = to.get(k); return [t, wikiOne(pages.get(k))]; }));
 }
-function modelPic(names, onReady){
+// Wikidata's picture of an aircraft (its "image"), as a Commons thumbnail 500 px wide.
+async function wikidataPic(qid){
+  const j = await fetchJSON(`https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&origin=*&property=P18&entity=${encodeURIComponent(qid)}`);
+  const v = ((((j.claims || {}).P18 || [])[0] || {}).mainsnak || {}).datavalue;
+  if (!v || !v.value) return "";
+  const q = (await fetchJSON(`https://en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&origin=*&prop=imageinfo&iiprop=url&iiurlwidth=500&titles=${encodeURIComponent("File:" + v.value)}`)).query || {};
+  return ((((q.pages || [])[0] || {}).imageinfo || [])[0] || {}).thumburl || "";
+}
+const modelOk = (pg, chk) => !!pg && !MODEL_NOT.test(pg.desc.replace(/\([^)]*\)/g, "")) && (pg.desc || pg.text ? MODEL_LIKE.test(pg.desc + " " + pg.text) : !chk);
+const modelFits = (pg, x, code) => modelOk(pg, x.chk) && (!x.chk || !modelClash(pg.title, x.p, code, x.chk === "nw") &&
+  (/\d/.test(x.t) || !/\b(family|series)\b/i.test(pg.title)));
+async function modelPage(names, code){
+  code = String(code || "").toUpperCase();
+  names = [...new Set([].concat(names).map(n => String(n || "").trim()).filter(n => n && n.toUpperCase() !== code))];   // never the code itself
+  const cands = modelTitles(names, code).slice(0, 100), parts = [cands.slice(0, 50), cands.slice(50)].filter(c => c.length);
+  const got = await Promise.all(parts.map(c => wikiPages(c.map(x => x.t)))), found = [];
+  parts.forEach((c, i) => c.forEach(x => { const pg = got[i].get(x.t); if (modelFits(pg, x, code)) found.push(pg); }));
+  for (const p of found.length || S.demo ? [] : names.map(modelSplit).filter(Boolean).slice(0, 2)) {
+    const q = `${modelMakers(p.maker)[0]} ${p.toks.join(" ")}`.trim();
+    const j = await fetchJSON(`${WIKI_API}&generator=search&gsrnamespace=0&gsrlimit=8&gsrsearch=${encodeURIComponent(q)}`);
+    found.push(...((j.query || {}).pages || []).sort((a, b) => a.index - b.index).map(wikiOne).filter(h => modelOk(h, "nw") && modelHit(h.title, p, code)));
+    if (found.length) break;
+  }
+  const best = found[0] || null;                                          // the most precise; without a picture, Wikidata's
+  if (best && !best.img && best.qid) best.img = await wikidataPic(best.qid).catch(() => "");
+  return best && !best.img && found.find(x => x.img) || best;
+}
+const modelKey = (names, code) => [code || ""].concat(names).map(n => String(n || "").trim()).join("|").toLowerCase();
+function modelLook(names, code){
+  const k = modelKey(names, code);
+  if (!modelLooks.has(k)) modelLooks.set(k, modelPage(names, code).catch(e => { modelLooks.delete(k); throw e; }));
+  return modelLooks.get(k);
+}
+// The model's page with Wikipedia's words, for its card.
+async function modelWiki(names, code){
+  const p = await modelLook([].concat(names), code).catch(() => null);
+  if (!p) return null;
+  const w = await wikiPage(p.title);
+  return w ? {...w, img: p.img} : {...p, text: "", url: `https://en.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, "_"))}`};
+}
+// The model's picture now ("" while it is being looked for, or if there is none); onReady once it is found later.
+function modelPic(names, onReady, code){
   names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean);
-  if (!names.length || S.demo) return "";
-  const k = names.join("|").toLowerCase();
-  if (modelPics.has(k)) return modelPics.get(k);
-  modelPics.set(k, "");
-  modelWiki(names).then(p => { if (p && p.img) { modelPics.set(k, wikiImg(p.img, 500)); if (onReady) onReady(); } });
+  if ((!names.length && !code) || S.demo) return "";
+  const k = modelKey(names, code);
+  if (modelPics.has(k)) { if (onReady && modelAsk.has(k)) modelAsk.get(k).add(onReady); return modelPics.get(k); }
+  const wait = new Set(onReady ? [onReady] : []);
+  modelPics.set(k, ""); modelAsk.set(k, wait);
+  modelLook(names, code).then(p => {
+    modelAsk.delete(k);
+    if (p && p.img) { modelPics.set(k, wikiImg(p.img, 500)); for (const f of wait) try { f(); } catch {} }
+  }, () => { modelAsk.delete(k); setTimeout(() => modelPics.delete(k), 60000); });     // not answered: asked again a minute later
   return "";
 }
 /* 1.93 (to-do #95, Dave's mockup A): a plane's own photo from Planespotters.net comes first (relay 73, /planephoto,
@@ -2258,7 +2398,7 @@ function psPhoto(reg, hex, onReady){
   if (!reg || !psOk()) return null;
   const h = psPhotos.get(reg);
   if (h && Date.now() - h.at < PS_KEEP_MS) {
-    if (h.photo === undefined && onReady && h.cbs.length < 8) h.cbs.push(onReady);
+    if (h.photo === undefined && onReady && h.cbs.length < 8 && !h.cbs.includes(onReady)) h.cbs.push(onReady);
     return h.photo;
   }
   const ask = {at: Date.now(), photo: undefined, cbs: onReady ? [onReady] : []};
@@ -2276,7 +2416,7 @@ function planePic(ac, info, d, onReady, noPs){
   if (ps === undefined) return {src: "", kind: "", asking: true};
   if (ps && !psBad.has(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
   if (d.photo) return {src: d.photo, kind: "own"};
-  const m = modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], onReady);
+  const m = modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], onReady, ac.t);
   return {src: m, kind: m ? "model" : ""};
 }
 // A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
@@ -2537,6 +2677,9 @@ async function placeCard(p){
   w = await cardWait(wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"], /airport|aerodrome|airfield/i), 4500);
   cardWhenReady(tok, draw());
 }
+// A plane card's picture found late (Planespotters' answer, its model's): the card takes it (each side's planeAgain).
+// One function, so a lookup underway calls it once however often the card was drawn meanwhile.
+const planeLate = () => { if (typeof planeAgain === "function") planeAgain(); };
 // A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
 // with the airline and places to tap and Favourite / Hide.
 function planeBody(o, sky){
@@ -2544,8 +2687,7 @@ function planeBody(o, sky){
   lookupDetails(ac.hex);
   const d = detailsOf(ac.hex) || {}, f = liveFacts(ac, info), badge = badgeFor(f) || radarStatus(o);
   const type = d.type || info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || "";
-  const again = () => { if (typeof planeAgain === "function") planeAgain(); };
-  const pic = planePic(ac, info, d, again);
+  const again = planeLate, pic = planePic(ac, info, d, again);
   if (SHARE_OK) planePic(ac, info, d, null, true);         // the share picture's, without Planespotters': found meanwhile
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
@@ -2606,9 +2748,9 @@ async function typeCard(x){
       ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
       ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
     (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
-  const tok = cardLoading();
-  const w = await cardWait(modelWiki([t.name, x.type, x.desc]), 4500);       // 1.88: and the source's description
-  cardWhenReady(tok, draw(w));
+  const tok = cardLoading(), look = modelWiki([t.name, x.type, x.desc], t.code);     // 1.88: and the source's description
+  const w = await cardWait(look, 4500), shown = await cardWhenReady(tok, draw(w));
+  if (shown && !w) look.then(w2 => { if (w2) cardWhenReady(shown, draw(w2)); });   // 1.93.1.1: found later, while it still shows this model
 }
 /* Share a sighting as a picture (1.53): a split-flap panel (flight, route, aircraft, registration, time) under the
    plane's photo, with a small Fallblatt mark and no link. The photo comes through the relay (relay 47, /photo) or
@@ -2737,7 +2879,7 @@ function picCard(blob, fname){
     if (sv) sv.onclick = () => { ctlSound.press(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
   });
 }
-let planeShown = null;
+let planeShown = null, planeTok = 0;                     // the plane of the card, and the card's number (cardTok) while it shows it
 async function planeCard(o){
   if (!o || !o.ac) return;
   ctlSound.press();
@@ -2748,7 +2890,8 @@ async function planeCard(o){
   await until(() => /<img/.test(planeBody(o).html), 2500);       // its photo: Planespotters' answer, adsbdb's, or its model's
   if (tok !== cardTok) return;
   const b = planeBody(o);
-  cardWhenReady(tok, b.html, b.wire);
+  planeTok = await cardWhenReady(tok, b.html, b.wire);
+  if (planeTok && planeBody(o).sig !== b.sig) planeLate();      // its photo came while the card waited for the others
 }
 
 /* ---------- achievements (1.38) ----------
@@ -6718,13 +6861,13 @@ function hangarLoad(){
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
-const modelPicNow = names => modelPics.get(names.join("|").toLowerCase()) || "";
+const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = code => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
     if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names);
+    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
     return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
       (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`) +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
@@ -6747,16 +6890,18 @@ function hgWire(box){
   for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
   const ph = box.querySelectorAll(".hgPh[data-mp]");
   if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon); } }, {rootMargin: "120px"});
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon, e.target.closest("[data-hg]").dataset.hg); } }, {rootMargin: "120px"});
   for (const el of ph) io.observe(el);
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
-function hangarCard(code){
+function hangarCard(code, again){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
-  ctlSound.press();
-  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(hgNames(code, t.name)), when = t.first ? new Date(t.first) : null;
-  cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+  if (!again) ctlSound.press();
+  let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
+  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), when = t.first ? new Date(t.first) : null;
+  const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
+  tok = cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
     `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
     factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
       ["First", when ? escH(`${fmtDay(t.first)} ${hhmm(when)}`) : ""], ["Aircraft", escH(t.reg)], ["Flight", escH(t.flight)], ["Airline", escH(t.airline)]]) +
@@ -9335,6 +9480,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.93.1.1", date: "2026-10-27", notes: [
+    "Many more aircraft models have a picture, light aircraft and helicopters too, and none shows another model any more.",
+    "A card that opens before its model's picture is found takes the picture as soon as it comes."]},
   {v: "1.93.1", date: "2026-10-26", notes: [
     "Live location no longer starts from an old position the phone kept, say from a trip: it waits for a fresh one.",
     "Turning live location off asks whether to stay where you are or go back to the place you watched before."]},
@@ -10456,11 +10604,12 @@ document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
-// A model's picture found late (planeBody asks): the radar's open card takes it, while it still shows that plane.
+// A picture found late (planeBody asks): the open plane card takes it while it still shows that plane (1.93.1.1: not
+// only the radar's), the radar's with where its plane is now.
 function planeAgain(){
-  if (!radar.sel || !radarSelOpen() || !$("cardBox").querySelector(".cardIn [data-dyn]")) return;
-  const b = planeBody(radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
-  cardOpen(b.html, b.wire);
+  if (!planeShown || planeTok !== cardTok || !cardOpenNow()) return;
+  const b = planeBody(radar.sel === planeShown.ac.hex && radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
+  planeTok = cardOpen(b.html, b.wire);
 }
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){

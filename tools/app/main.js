@@ -973,13 +973,13 @@ function hangarLoad(){
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
-const modelPicNow = names => modelPics.get(names.join("|").toLowerCase()) || "";
+const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = code => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
     if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names);
+    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
     return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
       (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`) +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
@@ -1002,16 +1002,18 @@ function hgWire(box){
   for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
   const ph = box.querySelectorAll(".hgPh[data-mp]");
   if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon); } }, {rootMargin: "120px"});
+  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon, e.target.closest("[data-hg]").dataset.hg); } }, {rootMargin: "120px"});
   for (const el of ph) io.observe(el);
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
-function hangarCard(code){
+function hangarCard(code, again){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
-  ctlSound.press();
-  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), mp = !pic && modelPicNow(hgNames(code, t.name)), when = t.first ? new Date(t.first) : null;
-  cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
+  if (!again) ctlSound.press();
+  let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
+  const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), when = t.first ? new Date(t.first) : null;
+  const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
+  tok = cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
     `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
     factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
       ["First", when ? escH(`${fmtDay(t.first)} ${hhmm(when)}`) : ""], ["Aircraft", escH(t.reg)], ["Flight", escH(t.flight)], ["Airline", escH(t.airline)]]) +
@@ -3072,11 +3074,12 @@ document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
 function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
-// A model's picture found late (planeBody asks): the radar's open card takes it, while it still shows that plane.
+// A picture found late (planeBody asks): the open plane card takes it while it still shows that plane (1.93.1.1: not
+// only the radar's), the radar's with where its plane is now.
 function planeAgain(){
-  if (!radar.sel || !radarSelOpen() || !$("cardBox").querySelector(".cardIn [data-dyn]")) return;
-  const b = planeBody(radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
-  cardOpen(b.html, b.wire);
+  if (!planeShown || planeTok !== cardTok || !cardOpenNow()) return;
+  const b = planeBody(radar.sel === planeShown.ac.hex && radar.planes.find(p => p.ac.hex === radar.sel) || planeShown);
+  planeTok = cardOpen(b.html, b.wire);
 }
 // Settings → Favourites & hidden (the manager is shared with the boards' card).
 function renderFavBox(){
