@@ -943,6 +943,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.4 (to-do #138, Dave's request of 27 Oct): the Logbook's Saved places button (`lbPlaceSheet(true)`), the Sky view buttons
+  (`arTry` -> `arOpen(true)`, also the "Sky view needs live location" card) and the title's Overhead/Airport switch
+  (`setMode`, board and app) play `ctlSound.click()` instead of `nav()`; the sheet, `arOpen` and the card opened from
+  elsewhere keep `nav()`.
+- 1.97.4 (to-do #136, Dave's request of 27 Oct; relay 80): **planes overhead give 5, 10, 15, 25, 50.** The app only
+  shows the relay's numbers (`rules.passive` in `gHowCard`), so the change is the How points work text ("the points in
+  the first column") and its i18n rows; the patch note and README say the new amounts.
+
 - 1.97.3 (to-do #135, Dave's request of 27 Oct): **cards open at once; their photo window shows a spinner and the
   photo fades in.** What made a card wait: `cardWhenReady` ran `imgsReady` (every `<img>` of the card, up to 3 s), the
   plane card's `planeCard` waited up to 2.5 s for its photo's lookup (`/<img/.test(planeBody(o).html)`), and the in-place
@@ -1197,6 +1205,20 @@ and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1;
 it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
+
+- Relay 80 (to-do #137, admin only): **a screen hidden for 15 s counts as left.** `screen_seen()` keeps `hidden_at` (set by
+  a hello with vis=hidden, cleared by one saying anything else); `_screen_sweep(now)` (the body of `_screen_watch`, one pass)
+  drops a screen hidden for `SCREEN_HIDDEN_S` = 15 whatever its `last` says, puts its key in `_screens_left` and its
+  entry in `_screens_gone` (left = when it went hidden) without a log line. Requests, hellos and a bye of a key in
+  `_screens_left` are ignored; a hello with vis=visible makes a new screen (since = now) that is `announced` at once, so
+  no "Screen connected" line: coming back from the background isn't announced (nor is leaving it). Entries of
+  `_screens_left` are forgotten after a day. The 60 s rule and the bye are unchanged. Test: flows.py `screens_checks`.
+- Relay 80 (1.97.4, to-do #136, Dave's request of 27 Oct): **`GAME_RULE` 4: the passive points are `GAME_PASSIVE`**
+  (a dict now: common 5, uncommon 10, rare 15, very rare 25, special 50; they were `TIER_BASE // 10` = 1, 3, 10, 25, 50).
+  `game_note()` stores them in the plane's `gp` once and the award's "r" says 4; nothing is priced again (a plane that
+  has a `gp` is skipped, `GAME_V` and `GAME3_V` stay), so saved days, points, the league and the logbook stay as they were.
+  `game_rules()["passive"]` sends the new table to the app. The scan (full `TIER_BASE` on top), the limits and the
+  extras are unchanged. Test: flows.py `game_rules`, "rule 3 game untouched by rule 4".
 
 - Relay 79 (1.97, Dave's rule of 27 Oct, to-dos #132 and #133): **`GAME_RULE` 3: a scan gives the full points on
   top**. `game_lockon()`'s "scan" line is `TIER_BASE[tier]` (rule 2: `full - gp`), so a common gives 1 + 10 = 11 and a

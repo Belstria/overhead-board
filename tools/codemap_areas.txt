@@ -674,8 +674,8 @@ changelog: sighting|callsign
 [relay-screens] The relay's list of screens: which boards use it, /screens, /status, hello and bye
 test/index.html: +relayV12 +sayHello
 tools/app/main.js: +relayV12 +sayHello
-relay/serve.py: SCREEN_GONE_S SCREEN_NEW_S BOARD_PATHS _screens _screens_gone _screens_lock _hosts device_of board_of
-    _lookup_host host_of fmt_for screen_seen screen_info describe screens_list _screen_watch print_screens _console
+relay/serve.py: SCREEN_GONE_S SCREEN_HIDDEN_S SCREEN_NEW_S BOARD_PATHS _screens _screens_gone _screens_left _screens_lock _hosts device_of board_of
+    _lookup_host host_of fmt_for screen_seen screen_info describe screens_list _screen_sweep _screen_watch print_screens _console
     screens_html status_json Handler.note_screen /screens /status /hello /bye +main
 README.md: "**Screens (relay version 12).**" "- **Screens**:"
 changelog: screens

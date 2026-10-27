@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 79
+RELAY_VERSION = 80
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1024,16 +1024,17 @@ def game_json(book, day):
 # same circle for everyone whatever their radius. Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
 # rarity's points (TIER_BASE), for up to GAME_LIMIT planes of each rarity a day; Sky view's scan tops the plane up to its
 # full points, without a limit (relay 79, rule 3: the full points on top of the tenth, also past the limit), and only scans earn the extras (a type or an airline new to the game) and the week's
-# daily streak. Everything of the game (points, collections, bingo, trophies, records) lives in the logbook's "game3"
+# daily streak. Relay 80 (1.97.4, to-do #136, rule 4): the passive points are no longer a tenth but GAME_PASSIVE (5, 10, 15,
+# 25, 50); only new awards, a plane's "gp" and its awards keep what they were scored with. Everything of the game (points, collections, bingo, trophies, records) lives in the logbook's "game3"
 # part, a small logbook of its own that started empty; the logbook keeps every plane. Never raise GAME3_V: that empties
 # everyone's game.
 GAME3_V = 1
 GAME_KM = 10                # relay 60: 10 km (8 in relay 59)
-GAME_RULE = 3               # the rule a plane was scored by (e["gr"], each award's "r"); older awards stay as they were:
+GAME_RULE = 4               # the rule a plane was scored by (e["gr"], each award's "r"); older awards stay as they were:
                             # rule 1 before relay 76, rule 2 (relay 76: a scan topped up to the full points), rule 3 (relay
-                            # 78: a scan gives the full points on top)
+                            # 78: a scan gives the full points on top), rule 4 (relay 80: the passive points of GAME_PASSIVE)
 TIER_BASE = {"common": 10, "uncommon": 30, "rare": 100, "epic": 250, "legendary": 500}
-GAME_PASSIVE = 10           # a plane within GAME_KM: a tenth of its points
+GAME_PASSIVE = {"common": 5, "uncommon": 10, "rare": 15, "epic": 25, "legendary": 50}   # a plane within GAME_KM (to 1.97.3: a tenth of TIER_BASE)
 GAME_LIMIT = {"common": 50, "uncommon": 30, "rare": 15, "epic": 5, "legendary": 3}    # passive planes a day per rarity
 GAME_NEW = (("type", 50), ("airline", 25))          # at the first scan of a type or an airline new to the game
 GAME_STREAK = 25            # the day's first scan: +25 × the day of the week's streak (25 … 175)
@@ -1093,7 +1094,7 @@ def _next_day_ms(day):
 
 def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
-    return {"base": TIER_BASE, "passive": {t: v // GAME_PASSIVE for t, v in TIER_BASE.items()}, "limit": GAME_LIMIT,
+    return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM}
 
 
@@ -1161,7 +1162,7 @@ def game_note(spot, e):
         e["gr"], e["gn"], e["gt"], e["gMin"] = GAME_RULE, n, k, d
         can = _scan_can(g, e)                   # relay 79: the extras a scan would add (the app's pass promises them)
         if k <= GAME_LIMIT[tier]:
-            e["gp"] = TIER_BASE[tier] // GAME_PASSIVE
+            e["gp"] = GAME_PASSIVE[tier]
             _game_award(e, "pass", e["gp"], tier=tier, n=k, **({"can": can} if can else {}))
         else:
             e["gp"] = 0                         # past the limit: listed, with the reason; only the first one pops up
@@ -1196,7 +1197,7 @@ def _scan_can(g, e):
 
 def _game_award(e, kind, pts, **more):
     """Relay 71: what a sighting scored and when, for the app's Recent points and (relay 76) its pop-ups. Relay 76's
-    kinds: "pass" (the passive tenth), "limit" (nothing: past the rarity's limit), "scan" (Sky view's scan: rule 2 its
+    kinds: "pass" (the passive points), "limit" (nothing: past the rarity's limit), "scan" (Sky view's scan: rule 2 its
     top-up, rule 3 the full points on top), "new" (a type or an airline at its first scan), "streak" (the day's first
     scan); each with its rule ("r"). Rule 1's were "first", "close", "fix" and "lock". Relay 79: "pass" and "limit" carry
     "can", the extras a scan would add then."""
@@ -3331,11 +3332,14 @@ def vie_status():
 # Screens coming and going are printed here and listed in the board's diagnostics; press Enter for the current list,
 # or open /screens in a browser.
 SCREEN_GONE_S = 60          # a screen that hasn't asked for anything for a minute has been closed or switched off
+SCREEN_HIDDEN_S = 15        # relay 80 (to-do #137): a screen whose latest hello said "hidden" counts as left after this long
 SCREEN_NEW_S = 6            # wait this long for a new screen's hello before announcing it with what we know
 BOARD_PATHS = ("/aircraft/", "/adsblol/", "/airplaneslive/", "/sightings", "/logbook", "/metar", "/flightinfo", "/times",
                "/status", "/hello", "/routeset", "/bye")
 _screens = {}
 _screens_gone = collections.deque(maxlen=12)
+_screens_left = {}          # relay 80: screen key -> when it was counted as left in the background; its requests are
+                            # ignored until a hello says "visible" (that is a new visit); forgotten after a day
 _screens_lock = threading.Lock()
 _hosts = {}                 # address -> network name (or None while looking it up / when there is none)
 
@@ -3418,12 +3422,18 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
     key = sid or f"{ip}|{ua}|{board or ''}"
     with _screens_lock:
         s = _screens.get(key)
+        back = False
+        if s is None and key in _screens_left:
+            if hello is None or hello.get("vis") != "visible":
+                return                      # still in the background, counted as left: its requests don't bring it back
+            del _screens_left[key]
+            back = True
         if s is None:
             if bye:
                 return
             s = {"key": key, "sid": sid, "ip": ip, "ua": ua, "device": device_of(ua), "board": board, "name": "",
                  "since": now, "first": now, "last": now, "requests": 0, "hello": None, "announced": False,
-                 "reloads": 0, "pending": "new", "bye": 0.0}
+                 "reloads": 0, "pending": "new", "bye": 0.0, "hidden_at": 0.0}
             # The same browser opening the same board while its previous page has just said goodbye or gone quiet
             # is a reload: it keeps its time on.
             for k, o in list(_screens.items()):
@@ -3432,6 +3442,8 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
                              pending="reload" if o["announced"] else "new", announced=o["announced"])
                     del _screens[k]
                     break
+            if back:                        # coming back is a new visit, listed at once and not announced again
+                s.update(pending=None, announced=True)
             _screens[key] = s
         s["last"] = now
         s["requests"] += 1
@@ -3441,6 +3453,7 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
             s["bye"] = now
         if hello is not None:
             s["hello"] = hello
+            s["hidden_at"] = (s["hidden_at"] or now) if hello.get("vis") == "hidden" else 0.0
             name = hello.get("name", "")
             if s["announced"] and name and s["name"] and name != s["name"]:
                 event("info", f"Screen renamed: {s['name']} is now {name}")
@@ -3480,29 +3493,42 @@ def screens_list():
     return live, gone
 
 
+def _screen_sweep(now):
+    """One look at the screens: announce new ones, drop those that left. Relay 80: a screen that has been hidden (by its
+    latest hello) for SCREEN_HIDDEN_S counts as left, whatever it asks for meanwhile; that is only listed (Recently
+    gone), not announced, as its coming back is not."""
+    say = []
+    with _screens_lock:
+        for k in [k for k, t in _screens_left.items() if now - t > 86400]:
+            del _screens_left[k]
+        for k, s in list(_screens.items()):
+            i = screen_info(s, now)
+            if s["pending"] and (s["hello"] or now - s["first"] > SCREEN_NEW_S) and not s["bye"]:
+                if s["pending"] == "reload":
+                    say.append(f"Screen reloaded the board: {describe(i)} (on for {fmt_for(i['on_s'])})")
+                else:
+                    say.append(f"Screen connected: {describe(i)}")
+                s["pending"] = None
+                s["announced"] = True
+            elif (s["bye"] and now - s["bye"] > 10) or now - s["last"] > SCREEN_GONE_S:
+                del _screens[k]
+                if s["announced"]:
+                    on = s["last"] - s["since"]
+                    say.append(f"Screen gone: {describe(i)}, after {fmt_for(on)}" + (" (closed)" if s["bye"] else ""))
+                    _screens_gone.appendleft({**i, "on_s": int(on), "left": int(s["last"])})
+            elif s["hidden_at"] and now - s["hidden_at"] > SCREEN_HIDDEN_S:
+                del _screens[k]
+                _screens_left[k] = now
+                if s["announced"]:
+                    _screens_gone.appendleft({**i, "on_s": int(s["hidden_at"] - s["since"]), "left": int(s["hidden_at"])})
+    for msg in say:
+        event("info", msg)
+
+
 def _screen_watch():
     while True:
         time.sleep(3)
-        now = time.time()
-        say = []
-        with _screens_lock:
-            for k, s in list(_screens.items()):
-                i = screen_info(s, now)
-                if s["pending"] and (s["hello"] or now - s["first"] > SCREEN_NEW_S) and not s["bye"]:
-                    if s["pending"] == "reload":
-                        say.append(f"Screen reloaded the board: {describe(i)} (on for {fmt_for(i['on_s'])})")
-                    else:
-                        say.append(f"Screen connected: {describe(i)}")
-                    s["pending"] = None
-                    s["announced"] = True
-                elif (s["bye"] and now - s["bye"] > 10) or now - s["last"] > SCREEN_GONE_S:
-                    del _screens[k]
-                    if s["announced"]:
-                        on = s["last"] - s["since"]
-                        say.append(f"Screen gone: {describe(i)}, after {fmt_for(on)}" + (" (closed)" if s["bye"] else ""))
-                        _screens_gone.appendleft({**i, "on_s": int(on), "left": int(s["last"])})
-        for msg in say:
-            event("info", msg)
+        _screen_sweep(time.time())
 
 
 def print_screens():
