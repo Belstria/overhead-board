@@ -13,6 +13,8 @@ instead (they stay in the code as the fallback, also while the recordings are st
 | Rotary knobs | [Clicky Knob Turning.wav](https://freesound.org/people/shewbox/sounds/30827/) | shewbox | CC BY 3.0 |
 | Thumbwheels | [push_button_switch_07.wav](https://freesound.org/people/joedeshon/sounds/139061/) | joedeshon | CC BY 4.0 |
 | Page and view buttons | [Switching button 2](https://pixabay.com/sound-effects/switching-button-2-461629/) | EAGLAXLE | Pixabay Content License |
+| Small buttons, chips, × (1.97.2) | [technology click 0](https://pixabay.com/sound-effects/) (Pixabay 481191) | Pixabay | Pixabay Content License |
+| Navigation: cards, rows, tabs, links (1.97.2) | [immersivecontrol button click](https://pixabay.com/sound-effects/) (Pixabay 463065) | Pixabay | Pixabay Content License |
 | New plane ding (1.45; both tones since 1.46) | [Airbus Cabin PA Beep Tone](https://pixabay.com/sound-effects/film-special-effects-airbus-cabin-pa-beep-tone-passenger-announcement-chime-358248/) | arunangshubanerjee | Pixabay Content License |
 | Barking dog (1.49: About tapped seven times) | [Airbus PTU barking dog](https://pixabay.com/sound-effects/nature-airbus-ptu-barking-dog-297945/) | arunangshubanerjee | Pixabay Content License |
 
@@ -35,6 +37,11 @@ cuts them with short fades, evens out their level, halves the sample rate (22 kH
 `sounds-src/arunangshubanerjee-airbus-ptu-barking-dog.wav`) (the
 script `audio.py` has no MP3 decoder; Chromium's `decodeAudioData` was used). Then rebuild the app
 (`py tools/app/build.py`).
+
+The two clicks (1.97.2) are MP3s too: decoded in Chromium to `sounds-src/tech-click.wav` and `sounds-src/nav-click.wav` (mono, 44.1 kHz).
+`click()` in `build_sounds.py` cuts them right at the click (357 ms and 24 ms in; no leading silence) with a fade-out and
+the quiet end dropped. A sound whose recording isn't in `sounds-src/` keeps its line in `test/sounds.js`, so a single
+sound can be rebuilt on its own.
 
 The barking dog (1.49) is the steady bark-bark-bark from 3.9 to 7.25 s of the recording: a 150 Hz high-pass takes the
 cabin's rumble away, a gentle gate (`audio.gate`: below the level between the barks it turns the background down to
