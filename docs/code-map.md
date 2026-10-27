@@ -48,7 +48,7 @@ class of the board, main.js and the relay, and every CSS rule of the board and `
   that is only styled inside another rule (`#cardBox .cCr`) can be listed as `.cCr` too.
 - **Top-level statements** (`setInterval(...)`, `addEventListener(...)`) go with the function above them, or the one
   their first line names. If two have the same name, name the one you mean by a quoted text in it.
-- **Tests, README, CLAUDE.md**: a quoted text that is on that line (`"- **Whose photo**"`, `"relay 73: a plane's own"`).
+- **Tests, README, CLAUDE.md, docs/architecture.md**: a quoted text that is on that line (`"- **Whose photo**"`, `"relay 73: a plane's own"`).
 - **A new area**: `[name] one line`, then its files. Keep a `changelog:` pattern that finds its patch notes.
 
 ## Changes that go together
@@ -63,11 +63,11 @@ class of the board, main.js and the relay, and every CSS rule of the board and `
   rate limit (`allow(...)`); who may call it (`self.stranger`, `owner_ok()`, `ADMIN_PATHS`).
 - A path without a trailing slash goes in the list in `do_GET` of paths that aren't redirected to `path/` (the 301
   list); a path screens poll goes in `BOARD_PATHS` (the screens list counts them).
-- `RELAY_VERSION` + 1, and CLAUDE.md's "`RELAY_VERSION` at the top (N now)". The board and app call it only behind
+- `RELAY_VERSION` + 1, and docs/architecture.md's "`RELAY_VERSION` at the top (N now)". The board and app call it only behind
   `(window.OVERHEAD_RELAY_VERSION || 0) >= N`.
 - A check in `tools/test/flows.py`; if it calls an outside service, the fake in `tools/test/fakesrc.py` and the URL
   replacement in `tools/test/run_test_relay.py`.
-- README (Running the home relay) and docs/history.md (The relay). Update the relay as CLAUDE.md says.
+- README (Running the home relay) and docs/history.md (The relay). Update the relay as docs/architecture.md says.
 
 **A board feature that reaches the app**
 - Board code inside a build marker range is copied into the app: `codemap.py --build` shows which part and where.

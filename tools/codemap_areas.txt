@@ -31,7 +31,7 @@ test/index.html: $ W H M IW REDUCED clean trimTo nf hhmm stage bg fx bgx fxx PX 
 tools/app/head.html: css::root css:* css:[hidden] css:html css:button css:body .wrap css:main css:h2 css:h3 .groove
     .sum .acts #toasts .vh @toastIn
 tools/app/main.js: $ escH resizeQ addEventListener("resize")
-CLAUDE.md: "fixed 1920x1080 layout in board units"
+docs/architecture.md: "fixed 1920x1080 layout in board units"
 README.md: "## The three boards"
 changelog: notice|scal|screen size|sharper
 
@@ -44,7 +44,7 @@ tools/app/head.html: .panel
 tools/app/main.js: fields allCells panels makePanel def placeRow panelSpeech drawCell redrawAll sizePanel showPanel
     refreshPanels drawPanelStatic label +DEFAULTS +applySettings
 tools/app/build.py: "E3" "E4" "E5"
-CLAUDE.md: "engine: `def()` fields of cells"
+docs/architecture.md: "engine: `def()` fields of cells"
 README.md: "- **Quick flaps**" "- **Worn hardware**"
 changelog: \bflap|drum|letter
 
@@ -67,7 +67,7 @@ tools/app/main.js: applyTheme +metalTile +drawMark +DEFAULTS +applySettings
 relay/serve.py: STYLE_GRANTS style_grants BADGES badge_manifest /admin/styles
 tools/app/make_icons.py: main
 tools/fonts.py: main
-CLAUDE.md: "Unlockable styles (1.59)" "Realistic look is `S.real`/`REAL()`"
+docs/architecture.md: "Unlockable styles (1.59)" "Realistic look is `S.real`/`REAL()`"
 README.md: "- **Board styles**" "- **Styles to unlock**" "- **Title badges**" "- **Realistic look**" "- **Daylight**"
     "- **Typefaces**"
 changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|LED
@@ -96,7 +96,7 @@ tools/app/main.js: UM HERO fields.toGo.hidden SIDEWAYS heroLayout setFeat shownP
     $("hero").addEventListener("click") +DEFAULTS +applySettings
 relay/serve.py: seen_json metar sky_json VIE_FLIGHTS _vie _vie_lock vie_on fn_key _iso_ms _vie_load vie_refresh
     vie_times vie_status /times /sky /seen
-CLAUDE.md: "Top half: the plane overhead"
+docs/architecture.md: "Top half: the plane overhead"
 README.md: "## What the board shows" "- **Overhead** (1.84)" "- **Approaching**" "- **Flight times**"
     "- **ABOVE CLOUD**" "- **Remarks** (top half" "- **Remarks: what's new**" "- **Airtime limit**"
     "- **Not known: /**" "- **Take-off and landing pictograms**" "- **New plane ding**" "- **Now**:"
@@ -136,7 +136,7 @@ tools/test/model_pics.js: "The model pictures' lookup"
 relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
     PS_FAIL PS_GAP PS_WAIT PS_REST PS_IMG _ps_cache _ps_next _ps_rest _ps_like _ps_first _ps_ask plane_photo
     /planephoto /photo
-CLAUDE.md: "photos in the order Planespotters.net"
+docs/architecture.md: "photos in the order Planespotters.net"
 README.md: "- **The aircraft photo**" "- **Whose photo**" "- **Model photos** (1.34)" "- **Model photos** (1.43)"
     "photo's credit" "- **Share a plane**"
 tools/test/fakesrc.py: PS_PHOTOS PS_ASKED PS_PHOTO PHOTO SVG_PHOTO /ps/pub/photos/ /ps/asked /psimg/ /photo/
@@ -157,7 +157,7 @@ tools/app/main.js: NOW_ROWS nowRows lowUnits setNowRows RECENTP APP ACP RECENTP.
     +renderLists nowPage nowHold nowTurn rotI isAcPage PAGE_NAME nowPageList appApPage pageHas buildNowPages
     showNowPage fitSideways sideFrom sideways nowPanels nowEmptyNote +DEFAULTS +applySettings
 relay/serve.py: +day_stats
-CLAUDE.md: "Lower half: rotating pages"
+docs/architecture.md: "Lower half: rotating pages"
 README.md: "- **Rotating pages**" "- **Today in numbers** on the board" "- **Today in numbers** (1.43)"
     "- **Day in review**"
 changelog: page|recent flights|today in numbers|rotation|sideways|on its side
@@ -242,7 +242,7 @@ tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCre
 tools/app/main.js: +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
     radarPlaneCard radarSelOpen RG radarSize radarStatic startRadar stopRadar drawRadar buildRadarLegend rvSig
     renderRadarList $("rvMap").onclick $("rvReset").onclick $("rvWheel").onkeydown radarZoomTo pinch
-CLAUDE.md: "The radar's optional map (1.55)"
+docs/architecture.md: "The radar's optional map (1.55)"
 README.md: "- **Radar** (press" "- **Radar**: the radar instrument"
 changelog: radar|map\b|nearest
 
@@ -262,7 +262,7 @@ tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings overRule saveMe 
     jumpName jumpOn jumpHold jumpBuild jumpLine jumpGo jumpSpy jumpLight topSize jumpRaf addEventListener("scroll")
     applySettings +renderPush +renderFavBox +renderAbout +showTab
 relay/serve.py: /me +Handler.profile_post
-CLAUDE.md: "are one `COCKPIT` for board, app and light"
+docs/architecture.md: "are one `COCKPIT` for board, app and light"
 README.md: "- **Settings** (press" "- **Settings** also holds" "- **Jump bar**" "- **Settings**: the cockpit plates"
 tools/test/cockpit_list.py: DUMP VIEW
 tools/test/flows.py: "settings round trip, and a save from another site"
@@ -323,7 +323,7 @@ test/index.html: AIRPORTS +AP_ICON +AP_PATH +AP_LEVEL +apSvgInner +apSvg +apPath
 tools/app/head.html: .screen.rwyOn .apPick #t-now.ap #apAP #apDP #apP #apPick #apSec #apSub #rwyCv .ap
 tools/app/main.js: APDP APAP drawCover rwyKey rwyE paintRwy apSig renderAirport airportChanged +appApPage
 relay/serve.py: RUNWAYS_CSV _runways runways_of airport_info /airport /times
-CLAUDE.md: '**Airport style** (`S.mode === "airport"`'
+docs/architecture.md: '**Airport style** (`S.mode === "airport"`'
 README.md: "- **Airport style** (tap" "- **Runways in use**"
 tools/test/flows.py: "the Airport style keeps"
 changelog: airport style|runway|take-off|landing|gate
@@ -414,7 +414,7 @@ relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of scor
     _monday _streak_mult game_points level_of _game_add game_note _game_award game_today _game_best game_lockon
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
-CLAUDE.md: "The game (1.72, relay 59)"
+docs/architecture.md: "The game (1.72, relay 59)"
 README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **Rarity and the Collection**"
     "- **Achievements**"
 tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: where a sighting on the go was made"
@@ -485,7 +485,7 @@ relay/serve.py: PROFILES_FILE COOKIE INVITE_DAYS _profiles +_made _hash PREVIEW_
     Handler.pair_post Handler.join_page Handler.join_gone Handler.join /signin /signin/begin /signin/passkey
     /signin/password /account /account/user /account/password /account/passkey/begin /account/passkey/finish
     /account/passkey/remove /pair /pair/new /pair/wait /join/ /signout /handover /me
-CLAUDE.md: "**Profiles and access (relay 42+)**"
+docs/architecture.md: "**Profiles and access (relay 42+)**"
 README.md: "**Friends and family (relay version 19).**" "**Every screen is a profile's (relay 42, 1.49).**"
     "**Accounts (relay version 30, app 1.29).**" "**Sign in a TV with your phone**" "- **Settings → Account**"
 tools/test/flows.py: "C1: the admin pages"
@@ -509,7 +509,7 @@ test/index.html: actx noise lastClack soundForced SOUNDS_JS SND sndLoading sndFi
 tools/app/main.js: +onMainPage +gJingle +gCoins +DEFAULTS +applySettings
 tools/sounds/README.md: "#"
 tools/sounds/build_sounds.py: main
-CLAUDE.md: "Sounds: recordings in `SOUND_DATA`"
+docs/architecture.md: "Sounds: recordings in `SOUND_DATA`"
 README.md: "- **Sounds** (1.17)" "- **New plane ding**" "- **Chimes**" "Flap sound is on by default"
 tools/test/smoke.py: "isn't served as a lasting file by its version"
 changelog: sound|chime|ding|bell|clack|fanfare|music
@@ -531,7 +531,7 @@ test/index.html: WEAK_TV HAS_KEYS quality LITE pxCap +KEYS document.addEventList
     'if (cardOpenNow() && (e.key === "Escape"' +COCKPIT +DEFAULTS +applySettings
 tools/app/main.js: LITE +DEFAULTS +applySettings
 keys/index.html: "<script>"
-CLAUDE.md: "Fire TV and LG (`WEAK_TV`)"
+docs/architecture.md: "Fire TV and LG (`WEAK_TV`)"
 README.md: "- **Drawing quality**" "- **The full board has what the app has**" "## Controls"
 tools/test/plates.py: FIRE_TV OVERFLOW_JS
 tools/test/smoke.py: "Fire TV Settings" "Fire TV Account & device" "Fire TV About" "Fire TV Logbook"
@@ -563,7 +563,7 @@ test/index.html: SID tagged timedFetch netError fetchJSON PROXY relay relayV5 FE
     demoAircraft DEMO.push demoLog +queryCenter +COCKPIT +DEFAULTS +applySettings
 tools/app/main.js: +DEFAULTS +applySettings
 relay/serve.py: /aircraft/ /routeset /adsblol/ /airplaneslive/
-CLAUDE.md: "**Data**: positions from the relay"
+docs/architecture.md: "**Data**: positions from the relay"
 README.md: "## Data" "- **Updates every 5 seconds in the app**"
 docs/history.md: '**"@" callsigns**'
 tools/test/fakesrc.py: "/v0/callsign/" "/v0/aircraft/" ROUTES AIRCRAFT
@@ -619,7 +619,7 @@ app/manifest.webmanifest: "icons"
 app/sw.js: SHELL KEEP self.addEventListener("install") self.addEventListener("activate")
 tools/app/make_badge.py: BODY plane
 tools/app/make_icons.py: main
-CLAUDE.md: "**Phone app**: `app/index.html` is generated" "On Android, the Overhead app (`android/`)"
+docs/architecture.md: "**Phone app**: `app/index.html` is generated" "On Android, the Overhead app (`android/`)"
 README.md: "## Phone app" "### Light version and Glass (parked)"
 changelog: android|app\b|apk|home screen|install
 
@@ -631,7 +631,7 @@ tools/app/build.py: ex patched extract assemble REGION
 tools/assets.py: version stamped stamp ASSETS
 tools/light/build.py: "def "
 tools/push_main.py: DIFFERS
-CLAUDE.md: "If the build stops on a marker" "**Light version and Glass: parked (1.71.3).**"
+docs/architecture.md: "If the build stops on a marker" "**Light version and Glass: parked (1.71.3).**"
 
 [relay-core] The relay's core: version, arguments and settings, serving the boards and files, caching, the request handler
 relay/serve.py: RELAY_VERSION BOARD_URL PAGE_TTL USER_AGENT PAGE BOARD_FILE PACKED_TYPES FILE_TYPES CONFIG_FILE
@@ -643,7 +643,7 @@ relay/serve.py: RELAY_VERSION BOARD_URL PAGE_TTL USER_AGENT PAGE BOARD_FILE PACK
     Handler.profile_post lan_address main
 relay/install.sh: "#!"
 relay/overhead-relay.service: "[Service]"
-CLAUDE.md: "**Relay** (`relay/serve.py`): serves the published boards"
+docs/architecture.md: "**Relay** (`relay/serve.py`): serves the published boards"
 README.md: "## Running the home relay" "**Names the relay answers to (relay 33).**"
 tools/test/flows.py: "packed and tagged pages" "relay 69: the page knows the owner"
 
@@ -651,7 +651,7 @@ tools/test/flows.py: "packed and tagged pages" "relay 69: the page knows the own
 test/index.html: +aboutHtml +SITE_LINKS
 relay/serve.py: SOURCES ROUTESET FRESH_S SOURCE_GAP_S STALE_S NUM AIRCRAFT LEGACY _positions _fetch_lock rest_for
     aircraft /aircraft/ /adsblol/ /airplaneslive/ /routeset +main
-CLAUDE.md: "adsb.lol (in reserve for its 500 a day"
+docs/architecture.md: "adsb.lol (in reserve for its 500 a day"
 README.md: "Positions come from adsb.fi, adsb.lol and airplanes.live"
 tools/test/fakesrc.py: plane APRON along /ac/
 tools/test/smoke.py: "the test relay served no positions"
@@ -688,7 +688,7 @@ relay/serve.py: +STYLE_GRANTS +style_grants +relay_panel_json _made +HOME_OWNER 
     /admin/username /admin/password /admin/device /admin/resetaccount /admin/remove +Handler.owner_ok +Handler.at_home
     +main
 relay/install.sh: "#!"
-CLAUDE.md: "## The relay's home and how to update it"
+docs/architecture.md: "## The relay's home and how to update it"
 README.md: "**The admin page (relay 42).**" "**Health watch (relay 45).**"
 tools/test/flows.py: "C1: the admin pages"
 changelog: admin|health
@@ -725,6 +725,6 @@ test/index.html: .times
 [every-change] What every change goes with: the version (CHANGELOG, RELAY_VERSION), the asset stamps, history's parts
 test/index.html: +CHANGELOG +VERSION '<script src="i18n.js?v='
 relay/serve.py: +RELAY_VERSION
-CLAUDE.md: "`RELAY_VERSION` at the top"
+docs/architecture.md: "`RELAY_VERSION` at the top"
 docs/history.md: "## How the board works" "## The phone app" "## The relay"
 tools/test/lint.py: OPTIONAL
