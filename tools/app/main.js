@@ -996,7 +996,7 @@ function renderLogbook(){
   }
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
-  $("lbSum").textContent = v === "collection" ? T("Every sighting scores by how rare its type is, from how many fly today: common 1, uncommon 3, rare 10, very rare 25, special 50. Types fill the collections.")
+  $("lbSum").textContent = v === "collection" ? T("How rare a type is depends on how many fly today. Every type you see fills its place in the collections; points come in the Spotters' Club.")
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
   const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
     : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
@@ -1067,7 +1067,9 @@ function collectionHtml(g0){
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
    collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
    its colour, the name, when and which; the types still missing lie face down. Types in no set get a shelf of their
-   own. A tap opens a card's details (a missing one: its model's card). Data: /game/hangar (relay 63; photos relay 64). */
+   own. A tap opens a card's details (a missing one: its model's card). Data: /game/hangar (relay 63; photos relay 64).
+   1.96 (to-do #127): a type fills its card with any sighting, from any screen (relay 76: the logbook's types); one the
+   game caught wears a badge and its card says how often. The face-down cards show their model's picture, dimmed. */
 const hangarOk = () => gameOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 63;
 let hangar = null, hangarAt = 0, hgT = 0;
 const hgBad = new Set();                                         // photos that didn't load: the model's instead
@@ -1084,10 +1086,11 @@ function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = code => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}"><b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+    const img = pic => pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`;
+    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img(modelPicNow(names, code))}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
     const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
-    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` +
-      (pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`) +
+    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img(pic) +
+      (t.game ? `<i class="hgG" title="${escH(T("In the game: {n}", {n: nf.format(t.game)}))}">★ ${nf.format(t.game)}</i>` : "") +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span></span></button>`;
   };
@@ -1099,8 +1102,8 @@ function hangarHtml(hg){
   });
   const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
   if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
-  const n = (hg.types || []).length;
-  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type caught · by set" : "{n} types caught · by set", {n}))}</p>${shelves.join("")}`, "hgPlate");
+  const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
+  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} caught in the game", {n: nf.format(g)}) + " · " + T("by set"))}</p>${shelves.join("")}`, "hgPlate");
 }
 // The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
 function hgWire(box){
@@ -1122,8 +1125,9 @@ function hangarCard(code, again){
   // 1.94: in Sky view's card style: the photo with the name, code and tier on it; how often caught, the first catch
   tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
-    tiles: [["Caught", timesText(t.count)], ["First", when ? fmtDay(t.first) : "", when ? hhmm(when) : ""], ["Aircraft", t.reg || "", t.flight || ""]],
-    det: [["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
+    // 1.96: how often seen (any screen) and caught in the game; the first one's aircraft went to the details
+    tiles: [["Seen", timesText(t.count)], ["In the game", t.game ? timesText(t.game) : "–"], ["First", when ? fmtDay(t.first) : "", when ? hhmm(when) : ""]],
+    det: [["Aircraft", escH(t.reg || "")], ["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
     btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
   });
@@ -1835,10 +1839,11 @@ function arLoop(){
     const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
     // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only).
     // 1.80 (Dave's to-do 7, his pick A): the ★ in the plane's rarity colour, with what it gives (what it gave, once scored).
-    const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && x.lock) : null, near = d / 1000 <= gKm();
+    // 1.96: what a scan gives: the plane's full points, less what it scored on its way in (the relay's rules)
+    const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && (x.lock || x.scan)) : null, near = d / 1000 <= gKm();
     const tier = tierOf(ac, info), sc = game && near && !gx ? spotted.find(x => x.hex === ac.hex && x.gp != null) : null;
-    const pts = sc ? sc.gp : Math.round((G_BASE[tier] || 30) * (d <= 1500 ? 1.2 : d <= 4000 ? 1.1 : 1));
-    const chip = !game ? "" : gx ? "✓ +" + gx.lock : near ? "★ " + nf.format(pts) : T("NO PTS");
+    const full = gBase(tier), pts = full == null ? null : Math.max(0, full - (sc ? sc.gp : 0));
+    const chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : T("NO PTS");
     shown.push({ac, d, pr, isFeat, chip, locked: !!gx, tier: game && near && !gx ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: chip === T("NO PTS"), name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
       sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
   }
@@ -3892,7 +3897,10 @@ let booted = false;
    the Game page (no tab of its own). When points come in, the rank chip flips to +N, the +N flies into the level bar,
    which fills, and the total rolls up. */
 const gameOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
-const G_BASE = {common: 10, uncommon: 30, rare: 100, epic: 250, legendary: 500};
+// 1.96 (to-do #127): the rules (each rarity's points, the passive tenth, the limits, the extras, the streak) come from
+// the relay (76), the one source; an older relay sends none.
+const gRules = () => (gme && gme.rules) || null;
+const gBase = t => { const r = gRules(); return r ? r.base[t] != null ? r.base[t] : r.base.uncommon : null; };
 const gKm = () => (gme && gme.km) || 10;             // the game's circle, from the relay (10 km since relay 60)
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
 function gStripSetup(){
@@ -3999,14 +4007,85 @@ async function gRefresh(force){
   if (!force && Date.now() - gmeAt < every - 500) return;
   gBusy = true; gmeAt = Date.now();
   try {
-    const g = await fetchJSON(`${relay()}/game/me`, {}, 8000), prev = gme;
+    const g = await fetchJSON(`${relay()}/game/me?since=${gAwAt || 1}`, {}, 8000), prev = gme;
     gme = g;
+    gAwards(g.aw, !gAwAt);
     if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
     else gStripRender(g);
     if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
     if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g);
     if (tab === "game") renderGame();
   } catch {} finally { gBusy = false; }
+}
+/* 1.96 (to-do #127, Dave's pick B): every award as it happens, on a pass like Sky view's boarding pass that slides up
+   from below (over the tab bar; in Sky view over its compass): the passive tenth small (several that come together on
+   one), a scan with its extras, the daily streak at the day's first scan, and the first plane past a rarity's limit
+   (later ones stay quiet). Recent points lists the same lines (gAwLine). The relay sends the awards since the newest one
+   shown (/game/me?since=, relay 76); a scan's come with its answer (gLockOn). A tap puts a pass away. */
+let gAwAt = 0;
+const TIER_UP = {common: "COMMON", uncommon: "UNCOMMON", rare: "RARE", epic: "VERY RARE", legendary: "SPECIAL"};
+const gPlus0 = n => n ? gPlus(n) : "0";
+const gTierT = t => T(TIER_NAME[t] || "Uncommon");
+// An award's line, as on its pass and in Recent points: [what, points, class ("x" an extra, "stk" the streak, "lim" none)].
+function gAwLine(a, f){
+  const t = gTierT(a.tier), R = gRules(), lim = (R && R.limit[a.tier]) || 0;
+  if (a.k === "pass") return [T("{t} plane", {t}) + (lim ? " · " + T("{n} of {m} today", {n: nf.format(a.n || 1), m: nf.format(lim)}) : ""), a.p, ""];
+  if (a.k === "limit") return [T("{t} limit reached: {m} of {m} today", {t, m: nf.format(lim || (a.n || 1) - 1)}), 0, "lim"];
+  if (a.k === "scan") return [T("Sky view scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}), a.p, ""];
+  if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
+  if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
+  return [T("Points"), a.p, ""];
+}
+function gPop(o){
+  const host = $("arView") && !$("arView").hidden ? $("arView") : document.body;
+  let box = $("gAws");
+  if (!box) { box = document.createElement("div"); box.id = "gAws"; }
+  if (box.parentNode !== host) host.appendChild(box);
+  const el = document.createElement("div");
+  el.className = "gAw" + (o.mini ? " mini" : "");
+  el.innerHTML = `<div class="pF ${o.kind || "uncommon"}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
+    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
+    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
+    (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
+    `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b><em></em></div></div>`;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  const out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 350); };
+  el.onclick = out;
+  setTimeout(out, o.mini ? 3500 : 6500);
+}
+const gWho = (f, km) => [f.flight || NA, [f.airline, f.type, km != null ? distText(km) : ""].filter(Boolean).join(" · ")];
+function gAwards(list, quiet){
+  if (!Array.isArray(list) || !list.length) return;
+  const fresh = list.filter(a => a.t > gAwAt);
+  gAwAt = Math.max(gAwAt, ...list.map(a => a.t));
+  if (quiet || !S.live) return;
+  const pass = fresh.filter(a => a.k === "pass"), sum = pass.reduce((s, a) => s + a.p, 0);
+  if (pass.length === 1) {
+    const a = pass[0], f = fromRelay(a);
+    gPop({mini: true, kind: a.tier, band: T("POINTS · WITHIN {k} KM", {k: gKm()}), bandR: T(TIER_UP[a.tier] || "UNCOMMON") + " ★", who: gWho(f, a.km), p: a.p});
+  } else if (pass.length) {
+    const top = pass.reduce((b, a) => a.p > b.p ? a : b);
+    gPop({mini: true, kind: top.tier, band: T("POINTS · WITHIN {k} KM", {k: gKm()}), who: [T("{n} planes", {n: pass.length}), pass.map(a => fromRelay(a).flight).join(" · ")], p: sum});
+  }
+  for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
+    const f = fromRelay(a), R = gRules(), m = (R && R.limit[a.tier]) || (a.n || 1) - 1, t = gTierT(a.tier);
+    gPop({kind: "no", band: T("NO POINTS · LIMIT"), bandR: `${T(TIER_UP[a.tier] || "UNCOMMON")} ${m}/${m}`, who: gWho(f, a.km), lines: [gAwLine(a, f)],
+      note: T("{t} planes score again from {h}. The other rarities still count.", {t, h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "03:00"}), p: 0});
+  }
+}
+// Sky view's scan: the scan's pass (the top-up and the extras), then the streak's on top of it at the day's first scan.
+function gScanPops(r){
+  const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
+  const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
+  gPop({kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
+    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f)), stub: T("SCAN"), p: main.reduce((s, a) => s + a.p, 0)});
+  if (!stk) return;
+  const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
+  const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
+  const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
+  gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p,
+    note: wd < 6 ? T("Your first scan today. Scan a plane tomorrow for +{p}.", {p: nf.format(per * (stk.n + 1))}) : T("It starts again on Monday at 03:00, with the league.")});
 }
 // A little shower of coins when points land (with the button sounds on).
 function gCoins(){
@@ -4044,14 +4123,6 @@ function gJingle(){
   [[1047, 0], [1319, .09], [1568, .18], [2093, .27]].forEach(([f, d]) => tone(f, t0 + d, .35, .3));
   [1568, 2093, 2637].forEach(f => tone(f, t0 + .42, 1.1, .14));
 }
-function gRip(){
-  if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
-  const n = actx.createBuffer(1, actx.sampleRate * .25, actx.sampleRate), d = n.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < .35 ? 1 : .25) * (1 - i / d.length);
-  const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
-  src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
-  src.connect(bp).connect(g).connect(sfxOut()); src.start();
-}
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
   if (!gameOk() || (!force && Date.now() - gLeagueAt < 30000)) return;
@@ -4072,8 +4143,9 @@ function renderGame(){
     `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
     (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</span>`) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
-    `<div><b>${g.rank ? "#" + g.rank : "–"}</b><span>${escH(T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-    `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero");
+    // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
+    `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
+    gLimHtml(g) + `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero");
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
   let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
   lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
@@ -4095,24 +4167,44 @@ function renderGame(){
   trWire(box, renderGame);
   $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
-// 1.79: How points work, a card: where points come from (live location, the distance), what each rarity gives, the extras,
-// today's taper (its bar where today is) and Sky view's bonus.
+// 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
+// note for each rarity that reached its limit, with when it starts again.
+function gLimHtml(g){
+  const R = gRules(), L = g.limits;
+  if (!R || !L) return "";
+  const tiers = TIER_DRUM.slice(1), full = tiers.filter(t => L[t] && L[t][0] >= L[t][1]);
+  const h = g.resets ? hhmm(new Date(g.resets)) : "03:00";
+  return `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
+    return `<div class="${n >= m ? "full" : ""}" style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><b>${nf.format(Math.min(n, m))}<small>/${nf.format(m)}</small></b>` +
+      `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>` +
+    full.map(t => `<div class="gNote"><img class="tico" src="${tierIcon(t)}" alt=""><div>${escH(T("{t} limit reached: {m} of {m} today", {t: gTierT(t), m: nf.format(L[t][1])}))}` +
+      `<small>${escH(T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(t), h}))}</small></div></div>`).join("");
+}
+// 1.79: How points work, a card. 1.96 (to-do #127): the rules on one screen, from the relay: each rarity's points within
+// the circle and with a scan, today's planes against the limits, the extras and the daily streak.
 function gHowCard(){
   ctlSound.press();
-  const g = gme || {}, pt = g.planesToday || 0, seg = (a, b) => Math.max(0, Math.min(1, (pt - a) / (b - a))) * 100;
-  const tiers = TIER_DRUM.slice(1).map(t => `<li style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><span class="name">${escH(T(TIER_NAME[t]))}</span><span class="n">${G_BASE[t]}</span></li>`).join("");
+  const g = gme || {}, R = gRules(), L = g.limits || {}, k = gKm();
+  const rows = R ? TIER_DRUM.slice(1).map(t => { const [n, m] = L[t] || [0, R.limit[t]];
+    return `<span><img class="tico" src="${tierIcon(t)}" alt=""></span><span>${escH(gTierT(t))}</span><span class="r">+${nf.format(R.passive[t])}</span>` +
+      `<span class="r"><b>${nf.format(R.base[t])}</b></span><span class="r"><em class="${n >= m ? "full" : ""}">${nf.format(Math.min(n, m))}</em> / ${nf.format(m)}</span>`; }).join("") : "";
+  const sd = R ? Array.from({length: 7}, (_, i) => `<i class="${i < (g.streak || 0) ? "on" : ""}">${escH(T("Day {n}", {n: i + 1}))}<b>+${nf.format(R.streak * (i + 1))}</b></i>`).join("") : "";
+  const p = (a, b) => `<p class="gRule"><em>${escH(a)}</em> ${escH(b)}</p>`;
   cardOpen(`<div class="cHead"><div><h3>${escH(T("How points work"))}</h3></div></div>` +
-    `<p class="gRule">${escH(T("Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>` +
-    `<ul class="ranks cats tiers gHowTiers">${tiers}</ul>` +
-    `<p class="gRule">${escH(T("A little more for a close pass (×1.1 within 4 km, ×1.2 within 1.5 km), for something new (a type +50, an airline +25, an aircraft +5) and for a streak of days."))}</p>` +
-    `<div class="gTaper"><i><u style="width:${seg(0, 25)}%"></u></i><i><u style="width:${seg(25, 50)}%"></u></i><i><u style="width:${seg(50, 80)}%"></u></i></div>` +
-    `<p class="gRule">${escH(pt < 25 ? T("Planes 1–25 count fully, 26–50 half, then a quarter.") : pt < 50 ? T("Planes 26–50 count half now.") : T("Planes count a quarter now."))} ${escH(T("{n} planes · {p} points", {n: pt, p: nf.format(g.today || 0)}))}${g.combo ? " · " + escH(T("Sky view combo {n}", {n: g.combo})) : ""}</p>` +
-    `<p class="gRule">${escH(T("Hold a plane in Sky view's ring for a moment: a bonus of a quarter of its points (at least 15), more for several in a row."))}</p>`);
+    `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))}</p>` +
+    (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
+      `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
+      p(T("Within {k} km:", {k}), T("a tenth of the plane's points, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
+      p(T("Sky view scan:"), T("hold a plane in the ring for a moment. It tops the plane up to its full points, once a pass, with no limit.")) +
+      p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
+      `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
+      `<div class="gStk">${sd}</div>` : ""));
 }
 /* 1.89 (to-do #91, Dave's pick A): Recent points, from a tap on the strip's points: today's total and planes, then each
    plane that scored, newest first (time, flight, airline, type with its rarity, how close, its total) with its awards
-   under it: the first score and why, close-pass top-ups, Sky view's lock-on. The relay keeps the awards from relay 71
-   on (/game/today); planes scored before show their totals without times. */
+   under it. The relay keeps the awards from relay 71 on (/game/today); planes scored before show their totals without
+   times. 1.96: the same lines as the pop-ups (gAwLine), in the order they came, a plane past its limit in grey with the
+   reason; planes scored by the rules before keep their reasons (gWhy). */
 const gRecentOk = () => gameOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 71;
 const gPlus = n => (n < 0 ? "−" : "+") + nf.format(Math.abs(n));
 function gWhy(r, a){
@@ -4137,12 +4229,13 @@ async function gRecentCard(){
   const rows = j.rows.map(r => {
     const f = fromRelay(r);                  // named as in Spotted today (FR 3EG, not RYR3EG)
     // a plane scored before relay 71: its totals, the first score and a lock-on without their times
-    const aw = r.aw.length ? [...r.aw].reverse() : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
-    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common";
-    const lines = aw.map(a => `<div class="meta${a.k !== "first" ? " top" : ""}"><span>${escH([at(a.t), gWhy(r, a)].filter(Boolean).join(" · "))}</span><span>${gPlus(a.p)}</span></div>`).join("");
+    const aw = r.aw.length ? r.aw : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
+    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common", sum = r.gp + (r.lock || 0) + (r.gs || 0);
+    const lines = aw.map((a, i) => { const [w, p, x] = (r.rule || 1) >= 2 ? gAwLine({tier: r.tier, ...a}, f) : [gWhy(r, a), a.p, ""];
+      return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
     const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(f.type || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
-    return `<li class="fl sp" style="--lamp:${col}${hot ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
-      `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus(r.gp + (r.lock || 0))}</b>` +
+    return `<li class="fl sp${sum ? "" : " lim"}" style="--lamp:${col}${hot && sum ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
+      `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus0(sum)}</b>` +
       `<div class="rt">${what}</div>${lines}</li>`;
   }).join("");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
@@ -4215,35 +4308,28 @@ function medalNudge(g0){
     return;                                                         // one at a time
   }
 }
-// Sky view held a plane in its ring for 1.5 s: the relay pays a bonus once per plane a day, shown as a boarding pass
-// whose stub (the points) tears off.
+// Sky view held a plane in its ring for 1.5 s: the scan (relay 76; a lock-on before). Once a pass, without a limit, it
+// tops the plane up to its full points, with the extras and the day's streak: their passes slide up from below
+// (gScanPops), with a burst in the ring, the prize jingle and a buzz.
 async function gLockOn(hex){
   if (!gameOk() || !S.live) return;
   let r;
   try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); }
-  catch (e) { dlog("warn", `Sky view lock-on: no answer (${netError(e, "relay")})`); return; }
-  dlog(r && r.bonus ? "info" : "debug", `Sky view lock-on: ${String((arList.find(a => a.hex === hex) || {}).flight || hex).trim()} ${r && r.bonus ? "+" + r.bonus + ", combo " + r.combo : "no bonus (" + (r && r.why || "none") + ")"}`);
+  catch (e) { dlog("warn", `Sky view scan: no answer (${netError(e, "relay")})`); return; }
+  const ac = arList.find(a => a.hex === hex) || {};
+  dlog(r && r.bonus ? "info" : "debug", `Sky view scan: ${String(ac.flight || hex).trim()} ${r && r.bonus ? "+" + r.bonus + (r.streak ? ", streak day " + r.streak : "") : "nothing (" + (r && r.why || "none") + ")"}`);
   if (!r || !r.bonus) {
     if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }
     return;
   }
-  const ac = arList.find(a => a.hex === hex) || {}, info = (enrich(ac) || {}).info || {};
-  const tier = r.tier || "uncommon", tname = {common: "COMMON", uncommon: "UNCOMMON", rare: "RARE", epic: "VERY RARE", legendary: "SPECIAL"}[tier] || "";
-  const code = a => code3(a) || "···", city = a => (a && a.city) || "";
-  const html = `<div class="pF ${tier}"><div class="main"><div class="band"><span>${escH(T("SKY VIEW · SPOTTED"))}</span><span>${escH(T(tname))} ★</span></div>` +
-    `<div class="codes"><div><b>${escH(code(info.from))}</b><small>${escH(city(info.from))}</small></div><i>✈</i><div style="text-align:right"><b>${escH(code(info.to))}</b><small>${escH(city(info.to))}</small></div></div>` +
-    `<div class="fields"><span>${escH(T("Flight"))}<b>${escH(info.flightNo || String(ac.flight || "").trim() || ac.r || "")}</b></span><span>${escH(T("Aircraft"))}<b>${escH(shortType(info.type) || ac.t || "")}</b></span>` +
-    `<span>${escH(T("Combo"))}<b>${r.combo} · ×${(1 + r.pct).toFixed(2).replace(/0$/, "")}</b></span></div></div>` +
-    `<div class="stub"><small>${escH(T("POINTS"))}</small><b>+${nf.format(r.bonus)}</b><em></em></div></div>`;
-  let pass = $("arPass"), burst = $("arBurst");
-  if (!pass) { pass = document.createElement("div"); pass.id = "arPass"; $("arView").appendChild(pass); }
+  gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r});
+  let burst = $("arBurst");
   if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
-  pass.innerHTML = html; pass.hidden = false;
   const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
   burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
-  gJingle(); setTimeout(gRip, 1050);
+  gJingle();
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
-  setTimeout(() => { pass.hidden = true; burst.innerHTML = ""; }, 3600);
+  setTimeout(() => { burst.innerHTML = ""; }, 1200);
   setTimeout(() => gRefresh(true), 2500);
 }
 function gameStart(){

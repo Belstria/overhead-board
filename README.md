@@ -293,7 +293,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with something rare. The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
@@ -471,36 +471,48 @@ The main board has everything below. New features are tried on `/test/` first; o
   on the TVs; in the Android app it asks for the phone's location.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
   come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
-  again from zero. A plane's points: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a
-  close pass ×1.1 (within 4 km) or ×1.2 (within 1.5 km), something new to the game (type +50, airline +25, aircraft
-  +5), a daily streak (3 days ×1.05 up to 30 days ×1.2); planes 26–50 of a day count half, after that a quarter.
-  **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
-  within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
-  with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a ★ for the planes
-  within reach of points (since 1.80 in the plane's rarity colour, with its points: ★ 30), ✓ and the bonus once
-  locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
+  again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has
+  its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 10 km gives
+  a **tenth** of them (1, 3, 10, 25, 50), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
+  rare 15, very rare 5, special 3 planes; the day runs from 03:00); past the limit a plane scores nothing. A **Sky view
+  scan** (a plane held in the ring for 1.5 s, within 10 km, once a pass, no limit) tops the plane up to its full
+  points (a common that gave 1 adds 9; one past the limit the full 10). **Only scans** earn the extras: a type new to
+  the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
+  day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
+  league. No more close-pass factors, taper, streak multiplier or combo. **Every award pops up** as it happens, as a
+  pass like Sky view's boarding pass sliding up from below (the passive points on a small one, several at once on one;
+  the scan with its extras; the streak with the week's days; the first plane past a limit, "+0 · Common limit
+  reached", later ones stay quiet), with a prize jingle and a buzz for a scan. (Until 1.96 a lock-on paid +25 % of the
+  plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
+  Sky view's labels (1.72.1) carry a ★ for the planes
+  within reach of points (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 27), ✓ and
+  what the scan gave once scanned, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
   the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
   **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71): today's
-  total and every plane that scored, newest first, with when and why (its rarity and what was new, close-pass top-ups,
-  Sky view's lock-on; points from before relay 71 show without times); at its foot a link to the club. Tap the place
+  total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
+  add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. Tap the place
   chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
-  out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
-  Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
-  streak as three numbers; **How points work** opens a card with the rules and today's taper), the league's switch
+  out), today, how points work, the collections, records, bingo and trophies (no longer in the
+  Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, this week's points with your place
+  and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
+  each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on
+  one screen: each rarity within 10 km and scanned, today against the limits, the extras and the streak's days), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
   cup and beside its dots, and a won one with more ranks names the next. Since 1.81 (app) a new rank swings down as
   its medal on a ribbon, with its rank in Roman numerals, and a notice from the right says when the next rank is close
   ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
-  per set you swipe sideways, with a collectible card for each type caught on the go (the photo of the first one you
-  saw, or of its model; the rarity in its colour, the name, when and which), the missing types face down, and the
-  types in no set on a shelf of their own; tap a card for its details and the model. **Tap a name in the league**
+  per set you swipe sideways, with a collectible card for each type seen (since 1.96 any sighting, on any screen; until
+  then only those caught on the go) (the photo of the first one you saw, or of its model; the rarity in its colour,
+  the name, when and which; a ★ badge with how often the game caught it), the missing types face down with their
+  model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, in the
+  game, the first) and the model. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
