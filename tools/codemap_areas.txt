@@ -130,7 +130,7 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     +fromRelay +boardTap
 tools/app/head.html: .bezel .led .screen @screenOn .cOv .cOvF #bezel #photo #photoCr #photoLink #screen .cCr
 tools/app/main.js: +shownPhoto +renderAircraftInfo +rwyE +hgBad +modelPicNow +planeAgain +arPeekHtml +aboutOpen
-    +hangarHtml +arCardRender +paintRwy +hangarCard +hgWire
+    +hangarHtml +arCardRender +paintRwy +hangarCard +hgWire +tlPic +tlPicWait +tlAhead +imgReady +tlWire
 tools/model_pages.py: FIX ADD ANY designators board_bits pages main
 tools/test/model_pics.js: "The model pictures' lookup"
 relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
@@ -181,10 +181,13 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts #todayP
-    #todayTop
+    #todayTop .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGhost .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
-    placeHtml rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
+    rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
     todayFactsSig renderTodayNumbers renderToday renderLists
+    tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlPicWait tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
+    tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
+    tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd imgReady tlTap textAt tlOpen tlGlide tlFold tlScroll sightPlane
 relay/serve.py: day_stats sightings_json /sightings +Spot.day_entries
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
     "- **The day runs from 03:00"
@@ -350,7 +353,7 @@ test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUS
     tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey
 tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
 tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetGrow cardSheetClose planeAgain +radarPlaneCard
-    +arTap +foundCard +hangarCard +playerCard
+    +arTap +foundCard +hangarCard +playerCard +tlCardHtml +tlOpen +sightPlane
 relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE FACTS_FILE
     FACTS_KEEP FACTS_FAIL FACTS_MAX FACTS_GAP FACTS_TEXT _facts _facts_busy _facts_failed _wm_next _MONTHS _wm_get
     _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_url

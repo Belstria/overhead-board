@@ -1209,4 +1209,18 @@ window.I18N_ROWS = [
   ["Amsterdam", "Amsterdam", "Amsterdam", "Ámsterdam", "Amsterdam"],
   ["Warsaw", "Warschau", "Varsovie", "Varsovia", "Warschau"],
   ["Barcelona", "Barcelona", "Barcelone", "Barcelona", "Barcelona"],
+  // 1.95: Recent flights and Today as a timeline, a plane's card opening in place
+  ["{n} in the last hour", "{n} in der letzten Stunde", "{n} dans la dernière heure", "{n} en la última hora", "{n} in het afgelopen uur"],
+  ["None in the last hour", "Keins in der letzten Stunde", "Aucun dans la dernière heure", "Ninguno en la última hora", "Geen in het afgelopen uur"],
+  ["All {n} planes today ›", "Alle {n} Flugzeuge von heute ›", "Les {n} avions du jour ›", "Los {n} aviones de hoy ›", "Alle {n} vliegtuigen van vandaag ›"],
+  ["1 plane today ›", "1 Flugzeug heute ›", "1 avion aujourd'hui ›", "1 avión hoy ›", "1 vliegtuig vandaag ›"],
+  ["No route: private or local flight", "Keine Route: Privat- oder Lokalflug", "Pas de route : vol privé ou local", "Sin ruta: vuelo privado o local", "Geen route: privé- of lokale vlucht"],
+  ["Route not known", "Route unbekannt", "Route inconnue", "Ruta desconocida", "Route onbekend"],
+  ["Height", "Höhe", "Hauteur", "Altura", "Hoogte"],
+  ["{h} h {m} min ago", "vor {h} Std. {m} min", "il y a {h} h {m} min", "hace {h} h {m} min", "{h} uur {m} min geleden"],
+  ["Nothing spotted yet", "Noch nichts gesichtet", "Rien d'aperçu pour l'instant", "Nada avistado todavía", "Nog niets gespot"],
+  ["Every plane that comes within {n} km joins this line, the newest on top.", "Jedes Flugzeug, das näher als {n} km kommt, reiht sich hier ein, das neueste oben.", "Chaque avion qui passe à moins de {n} km rejoint cette ligne, le plus récent en haut.", "Cada avión que pase a menos de {n} km se suma a esta línea, el más reciente arriba.", "Elk vliegtuig dat binnen {n} km komt, sluit hier aan, het nieuwste bovenaan."],
+  ["Finding where you are …", "Standort wird gesucht …", "Recherche de votre position …", "Buscando dónde estás …", "Locatie zoeken …"],
+  ["The planes show once live location has found you.", "Die Flugzeuge erscheinen, sobald der Live-Standort dich gefunden hat.", "Les avions s'affichent dès que la position en direct vous a trouvé.", "Los aviones aparecen en cuanto la ubicación en vivo te encuentre.", "De vliegtuigen verschijnen zodra live locatie je heeft gevonden."],
+  ["Tap a plane to open it. Its photo opens the whole card; its airline, places and type open theirs.", "Tippe auf ein Flugzeug, um es zu öffnen. Sein Foto öffnet die ganze Karte; Airline, Orte und Typ öffnen ihre eigenen.", "Touchez un avion pour l'ouvrir. Sa photo ouvre la fiche complète ; sa compagnie, ses lieux et son type ouvrent la leur.", "Toca un avión para abrirlo. Su foto abre la ficha completa; su aerolínea, sus lugares y su tipo abren la suya.", "Tik op een vliegtuig om het te openen. De foto opent de hele kaart; maatschappij, plaatsen en type openen hun eigen."],
 ];

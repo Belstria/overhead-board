@@ -10,6 +10,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.95 (to-do #115 and #117): for the app's cards in its lists (shared code): `picHtml(p, cls, over, attrs)` with
+  `attrs` (the photo opens something itself) makes only the credit the Planespotters link (`a.cCr`, clickable again:
+  `.cardish a.cCr`), and `picFailed` knows that one too; `infoCard` takes `picAttr`, a band given as text (a line,
+  `.cNoRoute`, saying why there is no route) and a tile's fourth item (attributes: the box is a `button.cTile`); the
+  1.94 rules for the photo, title, band, boxes and focus also apply to `.cardish .cInfo` (the app's card in a list);
+  `planeBody(o)` takes a sighting's own `o.info` (its route) and `o.remark`. **`AIRLINES` (to-do #117)**: Hainan flies
+  as CHH (HNA is the Hellenic Navy, adsbdb), Lauda Europe's own code is LDA/LW (Wikidata; Laudamotion's LDM was
+  dissolved in 2020; in the relay's sightings Lauda Europe's planes fly Ryanair's flights as RYR), ITA flies as ITY
+  (Alitalia's AZA is gone). Checked: every other code in the table finds a company still flying on Wikidata, so the
+  relay's `airline_facts` needs no exception. The favourites' list of airlines no longer offers the wrong codes.
 - 1.94 (to-do #113 and #114, Dave's mockup A with his More info; relay 74): **the info cards in Sky view's card
   style**, with more facts for spotters. Shared (cards block, so the app too): `infoCard(o)` draws every one: the photo
   (`picHtml(pic, " cSkyPic", over)`, its credit at the top-left, clear of the round ×: `.cardIn.info`, set by `cardOpen`
@@ -889,6 +899,41 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.95 (to-do #115, Dave's pick 1b with option 1): **Recent flights and Today as a timeline, a plane's card opening in
+  place**. Both lists are `ol.flights.tline` (head.html): a rail (`.tline::before`), group headings (`li.tg`: the quarter
+  hour on Now, the hour on Today, the one under way "Now · …"; `tlHtml(list, span, open)` works "now" out on the relay's
+  clock from the newest row, `tlMin`/`tlHm`) and slim rows from the shared `rowHtml(e)` = `li.fl` with `rowInner(e)`:
+  `.l1` time · name · route codes · remark word (`.rk` in the node's colour), `.l2` airline (or owner) · type · closest
+  · height (· place with All places). The node (`li.fl::before`) is `--node: tlNode(e)` (`lampOf(remarkFor(e))`, grey
+  without a remark). `noFlightNo(e)`: a plane whose flight is its registration or hex (or none) goes by `rowName(e)`
+  (its registration, else its owner) and without a route says "No route: private or local flight", one with a flight
+  number "Route not known" (`noRoute`, quiet, balanced over two lines where it must). `rowSig` takes the owner, callsign,
+  cities and place too. The pills (`.fl .tap`, the old `+` `.flAdd`) are gone, with their CSS. Recent flights' heading
+  (`.tlHead`, `#recentN`) counts the last hour ("None in the last hour"); `#recentFoot`/`#recentAll` "All N planes
+  today ›" (the relay's count when the 400 newest aren't the whole day) goes to Today. Empty and live location's wait:
+  `tlState` boxes on the rail (`li.st`, `.find` with the amber node: `tlNothing`, `tlFinding`; Today's Loading and no
+  match too). On its side nothing changes: `#t-now .tlHead/.tlFoot` hide with `#recent`, the flaps (`NOW_ROWS`) as before.
+  **The card in place**: a tap on a row (`tlTap`, the document's capture click on `[data-more]`; Enter or Space on a
+  focused row) waits for the photo (`tlPicWait`: Planespotters' answer or the model's lookup, 1.2 s at most; then
+  `imgReady` decodes it, 0.6 s at most) and `tlOpen` turns the row into `cardLi(e)`: `.tlCard.cardish` (the gold-edged
+  highlight box `.tlBg`; `.tlK` time · `tlAgo` and ⌃, the 1.91 `DD` chevron turned up, `data-fold`) around
+  `infoCard` (`tlPic` photo at 170 px with `picAttr` `data-full`, title `rowName`, airline `data-al`, `chipHtml` remark,
+  `routeEnd` band or the no-route line, Aircraft (`data-ty`, a button) · Closest · Height). The click handler sends
+  `data-al`/`data-pl`/`data-ty` to `airlineCard`/`placeCard`/`typeCard`, `data-full` (the photo, not its credit link) to
+  `planeCard(sightPlane(x))`, `data-fold` to `tlFold`. One card per list (`tlOpenId`); another row folds the open one.
+  The motion (Web Animations, Sky view's easing `TL_EASE`, 480 ms; none with `REDUCED`): the li's height and margins
+  grow (`.tlAnim` clips), the row's copy (`.tlWas`) fades in the first 22 %, `.tlBg` in 35 %, the flight and the two
+  codes glide as copies in the card's font (`tlGlide`, `.tlGhost` inside the li, so they move with it; `textAt` measures
+  the letters) while both ends stay hidden, the photo grows as a `clip-path` circle from the finger, the rest
+  (`.tlK`, airline, chip, credit, cities, arrow, boxes) rises in over the second half; at the end `tlScroll` brings a
+  card under the tab bar into view. `tlFold` shrinks it back in 320 ms (the card `.tlGone` fading over the row);
+  `li.tlNow` says which of an opening and a folding still owns the row. While anything moves (`tlStart`/`tlEnd`,
+  `tlBusy`) `renderRecent`/`renderToday` put off their redraw (`tlAgain`, `tlDone`); `tlFill` keeps the open card's
+  element when `tlCardSig` (its row, units, photo) is unchanged, and its "min ago" is updated in place. A late photo
+  (`tlLate`) redraws an open card. `tlAhead` asks for the Now rows' Planespotters photos ahead, one at a time 1.5 s
+  apart (the relay asks Planespotters once a second for every screen and refuses a reg for 10 minutes when its queue
+  is over 4 s: asking for all eight at once lost three). The swipe (`swipeRow`) only takes closed rows; its click guard
+  stays. The first-run tip "taps" became "open". Today: `tlHtml(rows, 60, …)`, its filters, search and places as before.
 - 1.94 (to-do #113): the Logbook's aircraft card (`foundCard`, now async: a loading card while Planespotters' or the
   model's photo comes, at most 2.5 s, a later photo joins) and the hangar's (`hangarCard`: Caught, First, Aircraft) in
   the board's `infoCard`; the search row brings the last route as the band, `planeTiles` and `planeFunFacts` (relay 74
