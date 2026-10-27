@@ -13,6 +13,8 @@ are not touched: the test relay runs from a temporary folder.
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
                                                for screenshots) instead of the fake's (relay 73)
+    py tools/test/run_test_relay.py --live-facts   the cards' facts (relay 74) from the real Wikipedia and Wikidata (needs the
+                                               internet; for screenshots) instead of the fake's few pages
     py tools/test/run_test_relay.py --slow-names   place names (OpenStreetMap's reverse lookup) take 5 s, and the first lookup
                                                of each point fails: live location says ON THE GO until the name comes, and
                                                asks again a minute on (1.93.0.1)
@@ -51,6 +53,7 @@ def main():
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
+    p.add_argument("--live-facts", action="store_true", help="the cards' facts from the real Wikipedia and Wikidata")
     p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
@@ -64,6 +67,9 @@ def main():
              ("https://raw.githubusercontent.com/vradarserver/standing-data/main/airlines/schema-01/airlines.csv", FAKE + "/airlines.csv")]
     if not a.live_photos:
         fakes.append(("https://api.planespotters.net/pub/photos", FAKE + "/ps/pub/photos"))
+    if not a.live_facts:                  # relay 74: the cards' facts from the fake's few pages
+        fakes += [("https://en.wikipedia.org/w/api.php", FAKE + "/wiki/w/api.php"), ("https://www.wikidata.org/w/api.php", FAKE + "/wikidata/w/api.php"),
+                  ("https://commons.wikimedia.org/wiki/Special:FilePath/", FAKE + "/commons/")]
     for real, fake in fakes:
         if real not in src:
             raise SystemExit(f"relay/serve.py no longer mentions {real}; update run_test_relay.py")

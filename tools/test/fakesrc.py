@@ -5,7 +5,8 @@ It stands in for the position source, adsbdb (routes and aircraft), Flightradar2
 flight lists and the airline list (relay 68: a few real rows and made-up ones; EIN6AB, an Aer Lingus flight with no
 route listed, is an airline the board's own table lacks), and Planespotters.net's photo API (relay 73: OE-LBN by its
 registration, the A380 only by its hex, and for the military C-130's hex another aircraft's photo, which the relay must
-pass over). The planes sit around central Vienna (the boards' default location) and include the special cases:
+pass over), and Wikipedia and Wikidata for the cards' facts (relay 74: two model pages, two airlines, two airports, and
+Commons photos as a drawing). The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
@@ -85,6 +86,138 @@ PS_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" v
 <path d="M70 190 L340 182 Q362 182 366 190 Q362 198 340 199 L70 197 Q55 194 70 190 Z" fill="#eceae4"/>
 <path d="M330 184 L360 120 L382 120 L362 187 Z" fill="#c8102e"/><path d="M170 196 L230 244 L254 244 L222 196 Z" fill="#cfcfcb"/>
 </svg>"""
+
+
+# Wikipedia and Wikidata for the cards' facts (relay 74): two model pages (one with the specs template, one with an
+# airliner's specifications table), Austrian Airlines and Emirates by their ICAO codes, Vienna and Dubai airports by
+# their IATA codes; any other page is missing. How often each was asked: /wm/asked (flows.py: asked once, then kept).
+WIKI = {
+    "Airbus A320 family": ("The Airbus A320 family is a series of narrow-body airliners developed and produced by Airbus.\nIt was "
+                           "launched in March 1984.", """{{Infobox aircraft begin|name=Airbus A320 family}}{{Infobox aircraft type
+| status = In service
+| primary_user = [[American Airlines]]
+| more_users = {{ubl|[[China Eastern Airlines]]|[[EasyJet|easyJet]]}}<!-- three at most -->
+| first_flight = {{start date and age|1987|2|22|df=y}}
+| introduction = 18 April 1988 with [[Air France]]
+| produced = 1986{{ndash}}present
+| number_built = 12,900 {{as of|2026|09|lc=y}}<ref name=od>{{cite web |title=O&D}}</ref>
+| developed_into = [[Airbus A320neo family]]
+}}
+'''Airbus A320 family''' text.
+==Specifications==
+{| class="wikitable"
+!Variant
+!A320
+!A321
+|-
+!Exit limit
+|180
+|236
+|-
+!Length
+|{{cvt|37.57|m|ft}}
+|{{cvt|44.51|m|ft}}
+|-
+!Wingspan
+|colspan=2 |{{cvt|35.80|m|ftin}}{{efn|with sharklets}}
+|-
+!Engines (×2)
+|colspan=2 |[[CFM International CFM56|CFM56-5B]]<br>[[IAE V2500|IAE V2500A5]]
+|-
+!Range
+|{{cvt|3,300|nmi|km}}
+|{{cvt|3,200|nmi|km}}
+|}
+==Notes=="""),
+    "Airbus A330neo": ("The Airbus A330neo is a wide-body airliner developed by Airbus from the original Airbus A330.", """{{Infobox aircraft
+| name = Airbus A330neo
+| status = In service
+| primary_user = [[Delta Air Lines]]
+| number_built = 199 {{as of|2026|09|lc=yes}}
+| construction_date = 2015{{ndash}}present
+| introduction = 15 December 2018 with [[TAP Air Portugal]]<ref name=TAP15dec2018/>
+| first_flight = {{start date and age|2017|10|19|df=y}}
+| developed_from = [[Airbus A330]]
+}}
+==Specifications==
+{{Aircraft specs
+|crew=2
+|capacity=440 passengers and either 33 [[Unit load device|LD3s]] or 9 pallets
+|length m=63.69
+|span m=64
+|range km=13334
+|eng1 number=2
+|eng1 name=[[Rolls-Royce Trent 7000|Rolls-Royce Trent 7000-72]]
+|eng1 type=[[turbofan]] engines
+}}"""),
+    "Austrian Airlines": ("Austrian Airlines AG is the flag carrier of Austria.", """{{Infobox airline
+| callsign = AUSTRIAN
+| parent = [[Lufthansa Group]]
+| commenced = {{start date and age|1958|03|31|df=yes}}
+| hubs = {{nowrap|[[Vienna International Airport]]}}
+| alliance = [[Star Alliance]]
+| fleet size = 65
+| destinations = [[List of Austrian Airlines destinations|121]]
+| num employees = 5,659 (as of December 2022)
+}}"""),
+    "Emirates (airline)": ("Emirates is one of two flag carriers of the United Arab Emirates.", """{{Infobox airline
+| callsign = EMIRATES
+| commenced = 25 October 1985
+| fleet size = 262
+| destinations = 152
+}}"""),
+    "Vienna International Airport": ("Vienna International Airport is the international airport of Vienna.", ""),
+    "Dubai International Airport": ("Dubai International Airport is the primary international airport serving Dubai.", ""),
+}
+WD_ITEM = lambda v: {"mainsnak": {"datavalue": {"value": {"entity-type": "item", "id": v}}}, "rank": "normal"}           # noqa: E731
+WD_STR = lambda v: {"mainsnak": {"datavalue": {"value": v}}, "rank": "normal"}                                           # noqa: E731
+WD_TIME = lambda y, m=0, d=0, p=9: {"mainsnak": {"datavalue": {"value": {"time": f"+{y}-{m:02d}-{d:02d}T00:00:00Z", "precision": p}}}, "rank": "normal"}  # noqa: E731
+WD_QTY = lambda n, unit="1", year=None: {"mainsnak": {"datavalue": {"value": {"amount": f"+{n}", "unit": unit}}}, "rank": "normal",   # noqa: E731
+                                          **({"qualifiers": {"P585": [{"datavalue": {"value": {"time": f"+{year}-00-00T00:00:00Z", "precision": 9}}}]}} if year else {})}
+WIKIDATA = {
+    "Q781770": ("Austrian Airlines", "Austrian Airlines", {"P230": [WD_STR("AUA")], "P571": [WD_TIME(1957, 9, 30, 11)], "P113": [WD_ITEM("Q191588")],
+                                                          "P114": [WD_ITEM("Q189208")], "P159": [WD_ITEM("Q874848")], "P127": [WD_ITEM("Q9325")],
+                                                          "P18": [WD_STR("OE-LPM @ VIE, 2024-08-30.jpg")]}),
+    "Q190811": ("Emirates", "Emirates (airline)", {"P230": [WD_STR("UAE")], "P571": [WD_TIME(1985)], "P113": [WD_ITEM("Q193439")]}),
+    "Q11187": ("Alitalia", "Alitalia", {"P230": [WD_STR("AZA")], "P576": [WD_TIME(2021, 10, 14, 11)]}),
+    "Q191588": ("Vienna International Airport", "Vienna International Airport", {
+        "P238": [WD_STR("VIE")], "P3872": [WD_QTY(29530000, year=2023), WD_QTY(31700000, year=2024)], "P2044": [WD_QTY(600, "http://www.wikidata.org/entity/Q3710")],
+        "P1619": [WD_TIME(1938)], "P529": [WD_STR("11/29"), WD_STR("16/34")], "P137": [WD_ITEM("Q699346")], "P931": [WD_ITEM("Q1741")], "P17": [WD_ITEM("Q40")],
+        "P625": [{"mainsnak": {"datavalue": {"value": {"latitude": 48.1103, "longitude": 16.5697}}}, "rank": "normal"}], "P18": [WD_STR("Flughafen Wien.jpg")]}),
+    "Q193439": ("Dubai International Airport", "Dubai International Airport", {
+        "P238": [WD_STR("DXB")], "P3872": [WD_QTY(92331506, year=2024), WD_QTY(95200000, year=2025)], "P2044": [WD_QTY(62, "http://www.wikidata.org/entity/Q3710")],
+        "P1619": [WD_TIME(1960)], "P529": [WD_STR("12L/30R"), WD_STR("12R/30L")], "P931": [WD_ITEM("Q612")], "P17": [WD_ITEM("Q878")],
+        "P625": [{"mainsnak": {"datavalue": {"value": {"latitude": 25.2528, "longitude": 55.3644}}}, "rank": "normal"}], "P18": [WD_STR("Dubai Airport.jpg")]}),
+    "Q189208": ("Star Alliance", "", {}), "Q874848": ("Schwechat", "", {}), "Q9325": ("Lufthansa Group", "", {}),
+    "Q699346": ("Flughafen Wien AG", "", {}), "Q1741": ("Vienna", "", {}), "Q612": ("Dubai", "", {}), "Q40": ("Austria", "", {}),
+    "Q878": ("United Arab Emirates", "", {}),
+}
+WM_ASKED = collections.Counter()
+
+
+def wikipedia(q):
+    """The fake Wikipedia API (formatversion 2): a page's wikitext and introduction, or missing."""
+    t = (q.get("titles") or [""])[0]
+    WM_ASKED["wiki:" + t] += 1
+    if t not in WIKI:
+        return {"query": {"pages": [{"title": t, "missing": True}]}}
+    intro, wt = WIKI[t]
+    return {"query": {"pages": [{"title": t, "extract": intro, "revisions": [{"slots": {"main": {"content": wt}}}]}]}}
+
+
+def wikidata(q):
+    """The fake Wikidata API: haswbstatement searches by P230 and P238, and wbgetentities."""
+    if (q.get("action") or [""])[0] == "query":
+        m = re.match(r"haswbstatement:(P\d+)=(\w+)$", (q.get("srsearch") or [""])[0])
+        WM_ASKED["find:" + (m.group(2) if m else "")] += 1
+        hits = [k for k, (_, _, c) in WIKIDATA.items() if m and any(s["mainsnak"]["datavalue"]["value"] == m.group(2) for s in c.get(m.group(1), []))]
+        return {"query": {"search": [{"title": k} for k in hits]}}
+    ents = {}
+    for k in (q.get("ids") or [""])[0].split("|"):
+        if k in WIKIDATA:
+            label, page, claims = WIKIDATA[k]
+            ents[k] = {"id": k, "labels": {"en": {"value": label}}, "claims": claims, "sitelinks": {"enwiki": {"title": page}} if page else {}}
+    return {"entities": ents}
 
 
 def away(lat, lon):
@@ -226,6 +359,15 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, "application/json", json.dumps({"photos": photos}).encode())
         if path == "/ps/asked":
             return self.send(200, "application/json", json.dumps(PS_ASKED).encode())
+        if path in ("/wiki/w/api.php", "/wikidata/w/api.php"):      # relay 74: the cards' facts
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):   # Wikimedia wants a name and a contact
+                return self.send(403, "text/plain", b"Please set a user-agent and respect our robot policy")
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            return self.send(200, "application/json", json.dumps((wikipedia if path.startswith("/wiki/") else wikidata)(q)).encode())
+        if path == "/wm/asked":
+            return self.send(200, "application/json", json.dumps(WM_ASKED).encode())
+        if path.startswith("/commons/"):   # a Commons photo (an airline's plane, an airport): the drawn stand-in
+            return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
         if path.startswith("/psimg/"):
             return self.send(200, "image/svg+xml", PS_PHOTO.encode())
         if not path.startswith("/ac/"):

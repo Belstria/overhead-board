@@ -17,7 +17,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent.parent
 CACHE = REPO / ".cache" / "lint"
 PAGES = ["test/index.html", "app/index.html"]   # light/ and glass/ are parked (1.71.3)
-OPTIONAL = ["LIGHT", "achSpecial", "nvGoing", "gStripRender", "gme", "cardSheetPre", "cardSheetPost", "cardSheetClose", "WEAK_TV", "plusOn", "drawStatic", "recentInfo", "switchView", "rwyChanged", "glass", "page", "preloadPhoto",
+OPTIONAL = ["LIGHT", "achSpecial", "nvGoing", "gStripRender", "gme", "cardSheetPre", "cardSheetPost", "cardSheetClose", "cardSheetGrow", "WEAK_TV", "plusOn", "drawStatic", "recentInfo", "switchView", "rwyChanged", "glass", "page", "preloadPhoto",
             "noteFeatured", "renderPage", "renderAircraftInfo", "appApPage", "aboutShow", "renderPush", "arFeed", "showTab"]
 CONFIG = """import globals from "globals";
 export default [{
