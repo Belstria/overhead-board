@@ -402,6 +402,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cInfo .cRbEnd:last-child,.cardish .cInfo .cRbEnd:last-child{text-align:right}
 #cardBox .cInfo .cRbEnd b,.cardish .cInfo .cRbEnd b{font:700 calc(24px*var(--ck,1))/1 var(--f-board);color:#f3f0e8}
 #cardBox .cInfo .cRbEnd small,.cardish .cInfo .cRbEnd small{font:500 calc(11px*var(--ck,1))/1.2 var(--f-board);color:#959aa3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cardBox .cInfo .cVia,.cardish .cInfo .cVia{display:flex;flex-wrap:wrap;gap:calc(4px*var(--ck,1)) calc(16px*var(--ck,1));margin:calc(10px*var(--ck,1)) calc(2px*var(--ck,1)) 0}
 #cardBox .cInfo .cTiles,.cardish .cInfo .cTiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(6px*var(--ck,1));margin-top:calc(14px*var(--ck,1))}
 #cardBox .cInfo .cTile,.cardish .cInfo .cTile{min-width:0;padding:calc(9px*var(--ck,1)) calc(6px*var(--ck,1));border-radius:calc(10px*var(--ck,1));background:#202125;text-align:center}
 #cardBox .cInfo .cTile span,#cardBox .cInfo .cTile b,#cardBox .cInfo .cTile small,.cardish .cInfo .cTile span,.cardish .cInfo .cTile b,.cardish .cInfo .cTile small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2326,13 +2327,15 @@ const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
    specs, Wikidata), what you spotted from /logbook/spotted and the logbook search; with an older relay a card shows
    what it has, in the same layout. Every fact is real data: none is shown without the numbers behind it. */
 const factsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 74;
+const brandsOk = () => factsOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 76;     // relay 76: an airline's own facts, a brand's or group's
 const factsCache = new Map(), spottedCache = new Map(), planeLogs = new Map();
 // A model's (by its Wikipedia page), an airline's (ICAO code) or an airport's (IATA code) facts: {title, url, text, img, facts}.
 function factsGet(kind, key){
   if (!key || !factsOk()) return Promise.resolve(null);
   const k = kind + ":" + key;
   if (!factsCache.has(k)) {
-    const p = fetchJSON(`${relay()}/facts?${kind}=${encodeURIComponent(key)}`, {}, 9000).then(j => j && !j.none ? j : null);
+    const q = kind === "airline-own" ? `airline=${encodeURIComponent(key)}&own=1` : `${kind}=${encodeURIComponent(key)}`;
+    const p = fetchJSON(`${relay()}/facts?${q}`, {}, 9000).then(j => j && !j.none ? j : null);
     factsCache.set(k, p);
     p.catch(() => factsCache.delete(k));                   // not answered: asked again by the next card
   }
@@ -2445,7 +2448,8 @@ function tierChip(code){
 }
 // One info card (o: {pic: a planePic-like photo, picAttr (the photo opens something: only its credit is a link), logo,
 // title, sub, subAttr (makes the sub a button), chip, music, band: [[big, small, attrs], middle, [big, small, attrs]] or
-// a line saying why there is none, tiles: [[label, value, small, attrs (makes it a button)] x3], facts: [[text, source]],
+// a line saying why there is none, via: [[text, attrs]] (links under the band: an airline's "Flown by", "Part of"),
+// tiles: [[label, value, small, attrs (makes it a button)] x3], facts: [[text, source]],
 // det: [[label, html]], wiki: {text, url}, btns}).
 function infoCard(o){
   const end = e => e && e[0] ? `<${e[2] ? "button" : "span"} class="cRbEnd"${e[2] ? ` type="button"${e[2]}` : ""}><b>${escH(e[0])}</b><small>${escH(e[1] || "")}</small></${e[2] ? "button" : "span"}>`
@@ -2458,6 +2462,7 @@ function infoCard(o){
     (o.pic && o.pic.src ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`, o.picAttr) : `<div class="cOv cOvPlain"${o.picAttr || ""}>${head}</div>`) +
     (typeof o.band === "string" ? `<p class="cNoRoute">${escH(o.band)}</p>` :
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}<i>${o.band[1] ? `— ${escH(o.band[1])} —` : "— ✈ —"}</i>${end(o.band[2])}</div>` : "") +
+    ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
     (o.tiles ? `<div class="cTiles">${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
       `${s ? `<small>${escH(s)}</small>` : ""}</${a ? "button" : "div"}>`).join("")}</div>` : "") +
     (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
@@ -2903,25 +2908,29 @@ function logoReady(L, ms = 3000){
   return new Promise(r => { const t0 = Date.now(), t = setInterval(() => { if (L.state !== "loading" || Date.now() - t0 > ms) { clearInterval(t); r(); } }, 50); });
 }
 async function airlineCard(x){
-  const a = airlineOf(x || {});
+  // 1.95.1 (to-do #122, relay 76): an airline flying under its group's name (Wizz Air Malta) shows the brand's card
+  // (Wizz Air: the whole brand's fleet), "Flown by Wizz Air Malta ›" opening its own (x.own); one with its own name
+  // (Austrian) keeps its card, "Part of Lufthansa Group ›" opening the group's (x.qid: by its Wikidata id).
+  const org = x && x.qid ? x : null, own = !!(x && x.own) && brandsOk();
+  const a = org ? {icao: org.icao || "", iata: (AIRLINES[org.icao] || [])[0] || "", name: org.name || ""} : airlineOf(x || {});
   if (!a.name) return;
   ctlSound.press();
-  const b = lbData() || {}, lb = a.icao && b.airlines ? b.airlines[a.icao] : null;
-  const today = a.icao ? dayList().filter(e => airlineOf(e).icao === a.icao).length : 0;
-  const L = a.iata ? logo(a.iata, true) : null;
-  const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
-  const music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
+  const b = lbData() || {}, music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
   // 1.94: its plane (Wikimedia Commons) with the logo, name and country on it; founded → main base; its fleet, its
   // destinations and how often you spotted it; its people and places; Wikipedia's words
-  const draw = (w, info, fx, sp, base) => {
+  const draw = (w, info, fx, sp, base, me, L) => {
     const f = fx && fx.facts || {}, src = L && L.state === "ok" ? L.img.src : "", cs = info && info.callsign ? String(info.callsign).toUpperCase() : f.callsign || "";
-    const hub = (f.hubs || [])[0], hubs = (f.hubs || []).filter(h => h.code).map(h => h.code);
+    const hub = (f.hubs || [])[0], hubs = (f.hubs || []).filter(h => h.code).map(h => h.code), lb = me.icao && b.airlines ? b.airlines[me.icao] : null;
+    const today = me.icao ? dayList().filter(e => me.all.includes(airlineOf(e).icao)).length : 0;
+    const c = me.icao ? {k: "airline", v: me.icao, n: me.name} : null, by = fx && fx.flownBy, grp = fx && fx.group;
     return infoCard({pic: fx && fx.img ? {src: fx.img, kind: "wm"} : null, logo: src, music,
-      title: a.name && a.name !== a.icao ? a.name : fx && fx.name || (w ? w.title.replace(/ \(airline\)$/, "") : a.name),
-      sub: [info && info.country ? countryName(info.country_iso, info.country) : "", a.iata, a.icao].filter(Boolean).join(" · "),
+      title: me.brand && fx.name || (a.name && a.name !== a.icao ? a.name : fx && fx.name || (w ? w.title.replace(/ \(airline\)$/, "") : a.name)),
+      sub: [info && info.country ? countryName(info.country_iso, info.country) : "", me.iata, me.icao].filter(Boolean).join(" · "),
       band: [f.founded ? [yearOf(f.founded), T("Founded")] : null, "", hub && hub.code ? [hub.code, T("Main base"), ` data-pl="${escH(hub.code)}"`] : null],
-      tiles: [["Fleet", f.fleet ? nf.format(f.fleet) : ""], ["Destinations", f.destinations ? nf.format(f.destinations) : ""],
-        ["Spotted", timesText(sp ? sp.sightings : lb && lb.count)]],
+      via: [by && by.icao ? [T("Flown by {name}", {name: by.name}), ` data-al-own="${escH(by.icao)}" data-n="${escH(by.name)}"`] : null,
+        grp && grp.qid ? [T("Part of {name}", {name: grp.name}), ` data-al-org="${escH(grp.qid)}" data-n="${escH(grp.name)}"`] : null],
+      tiles: [["Fleet", f.fleet ? nf.format(f.fleet) : "", f.fleetAll ? T("Whole brand") : ""], ["Destinations", f.destinations ? nf.format(f.destinations) : ""],
+        ["Spotted", me.icao ? timesText(sp ? sp.sightings : lb && lb.count) : ""]],
       facts: airlineFunFacts(f, sp && sp.planes, base),
       det: [["Radio callsign", escH(cs)], ["Headquarters", escH(f.headquarters || "")], ["Hubs", hubs.length > 1 ? escH(hubs.join(" · ")) : ""],
         ["Owner", escH((f.owners || []).map(o => o.share ? `${o.name} ${o.share} %` : o.name).join(" · "))], ["Employees", f.employees ? escH(nf.format(f.employees)) : ""],
@@ -2931,15 +2940,27 @@ async function airlineCard(x){
       wiki: {text: fx && fx.text || w && w.text || "", url: fx && fx.url || w && w.url || ""},
       btns: c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
   };
-  const wire = el => { for (const bt of el.querySelectorAll("[data-pl]")) bt.onclick = () => placeCard({code: bt.dataset.pl}); };
+  const wire = el => {
+    for (const bt of el.querySelectorAll("[data-pl]")) bt.onclick = () => placeCard({code: bt.dataset.pl});
+    for (const bt of el.querySelectorAll("[data-al-own]")) bt.onclick = () => airlineCard({airlineIcao: bt.dataset.alOwn, airline: bt.dataset.n, own: true});
+    for (const bt of el.querySelectorAll("[data-al-org]")) bt.onclick = () => airlineCard({qid: bt.dataset.alOrg, name: bt.dataset.n});
+  };
   const tok = cardLoading(!!music);
   if (music) cardMusicStart(music);                 // in the tap itself, so the browser lets it play
-  const fxP = factsGet("airline", a.icao), wP = fxP.then(fx => fx && fx.text ? null : airlineWiki(a));
+  const fxP = org ? (brandsOk() ? factsGet("org", org.qid) : Promise.resolve(null)) : factsGet(own ? "airline-own" : "airline", a.icao);
+  const wP = fxP.then(fx => fx && fx.text ? null : airlineWiki(a));
   const baseP = fxP.then(fx => { const h = fx && fx.facts && (fx.facts.hubs || [])[0]; return h && h.code ? airportGet(h.code) : null; })
     .then(ap => ap && ap.lat != null && S.lat != null ? {code: ap.code, km: gcKm(S.lat, S.lon, ap.lat, ap.lon)} : null);
-  const [w, info, fx, sp, base] = await Promise.all([cardWait(wP, 6500), cardWait(airlineInfo(a.icao), 4500), cardWait(fxP, 6500),
-    cardWait(spottedGet("airline", a.icao), 4500), cardWait(baseP, 6500), logoReady(L)]);
-  const shown = await cardWhenReady(tok, draw(w, info, fx, sp, base), wire);
+  // the airline the card is about: the brand (its codes, logo, callsign; spotted with the company that flew), else this one
+  const fx0 = await cardWait(fxP, 6500), bi = fx0 && (org || fx0.flownBy) && fx0.icao || "";
+  const me = bi && bi !== a.icao ? {icao: bi, iata: (AIRLINES[bi] || [])[0] || "", name: fx0.name || a.name, brand: !org, all: [bi, a.icao].filter(Boolean)}
+    : {icao: a.icao, iata: a.iata, name: a.name, brand: false, all: [a.icao]};
+  const L = me.iata ? logo(me.iata, true) : null;
+  const spP = Promise.all(me.all.map(k => spottedGet("airline", k))).then(l => l.filter(Boolean).reduce((s, x) => !s ? x : {...s, sightings: (s.sightings || 0) + (x.sightings || 0),
+    planes: (s.planes || 0) + (x.planes || 0), first: [s.first, x.first].filter(Boolean).sort()[0], last: [s.last, x.last].filter(Boolean).sort().pop()}, null));
+  const [w, info, fx, sp, base] = await Promise.all([cardWait(wP, 6500), cardWait(airlineInfo(me.icao), 4500), fx0,
+    cardWait(spP, 4500), cardWait(baseP, 6500), logoReady(L)]);
+  const shown = await cardWhenReady(tok, draw(w, info, fx, sp, base, me, L), wire);
   if (shown && L && L.state === "loading") logoReady(L, 15000).then(() => {          // a slow logo joins the open card
     const h = document.querySelector("#cardBox .cInfo .cOv");
     if (shown === cardTok && cardOpenNow() && L.state === "ok" && h && !h.querySelector(".cLogo")) h.insertAdjacentHTML("afterbegin", `<img class="cLogo" src="${escH(L.img.src)}" alt="">`);

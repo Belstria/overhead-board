@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 75
+RELAY_VERSION = 76
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -6081,9 +6081,69 @@ def _commons(name, w=640):
     return COMMONS_FILE + urllib.parse.quote(name.replace(" ", "_")) + f"?width={w}" if name else ""
 
 
+def _wd_title(title):
+    """The Wikidata item of an English Wikipedia page: (id, item), (None, {}) when there is none; None: not answered."""
+    j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": title, "props": "claims|sitelinks|labels",
+                               "languages": "en", "sitefilter": "enwiki", "normalize": "1"})
+    if j is None:
+        return None
+    return next(((q, e) for q, e in (j.get("entities") or {}).items() if re.fullmatch(r"Q\d+", q)), (None, {}))
+
+
+# Relay 76 (to-do #122): an airline flying under its group's name (Wizz Air Malta, easyJet Europe, Eurowings Europe,
+# Lufthansa CityLine) shows the brand's card, "Flown by" the company; one with its own name (Austrian, Lauda Europe)
+# keeps its own, "Part of" its group. The brand: a parent (P749 parent organization, P127 owned by) whose name without
+# a company word ("Wizz Air Holdings" → "Wizz Air") begins the company's name; the brand's card is the airline of that
+# name (an ICAO code and an English page: Wizz Air, the Hungarian airline whose page tells the whole group's fleet).
+CORP_TAIL = re.compile(r"(?:\s+(?:holdings?|group|plc|ag|se|sa|s\.a\.|ltd\.?|limited|gmbh|inc\.?|n\.v\.|company|corporation))+$", re.I)
+
+
+def _airline_parents(e):
+    """An airline's parents (current P749, then P127), each once: {id: item}, in that order, each marked "_part" when
+    it is a parent organization or owns at least half (a group, not a shareholder as BlackRock); None: not answered."""
+    ids, part = [], set()
+    for p in ("P749", "P127"):
+        for c in _wd_claims(e, p)[:4]:
+            v, share = _wd_val(c), ((c.get("qualifiers") or {}).get("P1107") or [{}])[0].get("datavalue", {}).get("value", {}).get("amount")
+            if isinstance(v, dict) and re.fullmatch(r"Q\d+", v.get("id", "")):
+                if v["id"] not in ids:
+                    ids.append(v["id"])
+                if p == "P749" or (_num(share) or 0) >= 0.5:
+                    part.add(v["id"])
+    if not ids:
+        return {}
+    items = _wd_items(ids)
+    if not items:
+        return None
+    is_person = lambda x: any((_wd_val(c) or {}).get("id") == "Q5" for c in _wd_claims(x, "P31", False))   # noqa: E731  (an owner, not a group)
+    return {q: {**items[q], "_part": q in part} for q in ids if q in items and not is_person(items[q])}
+
+
+def _airline_brand(q, e, parents):
+    """The brand an airline flies under, when it is a part of it with the brand's name: (id, name), None when it has
+    its own; False: not answered."""
+    name = _wd_label(e).casefold()
+    is_airline = lambda x: "P230" in (x.get("claims") or {}) and "enwiki" in (x.get("sitelinks") or {}) and "P576" not in (x.get("claims") or {})  # noqa: E731
+    for pq, pe in parents.items():
+        brand = CORP_TAIL.sub("", _wd_label(pe)).strip()
+        if len(brand) < 3 or not name.startswith(brand.casefold() + " "):
+            continue
+        if pq != q and is_airline(pe) and _wd_label(pe).casefold() == brand.casefold():
+            return pq, _wd_label(pe)
+        hit = _wd_title(brand)                                   # Wizz Air Holdings → the page "Wizz Air"
+        if hit is None:
+            return False
+        bq, be = hit
+        if bq and bq != q and is_airline(be):
+            return bq, _wd_label(be) or brand
+        if pq != q and is_airline(pe):
+            return pq, _wd_label(pe)
+    return None
+
+
 def airline_facts(icao):
-    """An airline's facts by its ICAO code: Wikidata (the company, hubs, alliance, owners, photo) and its Wikipedia
-    page's infobox (fleet, destinations, founded, first flight, employees). None: none there; False: not answered."""
+    """The facts for an airline's card by its ICAO code: its brand's (with flownBy: {name, icao}) when it flies under
+    its group's name, else its own. None: none there; False: not answered."""
     ids = _wd_find("P230", icao)
     if ids is None:
         return False
@@ -6091,12 +6151,84 @@ def airline_facts(icao):
     q = _wd_pick(ids, items)
     if not q or "P576" in (items[q].get("claims") or {}):          # only a dissolved one (AZA, Alitalia's): not today's flights
         return None
-    e = items[q]
+    parents = _airline_parents(items[q])
+    if parents is None:
+        return False
+    brand = _airline_brand(q, items[q], parents)
+    if brand is False:
+        return False
+    v = facts_json("org", brand[0] if brand else q)
+    if v is None:
+        return False
+    if v.get("none"):
+        return None
+    return {**v, "flownBy": {"name": _wd_label(items[q]) or icao, "icao": icao}} if brand else v
+
+
+def airline_own_facts(icao):
+    """An airline's own facts by its ICAO code (also when it flies under its group's name): "Flown by" opens these."""
+    ids = _wd_find("P230", icao)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    q = _wd_pick(ids, items)
+    if not q or "P576" in (items[q].get("claims") or {}):
+        return None
+    return _airline_item_facts(q, items[q])
+
+
+def org_facts(q):
+    """An airline's or an airline group's facts by its Wikidata id (an airline's card, its brand's, or the group "Part
+    of" opens). A brand's fleet is the whole brand's: when its page counts only its own company (Wizz Air's 118, its
+    page pointing to Wizz Air Malta's and Wizz Air UK's), the companies with its name (under it or its holding without a
+    page) are added (fleetAll: true); a page counting them already (easyJet's 356) has the larger number and stays."""
+    items = _wd_items([q])
+    if not items:
+        return False
+    e = items.get(q)
+    if not e or "missing" in e:
+        return None
+    parents = _airline_parents(e)
+    if parents is None:
+        return False
+    v = _airline_item_facts(q, e, parents)
+    f = (v or {}).get("facts") or {}
+    if not v or not f.get("fleet") or "P230" not in (e.get("claims") or {}):
+        return v
+    brand = CORP_TAIL.sub("", _wd_label(e)).strip().casefold()
+    kids = []
+    for h in [q] + [pq for pq, pe in parents.items() if "enwiki" not in (pe.get("sitelinks") or {})][:2]:
+        ids = _wd_find("P749", h)
+        if ids is None:
+            return False
+        kids += [k for k in ids if k != q and k not in kids]
+    ki = _wd_items(kids[:20]) if kids else {}
+    kids = [k for k, ke in ki.items() if "P230" in (ke.get("claims") or {}) and "P576" not in (ke.get("claims") or {})
+            and "enwiki" in (ke.get("sitelinks") or {}) and _wd_label(ke).casefold().startswith(brand + " ")][:8]
+    fleets = []
+    for k in kids:
+        kv = _airline_item_facts(k, ki[k], {})
+        if kv is False:
+            return False
+        if kv and (kv.get("facts") or {}).get("fleet") and kv.get("text") != v.get("text"):    # not a page leading back to the brand's (KLM Asia)
+            fleets.append(kv["facts"]["fleet"])
+    if sum(fleets) > f["fleet"]:
+        f["fleet"], f["fleetAll"] = f["fleet"] + sum(fleets), True
+    return v
+
+
+def _airline_item_facts(q, e, parents=None):
+    """One airline's (or group's) facts: Wikidata (the company, hubs, alliance, owners, photo, group) and its Wikipedia
+    page's infobox (fleet, destinations, founded, first flight, employees). None: none there; False: not answered."""
+    if parents is None:
+        parents = _airline_parents(e)
+        if parents is None:
+            return False
     title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
     pg = _wiki_page(title) if title else None
     if pg is False:
         return False
-    ib, text = (_infobox(pg[1], ("infobox airline",)), pg[2]) if pg else ({}, "")
+    ib, text = (_infobox(pg[1], ("infobox airline", "infobox company")), pg[2]) if pg else ({}, "")
     refs = {}
     for p in ("P113", "P114", "P159", "P127", "P749"):
         for c in _wd_claims(e, p)[:4]:
@@ -6156,6 +6288,19 @@ def airline_facts(icao):
         f["callsign"] = cs.upper()
     img = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P18")), "")
     out = {"kind": "airline", "title": title or _wd_label(e), "name": _wd_label(e), "qid": q, "text": text, "facts": f}
+    code = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P230")), "")
+    if re.fullmatch(r"[A-Z]{3}", code):
+        out["icao"] = code
+    # its group, for "Part of": the first parent with an English page (not a holding without one, as Wizz Air's), else
+    # the page's infobox parent (Lauda Europe's Ryanair Holdings is only there)
+    g = next(((pq, pe) for pq, pe in parents.items() if pq != q and pe.get("_part") and "enwiki" in (pe.get("sitelinks") or {}) and _wd_label(pe)), None)
+    if not g:
+        m = re.search(r"\[\[([^\]|#]+)", _first(ib.get("parent"), ib.get("parent company"), ib.get("owner")) or "")
+        hit = _wd_title(m.group(1).strip()) if m else None
+        if hit and hit[0] and hit[0] != q and _wd_label(hit[1]):
+            g = hit
+    if g:
+        out["group"] = {"name": _wd_label(g[1]), "qid": g[0]}
     if title:
         out["url"] = _wiki_url(title)
     if img:
@@ -6221,7 +6366,8 @@ def airport_facts(iata):
     return out
 
 
-FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airport": airport_facts}
+FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airline-own": airline_own_facts, "org": org_facts, "airport": airport_facts}
+FACTS_VER = {"airline": "2"}   # relay 76: an airline's card is its brand's now (to-do #122): relay 74's kept answers are asked again
 
 
 def _facts_cache():
@@ -6238,7 +6384,7 @@ def facts_json(kind, key):
     """The facts for one card: {kind, title, name, url, text, img, facts}, or {kind, none: true} when there are none;
     None when Wikipedia or Wikidata can't be asked now (and nothing older is kept). One lookup per page a month: a
     second screen asking meanwhile waits for the first one's answer."""
-    k, hit = f"{kind}:{key}", None
+    k, hit = f"{kind}{FACTS_VER.get(kind, '')}:{key}", None
     for _ in range(2):
         with _data_lock:
             F = _facts_cache()
@@ -7317,9 +7463,13 @@ class Handler(BaseHTTPRequestHandler):
             model = re.sub(r"[\x00-\x1f<>\[\]{}|#]", "", (q.get("model") or [""])[0]).strip()[:120]
             airline = re.sub(r"[^A-Z]", "", (q.get("airline") or [""])[0].upper())
             airport = re.sub(r"[^A-Z]", "", (q.get("airport") or [""])[0].upper())
-            kind, key = ("model", model) if model else ("airline", airline) if len(airline) == 3 else ("airport", airport) if len(airport) == 3 else ("", "")
+            org = (q.get("org") or [""])[0].strip().upper()           # relay 76: a brand or group by its Wikidata id
+            org = org if re.fullmatch(r"Q\d{1,12}", org) else ""
+            own = (q.get("own") or [""])[0] == "1"                     # an airline's own facts, not its brand's ("Flown by")
+            kind, key = (("model", model) if model else ("airline-own" if own else "airline", airline) if len(airline) == 3 else
+                         ("airport", airport) if len(airport) == 3 else ("org", org) if org else ("", ""))
             if not kind:
-                return self.reply(400, "text/plain", b"model=..., airline=... (ICAO) or airport=... (IATA) is required")
+                return self.reply(400, "text/plain", b"model=..., airline=... (ICAO), airport=... (IATA) or org=... (Wikidata) is required")
             r = facts_json(kind, key)
             if r is None:
                 return self.reply(503, "text/plain", b"Wikipedia can't be asked right now", {"Retry-After": "300"})
@@ -7472,8 +7622,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places)).encode())
         if path == "/logbook":
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
-            place = (raw[0] if len(raw) == 1 else tuple(raw)) if all(raw) else None   # relay 40: place=a&place=b, merged
+            # relay 40: place=a&place=b, merged; relay 76 (to-do #126): with the profile's places at the same spot
+            # (same_spot: "Home" and "home"), each sighting once (one place each)
+            mine = places_of(self.guest[0]) if self.guest else []
+            keys = sorted(set().union(*(same_spot(self.spot, mine, k) for k in raw))) if all(raw) else []
+            place = (keys[0] if len(keys) == 1 else tuple(keys)) if keys else None
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
+            if not place:     # relay 76: each place's others at the same spot, so the place bar shows one place for one spot
+                ks = {k for k, _ in body.get("places", [])} | {p["k"] for p in mine if isinstance(p, dict) and p.get("k")}
+                body["spots"] = {k: sorted(o) for k in sorted(ks) for o in [same_spot(self.spot, mine, k) or set()] if len(o) > 1}
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
                 lg = league_json(self.guest[0])                                 # relay 59: the crown and the Champion style
