@@ -217,13 +217,26 @@ WM_ASKED = collections.Counter()
 
 
 def wikipedia(q):
-    """The fake Wikipedia API (formatversion 2): a page's wikitext and introduction, or missing."""
-    t = (q.get("titles") or [""])[0]
-    WM_ASKED["wiki:" + t] += 1
-    if t not in WIKI:
-        return {"query": {"pages": [{"title": t, "missing": True}]}}
-    intro, wt = WIKI[t]
-    return {"query": {"pages": [{"title": t, "extract": intro, "revisions": [{"slots": {"main": {"content": wt}}}]}]}}
+    """The fake Wikipedia API (formatversion 2): a page's wikitext and introduction, or missing. Relay 78's refresh asks
+    for several titles at once: their introductions come one at a time here (Wikipedia's 20), the rest after "continue"."""
+    ts = (q.get("titles") or [""])[0].split("|")
+    if len(ts) > 1:
+        WM_ASKED["batch:wiki"] += 1
+    start = int((q.get("excontinue") or ["0"])[0])
+    pages, intros = [], 0
+    WM_ASKED["batch:wiki-continued"] += bool(start)
+    for i, t in enumerate(ts):
+        WM_ASKED["wiki:" + t] += not start
+        if t not in WIKI:
+            pages.append({"title": t, "missing": True})
+            continue
+        intro, wt = WIKI[t]
+        p = {"title": t} if start else {"title": t, "revisions": [{"slots": {"main": {"content": wt}}}]}
+        if i >= start and intros < 1:
+            p["extract"], intros = intro, intros + 1
+        pages.append(p)
+    later = [i for i, t in enumerate(ts) if t in WIKI and i >= start][1:]
+    return {"query": {"pages": pages}, **({"continue": {"excontinue": str(later[0]), "continue": "||"}} if later else {})}
 
 
 def wikidata(q):
@@ -237,17 +250,57 @@ def wikidata(q):
                                                                    for s in c.get(m.group(1), []))]
         return {"query": {"search": [{"title": k} for k in hits]}}
     ents = {}
-    if q.get("titles"):
-        t = q["titles"][0]
-        hit = next((k for k, (_, page, _) in WIKIDATA.items() if page and page.casefold() == t.casefold()), None)
-        if not hit:
-            return {"entities": {"-1": {"site": "enwiki", "title": t, "missing": ""}}}
-        q = {"ids": [hit]}
-    for k in (q.get("ids") or [""])[0].split("|"):
+    if q.get("titles"):                  # (several at once in relay 78's refresh, as Wikidata takes them: not normalized)
+        ts, ids = q["titles"][0].split("|"), []
+        for n, t in enumerate(ts):
+            hit = next((k for k, (_, page, _) in WIKIDATA.items() if page and (page == t or len(ts) == 1 and page.casefold() == t.casefold())), None)
+            if hit:
+                ids.append(hit)
+            else:
+                ents[str(-1 - n)] = {"site": "enwiki", "title": t, "missing": ""}
+        q = {"ids": ["|".join(ids)], "props": q.get("props")}
+    ids = [k for k in (q.get("ids") or [""])[0].split("|") if k]
+    if len(ids) > 1:
+        WM_ASKED["batch:wd"] += 1
+        if q.get("maxlag") and not WM_ASKED["lagged"]:     # the refresh's first: Wikidata is lagging (it waits as asked, tries again)
+            WM_ASKED["lagged"] += 1
+            return "maxlag"
+    props = (q.get("props") or ["claims|sitelinks|labels"])[0].split("|")
+    for k in ids:
         if k in WIKIDATA:
             label, page, claims = WIKIDATA[k]
-            ents[k] = {"id": k, "labels": {"en": {"value": label}}, "claims": claims, "sitelinks": {"enwiki": {"title": page}} if page else {}}
+            WM_ASKED[f"props:{k}:" + "|".join(sorted(props))] += 1
+            ents[k] = {"id": k, "labels": {"en": {"value": label}}, **({"claims": claims} if "claims" in props else {}),
+                       **({"sitelinks": {"enwiki": {"title": page}} if page else {}} if "sitelinks" in props else {})}
+        else:
+            ents[k] = {"id": k, "missing": ""}
     return {"entities": ents}
+
+
+def sparql(q):
+    """The fake Wikidata query service (relay 78's refresh): the items with an ICAO code (and whether they stopped
+    flying), with an IATA code, and the airlines under a company."""
+    text, rows = (q.get("query") or [""])[0], []
+    WM_ASKED["sparql"] += 1
+    val = lambda s: s["mainsnak"]["datavalue"]["value"]       # noqa: E731
+    ent = lambda k: {"type": "uri", "value": "http://www.wikidata.org/entity/" + k}   # noqa: E731
+    for k, (_, _, c) in WIKIDATA.items():
+        if "P230/ps:P230" in text:
+            rows += [{"i": ent(k), "c": {"value": val(s)}, "gone": {"value": "true" if "P576" in c else "false"}} for s in c.get("P230", [])]
+        elif "P238/ps:P238" in text:
+            rows += [{"i": ent(k), "c": {"value": val(s)}} for s in c.get("P238", [])]
+        elif "P749/ps:P749" in text and "P230" in c:
+            rows += [{"i": ent(k), "p": ent(val(s)["id"])} for s in c.get("P749", [])]
+    return {"head": {"vars": []}, "results": {"bindings": rows}}
+
+
+def commons(q):
+    """The fake Commons API (relay 78's refresh): each photo's own address at the asked width (imageinfo)."""
+    WM_ASKED["commons"] += 1
+    w = (q.get("iiurlwidth") or ["0"])[0]
+    return {"query": {"pages": [{"title": t, "imageinfo": [{"url": f"http://127.0.0.1:{PORT}/commons/{urllib.parse.quote(t[5:])}",
+                                                             "thumburl": f"http://127.0.0.1:{PORT}/commons/{w}px-{urllib.parse.quote(t[5:])}"}]}
+                                for t in (q.get("titles") or [""])[0].split("|")]}}
 
 
 def away(lat, lon):
@@ -394,7 +447,19 @@ class H(BaseHTTPRequestHandler):
             if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):   # Wikimedia wants a name and a contact
                 return self.send(403, "text/plain", b"Please set a user-agent and respect our robot policy")
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
-            return self.send(200, "application/json", json.dumps((wikipedia if path.startswith("/wiki/") else wikidata)(q)).encode())
+            j = (wikipedia if path.startswith("/wiki/") else wikidata)(q)
+            if j == "maxlag":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Retry-After", "1")
+                self.end_headers()
+                return self.wfile.write(json.dumps({"error": {"code": "maxlag", "info": "Waiting for a database server: 6 seconds lagged."}}).encode())
+            return self.send(200, "application/json", json.dumps(j).encode())
+        if path in ("/sparql", "/commons-api/w/api.php"):   # relay 78: the facts database's monthly refresh
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):
+                return self.send(403, "text/plain", b"Please set a user-agent and respect our robot policy")
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            return self.send(200, "application/json", json.dumps((sparql if path == "/sparql" else commons)(q)).encode())
         if path == "/wm/asked":
             return self.send(200, "application/json", json.dumps(WM_ASKED).encode())
         if path.startswith("/commons/"):   # a Commons photo (an airline's plane, an airport): the drawn stand-in

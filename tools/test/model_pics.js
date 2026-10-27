@@ -4,12 +4,15 @@
 // logbook's types, say); each name is looked up as a type card would ask (the board's TYPES name first, then that one).
 // Without a list: the board's TYPES. Runs test/index.html's own code against Wikipedia, one request at a time (Wikimedia
 // allows 200 a minute), so a long list takes minutes. --sheet writes a page of every picture found, to check by eye.
+// --relay (1.96.2, to-do #129): the pages found for TYPES and MODEL_PAGES go into relay/serve.py's MODEL_TITLES, the
+// model cards the relay's facts database refreshes every month (run it again when TYPES or MODEL_PAGES change).
 "use strict";
 const fs = require("fs"), path = require("path");
 const src = fs.readFileSync(path.join(__dirname, "../../test/index.html"), "utf8");
 const cut = (a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); if (i < 0 || j < 0) throw new Error("test/index.html changed: " + a + " not found"); return src.slice(i, j); };
 const code = cut("const TYPES = {", "function typeName(") + cut("// Wikipedia's summary of a page", "/* 1.93 (to-do #95");
 const args = process.argv.slice(2), sheetAt = args.indexOf("--sheet"), sheet = sheetAt >= 0 ? args.splice(sheetAt, 2)[1] : "";
+const relayAt = args.indexOf("--relay"), toRelay = relayAt >= 0 && !!args.splice(relayAt, 1).length, titles = new Set();
 const UA = "Fallblatt-model-pics/1.0 (https://github.com/Belstria/overhead-board)";      // Wikimedia asks for a name and a contact
 let asked = 0, next = 0;
 async function fetchJSON(url){
@@ -24,8 +27,9 @@ async function fetchJSON(url){
   throw new Error("Wikipedia keeps saying: too many requests");
 }
 const S = {demo: false};
-const api = new Function("fetchJSON", "fetch", "S", code + "\n;return {TYPES, modelPage, modelLooks, wikiImg};")(fetchJSON, (u, o) => fetch(u, {...o, headers: {"User-Agent": UA}}), S);
-const list = args[0] ? JSON.parse(fs.readFileSync(args[0], "utf8")) : Object.entries(api.TYPES).map(([c, n]) => ({code: c, names: [n]}));
+const api = new Function("fetchJSON", "fetch", "S", code + "\n;return {TYPES, MODEL_PAGES, modelPage, modelLooks, wikiImg};")(fetchJSON, (u, o) => fetch(u, {...o, headers: {"User-Agent": UA}}), S);
+const list = args[0] ? JSON.parse(fs.readFileSync(args[0], "utf8")) : Object.entries(api.TYPES).map(([c, n]) => ({code: c, names: [n]}))
+  .concat(Object.keys(api.MODEL_PAGES).filter(c => !api.TYPES[c]).map(c => ({code: c, names: []})));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"})[c]);
 (async () => {
   const rows = [];
@@ -38,12 +42,19 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", 
       most = Math.max(most, asked - a0);
       found.push({name: n || t || c, title: p ? p.title : "", img: p && p.img ? api.wikiImg(p.img, 500) : "", err: p && p.err, n: asked - a0});
     }
+    found.forEach(f => f.title && titles.add(f.title));
     const ok = found.filter(f => f.img).length;
     all += ok === found.length; some += ok > 0;
     console.log(`${ok === found.length ? "OK  " : ok ? "PART" : "MISS"} ${c.padEnd(5)} ${found.map(f => `${f.name} -> ${f.title || "-"}${f.title && !f.img ? " (no picture)" : ""}${f.err ? " (" + f.err + ")" : ""}`).join(" | ")}`);
     rows.push(...found.filter(f => f.img).map(f => ({code: c, ...f})));
   }
   console.log(`\n${all} of ${list.length} codes have a picture for every name, ${some} for at least one; ${asked} requests, at most ${most} for one`);
+  if (toRelay) {
+    const f = path.join(__dirname, "../../relay/serve.py"), py = fs.readFileSync(f, "utf8"), line = /^MODEL_TITLES = .*$/m;
+    if (!line.test(py)) throw new Error("relay/serve.py has no MODEL_TITLES line");
+    fs.writeFileSync(f, py.replace(line, () => `MODEL_TITLES = ${JSON.stringify([...titles].sort().join("|"))}.split("|")`));
+    console.log(`${titles.size} model pages written into relay/serve.py's MODEL_TITLES`);
+  }
   if (sheet) fs.writeFileSync(sheet, `<!doctype html><meta charset="utf-8"><title>Model pictures</title><style>body{font:13px sans-serif;margin:12px;background:#fff}
 .g{display:grid;grid-template-columns:repeat(auto-fill,220px);gap:10px}figure{margin:0;border:1px solid #ccc;padding:4px}img{width:210px;height:140px;object-fit:cover;display:block}
 b{font-size:14px}small{display:block;color:#555}</style><div class="g">` + rows.map(r => `<figure><img src="${esc(r.img)}" referrerpolicy="no-referrer" alt=""><b>${esc(r.code)}</b> ${esc(r.name)}<small>${esc(r.title)}</small></figure>`).join("") + "</div>");

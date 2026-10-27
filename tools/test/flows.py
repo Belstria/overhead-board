@@ -25,6 +25,10 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the cards' facts (the fake Wikipedia and Wikidata): a model's infobox and specs (a table or the template), an airline by
   its ICAO code, an airport by its IATA code, cleaned; asked once and kept; none for a missing page or a dissolved
   airline; profiles only. What a profile spotted of an airline, a model or an airport (relay 74)
+- the facts database (relay 78, to-do #129): facts.json's entries moved in (not relay 74's airlines); a key not in it
+  looked up on its first tap; the monthly refresh (the owner's /facts?refresh=1) against the fakes in batches (the
+  query service's lists, 50 items or pages a request, introductions continued, a maxlag waited out), every answer the
+  same as the first tap's (the brand rule too) but the photo's own address at 500 px, then read from the database alone
 - Spotted today by place: a saved place at the profile's own spot and the profile's place share one list, each pass
   once, with the same day's numbers; a saved place elsewhere keeps its own (relay 75, to-do #121)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
@@ -540,6 +544,42 @@ def checks():
     expect("a page Wikipedia doesn't have", facts("model=" + urllib.parse.quote("No such aircraft"))[1], {"kind": "model", "none": True})
     expect("/facts without a page or code", call("/facts?airline=X", "test-device")[0], 400)
     expect("/facts for strangers", call("/facts?airline=AUA")[0] in (401, 403), True)
+    # relay 78 (to-do #129): the facts database. facts.json's entries moved in at start (relay 74's airlines not: AUA
+    # above was looked up); a key not in it yet is looked up on its first tap (above, and VIE here, the photo through
+    # Commons' redirect); the monthly refresh against the fakes, in batches; then every card the same from the database
+    st, j = facts("model=" + urllib.parse.quote("Seeded Model"))
+    expect("facts.json's kept facts moved into the database", (st, j.get("text"), wm().get("wiki:Seeded Model")), (200, "Kept in facts.json.", None))
+    st, vie = facts("airport=VIE")
+    expect("a key not in the database: looked up on its first tap", (st, (vie.get("facts") or {}).get("runways"), wm().get("wiki:Vienna International Airport"),
+                                                                     "/commons/Flughafen_Wien.jpg?width=640" in vie.get("img", "")), (200, 2, 1, True))
+    cards = ["model=" + urllib.parse.quote("Airbus A320 family"), "model=" + urllib.parse.quote("Airbus A330neo"), "airline=AUA", "airline=WMT",
+             "airline=WMT&own=1", "airline=WZZ", "airline=UAE", "org=Q62589018", "airline=AZA", "airport=DXB", "airport=VIE"]
+    before, wm0 = {c: facts(c)[1] for c in cards}, wm()
+    expect("/facts?status=1 is the owner's", (call("/facts?status=1", "test-device")[0], call("/facts?refresh=1")[0] in (401, 403)), (403, True))
+    st, _, b = call("/facts?refresh=1", "owner-device")
+    for _ in range(120):
+        s = json.loads(call("/facts?status=1", "owner-device")[2])
+        if not s.get("running"):
+            break
+        time.sleep(0.5)
+    last, n = s.get("last") or {}, s.get("entries") or {}
+    expect("the monthly refresh (owner, now): done in one go, nothing left over", (st, bool(s.get("running")), s.get("run"), last.get("left"), last.get("nights")),
+           (200, False, None, 0, 1))
+    expect("... every airline still flying, airport and model page, and what the cards open (groups, companies)",
+           (n.get("airline"), n.get("airport"), n.get("model", 0) > 300, n.get("org", 0) >= 2, n.get("airline-own")), (6, 2, True, True, 2))
+    expect("... in batches: three lists, several items and pages a request, a maxlag waited out, introductions continued, photos together",
+           (wm().get("sparql"), wm().get("lagged"), wm().get("batch:wd", 0) >= 3, wm().get("batch:wiki", 0) >= 7, wm().get("batch:wiki-continued", 0) >= 1, wm().get("commons", 0) >= 1, last.get("requests", 0) < 60),
+           (3, 1, True, True, True, True, True))
+    d = lambda k: wm().get(k, 0) - wm0.get(k, 0)       # noqa: E731
+    expect("... a city's name only (Austrian's headquarters), not its statements", (d("props:Q874848:claims|labels"), d("props:Q874848:labels") > 0), (0, True))
+    asked = dict(wm())
+    after = {c: facts(c)[1] for c in cards}
+    same = lambda v: {k: x for k, x in v.items() if k != "img"}           # noqa: E731
+    expect("... every card's answer as on its first tap (the brand rule too)", [c for c in cards if same(after[c]) != same(before[c])], [])
+    expect("... the photos' own addresses at the cards' size", (after["airport=VIE"].get("img", "").split("/")[-1], after["airline=AUA"].get("img", "").split("/")[-1]),
+           ("500px-Flughafen%20Wien.jpg", "500px-OE-LPM%20%40%20VIE%2C%202024-08-30.jpg"))
+    expect("... and read from the database: nothing asked again", dict(wm()) == asked, True)
+    expect("... the database on disk", s.get("bytes", 0) > 4096, True)
     # ... and what the profile spotted of one airline, model or airport, over every saved day
     sp = lambda q: (lambda r: json.loads(r[2]) if r[0] == 200 else {"status": r[0]})(call("/logbook/spotted?" + q, "test-device"))   # noqa: E731
     al, ty = sp("airline=AUA"), sp("type=A320")

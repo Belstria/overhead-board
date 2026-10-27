@@ -57,7 +57,8 @@ apdep (`pageOrder()`), `apFeature` picks the plane; runways from `AIRPORTS` or t
 (`/times`); Flightradar24 via `/flightinfo`; photos in the order Planespotters.net (`/planephoto`, relay 73; never kept
 or passed on, so never in the share picture), adsbdb's, the model's from Wikipedia (`planePic`, 1.93; found by `modelPage`: the code's page in `MODEL_PAGES`, then the names, never another model's, 1.93.1.1). The info cards (1.94, `infoCard`: Sky view's card
 style, More info, fun facts) get Wikipedia's and Wikidata's facts cleaned by the relay (`/facts`, relay 74: a model by
-its page, an airline by ICAO code, an airport by IATA code; kept 30 days in `data/facts.json`) and what you spotted
+its page, an airline by ICAO code, an airport by IATA code; relay 78: kept in `data/facts.db`, SQLite read per card,
+every airline still flying, airport and model refreshed in batches once a month at night, `facts_refresh`) and what you spotted
 from `/logbook/spotted` and the logbook search. Unknown details show "/" (`NA`/`orNA`). Features check
 `window.OVERHEAD_RELAY_VERSION` before using newer relay endpoints. Shared blocks (cards, places, tips, achievements,
 account, game/records) live in the board and are copied by the app build.
