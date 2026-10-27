@@ -166,6 +166,22 @@ WIKI = {
 | fleet size = 262
 | destinations = 152
 }}"""),
+    # relay 77 (to-do #122): Wizz Air Malta flies under its group's name (the brand's card, its fleet with Malta's and
+    # the UK's); Austrian keeps its own, part of the Lufthansa Group
+    "Wizz Air": ("Wizz Air is a Hungarian ultra-low-cost airline.", """{{Infobox airline
+| callsign = WIZZ AIR
+| fleet size = 118
+| destinations = 194
+}}"""),
+    "Wizz Air Malta": ("Wizz Air Malta is a Maltese low-cost airline, a subsidiary of Wizz Air.", """{{Infobox airline
+| fleet size = 127
+}}"""),
+    "Wizz Air UK": ("Wizz Air UK is a British low-cost airline.", """{{Infobox airline
+| fleet size = 21
+}}"""),
+    "Lufthansa Group": ("The Lufthansa Group is a German airline group.", """{{Infobox company
+| founded = 1926
+}}"""),
     "Vienna International Airport": ("Vienna International Airport is the international airport of Vienna.", ""),
     "Dubai International Airport": ("Dubai International Airport is the primary international airport serving Dubai.", ""),
 }
@@ -177,9 +193,14 @@ WD_QTY = lambda n, unit="1", year=None: {"mainsnak": {"datavalue": {"value": {"a
 WIKIDATA = {
     "Q781770": ("Austrian Airlines", "Austrian Airlines", {"P230": [WD_STR("AUA")], "P571": [WD_TIME(1957, 9, 30, 11)], "P113": [WD_ITEM("Q191588")],
                                                           "P114": [WD_ITEM("Q189208")], "P159": [WD_ITEM("Q874848")], "P127": [WD_ITEM("Q9325")],
+                                                          "P749": [WD_ITEM("Q62589018")],
                                                           "P18": [WD_STR("OE-LPM @ VIE, 2024-08-30.jpg")]}),
     "Q190811": ("Emirates", "Emirates (airline)", {"P230": [WD_STR("UAE")], "P571": [WD_TIME(1985)], "P113": [WD_ITEM("Q193439")]}),
     "Q11187": ("Alitalia", "Alitalia", {"P230": [WD_STR("AZA")], "P576": [WD_TIME(2021, 10, 14, 11)]}),
+    "Q335147": ("Wizz Air", "Wizz Air", {"P230": [WD_STR("WZZ")], "P571": [WD_TIME(2003, 9, 0, 10)], "P749": [WD_ITEM("Q114314826")]}),
+    "Q113637091": ("Wizz Air Malta", "Wizz Air Malta", {"P230": [WD_STR("WMT")], "P571": [WD_TIME(2022)], "P749": [WD_ITEM("Q114314826"), WD_ITEM("Q335147")]}),
+    "Q55525155": ("Wizz Air UK", "Wizz Air UK", {"P230": [WD_STR("WUK")], "P571": [WD_TIME(2017)], "P749": [WD_ITEM("Q114314826")]}),
+    "Q114314826": ("Wizz Air Holdings", "", {}), "Q62589018": ("Lufthansa Group", "Lufthansa Group", {"P571": [WD_TIME(1926, 1, 6, 11)]}),
     "Q191588": ("Vienna International Airport", "Vienna International Airport", {
         "P238": [WD_STR("VIE")], "P3872": [WD_QTY(29530000, year=2023), WD_QTY(31700000, year=2024)], "P2044": [WD_QTY(600, "http://www.wikidata.org/entity/Q3710")],
         "P1619": [WD_TIME(1938)], "P529": [WD_STR("11/29"), WD_STR("16/34")], "P137": [WD_ITEM("Q699346")], "P931": [WD_ITEM("Q1741")], "P17": [WD_ITEM("Q40")],
@@ -206,13 +227,22 @@ def wikipedia(q):
 
 
 def wikidata(q):
-    """The fake Wikidata API: haswbstatement searches by P230 and P238, and wbgetentities."""
+    """The fake Wikidata API: haswbstatement searches by P230 and P238 (and by an item, as P749), and wbgetentities
+    by ids or by English page titles."""
     if (q.get("action") or [""])[0] == "query":
         m = re.match(r"haswbstatement:(P\d+)=(\w+)$", (q.get("srsearch") or [""])[0])
         WM_ASKED["find:" + (m.group(2) if m else "")] += 1
-        hits = [k for k, (_, _, c) in WIKIDATA.items() if m and any(s["mainsnak"]["datavalue"]["value"] == m.group(2) for s in c.get(m.group(1), []))]
+        val = lambda s: s["mainsnak"]["datavalue"]["value"]       # noqa: E731
+        hits = [k for k, (_, _, c) in WIKIDATA.items() if m and any(val(s) == m.group(2) or isinstance(val(s), dict) and val(s).get("id") == m.group(2)
+                                                                   for s in c.get(m.group(1), []))]
         return {"query": {"search": [{"title": k} for k in hits]}}
     ents = {}
+    if q.get("titles"):
+        t = q["titles"][0]
+        hit = next((k for k, (_, page, _) in WIKIDATA.items() if page and page.casefold() == t.casefold()), None)
+        if not hit:
+            return {"entities": {"-1": {"site": "enwiki", "title": t, "missing": ""}}}
+        q = {"ids": [hit]}
     for k in (q.get("ids") or [""])[0].split("|"):
         if k in WIKIDATA:
             label, page, claims = WIKIDATA[k]
@@ -243,7 +273,8 @@ def away(lat, lon):
 # rows that the relay takes it for a whole list.
 AIRLINES_CSV = "\ufeffCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\r\n" + "".join(
     f"{c},{n},{c},{i},,\r\n" for c, n, i in [("AUA", "Austrian Airlines", "OS"), ("EIN", "Aer Lingus", "EI"),
-                                             ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE")]) + "".join(
+                                             ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE"),
+                                             ("WZZ", "Wizz Air", "W6"), ("WMT", "Wizz Air Malta", "W4")]) + "".join(
     f"Q{a}{b},Made-up Air {a}{b},Q{a}{b},,,\r\n" for a in "ABCDEFGHIJ" for b in "ABCDEFGHIJKL")
 
 
