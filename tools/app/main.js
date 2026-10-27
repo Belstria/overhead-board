@@ -4031,7 +4031,7 @@ function gAwLine(a, f){
   const t = gTierT(a.tier), R = gRules(), lim = (R && R.limit[a.tier]) || 0;
   if (a.k === "pass") return [T("{t} plane", {t}) + (lim ? " · " + T("{n} of {m} today", {n: nf.format(a.n || 1), m: nf.format(lim)}) : ""), a.p, ""];
   if (a.k === "limit") return [T("{t} limit reached: {m} of {m} today", {t, m: nf.format(lim || (a.n || 1) - 1)}), 0, "lim"];
-  if (a.k === "scan") return [T("Sky view scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}), a.p, ""];
+  if (a.k === "scan") return [T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
   return [T("Points"), a.p, ""];
@@ -4063,10 +4063,10 @@ function gAwards(list, quiet){
   const pass = fresh.filter(a => a.k === "pass"), sum = pass.reduce((s, a) => s + a.p, 0);
   if (pass.length === 1) {
     const a = pass[0], f = fromRelay(a);
-    gPop({mini: true, kind: a.tier, band: T("POINTS · WITHIN {k} KM", {k: gKm()}), bandR: T(TIER_UP[a.tier] || "UNCOMMON") + " ★", who: gWho(f, a.km), p: a.p});
+    gPop({mini: true, kind: a.tier, band: T("WITHIN {k} KM", {k: gKm()}), bandR: T(TIER_UP[a.tier] || "UNCOMMON") + " ★", who: gWho(f, a.km), p: a.p});
   } else if (pass.length) {
     const top = pass.reduce((b, a) => a.p > b.p ? a : b);
-    gPop({mini: true, kind: top.tier, band: T("POINTS · WITHIN {k} KM", {k: gKm()}), who: [T("{n} planes", {n: pass.length}), pass.map(a => fromRelay(a).flight).join(" · ")], p: sum});
+    gPop({mini: true, kind: top.tier, band: T("WITHIN {k} KM", {k: gKm()}), who: [T("{n} planes", {n: pass.length}), pass.map(a => fromRelay(a).flight).join(" · ")], p: sum});
   }
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
     const f = fromRelay(a), R = gRules(), m = (R && R.limit[a.tier]) || (a.n || 1) - 1, t = gTierT(a.tier);
