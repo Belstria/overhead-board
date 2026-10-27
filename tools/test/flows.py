@@ -20,6 +20,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the cards' facts (the fake Wikipedia and Wikidata): a model's infobox and specs (a table or the template), an airline by
   its ICAO code, an airport by its IATA code, cleaned; asked once and kept; none for a missing page or a dissolved
   airline; profiles only. What a profile spotted of an airline, a model or an airport (relay 74)
+- Spotted today by place: a saved place at the profile's own spot and the profile's place share one list, each pass
+  once, with the same day's numbers; a saved place elsewhere keeps its own (relay 75, to-do #121)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88);
@@ -138,6 +140,31 @@ def checks():
     st, _, b = call("/logbook/category?c=passenger", "test-device")
     expect("a category's top ten", st == 200 and isinstance(json.loads(b).get("types"), list), True)
     expect("an unknown category", call("/logbook/category?c=spaceship", "test-device")[0], 400)
+
+    # relay 75 (to-do #121): a saved place at the profile's own spot ("Home") and the profile's place ("home") share one
+    # Spotted today, each pass once; a saved place elsewhere doesn't
+    st, _, b = call("/places", "test-device")
+    had = json.loads(b).get("places", []) if st == 200 else []
+    call("/places", "test-device", body={"places": [{"k": "Home", "n": "Vienna", "lat": 48.2085, "lon": 16.3731, "r": 15},
+                                                     {"k": "Away", "n": "Linz", "lat": 48.3069, "lon": 14.2858, "r": 15}]})
+    near = "/aircraft/48.2085/16.3731/25"
+    call(near + "?pl=Home&pc=48.2085,16.3731&pr=15", "test-device")
+    call(near, "test-device")
+    call(near + "?pl=Home&pc=48.2085,16.3731&pr=15", "test-device")
+
+    def day_of(place):
+        st, _, b = call("/sightings?over=1&deg=45&place=" + urllib.parse.quote(place), "test-device")
+        return json.loads(b) if st == 200 else {}
+    home, saved, away = day_of("home"), day_of("Home"), day_of("Away")
+    ids = lambda d: sorted(e["id"] for e in d.get("entries", []))
+    expect("home and the saved place there list the same planes", ids(home) == ids(saved) and len(ids(home)) > 0, True)
+    expect("tagged Home, listed for home", {e["id"] for e in home.get("entries", []) if e.get("place") == "Home"} <=
+           set(ids(home)), True)
+    seen = sorted((e["hex"], e["ts"]) for e in home.get("entries", []))
+    expect("each pass once in the merged list", [a for a, b in zip(seen, seen[1:]) if a[0] == b[0] and b[1] - a[1] < 45 * 60000], [])
+    expect("the day's numbers alike", (home.get("stats") or {}).get("planes") == (saved.get("stats") or {}).get("planes"), True)
+    expect("a saved place elsewhere keeps its own list", [e for e in away.get("entries", []) if e.get("place") != "Away"], [])
+    call("/places", "test-device", body={"places": had})
 
     # the game (relay 59): only a phone on live location scores, within 8 km; Sky view's lock-on once per plane
     live = "?pl=live&pc=48.2085,16.3731&pr=15&fix=5"   # relay 72: a live request without fix is stale

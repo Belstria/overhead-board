@@ -188,7 +188,7 @@ tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullD
     tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlPicWait tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd imgReady tlTap textAt tlOpen tlGlide tlFold tlScroll sightPlane
-relay/serve.py: day_stats sightings_json /sightings +Spot.day_entries
+relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
     "- **The day runs from 03:00"
 docs/history.md: "Spotted today's PAGE x OF y"
