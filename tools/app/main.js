@@ -838,6 +838,8 @@ async function fetchLogbook(){
   renderLogbook(); renderGame();
 }
 let lbSig = "", lbView = "logbook";
+// 1.97.1.1 (to-do #130): the places list can arrive after the Logbook's first draw; its bar (the places are chips) then shows at once.
+placesHooks.push(() => { if (tab === "logbook") renderLogbook(); });
 // 1.55 (to-do #65): the Logbook tab shows one of the board's four logbook views at a time, picked in a row that stays
 // put (Logbook, Collection, Records, Week & month); the places are a second row, only under Logbook.
 function lbViewsBar(){
@@ -4022,7 +4024,7 @@ function gPop(o){
   if (!box) { box = document.createElement("div"); box.id = "gAws"; }
   if (box.parentNode !== host) host.appendChild(box);
   const el = document.createElement("div");
-  el.className = "gAw" + (o.mini ? " mini" : "");
+  el.className = "gAw" + (o.mini ? " mini" : "") + (o.rip ? " rip" : "");
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
     (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
     (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
@@ -4075,7 +4077,7 @@ function gScanPops(r){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
   gPop({kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
-    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f)), stub: T("SCAN"), p: main.reduce((s, a) => s + a.p, 0)});
+    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f)), stub: T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true});
   if (!stk) return;
   const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
@@ -4118,6 +4120,14 @@ function gJingle(){
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g).connect(out); o.start(t); o.stop(t + dur + .05); };
   [[1047, 0], [1319, .09], [1568, .18], [2093, .27]].forEach(([f, d]) => tone(f, t0 + d, .35, .3));
   [1568, 2093, 2637].forEach(f => tone(f, t0 + .42, 1.1, .14));
+}
+function gRip(){
+  if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
+  const n = actx.createBuffer(1, actx.sampleRate * .25, actx.sampleRate), d = n.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < .35 ? 1 : .25) * (1 - i / d.length);
+  const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
+  src.connect(bp).connect(g).connect(sfxOut()); src.start();
 }
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
@@ -4323,7 +4333,7 @@ async function gLockOn(hex){
   if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
   const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
   burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
-  gJingle();
+  gJingle(); setTimeout(gRip, 1050);                                // 1.97.1.1: the scan pass's stub tears off again (CSS .rip)
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
   setTimeout(() => { burst.innerHTML = ""; }, 1200);
   setTimeout(() => gRefresh(true), 2500);

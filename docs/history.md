@@ -943,6 +943,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.1.1 (to-do #130 and #134, bug fixes): **the scan's stub tears again; the Logbook's place bar shows when the
+  places come late.** #134: 1.96 (4c84b45) had removed the centre pass (`#arPass`) and with it the stub's tear, and
+  turned the animation off for every pass in `#gAws` (`.gAw .pF .stub{animation:none}`). `gPop({rip: true})` (only the
+  scan's pass, `gScanPops`) adds `.gAw.rip`, whose stub runs `pfTear` again (1.05 s after the pass appears), and
+  `gRip()` (the paper sound, 1.95's code) plays with it from `gLockOn`. The streak's pass and the passive ones keep
+  their stubs; a scan with no points (`!r.bonus`) shows no pass, as before. #130: the chips of `lbChips()` need
+  `places.list`, read by `placesLoad()` 1.5 s after the start; if the Logbook was drawn before, its bar stayed hidden
+  (`renderLogbook` draws the bar before its `lbSig` check, but nothing called it). `placesLoad` now calls `placesHooks`
+  when the list changed; the app registers `renderLogbook` (only on the Logbook tab), whose `lbSig` keeps the rest
+  from redrawing.
 - 1.97.1 (to-do #131, Dave's request of 27 Oct): **the in-place card opens as a plain vertical growth, and its top bar
   folds it**. `tlOpen(L, li, e)` no longer takes the finger's place: no `clip-path` circle on the photo and no gliding
   texts (`textAt` and `tlGlide`, `.tlGhost` are gone). The row grows from its height to the card's (`li.animate`, the

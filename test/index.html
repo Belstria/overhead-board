@@ -7223,6 +7223,7 @@ function tipNext(){
    profile's own ("home": no `pl`, the relay knows it). */
 const placesRelay = () => !!relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 33;
 let places = {list: [], at: 0};
+const placesHooks = [];                      // 1.97.1.1: called when the list of places read from the relay changed (the app's Logbook bar)
 let allPlaces = false;                       // the app's Today: every place instead of this one
 // 1.49 (relay 42): every screen is a profile's, so a location without a label is the profile's own place, "home".
 const placeKeyNow = () => S.live ? "live" : S.placeKey || "home";
@@ -7238,7 +7239,9 @@ function placeQs(){
 const sightPlaceQ = every => placesRelay() && !every ? `&place=${encodeURIComponent(placeKeyNow())}` : "";
 async function placesLoad(){
   if (!placesRelay()) return places;
+  const was = JSON.stringify(places.list);
   try { const j = await fetchJSON(`${relay()}/places`, {}, 8000); places = {list: j.places || [], at: Date.now()}; } catch {}
+  if (JSON.stringify(places.list) !== was) for (const f of placesHooks) f();
   return places;
 }
 async function placesSave(list){
@@ -7755,6 +7758,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.1.1", date: "2026-10-27", notes: [
+    "Scanning a plane in Sky view tears the stub off the pass again.",
+    "The Logbook's places bar shows up on its own when the places arrive late.",
+  ]},
   {v: "1.97.1", date: "2026-10-27", notes: [
     "A plane's card in Recent flights and Today opens by simply growing downwards, without the circle from your finger.",
     "A tap on the open card's top bar folds it, like the arrow.",
