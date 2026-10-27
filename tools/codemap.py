@@ -28,7 +28,7 @@ AREAS = REPO / "tools" / "codemap_areas.txt"
 BOARD, MAIN, HEAD, RELAY = "test/index.html", "tools/app/main.js", "tools/app/head.html", "relay/serve.py"
 CHECKED = (BOARD, MAIN, RELAY)                  # every top-level function, const and class belongs to an area
 CHECKED_CSS = (BOARD, HEAD)                     # and every CSS rule
-# --uses leaves out copies, generated files, data and the parked versions (CLAUDE.md: don't keep those in step)
+# --uses leaves out copies, generated files, data and the parked versions (docs/architecture.md: don't keep those in step)
 SKIP_USES = re.compile(r"^(index\.html|i18n\.js|sounds\.js|app/index\.html|test/sounds\.js|test-api/|light/|glass/|"
                        r"tools/light/|tools/glass/|fonts/|android/app/src/main/res/|.*\.(png|jpg|wav|woff2|ico|COF|jar)$)")
 WIDTH = 150
@@ -885,7 +885,7 @@ def show_build():
 # ---------- output ----------
 
 CODE_ORDER = [BOARD, HEAD, MAIN, RELAY]
-TOGETHER = ("README.md", "docs/history.md", "CLAUDE.md", "docs/code-map.md", "test/i18n.js")
+TOGETHER = ("README.md", "docs/history.md", "CLAUDE.md", "docs/architecture.md", "docs/code-map.md", "test/i18n.js")
 EVERY = "every-change"                              # the area of what every change goes with (shown under each area)
 SHARED = (BOARD, MAIN, HEAD, RELAY, "test/i18n.js", "tools/test/flows.py", "tools/test/smoke.py", "tools/test/fakesrc.py",
           "tools/test/run_test_relay.py") + TOGETHER       # files many areas share: a change there needs its own place

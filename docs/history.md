@@ -1,7 +1,7 @@
 # Fallblatt: version-by-version details
 
-Moved out of `CLAUDE.md` (which holds the rules and the current architecture in short) so that every session
-doesn't have to read it with every step. Read the part for the area you are touching: it says what each version
+Moved out of `CLAUDE.md` (which holds the rules; `docs/architecture.md` the current architecture in short) so that
+every session doesn't have to read it with every step. Read the part for the area you are touching: it says what each version
 added and names the functions and fields involved. Text from before 1.49 / relay 42 is history: **"Home" as a
 profile or identity no longer exists** (every screen is a profile's device since relay 42; `at_home()` only opens the
 admin paths), the Flightradar24 budget is not 27,000 but 54,000 a month until 2027-01-08 and 27,000 after, and the

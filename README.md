@@ -989,8 +989,8 @@ copy of this repository, `--source URL` to read positions from your own receiver
 
 ## Working on the board
 
-`CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
-`py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
+`CLAUDE.md` has the working rules, `docs/architecture.md` how the pieces fit together. To try a change without touching the
+real relay, `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
 test profile: open `http://localhost:8096/test-signin` once in a browser; the made-up flights play out in the first few
 minutes after it starts; `--port 8296` runs it on other ports, so test relays of several checkouts don't answer for
 each other, and `smoke.py` takes `--port` too);
