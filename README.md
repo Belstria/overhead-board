@@ -571,7 +571,8 @@ The main board has everything below. New features are tried on `/test/` first; o
     Classic, Frankfurt and Blue. Not in the light version.
   A new unlock pops up like an achievement.
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
-  switch, a thumbwheel and a push button; the flaps keep their synthesised clack (credited in About; see
+  switch, a thumbwheel and a push button (1.97.2: the big push buttons, the rail and the bottom bar keep their thock; small
+  buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick); the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.

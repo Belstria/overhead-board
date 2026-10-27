@@ -640,7 +640,7 @@ function renderRecent(){
   recentSig = sig;
   tlFill(L, list.length ? tlHtml(list, 15, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
-$("recentAll").onclick = () => { ctlSound.press(); showTab("today"); };
+$("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
@@ -725,7 +725,7 @@ function buildSvTools(){
   box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
   svFindWire(box, () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
-    ctlSound.press();
+    ctlSound.click();
     const k = b.dataset.t;
     svFilter = k;
     svSig = ""; renderToday();
@@ -848,7 +848,7 @@ function lbViewsBar(){
   bar.innerHTML = views.map(v => `<button type="button" data-v="${v}"${v === lbView ? ' aria-current="page"' : ""}>${escH(T(LB_VIEW_NAMES[v]))}</button>`).join("");
   for (const btn of bar.children) btn.onclick = () => {
     if (btn.dataset.v === lbView) return;
-    ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
+    ctlSound.nav(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
   };
 }
 /* 1.65: search the whole logbook (relay 55): a registration, a flight, a type or an airline, over every saved day.
@@ -864,7 +864,7 @@ function lbFindSetup(){
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
   const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
   inp.oninput = () => set(inp.value.trim());
-  x.onclick = () => { ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+  x.onclick = () => { ctlSound.click(); inp.value = ""; set(""); inp.focus(); };
 }
 async function lbFind(){
   const out = $("lbFound"), on = lbQuery.replace(/[\s-]/g, "").length >= 2, tok = ++lbFindTok;
@@ -919,7 +919,7 @@ async function catFetch(){
 document.addEventListener("click", e => {
   const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbFound [data-fp]");
   if (!t) return;
-  ctlSound.press();
+  ctlSound.click();
   if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
@@ -988,7 +988,7 @@ function renderLogbook(){
       : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
     for (const btn of bar.children) btn.onclick = () => {
       if (btn.dataset.p === "saved") return lbPlaceSheet();
-      if (btn.dataset.p !== lbPlace) { ctlSound.press(); lbPick(btn.dataset.p); }
+      if (btn.dataset.p !== lbPlace) { ctlSound.click(); lbPick(btn.dataset.p); }
     };
   }
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
@@ -1031,7 +1031,7 @@ function renderLogbook(){
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
   $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
-  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
+  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.click();
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
 }
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
@@ -1041,12 +1041,12 @@ async function lbPick(id){
 }
 // 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
 function lbPlaceSheet(){
-  ctlSound.press();
+  ctlSound.nav();
   const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
     `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
     `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
-    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.press(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
+    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.click(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -1118,7 +1118,7 @@ function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
 function hangarCard(code, again){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
-  if (!again) ctlSound.press();
+  if (!again) ctlSound.nav();
   let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u));
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
@@ -1196,7 +1196,7 @@ function trophiesHtml(g0){
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
-  for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.press(); gTrTab = b.dataset.tt; redraw(); };
+  for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.nav(); gTrTab = b.dataset.tt; redraw(); };
 }
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
@@ -1251,7 +1251,7 @@ function periodHtml(){
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
-  ctlSound.press();
+  ctlSound.click();
   if (b.dataset.per) { lbPeriod = b.dataset.per; if (lbPeriod !== "year") { review.span = lbPeriod; review.back = 0; } }
   else if (lbPeriod === "year") yearBack = Math.max(0, Math.min(10, yearBack + +b.dataset.pb));
   else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.pb));
@@ -1273,7 +1273,7 @@ function reviewHtml(){
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-rs], [data-rb]");
   if (!b || b.disabled) return;
-  ctlSound.press();
+  ctlSound.click();
   if (b.dataset.rs) { review.span = b.dataset.rs; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.rb));
   lbSig = ""; renderLogbook();
 });
@@ -1307,7 +1307,7 @@ function periodPicture(p){
   return new Promise(ok => cv.toBlob(ok, "image/png"));
 }
 async function shareYear(){
-  ctlSound.press();
+  ctlSound.click();
   const y = yearData;
   picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: yearFacts(y),
     nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`);
@@ -1315,7 +1315,7 @@ async function shareYear(){
 async function sharePeriod(){
   const r = reviewData();
   if (!r || !r.planes) return;
-  ctlSound.press();
+  ctlSound.click();
   const yr = {day: "numeric", month: "short", year: "numeric"};
   const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
   picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
@@ -1418,7 +1418,7 @@ function lookHeadingFrom(e){
   lookSoon();
 }
 async function lookStart(quiet){
-  if (!quiet) ctlSound.press();
+  if (!quiet) ctlSound.nav();
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
@@ -1645,7 +1645,7 @@ function arHold(why){
   arHeldAt = Date.now(); arHeldWhy = why;
 }
 async function arOpen(){
-  ctlSound.press();
+  ctlSound.nav();
   const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
     dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
   try {
@@ -1703,7 +1703,7 @@ function arCalCheck(a, b, g, acc, gyro){
 }
 function arClose(){
   if (!arOn) return;
-  arOn = false; ctlSound.press();
+  arOn = false; ctlSound.nav();
   dlog("debug", `Sky view closed after ${Math.round((Date.now() - arSince) / 1000)} s`);
   $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
@@ -1934,7 +1934,7 @@ function arReport(){
   };
 }
 $("arFlag").onclick = async () => {
-  ctlSound.press();
+  ctlSound.click();
   const b = $("arFlag"), say = text => { arNote = {text, until: Date.now() + 8000}; $("arHint").textContent = text; };
   b.disabled = true;
   try {
@@ -1955,7 +1955,7 @@ $("arFlag").onclick = async () => {
 // many planes. Shown in a card with Share and Save.
 let arShotAt = 0, arShownN = 0, arLocked = "", arLift = 0;   // arLocked (1.90): the plane the ring last filled on
 async function arSnap(){
-  ctlSound.press();
+  ctlSound.click();
   const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;
   if (!W || !H) return;
   const cv = document.createElement("canvas"), g = cv.getContext("2d");
@@ -2140,7 +2140,7 @@ function arAutoChip(){
   b.innerHTML = `<b>${escH(T("AUTO"))}</b><span>${escH(!arAuto ? T("off") : sun ? T("lined up · sun") : n ? T(n === 1 ? "lined up · 1 plane" : "lined up · {n} planes", {n}) : T("looking"))}</span>`;
 }
 $("arAuto").onclick = () => {
-  ctlSound.press(); arAuto = !arAuto; arAutoFinds = []; arAutoLock = null;
+  ctlSound.click(); arAuto = !arAuto; arAutoFinds = []; arAutoLock = null;
   try { localStorage.setItem("od.ar.auto", arAuto ? "1" : "0"); } catch {}
   arAutoChip();
 };
@@ -2263,7 +2263,7 @@ function arAimDraw(g, W, H){
   arPeekWatch(hex);
   if (hex && k >= 1 && hex !== sel && hex !== arAim.done) {
     if (hex === arWant) arWant = "";
-    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.press(); arCardRender();
+    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.nav(); arCardRender();
     gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
@@ -2324,10 +2324,10 @@ function arTour(step){
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
     `<button class="cBtn arNext" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
   box.hidden = false;
-  box.querySelector(".arNext").onclick = () => { ctlSound.press(); arTour(step + 1); };
-  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
+  box.querySelector(".arNext").onclick = () => { ctlSound.click(); arTour(step + 1); };
+  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.click(); arTour(AR_TOUR.length); };
 }
-$("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
+$("arInfo").onclick = () => { ctlSound.nav(); arTour(0); };
 /* 1.78: the cards (an airline, a type, an aircraft, a place …) are sheets, the way Sky view's card is: up from the bottom,
    floating, with a grip; dragged down (or flicked) past the mark, or tapped beside, one slides away; a card that changes
    while it is open fades into its new content and height. The board's cardOpen and cardClose call these. */
@@ -2396,7 +2396,7 @@ function cardSheetClose(b){
     if (!d || d.beside || !d.on) return;
     dragged = Date.now();
     $("cardBox").classList.remove("drag");
-    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.press(); cardClose(); }
+    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.click(); cardClose(); }
     else d.ci.style.transform = "";                  // springs back
   };
   document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
@@ -2412,7 +2412,7 @@ function arTap(e){
   if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
   arFull = !!arSel;                                  // a plane tapped: its whole card
-  if (arSel || was) ctlSound.press();
+  if (arSel || was) ctlSound.nav();
   arCardRender();
 }
 let arCardSig = "";
@@ -2452,7 +2452,7 @@ function arCardRender(){
     (pk.pic ? `<img class="arGhost" src="${escH(pk.pic)}" alt="" referrerpolicy="no-referrer">` : "");
   box.hidden = false;
   b.wire(box.querySelector(".arFullL"));
-  box.querySelector(".arPeekL").onclick = () => { if (!arP) { ctlSound.press(); arTo(1); } };
+  box.querySelector(".arPeekL").onclick = () => { if (!arP) { ctlSound.nav(); arTo(1); } };
   arSet(arFull ? 1 : 0);
   for (const im of box.querySelectorAll("img")) im.addEventListener("load", () => { if (!box.classList.contains("drag")) arSet(arP); }, {once: true});
 }
@@ -2506,7 +2506,7 @@ function arPeekWatch(hex){
 function arCardDismiss(){
   const box = $("arCard");
   if (box.hidden || box.classList.contains("out")) return;
-  ctlSound.press();
+  ctlSound.click();
   box.classList.remove("drag", "anim"); box.style.transform = ""; box.classList.add("out");
   const was = arSel;
   setTimeout(() => { box.classList.remove("out"); if (arSel === was) { arSel = ""; arFull = false; } arCardSig = ""; arCardRender(); }, 260);   // a new lock-on meanwhile keeps its card
@@ -2560,14 +2560,14 @@ $("skyCv").onclick = e => { if ($("lookCv").onclick) $("lookCv").onclick(e); }; 
 // off, a card asks first: go live and open, or not now.
 function arTry(){
   if (S.live || S.demo || !liveOk()) return arOpen();
-  ctlSound.press();
+  ctlSound.nav();
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Sky view needs live location"))}</h3></div></div>` +
     `<p class="note">${escH(T("It shows the planes around you, wherever you are, so the app follows your location while it's open."))}</p>` +
     `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
-    box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.press(); cardClose(); }; });
+    box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
 async function arGoLive(){
-  ctlSound.press(); cardClose();
+  ctlSound.click(); cardClose();
   // iPhones let a page ask for the motion sensors only straight from a tap: asked now, before waiting for the location
   try { if (typeof DeviceOrientationEvent.requestPermission === "function") await DeviceOrientationEvent.requestPermission(); } catch {}
   gGoLive();
@@ -2594,7 +2594,7 @@ function skyRowRender(){
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
-$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
+$("arReset").onclick = () => { ctlSound.click(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
   arHeldAt = 0; arGap = null; };                // 1.86: and north from the compass again, at once
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
@@ -2777,7 +2777,7 @@ function applyLang(){
 // Overhead and Airport in the title: tap one to switch.
 function setMode(md){
   if (S.mode === md) return;
-  ctlSound.press(); audioInit();
+  ctlSound.nav(); audioInit();
   S.mode = md; saveSettings();
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
@@ -2887,7 +2887,7 @@ function cockpitOpen(){
   draft = cockpitDraft();
   const box = $("cockpit");
   box.innerHTML = PLATES.map(plateHtml).join("");
-  $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
+  $("aboutX").onclick = () => { ctlSound.click(); aboutHide(); };
   $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
   wireCockpit(box);
@@ -2931,7 +2931,7 @@ function aboutOpen(){
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
-  $("aboutLog").onclick = () => { ctlSound.press(); logShow(); };
+  $("aboutLog").onclick = () => { ctlSound.click(); logShow(); };
   renderAbout();
   relayLoad();
 }
@@ -2995,7 +2995,7 @@ function logShow(){
     `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div>` +
     `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
   for (const b of box.querySelectorAll("[data-lf]")) b.onclick = () => {
-    ctlSound.press(); logFilter = b.dataset.lf;
+    ctlSound.click(); logFilter = b.dataset.lf;
     for (const x of box.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
     logRender();
   };
@@ -3025,7 +3025,7 @@ function logText(){
     `${versionLine()} · relay ${window.OVERHEAD_RELAY_VERSION || "–"}\n${navigator.userAgent}\n${statusLine()}\n\n${lines || "Nothing logged."}\n`;
 }
 async function logCopy(){
-  ctlSound.press();
+  ctlSound.click();
   const text = logText(), btn = $("logCopy");
   let ok = false;
   try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
@@ -3033,7 +3033,7 @@ async function logCopy(){
   btn.textContent = T(ok ? "Copied" : "Couldn't copy");
   setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
 }
-$("logX").onclick = () => { ctlSound.press(); logHide(); };
+$("logX").onclick = () => { ctlSound.click(); logHide(); };
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
@@ -3055,7 +3055,7 @@ function jumpBuild(){
   if (seg.dataset.ids !== ids.join() + LANG) {
     seg.dataset.ids = ids.join() + LANG;
     seg.innerHTML = ids.map(id => `<button type="button" data-jump="${id}" aria-pressed="false">${escH(jumpName(id))}</button>`).join("");
-    for (const b of seg.children) b.onclick = () => { ctlSound.press(); jumpGo(b.dataset.jump); };
+    for (const b of seg.children) b.onclick = () => { ctlSound.nav(); jumpGo(b.dataset.jump); };
     seg.setAttribute("aria-label", T("Jump to"));
     jumpOn = "";
   }
@@ -3125,7 +3125,7 @@ $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
-$("rvReset").onclick = () => { ctlSound.press(); radarZoomTo(0); };
+$("rvReset").onclick = () => { ctlSound.click(); radarZoomTo(0); };
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
 // d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
 // usual range for the radius, and the middle.
@@ -3169,7 +3169,7 @@ const pinch = {pts: new Map(), d0: 0, r0: 0, quiet: 0, tapAt: 0, tapX: 0, tapY: 
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;
-  ctlSound.press();
+  ctlSound.click();
   const L = $("svList"), y = scrollY;
   L.style.minHeight = L.offsetHeight + "px";              // the list keeps its height while the other one loads (1.43)
   allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
@@ -3201,7 +3201,7 @@ document.addEventListener("click", e => {
   const x = tlFind(b.dataset.more);
   if (!x) return;
   if (!b.classList.contains("open")) { if (Date.now() - swipeEnded > 400) tlTap(b, e.clientX, e.clientY); return; }
-  if (e.target.closest("[data-fold], .tlK")) { ctlSound.press(); return tlFold(b, true); }
+  if (e.target.closest("[data-fold], .tlK")) { ctlSound.nav(); return tlFold(b, true); }
   const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
@@ -3229,7 +3229,7 @@ function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
 async function tlTap(li, x, y){
   const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k), tok = ++tlTok;
   if (!L || !e) return;
-  ctlSound.press();
+  ctlSound.nav();
   // 1.97.3: it opens at once; its photo window shows a spinner until the photo is in
   if (tok === tlTok && li.isConnected && !li.classList.contains("open")) tlOpen(L, li, e);
 }
@@ -3624,12 +3624,12 @@ function welcome(){
     n.textContent = T("Notifications are on.");
     setTimeout(acctStep, 700);
   };
-  $("wPushNo").onclick = () => { ctlSound.press(); acctStep(); };
+  $("wPushNo").onclick = () => { ctlSound.nav(); acctStep(); };
   function acctStep(){              // an account, so the logbook comes along to a new phone (https only: passkeys)
     if (!accountsOk() || !passkeysHere()) return pick();
     wSwap([$("wStep1"), $("wPush")], $("wAcct"));
     $("wAcctNo").textContent = T("Not now");
-    $("wAcctNo").onclick = () => { ctlSound.press(); pick(); };
+    $("wAcctNo").onclick = () => { ctlSound.nav(); pick(); };
     accountBox($("wAcctBox"), a => { if (a && a.user && (a.passkeys.length || a.password)) $("wAcctNo").textContent = T("Continue"); });
   }
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
@@ -3643,7 +3643,7 @@ function welcome(){
     setTimeout(() => { box.hidden = true; box.classList.remove("wDone"); updateWhere(); run(); }, 380);
   });
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
-  $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; run(); showTab("settings"); };
+  $("wLater").onclick = () => { ctlSound.nav(); box.hidden = true; run(); showTab("settings"); };
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
@@ -3761,7 +3761,7 @@ function updateFooter(){
 }
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
 function statusCard(){
-  ctlSound.press();
+  ctlSound.nav();
   const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
   const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
   const draw = () => {
@@ -3778,7 +3778,7 @@ function statusCard(){
   };
   const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>` +
     `<div class="cBtns"><button class="cBtn" type="button" id="stLog">${escH(T("Log"))}</button></div>`);
-  $("stLog").onclick = () => { ctlSound.press(); cardClose(); logShow(); };
+  $("stLog").onclick = () => { ctlSound.click(); cardClose(); logShow(); };
   const tick = setInterval(() => {
     const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
     if (!el) return clearInterval(tick);
@@ -3880,11 +3880,11 @@ function gStripSetup(){
   box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
+  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
 }
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
-for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
+for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
   $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
@@ -4155,10 +4155,10 @@ function renderGame(){
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
   hgWire(box);
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
-  for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
+  for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
-  $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+  $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
@@ -4176,7 +4176,7 @@ function gLimHtml(g){
 // 1.79: How points work, a card. 1.96 (to-do #127): the rules on one screen, from the relay: each rarity's points within
 // the circle and with a scan, today's planes against the limits, the extras and the daily streak.
 function gHowCard(){
-  ctlSound.press();
+  ctlSound.nav();
   const g = gme || {}, R = gRules(), L = g.limits || {}, k = gKm();
   const rows = R ? TIER_DRUM.slice(1).map(t => { const [n, m] = L[t] || [0, R.limit[t]];
     return `<span><img class="tico" src="${tierIcon(t)}" alt=""></span><span>${escH(gTierT(t))}</span><span class="r">+${nf.format(R.passive[t])}</span>` +
@@ -4234,12 +4234,12 @@ async function gRecentCard(){
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
     (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you." : "Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`) +
     `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
-    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.press(); cardClose(); showTab("game"); }; });
+    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.nav(); cardClose(); showTab("game"); }; });
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
 async function playerCard(id){
-  ctlSound.press();
+  ctlSound.nav();
   const tok = cardLoading();
   let p = null;
   try { p = await fetchJSON(`${relay()}/game/player?id=${encodeURIComponent(id)}`, {}, 8000); } catch {}

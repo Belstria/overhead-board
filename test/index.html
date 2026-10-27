@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=9e8425a00c"></script>
+<script src="i18n.js?v=ab59f2591f"></script>
 <script>
 (() => {
 "use strict";
@@ -2092,7 +2092,7 @@ let actx = null, noise = null, lastClack = 0, soundForced = false;   // forced: 
 // The recordings are in sounds.js next to the board (made by tools/sounds/build_sounds.py, its version stamped by
 // tools/assets.py), fetched a few seconds after the start when sound is on, or when sound first starts (1.53.1). They are
 // decoded once; until then, and if the file can't be had (it is tried again a minute later), the synthesised sounds play.
-const SOUNDS_JS = "sounds.js?v=dd5ed9799f";
+const SOUNDS_JS = "sounds.js?v=cf16960d44";
 const SND = {};
 let sndLoading = false, sndFile = null, sndFailed = 0;
 function soundFile(){
@@ -4110,7 +4110,7 @@ function photoKey(e){
   return true;
 }
 // opened: the ring goes (a click leaves the focus on it, which would hold the page for good)
-$("photoLink").addEventListener("click", e => { e.stopPropagation(); ctlSound.press(); setTimeout(() => $("photoLink").blur(), 0); });
+$("photoLink").addEventListener("click", e => { e.stopPropagation(); ctlSound.nav(); setTimeout(() => $("photoLink").blur(), 0); });
 function renderAircraft(){
   const ids = ["acReg", "acHex", "acFlight", "acType", "acOwner", "acCountry", "acRoute"];
   if (!feat) { ids.forEach(id => setChars(id, "")); placePhoto(); return; }
@@ -4305,7 +4305,7 @@ function svFindWire(box, go){
   const set = v => { svQuery = v; x.hidden = !v; go(); };
   inp.oninput = () => set(inp.value.trim());
   for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
-  x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+  x.onclick = e => { e.stopPropagation(); ctlSound.click(); inp.value = ""; set(""); inp.focus(); };
 }
 const lampOf = r => { const L = REMARK_LOOK[r]; return L ? L.tint || (L.fill ? L.fill[0] : L.fg) : ""; };
 function altNum(ft){
@@ -4497,8 +4497,8 @@ function buildViewTools(){
     const zb = !airportMode() || AP.lat != null ? `<button class="cap small" type="button" data-z="-1" ${at(4, 4)} aria-label="${escH(T("Zoom out"))}"${radarZoomCan(-1) ? "" : " disabled"}>−</button>` +
       `<button class="cap small" type="button" data-z="1" ${at(rb.w - 68, 4)} aria-label="${escH(T("Zoom in"))}"${radarZoomCan(1) ? "" : " disabled"}>+</button>` : "";
     box.innerHTML = `<button class="cap small" type="button" data-map ${at(4, rb.h - 44)} aria-pressed="${radarMapOn}">${T("Map")}</button>` + zb;
-    box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.press(); radarMapSet(!radarMapOn); box.firstChild.setAttribute("aria-pressed", String(radarMapOn)); };
-    for (const b of box.querySelectorAll("[data-z]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); radarZoomStep(+b.dataset.z); drawStatic(); renderRadarList();
+    box.firstChild.onclick = e => { e.stopPropagation(); ctlSound.click(); radarMapSet(!radarMapOn); box.firstChild.setAttribute("aria-pressed", String(radarMapOn)); };
+    for (const b of box.querySelectorAll("[data-z]")) b.onclick = e => { e.stopPropagation(); ctlSound.click(); radarZoomStep(+b.dataset.z); drawStatic(); renderRadarList();
       buildViewTools(); const nb = box.querySelector(`[data-z="${b.dataset.z}"]`); if (nb && !nb.disabled) nb.focus(); };
     Object.assign(box.style, {right: "auto", left: `calc(${rb.x}px * var(--k))`, top: `calc(${rb.y}px * var(--k))`, width: `calc(${rb.w}px * var(--k))`, height: `calc(${rb.h}px * var(--k))`});
     return true;
@@ -4511,7 +4511,7 @@ function buildViewTools(){
     box.innerHTML = (HAS_KEYS ? svFindHtml() : "") + (placesOn ? [["places", "All places"]] : []).concat(SV_TOOLS).map(([k, t]) => `<button class="cap small" type="button" data-t="${k}">${T(t)}</button>`).join("");
     svFindWire(box, () => { svPageNo = 0; renderSpottedBoard(); });
     for (const b of box.querySelectorAll("[data-t]")) b.onclick = e => {
-      e.stopPropagation(); ctlSound.press();
+      e.stopPropagation(); ctlSound.click();
       const k = b.dataset.t;
       if (k === "prev" || k === "next") return svStep(k === "next" ? 1 : -1);
       if (k === "legend") return setLegend(!svLegend), updateViewTools();
@@ -4708,14 +4708,14 @@ function lbToolsHtml(){
   return [row1, row2].filter(Boolean).map(r => `<div class="vtRow">${r}</div>`).join("");
 }
 function lbToolsWire(box){
-  for (const b of box.querySelectorAll("[data-per], [data-pb]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); };
-  for (const b of box.querySelectorAll("[data-p]")) b.onclick = e => { e.stopPropagation(); ctlSound.press(); lbPick(b.dataset.p); };
+  for (const b of box.querySelectorAll("[data-per], [data-pb]")) b.onclick = e => { e.stopPropagation(); ctlSound.click(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); };
+  for (const b of box.querySelectorAll("[data-p]")) b.onclick = e => { e.stopPropagation(); ctlSound.click(); lbPick(b.dataset.p); };
   const inp = box.querySelector("[data-lq]"), x = box.querySelector("[data-lqx]");
   if (!inp) return;
   inp.oninput = () => { lbSeek = inp.value.trim(); x.hidden = !lbSeek; };
   inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); lbSearch(lbSeek); } };
   for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
-  x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = lbSeek = ""; x.hidden = true; inp.focus(); };
+  x.onclick = e => { e.stopPropagation(); ctlSound.click(); inp.value = lbSeek = ""; x.hidden = true; inp.focus(); };
 }
 function lbToolsSync(){
   const box = $("viewTools");
@@ -4741,7 +4741,7 @@ function lbCard(k){
   const keys = $("lbHits").contains(document.activeElement);         // OK on the remote: the card takes the ring
   if (LB_BOX.some(b => b.k === k)) lbFocusK = k;
   lbCardK = k; lbBackTo = null;
-  ctlSound.press();
+  ctlSound.nav();
   lbCardShow();
   const el = keys && $("cardBox").querySelector(".cardIn");
   if (el) { el.tabIndex = -1; el.focus({preventScroll: true}); }
@@ -4844,10 +4844,10 @@ async function lbCatFetch(){
 function lbCardWire(el){
   el.classList.add("lbCard");
   const on = (sel, fn) => { for (const b of el.querySelectorAll(sel)) b.onclick = e => { e.stopPropagation(); fn(b, e); }; };
-  on("[data-per], [data-pb]", b => { ctlSound.press(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); });
-  on("[data-pk]", (b, e) => { ctlSound.press(); cardClose(); lbPick(b.dataset.pk); if (!e.detail) lbFocusPlate(); });   // OK on a remote: the ring back on Totals
-  on("[data-cat]", b => { ctlSound.press(); lbCatQ = lbCatQ === b.dataset.cat ? "" : b.dataset.cat; lbCatV = "types"; lbCardAgain(); if (lbCatQ) lbCatFetch(); });
-  on("[data-cv]", b => { ctlSound.press(); lbCatV = b.dataset.cv; lbCardAgain(); });
+  on("[data-per], [data-pb]", b => { ctlSound.click(); lbPerSet(b.dataset.per, +b.dataset.pb || 0); });
+  on("[data-pk]", (b, e) => { ctlSound.click(); cardClose(); lbPick(b.dataset.pk); if (!e.detail) lbFocusPlate(); });   // OK on a remote: the ring back on Totals
+  on("[data-cat]", b => { ctlSound.click(); lbCatQ = lbCatQ === b.dataset.cat ? "" : b.dataset.cat; lbCatV = "types"; lbCardAgain(); if (lbCatQ) lbCatFetch(); });
+  on("[data-cv]", b => { ctlSound.click(); lbCatV = b.dataset.cv; lbCardAgain(); });
   on("[data-ty]", b => { lbBackTo = lbCardBack(); typeCard({typeCode: b.dataset.ty, type: b.dataset.tn || TYPES[b.dataset.ty] || b.dataset.ty}); });
   on("[data-al]", b => { lbBackTo = lbCardBack(); airlineCard({airlineIcao: b.dataset.al, airline: b.dataset.an}); });
   on("[data-rg]", b => lbSearch(b.dataset.rg));
@@ -4858,7 +4858,7 @@ async function lbSearch(q){
   q = String(q || "").trim();
   if (q.replace(/[\s-]/g, "").length < 2 || !lbSeekOk()) return;
   const tok = ++lbSeekTok, back = lbCardOn() ? lbCardBack() : null;
-  ctlSound.press();
+  ctlSound.click();
   lbSeekQ = q; lbFound = null; lbCardK = "find"; lbBackTo = back; lbCardShow();
   let j;
   try { j = await fetchJSON(`${relay()}/search?q=${encodeURIComponent(q)}`, {}, 10000); } catch { j = {error: true}; }
@@ -5603,7 +5603,7 @@ function placeModeSwitch(x1, w1, x2, w2){
 }
 function setMode(m){
   if (S.mode === m) return;
-  ctlSound.press();
+  ctlSound.nav();
   S.mode = m; saveSettings();
   dlog("info", `Board style: ${m}`);
   $("railPages").innerHTML = "";                      // the page buttons belong to the style
@@ -5721,7 +5721,7 @@ function toast(text, o = {}){
   t.className = "toast" + (o.err ? " err" : ""); t.dataset.text = text;
   t.innerHTML = `<span>${escH(text)}</span>` + (o.action ? `<button type="button">${escH(o.action)}</button>` : "");
   const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
-  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.press(); go(); if (o.run) o.run(); };
+  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.click(); go(); if (o.run) o.run(); };
   box.appendChild(t);
   setTimeout(go, o.ms || (o.err ? 6000 : 4000));
   return t;
@@ -5740,7 +5740,7 @@ function cardOpen(html, wire){
   const info = String(html).startsWith('<div class="cInfo"') ? " info" : "";  // 1.94: an info card (× on its photo)
   box.innerHTML = `<div class="cardIn${info}" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
-  box.querySelector(".cardX").onclick = () => { ctlSound.press(); cardClose(); };
+  box.querySelector(".cardX").onclick = () => { ctlSound.click(); cardClose(); };
   if (wire) wire(box.querySelector(".cardIn"));
   if (sheet) cardSheetPost(box, sheet);
   return ++cardTok;
@@ -6028,7 +6028,7 @@ function infoCard(o){
 function cardMore(e){
   const b = e.target.closest && e.target.closest("[data-info-more]"), info = b && b.closest(".cInfo"), ci = b && b.closest(".cardIn");
   if (!info || !ci) return;
-  ctlSound.press();
+  ctlSound.nav();
   const had = document.activeElement === b, h0 = ci.offsetHeight;
   for (const x of info.querySelectorAll(".cMoreT, .cMoreX")) x.hidden = false;
   const p = info.querySelector(".cWiki.clamp"), to = info.querySelector(".cWikiW") || info.querySelector(".cMoreX");
@@ -6359,13 +6359,13 @@ function cardToggle(e){
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
-  ctlSound.press();
+  ctlSound.nav();
   const ch = listChoices(x), row = w => `<div class="shRow">${ch.map(c => togBtn(w, c)).join("")}</div>`;
   cardOpen(`<h3>${escH(x.flight || x.reg || x.callsign || "")}</h3><p class="note">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
     (only !== "hide" ? `<p class="shH">★ ${escH(T("Make a favourite"))}</p>${row("fav")}` : "") +
     (only !== "fav" ? `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p>${row("hide")}` : "") +
     `<p class="note"></p><div class="cBtns"><button class="cBtn go" type="button" data-done>${T("Done")}</button></div>`,
-    el => { el.querySelector("[data-done]").onclick = () => { ctlSound.press(); cardClose(); }; });
+    el => { el.querySelector("[data-done]").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
 // The favourites manager: both lists, each entry with a ×, and a field to add one (airlines and types to pick from).
 function favManager(el){
@@ -6380,7 +6380,7 @@ function favManager(el){
     `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
   const note = t => { el.querySelector("[data-fn]").textContent = t; };
   for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
-    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.press();
+    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.click();
     if (!item) return;
     const p = listOps([{op: "remove", list: w, item}]);
     favManager(el);
@@ -6398,7 +6398,7 @@ function favManager(el){
 }
 function favCard(side){
   if (!listsOk()) return;
-  ctlSound.press();
+  ctlSound.nav();
   cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => {
     const fm = el.querySelector("[data-fm]"); favManager(fm);
     const h = side === "hide" && [...fm.querySelectorAll(".shH")][1];
@@ -6476,7 +6476,7 @@ async function airlineCard(x){
   const org = x && x.qid ? x : null, own = !!(x && x.own) && brandsOk();
   const a = org ? {icao: org.icao || "", iata: (AIRLINES[org.icao] || [])[0] || "", name: org.name || ""} : airlineOf(x || {});
   if (!a.name) return;
-  ctlSound.press();
+  ctlSound.nav();
   const b = lbData() || {}, music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
   // 1.94: its plane (Wikimedia Commons) with the logo, name and country on it; founded → main base; its fleet, its
   // destinations and how often you spotted it; its people and places; Wikipedia's words
@@ -6544,7 +6544,7 @@ function airportGet(code){
 // distance; passengers a year, runways, opened; how often you spotted flights to or from it.
 async function placeCard(p){
   if (!p || !(p.code || p.city)) return;
-  ctlSound.press();
+  ctlSound.nav();
   const code = clean(code3(p) || p.code || ""), DIR8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const today = code ? dayList().filter(e => code3(e.from) === code || code3(e.to) === code).length : 0;
   const home = clean(S.home || ""), other = home.length === 3 && home !== code;
@@ -6655,7 +6655,7 @@ const familyName = title => { const s = String(title || "").replace(/\s+(family|
 async function typeCard(x){
   const t = typeOf(x || {});
   if (!t.name) return;
-  ctlSound.press();
+  ctlSound.nav();
   const b = lbData() || {}, lb = t.code && b.types ? b.types[t.code] : null, n = FLEET[t.code];
   const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
   const c = t.code ? {k: "type", v: t.code, n: t.name} : null, p0 = modelSplit(t.name);
@@ -6778,7 +6778,7 @@ function spottedBy(){
   return n ? T("Spotted by {name}", {name: n}) : "";
 }
 async function shareCard(x){
-  ctlSound.press();
+  ctlSound.nav();
   const tok = cardLoading();
   let blob = null;
   try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
@@ -6801,7 +6801,7 @@ function picCard(blob, fname){
     const note = el.querySelector(".note");
     const b = el.querySelector("[data-sh]");
     if (b) b.onclick = async () => {
-      ctlSound.press();
+      ctlSound.click();
       try {
         if (andr) {
           const fr = new FileReader();
@@ -6811,13 +6811,13 @@ function picCard(blob, fname){
       } catch (e) { if (!e || e.name !== "AbortError") note.textContent = T("Sharing didn't work. Save the picture instead."); }
     };
     const sv = el.querySelector("[data-sv]");
-    if (sv) sv.onclick = () => { ctlSound.press(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
+    if (sv) sv.onclick = () => { ctlSound.click(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
   });
 }
 let planeShown = null, planeTok = 0;                     // the plane of the card, and the card's number (cardTok) while it shows it
 async function planeCard(o){
   if (!o || !o.ac) return;
-  ctlSound.press();
+  ctlSound.nav();
   planeShown = o;
   const tok = cardLoading(), hex = o.ac.hex, until = async (ok, ms) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms && tok === cardTok) await new Promise(r => setTimeout(r, 150)); };
   planeBody(o);                                          // asks for its details and its photo
@@ -6919,7 +6919,7 @@ function stylesCard(focusKind){
     const step = (k, d) => {
       if (off(k)) return;
       const opts = kinds.get(k);
-      pos[k] = (pos[k] + d + opts.length) % opts.length; ctlSound.press();
+      pos[k] = (pos[k] + d + opts.length) % opts.length; ctlSound.click();
       const [id, , rule] = opts[pos[k]];
       if (styleOk(rule, g0, id) && styleVal(k) !== id) {
         if (typeof draft !== "undefined" && draft) draft[k] = id;          // an open Settings keeps it on Save
@@ -7085,9 +7085,9 @@ function pwCard(a, done){
     `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
     `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
     const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
-    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.click(); cardClose(); };
     f.onsubmit = async ev => {
-      ev.preventDefault(); ctlSound.press();
+      ev.preventDefault(); ctlSound.click();
       if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
       try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
       catch (e) { say((e && e.message) || String(e)); }
@@ -7220,7 +7220,7 @@ function tipNext(){
     setTimeout(tipNext, 40);                               // 1.50: the next one follows at once, over the fading one
   };
   const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
-  L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
+  L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.nav(); done(); });
   // 1.68.1: the page holds still under a tip (a swipe used to scroll it, with the ring trailing behind), and the ring
   // follows its element every frame in case the layout moves anyway.
   const hold = e => { if (e.cancelable) e.preventDefault(); };
@@ -7481,7 +7481,7 @@ async function geoSearch(q){
 // watch it, Update moves it to where the board is watching now, × deletes it.
 async function placesCard(){
   if (!placesRelay()) return;
-  ctlSound.press();
+  ctlSound.nav();
   const draw = note => {
     const cur = S.live ? "" : S.placeKey || "";
     const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(p.k)}</b>` +
@@ -7495,10 +7495,10 @@ async function placesCard(){
       `<p class="note" data-n aria-live="polite">${escH(note || "")}</p>` +
       `<p class="note">${escH(T("Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now."))}</p>`, el => {
       const say = t => { el.querySelector("[data-n]").textContent = t; };
-      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
+      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.click(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
       for (const b of el.querySelectorAll("[data-up]")) b.onclick = async () => {
         const p = places.list[+b.dataset.up]; if (!p) return;
-        ctlSound.press(); say(T("Saving …"));
+        ctlSound.click(); say(T("Saving …"));
         try { await placesSave(places.list.map(q => q === p ? placeOfS(p.k) : q)); } catch (e) { return say(e.message); }
         if (!S.live) placeKeySet(p.k);
         settingsSync();
@@ -7506,7 +7506,7 @@ async function placesCard(){
       };
       for (const b of el.querySelectorAll("[data-rm]")) b.onclick = async () => {
         const p = places.list[+b.dataset.rm]; if (!p) return;
-        ctlSound.press();
+        ctlSound.click();
         try { await placesSave(places.list.filter(q => q !== p)); } catch (e) { return say(e.message); }
         if (S.placeKey === p.k) placeKeySet("");
         settingsSync();
@@ -7777,6 +7777,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
 const CHANGELOG = [
   {v: "1.97.3", date: "2026-10-27", notes: [
     "Cards open at once: the photo window shows a spinner while its photo loads, then the photo fades in.",
+  ]},
+  {v: "1.97.2", date: "2026-10-27", notes: [
+    "Buttons and links click in two new ways: small buttons, chips and × have a crisp click, and opening a card, a row or a tab has a light tick. The big push buttons sound as before.",
   ]},
   {v: "1.97.1.1", date: "2026-10-27", notes: [
     "Scanning a plane in Sky view tears the stub off the pass again.",
@@ -8493,7 +8496,7 @@ function changelogHtml(){
 function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
-    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
+    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>` +
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
     `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
@@ -8789,10 +8792,10 @@ let acctHas = false;
 function wireViews(box){
   const q = id => box.querySelector("#" + id);
   if (q("aboutBtn")) q("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
-  if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
-  if (q("acBack")) q("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
-  if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.checkUpdate(); };
+  if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.nav(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
+  if (q("acBack")) q("acBack").onclick = () => { ctlSound.nav(); switchView("settings"); };
+  if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.nav(); window.OverheadAndroid.changeRelay(); };
+  if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.nav(); window.OverheadAndroid.checkUpdate(); };
   if (q("signOut")) q("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && acctHas ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -9017,7 +9020,7 @@ function aboutOpen(){
   box.onclick = e => e.stopPropagation();
   $("abAbout").onclick = () => aboutTap();
   for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => {
-    ctlSound.press();
+    ctlSound.nav();
     const legend = b.dataset.ab === "legend";
     for (const o of box.querySelectorAll("[data-ab]")) o.setAttribute("aria-pressed", String(o === b));
     $("abTitle").textContent = T(legend ? "Legend" : "Patch notes");
@@ -9025,7 +9028,7 @@ function aboutOpen(){
     $("abLog").scrollTop = 0;
   };
   for (const b of box.querySelectorAll("[data-sc]")) b.onclick = () => {
-    ctlSound.press(); const L = $("abLog");
+    ctlSound.click(); const L = $("abLog");
     L.scrollBy({top: +b.dataset.sc * L.clientHeight * .85, behavior: "smooth"});
   };
 }
@@ -9106,6 +9109,19 @@ const ctlSound = {
     ctlBurst(t, {f: 650, q: .9, dur: .05, gain: .32});
     ctlRing(t, 215, .07, .2);
     ctlBurst(t + .09, {f: 1900, q: 1.2, dur: .018, gain: .12});
+  },
+  click(){                    // 1.97.2: the small buttons (card buttons, chips, filters, small key-caps, ×): one crisp click
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    if (sample("click", t, .9, 1)) return;
+    ctlBurst(t, {f: 2600, q: 1.1, dur: .012, gain: .3});
+    ctlRing(t, 480, .025, .1);
+  },
+  nav(){                      // 1.97.2: opening, folding or switching something (cards, rows, tabs, text links): a light tick
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    if (sample("nav", t, .6, 1)) return;
+    ctlBurst(t, {f: 3400, q: 1.2, dur: .008, gain: .25});
   }
 };
 
@@ -9186,7 +9202,7 @@ async function locatedAt(box, lat, lon, name, why){
     cardOpen(`<h3>${escH(T("Airport"))}</h3><p class="note">${escH(T("Pick the airport for this place, then press Save:"))}</p><div class="pickList">` +
       list.map((a, i) => `<button class="cBtn" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)}<small>${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</small></button>`).join("") + `</div>`, el => {
       for (const btn of el.querySelectorAll("[data-ap]")) btn.onclick = () => {
-        const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty(); cardClose();
+        const a = list[+btn.dataset.ap]; ctlSound.click(); putDraft(box, "home", a.code); cockpitDirty(); cardClose();
         say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
       };
     });
@@ -9200,7 +9216,7 @@ async function locatedAt(box, lat, lon, name, why){
   ask.innerHTML = list.map((a, i) => `<button class="${a.code === clean(draft.home) ? "on" : ""}" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)} · ${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</button>`).join("");
   ask.hidden = false;
   for (const btn of ask.querySelectorAll("[data-ap]")) btn.onclick = () => {
-    const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty();
+    const a = list[+btn.dataset.ap]; ctlSound.click(); putDraft(box, "home", a.code); cockpitDirty();
     for (const o of ask.querySelectorAll("[data-ap]")) o.classList.toggle("on", o === btn);
     say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
   };
@@ -9306,14 +9322,14 @@ function wireSearch(box){
         note.textContent = "";
         cardOpen(`<h3>${escH(T("Find an address"))}</h3>` + (hits.length ? `<div class="pickList">` + hits.map((h, i) => `<button class="cBtn" type="button" data-hit="${i}">` +
           `<b>${escH(h.short || h.name.split(",")[0])}</b><small>${escH(h.name)}</small></button>`).join("") + `</div>` : `<p class="note">${escH(T("Nothing found. Try a street and town, or a landmark."))}</p>`), el => {
-          for (const b of el.querySelectorAll("[data-hit]")) b.onclick = async () => { const h = hits[+b.dataset.hit]; ctlSound.press(); cardClose(); await locatedAt(box, h.lat, h.lon, "", T("Location set.")); };
+          for (const b of el.querySelectorAll("[data-hit]")) b.onclick = async () => { const h = hits[+b.dataset.hit]; ctlSound.click(); cardClose(); await locatedAt(box, h.lat, h.lon, "", T("Location set.")); };
         });
         return;
       }
       res.innerHTML = hits.map((h, i) => `<button type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b> ${escH(h.name)}</button>`).join("");
       note.textContent = hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark.");
       for (const b of res.querySelectorAll("[data-hit]")) b.onclick = async () => {
-        const h = hits[+b.dataset.hit]; ctlSound.press(); res.innerHTML = "";
+        const h = hits[+b.dataset.hit]; ctlSound.click(); res.innerHTML = "";
         note.textContent = T("Type an address or a place and pick it: fills in the town, latitude and longitude.");
         await locatedAt(box, h.lat, h.lon, "", T("Location set."));
       };

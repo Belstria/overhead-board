@@ -364,7 +364,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cLoad{display:flex;align-items:center;gap:calc(12px*var(--ck,1));min-height:calc(90px*var(--ck,1));justify-content:center;color:#b9b3a3;font:500 calc(16px*var(--ck,1))/1.2 "Archivo Narrow",sans-serif}
 #cardBox .cSpin{width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));border-radius:50%;border:calc(3px*var(--ck,1)) solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
 @keyframes cSpin{to{transform:rotate(360deg)}}
-/* 1.97.2: a photo window while its photo loads: the loading card's spinner in it (after a short beat, so a quick photo
+/* 1.97.3: a photo window while its photo loads: the loading card's spinner in it (after a short beat, so a quick photo
    shows none), the photo fading in; a window still waiting for its photo keeps a 3:2 size. */
 .cPicW .cPic{transition:opacity .35s cubic-bezier(.2,.9,.25,1)}
 .cPicW.pLd{background:rgba(255,255,255,.05)}
@@ -1904,7 +1904,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=9e8425a00c"></script>
+<script src="../test/i18n.js?v=ab59f2591f"></script>
 <script>
 (() => {
 "use strict";
@@ -2257,7 +2257,7 @@ function toast(text, o = {}){
   t.className = "toast" + (o.err ? " err" : ""); t.dataset.text = text;
   t.innerHTML = `<span>${escH(text)}</span>` + (o.action ? `<button type="button">${escH(o.action)}</button>` : "");
   const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
-  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.press(); go(); if (o.run) o.run(); };
+  if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.click(); go(); if (o.run) o.run(); };
   box.appendChild(t);
   setTimeout(go, o.ms || (o.err ? 6000 : 4000));
   return t;
@@ -2276,7 +2276,7 @@ function cardOpen(html, wire){
   const info = String(html).startsWith('<div class="cInfo"') ? " info" : "";  // 1.94: an info card (× on its photo)
   box.innerHTML = `<div class="cardIn${info}" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
-  box.querySelector(".cardX").onclick = () => { ctlSound.press(); cardClose(); };
+  box.querySelector(".cardX").onclick = () => { ctlSound.click(); cardClose(); };
   if (wire) wire(box.querySelector(".cardIn"));
   if (sheet) cardSheetPost(box, sheet);
   return ++cardTok;
@@ -2357,7 +2357,7 @@ function cardMusicStop(now){
   for (let i = 1; i <= 8; i++) setTimeout(() => { if (m.gain) m.gain.gain.value = g * (1 - i / 8); else if (m.el) m.el.volume = g * (1 - i / 8); if (i === 8) end(); }, i * 50);
 }
 // 1.42: a card that needs to look things up opens as a short loading window and shows itself once everything (the
-// words, the airport) is in, or after a few seconds with what there is, so nothing jumps about. 1.97.2: not the
+// words, the airport) is in, or after a few seconds with what there is, so nothing jumps about. 1.97.3: not the
 // photos: the card opens without waiting for them, and each photo window shows a spinner and fades its photo in.
 const cardWait = (p, ms) => Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(() => r(null), ms))]);
 const cardLoading = music => cardOpen(`<div class="cLoad"${music ? " data-music" : ""}><span class="cSpin" aria-hidden="true"></span>${escH(T("Loading …"))}</div>`);
@@ -2564,7 +2564,7 @@ function infoCard(o){
 function cardMore(e){
   const b = e.target.closest && e.target.closest("[data-info-more]"), info = b && b.closest(".cInfo"), ci = b && b.closest(".cardIn");
   if (!info || !ci) return;
-  ctlSound.press();
+  ctlSound.nav();
   const had = document.activeElement === b, h0 = ci.offsetHeight;
   for (const x of info.querySelectorAll(".cMoreT, .cMoreX")) x.hidden = false;
   const p = info.querySelector(".cWiki.clamp"), to = info.querySelector(".cWikiW") || info.querySelector(".cMoreX");
@@ -2738,7 +2738,7 @@ async function modelWiki(names, code){
   const w = await wikiPage(p.title);
   return w ? {...w, img: p.img} : {...p, text: "", url: `https://en.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, "_"))}`};
 }
-// 1.97.2: its picture is still being looked for (the card shows a photo window with a spinner meanwhile).
+// 1.97.3: its picture is still being looked for (the card shows a photo window with a spinner meanwhile).
 const modelAsking = (names, code) => { names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean); return !S.demo && (names.length || code) && modelAsk.has(modelKey(names, code)); };
 // The model's picture now ("" while it is being looked for, or if there is none); onReady once it is found later.
 function modelPic(names, onReady, code){
@@ -2780,7 +2780,7 @@ function psPhoto(reg, hex, onReady){
 }
 // The photo for a plane: {src, kind: "ps" (Planespotters), "own" (adsbdb), "model" or "", by, link}; src is "" while
 // Planespotters is being asked (so the screen doesn't change twice) or nothing was found; `asking`: still being looked
-// for (1.97.2: a card shows an empty photo window with a spinner, then takes the photo).
+// for (1.97.3: a card shows an empty photo window with a spinner, then takes the photo).
 function planePic(ac, info, d, onReady, noPs){
   const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady);
   if (ps === undefined) return {src: "", kind: "", asking: true};
@@ -2796,7 +2796,7 @@ const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.n
 const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
 const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
   return a ? `<span class="crBy">${escH(a)}</span><span class="crSrc">${b ? " · " + escH(b) : ""}${go}</span>` : ""; };
-// 1.97.2: a photo window while its photo loads: the spinner (the loading card's) in it, the photo fading in when it is
+// 1.97.3: a photo window while its photo loads: the spinner (the loading card's) in it, the photo fading in when it is
 // there; one still being looked for is an empty window of the same size (a blank picture keeps the size rules).
 const PIC_BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const picDone = e => { const im = e.target, w = im && im.matches && im.matches("img.cPic:not([data-blank])") && im.closest(".cPicW"); if (w) w.classList.remove("pLd"); };
@@ -2895,13 +2895,13 @@ function cardToggle(e){
 }
 function listSheet(x, only){
   if (!listsOk() || !x) return;
-  ctlSound.press();
+  ctlSound.nav();
   const ch = listChoices(x), row = w => `<div class="shRow">${ch.map(c => togBtn(w, c)).join("")}</div>`;
   cardOpen(`<h3>${escH(x.flight || x.reg || x.callsign || "")}</h3><p class="note">${escH(T("Tap to switch on or off. Saved for all your devices and boards."))}</p>` +
     (only !== "hide" ? `<p class="shH">★ ${escH(T("Make a favourite"))}</p>${row("fav")}` : "") +
     (only !== "fav" ? `<p class="shH">⊘ ${escH(T("Hide from now on"))}</p>${row("hide")}` : "") +
     `<p class="note"></p><div class="cBtns"><button class="cBtn go" type="button" data-done>${T("Done")}</button></div>`,
-    el => { el.querySelector("[data-done]").onclick = () => { ctlSound.press(); cardClose(); }; });
+    el => { el.querySelector("[data-done]").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
 // The favourites manager: both lists, each entry with a ×, and a field to add one (airlines and types to pick from).
 function favManager(el){
@@ -2916,7 +2916,7 @@ function favManager(el){
     `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist>`;
   const note = t => { el.querySelector("[data-fn]").textContent = t; };
   for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
-    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.press();
+    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.click();
     if (!item) return;
     const p = listOps([{op: "remove", list: w, item}]);
     favManager(el);
@@ -2934,7 +2934,7 @@ function favManager(el){
 }
 function favCard(side){
   if (!listsOk()) return;
-  ctlSound.press();
+  ctlSound.nav();
   cardOpen(`<h3>${escH(T("Favourites & hidden"))}</h3><div data-fm></div>`, el => {
     const fm = el.querySelector("[data-fm]"); favManager(fm);
     const h = side === "hide" && [...fm.querySelectorAll(".shH")][1];
@@ -3012,7 +3012,7 @@ async function airlineCard(x){
   const org = x && x.qid ? x : null, own = !!(x && x.own) && brandsOk();
   const a = org ? {icao: org.icao || "", iata: (AIRLINES[org.icao] || [])[0] || "", name: org.name || ""} : airlineOf(x || {});
   if (!a.name) return;
-  ctlSound.press();
+  ctlSound.nav();
   const b = lbData() || {}, music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
   // 1.94: its plane (Wikimedia Commons) with the logo, name and country on it; founded → main base; its fleet, its
   // destinations and how often you spotted it; its people and places; Wikipedia's words
@@ -3080,7 +3080,7 @@ function airportGet(code){
 // distance; passengers a year, runways, opened; how often you spotted flights to or from it.
 async function placeCard(p){
   if (!p || !(p.code || p.city)) return;
-  ctlSound.press();
+  ctlSound.nav();
   const code = clean(code3(p) || p.code || ""), DIR8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const today = code ? dayList().filter(e => code3(e.from) === code || code3(e.to) === code).length : 0;
   const home = clean(S.home || ""), other = home.length === 3 && home !== code;
@@ -3191,7 +3191,7 @@ const familyName = title => { const s = String(title || "").replace(/\s+(family|
 async function typeCard(x){
   const t = typeOf(x || {});
   if (!t.name) return;
-  ctlSound.press();
+  ctlSound.nav();
   const b = lbData() || {}, lb = t.code && b.types ? b.types[t.code] : null, n = FLEET[t.code];
   const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
   const c = t.code ? {k: "type", v: t.code, n: t.name} : null, p0 = modelSplit(t.name);
@@ -3314,7 +3314,7 @@ function spottedBy(){
   return n ? T("Spotted by {name}", {name: n}) : "";
 }
 async function shareCard(x){
-  ctlSound.press();
+  ctlSound.nav();
   const tok = cardLoading();
   let blob = null;
   try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
@@ -3337,7 +3337,7 @@ function picCard(blob, fname){
     const note = el.querySelector(".note");
     const b = el.querySelector("[data-sh]");
     if (b) b.onclick = async () => {
-      ctlSound.press();
+      ctlSound.click();
       try {
         if (andr) {
           const fr = new FileReader();
@@ -3347,13 +3347,13 @@ function picCard(blob, fname){
       } catch (e) { if (!e || e.name !== "AbortError") note.textContent = T("Sharing didn't work. Save the picture instead."); }
     };
     const sv = el.querySelector("[data-sv]");
-    if (sv) sv.onclick = () => { ctlSound.press(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
+    if (sv) sv.onclick = () => { ctlSound.click(); const a = document.createElement("a"); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); note.textContent = T("Saved"); };
   });
 }
 let planeShown = null, planeTok = 0;                     // the plane of the card, and the card's number (cardTok) while it shows it
 async function planeCard(o){
   if (!o || !o.ac) return;
-  ctlSound.press();
+  ctlSound.nav();
   planeShown = o;
   const tok = cardLoading(), hex = o.ac.hex, until = async (ok, ms) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms && tok === cardTok) await new Promise(r => setTimeout(r, 150)); };
   planeBody(o);                                          // asks for its details and its photo
@@ -3362,7 +3362,7 @@ async function planeCard(o){
   if (tok !== cardTok) return;
   const b = planeBody(o);
   planeTok = await cardWhenReady(tok, b.html, b.wire);
-  if (planeTok && planeBody(o).sig !== b.sig) planeLate();      // its photo (1.97.2: not waited for) or the details came meanwhile
+  if (planeTok && planeBody(o).sig !== b.sig) planeLate();      // its photo (1.97.3: not waited for) or the details came meanwhile
 }
 
 /* ---------- achievements (1.38) ----------
@@ -3455,7 +3455,7 @@ function stylesCard(focusKind){
     const step = (k, d) => {
       if (off(k)) return;
       const opts = kinds.get(k);
-      pos[k] = (pos[k] + d + opts.length) % opts.length; ctlSound.press();
+      pos[k] = (pos[k] + d + opts.length) % opts.length; ctlSound.click();
       const [id, , rule] = opts[pos[k]];
       if (styleOk(rule, g0, id) && styleVal(k) !== id) {
         if (typeof draft !== "undefined" && draft) draft[k] = id;          // an open Settings keeps it on Save
@@ -3621,9 +3621,9 @@ function pwCard(a, done){
     `<p class="note" data-pn aria-live="polite"></p><div class="cBtns"><button class="cBtn" type="button" data-pc>${T("Cancel")}</button>` +
     `<button class="cBtn go" type="submit">${T("Apply")}</button></div></form>`, el => {
     const f = el.querySelector("[data-pw]"), v = id => (f.querySelector("#" + id) || {}).value || "", say = t => { f.querySelector("[data-pn]").textContent = t; };
-    f.querySelector("[data-pc]").onclick = () => { ctlSound.press(); cardClose(); };
+    f.querySelector("[data-pc]").onclick = () => { ctlSound.click(); cardClose(); };
     f.onsubmit = async ev => {
-      ev.preventDefault(); ctlSound.press();
+      ev.preventDefault(); ctlSound.click();
       if (v("pwNew") !== v("pwNew2")) return say(T("The two new passwords don't match."));
       try { const next = await acctPost("/account/password", {password: v("pwNew"), current: v("pwCur")}); cardClose(); done(next); }
       catch (e) { say((e && e.message) || String(e)); }
@@ -3756,7 +3756,7 @@ function tipNext(){
     setTimeout(tipNext, 40);                               // 1.50: the next one follows at once, over the fading one
   };
   const key = e => { e.preventDefault(); e.stopPropagation(); done(); };
-  L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.press(); done(); });
+  L.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); ctlSound.nav(); done(); });
   // 1.68.1: the page holds still under a tip (a swipe used to scroll it, with the ring trailing behind), and the ring
   // follows its element every frame in case the layout moves anyway.
   const hold = e => { if (e.cancelable) e.preventDefault(); };
@@ -4017,7 +4017,7 @@ async function geoSearch(q){
 // watch it, Update moves it to where the board is watching now, × deletes it.
 async function placesCard(){
   if (!placesRelay()) return;
-  ctlSound.press();
+  ctlSound.nav();
   const draw = note => {
     const cur = S.live ? "" : S.placeKey || "";
     const row = (p, i) => `<div class="plRow"><button class="cBtn plGo${p.k === cur ? " on" : ""}" type="button" data-go="${i}"><b>${escH(p.k)}</b>` +
@@ -4031,10 +4031,10 @@ async function placesCard(){
       `<p class="note" data-n aria-live="polite">${escH(note || "")}</p>` +
       `<p class="note">${escH(T("Every place's planes go into the same logbook; Spotted today shows the place you're watching. Update moves a saved place to where the board is watching now."))}</p>`, el => {
       const say = t => { el.querySelector("[data-n]").textContent = t; };
-      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.press(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
+      for (const b of el.querySelectorAll("[data-go]")) b.onclick = () => { ctlSound.click(); const p = places.list[+b.dataset.go]; cardClose(); usePlace(p); };
       for (const b of el.querySelectorAll("[data-up]")) b.onclick = async () => {
         const p = places.list[+b.dataset.up]; if (!p) return;
-        ctlSound.press(); say(T("Saving …"));
+        ctlSound.click(); say(T("Saving …"));
         try { await placesSave(places.list.map(q => q === p ? placeOfS(p.k) : q)); } catch (e) { return say(e.message); }
         if (!S.live) placeKeySet(p.k);
         settingsSync();
@@ -4042,7 +4042,7 @@ async function placesCard(){
       };
       for (const b of el.querySelectorAll("[data-rm]")) b.onclick = async () => {
         const p = places.list[+b.dataset.rm]; if (!p) return;
-        ctlSound.press();
+        ctlSound.click();
         try { await placesSave(places.list.filter(q => q !== p)); } catch (e) { return say(e.message); }
         if (S.placeKey === p.k) placeKeySet("");
         settingsSync();
@@ -4786,7 +4786,7 @@ let actx = null, noise = null, lastClack = 0, soundForced = false;   // forced: 
 // The recordings are in sounds.js next to the board (made by tools/sounds/build_sounds.py, its version stamped by
 // tools/assets.py), fetched a few seconds after the start when sound is on, or when sound first starts (1.53.1). They are
 // decoded once; until then, and if the file can't be had (it is tried again a minute later), the synthesised sounds play.
-const SOUNDS_JS = "../test/sounds.js?v=dd5ed9799f";
+const SOUNDS_JS = "../test/sounds.js?v=cf16960d44";
 const SND = {};
 let sndLoading = false, sndFile = null, sndFailed = 0;
 function soundFile(){
@@ -6975,7 +6975,7 @@ function renderRecent(){
   recentSig = sig;
   tlFill(L, list.length ? tlHtml(list, 15, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
-$("recentAll").onclick = () => { ctlSound.press(); showTab("today"); };
+$("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
@@ -7088,7 +7088,7 @@ function svFindWire(box, go){
   const set = v => { svQuery = v; x.hidden = !v; go(); };
   inp.oninput = () => set(inp.value.trim());
   for (const el of [inp, x]) el.onclick = e => e.stopPropagation();
-  x.onclick = e => { e.stopPropagation(); ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+  x.onclick = e => { e.stopPropagation(); ctlSound.click(); inp.value = ""; set(""); inp.focus(); };
 }
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
@@ -7096,7 +7096,7 @@ function buildSvTools(){
   box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
   svFindWire(box, () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
-    ctlSound.press();
+    ctlSound.click();
     const k = b.dataset.t;
     svFilter = k;
     svSig = ""; renderToday();
@@ -7221,7 +7221,7 @@ function lbViewsBar(){
   bar.innerHTML = views.map(v => `<button type="button" data-v="${v}"${v === lbView ? ' aria-current="page"' : ""}>${escH(T(LB_VIEW_NAMES[v]))}</button>`).join("");
   for (const btn of bar.children) btn.onclick = () => {
     if (btn.dataset.v === lbView) return;
-    ctlSound.press(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
+    ctlSound.nav(); lbView = btn.dataset.v; lbSig = ""; renderLogbook();
   };
 }
 /* 1.65: search the whole logbook (relay 55): a registration, a flight, a type or an airline, over every saved day.
@@ -7237,7 +7237,7 @@ function lbFindSetup(){
   const inp = box.querySelector("[data-q]"), x = box.querySelector("[data-qx]");
   const set = v => { lbQuery = v; x.hidden = !v; clearTimeout(lbFindT); lbFindT = setTimeout(lbFind, v ? 350 : 0); };
   inp.oninput = () => set(inp.value.trim());
-  x.onclick = () => { ctlSound.press(); inp.value = ""; set(""); inp.focus(); };
+  x.onclick = () => { ctlSound.click(); inp.value = ""; set(""); inp.focus(); };
 }
 async function lbFind(){
   const out = $("lbFound"), on = lbQuery.replace(/[\s-]/g, "").length >= 2, tok = ++lbFindTok;
@@ -7292,7 +7292,7 @@ async function catFetch(){
 document.addEventListener("click", e => {
   const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbFound [data-fp]");
   if (!t) return;
-  ctlSound.press();
+  ctlSound.click();
   if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
@@ -7361,7 +7361,7 @@ function renderLogbook(){
       : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
     for (const btn of bar.children) btn.onclick = () => {
       if (btn.dataset.p === "saved") return lbPlaceSheet();
-      if (btn.dataset.p !== lbPlace) { ctlSound.press(); lbPick(btn.dataset.p); }
+      if (btn.dataset.p !== lbPlace) { ctlSound.click(); lbPick(btn.dataset.p); }
     };
   }
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
@@ -7404,7 +7404,7 @@ function renderLogbook(){
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
   $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
-  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.press();
+  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.click();
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
 }
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
@@ -7414,12 +7414,12 @@ async function lbPick(id){
 }
 // 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
 function lbPlaceSheet(){
-  ctlSound.press();
+  ctlSound.nav();
   const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
     `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
     `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
-    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.press(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
+    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.click(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -7491,12 +7491,12 @@ function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
 function hangarCard(code, again){
   const t = hangar && (hangar.types || []).find(x => x.code === code);
   if (!t) return typeCard({typeCode: code, type: TYPES[code] || code});      // still to find: what the model is
-  if (!again) ctlSound.press();
+  if (!again) ctlSound.nav();
   let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u));
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
   // 1.94: in Sky view's card style: the photo with the name, code and tier on it; 1.97: how often seen, scored, scanned
-  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
+  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : modelAsking(hgNames(code, t.name), code) ? {src: "", asking: true} : null, title: name, sub: code,
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
@@ -7569,7 +7569,7 @@ function trophiesHtml(g0){
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
-  for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.press(); gTrTab = b.dataset.tt; redraw(); };
+  for (const b of box.querySelectorAll("[data-tt]")) b.onclick = () => { if (b.dataset.tt === gTrTab) return; ctlSound.nav(); gTrTab = b.dataset.tt; redraw(); };
 }
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
@@ -7624,7 +7624,7 @@ function periodHtml(){
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
-  ctlSound.press();
+  ctlSound.click();
   if (b.dataset.per) { lbPeriod = b.dataset.per; if (lbPeriod !== "year") { review.span = lbPeriod; review.back = 0; } }
   else if (lbPeriod === "year") yearBack = Math.max(0, Math.min(10, yearBack + +b.dataset.pb));
   else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.pb));
@@ -7646,7 +7646,7 @@ function reviewHtml(){
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-rs], [data-rb]");
   if (!b || b.disabled) return;
-  ctlSound.press();
+  ctlSound.click();
   if (b.dataset.rs) { review.span = b.dataset.rs; review.back = 0; } else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.rb));
   lbSig = ""; renderLogbook();
 });
@@ -7680,7 +7680,7 @@ function periodPicture(p){
   return new Promise(ok => cv.toBlob(ok, "image/png"));
 }
 async function shareYear(){
-  ctlSound.press();
+  ctlSound.click();
   const y = yearData;
   picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: yearFacts(y),
     nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`);
@@ -7688,7 +7688,7 @@ async function shareYear(){
 async function sharePeriod(){
   const r = reviewData();
   if (!r || !r.planes) return;
-  ctlSound.press();
+  ctlSound.click();
   const yr = {day: "numeric", month: "short", year: "numeric"};
   const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
   picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
@@ -7791,7 +7791,7 @@ function lookHeadingFrom(e){
   lookSoon();
 }
 async function lookStart(quiet){
-  if (!quiet) ctlSound.press();
+  if (!quiet) ctlSound.nav();
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function" && await DeviceOrientationEvent.requestPermission() !== "granted") throw 0;
     addEventListener("ontouchstart" in window && "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", lookHeadingFrom);
@@ -8018,7 +8018,7 @@ function arHold(why){
   arHeldAt = Date.now(); arHeldWhy = why;
 }
 async function arOpen(){
-  ctlSound.press();
+  ctlSound.nav();
   const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
     dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
   try {
@@ -8076,7 +8076,7 @@ function arCalCheck(a, b, g, acc, gyro){
 }
 function arClose(){
   if (!arOn) return;
-  arOn = false; ctlSound.press();
+  arOn = false; ctlSound.nav();
   dlog("debug", `Sky view closed after ${Math.round((Date.now() - arSince) / 1000)} s`);
   $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
@@ -8307,7 +8307,7 @@ function arReport(){
   };
 }
 $("arFlag").onclick = async () => {
-  ctlSound.press();
+  ctlSound.click();
   const b = $("arFlag"), say = text => { arNote = {text, until: Date.now() + 8000}; $("arHint").textContent = text; };
   b.disabled = true;
   try {
@@ -8328,7 +8328,7 @@ $("arFlag").onclick = async () => {
 // many planes. Shown in a card with Share and Save.
 let arShotAt = 0, arShownN = 0, arLocked = "", arLift = 0;   // arLocked (1.90): the plane the ring last filled on
 async function arSnap(){
-  ctlSound.press();
+  ctlSound.click();
   const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;
   if (!W || !H) return;
   const cv = document.createElement("canvas"), g = cv.getContext("2d");
@@ -8513,7 +8513,7 @@ function arAutoChip(){
   b.innerHTML = `<b>${escH(T("AUTO"))}</b><span>${escH(!arAuto ? T("off") : sun ? T("lined up · sun") : n ? T(n === 1 ? "lined up · 1 plane" : "lined up · {n} planes", {n}) : T("looking"))}</span>`;
 }
 $("arAuto").onclick = () => {
-  ctlSound.press(); arAuto = !arAuto; arAutoFinds = []; arAutoLock = null;
+  ctlSound.click(); arAuto = !arAuto; arAutoFinds = []; arAutoLock = null;
   try { localStorage.setItem("od.ar.auto", arAuto ? "1" : "0"); } catch {}
   arAutoChip();
 };
@@ -8636,7 +8636,7 @@ function arAimDraw(g, W, H){
   arPeekWatch(hex);
   if (hex && k >= 1 && hex !== sel && hex !== arAim.done) {
     if (hex === arWant) arWant = "";
-    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.press(); arCardRender();
+    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.nav(); arCardRender();
     gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
@@ -8697,10 +8697,10 @@ function arTour(step){
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
     `<button class="cBtn arNext" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
   box.hidden = false;
-  box.querySelector(".arNext").onclick = () => { ctlSound.press(); arTour(step + 1); };
-  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.press(); arTour(AR_TOUR.length); };
+  box.querySelector(".arNext").onclick = () => { ctlSound.click(); arTour(step + 1); };
+  const sk = box.querySelector(".arTourSkip"); if (sk) sk.onclick = () => { ctlSound.click(); arTour(AR_TOUR.length); };
 }
-$("arInfo").onclick = () => { ctlSound.press(); arTour(0); };
+$("arInfo").onclick = () => { ctlSound.nav(); arTour(0); };
 /* 1.78: the cards (an airline, a type, an aircraft, a place …) are sheets, the way Sky view's card is: up from the bottom,
    floating, with a grip; dragged down (or flicked) past the mark, or tapped beside, one slides away; a card that changes
    while it is open fades into its new content and height. The board's cardOpen and cardClose call these. */
@@ -8769,7 +8769,7 @@ function cardSheetClose(b){
     if (!d || d.beside || !d.on) return;
     dragged = Date.now();
     $("cardBox").classList.remove("drag");
-    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.press(); cardClose(); }
+    if (d.dy > 90 || (d.v > .5 && d.dy > 20)) { ctlSound.click(); cardClose(); }
     else d.ci.style.transform = "";                  // springs back
   };
   document.addEventListener("touchend", end); document.addEventListener("touchcancel", end);
@@ -8785,7 +8785,7 @@ function arTap(e){
   if (!hit && was) return arCardDismiss();           // 1.72.2: a tap on the sky slides the card away
   arSel = hit && hit.hex !== was ? hit.hex : "";
   arFull = !!arSel;                                  // a plane tapped: its whole card
-  if (arSel || was) ctlSound.press();
+  if (arSel || was) ctlSound.nav();
   arCardRender();
 }
 let arCardSig = "";
@@ -8825,7 +8825,7 @@ function arCardRender(){
     (pk.pic ? `<img class="arGhost" src="${escH(pk.pic)}" alt="" referrerpolicy="no-referrer">` : "");
   box.hidden = false;
   b.wire(box.querySelector(".arFullL"));
-  box.querySelector(".arPeekL").onclick = () => { if (!arP) { ctlSound.press(); arTo(1); } };
+  box.querySelector(".arPeekL").onclick = () => { if (!arP) { ctlSound.nav(); arTo(1); } };
   arSet(arFull ? 1 : 0);
   for (const im of box.querySelectorAll("img")) im.addEventListener("load", () => { if (!box.classList.contains("drag")) arSet(arP); }, {once: true});
 }
@@ -8879,7 +8879,7 @@ function arPeekWatch(hex){
 function arCardDismiss(){
   const box = $("arCard");
   if (box.hidden || box.classList.contains("out")) return;
-  ctlSound.press();
+  ctlSound.click();
   box.classList.remove("drag", "anim"); box.style.transform = ""; box.classList.add("out");
   const was = arSel;
   setTimeout(() => { box.classList.remove("out"); if (arSel === was) { arSel = ""; arFull = false; } arCardSig = ""; arCardRender(); }, 260);   // a new lock-on meanwhile keeps its card
@@ -8933,14 +8933,14 @@ $("skyCv").onclick = e => { if ($("lookCv").onclick) $("lookCv").onclick(e); }; 
 // off, a card asks first: go live and open, or not now.
 function arTry(){
   if (S.live || S.demo || !liveOk()) return arOpen();
-  ctlSound.press();
+  ctlSound.nav();
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Sky view needs live location"))}</h3></div></div>` +
     `<p class="note">${escH(T("It shows the planes around you, wherever you are, so the app follows your location while it's open."))}</p>` +
     `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
-    box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.press(); cardClose(); }; });
+    box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
 async function arGoLive(){
-  ctlSound.press(); cardClose();
+  ctlSound.click(); cardClose();
   // iPhones let a page ask for the motion sensors only straight from a tap: asked now, before waiting for the location
   try { if (typeof DeviceOrientationEvent.requestPermission === "function") await DeviceOrientationEvent.requestPermission(); } catch {}
   gGoLive();
@@ -8967,7 +8967,7 @@ function skyRowRender(){
 setInterval(skyRowRender, 1000);
 $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
-$("arReset").onclick = () => { ctlSound.press(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
+$("arReset").onclick = () => { ctlSound.click(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
   arHeldAt = 0; arGap = null; };                // 1.86: and north from the compass again, at once
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
@@ -9309,10 +9309,10 @@ let acctHas = false;
 function wireViews(box){
   const q = id => box.querySelector("#" + id);
   if (q("aboutBtn")) q("aboutBtn").onclick = () => { ctlSound.press(); aboutTap(); aboutShow(); };
-  if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.press(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
-  if (q("acBack")) q("acBack").onclick = () => { ctlSound.press(); switchView("settings"); };
-  if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.changeRelay(); };
-  if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.press(); window.OverheadAndroid.checkUpdate(); };
+  if (q("tipsBtn")) q("tipsBtn").onclick = () => { ctlSound.nav(); tipsReset(); q("tipsBtn").textContent = T("Tips will show again."); };
+  if (q("acBack")) q("acBack").onclick = () => { ctlSound.nav(); switchView("settings"); };
+  if (q("relayBtn")) q("relayBtn").onclick = () => { ctlSound.nav(); window.OverheadAndroid.changeRelay(); };
+  if (q("updBtn")) q("updBtn").onclick = () => { ctlSound.nav(); window.OverheadAndroid.checkUpdate(); };
   if (q("signOut")) q("signOut").onclick = async () => {
     ctlSound.press();
     if (!confirm(accountsOk() && acctHas ? T("Sign out of this device? Your profile stays; sign back in with your account.")
@@ -9526,6 +9526,19 @@ const ctlSound = {
     ctlBurst(t, {f: 650, q: .9, dur: .05, gain: .32});
     ctlRing(t, 215, .07, .2);
     ctlBurst(t + .09, {f: 1900, q: 1.2, dur: .018, gain: .12});
+  },
+  click(){                    // 1.97.2: the small buttons (card buttons, chips, filters, small key-caps, ×): one crisp click
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    if (sample("click", t, .9, 1)) return;
+    ctlBurst(t, {f: 2600, q: 1.1, dur: .012, gain: .3});
+    ctlRing(t, 480, .025, .1);
+  },
+  nav(){                      // 1.97.2: opening, folding or switching something (cards, rows, tabs, text links): a light tick
+    if (!ctlReady()) return;
+    const t = actx.currentTime + .005;
+    if (sample("nav", t, .6, 1)) return;
+    ctlBurst(t, {f: 3400, q: 1.2, dur: .008, gain: .25});
   }
 };
 
@@ -9606,7 +9619,7 @@ async function locatedAt(box, lat, lon, name, why){
     cardOpen(`<h3>${escH(T("Airport"))}</h3><p class="note">${escH(T("Pick the airport for this place, then press Save:"))}</p><div class="pickList">` +
       list.map((a, i) => `<button class="cBtn" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)}<small>${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</small></button>`).join("") + `</div>`, el => {
       for (const btn of el.querySelectorAll("[data-ap]")) btn.onclick = () => {
-        const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty(); cardClose();
+        const a = list[+btn.dataset.ap]; ctlSound.click(); putDraft(box, "home", a.code); cockpitDirty(); cardClose();
         say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
       };
     });
@@ -9620,7 +9633,7 @@ async function locatedAt(box, lat, lon, name, why){
   ask.innerHTML = list.map((a, i) => `<button class="${a.code === clean(draft.home) ? "on" : ""}" type="button" data-ap="${i}"><b>${escH(a.code)}</b> ${escH(a.name)} · ${a.km < 10 ? a.km.toFixed(1) : Math.round(a.km)} km</button>`).join("");
   ask.hidden = false;
   for (const btn of ask.querySelectorAll("[data-ap]")) btn.onclick = () => {
-    const a = list[+btn.dataset.ap]; ctlSound.press(); putDraft(box, "home", a.code); cockpitDirty();
+    const a = list[+btn.dataset.ap]; ctlSound.click(); putDraft(box, "home", a.code); cockpitDirty();
     for (const o of ask.querySelectorAll("[data-ap]")) o.classList.toggle("on", o === btn);
     say(T("Airport set to {code}. Press Save to keep the new location.", {code: a.code}));
   };
@@ -9726,14 +9739,14 @@ function wireSearch(box){
         note.textContent = "";
         cardOpen(`<h3>${escH(T("Find an address"))}</h3>` + (hits.length ? `<div class="pickList">` + hits.map((h, i) => `<button class="cBtn" type="button" data-hit="${i}">` +
           `<b>${escH(h.short || h.name.split(",")[0])}</b><small>${escH(h.name)}</small></button>`).join("") + `</div>` : `<p class="note">${escH(T("Nothing found. Try a street and town, or a landmark."))}</p>`), el => {
-          for (const b of el.querySelectorAll("[data-hit]")) b.onclick = async () => { const h = hits[+b.dataset.hit]; ctlSound.press(); cardClose(); await locatedAt(box, h.lat, h.lon, "", T("Location set.")); };
+          for (const b of el.querySelectorAll("[data-hit]")) b.onclick = async () => { const h = hits[+b.dataset.hit]; ctlSound.click(); cardClose(); await locatedAt(box, h.lat, h.lon, "", T("Location set.")); };
         });
         return;
       }
       res.innerHTML = hits.map((h, i) => `<button type="button" data-hit="${i}"><b>${escH(h.short || h.name.split(",")[0])}</b> ${escH(h.name)}</button>`).join("");
       note.textContent = hits.length ? T("Pick one:") : T("Nothing found. Try a street and town, or a landmark.");
       for (const b of res.querySelectorAll("[data-hit]")) b.onclick = async () => {
-        const h = hits[+b.dataset.hit]; ctlSound.press(); res.innerHTML = "";
+        const h = hits[+b.dataset.hit]; ctlSound.click(); res.innerHTML = "";
         note.textContent = T("Type an address or a place and pick it: fills in the town, latitude and longitude.");
         await locatedAt(box, h.lat, h.lon, "", T("Location set."));
       };
@@ -10032,7 +10045,7 @@ function applyLang(){
 // Overhead and Airport in the title: tap one to switch.
 function setMode(md){
   if (S.mode === md) return;
-  ctlSound.press(); audioInit();
+  ctlSound.nav(); audioInit();
   S.mode = md; saveSettings();
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
@@ -10140,6 +10153,12 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.3", date: "2026-10-27", notes: [
+    "Cards open at once: the photo window shows a spinner while its photo loads, then the photo fades in.",
+  ]},
+  {v: "1.97.2", date: "2026-10-27", notes: [
+    "Buttons and links click in two new ways: small buttons, chips and × have a crisp click, and opening a card, a row or a tab has a light tick. The big push buttons sound as before.",
+  ]},
   {v: "1.97.1.1", date: "2026-10-27", notes: [
     "Scanning a plane in Sky view tears the stub off the pass again.",
     "The Logbook's places bar shows up on its own when the places arrive late.",
@@ -10855,7 +10874,7 @@ function changelogHtml(){
 function aboutHtml(){
   return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
     `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
-    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))}</p>` +
+    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>` +
     `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
     `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>` +
     `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
@@ -10947,7 +10966,7 @@ function cockpitOpen(){
   draft = cockpitDraft();
   const box = $("cockpit");
   box.innerHTML = PLATES.map(plateHtml).join("");
-  $("aboutX").onclick = () => { ctlSound.press(); aboutHide(); };
+  $("aboutX").onclick = () => { ctlSound.click(); aboutHide(); };
   $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
   wireCockpit(box);
@@ -10991,7 +11010,7 @@ function aboutOpen(){
     `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
-  $("aboutLog").onclick = () => { ctlSound.press(); logShow(); };
+  $("aboutLog").onclick = () => { ctlSound.click(); logShow(); };
   renderAbout();
   relayLoad();
 }
@@ -11055,7 +11074,7 @@ function logShow(){
     `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div>` +
     `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
   for (const b of box.querySelectorAll("[data-lf]")) b.onclick = () => {
-    ctlSound.press(); logFilter = b.dataset.lf;
+    ctlSound.click(); logFilter = b.dataset.lf;
     for (const x of box.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
     logRender();
   };
@@ -11085,7 +11104,7 @@ function logText(){
     `${versionLine()} · relay ${window.OVERHEAD_RELAY_VERSION || "–"}\n${navigator.userAgent}\n${statusLine()}\n\n${lines || "Nothing logged."}\n`;
 }
 async function logCopy(){
-  ctlSound.press();
+  ctlSound.click();
   const text = logText(), btn = $("logCopy");
   let ok = false;
   try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
@@ -11093,7 +11112,7 @@ async function logCopy(){
   btn.textContent = T(ok ? "Copied" : "Couldn't copy");
   setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
 }
-$("logX").onclick = () => { ctlSound.press(); logHide(); };
+$("logX").onclick = () => { ctlSound.click(); logHide(); };
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
@@ -11115,7 +11134,7 @@ function jumpBuild(){
   if (seg.dataset.ids !== ids.join() + LANG) {
     seg.dataset.ids = ids.join() + LANG;
     seg.innerHTML = ids.map(id => `<button type="button" data-jump="${id}" aria-pressed="false">${escH(jumpName(id))}</button>`).join("");
-    for (const b of seg.children) b.onclick = () => { ctlSound.press(); jumpGo(b.dataset.jump); };
+    for (const b of seg.children) b.onclick = () => { ctlSound.nav(); jumpGo(b.dataset.jump); };
     seg.setAttribute("aria-label", T("Jump to"));
     jumpOn = "";
   }
@@ -11183,7 +11202,7 @@ $("where").onclick = () => { if (placesRelay()) placesCard(); };
 $("dot").onclick = statusCard;
 $("rvMap").onclick = () => { radarMapSet(!radarMapOn); ctlSound.toggle(radarMapOn); buildRadarLegend(); };
 for (const [id, d] of [["rvZoomOut", -1], ["rvZoomIn", 1]]) $(id).onclick = () => radarZoomTo(d);
-$("rvReset").onclick = () => { ctlSound.press(); radarZoomTo(0); };
+$("rvReset").onclick = () => { ctlSound.click(); radarZoomTo(0); };
 $("rvWheel").onkeydown = e => { const d = {ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1}[e.key]; if (d) { e.preventDefault(); radarZoomTo(d); } };
 // d: steps closer (+) or wider (-); 0 (1.82.2, the radar's ⟲; a push button beside the wheel since 1.83.2): back to the
 // usual range for the radius, and the middle.
@@ -11227,7 +11246,7 @@ const pinch = {pts: new Map(), d0: 0, r0: 0, quiet: 0, tapAt: 0, tapX: 0, tapY: 
 for (const b of $("svPlaces").children) b.onclick = () => {
   const want = b.dataset.all === "1";
   if (want === allPlaces) return;
-  ctlSound.press();
+  ctlSound.click();
   const L = $("svList"), y = scrollY;
   L.style.minHeight = L.offsetHeight + "px";              // the list keeps its height while the other one loads (1.43)
   allPlaces = want; fullDay = {at: 0, rev: null, date: null, list: null}; svSig = todayFactsSig = ""; renderToday();
@@ -11259,7 +11278,7 @@ document.addEventListener("click", e => {
   const x = tlFind(b.dataset.more);
   if (!x) return;
   if (!b.classList.contains("open")) { if (Date.now() - swipeEnded > 400) tlTap(b, e.clientX, e.clientY); return; }
-  if (e.target.closest("[data-fold], .tlK")) { ctlSound.press(); return tlFold(b, true); }
+  if (e.target.closest("[data-fold], .tlK")) { ctlSound.nav(); return tlFold(b, true); }
   const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
@@ -11287,8 +11306,8 @@ function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
 async function tlTap(li, x, y){
   const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k), tok = ++tlTok;
   if (!L || !e) return;
-  ctlSound.press();
-  // 1.97.2: it opens at once; its photo window shows a spinner until the photo is in
+  ctlSound.nav();
+  // 1.97.3: it opens at once; its photo window shows a spinner until the photo is in
   if (tok === tlTok && li.isConnected && !li.classList.contains("open")) tlOpen(L, li, e);
 }
 function tlOpen(L, li, e){
@@ -11680,12 +11699,12 @@ function welcome(){
     n.textContent = T("Notifications are on.");
     setTimeout(acctStep, 700);
   };
-  $("wPushNo").onclick = () => { ctlSound.press(); acctStep(); };
+  $("wPushNo").onclick = () => { ctlSound.nav(); acctStep(); };
   function acctStep(){              // an account, so the logbook comes along to a new phone (https only: passkeys)
     if (!accountsOk() || !passkeysHere()) return pick();
     wSwap([$("wStep1"), $("wPush")], $("wAcct"));
     $("wAcctNo").textContent = T("Not now");
-    $("wAcctNo").onclick = () => { ctlSound.press(); pick(); };
+    $("wAcctNo").onclick = () => { ctlSound.nav(); pick(); };
     accountBox($("wAcctBox"), a => { if (a && a.user && (a.passkeys.length || a.password)) $("wAcctNo").textContent = T("Continue"); });
   }
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
@@ -11699,7 +11718,7 @@ function welcome(){
     setTimeout(() => { box.hidden = true; box.classList.remove("wDone"); updateWhere(); run(); }, 380);
   });
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
-  $("wLater").onclick = () => { ctlSound.press(); box.hidden = true; run(); showTab("settings"); };
+  $("wLater").onclick = () => { ctlSound.nav(); box.hidden = true; run(); showTab("settings"); };
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
@@ -11817,7 +11836,7 @@ function updateFooter(){
 }
 // The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
 function statusCard(){
-  ctlSound.press();
+  ctlSound.nav();
   const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
   const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
   const draw = () => {
@@ -11834,7 +11853,7 @@ function statusCard(){
   };
   const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>` +
     `<div class="cBtns"><button class="cBtn" type="button" id="stLog">${escH(T("Log"))}</button></div>`);
-  $("stLog").onclick = () => { ctlSound.press(); cardClose(); logShow(); };
+  $("stLog").onclick = () => { ctlSound.click(); cardClose(); logShow(); };
   const tick = setInterval(() => {
     const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
     if (!el) return clearInterval(tick);
@@ -11986,11 +12005,11 @@ function gStripSetup(){
   box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.press(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.press(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
+  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
 }
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
-for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.press(); showTab(b.dataset.lt); } };
+for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
   $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
@@ -12261,10 +12280,10 @@ function renderGame(){
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
   hgWire(box);
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
-  for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.press(); gAll = b.dataset.ga === "1"; renderGame(); };
+  for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
-  $("gLeagueOpt").onchange = e => { ctlSound.press(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+  $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
@@ -12282,7 +12301,7 @@ function gLimHtml(g){
 // 1.79: How points work, a card. 1.96 (to-do #127): the rules on one screen, from the relay: each rarity's points within
 // the circle and with a scan, today's planes against the limits, the extras and the daily streak.
 function gHowCard(){
-  ctlSound.press();
+  ctlSound.nav();
   const g = gme || {}, R = gRules(), L = g.limits || {}, k = gKm();
   const rows = R ? TIER_DRUM.slice(1).map(t => { const [n, m] = L[t] || [0, R.limit[t]];
     return `<span><img class="tico" src="${tierIcon(t)}" alt=""></span><span>${escH(gTierT(t))}</span><span class="r">+${nf.format(R.passive[t])}</span>` +
@@ -12340,12 +12359,12 @@ async function gRecentCard(){
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
     (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you." : "Points only come with live location (Settings → Location), for planes within {k} km of you.", {k: gKm()}))}</p>`) +
     `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
-    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.press(); cardClose(); showTab("game"); }; });
+    ci => { ci.querySelector("[data-club]").onclick = () => { ctlSound.nav(); cardClose(); showTab("game"); }; });
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
 async function playerCard(id){
-  ctlSound.press();
+  ctlSound.nav();
   const tok = cardLoading();
   let p = null;
   try { p = await fetchJSON(`${relay()}/game/player?id=${encodeURIComponent(id)}`, {}, 8000); } catch {}
