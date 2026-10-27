@@ -608,7 +608,7 @@ changelog: \btips?\b|walkthrough|first time
 
 [app-shell] The phone app's frame: the Android WebView app and handover, the service worker's caching, manifest and icons
 tools/app/head.html: css:html.android .brandline
-tools/app/main.js: ANDROID APK_URL androidHandover
+tools/app/main.js: ANDROID APK_URL androidHandover fallblattBack
 relay/serve.py: +now_json /health +BOARD_FILE +board_file +badge_manifest
 .github/workflows/android.yml: "name:"
 android/app/src/main/AndroidManifest.xml: "<application"
