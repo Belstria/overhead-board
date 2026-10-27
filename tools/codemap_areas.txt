@@ -348,7 +348,7 @@ test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUS
     airlineFacts airlineInfo countryName logoReady airlineCard airports airportGet placeCard planeLate routeEnd
     planeTiles planeBody typeOf familyName typeCard planeShown planeTok planeCard tapAt tapTimer
     fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
-    factsOk brandsOk factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
+    factsOk brandsOk BAND_ICONS bandMid factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
     timesText ageYears isToday ENGINE_KIND RANGE_CITIES modelFunFacts airlineFunFacts placeFunFacts planeFunFacts
     tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey
 tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn

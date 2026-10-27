@@ -193,7 +193,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   Remarks). In the phone app and on the full board alike.
 - **Info cards like Sky view's** (1.94): every card of a model, an airline, a plane and an airport looks like Sky view's
   card: a big photo with its credit at the top and the name, a line under it and a chip (rarity, codes, status) on it;
-  a band (first flight → in service, founded → main base, the plane's route, your airport → there with the distance);
+  a band (first flight → in service, founded → main base, the plane's route, your airport → there) with a gold chip in
+  its middle saying what the card is (Model, Airline, Airport with a small picture; a flight's a plane in a gold disc,
+  1.96.1; your airport's distance to there is the Flight distance fact since);
   three boxes (a model: Built, In service, Spotted; an airline: Fleet, Destinations, Spotted; a plane: Spotted,
   Closest, Flights; an airport: Passengers, Runways, Opened); one **Fun fact**; more facts in two columns (a model's
   engines, seats, wingspan, length, range, main user, years built and the model it was developed from, which opens its

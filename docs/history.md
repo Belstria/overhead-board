@@ -10,6 +10,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.96.1 (to-do #124, Dave's picks: chip C2, the model from the front): **the band's middle says what the card is**.
+  `bandMid(kind)` replaces "— ✈ —" (and the place card's "— 1,702 km —"): a solid gold chip (`.cKind`) with a filled
+  icon (`BAND_ICONS`: the model an airliner from the front, the airline a tail fin, the place a control tower) and the
+  word (Model, Airline, Airport); a flight (`planeCard`'s route, Sky view's `skyBody`) only a gold disc with Tabler's
+  plane (`.cKind.only`), simpler than the ✈ glyph, whose engines blurred on small screens. `infoCard` takes `kind`;
+  the band's middle text is gone: the place card's distance from your airport is the **Flight distance** fact ("4,224
+  km from VIE"), next to Distance (from the screen). It stays an `<i>`, so the app's timeline still fades it in.
+  Mockups: two rounds (A line, B flat, C chip; C1–C3, model icons M1–M3) in `.mockups/` (`js/band.js`).
 - 1.96.1 (to-do #122, Dave's pick "brand if same name"; relay 77): **an airline's card is its brand's**. A Wizz Air
   flight's card showed Wizz Air Malta's facts (the operating company, found by its ICAO code). `/facts?airline=` now
   answers with the brand's facts and `flownBy: {name, icao}` when the company flies under its group's name;
