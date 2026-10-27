@@ -374,6 +374,73 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cPicA,.cardish .cPicA{display:block;color:inherit;text-decoration:none;border-radius:calc(10px*var(--ck,1))}
 #cardBox .cPicA:focus,.cardish .cPicA:focus{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
 #cardBox .cPicA:focus:not(:focus-visible),.cardish .cPicA:focus:not(:focus-visible){outline:none}
+/* 1.94 (to-do #113, Dave's mockup A): the info cards in Sky view's card style (the app's .arFullL): the photo, its credit
+   at its top-left and the title, sub and chip on it (× round on it); the band; three boxes; the fun fact; the facts in
+   two columns; Wikipedia's words in three lines; More info, then the rest of the words and Did you know; the buttons.
+   Sizes in the app's type scale, scaled with the board on the TVs (--ck); the remote's ring on everything to press. */
+#cardBox .cardIn.info .cardX{box-sizing:border-box;width:calc(38px*var(--ck,1));height:calc(38px*var(--ck,1));right:calc(8px*var(--ck,1));top:calc(8px*var(--ck,1));border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);background:rgba(20,21,23,.9);color:#f3f0e8;font:600 calc(20px*var(--ck,1))/calc(36px*var(--ck,1)) var(--f-board);z-index:5}
+#cardBox .cInfo .cSkyPic{position:relative;border-radius:calc(12px*var(--ck,1));overflow:hidden}
+#cardBox .cInfo .cSkyPic .cPicA{border-radius:0}
+#cardBox .cInfo .cSkyPic .cPic{display:block;width:100%;height:calc(210px*var(--ck,1));max-height:none;margin:0;border-radius:0;object-fit:cover}
+#cardBox .cInfo .cSkyPic .cCr{top:calc(10px*var(--ck,1));bottom:auto;left:calc(12px*var(--ck,1));right:auto;max-width:calc(100% - 64px*var(--ck,1))}
+#cardBox .cInfo .cOv{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;gap:calc(10px*var(--ck,1));padding:calc(36px*var(--ck,1)) calc(14px*var(--ck,1)) calc(12px*var(--ck,1));
+  background:linear-gradient(transparent,rgba(0,0,0,.78))}
+#cardBox .cInfo .cOv.cOvPlain{position:static;align-items:center;padding:calc(4px*var(--ck,1)) calc(40px*var(--ck,1)) 0 0;background:none}
+#cardBox .cInfo .cOvT{display:grid;gap:calc(4px*var(--ck,1));min-width:0}
+#cardBox .cInfo .cOvF{font:700 calc(24px*var(--ck,1))/1.05 var(--f-board);color:#fff;letter-spacing:.02em}
+#cardBox .cInfo .cOvA{justify-self:start;font:500 calc(13px*var(--ck,1))/1.25 var(--f-board);color:#e4e1d8}
+#cardBox .cInfo button.cOvA{border:0;border-radius:0;padding:0 0 calc(1px*var(--ck,1));background:none;text-decoration:underline dotted rgba(228,225,216,.55);text-underline-offset:calc(3px*var(--ck,1))}
+#cardBox .cInfo .cOvPlain .cOvF{color:#f3f0e8} #cardBox .cInfo .cOvPlain .cOvA{color:#959aa3}
+#cardBox .cInfo .cOv .cChip{flex:none;margin-left:auto}
+#cardBox .cInfo .cOv .cLogo{flex:none;height:calc(34px*var(--ck,1));max-width:calc(96px*var(--ck,1));padding:calc(3px*var(--ck,1)) calc(6px*var(--ck,1))}
+#cardBox .cInfo .cCodes{background:#2f3135;color:#e8ebee}
+#cardBox .cInfo .cRouteB{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:calc(8px*var(--ck,1));margin:calc(14px*var(--ck,1)) calc(2px*var(--ck,1)) 0}
+#cardBox .cInfo .cRouteB i{font:600 calc(15px*var(--ck,1))/1 var(--f-board);font-style:normal;color:#f0b429;white-space:nowrap}
+#cardBox .cInfo .cRbEnd{all:unset;display:grid;gap:calc(2px*var(--ck,1));min-width:0}
+#cardBox .cInfo button.cRbEnd{cursor:pointer}
+#cardBox .cInfo .cRbEnd:last-child{text-align:right}
+#cardBox .cInfo .cRbEnd b{font:700 calc(24px*var(--ck,1))/1 var(--f-board);color:#f3f0e8}
+#cardBox .cInfo .cRbEnd small{font:500 calc(11px*var(--ck,1))/1.2 var(--f-board);color:#959aa3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cardBox .cInfo .cTiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(6px*var(--ck,1));margin-top:calc(14px*var(--ck,1))}
+#cardBox .cInfo .cTile{min-width:0;padding:calc(9px*var(--ck,1)) calc(6px*var(--ck,1));border-radius:calc(10px*var(--ck,1));background:#202125;text-align:center}
+#cardBox .cInfo .cTile span,#cardBox .cInfo .cTile b,#cardBox .cInfo .cTile small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cardBox .cInfo .cTile span{font:600 calc(11px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#f0b429}
+#cardBox .cInfo .cTile b{margin-top:calc(4px*var(--ck,1));font:700 calc(17px*var(--ck,1))/1.15 var(--f-board);color:#f3f0e8}
+#cardBox .cInfo .cTile small{margin-top:calc(3px*var(--ck,1));font:500 calc(11px*var(--ck,1))/1.2 var(--f-board);color:#959aa3}
+#cardBox .cInfo .cFun,#cardBox .cInfo .cKnow{margin-top:calc(12px*var(--ck,1));padding:calc(10px*var(--ck,1)) calc(12px*var(--ck,1));border-radius:calc(10px*var(--ck,1));
+  background:rgba(240,180,41,.07);border:1px solid rgba(240,180,41,.24)}
+#cardBox .cInfo .cFun{display:flex;align-items:baseline;gap:calc(10px*var(--ck,1))}
+#cardBox .cInfo .cFun b,#cardBox .cInfo .cKnow h4{flex:none;margin:0;font:600 calc(11px*var(--ck,1))/1.3 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:#f0b429}
+#cardBox .cInfo .cFun p{margin:0;font:500 calc(15px*var(--ck,1))/1.35 var(--f-board);color:#f3f0e8}
+#cardBox .cInfo .cDet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(10px*var(--ck,1)) calc(14px*var(--ck,1));margin-top:calc(14px*var(--ck,1));
+  font:600 calc(15px*var(--ck,1))/1.3 var(--f-board);color:#f3f0e8}
+#cardBox .cInfo .cDet>div{min-width:0;overflow-wrap:anywhere}
+#cardBox .cInfo .cDet>div.w{grid-column:1/3}
+#cardBox .cInfo .cDet>div>span:first-child{display:block;margin-bottom:calc(2px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#f0b429}
+#cardBox .cInfo .cDet .cLink{border:0;border-radius:0;padding:0;font:inherit;color:#f3f0e8}
+#cardBox .cInfo .cDet span[data-dyn]{display:inline;margin:0;font:inherit;letter-spacing:normal;text-transform:none;color:inherit}   /* the app's .cDet span is a label */
+#cardBox .cInfo .cWikiW{margin-top:calc(14px*var(--ck,1))}
+#cardBox .cInfo .cWiki{margin:0 0 calc(8px*var(--ck,1));font:400 calc(15px*var(--ck,1))/1.45 var(--f-board);color:#c9c4b6}
+#cardBox .cInfo .cWiki.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:0}
+#cardBox .cInfo .cSrc{display:inline-block;margin-top:calc(4px*var(--ck,1));font:600 calc(11px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#959aa3;text-decoration:none}
+#cardBox .cInfo .cSrc i,#cardBox .cInfo .cMoreB i{font-style:normal}
+#cardBox .cInfo .cMoreB{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:calc(6px*var(--ck,1));width:100%;
+  min-height:calc(42px*var(--ck,1));margin-top:calc(12px*var(--ck,1));padding:calc(8px*var(--ck,1)) calc(12px*var(--ck,1));border-radius:calc(10px*var(--ck,1));background:#202125;
+  color:#f0b429;font:700 calc(13px*var(--ck,1))/1.2 var(--f-board);letter-spacing:.1em;text-transform:uppercase}
+#cardBox .cInfo .cMoreB[hidden]{display:none}
+#cardBox .cInfo .cKnow{padding-bottom:calc(12px*var(--ck,1))}
+#cardBox .cInfo .cKnow h4{margin-bottom:calc(8px*var(--ck,1))}
+#cardBox .cInfo .cKnow ul{display:grid;gap:calc(9px*var(--ck,1));margin:0;padding:0;list-style:none}
+#cardBox .cInfo .cKnow li{position:relative;padding-left:calc(14px*var(--ck,1));font:500 calc(15px*var(--ck,1))/1.35 var(--f-board);color:#f3f0e8}
+#cardBox .cInfo .cKnow li::before{content:"";position:absolute;left:calc(2px*var(--ck,1));top:calc(8px*var(--ck,1));width:calc(5px*var(--ck,1));height:calc(5px*var(--ck,1));border-radius:50%;background:#f0b429}
+#cardBox .cInfo .cKnow li small{display:block;margin-top:calc(2px*var(--ck,1));font:500 calc(11px*var(--ck,1))/1.3 var(--f-board);letter-spacing:.02em;color:#959aa3}
+#cardBox .cInfo .cBtns{display:flex;gap:calc(8px*var(--ck,1));margin-top:calc(14px*var(--ck,1))}
+#cardBox .cInfo .cBtns .cBtn{flex:1;display:flex;align-items:center;justify-content:center;text-align:center}
+#cardBox .cInfo .cBtns .cBtn small{display:none}
+#cardBox .cInfo button:not(.cBtn):focus,#cardBox .cInfo a:focus{outline:calc(2px*var(--ck,1)) solid #f6c54a;outline-offset:calc(2px*var(--ck,1))}
+#cardBox .cInfo button:not(.cBtn):focus:not(:focus-visible),#cardBox .cInfo a:focus:not(:focus-visible){outline:none}
+#cardBox .cInfo .cBtn:focus-visible{box-shadow:0 0 0 calc(3px*var(--ck,1)) #f6c54a,0 calc(2px*var(--ck,1)) 0 #000}
 .acIn{display:block;width:100%;box-sizing:border-box;margin:calc(8px*var(--k)) 0;padding:calc(10px*var(--k)) calc(12px*var(--k));border-radius:calc(8px*var(--k));border:1px solid rgba(255,255,255,.12);background:#0f1012;color:#f3f0e8;font:500 calc(15px*var(--k)) "Archivo Narrow",sans-serif}
 .acHead{display:flex;align-items:center;gap:calc(14px*var(--k));margin:calc(2px*var(--k)) 0 calc(8px*var(--k));padding:calc(12px*var(--k)) calc(14px*var(--k));border-radius:calc(12px*var(--k));background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1)}
 .acAv{flex:none;width:calc(46px*var(--k));height:calc(46px*var(--k));border-radius:50%;display:grid;place-items:center;background:#f0b429;color:#141414;font:700 calc(22px*var(--k))/1 "Archivo Narrow",sans-serif}
@@ -1715,7 +1782,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=c93d1c13a1"></script>
+<script src="../test/i18n.js?v=734e48904a"></script>
 <script>
 (() => {
 "use strict";
@@ -2079,10 +2146,12 @@ function cardOpen(html, wire){
     box = document.createElement("div"); box.id = "cardBox"; document.body.appendChild(box);
     box.addEventListener("click", e => { if (e.target === box) cardClose(); });
     box.addEventListener("click", cardToggle);
+    box.addEventListener("click", cardMore);                                  // 1.94: More info
   }
   if (cardMusic && !String(html).includes("data-music")) cardMusicStop();     // another card: its own sound, or none
   const sheet = typeof cardSheetPre === "function" ? cardSheetPre(box, html) : null;   // 1.78: the app's cards are sheets
-  box.innerHTML = `<div class="cardIn" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
+  const info = String(html).startsWith('<div class="cInfo"') ? " info" : "";  // 1.94: an info card (× on its photo)
+  box.innerHTML = `<div class="cardIn${info}" role="dialog" aria-modal="true"><button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>${html}</div>`;
   box.hidden = false;
   box.querySelector(".cardX").onclick = () => { ctlSound.press(); cardClose(); };
   if (wire) wire(box.querySelector(".cardIn"));
@@ -2182,8 +2251,6 @@ addEventListener("keydown", e => {
   if (cardOpenNow() && (e.key === "Escape" || e.key === "Backspace" || e.keyCode === 10009 || e.keyCode === 461)) { e.preventDefault(); e.stopPropagation(); cardClose(); }
 }, true);
 const factsHtml = facts => `<dl class="cFacts">${facts.filter(f => f[1]).map(([k, v, w]) => `<div${w ? ' class="w"' : ""}><dt>${escH(T(k))}</dt><dd>${v}</dd></div>`).join("")}</dl>`;
-const wikiHtml = w => w ? `<p class="cWiki">${escH(w.text.length > 420 ? w.text.slice(0, 400).replace(/\s+\S*$/, "") + " …" : w.text)}` +
-  (w.url ? ` <a href="${escH(w.url)}" target="_blank" rel="noopener">${escH(T("More on Wikipedia"))}</a>` : "") + `</p>` : "";
 function chipHtml(r){
   const L = REMARK_LOOK[r] || {}, fill = L.fill ? L.fill[0] : "#2f3135";
   return r ? `<span class="cChip" style="background:${fill};color:${L.fg || "#e8ebee"}">${escH(T(r))}</span>` : "";
@@ -2208,6 +2275,170 @@ async function wikiFind(titles, like){
   return null;
 }
 const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
+/* 1.94 (to-do #113, Dave's mockup A): the info cards (a model, an airline, a plane, a place) in Sky view's card style:
+   the photo on top, its credit at its top-left and the title, sub and chip on it; a band (first flight → in service,
+   founded → main base, the route, your airport → there); three boxes; one fun fact; the facts in two columns;
+   Wikipedia's words cut to three lines; the buttons. More info opens the card further where it is: the rest of
+   Wikipedia's words (CC BY-SA: the small "Wikipedia" link to the page ends them) and Did you know, two or three more
+   facts, each with its source. The world's facts come cleaned from the relay (relay 74, /facts: Wikipedia's infobox and
+   specs, Wikidata), what you spotted from /logbook/spotted and the logbook search; with an older relay a card shows
+   what it has, in the same layout. Every fact is real data: none is shown without the numbers behind it. */
+const factsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 74;
+const factsCache = new Map(), spottedCache = new Map(), planeLogs = new Map();
+// A model's (by its Wikipedia page), an airline's (ICAO code) or an airport's (IATA code) facts: {title, url, text, img, facts}.
+function factsGet(kind, key){
+  if (!key || !factsOk()) return Promise.resolve(null);
+  const k = kind + ":" + key;
+  if (!factsCache.has(k)) {
+    const p = fetchJSON(`${relay()}/facts?${kind}=${encodeURIComponent(key)}`, {}, 9000).then(j => j && !j.none ? j : null);
+    factsCache.set(k, p);
+    p.catch(() => factsCache.delete(k));                   // not answered: asked again by the next card
+  }
+  return factsCache.get(k).catch(() => null);
+}
+// What you spotted of an airline, a model or an airport over the whole logbook: {sightings, planes, first, last}.
+function spottedGet(part, key){
+  if (!key || !factsOk()) return Promise.resolve(null);
+  const k = part + ":" + key, h = spottedCache.get(k);
+  if (h && Date.now() - h.at < 120000) return h.p;
+  const p = fetchJSON(`${relay()}/logbook/spotted?${part}=${encodeURIComponent(key)}`, {}, 8000).catch(() => null);
+  spottedCache.set(k, {at: Date.now(), p});
+  return p;
+}
+// One airframe in the logbook (relay 55's search; relay 74 adds its closest pass's height, the sighting before the latest
+// and its last route): the row now, undefined while it is being asked (onReady once it is in), null when it was never
+// spotted, false when it can't be asked (no registration, an older relay).
+function planeLog(reg, onReady){
+  reg = String(reg || "").trim().toUpperCase();
+  if (!reg || S.demo || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 55) return false;
+  const tight = s => String(s || "").toUpperCase().replace(/[\s-]/g, ""), h = planeLogs.get(reg);
+  if (h && Date.now() - h.at < 300000) {
+    if (h.row === undefined && onReady && !h.cbs.includes(onReady)) h.cbs.push(onReady);
+    return h.row;
+  }
+  const ask = {at: Date.now(), row: undefined, cbs: onReady ? [onReady] : []};
+  planeLogs.set(reg, ask);
+  fetchJSON(`${relay()}/search?q=${encodeURIComponent(reg)}`, {}, 8000)
+    .then(j => { ask.row = ((j && j.rows) || []).find(r => r.by === "r" && tight(r.reg || r.key) === tight(reg)) || null; },
+      () => { ask.row = null; ask.at = Date.now() - 240000; })            // not answered: asked again in a minute
+    .then(() => { for (const f of ask.cbs.splice(0)) try { f(); } catch {} });
+  return undefined;
+}
+const yearOf = d => String(d || "").slice(0, 4);
+const longDate = (d, year = true) => { const t = typeof d === "number" ? new Date(d) : /^\d{4}-\d\d-\d\d$/.test(d || "") ? new Date(d + "T12:00:00") : null;
+  return t ? t.toLocaleDateString(LOC(), {day: "numeric", month: "long", ...(year ? {year: "numeric"} : {})}) : yearOf(d); };
+const kmText = n => `${nf.format(Math.round(n))} km`;
+const mText = n => `${nf.format(Math.round(n * 10) / 10)} m`;
+const bigText = n => n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)} M` : nf.format(n);
+const timesText = n => n ? (n === 1 ? T("Once") : T("{n} times", {n: nf.format(n)})) : T("Not yet");
+const ageYears = d => { const y = +yearOf(d), now = new Date(); if (!y) return 0;
+  const md = /^\d{4}-(\d\d)-(\d\d)$/.exec(d || ""), before = md && (now.getMonth() + 1 < +md[1] || (now.getMonth() + 1 === +md[1] && now.getDate() < +md[2]));
+  return now.getFullYear() - y - (before ? 1 : 0); };
+const isToday = d => { const m = /^\d{4}-(\d\d)-(\d\d)$/.exec(d || ""), now = new Date(); return !!m && +m[1] === now.getMonth() + 1 && +m[2] === now.getDate(); };
+const ENGINE_KIND = {turbofan: "Turbofan", turboprop: "Turboprop", turboshaft: "Turboshaft", turbojet: "Turbojet", piston: "Piston engine", electric: "Electric motor"};
+// Places a model's range is measured against: the farthest of these under 90 % of it, from where the screen is.
+const RANGE_CITIES = [["London", 51.51, -0.13], ["Paris", 48.86, 2.35], ["Madrid", 40.42, -3.7], ["Rome", 41.9, 12.5], ["Berlin", 52.52, 13.4],
+  ["Moscow", 55.76, 37.62], ["Istanbul", 41.01, 28.98], ["Cairo", 30.04, 31.24], ["Dubai", 25.2, 55.27], ["Delhi", 28.61, 77.21], ["Mumbai", 19.08, 72.88],
+  ["Bangkok", 13.76, 100.5], ["Singapore", 1.35, 103.82], ["Hong Kong", 22.32, 114.17], ["Beijing", 39.9, 116.41], ["Tokyo", 35.68, 139.65],
+  ["Sydney", -33.87, 151.21], ["Johannesburg", -26.2, 28.05], ["Nairobi", -1.29, 36.82], ["Lagos", 6.52, 3.38], ["New York", 40.71, -74.01],
+  ["Toronto", 43.65, -79.38], ["Chicago", 41.88, -87.63], ["Los Angeles", 34.05, -118.24], ["Mexico City", 19.43, -99.13], ["São Paulo", -23.55, -46.63],
+  ["Buenos Aires", -34.6, -58.38], ["Reykjavík", 64.15, -21.94], ["Cape Town", -33.93, 18.42], ["Honolulu", 21.31, -157.86], ["Auckland", -36.85, 174.76],
+  ["Lisbon", 38.72, -9.14], ["Athens", 37.98, 23.73], ["Stockholm", 59.33, 18.07], ["Munich", 48.14, 11.58], ["Prague", 50.08, 14.44], ["Zurich", 47.38, 8.54],
+  ["Amsterdam", 52.37, 4.9], ["Warsaw", 52.23, 21.01], ["Barcelona", 41.39, 2.17]];
+// The facts a card can tell, in order: [text, its source]. The first is the card's Fun fact, the next ones Did you know.
+function modelFunFacts(f, planes){
+  const out = [], built = f.built ? nf.format(f.built) + (f.builtMore ? "+" : "") : "";
+  if (f.firstFlight && isToday(f.firstFlight) && ageYears(f.firstFlight) >= 1)
+    out.push([T("First flew {n} years ago today, on {d}.", {n: ageYears(f.firstFlight), d: longDate(f.firstFlight)}), T("Wikipedia, counted")]);
+  if (built && planes) out.push([planes === 1 ? T("One of {n} built: you've seen one of them.", {n: built}) : T("One of {n} built: you've seen {k} of them.", {n: built, k: nf.format(planes)}),
+    T("Wikipedia · your logbook")]);
+  const sp = f.span, w = {w: mText(sp || 0)};
+  const wing = sp >= 105 ? T("Its wings ({w}) span more than a football pitch is long ({l}).", {...w, l: mText(105)})
+    : sp >= 50 ? T("Its wings ({w}) span more than an Olympic pool is long ({l}).", {...w, l: mText(50)})
+    : sp >= 23.77 ? T("Its wings ({w}) span more than a tennis court is long ({l}).", {...w, l: mText(23.77)}) : "";
+  if (wing) out.push([wing, T("Wikipedia's specs, compared")]);
+  if (f.range && S.lat != null) {
+    const c = RANGE_CITIES.map(([n, la, lo]) => [n, gcKm(S.lat, S.lon, la, lo)]).filter(([, d]) => d > 150 && d < f.range * .9).sort((a, b) => b[1] - a[1])[0];
+    if (c) out.push([T("Range {r}: from here to {c} nonstop ({d}).", {r: kmText(f.range), c: T(c[0]), d: kmText(c[1])}), T("Wikipedia's specs, measured from here")]);
+  }
+  if (f.firstFlight && !isToday(f.firstFlight) && ageYears(f.firstFlight) >= 1) out.push([/^\d{4}-\d\d-\d\d$/.test(f.firstFlight)
+    ? T("First flew {n} years ago, on {d}.", {n: ageYears(f.firstFlight), d: longDate(f.firstFlight)}) : T("First flew {n} years ago, in {y}.", {n: ageYears(f.firstFlight), y: yearOf(f.firstFlight)}),
+    T("Wikipedia, counted")]);
+  if (f.producedTo === "present" && f.producedFrom) out.push([T("Still being built, since {y}.", {y: f.producedFrom}), T("Wikipedia")]);
+  return out;
+}
+function airlineFunFacts(f, planes, base){
+  const out = [], start = f.commenced || f.founded, n = ageYears(start);
+  if (start && n >= 1) out.push([f.commenced && /^\d{4}-\d\d-\d\d$/.test(f.commenced) ? T("Flying for {n} years: its first flight was on {d}.", {n, d: longDate(f.commenced)})
+    : f.commenced ? T("Flying for {n} years, since {y}.", {n, y: yearOf(f.commenced)}) : T("Founded {n} years ago, in {y}.", {n, y: yearOf(f.founded)}), T("Wikipedia, counted")]);
+  if (planes && f.fleet >= planes) out.push([planes === 1 ? T("You've spotted one of its {n} planes.", {n: nf.format(f.fleet)})
+    : T("You've spotted {m} of its {n} planes.", {m: nf.format(planes), n: nf.format(f.fleet)}), T("your logbook · Wikipedia")]);
+  if (base && base.km > 1) out.push([T("Its main base, {c}, is {d} from here.", {c: base.code, d: kmText(base.km)}), T("measured from here")]);
+  return out;
+}
+function placeFunFacts(f, home, homeName){
+  const out = [], hp = home && home.passengers;
+  if (f.passengers && hp) {
+    const r = f.passengers / hp, v = {h: homeName, p: bigText(hp), y: home.passengersYear};
+    out.push([r >= 1.1 ? T("{x} × {h}'s passengers ({p} in {y}).", {...v, x: r >= 10 ? Math.round(r) : nf.format(Math.round(r * 10) / 10)})
+      : r > .9 ? T("About as many passengers as {h} ({p} in {y}).", v) : T("{x} % of {h}'s passengers ({p} in {y}).", {...v, x: Math.max(1, Math.round(r * 100))}), T("Wikidata, compared")]);
+  }
+  if (f.opened && ageYears(f.opened) >= 1) out.push([T("Opened {n} years ago, in {y}.", {n: ageYears(f.opened), y: yearOf(f.opened)}), T("Wikidata, counted")]);
+  return out;
+}
+function planeFunFacts(g){
+  const out = [];
+  if (g && g.prev && g.last && g.last - g.prev >= 60 * 864e5) {
+    const sameYear = new Date(g.prev).getFullYear() === new Date().getFullYear();
+    out.push([T("Back after {n} months: you saw it before on {d}.", {n: Math.round((g.last - g.prev) / (30.44 * 864e5)), d: longDate(g.prev, !sameYear)}), T("your logbook")]);
+  }
+  if (g && g.n >= 2 && g.first) out.push([T("You first spotted it on {d}.", {d: longDate(g.first)}), T("your logbook")]);
+  return out;
+}
+// A model's rarity as a chip on its photo (Rare, Very rare ...), by its type code.
+function tierChip(code){
+  code = String(code || "").toUpperCase();
+  const tier = LEGENDARY.has(code) ? "legendary" : FLEET[code] != null ? fleetTier(code) : "";
+  return tier ? `<span class="cChip" style="background:${TIER_COL[tier]};color:#fff">${escH(T(TIER_NAME[tier]))}</span>` : "";
+}
+// One info card (o: {pic: a planePic-like photo, logo, title, sub, subAttr (makes the sub a button), chip, music,
+// band: [[big, small, attrs], middle, [big, small, attrs]], tiles: [[label, value, small] x3], facts: [[text, source]],
+// det: [[label, html]], wiki: {text, url}, btns}).
+function infoCard(o){
+  const end = e => e && e[0] ? `<${e[2] ? "button" : "span"} class="cRbEnd"${e[2] ? ` type="button"${e[2]}` : ""}><b>${escH(e[0])}</b><small>${escH(e[1] || "")}</small></${e[2] ? "button" : "span"}>`
+    : `<span class="cRbEnd"></span>`;
+  const head = (o.logo ? `<img class="cLogo" src="${escH(o.logo)}" alt="">` : "") + `<div class="cOvT"><b class="cOvF">${escH(o.title)}</b>` +
+    (o.sub ? (o.subAttr ? `<button class="cLink cOvA" type="button"${o.subAttr}>${escH(o.sub)}</button>` : `<span class="cOvA">${escH(o.sub)}</span>`) : "") + `</div>${o.chip || ""}`;
+  const facts = (o.facts || []).filter(Boolean), know = facts.slice(1, 4), det = (o.det || []).filter(d => d[1]);
+  const paras = o.wiki && o.wiki.text ? String(o.wiki.text).split(/\n+/).map(s => s.trim()).filter(Boolean) : [];
+  return `<div class="cInfo"${o.music ? " data-music" : ""}>` +
+    (o.pic && o.pic.src ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`) : `<div class="cOv cOvPlain">${head}</div>`) +
+    (o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}<i>${o.band[1] ? `— ${escH(o.band[1])} —` : "— ✈ —"}</i>${end(o.band[2])}</div>` : "") +
+    (o.tiles ? `<div class="cTiles">${o.tiles.map(([l, v, s]) => `<div class="cTile"><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>${s ? `<small>${escH(s)}</small>` : ""}</div>`).join("")}</div>` : "") +
+    (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
+    (det.length ? `<div class="cDet">${det.map(([l, v, w]) => `<div${w ? ' class="w"' : ""}><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` : "") +
+    (paras.length ? `<div class="cWikiW"><p class="cWiki clamp">${escH(paras[0])}</p>${paras.length > 1 ? `<div class="cMoreT" hidden>${paras.slice(1).map(p => `<p class="cWiki">${escH(p)}</p>`).join("")}</div>` : ""}` +
+      (o.wiki.url ? `<a class="cSrc" href="${escH(o.wiki.url)}" target="_blank" rel="noopener">Wikipedia<i aria-hidden="true"> ↗</i></a>` : "") + `</div>` : "") +
+    (paras.length || know.length ? `<button class="cMoreB" type="button" data-info-more>${escH(T("More info"))}<i aria-hidden="true">▾</i></button>` : "") +
+    (know.length ? `<div class="cMoreX" hidden><div class="cKnow"><h4>${escH(T("Did you know?"))}</h4><ul>${know.map(([t, s]) => `<li>${escH(t)}<small>${escH(s)}</small></li>`).join("")}</ul></div></div>` : "") +
+    (o.btns || "") + `</div>`;
+}
+// More info: the card opens further where it is (the rest of Wikipedia's words, Did you know) and scrolls down to the
+// words, smoothly (at once on a TV or with less motion). The remote's ring, on the button, goes to what came in.
+function cardMore(e){
+  const b = e.target.closest && e.target.closest("[data-info-more]"), info = b && b.closest(".cInfo"), ci = b && b.closest(".cardIn");
+  if (!info || !ci) return;
+  ctlSound.press();
+  const had = document.activeElement === b, h0 = ci.offsetHeight;
+  for (const x of info.querySelectorAll(".cMoreT, .cMoreX")) x.hidden = false;
+  const p = info.querySelector(".cWiki.clamp"), to = info.querySelector(".cWikiW") || info.querySelector(".cMoreX");
+  if (p) p.classList.remove("clamp");
+  b.hidden = true;
+  if (had) { const f = info.querySelector(".cWikiW a[href], .cMoreX button, .cBtns button"); if (f) try { f.focus({preventScroll: true}); } catch { f.focus(); } }
+  if (typeof cardSheetGrow === "function") cardSheetGrow(ci, h0);              // the app's sheet: up to its new height
+  const top = Math.max(0, (to ? to.offsetTop : 0) - 12);
+  try { ci.scrollTo({top, behavior: REDUCED || LITE() ? "auto" : "smooth"}); } catch { ci.scrollTop = top; }
+}
 // A picture of the aircraft model, for planes with no photo of their own (1.34): the model's Wikipedia picture.
 /* 1.93.1.1 (to-do #112): found in a request or two, and never another model's. The type code's page (MODEL_PAGES,
    made from Wikipedia's list of type designators by tools/model_pages.py) and the names as titles in many spellings
@@ -2420,8 +2651,9 @@ function planePic(ac, info, d, onReady, noPs){
   return {src: m, kind: m ? "model" : ""};
 }
 // A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
+// 1.94: "wm", a card's own photo from Wikimedia Commons (a model's, an airline's plane, an airport).
 const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.net"), p.by ? "Planespotters.net" : ""] : p.kind === "own" ? [T("Photo"), "airport-data.com"]
-  : p.kind === "model" ? [T("Model only"), "Wikimedia Commons"] : ["", ""];
+  : p.kind === "model" ? [T("Model only"), "Wikimedia Commons"] : p.kind === "wm" ? [T("Photo"), "Wikimedia Commons"] : ["", ""];
 const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
 const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
   return a ? `<span class="crBy">${escH(a)}</span><span class="crSrc">${b ? " · " + escH(b) : ""}${go}</span>` : ""; };
@@ -2633,53 +2865,101 @@ async function airlineCard(x){
   const L = a.iata ? logo(a.iata, true) : null;
   const c = a.icao ? {k: "airline", v: a.icao, n: a.name} : null;
   const music = a.iata === "EK" || a.icao === "UAE" ? "emirates-boarding.m4a" : "";      // 1.49: boarding music
-  const draw = (w, info) => { const src = L && L.state === "ok" ? L.img.src : "", cs = info && info.callsign ? String(info.callsign).toUpperCase() : "";
-    return (`<div class="cHead"${music ? " data-music" : ""}>${src ? `<img class="cLogo" src="${escH(src)}" alt="">` : ""}<div><h3>${escH(w && !x.airline ? w.title : a.name)}</h3><span>${escH(T("Airline"))}</span></div></div>` +
-    factsHtml([["Codes", escH([a.iata, a.icao].filter(Boolean).join(" · "))], ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
-      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""],
-      ["Country", info && info.country ? escH(countryName(info.country_iso, info.country)) : ""], ["Radio callsign", escH(cs)]]) + wikiHtml(w) +
-    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : "")); };
+  // 1.94: its plane (Wikimedia Commons) with the logo, name and country on it; founded → main base; its fleet, its
+  // destinations and how often you spotted it; its people and places; Wikipedia's words
+  const draw = (w, info, fx, sp, base) => {
+    const f = fx && fx.facts || {}, src = L && L.state === "ok" ? L.img.src : "", cs = info && info.callsign ? String(info.callsign).toUpperCase() : f.callsign || "";
+    const hub = (f.hubs || [])[0], hubs = (f.hubs || []).filter(h => h.code).map(h => h.code);
+    return infoCard({pic: fx && fx.img ? {src: fx.img, kind: "wm"} : null, logo: src, music,
+      title: a.name && a.name !== a.icao ? a.name : fx && fx.name || (w ? w.title.replace(/ \(airline\)$/, "") : a.name),
+      sub: [info && info.country ? countryName(info.country_iso, info.country) : "", a.iata, a.icao].filter(Boolean).join(" · "),
+      band: [f.founded ? [yearOf(f.founded), T("Founded")] : null, "", hub && hub.code ? [hub.code, T("Main base"), ` data-pl="${escH(hub.code)}"`] : null],
+      tiles: [["Fleet", f.fleet ? nf.format(f.fleet) : ""], ["Destinations", f.destinations ? nf.format(f.destinations) : ""],
+        ["Spotted", timesText(sp ? sp.sightings : lb && lb.count)]],
+      facts: airlineFunFacts(f, sp && sp.planes, base),
+      det: [["Radio callsign", escH(cs)], ["Headquarters", escH(f.headquarters || "")], ["Hubs", hubs.length > 1 ? escH(hubs.join(" · ")) : ""],
+        ["Owner", escH((f.owners || []).map(o => o.share ? `${o.name} ${o.share} %` : o.name).join(" · "))], ["Employees", f.employees ? escH(nf.format(f.employees)) : ""],
+        ["Alliance", escH(f.alliance || "")],
+        ["Planes spotted", sp && sp.planes ? escH(f.fleet >= sp.planes ? T("{m} of {n}", {m: nf.format(sp.planes), n: nf.format(f.fleet)}) : nf.format(sp.planes)) : ""],
+        ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]],
+      wiki: {text: fx && fx.text || w && w.text || "", url: fx && fx.url || w && w.url || ""},
+      btns: c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
+  };
+  const wire = el => { for (const bt of el.querySelectorAll("[data-pl]")) bt.onclick = () => placeCard({code: bt.dataset.pl}); };
   const tok = cardLoading(!!music);
   if (music) cardMusicStart(music);                 // in the tap itself, so the browser lets it play
-  const [w, info] = await Promise.all([cardWait(airlineWiki(a), 4500), cardWait(airlineInfo(a.icao), 4500), logoReady(L)]);
-  cardWhenReady(tok, draw(w, info));
-  if (L && L.state === "loading") logoReady(L, 15000).then(() => {          // a slow logo joins the open card
-    const h = document.querySelector("#cardBox .cHead");
-    if (tok === cardTok && L.state === "ok" && h && !h.querySelector(".cLogo") && h.querySelector("h3")) h.insertAdjacentHTML("afterbegin", `<img class="cLogo" src="${escH(L.img.src)}" alt="">`);
+  const fxP = factsGet("airline", a.icao), wP = fxP.then(fx => fx && fx.text ? null : airlineWiki(a));
+  const baseP = fxP.then(fx => { const h = fx && fx.facts && (fx.facts.hubs || [])[0]; return h && h.code ? airportGet(h.code) : null; })
+    .then(ap => ap && ap.lat != null && S.lat != null ? {code: ap.code, km: gcKm(S.lat, S.lon, ap.lat, ap.lon)} : null);
+  const [w, info, fx, sp, base] = await Promise.all([cardWait(wP, 6500), cardWait(airlineInfo(a.icao), 4500), cardWait(fxP, 6500),
+    cardWait(spottedGet("airline", a.icao), 4500), cardWait(baseP, 6500), logoReady(L)]);
+  const shown = await cardWhenReady(tok, draw(w, info, fx, sp, base), wire);
+  if (shown && L && L.state === "loading") logoReady(L, 15000).then(() => {          // a slow logo joins the open card
+    const h = document.querySelector("#cardBox .cInfo .cOv");
+    if (shown === cardTok && cardOpenNow() && L.state === "ok" && h && !h.querySelector(".cLogo")) h.insertAdjacentHTML("afterbegin", `<img class="cLogo" src="${escH(L.img.src)}" alt="">`);
   });
 }
+// An airport from the relay's list (relay 18): name, codes, city, position, runways; asked once per code.
+const airports = new Map();
+function airportGet(code){
+  if (!code || code.length !== 3 || !relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 18) return Promise.resolve(null);
+  if (!airports.has(code)) {
+    const p = fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000).then(j => j && j.status === "ok" ? j : null);
+    airports.set(code, p);
+    p.then(j => { if (!j) airports.delete(code); }, () => airports.delete(code));
+  }
+  return airports.get(code).catch(() => null);
+}
 // A place a plane comes from or flies to: its airport (the relay's list: name, codes, runways), the distance from
-// here and Wikipedia's words about the airport.
+// here and Wikipedia's words about the airport. 1.94: its photo (Wikidata's, not the logo), your airport → there with the
+// distance; passengers a year, runways, opened; how often you spotted flights to or from it.
 async function placeCard(p){
   if (!p || !(p.code || p.city)) return;
   ctlSound.press();
   const code = clean(code3(p) || p.code || ""), DIR8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const today = code ? dayList().filter(e => code3(e.from) === code || code3(e.to) === code).length : 0;
-  let ap = null, w = null;
-  const draw = () => {
-    const lat = ap && ap.lat != null ? ap.lat : p.lat != null ? +p.lat : null, lon = ap && ap.lon != null ? ap.lon : p.lon != null ? +p.lon : null;
+  const home = clean(S.home || ""), other = home.length === 3 && home !== code;
+  const draw = (ap, w, fx, hx, sp) => {
+    const f = fx && fx.facts || {}, h = hx && hx.facts || {};
+    const lat = ap && ap.lat != null ? ap.lat : f.lat != null ? f.lat : p.lat != null ? +p.lat : null;
+    const lon = ap && ap.lon != null ? ap.lon : f.lon != null ? f.lon : p.lon != null ? +p.lon : null;
     let dist = "";
     if (lat != null && lon != null) {
       const km = gcKm(S.lat, S.lon, lat, lon), brg = (Math.atan2((lon - S.lon) * Math.cos(S.lat * Math.PI / 180), lat - S.lat) * 180 / Math.PI + 360) % 360;
       dist = `${nf.format(Math.round(km))} km ${DIR8[Math.round(brg / 45) % 8]}`;
     }
-    return (`${w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer">` : ""}` +
-      `<div class="cHead"><div><h3>${escH(ap && ap.name || (w && w.title) || p.city || code)}</h3><span>${escH(T("Airport"))}</span></div></div>` +
-      factsHtml([["City", escH(ap && ap.city || p.city || "")], ["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Distance", escH(dist)],
-        ["Runways", ap && ap.runways && ap.runways.length ? String(ap.runways.length) : ""], ["Today", today ? escH(today === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: today})) : "", true]]) + wikiHtml(w));
+    const city = ap && ap.city || p.city || f.serves || "", rw = ap && ap.runways && ap.runways.length || f.runways;
+    const flights = n => n === 1 ? T("1 flight to or from here") : T("{n} flights to or from here", {n: nf.format(n)});
+    return infoCard({pic: fx && fx.img ? {src: fx.img, kind: "wm"} : !factsOk() && w && w.img ? {src: wikiImg(w.img, 500), kind: "wm"} : null,
+      title: ap && ap.name || fx && fx.title || w && w.title || p.city || code, sub: [city, f.country].filter(Boolean).join(" · "),
+      chip: code ? `<span class="cChip cCodes">${escH([code, ap && ap.icao].filter(Boolean).join(" · "))}</span>` : "",
+      band: other && lat != null && h.lat != null ? [[home, h.serves || ""], kmText(gcKm(h.lat, h.lon, lat, lon)), [code, city]] : null,
+      tiles: [["Passengers", f.passengers ? bigText(f.passengers) : "", f.passengersYear ? T("in {y}", {y: f.passengersYear}) : ""], ["Runways", rw ? String(rw) : ""],
+        ["Opened", yearOf(f.opened)]],
+      facts: placeFunFacts(f, other ? h : null, h.serves || home),
+      det: [["Codes", escH([code, ap && ap.icao].filter(Boolean).join(" · "))], ["Elevation", f.elevation != null ? escH(mText(f.elevation)) : ""],
+        ["Operator", escH(f.operator || "")], ["Distance", escH(dist)], ["Spotted", sp && sp.sightings ? escH(flights(sp.sightings)) : ""],
+        ["Today", today ? escH(flights(today)) : ""]],
+      wiki: {text: fx && fx.text || w && w.text || "", url: fx && fx.url || w && w.url || ""}});
   };
   const tok = cardLoading();
-  if (code.length === 3 && relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 18) {
-    const j = await cardWait(fetchJSON(`${relay()}/airport?code=${code}`, {}, 8000), 5000);
-    if (j && j.status === "ok") ap = j;
-  }
+  const [ap, fx, hx, sp] = await Promise.all([cardWait(airportGet(code), 5000), cardWait(factsGet("airport", code.length === 3 ? code : ""), 6500),
+    cardWait(other ? factsGet("airport", home) : null, 6500), cardWait(code.length === 3 ? spottedGet("airport", code) : null, 4500)]);
   if (tok !== cardTok) return;
-  w = await cardWait(wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"], /airport|aerodrome|airfield/i), 4500);
-  cardWhenReady(tok, draw());
+  const w = fx && fx.text ? null : await cardWait(wikiFind([ap && ap.name, (ap && ap.city || p.city) + " Airport", (ap && ap.city || p.city) + " International Airport"],
+    /airport|aerodrome|airfield/i), 4500);
+  cardWhenReady(tok, draw(ap, w, fx, hx, sp));
 }
 // A plane card's picture found late (Planespotters' answer, its model's): the card takes it (each side's planeAgain).
-// One function, so a lookup underway calls it once however often the card was drawn meanwhile.
+// One function, so a lookup underway calls it once however often the card was drawn meanwhile. 1.94: so does its
+// logbook row (planeLog).
 const planeLate = () => { if (typeof planeAgain === "function") planeAgain(); };
+// 1.94: a route's end on a plane card's band (code large, city small; a tap opens the place), and the card's boxes from
+// the airframe's logbook row (planeLog's, or the app's search): Spotted, Closest (at its height), Flights.
+const routeEnd = (p, k) => p ? [code3(p) || p.code || "···", p.city || "", ` data-pl="${k}"`] : ["···", ""];
+const planeTiles = g => [["Spotted", g === undefined ? "…" : g === false ? "" : timesText(g && g.n)],
+  ["Closest", g && g.minDist != null ? `${g.minDist < 10 ? g.minDist.toFixed(1) : Math.round(g.minDist)} km` : "", g && g.altAtMin != null ? T("at {alt}", {alt: altitudeStr(g.altAtMin).toLowerCase()}) : ""],
+  ["Flights", g && (g.nOther || (g.flights || []).length) ? nf.format(g.nOther || g.flights.length) : "", g ? (g.flights || []).slice(0, 2).join(" · ") : ""]];
 // A plane (o: {ac, dist, dir, alt, kind}, as on the radar): its photo (or its model's), route, details and remarks,
 // with the airline and places to tap and Favourite / Hide.
 function planeBody(o, sky){
@@ -2692,16 +2972,18 @@ function planeBody(o, sky){
   const name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
   const dyn = {alt: o.alt != null ? altitudeStr(o.alt).toLowerCase() : "", speed: ac.gs ? speedStr(ac.gs).toLowerCase() : "",
     dist: o.dist != null ? `${o.dist < 10 ? o.dist.toFixed(1) : Math.round(o.dist)} km ${o.dir || ""}` : ""};
-  const place = (p, k) => p ? `<button class="cLink" type="button" data-pl="${k}"><b style="color:#f0b429">${escH(code3(p) || p.code || "")}</b> ${escH(p.city || "")}</button>` : "";
-  const btns = listsOk() || SHARE_OK ? `<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
+  const btns = listsOk() || SHARE_OK ?`<div class="cBtns">${listsOk() ? `<button class="cBtn" type="button" data-sheet>★ ${T("Favourite")} / ⊘ ${T("Hide")}</button>` : ""}` +
     (SHARE_OK ? `<button class="cBtn" type="button" data-share>⇪ ${escH(T("Share"))}</button>` : "") + `</div>` : "";
-  const html = sky ? skyBody() : picHtml(pic) +
-    `<div class="cHead"><div><h3>${escH(name)}${chipHtml(badge)}</h3>${info.airline ? `<button class="cLink" type="button" data-al>${escH(info.airline)}</button>` : ""}</div></div>` +
-    (info.from && info.to ? `<p class="cRoute">${place(info.from, "from")} → ${place(info.to, "to")}</p>` : "") +
-    factsHtml([["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)}</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")], ["Operator", escH(d.owner || info.airline || "")],
+  // 1.94: Sky view's card style: the flight, airline and status on the photo, the route as a band, what the logbook
+  // knows of the airframe in the boxes (Spotted, Closest, Flights) and its fun fact, the live numbers among the facts
+  const reg = info.reg || d.reg || ac.r || "", log = sky ? null : planeLog(reg, again);
+  const html = sky ? skyBody() : infoCard({pic, title: name, sub: info.airline || "", subAttr: info.airline ? " data-al" : "", chip: chipHtml(badge),
+    band: info.from || info.to ? [routeEnd(info.from, "from"), "", routeEnd(info.to, "to")] : null, tiles: planeTiles(log), facts: planeFunFacts(log),
+    det: [["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)} ›</button>` : ""], ["Registration", escH(reg)],
+      ["Operator", escH(d.owner || info.airline || "")], ["Registered", escH(d.country || "")],
       ["Altitude", dyn.alt ? `<span data-dyn="alt">${escH(dyn.alt)}</span>` : ""], ["Speed", dyn.speed ? `<span data-dyn="speed">${escH(dyn.speed)}</span>` : ""],
       ["Distance", dyn.dist ? `<span data-dyn="dist">${escH(dyn.dist)}</span>` : ""], ["Gate", escH(gateFor(info))],
-      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]]) + btns;
+      ["Remarks", escH(remarkLines(ac, info).join(" · ")), true]], btns});
   // 1.72.6: Sky view's whole card (`sky`): the flight, airline and status on the photo, the route as a band, the three
   // live numbers as tiles, the rest in two columns.
   function skyBody(){
@@ -2726,31 +3008,52 @@ function planeBody(o, sky){
     const sp = el.querySelector("[data-share]"); if (sp) sp.onclick = () => shareCard({...share, pic: planePic(ac, info, detailsOf(ac.hex) || {}, null, true)});
   };
   // the card without its changing numbers: the same signature means only those need updating (the radar's card)
-  return {html, wire, dyn, sig: html.replace(/<span data-dyn="\w+">[^<]*<\/span>/g, "")};
+  return {html, wire, dyn, log, sig: html.replace(/<span data-dyn="\w+">[^<]*<\/span>/g, "")};
 }
-// An aircraft model (x: a row or {typeCode, type}): its picture and Wikipedia's words, how many fly, how rare, how
-// often seen here and today, and Favourite / Hide for the type.
+// An aircraft model (x: a row or {typeCode, type}; 1.94: or {page, type}, the model a card's "Developed from" leads to):
+// its picture and Wikipedia's words, how many were built and fly, how rare, its first flight and first service, its
+// numbers (engines, seats, size, range), how often you spotted it, and Favourite / Hide for the type.
 function typeOf(x){
   const code = String(x.typeCode || (x.ac && x.ac.t) || "").toUpperCase();
   return {code, name: TYPES[code] || x.type || code};
 }
+// A page's model as its family ("Airbus A330neo" → "A330neo", "Airbus A320 family" → "A320", "Cessna 172" stays).
+const familyName = title => { const s = String(title || "").replace(/\s+(family|series)$/i, ""), w = s.split(" ");
+  return w.length > 1 && !/\d/.test(w[0]) && /[a-z]/i.test(w.slice(1).join(" ")) ? w.slice(1).join(" ") : s; };
 async function typeCard(x){
   const t = typeOf(x || {});
   if (!t.name) return;
   ctlSound.press();
   const b = lbData() || {}, lb = t.code && b.types ? b.types[t.code] : null, n = FLEET[t.code];
-  const tier = LEGENDARY.has(t.code) ? "legendary" : n != null ? fleetTier(t.code) : "";
   const today = t.code ? dayList().filter(e => String(e.typeCode || "").toUpperCase() === t.code).length : 0;
-  const c = t.code ? {k: "type", v: t.code, n: t.name} : null;
-  const draw = w => ((w && w.img ? `<img class="cPic" src="${escH(wikiImg(w.img, 500))}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
-    `<div class="cHead"><div><h3>${escH(t.name)}</h3><span>${escH(T("Aircraft model"))}</span></div></div>` +
-    factsHtml([["Code", escH(t.code)], ["In service", n ? escH(T("About {n} worldwide", {n: nf.format(n)})) : ""], ["Rarity", tier ? escH(T(TIER_NAME[tier])) : ""],
-      ["Seen here", lb ? escH(lb.count === 1 ? T("Once since {d}", {d: fmtDay(lb.first)}) : T("{n} times since {d}", {n: nf.format(lb.count || 0), d: fmtDay(lb.first)})) : ""],
-      ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]]) + wikiHtml(w) +
-    (c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
-  const tok = cardLoading(), look = modelWiki([t.name, x.type, x.desc], t.code);     // 1.88: and the source's description
-  const w = await cardWait(look, 4500), shown = await cardWhenReady(tok, draw(w));
-  if (shown && !w) look.then(w2 => { if (w2) cardWhenReady(shown, draw(w2)); });   // 1.93.1.1: found later, while it still shows this model
+  const c = t.code ? {k: "type", v: t.code, n: t.name} : null, p0 = modelSplit(t.name);
+  // 1.94: on its photo the name, maker, code and how rare; first flight → in service; built, flying, spotted
+  const draw = (w, fx, sp) => {
+    const f = fx && fx.facts || {}, e = f.engines;
+    const fam = fx && modelFold(fx.title) !== modelFold(t.name) ? T("{name} family", {name: familyName(fx.title)}) : "";
+    return infoCard({pic: w && w.img ? {src: wikiImg(w.img, 500), kind: "wm"} : null, title: t.name,
+      sub: [p0 && p0.maker && t.code ? modelMakers(p0.maker)[0] : "", t.code].filter(Boolean).join(" · "),
+      chip: tierChip(t.code), band: [f.firstFlight ? [yearOf(f.firstFlight), T("First flight")] : null, "", f.introduced ? [yearOf(f.introduced), T("In service")] : null],
+      tiles: [["Built", f.built ? nf.format(f.built) + (f.builtMore ? "+" : "") : "", f.built ? fam : ""], ["In service", n ? "≈ " + nf.format(n) : "", n ? T("this model") : ""],
+        ["Spotted", t.code ? timesText(sp ? sp.sightings : lb && lb.count) : ""]],
+      facts: modelFunFacts(f, sp && sp.planes),
+      det: [["Code", escH(t.code)], ["Engines", e ? escH(e.name ? (e.n ? `${e.n} × ` : "") + e.name : `${e.n} × ${T(ENGINE_KIND[e.kind] || "Engine")}`) : ""],
+        ["Seats", f.seats ? escH(T("up to {n}", {n: nf.format(f.seats)})) : ""], ["Wingspan", f.span ? escH(mText(f.span)) : ""],
+        ["Length", f.length ? escH(mText(f.length)) : ""], ["Range", f.range ? escH(kmText(f.range)) : ""], ["Main user", escH(f.mainUser || "")],
+        ["Built", f.producedFrom ? escH(`${f.producedFrom} – ${f.producedTo === "present" ? T("today") : f.producedTo || "?"}`) : ""],
+        ["Developed from", f.developedFrom ? `<button class="cLink" type="button" data-dev="${escH(f.developedFrom.page)}">${escH(f.developedFrom.name)} ›</button>` : ""],
+        ["Planes spotted", sp && sp.planes ? escH(nf.format(sp.planes)) : ""], ["Today", today ? escH(today === 1 ? T("1 plane") : T("{n} planes", {n: today})) : ""]],
+      wiki: {text: fx && fx.text || w && w.text || "", url: fx && fx.url || w && w.url || ""},
+      btns: c && listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
+  };
+  const wire = el => { const d = el.querySelector("[data-dev]"); if (d) d.onclick = () => typeCard({page: d.dataset.dev, type: d.textContent.replace(/ ›$/, "")}); };
+  const tok = cardLoading(), look = x.page ? wikiPage(x.page) : modelWiki([t.name, x.type, x.desc], t.code);     // 1.88: and the source's description
+  const fxP = look.then(w => w ? factsGet("model", w.title) : null), spP = t.code ? spottedGet("type", t.code) : null;
+  const [w, fx, sp] = await Promise.all([cardWait(look, 4500), cardWait(fxP, 7000), cardWait(spP, 4500)]);
+  const shown = await cardWhenReady(tok, draw(w, fx, sp), wire);
+  if (shown && (!w || (!fx && factsOk()))) Promise.all([look, fxP]).then(([w2, f2]) => {   // 1.93.1.1: found later, while it still shows this model
+    if ((w2 && !w) || (f2 && !fx)) cardWhenReady(shown, draw(w2 || w, f2 || fx, sp), wire);
+  });
 }
 /* Share a sighting as a picture (1.53): a split-flap panel (flight, route, aircraft, registration, time) under the
    plane's photo, with a small Fallblatt mark and no link. The photo comes through the relay (relay 47, /photo) or
@@ -2888,6 +3191,7 @@ async function planeCard(o){
   planeBody(o);                                          // asks for its details and its photo
   await until(() => acDetails.get(hex) !== null, 2500);
   await until(() => /<img/.test(planeBody(o).html), 2500);       // its photo: Planespotters' answer, adsbdb's, or its model's
+  await until(() => planeBody(o).log !== undefined, 1500);       // 1.94: and its row in the logbook
   if (tok !== cardTok) return;
   const b = planeBody(o);
   planeTok = await cardWhenReady(tok, b.html, b.wire);
@@ -6735,20 +7039,34 @@ const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.2-
 // Saved places and the Categories rows; the Favourites & hidden picker has the same drawing in the board's CSS.
 const DD = '<svg class="dd" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9.25" fill="none" stroke="#4a4c52" stroke-width="1.5"/><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const lbfPlaces = g => [...new Set((g.places || []).map(p => p.k !== "live" ? lbPlaceName(p.k) : p.n ? [p.n, p.a].filter(Boolean).join(", ") : p.c || placeName("live")).filter(Boolean))];
-// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
+// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline. 1.94: the
+// aircraft in Sky view's card style: its photo, its last route, Spotted · Closest · Flights, back after months.
 let lbFoundRows = [];
-function foundCard(k, g){
+async function foundCard(k, g){
   if (!g) return;
   if (k === "ty") return typeCard({typeCode: g.typeCode, type: g.type});
   if (k === "al") return airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
-  const reg = g.reg || g.key.toUpperCase(), when = t => t ? fmtDay(t) : "";
+  const reg = g.reg || g.key.toUpperCase(), ac = {hex: g.hex || "", r: reg, t: g.typeCode, desc: g.type};
   const c = {k: "reg", v: reg, n: [reg, g.type].filter(Boolean).join(" · ")};
-  cardOpen(`<div class="cHead"><div><h3>${escH(reg)}</h3><span>${escH(T("Aircraft"))}</span></div></div>` +
-    factsHtml([["Aircraft", escH(g.type || "")], ["Airline", escH(g.airline || "")],
-      ["Seen here", escH(g.n === 1 ? T("Once, {d}", {d: when(g.last)}) : T("{n} times since {d}", {n: nf.format(g.n), d: when(g.first)}))],
-      ["Seen from", escH(lbfPlaces(g).join(", "))],
-      ["Last seen", escH(when(g.last))], ["Closest", g.minDist != null ? escH(distText(g.minDist)) : ""], ["Flights", escH((g.flights || []).join(", ")), true]]) +
-    (listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+  let shown = 0;
+  const late = () => { if (shown && shown === cardTok && cardOpenNow()) shown = cardOpen(html(), wire); };   // its photo found later
+  const pic = () => planePic(ac, {reg, type: g.type}, detailsOf(ac.hex) || {}, late);
+  const html = () => infoCard({pic: pic(), title: reg, sub: g.airline || "", subAttr: g.airline ? " data-fal" : "", chip: tierChip(g.typeCode),
+    band: g.route ? [routeEnd(g.route.from, "from"), "", routeEnd(g.route.to, "to")] : null, tiles: planeTiles(g), facts: planeFunFacts(g),
+    det: [["Aircraft", g.type ? `<button class="cLink" type="button" data-fty>${escH(g.type)} ›</button>` : ""], ["Operator", escH(g.owner || g.airline || "")],
+      ["Registered", escH(g.ownerCountry || "")], ["Mode S", escH(String(g.hex || "").toUpperCase())],
+      ["Last seen", escH(g.last ? `${fmtDay(g.last)}, ${hhmm(new Date(g.last))}` : "")], ["Seen from", escH(lbfPlaces(g).join(", "))]],
+    btns: listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
+  const wire = el => {
+    for (const im of el.querySelectorAll(".cPicA img")) im.onerror = () => picFailed(im, late);
+    const al = el.querySelector("[data-fal]"); if (al) al.onclick = () => airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
+    const ty = el.querySelector("[data-fty]"); if (ty) ty.onclick = () => typeCard({typeCode: g.typeCode, type: g.type});
+    for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(g.route[b.dataset.pl]);
+  };
+  const tok = cardLoading();
+  if (ac.hex) lookupDetails(ac.hex);
+  for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
+  shown = await cardWhenReady(tok, html(), wire);
 }
 function renderLogbook(){
   if (tab !== "logbook") return;
@@ -6901,11 +7219,12 @@ function hangarCard(code, again){
   let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), when = t.first ? new Date(t.first) : null;
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
-  tok = cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
-    `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
-    factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
-      ["First", when ? escH(`${fmtDay(t.first)} ${hhmm(when)}`) : ""], ["Aircraft", escH(t.reg)], ["Flight", escH(t.flight)], ["Airline", escH(t.airline)]]) +
-    `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`, el => {
+  // 1.94: in Sky view's card style: the photo with the name, code and tier on it; how often caught, the first catch
+  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
+    chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
+    tiles: [["Caught", timesText(t.count)], ["First", when ? fmtDay(t.first) : "", when ? hhmm(when) : ""], ["Aircraft", t.reg || "", t.flight || ""]],
+    det: [["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
+    btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
   });
 }
@@ -8068,6 +8387,13 @@ function cardSheetPost(box, pre){
     setTimeout(() => { if (ci.isConnected) ci.style.height = ""; }, 320);
   }
   ci.classList.add("swap");
+}
+// 1.94: a card that grows while it is open (More info): the sheet from its old height up to its new one.
+function cardSheetGrow(ci, h0){
+  const h1 = ci.offsetHeight;
+  if (REDUCED || Math.abs(h1 - h0) < 3) return;
+  ci.style.height = h0 + "px"; void ci.offsetWidth; ci.style.height = h1 + "px";
+  setTimeout(() => { if (ci.isConnected) ci.style.height = ""; }, 320);
 }
 function cardSheetClose(b){
   if (b.hidden || !b.classList.contains("in")) return false;
@@ -9480,6 +9806,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.94", date: "2026-10-27", notes: [
+    "The cards of a model, an airline, a plane and an airport look like Sky view's: a big photo, three boxes and the facts in two columns.",
+    "More facts for spotters: first flight, how many were built, engines, seats, size and range; an airline's fleet, destinations and main base; an airport's passengers and runways.",
+    "A fun fact on every card, worked out from real data, and More info: the rest of Wikipedia's words and a few more facts, each with its source.",
+    "\"Seen here\" is now \"Spotted\": once, or how many times."]},
   {v: "1.93.1.1", date: "2026-10-27", notes: [
     "Many more aircraft models have a picture, light aircraft and helicopters too, and none shows another model any more.",
     "A card that opens before its model's picture is found takes the picture as soon as it comes."]},

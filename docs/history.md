@@ -10,6 +10,42 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.94 (to-do #113 and #114, Dave's mockup A with his More info; relay 74): **the info cards in Sky view's card
+  style**, with more facts for spotters. Shared (cards block, so the app too): `infoCard(o)` draws every one: the photo
+  (`picHtml(pic, " cSkyPic", over)`, its credit at the top-left, clear of the round ×: `.cardIn.info`, set by `cardOpen`
+  when the html starts with `.cInfo`), the title, sub (a button with `subAttr`) and chip on it (`.cOv`; `.cOvPlain`
+  without a photo); the band (`.cRouteB`, ends as buttons when they lead somewhere); three boxes (`.cTiles`); the first
+  of `facts` as Fun fact (`.cFun`); the facts in two columns (`.cDet`); Wikipedia's first paragraph in three lines
+  (`.cWiki.clamp`) with the small "Wikipedia ↗" link to the page (`.cSrc`: its words are CC BY-SA); More info
+  (`.cMoreB`, `data-info-more`: the app's list rows already use `data-more`) and, hidden, the rest of the paragraphs
+  (`.cMoreT`) and Did you know (`.cMoreX`, `.cKnow`: facts 2 to 4, each with its source); the buttons. `cardMore` opens
+  it where it is (the clamp off, the parts shown, the button hidden; a ring that was on it goes to the Wikipedia link),
+  lets the app's sheet grow (`cardSheetGrow`) and scrolls the card to the words, smoothly unless `REDUCED` or `LITE()`.
+  The cards: `typeCard` (photo, name, maker · code, rarity `tierChip`; first flight → in service; Built with "{name}
+  family" when the page is a family's (`familyName`), In service ≈ `FLEET`, Spotted; Code, Engines, Seats, Wingspan,
+  Length, Range, Main user, Built (years), Developed from › (a model card by its page: `typeCard({page, type})`),
+  Planes spotted, Today), `airlineCard` (its plane from Commons with the logo; founded → main base (a place card);
+  Fleet, Destinations, Spotted; Radio callsign, Headquarters, Hubs (two or more), Owner (with shares), Employees,
+  Alliance, Planes spotted "m of n", Today; the late logo now joins: the shown card's token, not the loading one),
+  `placeCard` (Wikidata's photo, not the logo the summary gave DXB; city · country, codes as the chip; your airport →
+  there with the distance between them; Passengers (and year), Runways, Opened; Codes, Elevation, Operator, Distance
+  (from here), Spotted (flights to or from it), Today) and the plane card (`planeBody` outside Sky view: the flight,
+  airline and status on the photo, the route as the band, `planeTiles` from `planeLog`: Spotted, Closest (at its
+  height), Flights; the live numbers stay `data-dyn` spans among the facts for the radar's updates, with Registered;
+  `planeCard` waits up to 1.5 s more for the row). Data: `factsGet(kind, key)` (relay 74 `/facts`, kept per page),
+  `spottedGet(part, key)` (`/logbook/spotted`, two minutes), `planeLog(reg, onReady)` (the logbook search, relay 55;
+  undefined while asking, null never spotted, false can't ask; five minutes), `airportGet(code)` (`/airport`, relay 18).
+  Older relays: the same layout with what there is (the summary's words, `airlineWiki`, `wikiFind`). Fun facts, only
+  from real data, in order: `modelFunFacts` (first flew N years ago today; one of N built, you've seen K; wingspan
+  against a football pitch 105 m, an Olympic pool 50 m or a tennis court 23.77 m; range: the farthest of
+  `RANGE_CITIES` (40) under 90 % of it, from the screen's place; first flew N years ago; still being built),
+  `airlineFunFacts` (flying for N years from its first flight, or founded; you've spotted M of its N planes; its main
+  base's distance), `placeFunFacts` (passengers against your airport's, both Wikidata's; opened N years ago),
+  `planeFunFacts` (back after N months, two months or more; first spotted). #114: "Seen here" (since a date) is
+  Spotted: Once or N times (`timesText`; "Not yet"). `wikiHtml` went (More info took its link). TV: the cards stay
+  pop-ups; the Logbook's ring (`lbKey`) reaches every button and link of them (More info too: OK opens it, Back
+  closes); `.cInfo` buttons and links have the amber ring (`:focus-visible`), toggles a box-shadow ring so their
+  "on" outline stays; sizes are `calc(Npx*var(--ck,1))` in the app's type scale.
 - 1.93.1.1 (to-do #112: Dave's BE20 "BEECH 200 Super King Air" and C210 "CESSNA 201 Centurion" had no picture):
   **model pictures for nearly every type, never another model's**. Measured over Dave's 122 logbook types with their
   names as the sources gave them (`tools/test/model_pics.js`): before, 87 had a picture for every name, two of them
@@ -853,6 +889,13 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.94 (to-do #113): the Logbook's aircraft card (`foundCard`, now async: a loading card while Planespotters' or the
+  model's photo comes, at most 2.5 s, a later photo joins) and the hangar's (`hangarCard`: Caught, First, Aircraft) in
+  the board's `infoCard`; the search row brings the last route as the band, `planeTiles` and `planeFunFacts` (relay 74
+  adds the closest pass's height, the sighting before the latest, the hex, owner and country). `cardSheetGrow(ci, h0)`:
+  a card growing while open (More info) goes from its old height to the new one (as `cardSheetPost`); `lint.py`'s
+  OPTIONAL has it. The info cards' CSS is the board's (`#cardBox .cInfo …`, copied by the build); `.cDet span[data-dyn]`
+  undoes head.html's `.cDet span` label look for the live numbers.
 - 1.93.1.1 (to-do #112): `planeAgain` redraws any plane card `planeCard` opened (Now, the airport lists, the radar)
   while it shows (`planeTok === cardTok`), not only the radar's, and a plane on the radar with where it is now; the
   hangar asks for model pictures with the type's code (`hgWire`, `modelPicNow(names, code)`), and `hangarCard(code,
@@ -991,6 +1034,39 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 74 (1.94, to-do #113): **`/facts?model=<Wikipedia page>|airline=<ICAO>|airport=<IATA>`** (profiles only,
+  `allow("facts:"…, 2, 20)`, `Cache-Control: private, max-age=3600`; 503 with Retry-After 300 when Wikimedia can't be
+  asked and nothing older is kept) → `facts_json(kind, key)`: one lookup per page (`_facts_busy`: a second screen waits
+  for the first), kept `FACTS_KEEP` (30 days) in `data/facts.json` (`_facts_cache`, `_dirty` "facts", the saver; 4,000
+  at most), a failure `FACTS_FAIL` (15 min, the old answer meanwhile). `_wm_get` asks Wikimedia with `WM_AGENT` (a name
+  and a contact, as they ask) at most five a second. `model_facts(title)`: one request (`_wiki_page`: wikitext,
+  introduction and disambiguation flag) → the infobox (`_infobox`: every "Infobox aircraft…" template of the
+  introduction; `_wt_templates`, `_wt_split`, `_wt_params`, `_wt_text` (refs, comments, notes and markup off; dates,
+  "as of", lists, convert, `#expr` sums (+ and − only) as text; links as their words), `_wt_link`, `_num`, `_date`):
+  first flight, introduction, status, main and more users, number built (with "as of" and "+"), production years,
+  developed from (name and page); the specs template's capacity (`_seats`: the most passengers, words as numbers,
+  units and classes off), length, span, height, rotor, range (km, nmi, mi), speed and engines, or without it the
+  Specifications table's first column (`_spec_rows`, `_qty`: airliners). `airline_facts(icao)`: Wikidata by P230
+  (`_wd_find`: haswbstatement search; `_wd_pick`: the one still going, with an English page, most statements; a
+  dissolved one only (AZA) gives none) → inception, hubs (P113 with their IATA codes), alliance (P114, the three
+  alliances only: TUI fly's P114 is TUI Travel), headquarters, owners (P127 with P1107 shares, current only), employees,
+  photo (P18 → `_commons`, Special:FilePath 640 px) and the English page's infobox (fleet size, destinations, founded,
+  commenced, num employees, callsign, hubs/alliance/parent as fallbacks). `airport_facts(iata)`: Wikidata by P238 →
+  passengers (P3872, the latest year), elevation (P2044, feet to metres), opened (P1619, else P571), runways (P529),
+  operator, city and country (labels), position, photo, and the page's introduction. **`/logbook/spotted?airline=|type=|
+  airport=`** (`allow("spotted:"…, 2, 10)`) → `spotted_json(spot, part, key)`: sightings, planes (different airframes,
+  by registration, else hex), first, last over every saved day (`_spotted_summary` per day, kept in `_spotted_days`
+  like `_place_days`; today's fresh); an airport counts flights with it as `from` or `to`. `search_json`'s rows add
+  `hex`, `prev` (the sighting before the latest), `altAtMin` (the closest pass's height), `route` (the newest one's
+  from/to), `nOther` (how many different flights or aircraft), `owner`, `ownerCountry`. Coverage (27 Oct, real
+  Wikipedia/Wikidata): Dave's 122 logbook types (the pages the board's lookup found, 121 of 122): first flight 97 %,
+  in service 71 %, built 97 %, production years 95 %, main user 59 %, developed from 53 %, seats 83 %, length 93 %,
+  wingspan 89 %, range 89 %, engines 79 %; the app's 85 AIRLINES codes: page 96 % (none for AZA and LDM, whose
+  companies no longer fly, and HNA, which isn't Hainan's code), photo 95 %, founded 96 %, first flight 66 %, hubs 92 %,
+  alliance 44 %, headquarters 95 %, owners 82 %, fleet 95 %, destinations 91 %, employees 69 %; 50 common airports:
+  passengers 98 %, elevation, opened and runways 100 %, photo 98 %, operator 70 %. Tests: fakes in
+  fakesrc.py (`WIKI`, `WIKIDATA`, `/wiki/w/api.php`, `/wikidata/w/api.php`, `/commons/`, `/wm/asked`), checks in flows.py,
+  `run_test_relay.py --live-facts` for the real ones.
 - Relay 73 (1.93, to-do #95): `/planephoto?reg=&hex=` (profiles only, `allow("pphoto:"…, 2, 30)`, `Cache-Control:
   no-store`; 503 with Retry-After 120 when Planespotters.net can't be asked) → `plane_photo(reg, hex)`: `_ps_ask("reg")`,
   then by hex only when that has no photo. `_ps_first` keeps the first photo whose page name (`/photo/<id>/<reg>-…`)

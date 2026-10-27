@@ -144,8 +144,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   Vienna, GATE F07 (the pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no
   gate in its lists. In the Overhead style (1.88) the Remarks are white, not amber, and only say DELAY 45 MIN when a
   flight is more than 30 minutes late: no ON TIME and no gate.
-  Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
-  often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
+  Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and how often this airframe
+  was spotted from here before (a remark since 1.34): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
   been away for two months or more. The phone app shows both under This aircraft.
 - **ABOVE CLOUD** (1.27, relay 28; a remark since 1.49): the relay reads the home airport's weather report (METAR) every
   ten minutes; a plane above the cloud base (the lowest broken or overcast layer) that is worth going to the window for
@@ -186,19 +186,34 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
-- **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
+- **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often spotted,
   today's planes, its country and radio callsign, a few words from Wikipedia (1.50: also found under a shorter name or
   by Wikipedia's search), its logo once loaded, Favourite / Hide), a place (From, To) for its airport (name, codes,
   distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
-  Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
+  Remarks). In the phone app and on the full board alike.
+- **Info cards like Sky view's** (1.94): every card of a model, an airline, a plane and an airport looks like Sky view's
+  card: a big photo with its credit at the top and the name, a line under it and a chip (rarity, codes, status) on it;
+  a band (first flight → in service, founded → main base, the plane's route, your airport → there with the distance);
+  three boxes (a model: Built, In service, Spotted; an airline: Fleet, Destinations, Spotted; a plane: Spotted,
+  Closest, Flights; an airport: Passengers, Runways, Opened); one **Fun fact**; more facts in two columns (a model's
+  engines, seats, wingspan, length, range, main user, years built and the model it was developed from, which opens its
+  own card; an airline's headquarters, owner, employees, alliance and how many of its planes you've spotted; an
+  airport's elevation, operator and flights to or from it you've spotted); Wikipedia's words in three lines with a
+  small Wikipedia link to the page. **More info** opens the card further where it is: the rest of Wikipedia's words and
+  **Did you know**, two or three more facts, each with its source in small type. The facts come from Wikipedia and
+  Wikidata through the home relay (version 74; with an older relay a card shows what it has, in the same layout), the
+  fun facts are worked out from them and your logbook (one of 199 built and you've seen 2; wings longer than an
+  Olympic pool; the farthest of 40 cities its range reaches from here; flying for 70 years; back after 4 months), and
+  "Spotted" says how often you spotted it: Once, or so many times. On a TV the cards stay pop-ups: the remote's ring
+  reaches every button, More info too (OK opens it, Back closes the card). What opens a card is marked: in the app's lists the airline,
   the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
   a thin dotted line runs under those flaps (1.38).
   On the board a plane on the radar opens its card and the airline field the airline, and the **⋮** (three dots, 1.55; a + before) at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
 - **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
-  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've seen
-  it and today's count, with Favourite / Hide for the type. In the app, Settings → Account → Change password opens a
+  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've
+  spotted it and today's count, with Favourite / Hide for the type (1.94: in Sky view's style, with its numbers). In the app, Settings → Account → Change password opens a
   window with the new password twice.
 - **Remarks** (top half, last row; 1.34, was Seen here): the interesting things about the plane in turn: how often it
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
@@ -760,6 +775,12 @@ the remote).
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
   code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
+- The cards' facts (1.94, relay 74): [Wikipedia](https://en.wikipedia.org) (its words are
+  [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/): each card links the page) and
+  [Wikidata](https://www.wikidata.org) (CC0), read by the relay's `/facts` once per page and kept about 30 days: a
+  model by the Wikipedia page the board found for it (its infobox and specifications), an airline by its ICAO code, an
+  airport by its IATA code. Photos for airlines and airports from Wikimedia Commons. `/logbook/spotted` counts, over
+  your whole logbook, the sightings and different aircraft of an airline or a model and the flights to or from an airport.
 
 The position services don't let browsers on other websites read their data, and they turn away
 requests from cloud servers. So the live data has to come through a small relay running on a computer

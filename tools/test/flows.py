@@ -17,6 +17,9 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - Sky view's reports: David's only, from this site, kept up to a cap (2 in the test relay), then rate-limited (relay 72)
 - a plane's own photo from Planespotters.net (the fake's): profiles only, asked once and kept, by hex only with the same
   registration on the photo, not kept by the browser; /photo doesn't pass their photos on (relay 73)
+- the cards' facts (the fake Wikipedia and Wikidata): a model's infobox and specs (a table or the template), an airline by
+  its ICAO code, an airport by its IATA code, cleaned; asked once and kept; none for a missing page or a dissolved
+  airline; profiles only. What a profile spotted of an airline, a model or an airport (relay 74)
 - in the app (browser_checks, with Playwright): a settings change made while the relay can't be reached waits on the
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88);
@@ -321,6 +324,46 @@ def checks():
     expect("no registration: no photo, nothing asked", (st, json.loads(b).get("photo", "-") if st == 200 else None, asked().get("hex/440A01")), (200, None, None))
     expect("/planephoto for strangers", call("/planephoto?reg=OE-LBN")[0] in (401, 403), True)
     expect("/photo doesn't pass Planespotters' photos on", call("/photo?u=" + urllib.parse.quote("https://t.plnspttrs.net/1/1_280.jpg", safe=""), "test-device")[0], 400)
+
+    # relay 74: the cards' facts from the fake Wikipedia and Wikidata, cleaned (the infobox, a specs table or template)
+    wm = lambda: json.loads(urllib.request.urlopen(fake + "/wm/asked", timeout=5).read())     # noqa: E731
+    facts = lambda q, ck="test-device": (lambda r: (r[0], json.loads(r[2]) if r[0] == 200 else {}))(call("/facts?" + q, ck))   # noqa: E731
+    st, j = facts("model=" + urllib.parse.quote("Airbus A320 family"))
+    f = j.get("facts") or {}
+    expect("/facts for a model: the infobox (first flight, in service, built, as of, years, main user)",
+           (st, f.get("firstFlight"), f.get("introduced"), f.get("built"), f.get("builtAsOf"), f.get("producedFrom"), f.get("producedTo"), f.get("mainUser")),
+           (200, "1987-02-22", "1988-04-18", 12900, "2026-09", 1986, "present", "American Airlines"))
+    expect("... and the specifications table's first column (seats, length, span, range, engines)",
+           (f.get("seats"), f.get("length"), f.get("span"), f.get("range"), f.get("engines")), (180, 37.57, 35.8, 6112, {"n": 2, "name": "CFM56-5B"}))
+    expect("... Wikipedia's words and page", (j.get("text", "")[:24], j.get("url")), ("The Airbus A320 family i", "https://en.wikipedia.org/wiki/Airbus_A320_family"))
+    facts("model=" + urllib.parse.quote("Airbus A320 family"), "owner-device")
+    expect("... asked once for two screens", wm().get("wiki:Airbus A320 family"), 1)
+    st, j = facts("model=" + urllib.parse.quote("Airbus A330neo"))
+    f = j.get("facts") or {}
+    expect("/facts for a model with the specs template (seats, engines, developed from)", (f.get("seats"), f.get("engines"), f.get("developedFrom")),
+           (440, {"n": 2, "name": "Rolls-Royce Trent 7000-72", "kind": "turbofan"}, {"name": "Airbus A330", "page": "Airbus A330"}))
+    st, j = facts("airline=AUA")
+    f = j.get("facts") or {}
+    expect("/facts for an airline by its ICAO code (Wikidata and the infobox)",
+           (st, j.get("title"), f.get("founded"), f.get("commenced"), f.get("hubs"), f.get("alliance"), f.get("fleet"), f.get("destinations"), f.get("employees")),
+           (200, "Austrian Airlines", "1957-09-30", "1958-03-31", [{"name": "Vienna International Airport", "code": "VIE"}], "Star Alliance", 65, 121, 5659))
+    expect("... its photo from Commons", "/commons/OE-LPM_%40_VIE" in j.get("img", ""), True)
+    expect("an airline that no longer flies has no facts", facts("airline=AZA")[1], {"kind": "airline", "none": True})
+    st, j = facts("airport=DXB")
+    f = j.get("facts") or {}
+    expect("/facts for an airport by its IATA code (passengers and year, elevation in metres, opened, runways)",
+           (st, f.get("passengers"), f.get("passengersYear"), f.get("elevation"), f.get("opened"), f.get("runways"), j.get("text", "")[:5]), (200, 95200000, 2025, 19, "1960", 2, "Dubai"))
+    expect("a page Wikipedia doesn't have", facts("model=" + urllib.parse.quote("No such aircraft"))[1], {"kind": "model", "none": True})
+    expect("/facts without a page or code", call("/facts?airline=X", "test-device")[0], 400)
+    expect("/facts for strangers", call("/facts?airline=AUA")[0] in (401, 403), True)
+    # ... and what the profile spotted of one airline, model or airport, over every saved day
+    sp = lambda q: (lambda r: json.loads(r[2]) if r[0] == 200 else {"status": r[0]})(call("/logbook/spotted?" + q, "test-device"))   # noqa: E731
+    al, ty = sp("airline=AUA"), sp("type=A320")
+    expect("/logbook/spotted: an airline's sightings and planes (yesterday's Austrian at least)", (al.get("sightings", 0) >= 1, al.get("planes", 0) >= 1, sorted(al)),
+           (True, True, ["first", "last", "planes", "sightings"]))
+    expect("... a model's", ty.get("planes", 0) >= 2, True)
+    expect("... nothing yet", sp("airline=QQQ"), {"sightings": 0, "planes": 0, "first": None, "last": None})
+    expect("/logbook/spotted for strangers", call("/logbook/spotted?airline=AUA")[0] in (401, 403), True)
 
     for b_ in bad:
         print("flow:", b_)

@@ -847,20 +847,34 @@ const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.2-
 // Saved places and the Categories rows; the Favourites & hidden picker has the same drawing in the board's CSS.
 const DD = '<svg class="dd" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9.25" fill="none" stroke="#4a4c52" stroke-width="1.5"/><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const lbfPlaces = g => [...new Set((g.places || []).map(p => p.k !== "live" ? lbPlaceName(p.k) : p.n ? [p.n, p.a].filter(Boolean).join(", ") : p.c || placeName("live")).filter(Boolean))];
-// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline.
+// 1.75: a search result's parts: the aircraft (a card from what the search found), the model, the airline. 1.94: the
+// aircraft in Sky view's card style: its photo, its last route, Spotted · Closest · Flights, back after months.
 let lbFoundRows = [];
-function foundCard(k, g){
+async function foundCard(k, g){
   if (!g) return;
   if (k === "ty") return typeCard({typeCode: g.typeCode, type: g.type});
   if (k === "al") return airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
-  const reg = g.reg || g.key.toUpperCase(), when = t => t ? fmtDay(t) : "";
+  const reg = g.reg || g.key.toUpperCase(), ac = {hex: g.hex || "", r: reg, t: g.typeCode, desc: g.type};
   const c = {k: "reg", v: reg, n: [reg, g.type].filter(Boolean).join(" · ")};
-  cardOpen(`<div class="cHead"><div><h3>${escH(reg)}</h3><span>${escH(T("Aircraft"))}</span></div></div>` +
-    factsHtml([["Aircraft", escH(g.type || "")], ["Airline", escH(g.airline || "")],
-      ["Seen here", escH(g.n === 1 ? T("Once, {d}", {d: when(g.last)}) : T("{n} times since {d}", {n: nf.format(g.n), d: when(g.first)}))],
-      ["Seen from", escH(lbfPlaces(g).join(", "))],
-      ["Last seen", escH(when(g.last))], ["Closest", g.minDist != null ? escH(distText(g.minDist)) : ""], ["Flights", escH((g.flights || []).join(", ")), true]]) +
-    (listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""));
+  let shown = 0;
+  const late = () => { if (shown && shown === cardTok && cardOpenNow()) shown = cardOpen(html(), wire); };   // its photo found later
+  const pic = () => planePic(ac, {reg, type: g.type}, detailsOf(ac.hex) || {}, late);
+  const html = () => infoCard({pic: pic(), title: reg, sub: g.airline || "", subAttr: g.airline ? " data-fal" : "", chip: tierChip(g.typeCode),
+    band: g.route ? [routeEnd(g.route.from, "from"), "", routeEnd(g.route.to, "to")] : null, tiles: planeTiles(g), facts: planeFunFacts(g),
+    det: [["Aircraft", g.type ? `<button class="cLink" type="button" data-fty>${escH(g.type)} ›</button>` : ""], ["Operator", escH(g.owner || g.airline || "")],
+      ["Registered", escH(g.ownerCountry || "")], ["Mode S", escH(String(g.hex || "").toUpperCase())],
+      ["Last seen", escH(g.last ? `${fmtDay(g.last)}, ${hhmm(new Date(g.last))}` : "")], ["Seen from", escH(lbfPlaces(g).join(", "))]],
+    btns: listsOk() ? `<div class="cBtns">${togBtn("fav", c, "★ " + escH(T("Favourite")))}${togBtn("hide", c, "⊘ " + escH(T("Hide")))}</div><p class="note"></p>` : ""});
+  const wire = el => {
+    for (const im of el.querySelectorAll(".cPicA img")) im.onerror = () => picFailed(im, late);
+    const al = el.querySelector("[data-fal]"); if (al) al.onclick = () => airlineCard({airline: g.airline, callsign: g.callsign, airlineCode: g.airlineIata});
+    const ty = el.querySelector("[data-fty]"); if (ty) ty.onclick = () => typeCard({typeCode: g.typeCode, type: g.type});
+    for (const b of el.querySelectorAll("[data-pl]")) b.onclick = () => placeCard(g.route[b.dataset.pl]);
+  };
+  const tok = cardLoading();
+  if (ac.hex) lookupDetails(ac.hex);
+  for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
+  shown = await cardWhenReady(tok, html(), wire);
 }
 function renderLogbook(){
   if (tab !== "logbook") return;
@@ -1013,11 +1027,12 @@ function hangarCard(code, again){
   let tok = 0;                                    // 1.93.1.1: the model's picture found later comes to the card while it is open
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u)), when = t.first ? new Date(t.first) : null;
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
-  tok = cardOpen((pic || mp ? `<img class="cPic" src="${escH(pic || mp)}" alt="" referrerpolicy="no-referrer"><p class="cCredit">${escH(pic ? T("Photo: airport-data.com") : T("Photo of this model (Wikimedia Commons)"))}</p>` : "") +
-    `<div class="cHead"><div><h3>${escH(name)}</h3><span style="color:${TIER_COL[t.tier] || TIER_COL.uncommon}">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span></div></div>` +
-    factsHtml([["Code", escH(code)], ["Caught", escH(t.count === 1 ? T("Once") : T("{n} times", {n: nf.format(t.count || 0)}))],
-      ["First", when ? escH(`${fmtDay(t.first)} ${hhmm(when)}`) : ""], ["Aircraft", escH(t.reg)], ["Flight", escH(t.flight)], ["Airline", escH(t.airline)]]) +
-    `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`, el => {
+  // 1.94: in Sky view's card style: the photo with the name, code and tier on it; how often caught, the first catch
+  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
+    chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
+    tiles: [["Caught", timesText(t.count)], ["First", when ? fmtDay(t.first) : "", when ? hhmm(when) : ""], ["Aircraft", t.reg || "", t.flight || ""]],
+    det: [["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
+    btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
   });
 }
@@ -2180,6 +2195,13 @@ function cardSheetPost(box, pre){
     setTimeout(() => { if (ci.isConnected) ci.style.height = ""; }, 320);
   }
   ci.classList.add("swap");
+}
+// 1.94: a card that grows while it is open (More info): the sheet from its old height up to its new one.
+function cardSheetGrow(ci, h0){
+  const h1 = ci.offsetHeight;
+  if (REDUCED || Math.abs(h1 - h0) < 3) return;
+  ci.style.height = h0 + "px"; void ci.offsetWidth; ci.style.height = h1 + "px";
+  setTimeout(() => { if (ci.isConnected) ci.style.height = ""; }, 320);
 }
 function cardSheetClose(b){
   if (b.hidden || !b.classList.contains("in")) return false;

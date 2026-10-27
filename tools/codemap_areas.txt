@@ -338,20 +338,32 @@ tools/test/flows.py: "relay 68: airline names from the airline list"
 tools/test/run_test_relay.py: "relay 68: a sighting from yesterday" /airlines.csv
 changelog: airline name|airline|logo|type name|airport name
 
-[cards] Cards: a plane, a model, an airline, a place; card music; Wikipedia's words; the taps and clicks that open them
+[cards] Cards: a plane, a model, an airline, a place; card music; Wikipedia's words; the taps and clicks that open them; the info cards' facts (1.94, relay 74)
 test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUSIC_S MUSIC_FADE_S cardMusic
     MUSIC_BYTES musicBufs musicBuf cardMusicStart cardMusicStop cardWait cardLoading imgsReady cardWhenReady
-    cardOpenNow factsHtml wikiHtml chipHtml wikiCache wikiPage wikiFind wikiImg airlineOf AIRLINE_TAIL airlineWiki
-    airlineFacts airlineInfo countryName logoReady airlineCard placeCard planeLate planeBody typeOf typeCard planeShown
-    planeTok planeCard tapAt tapTimer fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
-    +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +photoKey
+    cardOpenNow factsHtml chipHtml wikiCache wikiPage wikiFind wikiImg airlineOf AIRLINE_TAIL airlineWiki
+    airlineFacts airlineInfo countryName logoReady airlineCard airports airportGet placeCard planeLate routeEnd
+    planeTiles planeBody typeOf familyName typeCard planeShown planeTok planeCard tapAt tapTimer
+    fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
+    factsOk factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
+    timesText ageYears isToday ENGINE_KIND RANGE_CITIES modelFunFacts airlineFunFacts placeFunFacts planeFunFacts
+    tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey
 tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
-tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetClose planeAgain +radarPlaneCard +arTap
-    +foundCard +hangarCard +playerCard
-relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/
+tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetGrow cardSheetClose planeAgain +radarPlaneCard
+    +arTap +foundCard +hangarCard +playerCard
+relay/serve.py: MEDIA_DIR MEDIA Handler.media /media/ WM_AGENT WIKI_API WIKIDATA_API COMMONS_FILE FACTS_FILE
+    FACTS_KEEP FACTS_FAIL FACTS_MAX FACTS_GAP FACTS_TEXT _facts _facts_busy _facts_failed _wm_next _MONTHS _wm_get
+    _wt_templates _wt_split _wt_strip _wt_params _wt_tpl _wt_text _wt_link _num _date _wiki_page _intro _wiki_url
+    _infobox _spec_rows _WORDS _qty _seats _first _list model_facts _wd_find _wd_items _wd_claims _wd_val _wd_time
+    _wd_label _wd_pick _commons airline_facts airport_facts FACTS_KINDS _facts_cache facts_json _spotted_days
+    _spotted_summary spotted_json /facts /logbook/spotted +search_json +_saver
+tools/test/fakesrc.py: WIKI WD_ITEM WD_STR WD_TIME WD_QTY WIKIDATA WM_ASKED wikipedia wikidata /wiki/w/api.php
+    /wikidata/w/api.php /wm/asked /commons/
+tools/test/flows.py: "relay 74: the cards' facts" "the cards' facts (the fake Wikipedia"
+tools/test/run_test_relay.py: "--live-facts" "relay 74: the cards' facts"
 README.md: "- **Cards** (1.34)" "- **Model card**" "- **Cards** (1.78, app)" "- **Cards** (1.42)"
-    "- **Emirates boarding music**"
-changelog: \bcard|wikipedia|music
+    "- **Emirates boarding music**" "- **Info cards like Sky view's**" "- The cards' facts (1.94, relay 74)"
+changelog: \bcard|wikipedia|music|fun fact|more info
 
 [favourites] Favourites and hidden planes: the lists, the sheet, the manager, swipes; the relay's lists
 test/index.html: plusOn plusBtn plusOpen plusBox userLists listsLoad favCache favList listHit isHidden hiddenAc isFav
@@ -688,7 +700,7 @@ tools/test/run_test_relay.py: "--hue"
 changelog: \bhue\b|lamp|light pulse
 
 [tests] Tests and tools: smoke.py, flows.py, the test relay and fake source, screenshots, lint, CI workflows, this code map
-.github/workflows/check.yml: "name: Check"
+.github/workflows/check.yml: "name: Check" "The test browser, kept between runs"
 docs/code-map.md: "## How to read here" "## Keeping the map current" "## Changes that go together"
 tools/codemap.py: check main
 CLAUDE.md: "## Testing a change" "**Finding the code:"

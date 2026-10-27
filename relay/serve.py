@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 73
+RELAY_VERSION = 74
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -310,7 +310,7 @@ def aircraft(lat, lon, nm):
 # (friends and family, let in with a personal invite link) has a spot of its own in data/profiles/<id>/, around the
 # location they set, so their planes never end up in the home logbook and the other way round.
 _data_lock = threading.RLock()
-_dirty = set()             # relay-wide files to write: "fr24", "profiles"
+_dirty = set()             # relay-wide files to write: "fr24", "profiles", "facts" (relay 74)
 _enrich_q = queue.Queue()  # (spot, sighting id)
 _route_cache = {}
 _aircraft_cache = {}
@@ -445,6 +445,8 @@ def _saver():
                 files.append((FR24_FILE, json.dumps(_fr24, separators=(",", ":"))))
             if "profiles" in todo and _profiles is not None:
                 files.append((PROFILES_FILE, json.dumps(_profiles, separators=(",", ":"))))
+            if "facts" in todo and _facts is not None:              # relay 74: the cards' facts
+                files.append((FACTS_FILE, json.dumps(_facts, separators=(",", ":"))))
         for path, text in files:
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -2646,7 +2648,9 @@ def search_json(spot, q):
     are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close.
     Relay 61: a category word narrows it to that category (alone, it lists the category). Relay 63: where it was seen
     counts too (a saved place's name, "home", or on the go the town, the area round it or the country: "Oia",
-    "Santorini", "Greece"), and each row says where it was seen (places, the newest first)."""
+    "Santorini", "Greece"), and each row says where it was seen (places, the newest first). Relay 74 (the plane card):
+    also the closest pass's height, the sighting before the latest, the newest route, how many different flights (or
+    aircraft: nOther), the hex and the registered owner and country."""
     words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", _fold(q)).split() if w][:5]
     cat = next((c for w in words for c, ws in CATEGORY_WORDS.items() if w in ws), None)
     if cat:
@@ -2684,24 +2688,38 @@ def search_json(spot, q):
                 g = groups[key] = {"by": key[0], "key": key[1], "reg": e.get("reg") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
                                    "type": e.get("aircraftType") or e.get("icaoType") or e.get("typeCode") or "", "airline": e.get("airlineName") or "",
                                    "typeCode": e.get("typeCode") or "", "callsign": e.get("callsign") or "", "airlineIata": e.get("airlineIata") or "",
-                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": [], "_pl": {}}
+                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": [], "_pl": {},
+                                   "hex": e.get("hex") or "", "prev": None, "_fl": set(), "_rt": -1}    # relay 74: for the cards
             g["n"] += 1
             t = e.get("ts") or e.get("time")
             if isinstance(t, (int, float)):
                 g["first"] = t if g["first"] is None else min(g["first"], t)
-                g["last"] = t if g["last"] is None else max(g["last"], t)
+                if g["last"] is None or t > g["last"]:              # relay 74: and the sighting before the latest
+                    g["prev"], g["last"] = g["last"], t
+                elif t < g["last"] and (g["prev"] is None or t > g["prev"]):
+                    g["prev"] = t
             md = e.get("minDist")
-            if isinstance(md, (int, float)):
-                g["minDist"] = md if g["minDist"] is None else min(g["minDist"], md)
+            if isinstance(md, (int, float)) and (g["minDist"] is None or md < g["minDist"]):
+                g["minDist"], g["altAtMin"] = md, e.get("altAtMin")
             other = ("flights", e.get("flightIata") or e.get("callsign")) if key[0] == "r" else ("regs", e.get("reg"))
+            if other[1]:
+                g["_fl"].add(other[1])
             if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
                 g[other[0]].append(other[1])
+            fr, to = e.get("from"), e.get("to")
+            if isinstance(fr, dict) and isinstance(to, dict) and fr.get("code") and to.get("code") and (t or 0) >= g["_rt"]:
+                g["_rt"], g["route"] = t or 0, {k: {"code": p.get("code"), "city": p.get("city") or ""} for k, p in (("from", fr), ("to", to))}
+            for k in ("owner", "ownerCountry"):
+                if e.get(k) and not g.get(k):
+                    g[k] = e[k]
             pk = (place, w.get("n", ""), w.get("c", ""))
             seen = t if isinstance(t, (int, float)) else 0
             if pk not in g["_pl"] or seen > g["_pl"][pk][0]:
                 g["_pl"][pk] = (seen, {"k": place, **({k: w[k] for k in ("n", "a", "c") if w.get(k)} if place == "live" else {})})
     for g in groups.values():
         g["places"] = [v for _, v in sorted(g.pop("_pl").values(), key=lambda x: -x[0])][:4]
+        g["nOther"] = len(g.pop("_fl"))                    # relay 74: how many different flights (or aircraft)
+        g.pop("_rt")
     rows = sorted(groups.values(), key=lambda g: -(g["last"] or 0))[:40]
     return {"q": q, "total": total, "rows": rows, "category": cat, "text": " ".join(words).lower()}
 
@@ -5590,6 +5608,697 @@ def plane_photo(reg, hex_=""):
     return {"photo": photo} if answered else None
 
 
+# ---------- the cards' facts (relay 74, to-do #113) ----------
+# The model, airline and airport cards' facts from Wikipedia and Wikidata, cleaned here once per page and kept about 30
+# days (data/facts.json), so the boards get plain values: Wikipedia's infobox and specs table need their templates,
+# references and units taken apart. A model by its Wikipedia page (the one the board's model lookup found); an airline by
+# its ICAO code through Wikidata (P230: the very company, subsidiaries too; by name, TUI and DHL found the wrong one);
+# an airport by its IATA code (P238). Wikipedia's words are CC BY-SA (the cards link the page); Wikidata's are CC0.
+WM_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
+WIKI_API = "https://en.wikipedia.org/w/api.php"
+WIKIDATA_API = "https://www.wikidata.org/w/api.php"
+COMMONS_FILE = "https://commons.wikimedia.org/wiki/Special:FilePath/"
+FACTS_FILE = DATA_DIR / "facts.json"
+FACTS_KEEP, FACTS_FAIL, FACTS_MAX, FACTS_GAP = 30 * 86400, 900, 4000, 0.2
+FACTS_TEXT = 1500              # Wikipedia's introduction, at most this many characters (More info)
+_facts = None                  # "kind:key" -> {"t": time, "v": the facts or None (nothing there)}; saved to FACTS_FILE
+_facts_busy = {}               # "kind:key" -> threading.Event while one request looks it up (the others wait for it)
+_facts_failed = {}             # "kind:key" -> when Wikimedia last couldn't be asked about it
+_wm_next = [0.0]               # the next request to Wikimedia, at most five a second
+_MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+
+
+def _wm_get(url, params):
+    """A Wikimedia API answer (JSON), or None."""
+    with _lock:
+        at = max(time.time(), _wm_next[0])
+        _wm_next[0] = at + FACTS_GAP
+    if at > time.time():
+        time.sleep(at - time.time())
+    status, _, body, _ = fetch(url + "?" + urllib.parse.urlencode({"format": "json", "formatversion": "2", **params}), timeout=12,
+                               headers={"User-Agent": WM_AGENT, "Accept": "application/json"})
+    if status != 200:
+        return None
+    try:
+        return json.loads(body)
+    except ValueError:
+        return None
+
+
+def _wt_templates(text, prefixes):
+    """The bodies (without the braces) of the templates in wikitext whose name starts with one of `prefixes`."""
+    out, low = [], text.lower()
+    for pre in prefixes:
+        i = 0
+        while True:
+            i = low.find("{{" + pre, i)
+            if i < 0:
+                break
+            depth, j = 0, i
+            while j < len(text):
+                two = text[j:j + 2]
+                if two == "{{":
+                    depth, j = depth + 1, j + 2
+                elif two == "}}":
+                    depth, j = depth - 1, j + 2
+                    if depth == 0:
+                        break
+                else:
+                    j += 1
+            out.append(text[i + 2:j - 2])
+            i = j
+    return out
+
+
+def _wt_split(body):
+    """A template's parts at its own "|" (not those inside a nested template or link)."""
+    parts, cur, depth, i = [], [], 0, 0
+    while i < len(body):
+        two = body[i:i + 2]
+        if two in ("{{", "[["):
+            depth += 1
+            cur.append(two)
+            i += 2
+        elif two in ("}}", "]]"):
+            depth -= 1
+            cur.append(two)
+            i += 2
+        elif body[i] == "|" and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+            i += 1
+        else:
+            cur.append(body[i])
+            i += 1
+    parts.append("".join(cur))
+    return parts
+
+
+def _wt_strip(v):
+    v = re.sub(r"<!--.*?-->", "", v, flags=re.S)
+    v = re.sub(r"<ref[^>/]*/>", "", v, flags=re.I)
+    return re.sub(r"<ref[^>]*>.*?</ref>", "", v, flags=re.S | re.I)
+
+
+def _wt_params(body):
+    """A template's named parameters, keys in lower case with spaces (first_flight and "first flight" alike)."""
+    out = {}
+    for p in _wt_split(_wt_strip(body))[1:]:
+        k, eq, v = p.partition("=")
+        if eq:
+            out[re.sub(r"[\s_]+", " ", k).strip().lower()] = v.strip()
+    return out
+
+
+def _wt_tpl(inner):
+    """What a template shows, as far as the cards care (innermost templates first)."""
+    parts = [p.strip() for p in _wt_split(inner)]
+    name, args = parts[0].lower().replace("_", " ").strip(), parts[1:]
+    pos = [a for a in args if not re.match(r"^[\w ]+=", a)]
+    if re.match(r"^(start date|start-date|end date|birth date|dts|date)\b", name):
+        n = [a for a in pos if re.fullmatch(r"\d{1,4}", a)]
+        if n:
+            return "-".join([n[0]] + [f"{int(x):02d}" for x in n[1:3]])
+        return pos[0] if pos else ""
+    if name.startswith("as of"):
+        n = [a for a in pos if re.fullmatch(r"\d{1,4}", a)]
+        return f" (as of {'-'.join([n[0]] + [f'{int(x):02d}' for x in n[1:2]])})" if n else ""
+    if name in ("ubl", "unbulleted list", "plainlist", "plain list", "flatlist", "flat list", "hlist", "bulleted list", "ublist", "collapsible list", "unbulleted"):
+        return "\n".join(re.sub(r"^\s*\*\s*", "", x) for a in pos for x in a.split("\n") if x.strip())
+    if name in ("ndash", "snd", "spaced ndash", "–", "spnd", "nbsp", "sndash", "en dash"):
+        return "–" if "nbsp" not in name else " "
+    if name in ("mdash", "spaced mdash"):
+        return "—"
+    if name in ("convert", "cvt") and len(pos) >= 2:
+        return f"{pos[0]} {pos[1]}" if pos[1] not in ("-", "–", "to", "and") or len(pos) < 4 else f"{pos[0]}–{pos[2]} {pos[3]}"
+    if name.startswith("#expr:"):                                     # a sum the page works out: 1945-226-709-86
+        e = parts[0].split(":", 1)[1].replace(" ", "")
+        if re.fullmatch(r"\d+(?:\.\d+)?(?:[+-]\d+(?:\.\d+)?){0,9}", e):
+            v = sum(float(n) * (-1 if s == "-" else 1) for s, n in re.findall(r"([+-]?)(\d+(?:\.\d+)?)", e))
+            return str(int(v) if v.is_integer() else round(v, 2))
+        return ""
+    if name in ("nowrap", "nobr", "small", "sic", "big", "nobold", "noitalic", "nts", "ntsh", "val", "formatnum", "abbr", "flagcountry", "flag",
+                "flagicon", "lang", "lang-fr", "transl", "nowrap begin") and pos:
+        return pos[1] if name == "lang" and len(pos) > 1 else pos[0] if name != "flagicon" else ""
+    if name.startswith(("efn", "sfn", "refn", "cn", "citation needed", "r|", "rp", "cite", "notetag", "#tag", "update", "when", "clarify", "dubious",
+                        "better source", "verify", "fact", "by whom", "which", "failed verification", "inflation", "ref", "nbsp")) or name in ("r",):
+        return ""
+    return pos[0] if len(pos) == 1 else ""
+
+
+def _wt_text(v):
+    """Wikitext as plain text: no references, notes or markup; links as their words; line breaks kept as "\n"."""
+    v = _wt_strip(v or "")
+    v = re.sub(r"<br\s*/?>", "\n", v, flags=re.I)
+    for _ in range(8):
+        w = re.sub(r"\{\{([^{}]*)\}\}", lambda m: _wt_tpl(m.group(1)), v)
+        if w == v:
+            break
+        v = w
+    v = re.sub(r"\[\[(?:File|Image):[^\]]*\]\]", "", v, flags=re.I)
+    v = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", v)
+    v = re.sub(r"\[https?://\S+\s+([^\]]*)\]", r"\1", v)
+    v = re.sub(r"\[https?://\S+\]", "", v)
+    v = re.sub(r"'{2,}", "", v)
+    v = re.sub(r"<[^>]+>", "", v)
+    v = html.unescape(v).replace(" ", " ")
+    v = re.sub(r"[ \t]+", " ", v)
+    return "\n".join(x.strip(" ,;") for x in v.split("\n") if x.strip(" ,;")).strip()
+
+
+def _wt_link(v):
+    """The page the first link in a value leads to ("" for none)."""
+    m = re.search(r"\[\[([^\]|#]+)", _wt_strip(v or ""))
+    return m.group(1).strip() if m and not re.match(r"(?i)(file|image|category):", m.group(1)) else ""
+
+
+def _num(s):
+    """The first number in a text (4,442; 199; 1.5 million as 1500000), or None. An "as of" note doesn't count."""
+    s = re.sub(r"\(as of[^)]*\)", "", str(s or ""), flags=re.I)
+    s = re.sub(r"(?i)^\s*(as of|in|by)\s+[^,]*\d{4}\s*,\s*", "", s)
+    m = re.search(r"(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(million|billion)?", s)
+    if not m:
+        return None
+    n = float(m.group(1).replace(",", "") + (m.group(2) or ""))
+    n *= {"million": 1e6, "billion": 1e9}.get((m.group(3) or "").lower(), 1)
+    return int(n) if n == int(n) else n
+
+
+def _date(s):
+    """A text's first date as "YYYY-MM-DD", "YYYY-MM" or "YYYY" (1850-2099), or ""."""
+    s = str(s or "")
+    m = re.search(r"\b(1[89]\d\d|20\d\d)-(\d\d)(?:-(\d\d))?\b", s)
+    if m:
+        return "-".join(x for x in m.groups() if x)
+    mo = "|".join(_MONTHS)
+    m = re.search(rf"(?i)\b(\d{{1,2}})\s+({mo})\s+(1[89]\d\d|20\d\d)\b", s) or re.search(rf"(?i)\b({mo})\s+(\d{{1,2}}),?\s+(1[89]\d\d|20\d\d)\b", s)
+    if m:
+        g = m.groups()
+        d, mon = (g[0], g[1]) if g[0].isdigit() else (g[1], g[0])
+        return f"{g[2]}-{_MONTHS.index(mon.lower()) + 1:02d}-{int(d):02d}"
+    m = re.search(rf"(?i)\b({mo})\s+(1[89]\d\d|20\d\d)\b", s)
+    if m:
+        return f"{m.group(2)}-{_MONTHS.index(m.group(1).lower()) + 1:02d}"
+    m = re.search(r"\b(1[89]\d\d|20\d\d)\b", s)
+    return m.group(1) if m else ""
+
+
+def _wiki_page(title):
+    """An English Wikipedia page: (title, wikitext, its introduction as plain text), or None; False when not answered."""
+    j = _wm_get(WIKI_API, {"action": "query", "prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main",
+                           "exintro": "1", "explaintext": "1", "ppprop": "disambiguation", "redirects": "1", "titles": title})
+    if j is None:
+        return False
+    p = ((j.get("query") or {}).get("pages") or [{}])[0]
+    if p.get("missing") or p.get("invalid") or "disambiguation" in (p.get("pageprops") or {}):
+        return None
+    try:
+        wt = p["revisions"][0]["slots"]["main"]["content"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    return p.get("title") or title, wt, _intro(p.get("extract") or "")
+
+
+def _intro(text):
+    """Wikipedia's introduction for More info: whole paragraphs up to FACTS_TEXT characters (at least the first)."""
+    paras, out = [p.strip() for p in text.split("\n") if p.strip()], []
+    for p in paras:
+        if out and sum(len(x) + 1 for x in out) + len(p) > FACTS_TEXT:
+            break
+        out.append(p)
+    t = "\n".join(out)
+    return t if len(t) <= FACTS_TEXT + 400 else t[:FACTS_TEXT].rsplit(" ", 1)[0] + " …"
+
+
+def _wiki_url(title):
+    return "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"), safe="()_,'-")
+
+
+def _infobox(wt, prefixes):
+    """The named parameters of the page's infobox templates (several, as "Infobox aircraft begin" and "... type"),
+    from its introduction only (later infoboxes are about something else)."""
+    head = re.split(r"\n==[^=]", wt, maxsplit=1)[0]
+    out = {}
+    for b in _wt_templates(head, prefixes):
+        for k, v in _wt_params(b).items():
+            out.setdefault(k, v)
+    return out
+
+
+def _spec_rows(wt):
+    """The first table of the page's Specifications section, as (label, first value) in wikitext: airliners give their
+    numbers there (one column per variant; the first is the page's main one) instead of the specs template."""
+    m = re.search(r"\n==\s*(?:technical )?specifications?\b[^=\n]*==\s*\n", wt, flags=re.I)
+    if not m:
+        return []
+    sec = re.split(r"\n==[^=]", wt[m.end():], maxsplit=1)[0]
+    t = sec.find("{|")
+    if t < 0:
+        return []
+    rows = []
+    for row in re.split(r"\n\|-[^\n]*", sec[t:].split("\n|}", 1)[0]):
+        label, vals = "", []
+        for ln in row.split("\n"):
+            if ln.startswith("!") and not label:
+                cells = ln[1:].split("!!")
+                label = re.sub(r'^\s*[\w-]+\s*=\s*"?[^|"\[\]{}]*"?\s*\|(?!\|)', "", cells[0])
+                vals += [c for c in cells[1:] if c.strip()]
+                if "||" in label:
+                    label, *more = label.split("||")
+                    vals += more
+            elif ln.startswith("|") and not ln.startswith(("|}", "|+", "|-")):
+                vals += ln[1:].split("||")
+        if label and vals:
+            v = re.sub(r'^\s*(?:[\w-]+\s*=\s*"?[^|"\[\]{}]*"?\s*)+\|(?!\|)', "", vals[0])
+            rows.append((_wt_text(label).lower(), v))
+    return rows
+
+
+_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+                                     "seventeen eighteen nineteen twenty".split())}
+
+
+def _qty(text, units):
+    """The first "<number> <unit>" of these units in a text: (number, unit), or (None, "")."""
+    m = re.search(r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(" + "|".join(units) + r")\b", text or "")
+    return (float(m.group(1).replace(",", "")), m.group(2)) if m else (None, "")
+
+
+def _seats(text):
+    """The most passengers a capacity text names ("three passengers", "396 (two classes) or 365 ... passengers")."""
+    t = re.sub(r"(?i)\b(" + "|".join(_WORDS) + r")\b", lambda m: str(_WORDS[m.group(1).lower()]), text or "")
+    out = []
+    for part in re.split(r"(?<!\d),|,(?!\d{3})|[;\n]", t):
+        if not re.search(r"(?i)passeng|seat|pax|people|persons|occupants|troops", part):
+            continue
+        part = re.sub(r"(?i)(\d{1,3}(,\d{3})+|\d+)(?:\.\d+)?\s*(?:lb|kg|m3|m2|cu ?ft|ft|in(?!\s+[a-z])|cm|t|l|us gal|ld3s?)\b", "", part)
+        part = re.sub(r"(?i)\b\d+\s*-?\s*class(es)?\b|\b\d+\s*(?:crew|pilots?)\b", "", part)
+        out += [int(x.replace(",", "")) for x in re.findall(r"\b(\d{1,3}(?:,\d{3})?)\b", part)]
+    out = [n for n in out if 1 <= n <= 900]
+    return max(out) if out else None
+
+
+def _first(*vals):
+    return next((v for v in vals if v), "")
+
+
+def _list(v, n=3):
+    """A value's items (a list template, lines or commas), as text."""
+    t = _wt_text(v)
+    items = [x.strip() for x in re.split(r"\n|•|·|;", t) if x.strip()]
+    if len(items) == 1 and t.count(",") >= 1 and not re.search(r"\d,\d", t):
+        items = [x.strip() for x in t.split(",") if x.strip()]
+    return items[:n]
+
+
+def model_facts(title):
+    """A model's facts from its Wikipedia page (the infobox and the first specs table), or None; False: not answered."""
+    pg = _wiki_page(title)
+    if not pg:
+        return pg
+    title, wt, text = pg
+    ib = _infobox(wt, ("infobox aircraft", "infobox_aircraft", "infobox military aircraft", "infobox helicopter", "infobox weapon"))
+    specs = next((_wt_params(b) for b in _wt_templates(wt, ("aircraft specs", "aircraft specifications", "aerospecs"))), {})
+    f = {}
+    for k, keys in (("firstFlight", ("first flight",)), ("introduced", ("introduction", "introduced", "introduced date", "entered service"))):
+        d = _date(_wt_text(_first(*(ib.get(x) for x in keys))))
+        if d:
+            f[k] = d
+    st = _wt_text(ib.get("status", "")).split("\n")[0]
+    if st and len(st) < 60:
+        f["status"] = st
+    users = _list(ib.get("primary user", ""), 1) + _list(ib.get("more users", ""), 3)
+    users = [re.sub(r"\s*\((?:historical|former|retired|formerly)\)\s*$", "", u, flags=re.I) for u in users]
+    users = [u for u in users if 2 < len(u) < 60 and not re.search(r"(?i)see |list of|various|private|civil(ian)? (operators|users)", u)]
+    if users:
+        f["mainUser"] = users[0]
+        if users[1:]:
+            f["moreUsers"] = users[1:4]
+    built = re.sub(r"\(\s*\(as of", "(as of", _wt_text(_first(ib.get("number built"), ib.get("built")))).replace("))", ")")
+    n = _num(built)
+    if n and n >= 1:
+        f["built"] = int(n)
+        if re.search(r"(?i)^\s*(over|more than|at least)|\+", built):
+            f["builtMore"] = True                                        # "44,000+": at least
+        m = re.search(r"\(as of (\d{4}(?:-\d\d)?)\)", built)
+        asof = m.group(1) if m else _date(re.split(r"(?i)as of|at end of|by end of|in\b", built, maxsplit=1)[1]) if re.search(r"(?i)as of|at end of|by end of", built) else ""
+        if asof:
+            f["builtAsOf"] = asof
+    prod = _wt_text(_first(ib.get("produced"), ib.get("construction date"), ib.get("production"), ib.get("manufactured")))
+    ys = re.findall(r"\b(1[89]\d\d|20\d\d)\b", prod)
+    if ys:
+        f["producedFrom"] = int(ys[0])
+        if re.search(r"(?i)present|today|ongoing|current", prod):
+            f["producedTo"] = "present"
+        elif len(ys) > 1:
+            f["producedTo"] = int(ys[-1])
+    dev = _first(ib.get("developed from"), ib.get("developed_from"))
+    if dev:
+        dt, dl = _list(dev, 1), _wt_link(dev)
+        if dt:
+            f["developedFrom"] = {"name": dt[0], "page": dl or dt[0]}
+    rows = [] if specs else _spec_rows(wt)                       # no specs template: the table (airliners)
+    row = lambda rx, no=r"$^": next((v for k, v in rows if re.search(rx, k) and not re.search(no, k)), "")   # noqa: E731
+    seats = _seats(_wt_text(specs.get("capacity", "")))
+    if not specs:
+        seats = max([n for k, v in rows if re.search(r"seat|passeng|pax|capacity|exit limit|class", k) and not re.search(r"cargo|fuel|crew|freight|volume|payload|baggage", k)
+                     for n in [_num(_wt_text(v))] if n and 1 <= n <= 900], default=None)
+    if seats:
+        f["seats"] = int(seats)
+    for k, base, rx in (("length", "length", r"^(overall )?length"), ("span", "span", r"wingspan|^span|^wing$|^wings$"), ("height", "height", r"^(overall )?height"),
+                        ("rotor", "main rotor diameter", r"rotor diameter")):
+        v = _num(_wt_text(specs.get(base + " m", "")))
+        if not v and _num(_wt_text(specs.get(base + " ft", ""))):
+            v = _num(_wt_text(specs.get(base + " ft"))) * 0.3048 + (_num(_wt_text(specs.get(base + " in", ""))) or 0) * 0.0254
+        if not v and rows:
+            q, u = _qty(_wt_text(row(rx, r"cabin|fuselage|wheel|area|sweep loading")), ("m", "ft"))
+            v = q * 0.3048 if q and u == "ft" else q
+        if v and 1 < v < 150:
+            f[k] = round(v, 2)
+    rng = _num(_wt_text(specs.get("range km", "")))
+    if not rng and _num(_wt_text(specs.get("range nmi", ""))):
+        rng = _num(_wt_text(specs.get("range nmi"))) * 1.852
+    if not rng and _num(_wt_text(specs.get("range miles", ""))):
+        rng = _num(_wt_text(specs.get("range miles"))) * 1.609344
+    if not rng and rows:
+        q, u = _qty(_wt_text(row(r"range", r"ferry|combat")), ("km", "nmi", "mi", "miles"))
+        rng = q and q * {"km": 1, "nmi": 1.852}.get(u, 1.609344)
+    if rng and 50 < rng < 25000:
+        f["range"] = int(round(rng))
+    spd = _num(_wt_text(_first(specs.get("max speed kmh"), specs.get("cruise speed kmh"))))
+    if not spd and _num(_wt_text(_first(specs.get("max speed kts"), specs.get("cruise speed kts")))):
+        spd = _num(_wt_text(_first(specs.get("max speed kts"), specs.get("cruise speed kts")))) * 1.852
+    if spd and 50 < spd < 4000:
+        f["speed"] = int(round(spd))
+    en, name, kind = _num(_wt_text(specs.get("eng1 number", ""))), _wt_text(specs.get("eng1 name", "")), _wt_text(specs.get("eng1 type", "")).lower()
+    if not specs and rows:
+        lab = next((k for k, v in rows if re.search(r"^engines?\b|powerplant|^engine \(", k)), "")
+        name = re.split(r",|\(", _wt_text(row(r"^engines?\b|powerplant|^engine \(")).split("\n")[0])[0].strip()
+        m = re.search(r"[×x]\s*(\d)", lab) or re.match(r"(\d)\s*[×x]\s*", name)
+        en = int(m.group(1)) if m else None
+        name = re.sub(r"\s+(or|and|/)$", "", re.sub(r"^\d\s*[×x]\s*", "", name)).strip()
+        if name and not en:
+            f["engines"] = {"name": name[:60]}
+    kind = next((k for k in ("turbofan", "turboprop", "turboshaft", "turbojet", "piston", "electric") if k in kind), "")
+    if en and 1 <= en <= 10 and (name or kind):
+        f["engines"] = {"n": int(en), **({"name": name.split("\n")[0][:60]} if name else {}), **({"kind": kind} if kind else {})}
+    return {"kind": "model", "title": title, "url": _wiki_url(title), "text": text, "facts": f}
+
+
+def _wd_find(prop, value):
+    """The Wikidata items with this identifier (an airline's ICAO code, an airport's IATA code): their ids, or None."""
+    j = _wm_get(WIKIDATA_API, {"action": "query", "list": "search", "srlimit": "10", "srsearch": f"haswbstatement:{prop}={value}"})
+    if j is None:
+        return None
+    return [h["title"] for h in (j.get("query") or {}).get("search") or [] if re.fullmatch(r"Q\d+", h.get("title", ""))]
+
+
+def _wd_items(ids, props="claims|sitelinks|labels"):
+    if not ids:
+        return {}
+    j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(ids[:50]), "props": props, "languages": "en", "sitefilter": "enwiki"})
+    return (j or {}).get("entities") or {}
+
+
+def _wd_claims(e, p, current=True):
+    """An item's statements of one property, the preferred first, without those that ended (current)."""
+    cs = [c for c in (e.get("claims") or {}).get(p, []) if c.get("rank") != "deprecated"]
+    if current:
+        cs = [c for c in cs if "P582" not in (c.get("qualifiers") or {})] or cs
+    return sorted(cs, key=lambda c: c.get("rank") != "preferred")
+
+
+def _wd_val(c):
+    return ((c.get("mainsnak") or {}).get("datavalue") or {}).get("value")
+
+
+def _wd_time(v):
+    """A Wikidata time as "YYYY-MM-DD", "YYYY-MM" or "YYYY", as precise as it is."""
+    m = re.match(r"\+?(\d{4})-(\d\d)-(\d\d)", (v or {}).get("time", "")) if isinstance(v, dict) else None
+    if not m:
+        return ""
+    p = v.get("precision", 9)
+    return m.group(1) if p <= 9 or m.group(2) == "00" else f"{m.group(1)}-{m.group(2)}" if p == 10 or m.group(3) == "00" else "-".join(m.groups())
+
+
+def _wd_label(e):
+    return ((e or {}).get("labels") or {}).get("en", {}).get("value", "")
+
+
+def _wd_pick(ids, items):
+    """Of several items with the same code, the one still going (no dissolution date) with an English page and the most statements."""
+    return max(ids, key=lambda q: ("P576" not in (items.get(q, {}).get("claims") or {}), "enwiki" in (items.get(q, {}).get("sitelinks") or {}),
+                                   len(items.get(q, {}).get("claims") or {})), default=None)
+
+
+def _commons(name, w=640):
+    return COMMONS_FILE + urllib.parse.quote(name.replace(" ", "_")) + f"?width={w}" if name else ""
+
+
+def airline_facts(icao):
+    """An airline's facts by its ICAO code: Wikidata (the company, hubs, alliance, owners, photo) and its Wikipedia
+    page's infobox (fleet, destinations, founded, first flight, employees). None: none there; False: not answered."""
+    ids = _wd_find("P230", icao)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    q = _wd_pick(ids, items)
+    if not q or "P576" in (items[q].get("claims") or {}):          # only a dissolved one (AZA, Alitalia's): not today's flights
+        return None
+    e = items[q]
+    title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
+    pg = _wiki_page(title) if title else None
+    if pg is False:
+        return False
+    ib, text = (_infobox(pg[1], ("infobox airline",)), pg[2]) if pg else ({}, "")
+    refs = {}
+    for p in ("P113", "P114", "P159", "P127", "P749"):
+        for c in _wd_claims(e, p)[:4]:
+            v = _wd_val(c)
+            if isinstance(v, dict) and v.get("id"):
+                refs[v["id"]] = None
+    more = _wd_items(list(refs), "labels|claims") if refs else {}
+    lab = lambda c: _wd_label(more.get((_wd_val(c) or {}).get("id")))           # noqa: E731
+    f = {}
+    founded = _first(_wd_time(_wd_val(next(iter(_wd_claims(e, "P571", False)), {}))), _date(_wt_text(ib.get("founded", ""))))
+    if founded:
+        f["founded"] = founded
+    com = _date(_wt_text(ib.get("commenced", "")))
+    if com:
+        f["commenced"] = com
+    hubs = []
+    for c in _wd_claims(e, "P113")[:4]:
+        h = more.get((_wd_val(c) or {}).get("id")) or {}
+        code = next((str(_wd_val(x) or "") for x in _wd_claims(h, "P238")), "")
+        if _wd_label(h):
+            hubs.append({"name": _wd_label(h), **({"code": code} if re.fullmatch(r"[A-Z]{3}", code) else {})})
+    if not hubs:
+        hubs = [{"name": x} for x in _list(ib.get("hubs", ""), 3) if len(x) < 60]
+    if hubs:
+        f["hubs"] = hubs
+    al = next((lab(c) for c in _wd_claims(e, "P114")), "") or _first(*_list(ib.get("alliance", ""), 1))
+    if re.fullmatch(r"(?i)star alliance|skyteam|oneworld|vanilla alliance|u-fly alliance|value alliance", al or ""):   # not "TUI Travel"
+        f["alliance"] = al
+    hq = next((lab(c) for c in _wd_claims(e, "P159")), "") or _first(*_list(ib.get("headquarters", ""), 1))
+    if hq and len(hq) < 60:
+        f["headquarters"] = hq
+    owners = []
+    for c in _wd_claims(e, "P127")[:3]:
+        share = ((c.get("qualifiers") or {}).get("P1107") or [{}])[0].get("datavalue", {}).get("value", {}).get("amount")
+        if lab(c):
+            owners.append({"name": lab(c), **({"share": round(float(share) * 100)} if share else {})})
+    if not owners:
+        p = next((lab(c) for c in _wd_claims(e, "P749")), "") or _first(*_list(_first(ib.get("parent"), ib.get("owner")), 1))
+        if p and len(p) < 60:
+            owners = [{"name": p}]
+    if owners:
+        f["owners"] = owners
+    for k, key in (("fleet", "fleet size"), ("destinations", "destinations")):
+        n = _num(_wt_text(ib.get(key, "")))
+        if n and 1 <= n <= 5000:
+            f[k] = int(n)
+    emp = _wt_text(_first(ib.get("num employees"), ib.get("employees")))
+    n = _num(emp)
+    if n and n >= 5:
+        f["employees"] = int(n)
+    else:
+        c = next(iter(_wd_claims(e, "P1128", False)), None)
+        if c and _num((_wd_val(c) or {}).get("amount")):
+            f["employees"] = int(_num((_wd_val(c) or {}).get("amount")))
+    cs = _wt_text(ib.get("callsign", "")).split("\n")[0]
+    if cs and len(cs) < 30:
+        f["callsign"] = cs.upper()
+    img = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P18")), "")
+    out = {"kind": "airline", "title": title or _wd_label(e), "name": _wd_label(e), "qid": q, "text": text, "facts": f}
+    if title:
+        out["url"] = _wiki_url(title)
+    if img:
+        out["img"] = _commons(img)
+    return out
+
+
+def airport_facts(iata):
+    """An airport's facts by its IATA code from Wikidata (passengers a year, elevation, opened, runways, operator,
+    photo) with its Wikipedia page's introduction. None: none there; False: not answered."""
+    ids = _wd_find("P238", iata)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    ids = [q for q in ids if any(str(_wd_val(c) or "").upper() == iata for c in _wd_claims(items.get(q, {}), "P238", False))] or ids
+    q = _wd_pick(ids, items)
+    if not q:
+        return None
+    e = items[q]
+    title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
+    f, text = {}, ""
+    if title:
+        j = _wm_get(WIKI_API, {"action": "query", "prop": "extracts", "exintro": "1", "explaintext": "1", "redirects": "1", "titles": title})
+        if j is None:
+            return False
+        text = _intro((((j.get("query") or {}).get("pages") or [{}])[0]).get("extract") or "")
+    pax = []
+    for c in _wd_claims(e, "P3872", False):
+        v, qy = _wd_val(c) or {}, (((c.get("qualifiers") or {}).get("P585") or [{}])[0].get("datavalue") or {}).get("value")
+        n, y = _num(v.get("amount")), _wd_time(qy)[:4]
+        if n and y:
+            pax.append((y, c.get("rank") == "preferred", n))
+    if pax:
+        y, _, n = max(pax)
+        f["passengers"], f["passengersYear"] = int(n), int(y)
+    c = next(iter(_wd_claims(e, "P2044", False)), None)
+    if c:
+        v = _wd_val(c) or {}
+        n = _num(v.get("amount"))
+        if n is not None:
+            f["elevation"] = int(round(n * 0.3048 if str(v.get("unit", "")).endswith("/Q3710") else n))
+    op = _first(_wd_time(_wd_val(next(iter(_wd_claims(e, "P1619", False)), {}))), _wd_time(_wd_val(next(iter(_wd_claims(e, "P571", False)), {}))))
+    if op:
+        f["opened"] = op
+    rw = [str(_wd_val(c) or "") for c in _wd_claims(e, "P529", False)]
+    if rw:
+        f["runways"] = len(rw)
+    refs = {(_wd_val(c) or {}).get("id"): 0 for p in ("P137", "P931", "P17") for c in _wd_claims(e, p)[:2] if isinstance(_wd_val(c), dict)}
+    more = _wd_items([r for r in refs if r], "labels") if any(refs) else {}
+    for k, p in (("operator", "P137"), ("serves", "P931"), ("country", "P17")):     # its operator, city and country
+        v = next((_wd_label(more.get((_wd_val(c) or {}).get("id"))) for c in _wd_claims(e, p)), "")
+        if v:
+            f[k] = v
+    co = _wd_val(next(iter(_wd_claims(e, "P625", False)), {})) or {}
+    if isinstance(co, dict) and co.get("latitude") is not None:
+        f["lat"], f["lon"] = round(co["latitude"], 4), round(co["longitude"], 4)
+    img = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P18")), "")
+    out = {"kind": "airport", "title": title or _wd_label(e), "name": _wd_label(e), "qid": q, "text": text, "facts": f}
+    if title:
+        out["url"] = _wiki_url(title)
+    if img:
+        out["img"] = _commons(img)
+    return out
+
+
+FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airport": airport_facts}
+
+
+def _facts_cache():
+    """The kept facts (under _data_lock), loaded from FACTS_FILE the first time."""
+    global _facts
+    if _facts is None:
+        raw = _load(FACTS_FILE, {})
+        _facts = collections.OrderedDict(sorted(((k, v) for k, v in (raw if isinstance(raw, dict) else {}).items()
+                                                 if isinstance(v, dict) and "t" in v), key=lambda kv: kv[1]["t"]))
+    return _facts
+
+
+def facts_json(kind, key):
+    """The facts for one card: {kind, title, name, url, text, img, facts}, or {kind, none: true} when there are none;
+    None when Wikipedia or Wikidata can't be asked now (and nothing older is kept). One lookup per page a month: a
+    second screen asking meanwhile waits for the first one's answer."""
+    k, hit = f"{kind}:{key}", None
+    for _ in range(2):
+        with _data_lock:
+            F = _facts_cache()
+            hit = F.get(k)
+            if hit and time.time() - hit["t"] < FACTS_KEEP:
+                return hit["v"] or {"kind": kind, "none": True}
+            if time.time() - _facts_failed.get(k, 0) < FACTS_FAIL:
+                return (hit["v"] or {"kind": kind, "none": True}) if hit else None
+            busy, mine = _facts_busy.get(k), False
+            if not busy:
+                busy, mine = _facts_busy.setdefault(k, threading.Event()), True
+        if mine:
+            break
+        busy.wait(40)
+    else:
+        return None
+    try:
+        v = FACTS_KINDS[kind](key)
+    except Exception as e:                     # a page this code doesn't understand must never break the relay
+        event("warn", f"Couldn't read the facts for {k}: {e!r}", echo=False)
+        v = None
+    with _data_lock:
+        _facts_busy.pop(k, None)
+        if v is False:
+            _facts_failed[k] = time.time()
+        else:
+            F[k] = {"t": time.time(), "v": v}
+            F.move_to_end(k)
+            while len(F) > FACTS_MAX:
+                F.popitem(last=False)
+            _dirty.add("facts")
+    busy.set()
+    if v is False:
+        return (hit["v"] or {"kind": kind, "none": True}) if hit else None    # the old answer while it can't be asked
+    return v or {"kind": kind, "none": True}
+
+
+# What a profile spotted of one airline, model or airport (relay 74, the cards' Spotted): its planes (different
+# airframes, by registration, else by hex) and sightings over every saved day. The logbook's registrations don't keep
+# their airline, so the days are read: a past day once (its summary kept in memory, as _place_days), today's fresh.
+_spotted_days = {}           # (spot folder, day) -> {"al": {icao: [n, first, last, {airframes}]}, "ty": {...}, "ap": {...}}
+
+
+def _spotted_summary(entries):
+    out = {"al": {}, "ty": {}, "ap": {}}
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        ts, plane = e.get("ts") or 0, str(e.get("reg") or e.get("hex") or "").upper()
+        m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+        keys = [("al", m.group(1) if m else ""), ("ty", str(e.get("typeCode") or "").upper())]
+        keys += [("ap", str((e.get(k) or {}).get("code") or "").upper()) for k in ("from", "to") if isinstance(e.get(k), dict)]
+        for part, key in dict.fromkeys(keys):
+            if not key:
+                continue
+            s = out[part].setdefault(key, [0, ts, ts, set()])
+            s[0] += 1
+            s[1], s[2] = min(s[1], ts), max(s[2], ts)
+            if plane:
+                s[3].add(plane)
+    return out
+
+
+def spotted_json(spot, part, key):
+    """{"sightings", "planes", "first", "last"} of one airline ("al", ICAO code), model ("ty", type code) or airport
+    ("ap", IATA code: flights to or from it) over the profile's whole logbook."""
+    with _data_lock:
+        spot.ensure_day()
+        days = sorted(f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json"))
+        today, entries = spot.day, list(spot.entries)
+    n, first, last, planes = 0, None, None, set()
+    for day in days:
+        if day == today:
+            summ = _spotted_summary(entries)
+        else:
+            summ = _spotted_days.get((str(spot.dir), day))
+            if summ is None:
+                summ = _spotted_days[(str(spot.dir), day)] = _spotted_summary(_load(spot.dir / f"sightings-{day}.json", []))
+        s = summ[part].get(key)
+        if s:
+            n += s[0]
+            first, last = s[1] if first is None else min(first, s[1]), s[2] if last is None else max(last, s[2])
+            planes |= s[3]
+    return {"sightings": n, "planes": len(planes), "first": first, "last": last}
+
+
 # Hue light pulse (relay 47, to-do #46; a test feature, the owner's only). When a special or favourite plane is about to
 # pass the owner's place (the moments the window alerts ring for, window_planes), the chosen Philips Hue lamps glow
 # briefly in the airline's colour (amber when it has none here) through the Hue Bridge on the home network, its local
@@ -6575,6 +7284,20 @@ class Handler(BaseHTTPRequestHandler):
             if r is None:
                 return self.reply(503, "text/plain", b"Planespotters.net can't be asked right now", {"Retry-After": "120"})
             return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "no-store"})
+        if path == "/facts":                # relay 74: a model's, airline's or airport's facts for its card
+            if not allow("facts:" + self.guest[0], 2, 20):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = self.query()
+            model = re.sub(r"[\x00-\x1f<>\[\]{}|#]", "", (q.get("model") or [""])[0]).strip()[:120]
+            airline = re.sub(r"[^A-Z]", "", (q.get("airline") or [""])[0].upper())
+            airport = re.sub(r"[^A-Z]", "", (q.get("airport") or [""])[0].upper())
+            kind, key = ("model", model) if model else ("airline", airline) if len(airline) == 3 else ("airport", airport) if len(airport) == 3 else ("", "")
+            if not kind:
+                return self.reply(400, "text/plain", b"model=..., airline=... (ICAO) or airport=... (IATA) is required")
+            r = facts_json(kind, key)
+            if r is None:
+                return self.reply(503, "text/plain", b"Wikipedia can't be asked right now", {"Retry-After": "300"})
+            return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "private, max-age=3600"})
         if path == "/relayinfo":           # relay 69: the owner's Relay plate (also away from home, through the tunnel)
             if not self.owner_ok():
                 return self.reply(403, "text/plain", b"Only for the owner")
@@ -6582,7 +7305,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -6702,6 +7425,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(body).encode()) if body else self.reply(404, "text/plain", b"No such player")
         if path == "/game/hangar":        # relay 63: the Spotters' Club hangar
             return self.reply(200, "application/json", json.dumps(hangar_json(self.spot)).encode())
+        if path == "/logbook/spotted":    # relay 74: one airline's, model's or airport's Spotted (the cards)
+            q = self.query()
+            part, key = next(((p, re.sub(r"[^A-Z0-9]", "", (q.get(n) or [""])[0].upper())[:4]) for n, p in (("airline", "al"), ("type", "ty"), ("airport", "ap"))
+                              if q.get(n)), ("", ""))
+            if not key:
+                return self.reply(400, "text/plain", b"airline=..., type=... or airport=... is required")
+            if not allow("spotted:" + (self.guest[0] if self.guest else self.client_ip()), 2, 10):
+                return self.reply(429, "text/plain", b"Too many requests")
+            return self.reply(200, "application/json", json.dumps(spotted_json(self.spot, part, key)).encode())
         if path == "/logbook/category":   # relay 61: one category's top ten (types, aircraft, operators)
             q = self.query()
             cat = (q.get("c") or [""])[0]
