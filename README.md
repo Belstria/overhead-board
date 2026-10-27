@@ -205,9 +205,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   fun facts are worked out from them and your logbook (one of 199 built and you've seen 2; wings longer than an
   Olympic pool; the farthest of 40 cities its range reaches from here; flying for 70 years; back after 4 months), and
   "Spotted" says how often you spotted it: Once, or so many times. On a TV the cards stay pop-ups: the remote's ring
-  reaches every button, More info too (OK opens it, Back closes the card). What opens a card is marked: in the app's lists the airline,
-  the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
-  a thin dotted line runs under those flaps (1.38).
+  reaches every button, More info too (OK opens it, Back closes the card). What opens a card is marked: in the app's lists
+  a tap opens the plane's own card right in the list (1.95; before, the airline, the places and the type sat in thin grey
+  outlines), where the airline, the places and the Aircraft box open theirs, and on the board a thin dotted line runs
+  under those flaps (1.38).
   On the board a plane on the radar opens its card and the airline field the airline, and the **⋮** (three dots, 1.55; a + before) at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
@@ -610,12 +611,21 @@ Five buttons along the bottom:
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
-  latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
+  latest planes spotted. **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
+  colour of its remark, grouped by quarter hour ("Now · 14:45 – 15:00"), two slim lines a plane (time, flight, route,
+  remark; then airline, type, closest distance and height), "8 in the last hour" at the top and "All 64 planes today ›"
+  at the end, which goes to Today. A plane without a flight number shows its registration (or its owner); without a
+  route the row says "No route: private or local flight" or "Route not known". **Tap a plane** and its card opens right
+  there, as the rows below make room: the flight and the route glide into place and the photo grows from your finger
+  (just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
+  plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃ or another plane folds it back.
+  In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
 - **Today**: today's numbers on flaps, the day's highlights (lowest and highest pass, fastest, most seen airline, the
   most seen aircraft types since 1.78.2, what's new in the logbook; since 1.87.2.1 "most seen" only counts what came at
   least twice, else "No airline twice yet"), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
+  Since 1.95 the list is the same timeline as Recent flights, grouped by the hour, and a tap opens a plane's card in place.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,
   Most seen aircraft), Spotted today (Today in numbers), the Spotters' Club (Your level, League, Your catch, Your

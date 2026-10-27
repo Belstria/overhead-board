@@ -521,34 +521,116 @@ function chip(r, more = ""){              // the status word in this language; i
 }
 const distText = d => d == null ? "" : (+d < 10 ? (+d).toFixed(1) : String(Math.round(d))) + " km";
 const altText = ft => typeof ft === "number" ? altNum(ft) + (S.units === "metric" ? " m" : " ft") : "";
-function placeHtml(a, done){
-  if (!a) return `<span class="no">${done ? NA : "–"}</span>`;
-  const c = code3(a) || a.code || "";
-  return `${c ? `<b>${escH(c)}</b>` : ""}${escH(a.city || "")}`;
+/* 1.95 (to-do #115, Dave's pick 1b): the lists are a timeline. Each plane is a slim row on a rail, its node in its
+   remark's colour: the time, the flight, the route's codes and the remark, then quietly its airline, type and closest
+   pass. A tap opens its card in place (Dave's option 1); the airline, places and type open theirs from the card. A
+   plane without a flight number goes by its registration (or its owner); without a route the row says why. */
+const tlKey = e => String(e.id || e.hex || "");
+const plainCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plainCode(e.reg) || f === plainCode(e.hex); };     // it flies under its registration
+const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
+const noRoute = e => T(noFlightNo(e) ? "No route: private or local flight" : "Route not known");
+const tlNode = e => lampOf(remarkFor(e)) || "#55585e";
+function rowInner(e){
+  const r = remarkFor(e), done = e.done !== false, name = rowName(e);
+  const rt = e.from || e.to ? `<span class="rt"><b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b></span>`
+    : `<span class="rt no">${done ? escH(noRoute(e)) : ""}</span>`;
+  const l2 = [e.airline || (e.owner !== name ? e.owner : ""), e.type, distText(e.minDist), altText(e.altAtMin), allPlaces && e.place ? "◉ " + placeName(e.place) : ""];
+  return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b>${rt}<span class="rk">${r ? escH(T(r)) : ""}</span></div>` +
+    `<div class="l2">${escH(l2.filter(Boolean).join(" · "))}</div>`;
 }
-function rowHtml(e){
-  const r = remarkFor(e), col = badgeFor(e) ? lampOf(r) : "";
-  const style = col ? ` style="--lamp:${col};background:${rgba(col, .11)}"` : "";
-  const done = e.done !== false;
-  const meta = [e.type ? `<span class="tap" data-ty>${escH(e.type)}</span>` : done ? NA : "", escH(e.reg || ""), allPlaces && e.place ? `◉ ${escH(placeName(e.place))}` : ""].filter(Boolean).join(" · ");
-  const near = [distText(e.minDist), altText(e.altAtMin)].filter(Boolean).join(" · ");
-  const pl = k => `<span${e[k] ? ` class="tap" data-pl="${k}"` : ""}>${placeHtml(e[k], done)}</span>`;
-  return `<li class="fl${col ? " sp" : ""}"${style} data-more="${escH(e.id || e.hex || "")}"><div class="tc"><time>${escH(e.time || "")}</time></div>` +
-    `<div class="who"><strong>${escH(e.flight || String(e.hex || "").toUpperCase())}</strong>${e.airline ? `<span class="tap" data-al>${escH(e.airline)}</span>` : ""}</div>` +
-    `${r ? chip(r) : "<span></span>"}${e.from || e.to || done ? `<div class="rt">${pl("from")}<i>→</i>${pl("to")}</div>` : ""}` +
-    `<div class="meta"><span>${meta}</span><span>${near}</span></div></li>`;
+const rowHtml = e => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}" tabindex="0">${rowInner(e)}</li>`;
+const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
+  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place].join("|");
+// The card in the list: 1.94's info card (D's): the photo (Planespotters' first; it opens the whole plane card, so only
+// its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
+const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
+const tlCardSig = e => { const p = tlPic(e); return [rowSig(e), S.units, p.src, p.kind, p.by].join("|"); };
+// Still looking for its photo: Planespotters' answer, or its model's picture (planePic's own order)
+function tlPicWait(e){
+  const p = tlPic(e), d = detailsOf(e.hex) || {};
+  return !!p.asking || !p.src && modelAsk.has(modelKey([TYPES[String(e.typeCode || "").toUpperCase()], e.type, d.type, e.desc].map(n => String(n || "").trim()).filter(Boolean), e.typeCode));
 }
-const rowSig = e => [e.id || e.hex, e.time, e.flight, e.airline, e.type, e.reg, code3(e.from), code3(e.to), e.minDist, e.altAtMin, remarkFor(e), e.done].join("|");
+// The rows' photos are asked for ahead, one at a time: the relay asks Planespotters once a second for every screen
+// (a TV's plane on top too), so a card opens with its own without crowding anyone out.
+let tlAsking = false;
+function tlAhead(list){
+  if (tlAsking || !psOk()) return;
+  const e = list.find(x => x.reg && !psPhotos.has(String(x.reg).trim().toUpperCase()));
+  if (!e) return;
+  tlAsking = true;                               // once answered, the model's picture for one without a photo, then the next
+  psPhoto(e.reg, e.hex, () => setTimeout(() => { tlAsking = false; tlPic(e); renderRecent(); }, 1500));
+}
+function tlAgo(e){
+  const m = Math.max(0, Math.floor((Date.now() - (e.ts || 0)) / 6e4));
+  return m < 1 ? T("just now") : m < 60 ? T("{n} min ago", {n: m}) : T("{h} h {m} min ago", {h: Math.floor(m / 60), m: m % 60});
+}
+function tlCardHtml(e){
+  const r = remarkFor(e), name = rowName(e);
+  const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
+    chip: chipHtml(r), band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
+    tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
+  return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span></span>` +
+    `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
+}
+const cardLi = e => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}">${tlCardHtml(e)}</li>`;
+// The groups: the quarter hour (Recent flights) or the hour (Today), the one under way marked Now. A row's time is
+// the relay's clock, so "now" is worked out on that clock from the newest row.
+const tlMin = e => { const m = /^(\d\d):(\d\d)/.exec(e.time || ""), d = new Date(e.ts || 0); return m ? +m[1] * 60 + +m[2] : d.getHours() * 60 + d.getMinutes(); };
+const tlHm = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+function tlHtml(list, span, open){
+  const top = list[0], now = top ? (tlMin(top) + Math.floor(Date.now() / 6e4) - Math.floor((top.ts || 0) / 6e4)) % 1440 : -1;
+  let html = "", last = null;
+  for (const e of list) {
+    const g = Math.floor(tlMin(e) / span);
+    if (g !== last) {
+      last = g;
+      const isNow = g === Math.floor(now / span) && Date.now() - (e.ts || 0) < span * 6e4;
+      html += `<li class="tg">${isNow ? `<b>${escH(T("Now"))}</b> · ` : ""}${tlHm(g * span)} – ${tlHm(g * span + span)}</li>`;
+    }
+    html += tlKey(e) === open ? cardLi(e) : rowHtml(e);
+  }
+  return html;
+}
+// The empty list: why, on the rail (the newest-first line it will be)
+const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
+const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
+const tlNothing = () => tlState(T("Today"), T("Nothing spotted yet"), T("Every plane that comes within {n} km joins this line, the newest on top.", {n: +S.radiusKm || 15}));
+const tlOpenId = {recent: "", svList: ""};      // each list's open card (one at a time)
+let tlTok = 0, tlRunning = 0, tlCap = 0, tlAgain = false;       // the last tap; openings and foldings under way (a redraw waits for them)
+const tlBusy = () => tlRunning > 0 && Date.now() < tlCap;
+// The list's rows; its open card stays as it is (the same element) while what it shows hasn't changed.
+function tlFill(L, html, open){
+  const sig = open ? tlCardSig(open) : "", old = L.querySelector("li.fl.open");
+  const keep = old && open && old.dataset.more === tlKey(open) && L.dataset.card === sig ? old : null;
+  L.innerHTML = html;
+  const now = L.querySelector("li.fl.open");
+  if (keep && now) now.replaceWith(keep);
+  else if (now) tlWire(now);
+  L.dataset.card = sig;
+}
+const tlWire = li => { for (const im of li.querySelectorAll(".cPicW img")) im.onerror = () => picFailed(im, tlLate); };
+// A photo found late (Planespotters' answer, the model's picture): an open card takes it.
+function tlLate(){ if (tlOpenId.recent || tlOpenId.svList) { renderRecent(); renderToday(); } }
+function tlDone(){ if (!tlBusy() && tlAgain) { tlAgain = false; renderRecent(); renderToday(); } }
 
 /* Now: the plane overhead on flaps, its photo and details, and the latest sightings. */
 let recentSig = "";
 function renderRecent(){
-  const list = dayList().filter(e => !e.sample || S.demo).slice(0, 8);
-  const sig = list.map(rowSig).join("~") + S.units + liveWaiting();
+  const all = dayList().filter(e => !e.sample || S.demo), list = all.slice(0, 8), L = $("recent");
+  // 1.95: the heading counts the last hour; the link at the end goes to Today, with the whole day's count
+  const hour = all.filter(e => Date.now() - (e.ts || 0) < 36e5).length, day = Math.max(all.length, spotted.length >= 400 && relayStats ? relayStats.planes || 0 : 0);
+  const head = all.length ? T(hour ? "{n} in the last hour" : "None in the last hour", {n: nf.format(hour)}) : "", link = T(day === 1 ? "1 plane today ›" : "All {n} planes today ›", {n: nf.format(day)});
+  if ($("recentN").textContent !== head) $("recentN").textContent = head;
+  if ($("recentAll").textContent !== link) $("recentAll").textContent = link;
+  $("recentFoot").hidden = !all.length;
+  tlAhead(list);
+  const open = list.find(e => tlKey(e) === tlOpenId.recent);
+  if (!open) tlOpenId.recent = "";
+  const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
+  if (ago && ago.textContent !== agoT) ago.textContent = agoT;
+  const sig = list.map(rowSig).join("~") + S.units + liveWaiting() + "|" + Math.floor(Date.now() / 9e5) + "|" + (open ? tlCardSig(open) : "");
   if (sig === recentSig) return;
-  recentSig = sig;
-  $("recent").innerHTML = list.length ? list.map(rowHtml).join("")
-    : `<li class="empty">${escH(liveWaiting() ? T("Finding where you are … the planes show once live location has found you.") : T("Nothing spotted yet today. Every plane that comes within {n} km is listed here.", {n: +S.radiusKm || 15}))}</li>`;
   for (let i = 0; i < NOW_ROWS; i++) {           // the same, on flaps (the phone on its side)
     const e = list[i], d = i * 150, id = c => `nl${i}${c}`;
     setChars(id("time"), e ? e.time || "" : "", d);
@@ -559,7 +641,11 @@ function renderRecent(){
     setChars(id("type"), e ? orNA(e.type, done) : "", d + 240);
     setWord(id("remarks"), e ? remarkFor(e) : "", d + 300);
   }
+  if (tlBusy()) { tlAgain = true; return; }
+  recentSig = sig;
+  tlFill(L, list.length ? tlHtml(list, 15, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
+$("recentAll").onclick = () => { ctlSound.press(); showTab("today"); };
 let shownPhoto = null;
 function renderAircraftInfo(){
   $("acSec").hidden = !feat;
@@ -714,16 +800,22 @@ function renderToday(){
     one.textContent = placeLabel(); all.textContent = T("All places");
     one.setAttribute("aria-pressed", String(!allPlaces)); all.setAttribute("aria-pressed", String(allPlaces));
   }
-  const sig = svFilter + svQuery + S.units + allPlaces + liveWaiting() + d.rows.map(rowSig).join("~");
+  // 1.95: the same timeline as Now, by the hour (a whole day reads better so), and the same card in place
+  const L = $("svList"), open = d.rows.find(e => tlKey(e) === tlOpenId.svList);
+  if (!open) tlOpenId.svList = "";
+  const ago = open && L.querySelector("li.open [data-ago]"), agoT = open ? tlAgo(open) : "";
+  if (ago && ago.textContent !== agoT) ago.textContent = agoT;
+  const sig = svFilter + svQuery + S.units + allPlaces + liveWaiting() + "|" + Math.floor(Date.now() / 36e5) + "|" + (open ? tlCardSig(open) : "") + d.rows.map(rowSig).join("~");
   if (sig === svSig) return;
-  const waiting = allPlaces && !(fullDay.all && fullDay.list), L = $("svList");
+  const waiting = allPlaces && !(fullDay.all && fullDay.list);
   // 1.55 (to-do #72): every place's list keeps this place's on show, dimmed, until it has come in
-  if (waiting && L.children.length && !L.querySelector(".empty")) return void L.classList.add("wait");
+  if (waiting && L.children.length && !L.querySelector(".st")) return void L.classList.add("wait");
+  if (tlBusy()) { tlAgain = true; return; }
   svSig = sig;
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
-  $("svList").innerHTML = waiting ? `<li class="empty">${escH(T("Loading …"))}</li>` : d.rows.length ? d.rows.map(rowHtml).join("")
-    : `<li class="empty">${escH(liveWaiting() && !allPlaces ? T("Finding where you are … the planes show once live location has found you.") : svFilter === "all" && !svQuery ? T("Nothing spotted yet today.") : T("None of today's planes match this filter yet."))}</li>`;
+  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, 60, tlOpenId.svList)
+    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? tlNothing() : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
 }
 function renderLists(){
   renderRecent();
@@ -3038,25 +3130,147 @@ const PUSH_KINDS = [["special", "Special planes (A380, 747, Beluga, Antonov, eme
   ["military", "Military planes"], ["fav", "Your favourites"], ["newtype", "Types never seen here"], ["low", "Very low passes"],
   ["quiet", "Quiet at night (22:00–07:00), except emergencies and special planes"]];
 const PUSH_KIND_DEFAULTS = {special: true, watch: true, military: true, fav: true, newtype: false, low: false, quiet: true};
-// A row of the lists: its airline, places and type open their cards, its + the favourite/hide sheet (1.38: the rest of
-// the row does nothing, so a tap meant for a card can't open the sheet).
+// A row of the lists (1.95): a tap opens its card in place. On the card the airline, the places and the Aircraft box
+// open their own cards, the photo the whole plane card (its credit is Planespotters' link) and ⌃ folds it back.
+const tlFind = k => spotted.concat(fullDay.list || []).find(r => tlKey(r) === k);
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-more]");
   if (!b) return;
   e.stopPropagation();
-  const id = b.dataset.more, x = spotted.concat(fullDay.list || []).find(r => (r.id || r.hex) === id);
+  const x = tlFind(b.dataset.more);
   if (!x) return;
+  if (!b.classList.contains("open")) { if (Date.now() - swipeEnded > 400) tlTap(b, e.clientX, e.clientY); return; }
+  if (e.target.closest("[data-fold]")) { ctlSound.press(); return tlFold(b, true); }
   const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
   if (pl) return placeCard(x[pl.dataset.pl]);
-  if (e.target.closest("[data-add]") && listsOk()) listSheet(x);
+  if (e.target.closest("[data-full]") && !e.target.closest("a")) planeCard(sightPlane(x));
 }, true);
+addEventListener("keydown", e => {             // a row with the keyboard's focus: Enter or Space opens it
+  const li = (e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".tline li.fl[data-more]:not(.open)") ? e.target : null;
+  if (!li) return;
+  e.preventDefault();
+  const r = li.getBoundingClientRect();
+  tlTap(li, r.left + r.width / 2, r.top + r.height / 2);
+});
+// The whole plane card for a sighting: the plane as the radar has one, with the route and remark its row shows.
+const sightPlane = e => ({ac: {hex: e.hex, r: e.reg, t: e.typeCode, flight: e.callsign, desc: e.desc}, remark: remarkFor(e),
+  info: {callsign: e.callsign, flightNo: e.flight, airline: e.airline, airlineCode: e.airlineCode, from: e.from, to: e.to, type: e.type, reg: e.reg,
+    hex: e.hex, category: e.category, divertedTo: e.divertedTo, fr24: e.fr24, done: e.done !== false}});
+/* Opening a card (Dave's option 1, Sky view's easing): the row grows into the card where it is and the rows below
+   slide down; the flight number and the two codes glide from the row to their places on the card, the photo grows as
+   a circle from the finger, the rest fades in last. One card at a time: another row, or ⌃, folds it back. With less
+   motion it just opens. A redraw of the list waits until the card has settled. */
+const TL_MS = 480, TL_EASE = "cubic-bezier(.2,.9,.25,1)", TL_OUT = "cubic-bezier(.33,1,.68,1)";
+function tlStart(ms){ tlRunning++; tlCap = Math.max(tlCap, Date.now() + ms + 400); }
+function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
+const imgReady = (src, ms) => { const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src;
+  return Promise.race([im.decode ? im.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, ms))]); };
+async function tlTap(li, x, y){
+  const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k), tok = ++tlTok;
+  if (!L || !e) return;
+  ctlSound.press();
+  li.classList.add("tlPress");
+  // its photo first, so the card opens with it: Planespotters' answer or the model's, then the picture itself (a moment at most)
+  for (const t0 = Date.now(); tlPicWait(e) && Date.now() - t0 < 1200 && tok === tlTok;) await new Promise(r => setTimeout(r, 60));
+  const src = tlPic(e).src;
+  if (src && tok === tlTok) await imgReady(src, 600);
+  li.classList.remove("tlPress");
+  const row = [...L.querySelectorAll("li.fl[data-more]:not(.open)")].find(r => r.dataset.more === k);     // a redraw meanwhile made a new one
+  if (tok === tlTok && row) tlOpen(L, row, e, x, y);
+}
+// Where a text is (its letters, not its box) and its colour
+function textAt(el){
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  const b = r.getBoundingClientRect();
+  return {x: b.left, y: b.top, h: b.height || 1, color: getComputedStyle(el).color};
+}
+function tlOpen(L, li, e, x, y){
+  const old = L.querySelector("li.fl.open");
+  if (old && old !== li) tlFold(old, true);
+  tlOpenId[L.id] = tlKey(e);
+  for (const g of li.querySelectorAll(".tlGone, .tlGhost")) g.remove();       // tapped again while it folded
+  const anim = !REDUCED && typeof li.animate === "function", r0 = li.getBoundingClientRect(), h0 = li.offsetHeight;
+  const cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom], rowIn = li.innerHTML;
+  const from = [".f", ".rt b:first-of-type", ".rt b:last-of-type"].map(s => { const el = li.querySelector(s); return el && el.textContent.trim() ? textAt(el) : null; });
+  li.className = "fl open"; li.removeAttribute("tabindex"); li.innerHTML = tlCardHtml(e);
+  L.dataset.card = tlCardSig(e);
+  tlWire(li);
+  if (!anim) return tlScroll(li);
+  // where everything ends up, before anything moves
+  const r1 = li.getBoundingClientRect(), h1 = li.offsetHeight, cs1 = getComputedStyle(li), m1 = [cs1.marginTop, cs1.marginBottom], card = li.querySelector(".tlCard");
+  const to = [card.querySelector(".cOvF"), ...card.querySelectorAll(".cRbEnd b")].map(b => b && {b, at: textAt(b), cs: getComputedStyle(b)});
+  const pw = card.querySelector(".cSkyPic"), pr = pw && pw.getBoundingClientRect();
+  const was = document.createElement("div");     // the row, fading away at the top while the card grows under it
+  was.className = "tlWas"; was.innerHTML = rowIn; li.append(was);
+  for (const el of was.querySelectorAll(".f, .rt b")) el.style.visibility = "hidden";
+  li.classList.add("tlAnim");
+  tlStart(TL_MS);
+  const go = (el, kf, o) => el.animate(kf, {duration: TL_MS, easing: TL_EASE, fill: "backwards", ...o});
+  const grow = go(li, [{height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}, {height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}]);
+  go(was, [{opacity: 1}, {opacity: 0}], {duration: TL_MS * .22, easing: "linear", fill: "forwards"});
+  go(card.querySelector(".tlBg"), [{opacity: 0}, {opacity: 1}], {duration: TL_MS * .35, easing: TL_OUT});
+  to.forEach((d, i) => { if (d && from[i]) tlGlide(li, r0, r1, from[i], d); });
+  if (pw) {                                      // the photo, as a circle growing from the finger
+    const cx = x - r0.left - (pr.left - r1.left), cy = y - r0.top - (pr.top - r1.top);
+    const far = Math.max(...[[0, 0], [pr.width, 0], [0, pr.height], [pr.width, pr.height]].map(([px, py]) => Math.hypot(px - cx, py - cy)));
+    go(pw, [{clipPath: `circle(0px at ${cx.toFixed(1)}px ${cy.toFixed(1)}px)`}, {clipPath: `circle(${far.toFixed(1)}px at ${cx.toFixed(1)}px ${cy.toFixed(1)}px)`}],
+      {duration: TL_MS * .84, delay: TL_MS * .06});
+  }
+  for (const el of card.querySelectorAll(".tlK, .cOvA, .cChip, .cCr, .cRbEnd small, .cRouteB i, .cNoRoute, .cTile"))
+    go(el, [{opacity: 0, transform: "translateY(8px)"}, {opacity: 1, transform: "none"}], {duration: TL_MS * .5, delay: TL_MS * .5, easing: TL_OUT});
+  li.tlNow = grow;                               // a folding that starts meanwhile takes over the row's height
+  const end = () => { was.remove(); if (li.tlNow === grow) { li.classList.remove("tlAnim"); tlScroll(li); } tlEnd(); };
+  grow.finished.then(end, end);
+}
+// A text gliding from the row to its place on the card: a copy in the card's look, from the row's place and size to
+// the card's, while both of them wait hidden
+function tlGlide(li, r0, r1, s, d){
+  const g = document.createElement("span");
+  g.className = "tlGhost"; g.textContent = d.b.textContent;
+  Object.assign(g.style, {font: d.cs.font, letterSpacing: d.cs.letterSpacing, color: d.cs.color, textShadow: d.cs.textShadow});
+  li.append(g);
+  const gb = g.getBoundingClientRect(), gt = textAt(g), ox = gt.x - gb.left, oy = gt.y - gb.top;
+  const dx = d.at.x - r1.left, dy = d.at.y - r1.top, sx = s.x - r0.left, sy = s.y - r0.top;
+  Object.assign(g.style, {left: (dx - ox).toFixed(1) + "px", top: (dy - oy).toFixed(1) + "px", transformOrigin: `${ox.toFixed(1)}px ${oy.toFixed(1)}px`});
+  d.b.style.visibility = "hidden";
+  const a = g.animate([{transform: `translate(${(sx - dx).toFixed(1)}px,${(sy - dy).toFixed(1)}px) scale(${(s.h / d.at.h).toFixed(3)})`, color: s.color},
+    {transform: "none", color: d.at.color}], {duration: TL_MS * .82, delay: TL_MS * .04, easing: TL_EASE, fill: "both"});
+  const end = () => { g.remove(); d.b.style.visibility = ""; };
+  a.finished.then(end, end);
+}
+function tlFold(li, anim){
+  const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k);
+  if (L && tlOpenId[L.id] === k) { tlOpenId[L.id] = ""; L.dataset.card = ""; }
+  if (!e) return;
+  const h1 = li.offsetHeight, cs1 = getComputedStyle(li), m1 = [cs1.marginTop, cs1.marginBottom], card = li.querySelector(".tlCard");
+  li.className = "fl"; li.tabIndex = 0; li.innerHTML = rowInner(e);
+  if (!anim || REDUCED || !card || typeof li.animate !== "function") return;
+  const h0 = li.offsetHeight, cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom];
+  card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
+  li.classList.add("tlAnim");
+  tlStart(320);
+  const shut = li.tlNow = li.animate([{height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}, {height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}], {duration: 320, easing: TL_EASE});
+  card.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: "linear", fill: "forwards"});
+  for (const c of [li.querySelector(".l1"), li.querySelector(".l2")]) if (c) c.animate([{opacity: 0}, {opacity: 1}], {duration: 200, delay: 120, easing: TL_OUT, fill: "backwards"});
+  const end = () => { card.remove(); if (li.tlNow === shut) li.classList.remove("tlAnim"); tlEnd(); };
+  shut.finished.then(end, end);
+}
+// An open card hidden under the tab bar (or the header) comes into view
+function tlScroll(li){
+  if (!li.isConnected) return;
+  const r = li.getBoundingClientRect(), top = $("top").getBoundingClientRect().bottom + 8, tb = $("tabs");
+  const bottom = (tb && tb.getClientRects().length ? tb.getBoundingClientRect().top : innerHeight) - 8;
+  const by = r.bottom > bottom ? Math.min(r.bottom - bottom, r.top - top) : r.top < top ? r.top - top : 0;
+  if (by) try { scrollBy({top: by, behavior: REDUCED ? "auto" : "smooth"}); } catch { scrollBy(0, by); }
+}
 /* Swipe a row (1.41): right for a favourite, left to hide. While it moves the row's content slides and a label shows
    what letting go will do; past the threshold it opens that half of the sheet. A mostly vertical move stays a scroll. */
 const SWIPE_AT = 72;
 let swipe = null, swipeEnded = 0;
-const swipeRow = t => t && t.closest && t.closest(".flights li.fl[data-more]");
+const swipeRow = t => t && t.closest && t.closest(".flights li.fl[data-more]:not(.open)");      // 1.95: a row, not an open card
 document.addEventListener("touchstart", e => {
   const li = swipeRow(e.target);
   if (!li || !listsOk() || e.touches.length !== 1 || e.target.closest("button")) { swipe = null; return; }
@@ -3452,7 +3666,7 @@ function appTips(t){
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(PAGE_TIPS[k]));
     for (const [x] of TABS) if (x !== "now") tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
     tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane to the right to make it a favourite, or to the left to hide it."));
-    tip("taps", () => $("recent").querySelector(".tap"), T("Tap an airline, a place or an aircraft type for more about it."));
+    tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open it. Its photo opens the whole card; its airline, places and type open theirs."));
   }
   if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
   if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
