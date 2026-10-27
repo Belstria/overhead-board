@@ -181,13 +181,13 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts #todayP
-    #todayTop .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGhost .tlGone #recentN #recentFoot #recentAll
+    #todayTop .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
     todayFactsSig renderTodayNumbers renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlPicWait tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
-    tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd imgReady tlTap textAt tlOpen tlGlide tlFold tlScroll sightPlane
+    tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd imgReady tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
     "- **The day runs from 03:00"
