@@ -31,6 +31,7 @@ import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.window.OnBackInvokedDispatcher
 import java.net.HttpURLConnection
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -114,6 +115,27 @@ class MainActivity : Activity() {
         val saved = prefs.getString(KEY, null)
         if (pub != null) open(pub) else if (saved != null) open(saved) else search()
         applyOrientation()
+        if (Build.VERSION.SDK_INT >= 33) onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { goBack() }
+    }
+
+    /** 1.97.5: the back gesture (before Android 13 the back button). */
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onBackPressed() = goBack()
+
+    /**
+     * Back closes what is open on the page first (a card, Sky view, another tab than Now): the page's fallblattBack()
+     * does that and answers true. Anything else (false, no answer within 300 ms, a page that isn't loaded) leaves the
+     * app, which stays warm in the background.
+     */
+    private fun goBack() {
+        if (!webReady || failed || web.visibility != View.VISIBLE) { moveTaskToBack(true); return }
+        var answered = false
+        web.evaluateJavascript("window.fallblattBack ? fallblattBack() : false") { r ->
+            if (answered) return@evaluateJavascript
+            answered = true
+            if (r != "true") moveTaskToBack(true)
+        }
+        main.postDelayed({ if (!answered) { answered = true; moveTaskToBack(true) } }, 300)
     }
 
     private var cutL = 0

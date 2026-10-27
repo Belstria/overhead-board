@@ -22,7 +22,8 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Overhead"
         android:usesCleartextTraffic="true"
-        android:allowBackup="true">
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true">
 
         <activity
             android:name=".MainActivity"

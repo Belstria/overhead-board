@@ -624,6 +624,11 @@ itself: every time it opens it offers a newer build when GitHub has one (Update 
 updates looks at once; Android asks once to allow installs from Fallblatt, then confirms each update. Chrome can't install `/app/` itself as an
 app, because it installs web apps only from https addresses and the relay is plain http.
 
+In the Android app (1.97.5) the back gesture or button closes what is open first, one layer at a time: a pop-up, a first-time
+tip, a card, then Sky view's card or Sky view itself (back to the board), About or the Log, a plane opened in a list, and then
+any tab other than Now (back to Now). On Now with nothing open it leaves the app, which stays in the background; the
+welcome does the same. Back makes no sound. A browser or an iPhone keeps its own back button.
+
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen. Opened from the
 home screen it has no browser bars, so on its side the board gets the whole height.
 

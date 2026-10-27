@@ -2734,6 +2734,35 @@ function androidHandover(){
     .then(j => { if (j && j.link) window.OverheadAndroid.usePublic(j.link); }).catch(() => {});
 }
 setTimeout(androidHandover, 4000);
+/* 1.97.5: the phone's back gesture (or button). The app (MainActivity) asks the page first: this closes the top layer
+   and answers true, or answers false on Now with nothing open, and the app then goes to the background. Quietly:
+   back is the system's, so the closings play none of the controls' sounds. */
+function fallblattBack(){
+  const shown = el => !!el && !el.hidden && el.getClientRects().length > 0;
+  const quiet = fn => {
+    const keep = {};
+    for (const k of Object.keys(ctlSound)) if (typeof ctlSound[k] === "function") { keep[k] = ctlSound[k]; ctlSound[k] = () => {}; }
+    try { fn(); } finally { Object.assign(ctlSound, keep); }
+    return true;
+  };
+  if (shown($("welcome"))) return false;                                   // the welcome has no step to go back to
+  for (const id of ["medalMo", "gLvUp"]) if (shown($(id))) return quiet(() => $(id).click());   // a pop-up: as a tap on it
+  const tipL = $("tipLayer");
+  if (tipL && !tipL.style.pointerEvents) return quiet(() => tipL.click());  // a first-time tip: "Got it"
+  if (cardOpenNow()) return quiet(cardClose);                              // a card or sheet, also over Sky view
+  if (arOn) {
+    if (shown($("arTour"))) return quiet(() => arTour(AR_TOUR.length));    // the walkthrough: skipped
+    if (shown($("arCard")) && !$("arCard").classList.contains("out")) return quiet(arCardDismiss);
+    return quiet(arClose);                                   // Sky view: back to the board
+  }
+  if (shown($("t-log"))) return quiet(logHide);
+  if (shown($("t-about"))) return quiet(aboutHide);
+  const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
+  if (row) return quiet(() => tlFold(row, true));                          // a plane opened in place in a list: folded
+  if (tab !== "now") return quiet(() => showTab("now"));
+  return false;
+}
+if (ANDROID) window.fallblattBack = fallblattBack;
 //@E29
 //@E32
 /* Airport style on the phone: on Now, the plane taking off or landing right now on the flaps with its photo and details,

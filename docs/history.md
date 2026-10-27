@@ -943,6 +943,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.5 (to-do #139, Dave's request of 27 Oct): **back in the Android app closes what's open.** `MainActivity.goBack()`
+  (an `OnBackInvokedCallback` from Android 13, `onBackPressed` before; the manifest sets `enableOnBackInvokedCallback`)
+  asks the page `window.fallblattBack ? fallblattBack() : false` through `evaluateJavascript`. Only the answer `"true"`
+  means the page handled it; anything else (false, no page loaded, no answer within 300 ms) is `moveTaskToBack(true)`, so
+  the app stays warm. `fallblattBack()` (tools/app/main.js, next to `androidHandover`; only set when `ANDROID`) closes
+  the top layer through the existing close paths: the level-up and medal pop-ups (a tap), a tip (a tap on its layer), the
+  card (`cardClose`), Sky view's tour (skipped), its card (`arCardDismiss`), Sky view (`arClose`), the Log or About page,
+  a list row opened in place (`tlFold`), then `showTab("now")`. The welcome answers false. The closings run with every
+  `ctlSound` method silenced for the call (back is the system's gesture), then restored. Browsers are unchanged (the page
+  uses no history); a history version would push one state per layer and close on `popstate`.
 - 1.97.4 (to-do #138, Dave's request of 27 Oct): the Logbook's Saved places button (`lbPlaceSheet(true)`), the Sky view buttons
   (`arTry` -> `arOpen(true)`, also the "Sky view needs live location" card) and the title's Overhead/Airport switch
   (`setMode`, board and app) play `ctlSound.click()` instead of `nav()`; the sheet, `arOpen` and the card opened from
@@ -950,7 +960,6 @@ The repository is public: no addresses, keys or personal data here either.
 - 1.97.4 (to-do #136, Dave's request of 27 Oct; relay 80): **planes overhead give 5, 10, 15, 25, 50.** The app only
   shows the relay's numbers (`rules.passive` in `gHowCard`), so the change is the How points work text ("the points in
   the first column") and its i18n rows; the patch note and README say the new amounts.
-
 - 1.97.3 (to-do #135, Dave's request of 27 Oct): **cards open at once; their photo window shows a spinner and the
   photo fades in.** What made a card wait: `cardWhenReady` ran `imgsReady` (every `<img>` of the card, up to 3 s), the
   plane card's `planeCard` waited up to 2.5 s for its photo's lookup (`/<img/.test(planeBody(o).html)`), and the in-place
