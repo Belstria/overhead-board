@@ -12,7 +12,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the owner's Relay plate (/relayinfo): David only, also from outside; another profile or a stranger no (relay 69);
   only David's page says owner, /pageversion (a page built without a profile) answers, a saved "</script>" stays escaped
 - live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
-  fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
+  fresh one does; a hidden page's (bg=1, relay 81) like a stale one, only for a live place; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
@@ -337,6 +337,23 @@ def game_rule_checks(expect):
         serve.board_day = real_day
 
 
+def live_hidden_checks(expect):
+    """Relay 81 (to-do #140): live_stale() on its own. A live request from a hidden page (bg=1) is stale, though its fix is
+    fresh; a saved place and home never are; a page that sends no flag counts as visible."""
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    pc = "pc=48.2,16.3&pr=15&"
+
+    def stale(qs, pl=""):
+        q = urllib.parse.parse_qs(pl + qs)
+        return serve.live_stale(q, serve.screen_place(q))
+    expect("live_stale: a live request with a fresh fix is visible, with bg=1 hidden, with an empty flag visible (an old page)",
+           (stale("&fix=5", "pl=live&" + pc), stale("&fix=5&bg=1", "pl=live&" + pc), stale("&fix=5&bg=", "pl=live&" + pc)), (False, True, False))
+    expect("... a saved place and home are never stale from a hidden page", (stale("bg=1&fix=-1", "pl=Rome&" + pc), stale("bg=1")), (False, False))
+    expect("... a live request without a fix is stale as before (relay 72)", stale("", "pl=live&" + pc), True)
+
+
 def checks():
     bad = []
 
@@ -346,6 +363,7 @@ def checks():
 
     game_rule_checks(expect)
     screens_checks(expect)
+    live_hidden_checks(expect)
 
     # C1: the admin pages
     expect("/admin at home, no profile", call("/admin", headers=AT_HOME)[0], 403)
@@ -629,7 +647,13 @@ def checks():
     expect("... and records no live sightings", len(live_rows()), 0)
     st, _, b = call("/logbook", "owner-device")
     expect("... and scores nothing", json.loads(b).get("game", {}).get("points") if st == 200 else st, 0)
-    st, h, _ = call(far + "&fix=20", "owner-device")
+    # relay 81 (to-do #140): nothing counts while the app is in the background. A hidden page says bg=1: a live request
+    # with it, though its fix is fresh, is stale too. Only a live place: a saved place or home (a TV board) is as before
+    st, h, _ = call(far + "&fix=20&bg=1", "owner-device")
+    expect("a hidden live request with a fresh fix starts no gap filler", (st, h.get("X-Relay-Fill")), (200, None))
+    st, _, b = call("/logbook", "owner-device")
+    expect("... records no live sightings and scores nothing", (len(live_rows()), json.loads(b).get("game", {}).get("points") if st == 200 else st), (0, 0))
+    st, h, _ = call(far + "&fix=20", "owner-device")      # (the same request, visible: the app is back)
     expect("a live request with a fresh fix starts the gap filler", h.get("X-Relay-Fill") is not None, True)
     expect("... and records live sightings", len(live_rows()) > 0, True)
     st, _, b = call("/logbook", "owner-device")
