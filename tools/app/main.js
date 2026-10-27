@@ -546,11 +546,6 @@ const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.o
 // its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
 const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
 const tlCardSig = e => { const p = tlPic(e); return [rowSig(e), S.units, p.src, p.kind, p.by].join("|"); };
-// Still looking for its photo: Planespotters' answer, or its model's picture (planePic's own order)
-function tlPicWait(e){
-  const p = tlPic(e), d = detailsOf(e.hex) || {};
-  return !!p.asking || !p.src && modelAsk.has(modelKey([TYPES[String(e.typeCode || "").toUpperCase()], e.type, d.type, e.desc].map(n => String(n || "").trim()).filter(Boolean), e.typeCode));
-}
 // The rows' photos are asked for ahead, one at a time: the relay asks Planespotters once a second for every screen
 // (a TV's plane on top too), so a card opens with its own without crowding anyone out.
 let tlAsking = false;
@@ -1128,7 +1123,7 @@ function hangarCard(code, again){
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u));
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
   // 1.94: in Sky view's card style: the photo with the name, code and tier on it; 1.97: how often seen, scored, scanned
-  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
+  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : modelAsking(hgNames(code, t.name), code) ? {src: "", asking: true} : null, title: name, sub: code,
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
@@ -3231,20 +3226,12 @@ const sightPlane = e => ({ac: {hex: e.hex, r: e.reg, t: e.typeCode, flight: e.ca
 const TL_MS = 480, TL_EASE = "cubic-bezier(.2,.9,.25,1)", TL_OUT = "cubic-bezier(.33,1,.68,1)";
 function tlStart(ms){ tlRunning++; tlCap = Math.max(tlCap, Date.now() + ms + 400); }
 function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
-const imgReady = (src, ms) => { const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src;
-  return Promise.race([im.decode ? im.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, ms))]); };
 async function tlTap(li, x, y){
   const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k), tok = ++tlTok;
   if (!L || !e) return;
   ctlSound.press();
-  li.classList.add("tlPress");
-  // its photo first, so the card opens with it: Planespotters' answer or the model's, then the picture itself (a moment at most)
-  for (const t0 = Date.now(); tlPicWait(e) && Date.now() - t0 < 1200 && tok === tlTok;) await new Promise(r => setTimeout(r, 60));
-  const src = tlPic(e).src;
-  if (src && tok === tlTok) await imgReady(src, 600);
-  li.classList.remove("tlPress");
-  const row = [...L.querySelectorAll("li.fl[data-more]:not(.open)")].find(r => r.dataset.more === k);     // a redraw meanwhile made a new one
-  if (tok === tlTok && row) tlOpen(L, row, e);
+  // 1.97.3: it opens at once; its photo window shows a spinner until the photo is in
+  if (tok === tlTok && li.isConnected && !li.classList.contains("open")) tlOpen(L, li, e);
 }
 function tlOpen(L, li, e){
   const old = L.querySelector("li.fl.open");
