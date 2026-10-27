@@ -667,7 +667,10 @@ Five buttons along the bottom:
   sky as you tilt and turn; the compass only says where north is. Since 1.90 north only glides towards the compass
   slowly (over several seconds, even slower while the phone turns or the compass is unsure), so labels stay put while
   you hold the phone still, also indoors where compasses swing; when the compass settles steadily somewhere else (it
-  often comes right a few seconds after Sky view opens), north glides there within a few seconds. Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
+  often comes right a few seconds after Sky view opens), north glides there within a few seconds. Since 1.95.0.2 the
+  labels are placed on every frame from where the phone points at that moment (its last reading carried on at its
+  turning speed), so they move smoothly while you turn the phone even when the browser hands the readings over late.
+  Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
   Magnetic Model; about 5° here). Phone compasses are often a few degrees off, sometimes far more: drag the picture to
   line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun and the moon (1.76) sit in dashed
   rings where they really are: drag until the real one is in its ring, and every label lines up too (on the screen;

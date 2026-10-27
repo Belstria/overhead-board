@@ -1400,7 +1400,8 @@ function drawTape(cv, c, on, d){
     g.fillStyle = "#f0b429"; g.beginPath(); g.moveTo(x + 6 * s, 13); g.lineTo(x - 5 * s, 6); g.lineTo(x - 5 * s, 20); g.closePath(); g.fill();
   }
 }
-const lookSoon = () => { if (!lookRaf) lookRaf = requestAnimationFrame(drawLook); };
+// 1.95.0.2: not while Sky view covers it (it drew on every compass reading, on the thread Sky view needs); after it, at once
+const lookSoon = () => { if (!lookRaf && !arOn) lookRaf = requestAnimationFrame(drawLook); };
 function lookHeadingFrom(e){
   let h = null;
   if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;           // iPhone: degrees from north
@@ -1462,7 +1463,7 @@ let arRaw = [], arCalAt = 0;
 // north carried over wrongly), north glides there within a few seconds (τ 1.5 s).
 const AR_GAP_TAU = 6, AR_GAP_MAX = 1, AR_GAP_SETTLE = 1500, AR_GAP_STEADY = 1500, AR_STILL_MS = 1500;   // s; °/s; ms; ms; ms
 let arAbsR = null, arAbsT = 0, arRelQ = null, arRelT = 0, arLastQ = null, arRate = 0, arMovedAt = 0, arGapLog = [], arHeldAt = 0, arGap0 = 0, arGapRef = null, arGapFast = false;
-let arEvN = {abs: 0, rel: 0, ios: 0}, arHeldWhy = "", arSunLast = null, arNote = {text: "", until: 0};   // 1.90: for the report
+let arEvN = {abs: 0, rel: 0, ios: 0, motion: 0}, arHeldWhy = "", arSunLast = null, arNote = {text: "", until: 0};   // 1.90: for the report
 const AR_FOV = 64;                                   // the back camera's view along the picture's long side (degrees, typical)
 // 1.75.2: the focal length in screen pixels. The video fills the screen (object-fit: cover), so its long side, however
 // much of it is cut off, spans AR_FOV; this holds upright, sideways and on a tablet alike. Camera sensors are 4:3:
@@ -1585,15 +1586,54 @@ function arGyroStep(q, t){
   }
   arRelQ = q; arRelT = t;
 }
-// The labels' turn, smoothed like a 1€ filter: held still heavily (sensors wobble), turning hardly at all (they keep up).
+// 1.95.0.2 (to-do #125, Dave's pick B): the labels follow where the phone points at each frame, not at each reading.
+// Chrome hands the readings over on the page's own thread, polled 60 times a second: while the page is busy they come
+// late and bunched (Dave's recording: the labels held for 60-420 ms, then jumped up to 100 px). A reading (arTurn) is
+// kept with the phone's turning speed (arW, radians a second about east, north and up); each frame (arFrame) turns the
+// newest reading on by that speed for as long as it is old, up to AR_AHEAD (older still, back to the reading), and the
+// labels glide there like a 1€ filter: held still heavily (sensors wobble), turning hardly at all (they keep up).
+// Chrome sends no reading while no angle changes by 0.1°, so an old reading may mean a stop: the gyroscope's rate
+// (devicemotion, arMotion; sent 60 times a second, still or not) tells which. Under 2°/s nothing is run on.
+const AR_AHEAD = .15;                                // s
+let arRd = null, arRdRef = null, arW = [0, 0, 0], arFrT = 0, arFrN = 0, arTim = {reads: [], frames: [], fresh: []}, arMo = null;
+function arMotion(e){
+  const r = e.rotationRate;
+  if (!r || typeof r.alpha !== "number") return;
+  arEvN.motion++;
+  arMo = {deg: Math.hypot(r.alpha, r.beta || 0, r.gamma || 0), t: performance.now()};   // only how fast, not which way
+}
+const arQMul = (a, b) => [a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3], a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+  a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1], a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0]];
+const arTimPush = (a, v) => { a.push(Math.round(v * 10) / 10); if (a.length > 120) a.shift(); };   // for the report
 function arTurn(q, t){
   arLastQ = q;
-  if (!arQ) { arQ = q; arQt = t; return; }
-  let d = arQ[0] * q[0] + arQ[1] * q[1] + arQ[2] * q[2] + arQ[3] * q[3];
-  if (d < 0) { q = q.map(v => -v); d = -d; }
-  const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.exp(-ang / .7);
-  const k = 1 - Math.exp(-Math.min(.2, Math.max(.002, (t - arQt) / 1000)) / tau), m = arQ.map((v, i) => v + (q[i] - v) * k), L = Math.hypot(...m);
-  arQ = m.map(v => v / L); arQt = t;
+  if (arRd) arTimPush(arTim.reads, t - arRd.t);
+  arFrN++; arRd = {q, t};
+  if (!arRdRef) { arRdRef = arRd; return; }
+  const dt = (t - arRdRef.t) / 1000;
+  if (dt < .008) return;                             // (two handed over at once: the speed from a longer span)
+  const p = arRdRef.q, s = p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3] < 0 ? -1 : 1;
+  const d = arQMul(q.map(v => v * s), [p[0], -p[1], -p[2], -p[3]]), n = Math.hypot(d[1], d[2], d[3]), ang = 2 * Math.atan2(n, d[0]);
+  arRdRef = arRd;
+  if (ang > .5 || ang / dt > 8) { arW = [0, 0, 0]; return; }   // a jump no hand makes (the gyroscope's zero, the compass taking over)
+  const k = 1 - Math.exp(-Math.min(dt, .2) / .05);
+  arW = arW.map((v, i) => v + ((n > 1e-9 ? d[i + 1] / n * ang / dt : 0) - v) * k);
+}
+function arFrame(now){
+  if (arFrT) { arTimPush(arTim.frames, now - arFrT); arTim.fresh.push(arFrN); if (arTim.fresh.length > 120) arTim.fresh.shift(); }
+  arFrT = now; arFrN = 0;
+  if (!arRd) return;
+  // (without the gyroscope's rate a stop can't be told from a late reading: only a little ahead)
+  const ahead = arMo ? AR_AHEAD : .05, age = Math.max(0, (now - arRd.t) / 1000), lead = age <= ahead ? age : Math.max(0, 2 * ahead - age);
+  const wl = Math.hypot(...arW), deg = arMo && now - arMo.t < 100 ? arMo.deg : wl * 180 / Math.PI, run = lead * Math.min(1, Math.max(0, (deg - 2) / 4));
+  let p = arRd.q;
+  if (run > 0) { const h = wl * run / 2, s = Math.sin(h) / wl; p = arQMul([Math.cos(h), arW[0] * s, arW[1] * s, arW[2] * s], p); }
+  if (!arQ) { arQ = p; arQt = now; return; }
+  let d = arQ[0] * p[0] + arQ[1] * p[1] + arQ[2] * p[2] + arQ[3] * p[3];
+  if (d < 0) { p = p.map(v => -v); d = -d; }
+  const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.exp(-Math.max(ang / .7, deg / 6));
+  const k = 1 - Math.exp(-Math.min(.2, Math.max(.002, (now - arQt) / 1000)) / tau), m = arQ.map((v, i) => v + (p[i] - v) * k), L = Math.hypot(...m);
+  arQ = m.map(v => v / L); arQt = now;
 }
 // 1.86: lined up (AUTO or a drag): north is held, the gyroscope alone turns the labels until ⟲ or Sky view closes.
 function arHold(why){
@@ -1619,8 +1659,8 @@ async function arOpen(){
     dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
   }, {once: true});
   $("arView").hidden = false; document.body.classList.add("arOpen"); arOn = true; arQ = null; arGap = null; arAlt = null;
-  arAbsR = null; arRelQ = null; arRelT = 0; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0; arGapRef = null; arGapFast = false;
-  arEvN = {abs: 0, rel: 0, ios: 0}; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
+  arAbsR = null; arRelQ = null; arRelT = 0; arRd = arRdRef = null; arW = [0, 0, 0]; arFrT = arFrN = 0; arTim = {reads: [], frames: [], fresh: []}; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0; arGapRef = null; arGapFast = false;
+  arEvN = {abs: 0, rel: 0, ios: 0, motion: 0}; arMo = null; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
   $("arFlag").hidden = !arReportOk(); $("arFlag").classList.remove("sent"); $("arFlag").setAttribute("aria-label", T("Send a report to tune Sky view"));
   arShotAt = 0; arLocked = ""; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
   arSince = Date.now(); dlog("info", `Sky view opened · ${arList.length} planes around · AUTO ${arAuto ? "on" : "off"}`);
@@ -1630,6 +1670,7 @@ async function arOpen(){
   arAim = {hex: "", since: 0, done: ""}; arRaw = []; arCalAt = 0; $("arCal").hidden = true;
   addEventListener(arEvent(), arOrient);
   if (arEvent() === "deviceorientationabsolute") addEventListener("deviceorientation", arOrient);   // 1.86: and the gyroscope's
+  addEventListener("devicemotion", arMotion);                     // 1.95.0.2: the gyroscope's rate, to tell a stop from a late reading
   if (navigator.geolocation) arWatch = navigator.geolocation.watchPosition(p => {
     if (geoPos(p).age > LIVE_OLD_MS) return;                           // 1.93.1: one the browser kept from earlier
     const c = p.coords; arHere = {lat: c.latitude, lon: c.longitude};
@@ -1663,11 +1704,12 @@ function arClose(){
   $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
-  removeEventListener(arEvent(), arOrient); removeEventListener("deviceorientation", arOrient);
+  removeEventListener(arEvent(), arOrient); removeEventListener("deviceorientation", arOrient); removeEventListener("devicemotion", arMotion);
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
   arSel = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen");
+  lookSoon();
 }
 // 1.76: true north. Phone compasses point to magnetic north; the World Magnetic Model gives the declination, how
 // far east of true north it lies (about 5° in Vienna). WMM2025 by NOAA NCEI (public domain; tools/app/WMM.COF, its
@@ -1771,6 +1813,7 @@ function arLoop(){
   if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
+  arFrame(performance.now());                        // 1.95.0.2: where the phone points now
   if (!arQ) return;
   const R = arQMatrix(arQ), here = arHere || {lat: S.lat, lon: S.lon}, wx = arWeather();
   arDec = magDecl(here.lat, here.lon);
@@ -1859,7 +1902,7 @@ function arReport(){
   const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
   const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
   return {
-    v: 1, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    v: 2, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
     secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
@@ -1872,6 +1915,8 @@ function arReport(){
     moon: moon && moon.el > -.5 ? {az: arR1(moon.az), el: arR1(moon.el)} : null,
     screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), turned: (screen.orientation && screen.orientation.angle) || 0},
     planes: arShownN,
+    // 1.95.0.2: the last 120 gaps between readings and between frames (ms), the readings each frame had, the turn (°/s)
+    timing: {ahead: AR_AHEAD, reads: arTim.reads, frames: arTim.frames, fresh: arTim.fresh, turn: arR1(Math.hypot(...arW) * 180 / Math.PI)},
   };
 }
 $("arFlag").onclick = async () => {
