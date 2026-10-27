@@ -1904,7 +1904,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=ab59f2591f"></script>
+<script src="../test/i18n.js?v=4eccd39ba1"></script>
 <script>
 (() => {
 "use strict";
@@ -7360,7 +7360,7 @@ function renderLogbook(){
     bar.innerHTML = want.map(([k, name]) => k === "saved" ? `<button type="button" data-p="saved" aria-pressed="${!!cur}" aria-haspopup="dialog"><span class="ddL">${escH(name)}</span>${DD}</button>`
       : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
     for (const btn of bar.children) btn.onclick = () => {
-      if (btn.dataset.p === "saved") return lbPlaceSheet();
+      if (btn.dataset.p === "saved") return lbPlaceSheet(true);
       if (btn.dataset.p !== lbPlace) { ctlSound.click(); lbPick(btn.dataset.p); }
     };
   }
@@ -7413,8 +7413,8 @@ async function lbPick(id){
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
 }
 // 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
-function lbPlaceSheet(){
-  ctlSound.nav();
+function lbPlaceSheet(button){
+  button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the bar's button clicks like a button
   const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
     `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
@@ -8017,8 +8017,8 @@ function arHold(why){
   if (!arHeldAt && arGap != null) dlog("debug", `Sky view: lined up (${why}); north held, the compass left out`);
   arHeldAt = Date.now(); arHeldWhy = why;
 }
-async function arOpen(){
-  ctlSound.nav();
+async function arOpen(button){
+  button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the Sky view buttons click like buttons
   const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
     dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
   try {
@@ -8932,8 +8932,8 @@ $("skyCv").onclick = e => { if ($("lookCv").onclick) $("lookCv").onclick(e); }; 
 // 1.77: Sky view shows the planes around you, so it comes with live location (the app following the phone). With it
 // off, a card asks first: go live and open, or not now.
 function arTry(){
-  if (S.live || S.demo || !liveOk()) return arOpen();
-  ctlSound.nav();
+  if (S.live || S.demo || !liveOk()) return arOpen(true);
+  ctlSound.click();
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Sky view needs live location"))}</h3></div></div>` +
     `<p class="note">${escH(T("It shows the planes around you, wherever you are, so the app follows your location while it's open."))}</p>` +
     `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
@@ -9103,7 +9103,7 @@ function androidHandover(){
     .then(j => { if (j && j.link) window.OverheadAndroid.usePublic(j.link); }).catch(() => {});
 }
 setTimeout(androidHandover, 4000);
-/* 1.97.4: the phone's back gesture (or button). The app (MainActivity) asks the page first: this closes the top layer
+/* 1.97.5: the phone's back gesture (or button). The app (MainActivity) asks the page first: this closes the top layer
    and answers true, or answers false on Now with nothing open, and the app then goes to the background. Quietly:
    back is the system's, so the closings play none of the controls' sounds. */
 function fallblattBack(){
@@ -10074,7 +10074,7 @@ function applyLang(){
 // Overhead and Airport in the title: tap one to switch.
 function setMode(md){
   if (S.mode === md) return;
-  ctlSound.nav(); audioInit();
+  ctlSound.click(); audioInit();                     // 1.97.4: the title is a button, so the button click
   S.mode = md; saveSettings();
   if (tab !== "now") showTab("now"); else applyMode();
   showModes();
@@ -10182,8 +10182,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.97.4", date: "2026-10-27", notes: [
+  {v: "1.97.5", date: "2026-10-27", notes: [
     "In the Android app, the back gesture now closes what is open first (a card, Sky view, another tab) and only then leaves the app.",
+  ]},
+  {v: "1.97.4", date: "2026-10-27", notes: [
+    "Planes overhead now give more points: 5, 10, 15, 25 and 50 by rarity. Earlier points stay as they were.",
   ]},
   {v: "1.97.3", date: "2026-10-27", notes: [
     "Cards open at once: the photo window shows a spinner while its photo loads, then the photo fades in.",
@@ -12023,7 +12026,7 @@ let booted = false;
    the Game page (no tab of its own). When points come in, the rank chip flips to +N, the +N flies into the level bar,
    which fills, and the total rolls up. */
 const gameOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 59;
-// 1.96 (to-do #127): the rules (each rarity's points, the passive tenth, the limits, the extras, the streak) come from
+// 1.96 (to-do #127): the rules (each rarity's points, the passive points, the limits, the extras, the streak) come from
 // the relay (76), the one source; an older relay sends none.
 const gRules = () => (gme && gme.rules) || null;
 const gBase = t => { const r = gRules(); return r ? r.base[t] != null ? r.base[t] : r.base.uncommon : null; };
@@ -12144,7 +12147,7 @@ async function gRefresh(force){
   } catch {} finally { gBusy = false; }
 }
 /* 1.96 (to-do #127, Dave's pick B): every award as it happens, on a pass like Sky view's boarding pass that slides up
-   from below (over the tab bar; in Sky view over its compass): the passive tenth small (several that come together on
+   from below (over the tab bar; in Sky view over its compass): the passive points small (several that come together on
    one), a scan with its extras, the daily streak at the day's first scan, and the first plane past a rarity's limit
    (later ones stay quiet). Recent points lists the same lines (gAwLine). The relay sends the awards since the newest one
    shown (/game/me?since=, relay 76); a scan's come with its answer (gLockOn). A tap puts a pass away. */
@@ -12344,7 +12347,7 @@ function gHowCard(){
     `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))}</p>` +
     (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
       `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
-      p(T("Within {k} km:", {k}), T("a tenth of the plane's points, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
+      p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
       p(T("Sky view scan:"), T("hold a plane in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).")) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +

@@ -14,7 +14,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
-- the game's rules since relay 76 (to-do #127), on the relay's functions: the passive tenth and the limits per rarity, the
+- the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
   ("can"), the daily streak (a missed day, the Monday reset), rule 1's planes not priced again; over HTTP: the rules
   and limits in /game/me, "can" and the scan paying it, Recent points adding up, the league's week, the hangar on any
@@ -68,9 +68,175 @@ def call(path, cookie=None, headers=None, body=None, method=None):
         return e.code, e.headers, e.read()
 
 
+def rule4_checks(serve, expect, day):
+    """Relay 80 (to-do #136): a game scored under rule 3 (the tenths 1, 3, 10, 25, 50) gives exactly the same totals,
+    days, league week, logbook and awards when the new relay starts on it; only new planes score by rule 4."""
+    import json as _j
+    import tempfile
+    from pathlib import Path
+    old_rule, old_passive = serve.GAME_RULE, serve.GAME_PASSIVE
+    day[0] = "2026-11-04"                                 # a Wednesday
+    folder = Path(tempfile.mkdtemp(prefix="fb-rule4-"))
+    now = serve.time.time()
+
+    def mk(sp, n, tier, tc, cs):
+        e = {"id": f"y{n}", "hex": f"{n + 900:06x}", "ts": int(now * 1000) + n, "typeCode": tc, "callsign": cs, "tier": tier,
+             "liveMin": 4.0, "liveSeen": now}
+        sp.entries.insert(0, e)
+        sp.by_hex[e["hex"]] = e
+        return e
+
+    def snap(sp):
+        with serve._data_lock:
+            sp.ensure_day()
+            serve.game_book(sp.book())
+            return [_j.dumps(x, sort_keys=True) for x in (sp.book(), sp.entries, {k: v for k, v in serve.game3_json(sp.book(), day[0]).items() if k != "rules"},
+                                                           serve.game_today(sp), serve.game_awards(sp, 0))]
+
+    def save(sp):
+        with serve._data_lock:
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    try:
+        serve.GAME_RULE, serve.GAME_PASSIVE = 3, {"common": 1, "uncommon": 3, "rare": 10, "epic": 25, "legendary": 50}
+        a = serve.Spot(folder, None, 15)
+        a.ensure_day()
+        olds = [mk(a, 1, "common", "A320", "AUA1"), mk(a, 2, "rare", "E195", "BCY2"), mk(a, 3, "legendary", "A388", "UAE3")]
+        with serve._data_lock:
+            for e in olds:
+                serve.game_note(a, e)
+        serve.game_lockon(a, olds[0]["hex"])
+        with serve._data_lock:
+            pts3 = serve.game_book(a.book())["points"]
+            gp3 = [e["gp"] for e in olds]
+            rules3 = {x["r"] for e in olds for x in e["ga"]}
+            a.changed("book", "day")
+        save(a)
+        before = snap(a)
+    finally:
+        serve.GAME_RULE, serve.GAME_PASSIVE = old_rule, old_passive
+    expect("rule 3's game: scored by the tenths, awards say rule 3", (gp3, rules3, pts3 > 0), ([1, 10, 50], {3}, True))
+    b = serve.Spot(folder, None, 15)                      # the new relay starts on the saved game
+    after = snap(b)
+    expect("the new relay on a rule-3 game: logbook, sightings, game page (but its rules), Recent points, awards identical",
+           [x == y for x, y in zip(after, before)], [True] * 5)
+    with serve._data_lock:
+        gb = serve.game_book(b.book())
+        v = (gb.get("v"), b.book().get("gameV"), gb["points"])
+    expect("... GAME3_V and GAME_V not raised, points the same", v, (1, 2, pts3))
+    new = mk(b, 9, "common", "B738", "RYR9")
+    with serve._data_lock:
+        serve.game_note(b, new)
+        gb = serve.game_book(b.book())
+    expect("a new plane scores by rule 4 (5 for a common), earlier ones keep theirs",
+           (new["gp"], new["ga"][0]["r"], new["gr"], gb["points"]), (5, 4, 4, pts3 + 5))
+    row = {r["hex"]: r for r in serve.game_today(b)["rows"]}
+    expect("... Recent points: the old planes say rule 3, the new one rule 4",
+           (row[olds[0]["hex"]]["rule"], row[olds[1]["hex"]]["rule"], row[new["hex"]]["rule"]), (3, 3, 4))
+    save(b)
+    reload = serve.Spot(folder, None, 15)
+    with serve._data_lock:
+        reload.ensure_day()
+        old_e = {e["hex"]: e for e in reload.entries}
+    expect("... the old planes' points and awards on disk untouched",
+           ([old_e[e["hex"]]["gp"] for e in olds], {x["r"] for e in olds for x in old_e[e["hex"]]["ga"]}), ([1, 10, 50], {3}))
+
+
+def screens_checks(expect):
+    """Relay 80 (to-do #137): a screen whose latest hello said hidden counts as left 15 s later (Recently gone), whatever it
+    asks for meanwhile; back within 15 s it stays; a hello saying visible is a new visit, not announced; the 60 s rule for
+    silent visible screens and the immediate bye stay. On the relay's functions, with a clock of its own."""
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    clock = [1_800_000_000.0]
+
+    class Clock:                                          # the relay's `time`, with time() as we say
+        def __getattr__(self, name):
+            return getattr(real_time, name)
+
+        @staticmethod
+        def time():
+            return clock[0]
+
+    real_time = serve.time
+    serve.time = Clock()
+    said = []
+    real_event = serve.event
+    serve.event = lambda level, msg, echo=True: said.append(msg)
+    serve._screens.clear()
+    serve._screens_left.clear()
+    serve._screens_gone.clear()
+    try:
+        def seen(sid, hello=None, bye=False):
+            serve.screen_seen("127.0.0.1", "Mozilla/5.0 (iPhone)", "", sid, hello, bye)
+
+        def hello(vis):
+            return {"name": "", "w": 390, "h": 844, "q": "", "vis": vis}
+
+        def at(dt):
+            clock[0] += dt
+            serve._screen_sweep(clock[0])
+
+        def live():
+            return sorted(i["sid"] for i in serve.screens_list()[0])
+
+        seen("aaaa", hello("visible"))
+        seen("bbbb", hello("visible"))
+        seen("cccc", hello("visible"))
+        at(7)
+        expect("screens: three open, announced", (live(), len(said)), (["aaaa", "bbbb", "cccc"], 3))
+        seen("aaaa", hello("hidden"))                     # a goes to the background, b too
+        seen("bbbb", hello("hidden"))
+        at(10)
+        seen("bbbb", hello("visible"))                    # b is back within 15 s
+        seen("aaaa")                                      # a still asks for things meanwhile
+        at(4)
+        expect("screens: hidden for 10 s still on, back in time stays", live(), ["aaaa", "bbbb", "cccc"])
+        at(3)
+        seen("aaaa")                                      # ... and its requests don't keep it on
+        seen("cccc")
+        at(1)
+        expect("screens: hidden for 15 s counts as left, despite its requests", live(), ["bbbb", "cccc"])
+        expect("... listed in Recently gone, left at the moment it went to the background",
+               [(g["sid"], g["left"]) for g in serve.screens_list()[1]], [("aaaa", int(1_800_000_007.0))])
+        n = len(said)
+        seen("aaaa")
+        seen("aaaa", hello("hidden"))
+        seen("aaaa", bye=True)
+        at(5)
+        expect("... its later requests, hellos and bye bring nothing back", (live(), len(said), len(serve.screens_list()[1])), (["bbbb", "cccc"], n, 1))
+        seen("aaaa", hello("visible"))
+        expect("a hello saying visible: a new visit, on for 0 s", [(i["sid"], i["on_s"], i["reloads"]) for i in serve.screens_list()[0] if i["sid"] == "aaaa"], [("aaaa", 0, 0)])
+        at(10)
+        expect("... not announced again", len(said), n)
+        seen("aaaa", hello("hidden"))
+        at(16)
+        expect("hidden again: left again, once more in Recently gone", (live(), len(serve.screens_list()[1])), (["bbbb", "cccc"], 2))
+        # the old rules: 60 s of silence while visible, and the bye at once
+        seen("bbbb", hello("visible"))
+        at(50)
+        seen("bbbb")
+        at(20)
+        expect("a silent visible screen is gone after 60 s (cccc); a busy one stays", live(), ["bbbb"])
+        seen("bbbb", bye=True)
+        at(11)
+        expect("bye: gone after 10 s, closed", (live(), "(closed)" in said[-1]), ([], True))
+    finally:
+        serve.time = real_time
+        serve.event = real_event
+        serve._screens.clear()
+        serve._screens_left.clear()
+        serve._screens_gone.clear()
+
+
 def game_rule_checks(expect):
     """Relay 76 (to-do #127): the game's rules on a made-up profile, straight on the relay's functions (no relay needed):
-    the passive tenth and the limits per rarity, the scan's full points on top without a limit (relay 79; a top-up in
+    the passive points and the limits per rarity, the scan's full points on top without a limit (relay 79; a top-up in
     relay 76), extras only with scans and what a scan would add on the passive award ("can"), the daily streak (days in a
     row, a missed day, the Monday reset), rule 1's planes kept as they were."""
     import tempfile
@@ -104,7 +270,7 @@ def game_rule_checks(expect):
         commons = [plane("common", "A320", f"AUA{100 + i}") for i in range(52)]
         for e in commons:
             note(e)
-        expect("passive: a tenth of a common's points, 50 a day", [e["gp"] for e in commons[:50]], [1] * 50)
+        expect("passive: 5 for a common (relay 80, rule 4), 50 a day", [e["gp"] for e in commons[:50]], [5] * 50)
         expect("... the 51st and 52nd get nothing", [e["gp"] for e in commons[50:]], [0, 0])
         expect("... only the first over the limit pops up", [(e["ga"][-1]["k"], e["ga"][-1]["first"]) for e in commons[50:]],
                [("limit", True), ("limit", False)])
@@ -113,12 +279,12 @@ def game_rule_checks(expect):
         legs = [plane("legendary", "A388", f"UAE{i}") for i in range(4)]
         for e in legs:
             note(e)
-        expect("passive by rarity: rare 10, special 50 up to 3", [rare["gp"]] + [e["gp"] for e in legs], [10, 50, 50, 50, 0])
+        expect("passive by rarity: rare 15, special 50 up to 3", [rare["gp"]] + [e["gp"] for e in legs], [15, 50, 50, 50, 0])
         expect("the day's points and limits", (g["days"][day[0]], serve._game_limits(g, day[0])),
-               (50 + 10 + 150, {"common": 52, "rare": 1, "legendary": 4}))
+               (250 + 15 + 150, {"common": 52, "rare": 1, "legendary": 4}))
         expect("extras only with scans: passive awards", sorted({a["k"] for e in sp.entries for a in e["ga"]}), ["limit", "pass"])
         commons[1]["liveMin"] = 1.0
-        expect("a plane comes closer: not priced again", (note(commons[1]), commons[1]["gp"], len(commons[1]["ga"])), (True, 1, 1))
+        expect("a plane comes closer: not priced again", (note(commons[1]), commons[1]["gp"], len(commons[1]["ga"])), (True, 5, 1))
 
         def scan(e):
             r = serve.game_lockon(sp, e["hex"])
@@ -126,7 +292,7 @@ def game_rule_checks(expect):
 
         expect("a passive award says what a scan would add (relay 79: can)", (commons[0]["ga"][0].get("can"), commons[51]["ga"][0].get("can")),
                ({"type": 50, "airline": 25}, {"type": 50, "airline": 25}))
-        expect("a scan gives a common its full 10 on top of its 1, with a new type, airline and day 1 of the streak (relay 79)", scan(commons[0]),
+        expect("a scan gives a common its full 10 on top of its 5, with a new type, airline and day 1 of the streak (relay 79)", scan(commons[0]),
                (10 + 50 + 25 + 25, [("scan", 10), ("new", 50), ("new", 25), ("streak", 25)]))
         again = plane("common", "A320", "AUA555")
         note(again)
@@ -163,6 +329,10 @@ def game_rule_checks(expect):
         expect("rule 1's planes not priced again", (old["gp"], len(old["ga"]), g["points"]), (36, 1, pts))
         row = next(r for r in serve.game_today(sp)["rows"] if r["hex"] == old["hex"])
         expect("... and Recent points keeps their reasons", (row["rule"], row["base"], row["gk"]), (1, 30, 1.2))
+        expect("the rules for the app: passive 5, 10, 15, 25, 50; the scan's full points as before",
+               ([serve.game_rules()["passive"][t] for t in serve.TIERS], serve.game_rules()["base"]),
+               ([5, 10, 15, 25, 50], {"common": 10, "uncommon": 30, "rare": 100, "epic": 250, "legendary": 500}))
+        rule4_checks(serve, expect, day)
     finally:
         serve.board_day = real_day
 
@@ -175,6 +345,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     game_rule_checks(expect)
+    screens_checks(expect)
 
     # C1: the admin pages
     expect("/admin at home, no profile", call("/admin", headers=AT_HOME)[0], 403)
@@ -310,7 +481,7 @@ def checks():
         expect("the plane's passive award says what a scan would add (relay 79: can)", can is not None and set(can) <= {"type", "airline"}, True)
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
         lk = json.loads(b) if st == 200 else {}
-        expect("a scan gives the plane's full points on top of its tenth (relay 79)",
+        expect("a scan gives the plane's full points on top of its passive points (relay 79)",
                ((lk.get("lines") or [{}])[0].get("p", -1) == lk.get("full", -2), lk.get("bonus", 0) > lk.get("full", 0) - lk.get("had", 0)), (True, True))
         expect("... and the extras the pass promised", {x["w"]: x["p"] for x in lk.get("lines", []) if x["k"] == "new"}, can or {})
         expect("... the day's first scan brings day 1 of the streak", [x["p"] for x in lk.get("lines", []) if x["k"] == "streak"], [25])
@@ -323,7 +494,7 @@ def checks():
     row = next((r for r in td.get("rows", []) if r.get("hex") == hx), {})
     kinds = [a.get("k") for a in row.get("aw", [])]
     expect("Recent points: the passive points and the scan", ("pass" in kinds, "scan" in kinds, row.get("rule"), [a.get("r") for a in row.get("aw", []) if a.get("k") == "scan"]),
-           (True, True, 3, [3]))
+           (True, True, 4, [4]))
     expect("... add up to the plane's", sum(a["p"] for a in row.get("aw", [])), row.get("gp", 0) + row.get("lock", 0) + row.get("gs", 0))
     expect("... the day's total", td.get("today", 0) > 0 and td.get("planes", 0) >= len(td.get("rows", [])) > 0, True)
     expect("... and today's limits", (td.get("limits") or {}).get("legendary", [0, 0])[1], 3)

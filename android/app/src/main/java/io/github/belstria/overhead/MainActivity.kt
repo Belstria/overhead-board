@@ -118,7 +118,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33) onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { goBack() }
     }
 
-    /** 1.97.4: the back gesture (before Android 13 the back button). */
+    /** 1.97.5: the back gesture (before Android 13 the back button). */
     @Suppress("OVERRIDE_DEPRECATION")
     override fun onBackPressed() = goBack()
 
