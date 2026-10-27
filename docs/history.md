@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.2 (to-do #128): **two more click sounds.** `ctlSound` has `click()` (recording `click`, played at gain .9: Pixabay's
+  "technology click 0", cut to the click itself, 357 ms into the file, 60 ms with a 22 ms fade-out) and `nav()` (recording
+  `nav`, gain .6: "immersivecontrol button click", a 10 ms tick) next to `press()` (today's recording `button`, gain .8,
+  unchanged). `click()` is for small buttons: card buttons, chips and filters, small key-caps (zoom, period arrows, scroll),
+  checkboxes, ×, a pick inside a card; `nav()` for what opens, folds or switches something: a plane/airline/type/place/player
+  card, a row in Recent flights or Today, a tab inside a view (Logbook | Spotters' Club, This week / All time, the jump
+  bar), text links, tip bubbles, the title's Overhead/Airport switch, the Sky view's open and close. `press()` stays on the
+  big key-caps, the rail, the bottom bar and the U:A ones (Settings' Here/Live/Save in the place field/Search, Add in the
+  favourites manager, Sign out, Remove a passkey). Switches, rotary and wheel keep their own sounds. Without the
+  recordings (not yet decoded, or the file missing) each has a short synthesised stand-in. `build_sounds.py` now keeps the
+  lines of the recordings it doesn't have at hand, so `click` and `nav` were added from `sounds-src/tech-click.wav` and
+  `nav-click.wav` (the MP3s decoded in Chromium; see tools/sounds/README.md) without the others.
+
 - 1.97.1.1 (to-do #130 and #134, bug fixes): **the scan's stub tears again; the Logbook's place bar shows when the
   places come late.** #134: 1.96 (4c84b45) had removed the centre pass (`#arPass`) and with it the stub's tear, and
   turned the animation off for every pass in `#gAws` (`.gAw .pF .stub{animation:none}`). `gPop({rip: true})` (only the
