@@ -7775,6 +7775,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.7", date: "2026-10-28", notes: [
+    "In the web app, the back gesture or button now closes what is open first (a card, Sky view, another tab) and only then leaves the page.",
+  ]},
   {v: "1.97.6", date: "2026-10-27", notes: [
     "Planes only count while the app is open on screen: in the background nothing is recorded, scored or levelled up.",
   ]},

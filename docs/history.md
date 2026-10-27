@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.7 (to-do #141, Dave's request of 27 Oct): **back in the web app closes what's open.** `fallblattBack()` was split:
+  `backStep()` returns the closing for the top layer (or null; same order as 1.97.5) and `backQuiet(step)` runs it with
+  the controls' sounds silenced; the Android handler is unchanged in behaviour. In a browser or installed web app (not
+  `ANDROID`) the page keeps ONE guard history entry (`history.state.fbGuard`, same URL) while `backStep()` finds something
+  (an open layer, or a tab other than Now). `guardSync()` (every 200 ms, and after each back) pushes it when needed and,
+  when nothing needs it any more (closed with ×, a tap, a timer), takes it away with `history.back()`; that popstate is
+  ignored (`guardSelf`), so the next back is never a dead one. `popstate` onto the entry below the guard runs `backStep`
+  (a stale guard with nothing open passes through with another `history.back()`), then sets the URL right with
+  `replaceState` (`tabHash()`) and re-syncs: still something open pushes the guard again. `showTab` still only
+  replaces the entry it is on, so three tab switches are still one back; the entry below keeps the hash it had, so
+  `hashchange` only calls `showTab` when the hash differs from the tab. Now with nothing open pushes nothing: back leaves
+  as the browser does. A reload on the guard keeps it (`guardOn` from `history.state`). Chrome skips entries added before
+  any tap on the page (history manipulation intervention): a layer that opens without one is left by back.
 - 1.97.6 (to-do #140, Dave's report of 27 Oct, relay 81): **nothing counts while the app is in the background.** "I often
   come back to the app and I suddenly have a bingo or am level up": with the app in the pocket its position requests go on
   (more slowly) and a live fix counts as fresh for 5 minutes, so the relay went on recording sightings, filling bingo squares
