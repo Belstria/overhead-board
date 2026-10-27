@@ -921,6 +921,23 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.96 (to-do #127, Dave's rules and mockup pick B): **simpler points, every award as it happens**. The rules come from
+  the relay (`gme.rules`, `gRules()`/`gBase()`; `G_BASE` went): Sky view's ★ shows what a scan gives (full points less
+  the passive tenth), ✓ what it gave (`lock` + `gs`). `gRefresh()` asks `/game/me?since=gAwAt` and `gAwards()` shows the
+  new awards as passes (`gPop()`, `#gAws` with `.gAw` and Sky view's `.pF` boarding pass; bottom of the screen or of
+  `#arView`, newest on top, up to three, a tap puts one away): the passive tenths on a small one (`.mini`, several at
+  once coalesced), the first plane past a limit (`first`; kind `no`, grey). `gLockOn()` (the scan) shows `gScanPops()`:
+  the top-up with its extras, then the streak's pass with the week's days (`.days`); the centre pass that tore its
+  stub (`#arPass`, `gRip`) went, the burst and jingle stay. `gAwLine()` words an award for both the passes and
+  **Recent points** (rule 2 rows; rule 1 rows keep `gWhy`), in the order they came; a plane with nothing in grey
+  (`.fl.lim`). **Game page**: This week is the week's points with your place (`This week · #n`), `gLimHtml()` adds the
+  five counters (`.gLim`) and a `.gNote` per rarity at its limit with `resets`. **How points work** (`gHowCard`) is
+  the table (`.gHowTbl`: within 10 km, scanned, today / max), the rules in plain words and the streak's seven days
+  (`.gStk`); the taper bar went. **Hangar**: types from the logbook (relay 76), `t.game` gives the ★ badge (`.hgG`)
+  and the card's "In the game" tile (Seen, In the game, First; the aircraft went to the details); face-down cards get
+  their model's picture, dimmed (`hgWire` already asks for it). Also: the board's `SPECIAL_TYPES` has all the relay's
+  military types; the streak trophies read "Points N days running"; the Collection's summary no longer quotes the
+  old 1/3/10/25/50.
 - 1.95 (to-do #115, Dave's pick 1b with option 1): **Recent flights and Today as a timeline, a plane's card opening in
   place**. Both lists are `ol.flights.tline` (head.html): a rail (`.tline::before`), group headings (`li.tg`: the quarter
   hour on Now, the hour on Today, the one under way "Now · …"; `tlHtml(list, span, open)` works "now" out on the relay's
@@ -1101,6 +1118,21 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 76 (1.96, to-do #127): **the simpler points**. `game_note()` scores a plane once a pass: `TIER_BASE //
+  GAME_PASSIVE` while `game3.limits` (today's planes by rarity) is within `GAME_LIMIT`, else 0 with a `limit` award
+  (`first` on the first one over); it no longer prices a plane again (rule 1's `game_points()`, close-pass top-ups and
+  "fix" went), a closer look only feeds the records and `trophy_pass` (`gMin`). Each plane gets `gr` = `GAME_RULE`
+  (2), each award `r`; rule 1's planes keep their points and Recent points their reasons (`GAME1_NEW`, `base`, `gk`,
+  `gn`). `game_lockon()` is the scan: once a pass (`scan`), no limit, `scan` award = full − `gp`, `new` awards for a
+  type or airline not in `game3.scanned` (seeded with what the game knew when relay 76 first opened the book, so
+  nobody is paid twice), and at the day's first scan a `streak` award of `GAME_STREAK` × `_scan_streak()` + 1
+  (`scanDays`, counted back from today but not before Monday). `e.lock` = top-up + extras, `e.gs` the streak (not in
+  the week's best plane). `game3_json` sends `streak` (the scan streak), `scannedToday`, `limits`, `resets`, `rules`
+  (`game_rules()`); `/game/me` passes them on and `?since=` adds `aw` (`game_awards()`: today's rule-2 awards after
+  it, with the plane's fields). `/game/today` adds `gs`, `rule`, `limits`. The combo (`LOCK_PCT`, `LOCK_MIN`,
+  `LOCK_COMBO_S`), the taper and `_streak_mult` went. `hangar_json` lists the logbook's types (any sighting) with
+  `game` = how often the game caught each. `player_json`'s streak is the scan streak. flows.py drives the rules
+  straight on the relay's functions (`game_rule_checks`).
 - Relay 75 (1.95.0.1, to-do #121): **`/sightings?place=` takes the places at the same spot together.** A phone on the
   profile's own place ("home") showed an empty Recent flights while a board on a saved place there ("Home", same
   centre) had recorded the whole day under its key: `sightings_json` matched the key exactly. `same_spot(spot, places,

@@ -14,6 +14,10 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
   fresh one does; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
+- the game's rules since relay 76 (to-do #127), on the relay's functions: the passive tenth and the limits per rarity, the
+  scan's top-up without a limit, extras only with scans, the daily streak (a missed day, the Monday reset), rule 1's
+  planes not priced again; over HTTP: the rules and limits in /game/me, the scan, Recent points adding up, the league's
+  week, the hangar on any sighting (a board at home) with how often the game caught each type
 - Sky view's reports: David's only, from this site, kept up to a cap (2 in the test relay), then rate-limited (relay 72)
 - a plane's own photo from Planespotters.net (the fake's): profiles only, asked once and kept, by hex only with the same
   registration on the photo, not kept by the browser; /photo doesn't pass their photos on (relay 73)
@@ -59,12 +63,106 @@ def call(path, cookie=None, headers=None, body=None, method=None):
         return e.code, e.headers, e.read()
 
 
+def game_rule_checks(expect):
+    """Relay 76 (to-do #127): the game's rules on a made-up profile, straight on the relay's functions (no relay needed):
+    the passive tenth and the limits per rarity, the scan's top-up without a limit, extras only with scans, the daily
+    streak (days in a row, a missed day, the Monday reset), rule 1's planes kept as they were."""
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = ["2026-10-28"]                                  # a Wednesday
+    real_day = serve.board_day
+    serve.board_day = lambda t=None: day[0]
+    try:
+        sp = serve.Spot(Path(tempfile.mkdtemp(prefix="fb-rules-")), None, 15)
+        sp.ensure_day()
+        now = serve.time.time()
+        n = [0]
+
+        def plane(tier, tc, cs, km=5.0):
+            n[0] += 1
+            e = {"id": f"x{n[0]}", "hex": f"{n[0]:06x}", "ts": int(now * 1000) + n[0], "typeCode": tc, "callsign": cs,
+                 "tier": tier, "liveMin": km, "liveSeen": now}
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            return e
+
+        def note(e):
+            with serve._data_lock:
+                return serve.game_note(sp, e)
+
+        g = serve.game_book(sp.book())
+        commons = [plane("common", "A320", f"AUA{100 + i}") for i in range(52)]
+        for e in commons:
+            note(e)
+        expect("passive: a tenth of a common's points, 50 a day", [e["gp"] for e in commons[:50]], [1] * 50)
+        expect("... the 51st and 52nd get nothing", [e["gp"] for e in commons[50:]], [0, 0])
+        expect("... only the first over the limit pops up", [(e["ga"][-1]["k"], e["ga"][-1]["first"]) for e in commons[50:]],
+               [("limit", True), ("limit", False)])
+        rare = plane("rare", "E195", "BCY777")
+        note(rare)
+        legs = [plane("legendary", "A388", f"UAE{i}") for i in range(4)]
+        for e in legs:
+            note(e)
+        expect("passive by rarity: rare 10, special 50 up to 3", [rare["gp"]] + [e["gp"] for e in legs], [10, 50, 50, 50, 0])
+        expect("the day's points and limits", (g["days"][day[0]], serve._game_limits(g, day[0])),
+               (50 + 10 + 150, {"common": 52, "rare": 1, "legendary": 4}))
+        expect("extras only with scans: passive awards", sorted({a["k"] for e in sp.entries for a in e["ga"]}), ["limit", "pass"])
+        commons[1]["liveMin"] = 1.0
+        expect("a plane comes closer: not priced again", (note(commons[1]), commons[1]["gp"], len(commons[1]["ga"])), (True, 1, 1))
+
+        def scan(e):
+            r = serve.game_lockon(sp, e["hex"])
+            return r.get("bonus"), [(x["k"], x["p"]) for x in r.get("lines", [])] or r.get("why")
+
+        expect("a scan tops a common up to 10, with a new type, airline and day 1 of the streak", scan(commons[0]),
+               (9 + 50 + 25 + 25, [("scan", 9), ("new", 50), ("new", 25), ("streak", 25)]))
+        expect("the same plane scanned again", scan(commons[0]), (0, "done"))
+        expect("a common past the limit: the full 10 from a scan, nothing new", scan(commons[51]), (10, [("scan", 10)]))
+        expect("scans have no limit", [scan(e)[0] for e in legs], [450 + 50 + 25, 450, 450, 500])
+        far = plane("common", "A320", "AUA999", km=12.0)
+        note(far)
+        expect("a plane beyond 10 km can't be scanned", scan(far), (0, "far"))
+
+        def next_day(d, scans=True):
+            day[0] = d
+            sp.ensure_day()
+            e = plane("uncommon", "B738", "RYR1")
+            note(e)
+            return scan(e)[1][-1] if scans else None
+
+        expect("the streak's second day", next_day("2026-10-29"), ("streak", 50))
+        next_day("2026-10-30", scans=False)
+        expect("a day without a scan: back to day 1", next_day("2026-10-31"), ("streak", 25))
+        expect("... then day 2", next_day("2026-11-01"), ("streak", 50))
+        expect("Monday 03:00: the streak starts again", next_day("2026-11-02"), ("streak", 25))
+        wk = serve.game3_json(sp.book(), day[0])
+        expect("the week's points are the days' since Monday", wk["week"], g["days"]["2026-11-02"])
+        expect("the day streak on the Game page", (wk["streak"], wk["scannedToday"]), (1, True))
+        # rule 1: a plane scored before relay 76 keeps its points and awards, also when it comes closer
+        old = plane("uncommon", "A21N", "WZZ1", km=6.0)
+        old.update(gp=36, gk=1.2, gn=3, ga=[{"t": 1, "k": "first", "p": 36}])
+        pts = g["points"]
+        old["liveMin"] = 0.8
+        note(old)
+        expect("rule 1's planes not priced again", (old["gp"], len(old["ga"]), g["points"]), (36, 1, pts))
+        row = next(r for r in serve.game_today(sp)["rows"] if r["hex"] == old["hex"])
+        expect("... and Recent points keeps their reasons", (row["rule"], row["base"], row["gk"]), (1, 30, 1.2))
+    finally:
+        serve.board_day = real_day
+
+
 def checks():
     bad = []
 
     def expect(what, got, want):
         if got != want:
             bad.append(f"{what}: got {got}, expected {want}")
+
+    game_rule_checks(expect)
 
     # C1: the admin pages
     expect("/admin at home, no profile", call("/admin", headers=AT_HOME)[0], 403)
@@ -183,33 +281,28 @@ def checks():
     hx = next((e["hex"] for e in rows if "gp" in e), None)
     expect("a scored plane in today's list", bool(hx), True)
     if hx:
+        st, _, b = call("/game/me?since=1", "test-device")
+        me0 = json.loads(b) if st == 200 else {}
+        expect("/game/me: the rules, the limits and the awards for the pop-ups (relay 76)",
+               ((me0.get("rules") or {}).get("base", {}).get("rare"), (me0.get("limits") or {}).get("common", [0, 0])[1],
+                any(a.get("k") == "pass" and a.get("hex") for a in me0.get("aw", []))), (100, 50, True))
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
         lk = json.loads(b) if st == 200 else {}
-        expect("a lock-on pays at least 15", lk.get("bonus", 0) >= 15 and lk.get("combo") == 1, True)
+        expect("a scan tops the plane up to its full points (relay 76)",
+               (lk.get("lines") or [{}])[0].get("p", -1) + lk.get("had", 0) == lk.get("full") and lk.get("bonus", 0) > 0, True)
+        expect("... the day's first scan brings day 1 of the streak", [x["p"] for x in lk.get("lines", []) if x["k"] == "streak"], [25])
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
-        expect("the same plane locked on twice", json.loads(b).get("why") if st == 200 else st, "done")
-    # relay 71: Recent points, today's awards per plane (the first score, a close-pass top-up, the lock-on); the
+        expect("the same plane scanned twice", json.loads(b).get("why") if st == 200 else st, "done")
+    # relay 71: Recent points, today's awards per plane (relay 76: the passive tenth, the scan and its extras); the
     # profile's own only
     today = lambda ck: json.loads(call("/game/today", ck)[2])     # noqa: E731
     td = today("test-device")
     row = next((r for r in td.get("rows", []) if r.get("hex") == hx), {})
     kinds = [a.get("k") for a in row.get("aw", [])]
-    expect("Recent points: the first score and the lock-on", ("first" in kinds, "lock" in kinds), (True, True))
-    lock = next((a for a in row.get("aw", []) if a.get("k") == "lock"), {})
-    expect("... the lock-on's share and points", (lock.get("pct"), lock.get("p") == row.get("lock")), (0.25, True))
+    expect("Recent points: the passive points and the scan", ("pass" in kinds, "scan" in kinds, row.get("rule")), (True, True, 2))
+    expect("... add up to the plane's", sum(a["p"] for a in row.get("aw", [])), row.get("gp", 0) + row.get("lock", 0) + row.get("gs", 0))
     expect("... the day's total", td.get("today", 0) > 0 and td.get("planes", 0) >= len(td.get("rows", [])) > 0, True)
-    far_one = next((r for r in td.get("rows", []) if (r.get("km") or 0) > 4.5 and len(r.get("aw", [])) == 1), None)
-    expect("a scored plane more than 4.5 km away", bool(far_one), True)
-    if far_one:
-        st, _, b = call("/aircraft/48.2085/16.3731/25", "test-device")
-        ac = next((a for a in json.loads(b).get("ac", []) if a.get("hex") == far_one["hex"]), None) if st == 200 else None
-        if ac:
-            at = f"{ac['lat']:.4f}/{ac['lon']:.4f}"
-            call(f"/aircraft/{at}/25?pl=live&pc={at.replace('/', ',')}&pr=15&fix=5", "test-device")
-            row = next((r for r in today("test-device").get("rows", []) if r.get("hex") == far_one["hex"]), {})
-            close = next((a for a in row.get("aw", []) if a.get("k") == "close"), {})
-            expect("a close pass tops up its plane", (close.get("p", 0) > 0, (close.get("d") or 99) <= 1.5), (True, True))
-            expect("... and the plane's total follows", sum(a["p"] for a in row.get("aw", []) if a["k"] != "lock"), row.get("gp"))
+    expect("... and today's limits", (td.get("limits") or {}).get("legendary", [0, 0])[1], 3)
     expect("Recent points for another profile", today("owner-device").get("rows"), [])
     expect("Recent points for strangers", call("/game/today")[0] in (401, 403), True)
     expect("a lock-on from another site", call("/game/lockon", "test-device", {"Origin": "https://evil.example"}, {"hex": "abcdef"})[0] in (403, 429), True)
@@ -224,6 +317,9 @@ def checks():
     st, _, b = call("/game/league", "test-device")
     lg = json.loads(b) if st == 200 else {}
     expect("the league has the live player", [r["name"] for r in lg.get("rows", []) if r.get("me")], ["Test"])
+    st, _, b = call("/game/me", "test-device")
+    wk = [r["points"] for r in lg.get("rows", []) if r.get("me")]       # (the league is kept for 30 s: at most the week)
+    expect("the league's week is the player's week (relay 76)", len(wk) == 1 and 0 < wk[0] <= (json.loads(b).get("week") if st == 200 else 0), True)
     expect("the league shows no places", "lat" in b.decode() or "place" in b.decode(), False)
 
     # relay 63: where a sighting on the go was made, named in the background and found by the search ("New guest":
@@ -248,6 +344,11 @@ def checks():
     expect("the hangar lists the types caught", bool(hg.get("types")) and all(t.get("code") and t.get("tier") for t in hg["types"]), True)
     expect("the hangar has the sets", len(hg.get("sets", [])), 9)
     expect("the hangar's types carry their photo (relay 64)", all("photo" in t and "thumb" in t for t in hg.get("types", [])), True)
+    expect("... and how often the game caught them (relay 76)", any(t.get("game", 0) > 0 for t in hg.get("types", [])), True)
+    st, _, b = call("/game/hangar", "owner-device")
+    hg = json.loads(b) if st == 200 else {}
+    expect("the hangar fills on any sighting: a board at home (relay 76)",
+           (bool(hg.get("types")), {t.get("game") for t in hg.get("types", [])}), (True, {0}))
     me_row = next((r for r in lg.get("rows", []) if r.get("me")), {})
     st, _, b = call("/game/player?id=" + str(me_row.get("id", "")), "test-device")
     pl = json.loads(b) if st == 200 else {}
