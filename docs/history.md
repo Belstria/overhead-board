@@ -943,6 +943,20 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.3 (to-do #135, Dave's request of 27 Oct): **cards open at once; their photo window shows a spinner and the
+  photo fades in.** What made a card wait: `cardWhenReady` ran `imgsReady` (every `<img>` of the card, up to 3 s), the
+  plane card's `planeCard` waited up to 2.5 s for its photo's lookup (`/<img/.test(planeBody(o).html)`), and the in-place
+  card's `tlTap` waited up to 1.2 s for the lookup and 0.6 s for the decode (`tlPicWait`, `imgReady`): all three are gone
+  (the words, details and logbook row are still waited for). The photo window is `.cPicW`: `planePic` returns `asking`
+  while Planespotters or the model's picture is being looked for (new `modelAsking`), and `picHtml` then draws an empty
+  window with a 1x1 blank picture (`PIC_BLANK`, `data-blank`) so every size rule (210 px on info cards, 170 px in the
+  lists, `.arFullL`'s 32vh) still applies; a late answer goes through `planeLate`/`tlLate` as before. A MutationObserver
+  (`picDone` for the `load` and `error` events) puts `.pLd` on the window of a `img.cPic` that isn't `complete` yet, so
+  every card path gets it (info cards, `foundCard`, `hangarCard`, the radar's card, the lists, Sky view's `arCardRender`).
+  `.pLd`: the loading card's spinner (`cSpin`, shown after 150 ms so a quick photo shows none), the photo at opacity 0
+  (3:2 until it is there), then 350 ms of `cubic-bezier(.2,.9,.25,1)`; none with reduced motion or `body.lite`. A photo
+  that fails loses `.pLd` and shows what it showed before. Measured with the photos slowed to 3 s: plane card 3.5 s → 0.3 s,
+  model card 3.4 s → 0.4 s, Recent flights' card 1.0 s → 0.1 s.
 - 1.97.2 (to-do #128): **two more click sounds.** `ctlSound` has `click()` (recording `click`, played at gain .9: Pixabay's
   "technology click 0", cut to the click itself, 357 ms into the file, 60 ms with a 22 ms fade-out) and `nav()` (recording
   `nav`, gain .6: "immersivecontrol button click", a 10 ms tick) next to `press()` (today's recording `button`, gain .8,

@@ -364,6 +364,16 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
 #cardBox .cLoad{display:flex;align-items:center;gap:calc(12px*var(--ck,1));min-height:calc(90px*var(--ck,1));justify-content:center;color:#b9b3a3;font:500 calc(16px*var(--ck,1))/1.2 "Archivo Narrow",sans-serif}
 #cardBox .cSpin{width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));border-radius:50%;border:calc(3px*var(--ck,1)) solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite}
 @keyframes cSpin{to{transform:rotate(360deg)}}
+/* 1.97.3: a photo window while its photo loads: the loading card's spinner in it (after a short beat, so a quick photo
+   shows none), the photo fading in; a window still waiting for its photo keeps a 3:2 size. */
+.cPicW .cPic{transition:opacity .35s cubic-bezier(.2,.9,.25,1)}
+.cPicW.pLd{background:rgba(255,255,255,.05)}
+.cPicW.pLd .cPic{opacity:0;aspect-ratio:3/2}
+.cPicW.pLd::after{content:"";position:absolute;left:50%;top:50%;width:calc(22px*var(--ck,1));height:calc(22px*var(--ck,1));margin:calc(-11px*var(--ck,1)) 0 0 calc(-11px*var(--ck,1));border-radius:50%;
+  border:calc(3px*var(--ck,1)) solid rgba(240,180,41,.25);border-top-color:#f0b429;animation:cSpin .8s linear infinite,cSpinIn .2s .15s backwards}
+@keyframes cSpinIn{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.cPicW .cPic{transition:none}}
+body.no-lite .cPicW .cPic{transition:none}
 #cardBox .cPicW,.cardish .cPicW{position:relative}
 /* 1.93: a photo's credit on it, in the photo screen's small caps; a Planespotters photo is a link to its page there */
 #cardBox .cCr,.cardish .cCr{position:absolute;right:calc(10px*var(--ck,1));bottom:calc(12px*var(--ck,1));max-width:calc(100% - 20px*var(--ck,1));display:flex;
@@ -852,7 +862,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline li.tg b{color:var(--muted);font-weight:600}
 .tline li.fl{display:block;margin:0 0 2px;padding:7px 10px 8px 32px;border-radius:10px;cursor:pointer}
 .tline li.fl::before{content:"";position:absolute;left:2px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--node);box-shadow:0 0 0 3px #111214,0 0 8px var(--node)}
-.tline li.fl:active,.tline li.fl.tlPress{background:rgba(255,255,255,.07)}
+.tline li.fl:active{background:rgba(255,255,255,.07)}
 .tline li.fl:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
 .tline .l1{display:grid;grid-template-columns:40px 66px minmax(0,1fr) auto;gap:8px;align-items:baseline}
 .tline .l1 time{font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
@@ -2347,16 +2357,12 @@ function cardMusicStop(now){
   for (let i = 1; i <= 8; i++) setTimeout(() => { if (m.gain) m.gain.gain.value = g * (1 - i / 8); else if (m.el) m.el.volume = g * (1 - i / 8); if (i === 8) end(); }, i * 50);
 }
 // 1.42: a card that needs to look things up opens as a short loading window and shows itself once everything (the
-// words, the airport, the pictures) is in, or after a few seconds with what there is, so nothing jumps about.
+// words, the airport) is in, or after a few seconds with what there is, so nothing jumps about. 1.97.3: not the
+// photos: the card opens without waiting for them, and each photo window shows a spinner and fades its photo in.
 const cardWait = (p, ms) => Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(() => r(null), ms))]);
 const cardLoading = music => cardOpen(`<div class="cLoad"${music ? " data-music" : ""}><span class="cSpin" aria-hidden="true"></span>${escH(T("Loading …"))}</div>`);
-function imgsReady(html, ms = 3000){
-  const srcs = [...String(html).matchAll(/<img[^>]+src="([^"]+)"/g)].map(m => m[1].replace(/&amp;/g, "&"));
-  return cardWait(Promise.all(srcs.map(s => new Promise(r => { const i = new Image(); i.referrerPolicy = "no-referrer"; i.onload = i.onerror = r; i.src = s; }))), ms);
-}
 // 1.93.1.1: the card's number (cardTok) once it is open, 0 when another one came first.
 async function cardWhenReady(tok, html, wire){
-  await imgsReady(html);
   return tok === cardTok && cardOpenNow() ? cardOpen(html, wire) : 0;
 }
 const cardOpenNow = () => { const b = $("cardBox"); return !!b && !b.hidden && !b.classList.contains("closing"); };
@@ -2539,7 +2545,7 @@ function infoCard(o){
   const facts = (o.facts || []).filter(Boolean), know = facts.slice(1, 4), det = (o.det || []).filter(d => d[1]);
   const paras = o.wiki && o.wiki.text ? String(o.wiki.text).split(/\n+/).map(s => s.trim()).filter(Boolean) : [];
   return `<div class="cInfo"${o.music ? " data-music" : ""}>` +
-    (o.pic && o.pic.src ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`, o.picAttr) : `<div class="cOv cOvPlain"${o.picAttr || ""}>${head}</div>`) +
+    (o.pic && (o.pic.src || o.pic.asking) ? picHtml(o.pic, " cSkyPic", `<div class="cOv">${head}</div>`, o.picAttr) : `<div class="cOv cOvPlain"${o.picAttr || ""}>${head}</div>`) +
     (typeof o.band === "string" ? `<p class="cNoRoute">${escH(o.band)}</p>` :
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}${bandMid(o.kind)}${end(o.band[2])}</div>` : "") +
     ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
@@ -2732,6 +2738,8 @@ async function modelWiki(names, code){
   const w = await wikiPage(p.title);
   return w ? {...w, img: p.img} : {...p, text: "", url: `https://en.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, "_"))}`};
 }
+// 1.97.3: its picture is still being looked for (the card shows a photo window with a spinner meanwhile).
+const modelAsking = (names, code) => { names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean); return !S.demo && (names.length || code) && modelAsk.has(modelKey(names, code)); };
 // The model's picture now ("" while it is being looked for, or if there is none); onReady once it is found later.
 function modelPic(names, onReady, code){
   names = [].concat(names).map(n => String(n || "").trim()).filter(Boolean);
@@ -2771,14 +2779,15 @@ function psPhoto(reg, hex, onReady){
   return undefined;
 }
 // The photo for a plane: {src, kind: "ps" (Planespotters), "own" (adsbdb), "model" or "", by, link}; src is "" while
-// Planespotters is being asked (so the screen doesn't change twice) or nothing was found.
+// Planespotters is being asked (so the screen doesn't change twice) or nothing was found; `asking`: still being looked
+// for (1.97.3: a card shows an empty photo window with a spinner, then takes the photo).
 function planePic(ac, info, d, onReady, noPs){
   const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady);
   if (ps === undefined) return {src: "", kind: "", asking: true};
   if (ps && !psBad.has(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
   if (d.photo) return {src: d.photo, kind: "own"};
-  const m = modelPic([TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], onReady, ac.t);
-  return {src: m, kind: m ? "model" : ""};
+  const names = [TYPES[String(ac.t || "").toUpperCase()], info.type, d.type, ac.desc], m = modelPic(names, onReady, ac.t);
+  return m ? {src: m, kind: "model"} : {src: "", kind: "", asking: modelAsking(names, ac.t)};
 }
 // A photo's credit: who (the photographer, or what it shows) and where from; on a narrow screen the first part gives way.
 // 1.94: "wm", a card's own photo from Wikimedia Commons (a model's, an airline's plane, an airport).
@@ -2787,9 +2796,18 @@ const picCreditParts = p => p.kind === "ps" ? ["© " + (p.by || "Planespotters.n
 const picCredit = p => picCreditParts(p).filter(Boolean).join(" · ");
 const picCreditHtml = p => { const [a, b] = picCreditParts(p), go = p.kind === "ps" ? '<i aria-hidden="true"> ↗</i>' : "";
   return a ? `<span class="crBy">${escH(a)}</span><span class="crSrc">${b ? " · " + escH(b) : ""}${go}</span>` : ""; };
+// 1.97.3: a photo window while its photo loads: the spinner (the loading card's) in it, the photo fading in when it is
+// there; one still being looked for is an empty window of the same size (a blank picture keeps the size rules).
+const PIC_BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+const picDone = e => { const im = e.target, w = im && im.matches && im.matches("img.cPic:not([data-blank])") && im.closest(".cPicW"); if (w) w.classList.remove("pLd"); };
+document.addEventListener("load", picDone, true); document.addEventListener("error", picDone, true);
+new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1)
+  for (const im of n.matches("img.cPic") ? [n] : n.querySelectorAll("img.cPic")) if (!im.complete && !im.hasAttribute("data-blank") && im.closest(".cPicW")) im.closest(".cPicW").classList.add("pLd"); })
+  .observe(document.documentElement, {childList: true, subtree: true});
 // A plane's photo in a card, its credit on it; Planespotters' a link to the photo's page. `over`: more on the photo.
 // 1.95: a photo that opens something itself (`attrs`, the app's lists' cards) has only its credit as the link.
 function picHtml(p, cls = "", over = "", attrs = ""){
+  if (!p.src && p.asking) return `<div class="cPicW${cls} pLd"${attrs}><img class="cPic" data-blank src="${PIC_BLANK}" alt="">${over}</div>`;
   if (!p.src) return "";
   const ps = p.kind === "ps", img = `<img class="cPic" src="${escH(p.src)}" alt="" referrerpolicy="no-referrer">`;
   const cr = ps && attrs ? `<a class="cCr" href="${escH(p.link)}" target="_blank" rel="noopener">${picCreditHtml(p)}</a>` : `<span class="cCr">${picCreditHtml(p)}</span>`;
@@ -3142,7 +3160,7 @@ function planeBody(o, sky){
     const tile = (k, l) => `<div class="cTile"><span>${escH(T(l))}</span><b data-dyn="${k}">${escH(dyn[k] || NA)}</b></div>`;
     const det = [["Aircraft", type ? `<button class="cLink" type="button" data-ty>${escH(type)} ›</button>` : ""], ["Registration", escH(info.reg || d.reg || ac.r || "")],
       ["Operator", escH(d.owner || info.airline || "")], ["Gate", escH(gateFor(info))], ["Remarks", escH(remarkLines(ac, info).join(" · "))]].filter(x => x[1]);
-    return (pic.src ? picHtml(pic, " cSkyPic", `<div class="cOv">${head}</div>`) : `<div class="cOv cOvPlain">${head}</div>`) +
+    return (pic.src || pic.asking ? picHtml(pic, " cSkyPic", `<div class="cOv">${head}</div>`) : `<div class="cOv cOvPlain">${head}</div>`) +
       (info.from || info.to ? `<div class="cRouteB">${end(info.from, "from")}${bandMid("flight")}${end(info.to, "to")}</div>` : "") +
       `<div class="cTiles">${tile("alt", "Altitude")}${tile("speed", "Speed")}${tile("dist", "Distance")}</div>` +
       `<div class="cDet">${det.map(([l, v]) => `<div><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` + btns;
@@ -3340,12 +3358,11 @@ async function planeCard(o){
   const tok = cardLoading(), hex = o.ac.hex, until = async (ok, ms) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms && tok === cardTok) await new Promise(r => setTimeout(r, 150)); };
   planeBody(o);                                          // asks for its details and its photo
   await until(() => acDetails.get(hex) !== null, 2500);
-  await until(() => /<img/.test(planeBody(o).html), 2500);       // its photo: Planespotters' answer, adsbdb's, or its model's
   await until(() => planeBody(o).log !== undefined, 1500);       // 1.94: and its row in the logbook
   if (tok !== cardTok) return;
   const b = planeBody(o);
   planeTok = await cardWhenReady(tok, b.html, b.wire);
-  if (planeTok && planeBody(o).sig !== b.sig) planeLate();      // its photo came while the card waited for the others
+  if (planeTok && planeBody(o).sig !== b.sig) planeLate();      // its photo (1.97.3: not waited for) or the details came meanwhile
 }
 
 /* ---------- achievements (1.38) ----------
@@ -6864,11 +6881,6 @@ const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.o
 // its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
 const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
 const tlCardSig = e => { const p = tlPic(e); return [rowSig(e), S.units, p.src, p.kind, p.by].join("|"); };
-// Still looking for its photo: Planespotters' answer, or its model's picture (planePic's own order)
-function tlPicWait(e){
-  const p = tlPic(e), d = detailsOf(e.hex) || {};
-  return !!p.asking || !p.src && modelAsk.has(modelKey([TYPES[String(e.typeCode || "").toUpperCase()], e.type, d.type, e.desc].map(n => String(n || "").trim()).filter(Boolean), e.typeCode));
-}
 // The rows' photos are asked for ahead, one at a time: the relay asks Planespotters once a second for every screen
 // (a TV's plane on top too), so a card opens with its own without crowding anyone out.
 let tlAsking = false;
@@ -7484,7 +7496,7 @@ function hangarCard(code, again){
   const name = typeLabel(code, t.name), pic = [t.photo, t.thumb].find(u => u && !hgBad.has(u));
   const mp = !pic && modelPic(hgNames(code, t.name), () => { if (tok === cardTok && cardOpenNow()) hangarCard(code, true); }, code);
   // 1.94: in Sky view's card style: the photo with the name, code and tier on it; 1.97: how often seen, scored, scanned
-  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : null, title: name, sub: code,
+  tok = cardOpen(infoCard({pic: pic || mp ? {src: pic || mp, kind: pic ? "own" : "model"} : modelAsking(hgNames(code, t.name), code) ? {src: "", asking: true} : null, title: name, sub: code,
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
@@ -10141,6 +10153,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.3", date: "2026-10-27", notes: [
+    "Cards open at once: the photo window shows a spinner while its photo loads, then the photo fades in.",
+  ]},
   {v: "1.97.2", date: "2026-10-27", notes: [
     "Buttons and links click in two new ways: small buttons, chips and × have a crisp click, and opening a card, a row or a tab has a light tick. The big push buttons sound as before.",
   ]},
@@ -11288,20 +11303,12 @@ const sightPlane = e => ({ac: {hex: e.hex, r: e.reg, t: e.typeCode, flight: e.ca
 const TL_MS = 480, TL_EASE = "cubic-bezier(.2,.9,.25,1)", TL_OUT = "cubic-bezier(.33,1,.68,1)";
 function tlStart(ms){ tlRunning++; tlCap = Math.max(tlCap, Date.now() + ms + 400); }
 function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
-const imgReady = (src, ms) => { const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src;
-  return Promise.race([im.decode ? im.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, ms))]); };
 async function tlTap(li, x, y){
   const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k), tok = ++tlTok;
   if (!L || !e) return;
   ctlSound.nav();
-  li.classList.add("tlPress");
-  // its photo first, so the card opens with it: Planespotters' answer or the model's, then the picture itself (a moment at most)
-  for (const t0 = Date.now(); tlPicWait(e) && Date.now() - t0 < 1200 && tok === tlTok;) await new Promise(r => setTimeout(r, 60));
-  const src = tlPic(e).src;
-  if (src && tok === tlTok) await imgReady(src, 600);
-  li.classList.remove("tlPress");
-  const row = [...L.querySelectorAll("li.fl[data-more]:not(.open)")].find(r => r.dataset.more === k);     // a redraw meanwhile made a new one
-  if (tok === tlTok && row) tlOpen(L, row, e);
+  // 1.97.3: it opens at once; its photo window shows a spinner until the photo is in
+  if (tok === tlTok && li.isConnected && !li.classList.contains("open")) tlOpen(L, li, e);
 }
 function tlOpen(L, li, e){
   const old = L.querySelector("li.fl.open");

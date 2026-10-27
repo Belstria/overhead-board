@@ -121,8 +121,8 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     $("photoImg").onload $("photoImg").onerror photoLinkSet photoLinkOn photoKey
     $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_MAKERS MODEL_LIKE
     MODEL_NOT MODEL_FILL isRoman modelFold modelNear numCore modelSplit modelMakers numForms modelClash modelHit
-    modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic
-    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml picHtml picFailed +shareImg
+    modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic modelAsking
+    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
     +shareCanvas +picCard +planeAgain .photo @screenOnLite @screenOn #photoImg .pLink #photoCr .crBy .crSrc #photoCv
     #photoFrame #photoLink +aboutHtml +SITE_LINKS +siteLinks +viewItemHtml +planeBody +wikiImg +wikiPage +wikiFind
     +renderAircraft +isAc +pageHold +pickPage +document.addEventListener("keydown") +placeCard +typeCard +KEYS
@@ -130,7 +130,7 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     +fromRelay +boardTap
 tools/app/head.html: .bezel .led .screen @screenOn .cOv .cOvF #bezel #photo #photoCr #photoLink #screen .cCr
 tools/app/main.js: +shownPhoto +renderAircraftInfo +rwyE +hgBad +modelPicNow +planeAgain +arPeekHtml +aboutOpen
-    +hangarHtml +arCardRender +paintRwy +hangarCard +hgWire +tlPic +tlPicWait +tlAhead +imgReady +tlWire
+    +hangarHtml +arCardRender +paintRwy +hangarCard +hgWire +tlPic +tlAhead +tlWire
 tools/model_pages.py: FIX ADD ANY designators board_bits pages main
 tools/test/model_pics.js: "The model pictures' lookup"
 relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
@@ -185,9 +185,9 @@ tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svT
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
     todayFactsSig renderTodayNumbers renderToday renderLists
-    tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlPicWait tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
+    tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
-    tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd imgReady tlTap tlOpen tlFold tlScroll sightPlane
+    tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
     "- **The day runs from 03:00"
@@ -343,11 +343,11 @@ changelog: airline name|airline|logo|type name|airport name
 
 [cards] Cards: a plane, a model, an airline, a place; card music; Wikipedia's words; the taps and clicks that open them; the info cards' facts (1.94, relay 74)
 test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUSIC_S MUSIC_FADE_S cardMusic
-    MUSIC_BYTES musicBufs musicBuf cardMusicStart cardMusicStop cardWait cardLoading imgsReady cardWhenReady
+    MUSIC_BYTES musicBufs musicBuf cardMusicStart cardMusicStop cardWait cardLoading cardWhenReady
     cardOpenNow factsHtml chipHtml wikiCache wikiPage wikiFind wikiImg airlineOf AIRLINE_TAIL airlineWiki
     airlineFacts airlineInfo countryName logoReady airlineCard airports airportGet placeCard planeLate routeEnd
     planeTiles planeBody typeOf familyName typeCard planeShown planeTok planeCard tapAt tapTimer
-    fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
+    fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin @cSpinIn
     factsOk brandsOk BAND_ICONS bandMid factsCache spottedCache planeLogs factsGet spottedGet planeLog yearOf longDate kmText mText bigText
     timesText ageYears isToday ENGINE_KIND RANGE_CITIES modelFunFacts airlineFunFacts placeFunFacts planeFunFacts
     tierChip infoCard cardMore +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +picCreditParts +photoKey

@@ -422,8 +422,10 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
   further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open.
-- **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
-  in (at most a few seconds), instead of filling in piece by piece.
+- **Cards** (1.42) open as a short loading window and appear complete once the words and the airport are in (at most
+  a few seconds), instead of filling in piece by piece. Since 1.97.3 the photos don't hold a card back: it opens at
+  once, its photo window keeps its size and shows the loading spinner, and the photo fades in when it has loaded (a
+  photo already in the browser shows at once; with reduced motion and on the TVs it just appears).
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
   red **Sign out** next to the name; since 1.56 Passkey and Password as a checklist: an empty circle or a green tick,
