@@ -235,6 +235,28 @@ The repository is public: no addresses, keys or personal data here either.
   0.031° → 0.005°; outdoors 1.45° → 0.21°; the 25°-off start right (within 2°) after 9.3 s → 9.4 s; the zero jump
   unseen in both. North's average error indoors rose 3.9° → 5.9° (it follows the swinging compass less; that
   compass's own error is about 4.5° there).
+- 1.95.0.2 (to-do #125, Dave's pick B): **labels placed every frame, not every reading**. Dave's screen recording
+  (Android, Chrome, indoors): while the camera picture moved smoothly, the labels stood still in 63 of 109 frames for
+  60-420 ms, then jumped 40-105 px; they reached the screen about 17 times a second. Chrome hands
+  `deviceorientation` over on the page's own thread (`DeviceSensorEventPump`, a 60 Hz timer; Android's game rotation
+  vector, 0.1° steps, nothing while no angle changes by 0.1°), so a busy page gets readings late and bunched, and
+  `arTurn` applied each nearly in full (τ 0.03 s while turning) when it came. A headless Chrome slowed 4× handed over
+  20 readings a second at 29 frames. The Generic Sensor API reads the same sensor, at the same 60 Hz cap, on the same
+  thread: no help by itself. Now `arTurn` keeps the newest reading (`arRd`) and the turning speed from one reading to
+  the next (`arW`, rad/s about east, north and up; a jump over 0.5 rad or 8 rad/s clears it); `arFrame`, called at the
+  top of `arLoop`, turns the reading on by `arW` for as long as it is old, up to `AR_AHEAD` 0.15 s (older still, back
+  to the reading by 0.3 s), and glides `arQ` there (τ 0.03-0.2 s, by distance and speed as before). Chrome sends no
+  reading after a stop, so `arMotion` (`devicemotion`, sent every poll, still or not) gives the gyroscope's speed
+  (`arMo`, only how fast): under 2°/s (fresh within 100 ms) nothing is run on; without it only 0.05 s ahead. The
+  hidden Where-to-look card no longer redraws behind Sky view (`lookSoon` skips while `arOn`; `arClose` redraws it).
+  The report (v 2) adds `timing` (the last 120 gaps between readings and between frames, readings a frame, the turn)
+  and `events.motion`. `sky_jitter.js` replays a turn with the readings at the recording's gaps (`GAPS`, 79 gaps,
+  3.6 s) and with one every frame, with `devicemotion` every poll: 1.95.0.1 → 1.95.0.2 with the recording's gaps:
+  uneven 8.7 → 0.6 px from frame to frame (worst 77 → 14), still while the sky moves 63% → 1% of frames, behind
+  16.1 → 8.4 px, after a dead stop run on 0.2 → 0.4 px; a reading every frame: uneven 0.7 → 0.3 px, behind 11.7 →
+  7.9 px; without `devicemotion` uneven 1.8 px, run on 9 px. The still numbers are unchanged. The labels moved 0.86×
+  as far as the picture in that recording: a possible field of view error (`AR_FOV`), not separable indoors from the
+  hand's parallax; left as it is.
 - 1.90 (to-do #94): **the picture button only once locked on**: `arShotAt` is set while `arLocked` (the plane the ring
   last filled on in this Sky view, set in `arAimDraw`; a tapped plane doesn't count) is in the picture, no longer for
   any plane the game had locked on earlier today (`s.locked`); it still stays 5 s after the plane leaves the picture.

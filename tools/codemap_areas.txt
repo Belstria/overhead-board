@@ -432,7 +432,7 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arWatch arHere arRaf arDrag arHits arSel arOff arDec arHintText arAlt arOffSave AR_AIM_R AR_AIM_MS arAim arRaw
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
     arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arTurns
-    arFeed arEvent arQuat arQMatrix wrap180 arYaw arOrient arGapStep arGyroStep arTurn arHold arOpen arCalCheck
+    arFeed arEvent arQuat arQMatrix wrap180 arYaw arOrient arGapStep arGyroStep AR_AHEAD arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurn arFrame arHold arOpen arCalCheck
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arLoop arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N arAuto
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arAutoSig arCan arCx arAutoStep arFind arSunCan arSunCx
