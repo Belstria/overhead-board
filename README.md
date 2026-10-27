@@ -482,17 +482,21 @@ The main board has everything below. New features are tried on `/test/` first; o
   its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 10 km gives
   a **tenth** of them (1, 3, 10, 25, 50), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
   rare 15, very rare 5, special 3 planes; the day runs from 03:00); past the limit a plane scores nothing. A **Sky view
-  scan** (a plane held in the ring for 1.5 s, within 10 km, once a pass, no limit) tops the plane up to its full
-  points (a common that gave 1 adds 9; one past the limit the full 10). **Only scans** earn the extras: a type new to
+  scan** (a plane held in the ring for 1.5 s, within 10 km, seen live in the last 2 minutes, once a pass, no limit)
+  gives the plane's **full points on top** since 1.97 (relay 79; a common gives 1 + 10 = 11, one past the limit 0 +
+  10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
   day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
   league. No more close-pass factors, taper, streak multiplier or combo. **Every award pops up** as it happens, as a
   pass like Sky view's boarding pass sliding up from below (the passive points on a small one, several at once on one;
+  since 1.97 a single plane's pass, while a scan would still count, stays 8 s with a perforated line "Tap to scan in
+  Sky view · +10 ›" and chips for the extras that are sure (+50 new type, +25 new airline, the streak at the day's
+  first scan); a tap opens Sky view with that plane picked out, its ring on it and the edge arrow pointing to it;
   the scan with its extras; the streak with the week's days; the first plane past a limit, "+0 · Common limit
   reached", later ones stay quiet), with a prize jingle and a buzz for a scan. (Until 1.96 a lock-on paid +25 % of the
   plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
   Sky view's labels (1.72.1) carry a ★ for the planes
-  within reach of points (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 27), ✓ and
+  within reach of points (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 30), ✓ and
   what the scan gave once scanned, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
@@ -517,9 +521,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
   per set you swipe sideways, with a collectible card for each type seen (since 1.96 any sighting, on any screen; until
   then only those caught on the go) (the photo of the first one you saw, or of its model; the rarity in its colour,
-  the name, when and which; a ★ badge with how often the game caught it), the missing types face down with their
-  model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, in the
-  game, the first) and the model. **Tap a name in the league**
+  the name, when and which; since 1.97 a line under it, "★ Scored 6× · 2 scanned" or "Not scored yet": how often
+  the game scored the type within 10 km and how often Sky view scanned it), the missing types face down with their
+  model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
+  scanned) and the model. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board

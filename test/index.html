@@ -722,7 +722,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=e53210c831"></script>
+<script src="i18n.js?v=9e8425a00c"></script>
 <script>
 (() => {
 "use strict";
@@ -7755,6 +7755,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97", date: "2026-10-27", notes: [
+    "A Sky view scan now gives a plane's full points on top of what it scored within 10 km, also past the daily limit.",
+    "A plane's points pass offers the scan: a tap opens Sky view with that plane picked out and the arrow pointing to it.",
+    "The pass shows what a scan would add for sure: the points, a new type or airline and the day's streak.",
+    "The hangar's cards say how often the game scored each type and how often you scanned it.",
+  ]},
   {v: "1.96.2", date: "2026-10-27", notes: [
     "Airline, airport and model cards open faster: their facts are kept ready and refreshed once a month.",
   ]},
