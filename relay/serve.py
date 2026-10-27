@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 80
+RELAY_VERSION = 81
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -5107,11 +5107,18 @@ def screen_place(q):
 # sightings, scores nothing and starts no gap filler. Relay 72: a live request without it is stale too (only an old
 # copy of the app, kept in a phone's cache, leaves it out; one logged a plane 1,100 km away from a trip's spot).
 LIVE_FRESH_S = 300
+# Relay 81 (1.97.6, to-do #140): nothing counts while the app is in the background. A page that is hidden says bg=1 with
+# its position requests (since 1.87.1, for the gap filler); a live one with it is stale too, so a phone with the app
+# in its pocket (its fixes and requests go on, more slowly) records no sightings, scores nothing and fills no bingo
+# square. Only live places: a saved place or home (the TV boards) is as before, hidden or not. A page that sends no
+# flag counts as visible. The request after the page is shown again carries none and counts as usual.
 
 
 def live_stale(q, place):
     if not place or place[0] != "live":
         return False
+    if q.get("bg"):
+        return True
     if "fix" not in q:
         return True
     try:

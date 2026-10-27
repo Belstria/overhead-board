@@ -478,6 +478,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
+- **Only with the app on screen** (1.97.6, relay 81): nothing counts while the app is in the background. A page that is
+  hidden says so with its position requests and the relay records no sightings, scores nothing and fills no bingo square,
+  medal or level from them; it all resumes the moment the app is on screen again (it looks at once, so a plane overhead
+  then counts). Home and saved places (the TV boards) and push notifications are unchanged.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
   come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
   again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has

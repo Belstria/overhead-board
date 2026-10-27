@@ -1269,6 +1269,7 @@ window.I18N_ROWS = [
   ["How points work", "So gibt es Punkte", "Comment marchent les points", "Cómo funcionan los puntos", "Hoe punten werken"],
   ["Day {n}", "Tag {n}", "Jour {n}", "Día {n}", "Dag {n}"],
   ["Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", "Punkte gibt es mit Live-Standort (Einstellungen → Standort), für Flugzeuge im Umkreis von {k} km. Jedes Flugzeug punktet einmal pro Überflug, je nachdem, wie selten es ist.", "Les points viennent avec la position en direct (Réglages → Position), pour les avions à moins de {k} km de vous. Chaque avion marque une fois par passage, selon sa rareté.", "Los puntos llegan con la ubicación en directo (Ajustes → Ubicación), para aviones a menos de {k} km. Cada avión puntúa una vez por paso, según lo raro que sea.", "Punten komen met live locatie aan (Instellingen → Locatie), voor vliegtuigen binnen {k} km van je. Elk vliegtuig scoort één keer per passage, naar hoe zeldzaam het is."],
+  ["Nothing counts while the app is in the background.", "Im Hintergrund zählt nichts.", "Rien ne compte quand l'appli est en arrière-plan.", "Nada cuenta mientras la app está en segundo plano.", "Niets telt terwijl de app op de achtergrond staat."],
   ["Within {k} km", "Bis {k} km", "À {k} km", "A {k} km", "Binnen {k} km"],
   ["Scanned", "Gescannt", "Scanné", "Escaneado", "Gescand"],
   ["Today / max", "Heute / max.", "Aujourd'hui / max", "Hoy / máx.", "Vandaag / max"],
