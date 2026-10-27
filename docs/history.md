@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97 (to-dos #132 and #133, Dave's rule of 27 Oct and his picks B and 2; relay 79): **a scan gives the full points on
+  top; the pass leads to it; the hangar says "Scored"**. `gAwLine()` names a rule-3 scan "Sky view scan · {t} plane"
+  (rule 2's keep "topped up to"); Sky view's ★ shows `gBase(tier)` (no longer less the passive tenth); How points work
+  says "on top" and its Scanned column "+10". The passive pass (one plane) and the first limit pass get `scan:
+  gScanOffer(a)` while the award is under 120 s old (LOCK_FRESH_S) with live location: the plane's full points, the
+  award's `can` extras (relay 79) and the streak (`rules.streak × (streak + 1)` while `!gme.scannedToday`); `gPop()`
+  draws it with `gScanLine()` (`.gAw .scn`, perforated, chips as `em`), keeps the pass 8 s, and a tap calls
+  `arOpenAt(hex, flight)`: `arOpen()` if needed, then `arWant = arSel = hex` (its card and ring), an `arNote` hint;
+  `arLoop()` treats `arWant` as the featured plane (gold label, the edge arrow), and `arAimDraw()` doesn't count the
+  wanted plane as already selected, so holding it in the ring still scans it (then `arWant` clears; `arClose()` too).
+  Several planes on one pass get no scan line. The hangar (`hangarHtml`): no `.hgG` badge; a `.hgL` line under the name,
+  "★ Scored 6× · 2 scanned" (`t.game`, `t.scans`) or "Not scored yet"; the summary "125 types seen · ★ 22 scored in the
+  game"; `hangarCard()`'s tiles Seen / Scored / Scanned (the First tile went; the line under the name has it).
 - 1.96 (to-do #127, Dave's rules and mockup pick B): **simpler points, every award as it happens**. The rules come from
   the relay (`gme.rules`, `gRules()`/`gBase()`; `G_BASE` went): Sky view's ★ shows what a scan gives (full points less
   the passive tenth), ✓ what it gave (`lock` + `gs`). `gRefresh()` asks `/game/me?since=gAwAt` and `gAwards()` shows the
@@ -1140,6 +1153,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 79 (1.97, Dave's rule of 27 Oct, to-dos #132 and #133): **`GAME_RULE` 3: a scan gives the full points on
+  top**. `game_lockon()`'s "scan" line is `TIER_BASE[tier]` (rule 2: `full - gp`), so a common gives 1 + 10 = 11 and a
+  plane past its limit 0 + 10; nothing is re-priced (rule-2 awards keep their "r": 2; `game_today()` checks rule 1 as
+  `rule < 2`, `game_awards()` sends `r >= 2`). `_scan_can(g, e)`: the extras a scan would add now (a type or an airline
+  not in `g["scanned"]`), used by the scan itself and sent as `can` on the "pass" and "limit" awards. **Scans per type**:
+  `g["scanTypes"][TC]`, counted by `game_lockon()` once the dict exists; `hangar_json()` creates it the first time by
+  counting the sightings with `e["scan"]` (set by every scan since relay 76, kept in the saved days) over
+  `_logbook_entries()`, and sends `scans` per type (also in its cache key). Rule-1 lock-ons (before relay 76) aren't
+  counted as scans.
 - Relay 77 (1.96.1, to-do #122): **an airline's brand**. `airline_facts(icao)` finds the company (P230), its parents
   (`_airline_parents`: current P749 parent organization, then P127 owned by; people dropped; `_part` when P749 or at
   least half owned) and `_airline_brand`: a parent whose name without a company word (`CORP_TAIL`: Holdings, Group,

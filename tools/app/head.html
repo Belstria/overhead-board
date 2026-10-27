@@ -842,10 +842,14 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT>span{font:500 var(--fs-tag)/1.3 var(--f-board);color:var(--muted)}
 .hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);place-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
   background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px)}
-/* 1.96: a face-down card shows its model, dimmed; a type the game caught wears a badge */
+/* 1.96: a face-down card shows its model, dimmed. 1.97 (to-do #132, pick 2): a line under the name, how often the game
+   scored the type and how often it was scanned (no badge on the photo any more) */
 .hgCard.back img,.hgCard.back .hgPh{filter:grayscale(1) brightness(.5);opacity:.55;margin-bottom:4px}
 .hgCard{position:relative}
-.hgG{position:absolute;top:6px;right:6px;padding:3px 6px;border-radius:6px;background:var(--amber);color:#17140e;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.hgT .hgL{display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--amber)}
+.hgT .hgL i{font-style:normal}
+.hgT .hgL u{text-decoration:none;color:var(--muted)}
+.hgT .hgL.no{color:#5d636c}
 .hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
 .hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
 /* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
@@ -1118,6 +1122,14 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .gAw .nt{padding:0 12px 10px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#777}
 .gAw.mini .pF .main{width:230px} .gAw.mini .who{padding:7px 12px 9px}
 .gAw.mini .pF .stub{width:70px;padding:4px} .gAw.mini .pF .stub b{font-size:var(--fs-xl)} .gAw.mini .pF .stub em{display:none}
+/* 1.97 (to-do #133, pick B): the pass's perforated second line, the way into Sky view's scan; the sure extras as chips */
+.gAw .scn{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px 9px;border-top:1.5px dashed #d8d1c2;background:#f3eee2;font:700 var(--fs-xs)/1.25 var(--f-board);color:#17140e}
+.gAw .scn .skyIco{color:#a3740a}
+.gAw .scn span{flex:1;min-width:0}
+.gAw .scn b{flex:none;font:700 var(--fs-m)/1 var(--f-board);color:#a3740a;font-variant-numeric:tabular-nums}
+.gAw .scn i{flex:none;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#a3740a}
+.gAw .scn p{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px;margin:0}
+.gAw .scn em{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;padding:4px 6px;border-radius:5px;background:rgba(240,180,41,.18);color:#8a6206;letter-spacing:.03em}
 @media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw{animation:none!important}}
 </style>
 </head>
