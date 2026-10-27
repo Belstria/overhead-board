@@ -119,8 +119,10 @@ changelog: special|watchlist|emergenc|military|chime|alert
 test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey photoBox rwyFeat featPic featPhoto
     photoReady photoCredit drawCover drawBezel glass paintScreen paintPlain drawPlaque engrave preloadPhoto placePhoto
     $("photoImg").onload $("photoImg").onerror photoLinkSet photoLinkOn photoKey
-    $("photoLink").addEventListener("click") modelPics modelTitles MODEL_LIKE modelSearches modelWiki modelPic
-    PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml picHtml picFailed +shareImg
+    $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_MAKERS MODEL_LIKE
+    MODEL_NOT MODEL_FILL isRoman modelFold modelNear numCore modelSplit modelMakers numForms modelClash modelHit
+    modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic
+    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml picHtml picFailed +shareImg
     +shareCanvas +picCard +planeAgain .photo @screenOnLite @screenOn #photoImg .pLink #photoCr .crBy .crSrc #photoCv
     #photoFrame #photoLink +aboutHtml +SITE_LINKS +siteLinks +viewItemHtml +planeBody +wikiImg +wikiPage +wikiFind
     +renderAircraft +isAc +pageHold +pickPage +document.addEventListener("keydown") +placeCard +typeCard +KEYS
@@ -128,7 +130,9 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     +fromRelay +boardTap
 tools/app/head.html: .bezel .led .screen @screenOn .cOv .cOvF #bezel #photo #photoCr #photoLink #screen .cCr
 tools/app/main.js: +shownPhoto +renderAircraftInfo +rwyE +hgBad +modelPicNow +planeAgain +arPeekHtml +aboutOpen
-    +hangarHtml +arCardRender +paintRwy
+    +hangarHtml +arCardRender +paintRwy +hangarCard +hgWire
+tools/model_pages.py: FIX ADD ANY designators board_bits pages main
+tools/test/model_pics.js: "The model pictures' lookup"
 relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
     PS_FAIL PS_GAP PS_WAIT PS_REST PS_IMG _ps_cache _ps_next _ps_rest _ps_like _ps_first _ps_ask plane_photo
     /planephoto /photo
@@ -338,8 +342,8 @@ changelog: airline name|airline|logo|type name|airport name
 test/index.html: plusRows plusN tapLine listHints cardTok cardOpen cardClose MUSIC_S MUSIC_FADE_S cardMusic
     MUSIC_BYTES musicBufs musicBuf cardMusicStart cardMusicStop cardWait cardLoading imgsReady cardWhenReady
     cardOpenNow factsHtml wikiHtml chipHtml wikiCache wikiPage wikiFind wikiImg airlineOf AIRLINE_TAIL airlineWiki
-    airlineFacts airlineInfo countryName logoReady airlineCard placeCard planeBody typeOf typeCard planeShown
-    planeCard tapAt tapTimer fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
+    airlineFacts airlineInfo countryName logoReady airlineCard placeCard planeLate planeBody typeOf typeCard planeShown
+    planeTok planeCard tapAt tapTimer fx.addEventListener("click") fieldAt +radarObj boardTap planeAgain #cardBox @cSpin
     +listSheet +togBtn +cardToggle +modelPic +planePic +picHtml +photoKey
 tools/app/head.html: #cardBox .cRouteB .cRbEnd .cTiles .cTile .cDet @cardSwap .cBtn
 tools/app/main.js: cardSheetHtml cardSheetPre cardSheetPost cardSheetClose planeAgain +radarPlaneCard +arTap

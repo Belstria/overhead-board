@@ -204,8 +204,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
-  Commons), credited as such ("Model only · Wikimedia Commons" since 1.93). Since 1.88 a model whose name is ambiguous
-  on its own (Black Hawk, Hercules) is looked up in Wikipedia's search too.
+  Commons), credited as such ("Model only · Wikimedia Commons" since 1.93). Since 1.93.1.1 nearly every type has one:
+  the model is found by its type code first (a table made from Wikipedia's list of type designators, with the common
+  light aircraft and helicopters added), then by its names as Wikipedia spells them ("BEECH 200 Super King Air" is the
+  Beechcraft Super King Air), and only then by Wikipedia's search. A page found from part of a name must agree with the
+  rest of it, so a type gets no picture rather than another model's; a page whose own picture isn't the aircraft (a
+  logo, another model) shows Wikidata's picture of it instead. A balloon, glider, autogyro, airship or ultralight
+  without a better name (codes BALL, GLID, GYRO, SHIP, ULAC) shows a picture of its kind. A card that opened before
+  its model's picture was found takes it when it comes.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
   **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘ in grey, turning yellow or red once letting
   go will do it; that half of the sheet opens; the + ring on the app's rows is gone since 1.42, the boards keep their
