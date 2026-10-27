@@ -482,7 +482,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
   again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has
   its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 10 km gives
-  a **tenth** of them (1, 3, 10, 25, 50), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
+  a fixed amount (**5, 10, 15, 25, 50** since 1.97.4, relay 80, rule 4; a tenth of them, 1, 3, 10, 25, 50, before, and those
+  awards stay as they were), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
   rare 15, very rare 5, special 3 planes; the day runs from 03:00); past the limit a plane scores nothing. A **Sky view
   scan** (a plane held in the ring for 1.5 s, within 10 km, seen live in the last 2 minutes, once a pass, no limit)
   gives the plane's **full points on top** since 1.97 (relay 79; a common gives 1 + 10 = 11, one past the limit 0 +
@@ -572,7 +573,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   A new unlock pops up like an achievement.
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
   switch, a thumbwheel and a push button (1.97.2: the big push buttons, the rail and the bottom bar keep their thock; small
-  buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick); the flaps keep their synthesised clack (credited in About; see
+  buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick; since 1.97.4 the Logbook's Saved places button, the Sky view buttons and the title's Overhead / Airport switch
+  have the crisp click too); the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
@@ -1011,7 +1013,10 @@ as they connect, reload the board and go away, with what it knows about each: th
 TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is
 drawn and how long it has been on. Press **Enter** in the relay's window for the current list, or open
 `http://<computer-name>:8080/screens`; the board's diagnostics panel lists them too. The boards and the phone app send their
-name, size and drawing quality; a screen that hasn't asked for anything for a minute counts as gone.
+name, size and drawing quality; a screen that hasn't asked for anything for a minute counts as gone. Since relay 80 an
+app in the background (its latest hello says hidden) counts as left after 15 seconds, whatever it asks for meanwhile: it goes
+to "Recently gone" (left at the time it went to the background) without a log line, and when it comes back (a hello saying
+visible) it is a new visit that isn't announced again.
 
 **Shared history (relay version 5).** The relay records every plane that comes within its spotting radius
 itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It
