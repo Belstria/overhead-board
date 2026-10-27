@@ -5972,7 +5972,7 @@ function infoCard(o){
     (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
     (det.length ? `<div class="cDet">${det.map(([l, v, w]) => `<div${w ? ' class="w"' : ""}><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` : "") +
     (paras.length ? `<div class="cWikiW"><p class="cWiki clamp">${escH(paras[0])}</p>${paras.length > 1 ? `<div class="cMoreT" hidden>${paras.slice(1).map(p => `<p class="cWiki">${escH(p)}</p>`).join("")}</div>` : ""}` +
-      (o.wiki.url ? `<a class="cSrc" href="${escH(o.wiki.url)}" target="_blank" rel="noopener">Wikipedia<i aria-hidden="true"> ↗</i></a>` : "") + `</div>` : "") +
+      (o.wiki.url ? `<a class="cSrc" href="${escH(o.wiki.url)}" target="_blank" rel="noopener">${escH(T("Wikipedia"))}<i aria-hidden="true"> ↗</i></a>` : "") + `</div>` : "") +
     (paras.length || know.length ? `<button class="cMoreB" type="button" data-info-more>${escH(T("More info"))}<i aria-hidden="true">▾</i></button>` : "") +
     (know.length ? `<div class="cMoreX" hidden><div class="cKnow"><h4>${escH(T("Did you know?"))}</h4><ul>${know.map(([t, s]) => `<li>${escH(t)}<small>${escH(s)}</small></li>`).join("")}</ul></div></div>` : "") +
     (o.btns || "") + `</div>`;
