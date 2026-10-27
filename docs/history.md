@@ -1079,6 +1079,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 75 (1.95.0.1, to-do #121): **`/sightings?place=` takes the places at the same spot together.** A phone on the
+  profile's own place ("home") showed an empty Recent flights while a board on a saved place there ("Home", same
+  centre) had recorded the whole day under its key: `sightings_json` matched the key exactly. `same_spot(spot, places,
+  key)` now gives the asked key plus the profile's places ("home" included: `spot.center()`, `spot.radius()`) whose
+  centre is within 1 km and whose radius is no larger; "live" stays alone. `sightings_json(place=)` takes that set.
+  No doubles: `_record` already keeps a pass seen from two places as one sighting (`by_hex`, `SAME_PASS_S`), so the
+  merged list and its day numbers count each pass once (flows.py checks both). The logbook's place views (`/logbook?place=`)
+  still keep places apart.
 - Relay 74 (1.94, to-do #113): **`/facts?model=<Wikipedia page>|airline=<ICAO>|airport=<IATA>`** (profiles only,
   `allow("facts:"…, 2, 20)`, `Cache-Control: private, max-age=3600`; 503 with Retry-After 300 when Wikimedia can't be
   asked and nothing older is kept) → `facts_json(kind, key)`: one lookup per page (`_facts_busy`: a second screen waits

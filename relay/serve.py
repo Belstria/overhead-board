@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 74
+RELAY_VERSION = 75
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2611,11 +2611,37 @@ def day_stats(entries, over_km, over_deg=0.0):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
+def same_spot(spot, places, key):
+    """Relay 75 (to-do #121): the place `key` and the profile's other places at the same spot (centre within 1 km, a
+    radius no larger), so a phone on the profile's own place ("home") and a board on a saved place there ("Home") share
+    one Spotted today. A pass is recorded once whichever of them saw it (_record), so the merged list has no doubles."""
+    if not key or key == "live":
+        return {key} if key else None
+    spots = {"home": (spot.center(), spot.radius())}
+    for p in places or []:
+        if isinstance(p, dict) and p.get("k"):
+            spots.setdefault(p["k"], ((p.get("lat"), p.get("lon")), p.get("r") or 15))
+    c, r = spots.get(key, (None, 0))
+    out = {key}
+    if c is None or None in c:
+        return out
+    for k, (cc, rr) in spots.items():
+        try:
+            if _dist_km(c[0], c[1], cc[0], cc[1]) <= 1.0 and float(rr) <= float(r) + 0.5:
+                out.add(k)
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=None, over_deg=0.0):
-    """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33)."""
+    """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33; relay 75:
+    a set of places, see same_spot)."""
+    if isinstance(place, str):
+        place = {place}
     with _data_lock:
         spot.ensure_day()
-        everything = [e for e in spot.entries if place is None or (e.get("place") or "home") == place]
+        everything = [e for e in spot.entries if place is None or (e.get("place") or "home") in place]
         day, rev = spot.day, spot.rev
     if api:
         everything = fr24_overlay(everything, spot.radius(), over_km)
@@ -7355,7 +7381,8 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 deg = 0.0
             api = (q.get("api") or [""])[0] == "1" and bool(self.guest[1].get("fr24"))
-            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]), deg)
+            place = same_spot(self.spot, places_of(self.guest[0]) if self.guest else [], place_key((q.get("place") or [""])[0]))
+            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place, deg)
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())

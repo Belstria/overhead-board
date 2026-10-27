@@ -409,7 +409,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   app picks in a bar instead of chips: **All**, **On the go** and **Saved places**, which opens a list of your saved
   places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). "Counting
   since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
-- **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
+- **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together. This place
+  includes your saved places at the same spot (1.95.0.1, relay 75): a phone on your own place and a board on a saved
+  place there named Home share one list, each plane once.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
   further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open.
