@@ -943,6 +943,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.1 (to-do #131, Dave's request of 27 Oct): **the in-place card opens as a plain vertical growth, and its top bar
+  folds it**. `tlOpen(L, li, e)` no longer takes the finger's place: no `clip-path` circle on the photo and no gliding
+  texts (`textAt` and `tlGlide`, `.tlGhost` are gone). The row grows from its height to the card's (`li.animate`, the
+  rows below follow; `TL_MS` 480 ms, `TL_EASE` Sky view's cubic-bezier(.2,.9,.25,1)), `.tlWas` (the row's copy) fades
+  out in the first fifth, `.tlBg` fades in, and the `.tlK` bar and `.cInfo` fade in from 20 % to 70 % of the time; with
+  less motion it just opens. The click handler folds on `[data-fold], .tlK` (the whole top bar: time · "N min ago" and
+  the ⌃; `.tlK{cursor:pointer}`); the photo, airline, places and tiles open theirs as before.
+
 - 1.97 (to-dos #132 and #133, Dave's rule of 27 Oct and his picks B and 2; relay 79): **a scan gives the full points on
   top; the pass leads to it; the hangar says "Scored"**. `gAwLine()` names a rule-3 scan "Sky view scan · {t} plane"
   (rule 2's keep "topped up to"); Sky view's ★ shows `gBase(tier)` (no longer less the passive tenth); How points work

@@ -391,6 +391,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlBg{position:absolute;inset:0;border-radius:14px;background:var(--box-bg);border:1px solid rgba(240,180,41,.35);pointer-events:none}
 .tlCard>:not(.tlBg){position:relative}
 .tlK{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 2px 8px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.tlK{cursor:pointer}
 .tlX{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;width:40px;height:32px;margin:-10px -10px -10px 0;color:var(--muted)}
 .tlX .dd{width:18px;height:18px;transform:rotate(180deg)}
 .tlX .dd circle{stroke:rgba(240,180,41,.55)}
@@ -398,7 +399,6 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlCard .cInfo .cSkyPic .cPic{height:170px}
 .tlCard .cSkyPic,.tlCard .cOvPlain{cursor:pointer}
 .tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:7px 10px 8px 32px;pointer-events:none}
-.tlGhost{position:absolute;z-index:3;margin:0;white-space:nowrap;pointer-events:none}
 .tlGone{position:absolute;left:22px;right:0;top:0;z-index:2;pointer-events:none}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}

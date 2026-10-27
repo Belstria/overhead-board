@@ -877,6 +877,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlBg{position:absolute;inset:0;border-radius:14px;background:var(--box-bg);border:1px solid rgba(240,180,41,.35);pointer-events:none}
 .tlCard>:not(.tlBg){position:relative}
 .tlK{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 2px 8px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.tlK{cursor:pointer}
 .tlX{all:unset;box-sizing:border-box;cursor:pointer;display:grid;place-items:center;width:40px;height:32px;margin:-10px -10px -10px 0;color:var(--muted)}
 .tlX .dd{width:18px;height:18px;transform:rotate(180deg)}
 .tlX .dd circle{stroke:rgba(240,180,41,.55)}
@@ -884,7 +885,6 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlCard .cInfo .cSkyPic .cPic{height:170px}
 .tlCard .cSkyPic,.tlCard .cOvPlain{cursor:pointer}
 .tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:7px 10px 8px 32px;pointer-events:none}
-.tlGhost{position:absolute;z-index:3;margin:0;white-space:nowrap;pointer-events:none}
 .tlGone{position:absolute;left:22px;right:0;top:0;z-index:2;pointer-events:none}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
@@ -10122,6 +10122,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.97.1", date: "2026-10-27", notes: [
+    "A plane's card in Recent flights and Today opens by simply growing downwards, without the circle from your finger.",
+    "A tap on the open card's top bar folds it, like the arrow.",
+  ]},
   {v: "1.97", date: "2026-10-27", notes: [
     "A Sky view scan now gives a plane's full points on top of what it scored within 10 km, also past the daily limit.",
     "A plane's points pass offers the scan: a tap opens Sky view with that plane picked out and the arrow pointing to it.",
@@ -11233,7 +11237,7 @@ document.addEventListener("click", e => {
   const x = tlFind(b.dataset.more);
   if (!x) return;
   if (!b.classList.contains("open")) { if (Date.now() - swipeEnded > 400) tlTap(b, e.clientX, e.clientY); return; }
-  if (e.target.closest("[data-fold]")) { ctlSound.press(); return tlFold(b, true); }
+  if (e.target.closest("[data-fold], .tlK")) { ctlSound.press(); return tlFold(b, true); }
   const al = e.target.closest("[data-al]"), pl = e.target.closest("[data-pl]"), ty = e.target.closest("[data-ty]");
   if (al) return airlineCard(x);
   if (ty) return typeCard(x);
@@ -11251,10 +11255,10 @@ addEventListener("keydown", e => {             // a row with the keyboard's focu
 const sightPlane = e => ({ac: {hex: e.hex, r: e.reg, t: e.typeCode, flight: e.callsign, desc: e.desc}, remark: remarkFor(e),
   info: {callsign: e.callsign, flightNo: e.flight, airline: e.airline, airlineCode: e.airlineCode, from: e.from, to: e.to, type: e.type, reg: e.reg,
     hex: e.hex, category: e.category, divertedTo: e.divertedTo, fr24: e.fr24, done: e.done !== false}});
-/* Opening a card (Dave's option 1, Sky view's easing): the row grows into the card where it is and the rows below
-   slide down; the flight number and the two codes glide from the row to their places on the card, the photo grows as
-   a circle from the finger, the rest fades in last. One card at a time: another row, or ⌃, folds it back. With less
-   motion it just opens. A redraw of the list waits until the card has settled. */
+/* Opening a card (Dave's option 1, Sky view's easing; since 1.97.1 a plain vertical growth): the row grows downwards
+   into the card where it is and the rows below slide down; the row's text fades out, the card's content fades in. No
+   circle, nothing glides. One card at a time: another row, or ⌃ or the bar above it, folds it back. With less motion it
+   just opens. A redraw of the list waits until the card has settled. */
 const TL_MS = 480, TL_EASE = "cubic-bezier(.2,.9,.25,1)", TL_OUT = "cubic-bezier(.33,1,.68,1)";
 function tlStart(ms){ tlRunning++; tlCap = Math.max(tlCap, Date.now() + ms + 400); }
 function tlEnd(){ tlRunning = Math.max(0, tlRunning - 1); tlDone(); }
@@ -11271,68 +11275,34 @@ async function tlTap(li, x, y){
   if (src && tok === tlTok) await imgReady(src, 600);
   li.classList.remove("tlPress");
   const row = [...L.querySelectorAll("li.fl[data-more]:not(.open)")].find(r => r.dataset.more === k);     // a redraw meanwhile made a new one
-  if (tok === tlTok && row) tlOpen(L, row, e, x, y);
+  if (tok === tlTok && row) tlOpen(L, row, e);
 }
-// Where a text is (its letters, not its box) and its colour
-function textAt(el){
-  const r = document.createRange();
-  r.selectNodeContents(el);
-  const b = r.getBoundingClientRect();
-  return {x: b.left, y: b.top, h: b.height || 1, color: getComputedStyle(el).color};
-}
-function tlOpen(L, li, e, x, y){
+function tlOpen(L, li, e){
   const old = L.querySelector("li.fl.open");
   if (old && old !== li) tlFold(old, true);
   tlOpenId[L.id] = tlKey(e);
-  for (const g of li.querySelectorAll(".tlGone, .tlGhost")) g.remove();       // tapped again while it folded
-  const anim = !REDUCED && typeof li.animate === "function", r0 = li.getBoundingClientRect(), h0 = li.offsetHeight;
+  for (const g of li.querySelectorAll(".tlGone, .tlWas")) g.remove();       // tapped again while it folded
+  const anim = !REDUCED && typeof li.animate === "function", h0 = li.offsetHeight;
   const cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom], rowIn = li.innerHTML;
-  const from = [".f", ".rt b:first-of-type", ".rt b:last-of-type"].map(s => { const el = li.querySelector(s); return el && el.textContent.trim() ? textAt(el) : null; });
   li.className = "fl open"; li.removeAttribute("tabindex"); li.innerHTML = tlCardHtml(e);
   L.dataset.card = tlCardSig(e);
   tlWire(li);
   if (!anim) return tlScroll(li);
-  // where everything ends up, before anything moves
-  const r1 = li.getBoundingClientRect(), h1 = li.offsetHeight, cs1 = getComputedStyle(li), m1 = [cs1.marginTop, cs1.marginBottom], card = li.querySelector(".tlCard");
-  const to = [card.querySelector(".cOvF"), ...card.querySelectorAll(".cRbEnd b")].map(b => b && {b, at: textAt(b), cs: getComputedStyle(b)});
-  const pw = card.querySelector(".cSkyPic"), pr = pw && pw.getBoundingClientRect();
+  // where it ends up, before anything moves
+  const h1 = li.offsetHeight, cs1 = getComputedStyle(li), m1 = [cs1.marginTop, cs1.marginBottom], card = li.querySelector(".tlCard");
   const was = document.createElement("div");     // the row, fading away at the top while the card grows under it
   was.className = "tlWas"; was.innerHTML = rowIn; li.append(was);
-  for (const el of was.querySelectorAll(".f, .rt b")) el.style.visibility = "hidden";
   li.classList.add("tlAnim");
   tlStart(TL_MS);
   const go = (el, kf, o) => el.animate(kf, {duration: TL_MS, easing: TL_EASE, fill: "backwards", ...o});
   const grow = go(li, [{height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}, {height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}]);
   go(was, [{opacity: 1}, {opacity: 0}], {duration: TL_MS * .22, easing: "linear", fill: "forwards"});
   go(card.querySelector(".tlBg"), [{opacity: 0}, {opacity: 1}], {duration: TL_MS * .35, easing: TL_OUT});
-  to.forEach((d, i) => { if (d && from[i]) tlGlide(li, r0, r1, from[i], d); });
-  if (pw) {                                      // the photo, as a circle growing from the finger
-    const cx = x - r0.left - (pr.left - r1.left), cy = y - r0.top - (pr.top - r1.top);
-    const far = Math.max(...[[0, 0], [pr.width, 0], [0, pr.height], [pr.width, pr.height]].map(([px, py]) => Math.hypot(px - cx, py - cy)));
-    go(pw, [{clipPath: `circle(0px at ${cx.toFixed(1)}px ${cy.toFixed(1)}px)`}, {clipPath: `circle(${far.toFixed(1)}px at ${cx.toFixed(1)}px ${cy.toFixed(1)}px)`}],
-      {duration: TL_MS * .84, delay: TL_MS * .06});
-  }
-  for (const el of card.querySelectorAll(".tlK, .cOvA, .cChip, .cCr, .cRbEnd small, .cRouteB i, .cNoRoute, .cTile"))
-    go(el, [{opacity: 0, transform: "translateY(8px)"}, {opacity: 1, transform: "none"}], {duration: TL_MS * .5, delay: TL_MS * .5, easing: TL_OUT});
+  for (const el of card.querySelectorAll(".tlK, .cInfo"))
+    go(el, [{opacity: 0}, {opacity: 1}], {duration: TL_MS * .5, delay: TL_MS * .2, easing: TL_OUT});
   li.tlNow = grow;                               // a folding that starts meanwhile takes over the row's height
   const end = () => { was.remove(); if (li.tlNow === grow) { li.classList.remove("tlAnim"); tlScroll(li); } tlEnd(); };
   grow.finished.then(end, end);
-}
-// A text gliding from the row to its place on the card: a copy in the card's look, from the row's place and size to
-// the card's, while both of them wait hidden
-function tlGlide(li, r0, r1, s, d){
-  const g = document.createElement("span");
-  g.className = "tlGhost"; g.textContent = d.b.textContent;
-  Object.assign(g.style, {font: d.cs.font, letterSpacing: d.cs.letterSpacing, color: d.cs.color, textShadow: d.cs.textShadow});
-  li.append(g);
-  const gb = g.getBoundingClientRect(), gt = textAt(g), ox = gt.x - gb.left, oy = gt.y - gb.top;
-  const dx = d.at.x - r1.left, dy = d.at.y - r1.top, sx = s.x - r0.left, sy = s.y - r0.top;
-  Object.assign(g.style, {left: (dx - ox).toFixed(1) + "px", top: (dy - oy).toFixed(1) + "px", transformOrigin: `${ox.toFixed(1)}px ${oy.toFixed(1)}px`});
-  d.b.style.visibility = "hidden";
-  const a = g.animate([{transform: `translate(${(sx - dx).toFixed(1)}px,${(sy - dy).toFixed(1)}px) scale(${(s.h / d.at.h).toFixed(3)})`, color: s.color},
-    {transform: "none", color: d.at.color}], {duration: TL_MS * .82, delay: TL_MS * .04, easing: TL_EASE, fill: "both"});
-  const end = () => { g.remove(); d.b.style.visibility = ""; };
-  a.finished.then(end, end);
 }
 function tlFold(li, anim){
   const L = li.closest(".tline"), k = li.dataset.more, e = tlFind(k);

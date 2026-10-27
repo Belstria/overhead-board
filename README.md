@@ -642,9 +642,9 @@ Five buttons along the bottom:
   remark; then airline, type, closest distance and height), "8 in the last hour" at the top and "All 64 planes today ›"
   at the end, which goes to Today. A plane without a flight number shows its registration (or its owner); without a
   route the row says "No route: private or local flight" or "Route not known". **Tap a plane** and its card opens right
-  there, as the rows below make room: the flight and the route glide into place and the photo grows from your finger
-  (just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
-  plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃ or another plane folds it back.
+  there: the row grows downwards into the card, the rows below slide down and the card's content fades in (since
+  1.97.1; just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
+  plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃, the bar it sits in or another plane folds it back.
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
