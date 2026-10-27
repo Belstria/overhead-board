@@ -10,6 +10,20 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.96.1 (to-do #122, Dave's pick "brand if same name"; relay 77): **an airline's card is its brand's**. A Wizz Air
+  flight's card showed Wizz Air Malta's facts (the operating company, found by its ICAO code). `/facts?airline=` now
+  answers with the brand's facts and `flownBy: {name, icao}` when the company flies under its group's name;
+  `airlineCard` titles the card with the brand (`me`: its ICAO, IATA from `AIRLINES`, its logo and adsbdb's country and
+  callsign; Spotted and Today add the company's and the brand's), and `infoCard`'s new `via` lines under the band
+  (`.cVia`, `button.cLink.cOvA` as the plane card's airline) say "Flown by Wizz Air Malta ›" (`data-al-own`:
+  `airlineCard({own: true})` → `factsGet("airline-own")`) and "Part of Lufthansa Group ›" (`data-al-org`:
+  `airlineCard({qid, name})` → `factsGet("org")`, a card without codes: no logo, Spotted "/", no favourite buttons).
+  The Fleet box says "Whole brand" when the relay added the brand's companies (`fleetAll`). `brandsOk()`: relay 77.
+- 1.96.1 (to-do #126, Dave: "Yes, merge them"; relay 77): **the Logbook's places at one spot are one place**.
+  `/logbook?place=` takes `same_spot`'s set (as `/sightings` since relay 75), and the whole logbook sends `spots`
+  ({key: its keys at the same spot}). `lbChips` (the board's chips and the app's place bar) gives each spot one place:
+  the place taking the most others gets them (with the old rule's "home" for a place called Home), the others show no
+  chip. A sighting has one place, so the merged numbers have no doubles.
 - 1.95 (to-do #115 and #117): for the app's cards in its lists (shared code): `picHtml(p, cls, over, attrs)` with
   `attrs` (the photo opens something itself) makes only the credit the Planespotters link (`a.cCr`, clickable again:
   `.cardish a.cCr`), and `picFailed` knows that one too; `infoCard` takes `picAttr`, a band given as text (a line,
@@ -1118,6 +1132,26 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 77 (1.96.1, to-do #122): **an airline's brand**. `airline_facts(icao)` finds the company (P230), its parents
+  (`_airline_parents`: current P749 parent organization, then P127 owned by; people dropped; `_part` when P749 or at
+  least half owned) and `_airline_brand`: a parent whose name without a company word (`CORP_TAIL`: Holdings, Group,
+  plc, …) begins the company's name, and the airline of that name (an ICAO code, an English page, not dissolved: the
+  parent itself, else `_wd_title(brand)`, the item of the English page of that name). Then the card is
+  `facts_json("org", brand)` plus `flownBy`, else `facts_json("org", own)`. `org_facts(q)` → `_airline_item_facts`
+  (the old body, also "infobox company") with `icao` and `group` (the first `_part` parent with an English page, else
+  the infobox's parent link: Lauda Europe → Ryanair). A brand's fleet is the whole brand's: the companies with its
+  name under it or under its holding without a page (`_wd_find("P749", …)`) are added when together they outnumber
+  the brand's own page (Wizz Air's page counts only the Hungarian company: 118 + Malta 127 + UK 21 + Abu Dhabi 12;
+  easyJet's 356 already counts its group's), `fleetAll: true`; a company whose page leads back to the brand's (same
+  text: KLM Asia) is left out. `/facts?airline=X&own=1` (`airline-own`) is the company's own card, `/facts?org=Q…`
+  any airline or group by its Wikidata id. `FACTS_VER`: airline answers are kept under `airline2:` so relay 74's
+  subsidiary answers aren't served again. Examples (Wikidata, Oct 2026): Wizz Air Malta, Wizz Air UK → Wizz Air
+  (Q335147, the Hungarian airline; Wizz Air Holdings has no page); easyJet Europe → easyJet (Q191551, easyJet plc);
+  Eurowings Europe → Eurowings; Lufthansa CityLine → Lufthansa; KLM Cityhopper → KLM; Austrian, Swiss, Brussels →
+  their own, part of the Lufthansa Group; Lauda Europe, Malta Air → their own, part of Ryanair; TUI fly → its own.
+- Relay 77 (1.96.1, to-do #126): **`/logbook?place=` takes the places at the same spot together** (`same_spot` for
+  each asked key, merged as relay 40's tuple), and `/logbook` sends `spots` for the place bar. flows.py checks it after
+  the league (a plain `/logbook` asks the league, which would then miss the live player).
 - Relay 76 (1.96, to-do #127): **the simpler points**. `game_note()` scores a plane once a pass: `TIER_BASE //
   GAME_PASSIVE` while `game3.limits` (today's planes by rarity) is within `GAME_LIMIT`, else 0 with a `limit` award
   (`first` on the first one over); it no longer prices a plane again (rule 1's `game_points()`, close-pass top-ups and
@@ -1140,7 +1174,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   centre is within 1 km and whose radius is no larger; "live" stays alone. `sightings_json(place=)` takes that set.
   No doubles: `_record` already keeps a pass seen from two places as one sighting (`by_hex`, `SAME_PASS_S`), so the
   merged list and its day numbers count each pass once (flows.py checks both). The logbook's place views (`/logbook?place=`)
-  still keep places apart.
+  still kept places apart until relay 77.
 - Relay 74 (1.94, to-do #113): **`/facts?model=<Wikipedia page>|airline=<ICAO>|airport=<IATA>`** (profiles only,
   `allow("facts:"…, 2, 20)`, `Cache-Control: private, max-age=3600`; 503 with Retry-After 300 when Wikimedia can't be
   asked and nothing older is kept) → `facts_json(kind, key)`: one lookup per page (`_facts_busy`: a second screen waits

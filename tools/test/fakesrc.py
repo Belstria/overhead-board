@@ -166,7 +166,7 @@ WIKI = {
 | fleet size = 262
 | destinations = 152
 }}"""),
-    # relay 76 (to-do #122): Wizz Air Malta flies under its group's name (the brand's card, its fleet with Malta's and
+    # relay 77 (to-do #122): Wizz Air Malta flies under its group's name (the brand's card, its fleet with Malta's and
     # the UK's); Austrian keeps its own, part of the Lufthansa Group
     "Wizz Air": ("Wizz Air is a Hungarian ultra-low-cost airline.", """{{Infobox airline
 | callsign = WIZZ AIR

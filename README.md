@@ -204,7 +204,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   Wikidata through the home relay (version 74; with an older relay a card shows what it has, in the same layout), the
   fun facts are worked out from them and your logbook (one of 199 built and you've seen 2; wings longer than an
   Olympic pool; the farthest of 40 cities its range reaches from here; flying for 70 years; back after 4 months), and
-  "Spotted" says how often you spotted it: Once, or so many times. On a TV the cards stay pop-ups: the remote's ring
+  "Spotted" says how often you spotted it: Once, or so many times. An airline flying under its group's name (Wizz Air
+  Malta, easyJet Europe, Eurowings Europe) shows the brand's card, with the whole brand's fleet, and **Flown by Wizz
+  Air Malta ›** under the band opens the company's own card; an airline with its own name (Austrian, Lauda Europe)
+  keeps its card and **Part of Lufthansa Group ›** opens the group's (1.96.1, relay 77). On a TV the cards stay pop-ups: the remote's ring
   reaches every button, More info too (OK opens it, Back closes the card). What opens a card is marked: in the app's lists
   a tap opens the plane's own card right in the list (1.95; before, the airline, the places and the type sat in thin grey
   outlines), where the airline, the places and the Aircraft box open theirs, and on the board a thin dotted line runs
@@ -407,7 +410,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
   counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip. Since 1.89 the
   app picks in a bar instead of chips: **All**, **On the go** and **Saved places**, which opens a list of your saved
-  places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). "Counting
+  places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). Since
+  1.96.1 (relay 77) places at the same spot (a centre within 1 km, a radius no larger: "Home" and the profile's "home")
+  are one place, each sighting counted once. "Counting
   since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
 - **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together. This place
   includes your saved places at the same spot (1.95.0.1, relay 75): a phone on your own place and a board on a saved

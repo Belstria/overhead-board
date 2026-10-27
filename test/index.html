@@ -718,7 +718,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;z-index:90;point
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=7a621d1c4d"></script>
+<script src="i18n.js?v=aa2917023e"></script>
 <script>
 (() => {
 "use strict";
@@ -4965,7 +4965,7 @@ const lbPlaceOk = () => !S.demo && relayV5() && (window.OVERHEAD_RELAY_VERSION |
 // 1.47: a place button for each place that still exists. 1.55 (to-do #54): only the saved places and on the go; the
 // profile's own unnamed spot ("home", where its sightings went before it saved places) joins a saved place called Home,
 // else it counts only under All, like a removed place. Each chip: {id (its keys joined by a line break), keys, name, n}.
-// 1.95.1 (to-do #126, relay 76): places at the same spot are one place (the relay's spots, its same_spot rule: centre
+// 1.96.1 (to-do #126, relay 77): places at the same spot are one place (the relay's spots, its same_spot rule: centre
 // within 1 km, radius no larger): the one taking the most others gets them, the others show no chip of their own.
 function lbChips(){
   const lb = lbData() || {}, cnt = new Map((lb.places || []).filter(([k, n]) => n > 0)), spots = lb.spots || {}, list = places.list || [], out = [];
@@ -5857,7 +5857,7 @@ const wikiImg = (src, w) => String(src || "").replace(/\/(\d+)px-/, `/${w}px-`);
    specs, Wikidata), what you spotted from /logbook/spotted and the logbook search; with an older relay a card shows
    what it has, in the same layout. Every fact is real data: none is shown without the numbers behind it. */
 const factsOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 74;
-const brandsOk = () => factsOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 76;     // relay 76: an airline's own facts, a brand's or group's
+const brandsOk = () => factsOk() && (window.OVERHEAD_RELAY_VERSION || 0) >= 77;     // relay 77: an airline's own facts, a brand's or group's
 const factsCache = new Map(), spottedCache = new Map(), planeLogs = new Map();
 // A model's (by its Wikipedia page), an airline's (ICAO code) or an airport's (IATA code) facts: {title, url, text, img, facts}.
 function factsGet(kind, key){
@@ -6438,7 +6438,7 @@ function logoReady(L, ms = 3000){
   return new Promise(r => { const t0 = Date.now(), t = setInterval(() => { if (L.state !== "loading" || Date.now() - t0 > ms) { clearInterval(t); r(); } }, 50); });
 }
 async function airlineCard(x){
-  // 1.95.1 (to-do #122, relay 76): an airline flying under its group's name (Wizz Air Malta) shows the brand's card
+  // 1.96.1 (to-do #122, relay 77): an airline flying under its group's name (Wizz Air Malta) shows the brand's card
   // (Wizz Air: the whole brand's fleet), "Flown by Wizz Air Malta ›" opening its own (x.own); one with its own name
   // (Austrian) keeps its card, "Part of Lufthansa Group ›" opening the group's (x.qid: by its Wikidata id).
   const org = x && x.qid ? x : null, own = !!(x && x.own) && brandsOk();
@@ -7739,6 +7739,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.96.1", date: "2026-10-27", notes: [
+    "An airline flying under its group's name shows the brand's card, with a link to the company that flies it.",
+    "An airline with its own name shows which group it is part of; a tap opens the group's card.",
+    "The Logbook's places at the same spot count as one place.",
+  ]},
   {v: "1.96", date: "2026-10-27", notes: [
     "Simpler points: a plane within 10 km gives a tenth of its rarity's points, up to a daily limit per rarity.",
     "A Sky view scan tops a plane up to its full points, with no limit; only scans earn new types, new airlines and the daily streak.",

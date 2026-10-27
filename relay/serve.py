@@ -60,7 +60,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 76
+RELAY_VERSION = 77
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -6169,7 +6169,7 @@ def _wd_title(title):
     return next(((q, e) for q, e in (j.get("entities") or {}).items() if re.fullmatch(r"Q\d+", q)), (None, {}))
 
 
-# Relay 76 (to-do #122): an airline flying under its group's name (Wizz Air Malta, easyJet Europe, Eurowings Europe,
+# relay 77 (to-do #122): an airline flying under its group's name (Wizz Air Malta, easyJet Europe, Eurowings Europe,
 # Lufthansa CityLine) shows the brand's card, "Flown by" the company; one with its own name (Austrian, Lauda Europe)
 # keeps its own, "Part of" its group. The brand: a parent (P749 parent organization, P127 owned by) whose name without
 # a company word ("Wizz Air Holdings" → "Wizz Air") begins the company's name; the brand's card is the airline of that
@@ -6446,7 +6446,7 @@ def airport_facts(iata):
 
 
 FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airline-own": airline_own_facts, "org": org_facts, "airport": airport_facts}
-FACTS_VER = {"airline": "2"}   # relay 76: an airline's card is its brand's now (to-do #122): relay 74's kept answers are asked again
+FACTS_VER = {"airline": "2"}   # relay 77: an airline's card is its brand's now (to-do #122): relay 74's kept answers are asked again
 
 
 def _facts_cache():
@@ -7542,7 +7542,7 @@ class Handler(BaseHTTPRequestHandler):
             model = re.sub(r"[\x00-\x1f<>\[\]{}|#]", "", (q.get("model") or [""])[0]).strip()[:120]
             airline = re.sub(r"[^A-Z]", "", (q.get("airline") or [""])[0].upper())
             airport = re.sub(r"[^A-Z]", "", (q.get("airport") or [""])[0].upper())
-            org = (q.get("org") or [""])[0].strip().upper()           # relay 76: a brand or group by its Wikidata id
+            org = (q.get("org") or [""])[0].strip().upper()           # relay 77: a brand or group by its Wikidata id
             org = org if re.fullmatch(r"Q\d{1,12}", org) else ""
             own = (q.get("own") or [""])[0] == "1"                     # an airline's own facts, not its brand's ("Flown by")
             kind, key = (("model", model) if model else ("airline-own" if own else "airline", airline) if len(airline) == 3 else
@@ -7710,13 +7710,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places)).encode())
         if path == "/logbook":
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
-            # relay 40: place=a&place=b, merged; relay 76 (to-do #126): with the profile's places at the same spot
+            # relay 40: place=a&place=b, merged; relay 77 (to-do #126): with the profile's places at the same spot
             # (same_spot: "Home" and "home"), each sighting once (one place each)
             mine = places_of(self.guest[0]) if self.guest else []
             keys = sorted(set().union(*(same_spot(self.spot, mine, k) for k in raw))) if all(raw) else []
             place = (keys[0] if len(keys) == 1 else tuple(keys)) if keys else None
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
-            if not place:     # relay 76: each place's others at the same spot, so the place bar shows one place for one spot
+            if not place:     # relay 77: each place's others at the same spot, so the place bar shows one place for one spot
                 ks = {k for k, _ in body.get("places", [])} | {p["k"] for p in mine if isinstance(p, dict) and p.get("k")}
                 body["spots"] = {k: sorted(o) for k in sorted(ks) for o in [same_spot(self.spot, mine, k) or set()] if len(o) > 1}
             if not place and self.guest and isinstance(body.get("game"), dict):

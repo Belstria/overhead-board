@@ -262,7 +262,7 @@ def checks():
     expect("each pass once in the merged list", [a for a, b in zip(seen, seen[1:]) if a[0] == b[0] and b[1] - a[1] < 45 * 60000], [])
     expect("the day's numbers alike", (home.get("stats") or {}).get("planes") == (saved.get("stats") or {}).get("planes"), True)
     expect("a saved place elsewhere keeps its own list", [e for e in away.get("entries", []) if e.get("place") != "Away"], [])
-    # relay 76 (to-do #126): the Logbook too: a place's numbers are its spot's ("home" and "Home" alike, each sighting
+    # relay 77 (to-do #126): the Logbook too: a place's numbers are its spot's ("home" and "Home" alike, each sighting
     # once); the whole logbook (the place bar's spots) is checked after the league, which it would ask before its player
     lb = lambda q="": (lambda r: json.loads(r[2]) if r[0] == 200 else {})(call("/logbook" + q, "test-device"))   # noqa: E731
     h1, h2, aw = lb("?place=home"), lb("?place=Home"), lb("?place=Away")
@@ -363,7 +363,7 @@ def checks():
     expect("the card shows no places", any(k in b.decode() for k in ('"lat"', '"lon"', '"at"', '"place"')), False)
     expect("an unknown player", call("/game/player?id=000000000000", "test-device")[0], 404)
     expect("a player's card for strangers", call("/game/player?id=x")[0] in (401, 403), True)
-    # relay 76 (to-do #126): the place bar learns which places are one spot; no doubles in the spot's numbers
+    # relay 77 (to-do #126): the place bar learns which places are one spot; no doubles in the spot's numbers
     call("/places", "test-device", body={"places": [{"k": "Home", "n": "Vienna", "lat": 48.2085, "lon": 16.3731, "r": 15},
                                                      {"k": "Away", "n": "Linz", "lat": 48.3069, "lon": 14.2858, "r": 15}]})
     al, h1 = lb(), lb("?place=home")
@@ -490,7 +490,7 @@ def checks():
            (st, j.get("title"), f.get("founded"), f.get("commenced"), f.get("hubs"), f.get("alliance"), f.get("fleet"), f.get("destinations"), f.get("employees")),
            (200, "Austrian Airlines", "1957-09-30", "1958-03-31", [{"name": "Vienna International Airport", "code": "VIE"}], "Star Alliance", 65, 121, 5659))
     expect("... its photo from Commons", "/commons/OE-LPM_%40_VIE" in j.get("img", ""), True)
-    # relay 76 (to-do #122): Austrian has its own name: its own card, "Part of" its group; Wizz Air Malta flies under its
+    # relay 77 (to-do #122): Austrian has its own name: its own card, "Part of" its group; Wizz Air Malta flies under its
     # group's: the brand's card (Wizz Air, the whole brand's fleet: its own, Malta's and the UK's), "Flown by" it, and
     # its own facts "Part of Wizz Air"; a group by its Wikidata id
     expect("... Austrian keeps its own card, part of the Lufthansa Group", (j.get("flownBy"), j.get("group")), (None, {"name": "Lufthansa Group", "qid": "Q62589018"}))
