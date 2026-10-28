@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.97.8 (to-do #142, #143, #144, Dave's requests of 28 Oct): **the scan ticket's real tear sound, fireworks from the ticket, the streak's
+  ticket tears too.** `sounds.js` gets `tear` (Zapsplat "raffle rip short", built by `build_sounds.py`'s `tear()`: the MP3
+  decoded to 44.1 kHz mono WAV in `sounds-src/tear.wav`, leading silence dropped so it starts at once, the natural tail
+  kept with a 40 ms fade, 170 ms, peak 0.55 like the buttons' clicks); `gRip()` plays it with `sample("tear")` and keeps
+  its noise burst until the recording is decoded. `gRip` has no other caller. About credits "Ticket tear: Zapsplat
+  (zapsplat.com)". `gLockOn()` no longer plays the sound on a 1.05 s timer: each pass's stub (`gScanPops()` now returns
+  the scan's pass and the streak's, `gPop()` returns its element) calls `gRip()` on its own `animationstart` (the
+  moment `pfTear` begins; a 1.5 s timer as a fallback), and the first one starts the burst with `gBurst(x, y)` at the
+  stub's tear line (its left edge, mid-height, in `#arView` coordinates; `#arBurst` is raised above the passes, z-index
+  56). The streak's pass has `rip: 2` (`.gAw.rip.rip2`: `pfTear` 1.75 s after it appears, 0.7 s after the scan's) and
+  tears with the sound only, one burst per scan. Look and length of the burst are as in 1.96. With reduced motion
+  (the app has no `LITE()` mode) nothing tears: the burst is where it was (in the ring, at once) and the sounds come at 1.05 s
+  and 1.75 s.
 - 1.97.7 (to-do #141, Dave's request of 27 Oct): **back in the web app closes what's open.** `fallblattBack()` was split:
   `backStep()` returns the closing for the top layer (or null; same order as 1.97.5) and `backQuiet(step)` runs it with
   the controls' sounds silenced; the Android handler is unchanged in behaviour. In a browser or installed web app (not

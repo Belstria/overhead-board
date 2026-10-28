@@ -578,7 +578,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
   switch, a thumbwheel and a push button (1.97.2: the big push buttons, the rail and the bottom bar keep their thock; small
   buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick; since 1.97.4 the Logbook's Saved places button, the Sky view buttons and the title's Overhead / Airport switch
-  have the crisp click too); the flaps keep their synthesised clack (credited in About; see
+  have the crisp click too; 1.97.8: a scan's ticket tears with a recorded paper rip, and the daily streak's ticket tears
+  off after it, the fireworks bursting from the first tear); the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
