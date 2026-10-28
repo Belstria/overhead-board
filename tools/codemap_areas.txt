@@ -405,7 +405,7 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow hangarHtml hgWire
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gScanOffer gScanLine
-    gCoins gStyleAt gLevelUp gJingle gRip gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard
+    gCoins gStyleAt gLevelUp gJingle gRip gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
