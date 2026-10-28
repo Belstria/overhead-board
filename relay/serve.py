@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 81
+RELAY_VERSION = 82
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -106,7 +106,7 @@ FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quar
 FILL_AWAY_KM = 30           # relay 66: Flightradar24 fills in what the free sources miss only this far from home,
 FILL_KM = 20                # ... asked about a box this far each way (the radius and a minute's flying: details come first)
 FILL_FT = 10000             # ... for planes up to this high (the free networks hear the higher ones; relay 67: from 15,000)
-FILL_EVERY_S = 30           # ... every 30 s while a screen looks on; every 15 s while a plane it added is within GAME_KM
+FILL_EVERY_S = 30           # ... every 30 s while a screen looks on; every 15 s while a plane it added is within SCAN_KM
 FILL_FAST_S = 15            #     (relay 67: from 20 and 10 s; an answer costs 6 credits for each plane in it)
 FILL_SLOW_S = 300           # ... and every 5 min once 20 answers in a row (ten minutes) had nothing the free sources lacked
 FILL_MAX = 10               # ... at most this many planes an answer (6 credits each, 1 for none)
@@ -542,7 +542,7 @@ def _record(self, planes, lat, lon, key="home", radius=None):
     one sighting, so two devices never count it twice."""
     radius = radius or self.radius()
     if key == "live":
-        radius = max(radius, GAME_KM)       # relay 59: the game's circle is the same for everyone
+        radius = max(radius, GAME_KM)       # relay 59: the game's circle is the same for everyone (relay 82: 15 km)
     now = time.time()
     try:
         lat, lon = float(lat), float(lon)
@@ -1021,7 +1021,8 @@ def game_json(book, day):
 
 # ---------- the game since relay 59 (1.72): only planes spotted with live location score ----------
 # A plane scores once a pass, the first time a phone following its owner (place "live") sees it within GAME_KM, the
-# same circle for everyone whatever their radius. Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
+# same circle for everyone whatever their radius; relay 82 (1.98, to-do #145): passive points within GAME_KM (15 km), the
+# scan only for a plane that came within SCAN_KM (10 km). Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
 # rarity's points (TIER_BASE), for up to GAME_LIMIT planes of each rarity a day; Sky view's scan tops the plane up to its
 # full points, without a limit (relay 79, rule 3: the full points on top of the tenth, also past the limit), and only scans earn the extras (a type or an airline new to the game) and the week's
 # daily streak. Relay 80 (1.97.4, to-do #136, rule 4): the passive points are no longer a tenth but GAME_PASSIVE (5, 10, 15,
@@ -1029,7 +1030,8 @@ def game_json(book, day):
 # part, a small logbook of its own that started empty; the logbook keeps every plane. Never raise GAME3_V: that empties
 # everyone's game.
 GAME3_V = 1
-GAME_KM = 10                # relay 60: 10 km (8 in relay 59)
+GAME_KM = 15                # the passive points' circle (relay 82: 15 km; 10 in relay 60, 8 in relay 59)
+SCAN_KM = 10                # relay 82: the scan's circle (Sky view, the app's tickets; the gap filler's quick refresh)
 GAME_RULE = 4               # the rule a plane was scored by (e["gr"], each award's "r"); older awards stay as they were:
                             # rule 1 before relay 76, rule 2 (relay 76: a scan topped up to the full points), rule 3 (relay
                             # 78: a scan gives the full points on top), rule 4 (relay 80: the passive points of GAME_PASSIVE)
@@ -1095,7 +1097,7 @@ def _next_day_ms(day):
 def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
-            "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM}
+            "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM}
 
 
 def level_of(points):
@@ -1249,6 +1251,21 @@ def game_awards(spot, since):
     return out[-20:]
 
 
+def game_scannable(spot):
+    """Relay 82 (to-do #146): the planes a scan would count for now, newest first: scored, came within SCAN_KM, seen
+    live in the last LOCK_FRESH_S, not scanned yet; each with its rarity, full points and the extras a scan would add
+    ("can"). The app's tickets follow this list, so the relay stays the one judge. Call under _data_lock."""
+    now, g, out = time.time(), game_book(spot.book()), []
+    for e in spot.entries:
+        d = e.get("liveMin")
+        if "gp" not in e or d is None or d > SCAN_KM or e.get("lock") or e.get("scan") or now - e.get("liveSeen", 0) > LOCK_FRESH_S:
+            continue
+        tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
+        out.append({**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": tier, "full": TIER_BASE[tier], "can": _scan_can(g, e),
+                    "km": d, "seen": int(e.get("liveSeen", 0) * 1000), "until": int((e.get("liveSeen", 0) + LOCK_FRESH_S) * 1000)})
+    return out[:12]
+
+
 def _game_best(g, day, e):
     """The week's best plane (the board's league shows it): its points without the streak."""
     wk, total = _monday(day), e["gp"] + e.get("lock", 0)
@@ -1261,7 +1278,7 @@ def _game_best(g, day, e):
 
 def game_lockon(spot, hx):
     """Sky view held a plane in its ring for 1.5 s: the scan (relay 76). Once a pass, for a plane that came within
-    GAME_KM and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
+    SCAN_KM (relay 82; GAME_KM before) and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
     (relay 79; relay 76 topped it up to them); a type or an airline new to the game adds its extra, and the day's first
     scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's)."""
     now = time.time()
@@ -1270,6 +1287,8 @@ def game_lockon(spot, hx):
         e = spot.by_hex.get(str(hx or "").lower())
         if not e or "gp" not in e:
             return {"bonus": 0, "why": "far"}
+        if (99 if e.get("liveMin") is None else e["liveMin"]) > SCAN_KM:    # relay 82: it scored passively (10-15 km), too far out to scan
+            return {"bonus": 0, "why": "closer", "km": e.get("liveMin"), "scanKm": SCAN_KM}
         if now - e.get("liveSeen", 0) > LOCK_FRESH_S:
             return {"bonus": 0, "why": "gone"}
         if e.get("lock") or e.get("scan"):
@@ -1325,7 +1344,7 @@ def game3_json(book, day):
     L = g.get("lock") or {}
     lim = _game_limits(g, day)
     # relay 64: the week's best plane is weekBest; as "best" it hid game_json's best day, which the boards show
-    out.update(v=3, since=g.get("since"), km=GAME_KM, level=lv, title=title, into=into, need=need, week=week,
+    out.update(v=3, since=g.get("since"), km=GAME_KM, scanKm=SCAN_KM, level=lv, title=title, into=into, need=need, week=week,
                planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules())
@@ -2661,7 +2680,7 @@ def _fill_worker():
                     rec["useless"] = 0
                 elif planes:
                     rec["useless"] += 1
-                rec["near"] = any(_dist_km(rec["lat"], rec["lon"], f["lat"], f["lon"]) < GAME_KM for f in missing)
+                rec["near"] = any(_dist_km(rec["lat"], rec["lon"], f["lat"], f["lon"]) < SCAN_KM for f in missing)   # relay 82: the scan's circle
                 rec["planes"], rec["t"] = planes, time.time()
                 for f in missing:
                     if f["hex"] not in rec["first"]:
@@ -8159,11 +8178,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.spot.ensure_day()
                 g = game3_json(self.spot.book(), self.spot.day)
                 aw = game_awards(self.spot, since) if since > 0 else None
+                scan = game_scannable(self.spot)
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
             keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
-                    "lockons", "limits", "resets", "rules")      # relay 76: the limits, the rules; no more combo
+                    "scanKm", "lockons", "limits", "resets", "rules")      # relay 76: the limits, the rules; no more combo
             out = {k: g.get(k) for k in keep}
+            out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
             if aw is not None:
                 out["aw"] = aw                  # relay 76: the awards since ?since= (the app's pop-ups)
             out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],

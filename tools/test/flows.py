@@ -301,9 +301,9 @@ def game_rule_checks(expect):
         expect("a common past the limit: the full 10 from a scan, nothing new", scan(commons[51]), (10, [("scan", 10)]))
         expect("scans have no limit", [scan(e)[0] for e in legs], [500 + 50 + 25, 500, 500, 500])
         expect("the scans counted per type (relay 79; from the start here)", g.get("scanTypes"), None)
-        far = plane("common", "A320", "AUA999", km=12.0)
+        far = plane("uncommon", "A320", "AUA999", km=12.0)
         note(far)
-        expect("a plane beyond 10 km can't be scanned", scan(far), (0, "far"))
+        expect("a plane at 12 km scores (relay 82) but can't be scanned", (far["gp"], scan(far)), (10, (0, "closer")))
 
         def next_day(d, scans=True):
             day[0] = d
@@ -337,6 +337,100 @@ def game_rule_checks(expect):
         serve.board_day = real_day
 
 
+def scan_circle_checks(expect):
+    """Relay 82 (to-do #145, #146): the two circles through record() on a live place: passive points within 15 km, the
+    scan and the list of scannable planes (/game/me's "scan") within 10 km; a live place looks at least 15 km round; a game
+    scored with relay 81's single 10 km circle (rules 3 and 4) keeps every total when relay 82 starts on it."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    real = serve.where_name, serve.watch_of
+    serve.where_name, serve.watch_of = (lambda lat, lon: {}), (lambda hx: None)     # no lookups from here
+    lat, lon = 48.2085, 16.3731
+    try:
+        sp = serve.Spot(Path(tempfile.mkdtemp(prefix="fb-circles-")), None, lambda: 3)
+        sp.ensure_day()
+
+        def ac(hx, km, t="A320", cs="AUA1"):
+            return {"hex": hx, "lat": lat + km / 111.2, "lon": lon, "alt_baro": 3000, "gs": 200, "t": t, "flight": cs}
+
+        def seen(*planes):
+            sp.record(list(planes), str(lat), str(lon), key="live")
+
+        def listed():
+            with serve._data_lock:
+                return [x["hex"] for x in serve.game_scannable(sp)]
+        expect("the circles: passive 15 km, scan 10 km; GAME_RULE, GAME3_V and GAME_V as they were",
+               (serve.GAME_KM, serve.SCAN_KM, serve.GAME_RULE, serve.GAME3_V, serve.GAME_V), (15, 10, 4, 1, 2))
+        seen(ac("a00012", 12), ac("a00016", 16.2, cs="AUA16"), ac("a00008", 8, t="B738", cs="RYR8"))
+        e12, e8 = sp.by_hex.get("a00012"), sp.by_hex.get("a00008") or {}
+        expect("a live place's radius reaches 15 km (a 3 km profile): 12 km logged, 16 km not",
+               (bool(e12), "a00016" in sp.by_hex), (True, False))
+        expect("a live plane at 12 km scores its passive points (5), isn't in the scan list",
+               ((e12 or {}).get("gp"), "a00012" in listed()), (5, False))
+        expect("... and its scan answers: come closer", serve.game_lockon(sp, "a00012").get("why"), "closer")
+        with serve._data_lock:
+            sc = {x["hex"]: x for x in serve.game_scannable(sp)}.get("a00008") or {}
+        expect("a plane at 8 km scores, is in the list with its rarity, full points, extras and time",
+               (e8.get("gp", 0) > 0, sc.get("tier") == e8.get("tier"), sc.get("full") == serve.TIER_BASE.get(sc.get("tier")),
+                sc.get("can"), sc.get("callsign"), sc.get("until", 0) - sc.get("seen", 0)),
+               (True, True, True, {"type": 50, "airline": 25}, "RYR8", 120000))
+        r = serve.game_lockon(sp, "a00008")
+        expect("... its scan works and it leaves the list", (r.get("bonus", 0) > 0, "a00008" in listed()), (True, False))
+        seen(ac("a00012", 9.5))
+        expect("the 12 km plane comes within 10 km: in the list, not priced again", ("a00012" in listed(), e12["gp"], len(e12["ga"])), (True, 5, 1))
+        e12["liveSeen"] -= serve.LOCK_FRESH_S + 1
+        expect("... not seen live for 120 s: out of the list, and the scan says gone", ("a00012" in listed(), serve.game_lockon(sp, "a00012").get("why")),
+               (False, "gone"))
+        g3 = serve.game3_json(sp.book(), sp.day)
+        expect("the game for the app: both circles, the rules too", (g3["km"], g3["scanKm"], g3["rules"]["km"], g3["rules"]["scanKm"]), (15, 10, 15, 10))
+
+        # relay 81's game (one 10 km circle; a rule-3 plane, rule-4 planes, a scan), then relay 82 on it
+        folder = Path(tempfile.mkdtemp(prefix="fb-relay81-"))
+        keep = serve.GAME_KM, serve.SCAN_KM, serve.GAME_RULE, serve.GAME_PASSIVE
+
+        def snap(s):
+            with serve._data_lock:
+                s.ensure_day()
+                serve.game_book(s.book())
+                return [_j.dumps(x, sort_keys=True) for x in (s.book(), s.entries, {k: v for k, v in serve.game3_json(s.book(), s.day).items()
+                                                                                     if k not in ("rules", "km", "scanKm")},
+                                                               serve.game_today(s), serve.game_awards(s, 0))]
+        try:
+            serve.GAME_KM = serve.SCAN_KM = 10
+            old = serve.Spot(folder, None, lambda: 3)
+            old.ensure_day()
+            serve.GAME_RULE, serve.GAME_PASSIVE = 3, {"common": 1, "uncommon": 3, "rare": 10, "epic": 25, "legendary": 50}
+            old.record([ac("b00001", 4, "E195", "BCY1")], str(lat), str(lon), key="live")
+            serve.GAME_RULE, serve.GAME_PASSIVE = keep[2:]
+            old.record([ac("b00002", 6, "A320", "AUA2"), ac("b00003", 9, "A21N", "WZZ3"), ac("b00004", 12, "B738", "RYR4")],
+                       str(lat), str(lon), key="live")
+            serve.game_lockon(old, "b00002")
+            with serve._data_lock:
+                rules = sorted({a["r"] for e in old.entries for a in e.get("ga") or []})
+                pts = serve.game_book(old.book())["points"]
+                old.changed("book", "day")
+                for path, text in old.files():
+                    path.write_text(text)
+            before = snap(old)
+        finally:
+            serve.GAME_KM, serve.SCAN_KM, serve.GAME_RULE, serve.GAME_PASSIVE = keep
+        expect("relay 81's game: rules 3 and 4, the 12 km plane not scored", (rules, "gp" in old.by_hex.get("b00004", {})), ([3, 4], False))
+        new = serve.Spot(folder, None, lambda: 3)
+        expect("relay 82 on it: logbook, sightings, game page, Recent points and awards identical",
+               [x == y for x, y in zip(snap(new), before)], [True] * 5)
+        with serve._data_lock:
+            expect("... the points the same", serve.game_book(new.book())["points"], pts)
+            listed_new = sorted(x["hex"] for x in serve.game_scannable(new))
+        expect("... the unscanned planes within 10 km can be scanned, the scanned one not", listed_new, ["b00001", "b00003"])
+    finally:
+        serve.where_name, serve.watch_of = real
+
+
 def live_hidden_checks(expect):
     """Relay 81 (to-do #140): live_stale() on its own. A live request from a hidden page (bg=1) is stale, though its fix is
     fresh; a saved place and home never are; a page that sends no flag counts as visible."""
@@ -362,6 +456,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     game_rule_checks(expect)
+    scan_circle_checks(expect)
     screens_checks(expect)
     live_hidden_checks(expect)
 
@@ -486,12 +581,15 @@ def checks():
     st, _, b = call("/sightings", "test-device")
     rows = json.loads(b) if st == 200 else []
     rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
-    hx = next((e["hex"] for e in rows if "gp" in e), None)
     rows0 = rows
-    expect("a scored plane in today's list", bool(hx), True)
+    expect("a scored plane in today's list", any("gp" in e for e in rows), True)
+    st, _, b = call("/game/me?since=1", "test-device")
+    me0 = json.loads(b) if st == 200 else {}
+    # relay 82: the planes a scan counts for (within 10 km, seen live in the last 2 min), both circles for the app
+    hx = next((x["hex"] for x in me0.get("scan") or []), None)
+    expect("/game/me: both circles and the scan list (relay 82)", (me0.get("km"), me0.get("scanKm"), bool(hx),
+           all(x.get("km") is not None and x["km"] <= 10 for x in me0.get("scan") or [])), (15, 10, True, True))
     if hx:
-        st, _, b = call("/game/me?since=1", "test-device")
-        me0 = json.loads(b) if st == 200 else {}
         expect("/game/me: the rules, the limits and the awards for the pop-ups (relay 76)",
                ((me0.get("rules") or {}).get("base", {}).get("rare"), (me0.get("limits") or {}).get("common", [0, 0])[1],
                 any(a.get("k") == "pass" and a.get("hex") for a in me0.get("aw", []))), (100, 50, True))
@@ -505,13 +603,15 @@ def checks():
         expect("... the day's first scan brings day 1 of the streak", [x["p"] for x in lk.get("lines", []) if x["k"] == "streak"], [25])
         st, _, b = call("/game/lockon", "test-device", body={"hex": hx})
         expect("the same plane scanned twice", json.loads(b).get("why") if st == 200 else st, "done")
+        st, _, b = call("/game/me", "test-device")
+        expect("... and it left the scan list (relay 82)", hx in [x["hex"] for x in (json.loads(b) if st == 200 else {}).get("scan") or []], False)
     # relay 71: Recent points, today's awards per plane (relay 76: the passive tenth, the scan and its extras); the
     # profile's own only
     today = lambda ck: json.loads(call("/game/today", ck)[2])     # noqa: E731
     td = today("test-device")
     row = next((r for r in td.get("rows", []) if r.get("hex") == hx), {})
     kinds = [a.get("k") for a in row.get("aw", [])]
-    expect("Recent points: the passive points and the scan", ("pass" in kinds, "scan" in kinds, row.get("rule"), [a.get("r") for a in row.get("aw", []) if a.get("k") == "scan"]),
+    expect("Recent points: the passive points (or a limit) and the scan", (bool({"pass", "limit"} & set(kinds)), "scan" in kinds, row.get("rule"), [a.get("r") for a in row.get("aw", []) if a.get("k") == "scan"]),
            (True, True, 4, [4]))
     expect("... add up to the plane's", sum(a["p"] for a in row.get("aw", [])), row.get("gp", 0) + row.get("lock", 0) + row.get("gs", 0))
     expect("... the day's total", td.get("today", 0) > 0 and td.get("planes", 0) >= len(td.get("rows", [])) > 0, True)
@@ -565,7 +665,7 @@ def checks():
     st, _, b = call("/sightings", "test-device")
     rows1 = json.loads(b) if st == 200 else []
     rows1 = rows1.get("entries", rows1) if isinstance(rows1, dict) else rows1
-    hx2 = next((e["hex"] for e in rows1 if "gp" in e and not e.get("scan") and e.get("typeCode")), None)
+    hx2 = next((e["hex"] for e in rows1 if "gp" in e and not e.get("scan") and e.get("typeCode") and (e.get("liveMin") or 0) <= 10), None)
     if hx2:
         lk2 = json.loads(call("/game/lockon", "test-device", body={"hex": hx2})[2])
         if lk2.get("bonus"):

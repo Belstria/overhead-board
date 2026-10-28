@@ -943,6 +943,30 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.98 (to-do #145, #146, Dave's requests of 28 Oct, relay 82): **passive points within 15 km, scans within 10 km, and a
+  scan ticket.** `gKm()` is the passive circle (relay `km`, 15), `gScanKm()` the scan's (`scanKm`, 10; an older relay
+  without it: `gKm()`), `gScanSet()` the hexes of `/game/me`'s `scan` list (cached on `gme`). `gAwards()` no longer pops
+  the passive passes (the `.mini` one and the several-planes one): they show only as the strip's +N (`gGain`); the first
+  plane past a limit keeps its grey pass, without 1.97's scan line (`gScanOffer`, `gScanLine` and the `.scn` chips are
+  gone). The ticket: `gRefresh()` calls `gTixSync(g.scan)`; a hex not in `gTixSeen` (localStorage `od.tix`, hex → time,
+  kept 2 h, so a reload doesn't show it again) gets `gTixShow()`: `gPop({tix: hex, ..., sky, life: TIX_MS})` with
+  `gAwLine()`'s lines (the scan's full points, `can.type`, `can.airline`), the streak as a note while `!gme.scannedToday`
+  (not in the stub's total) and a `<button class="scn">` "Scan in Sky view"; a tap anywhere on it runs `arOpenAt()` and
+  leaves the ticket up (the nav sound only when Sky view is already open: `arOpen()` sounds by itself). A ticket whose
+  plane leaves the list is folded away. `gPop()` is split: `gAwsBox()` (the box in `#arView` while Sky view is open, else
+  the body; `arOpen()`/`arClose()` move it) and `gPassFill(el, o)` (paper, click, `el.out()`, `el.until`, `el.outT`;
+  `o.life`, default 6.5 s). A ticket pushed out by a non-ticket pass goes into `gTixOut` and `gTixBack()` (after any
+  pass leaves) puts it back at the bottom while its 10 s and its plane last; a fourth ticket pushes the oldest out for
+  good. `gTixStack()`: a ticket with a ticket above it gets `.under`, `margin-top: -its height` (with the 12 px gap it
+  peeks out 12 px below the next) and `scale` 0.95/0.90 (the `scale` property, as the slide-in holds `transform`),
+  `z-index` by order. `gScanPops(r)`: the plane's ticket on screen (`data-tix`) is filled again as the scan's pass
+  (moved on top, 10 s from the scan, `.rip`), else a new one; the streak's pass also 10 s. The notices' swipe
+  (1.73.2) takes `#gAws .gAw` too (by the `translate` property; also from its button), clears its timer and calls
+  `gTixBack()`; `el.swiped` stops the tap after a swipe. Sky view's chip: ★ when the plane is in the list or within
+  `gScanKm()` now, CLOSER TO SCAN (dimmed) within `gKm()` now or scored within it, NO PTS beyond; `gLockOn()` shows
+  "Too far to scan …" for the relay's `why: "closer"`. Texts: `arOpen`'s hint, `renderGame`, `gRecentCard`, `gHowCard`.
+  `run_test_relay.py --ring` (`RING=1` in fakesrc.py): AUA171 within 15 km at ~33 s and 10 km at ~56 s, AUA173 passing
+  12 km out from ~68 s.
 - 1.97.8 (to-do #142, #143, #144, Dave's requests of 28 Oct): **the scan ticket's real tear sound, fireworks from the ticket, the streak's
   ticket tears too.** `sounds.js` gets `tear` (Zapsplat "raffle rip short", built by `build_sounds.py`'s `tear()`: the MP3
   decoded to 44.1 kHz mono WAV in `sounds-src/tear.wav`, leading silence dropped so it starts at once, the natural tail
@@ -1249,6 +1273,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 82 (1.98, to-do #145, #146): **two circles.** `GAME_KM` = 15 (the passive points; `_record`'s live radius at
+  least that, `game_note`'s `liveMin`), new `SCAN_KM` = 10: `game_lockon` answers `{why: "closer", km, scanKm}` for a
+  plane scored at 10–15 km (before "gone"); the gap filler's quick refresh (`rec["near"]`, FILL_FAST_S) stays at 10 km
+  (`SCAN_KM`), so its credits don't grow. `game_rules()` and `game3_json` give `km` and `scanKm`. `game_scannable(spot)`:
+  today's scored sightings with `liveMin` ≤ 10, `liveSeen` within `LOCK_FRESH_S`, no `lock`/`scan`, newest first (up to
+  12), each with its `PLANE_KEYS`, `tier`, `full`, `can` (`_scan_can`), `km`, `seen` and `until` (ms); `/game/me` sends it
+  as `scan` (and `scanKm`). Amounts, limits, `GAME_RULE` (4), `GAME3_V`, `GAME_V` unchanged: no award is priced
+  differently. flows.py `scan_circle_checks` (through `Spot.record` on a live place) and a relay-81 game loaded by relay 82.
 - Relay 81 (1.97.6, to-do #140): **a hidden page's live request is stale.** `live_stale(q, place)` is also true for a "live"
   place when the request has `bg` (`bg=1`, sent by `getAircraft` while `document.hidden`; since 1.87.1 for the gap filler).
   So `Spot.take` (sightings, and with them every point, bingo square, medal, level, league week and Recent points award:
