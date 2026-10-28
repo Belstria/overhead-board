@@ -8,7 +8,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const src = fs.readFileSync(process.argv[2] || path.join(__dirname, "../app/main.js"), "utf8");
-const a = src.indexOf("const arPossible"), b = src.indexOf("async function arOpen(){");
+const a = src.indexOf("const arPossible"), b = src.indexOf("async function arOpen(");
 const c = src.indexOf("function arCalCheck("), d = src.indexOf("function arClose(){");
 if (a < 0 || b < 0 || c < 0 || d < 0) throw new Error("main.js changed: Sky view's sensor code not found");
 const PX = 844 / 2 / Math.tan(32 * Math.PI / 180) * Math.PI / 180;   // screen px per degree on a 390x844 phone

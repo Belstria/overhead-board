@@ -1474,9 +1474,44 @@ const AR_FOV = 64;                                   // the back camera's view a
 // a narrower video (square) was cut along its long side too, and sees less.
 function arFocal(W, H){
   const v = $("arVid"), vw = v.videoWidth, vh = v.videoHeight;
-  if (!vw || !vh) return Math.max(W, H) / 2 / Math.tan(AR_FOV / 2 * Math.PI / 180);
+  if (!vw || !vh) return Math.max(W, H) / 2 / Math.tan(AR_FOV / 2 * Math.PI / 180) * arZk * arZc;
   const lo = Math.max(vw, vh), t = Math.tan(AR_FOV / 2 * Math.PI / 180) * Math.min(1, lo / Math.min(vw, vh) * .75);
-  return lo * Math.max(W / vw, H / vh) / 2 / t;
+  return lo * Math.max(W / vw, H / vh) / 2 / t * arZk * arZc;      // 1.99: times the zoom
+}
+/* 1.99 (to-do #161, Dave's request of 28 Oct): ×2 and ×5, for everyone. The camera's own zoom where the browser offers
+   it (getCapabilities().zoom: Chrome on most Android phones), up to its top; the rest (all of it on an iPhone, in
+   Firefox, on a camera without zoom) the picture enlarged round its middle, object-fit: cover kept. arZk: the camera's
+   part (once it has taken it), arZc: the enlargement now, easing to arZcTo (at once with reduced motion or a camera
+   zoom, which jumps). The focal length takes both, so the labels, the sun and moon, the arrows and the drag follow;
+   AUTO and the snapshot read the picture with arZc. A second tap and leaving Sky view go back to ×1. */
+let arZoom = 1, arZk = 1, arZc = 1, arZcTo = 1, arZBase = null, arZSeq = 0;
+async function arZoomSet(z){
+  ctlSound.click();
+  arZoom = arZoom === z ? 1 : z; const seq = ++arZSeq;
+  arZoomBtns();
+  arAutoFinds = []; arAutoLock = null; arAutoPause = Math.max(arAutoPause, Date.now() + 800);   // AUTO looks again at the new size
+  const tr = arStream && arStream.getVideoTracks()[0], cap = tr && tr.getCapabilities ? tr.getCapabilities() : {}, zc = cap.zoom;
+  let k = 1;
+  const cam = !!(zc && zc.max > zc.min);
+  if (cam) {
+    if (arZBase == null) arZBase = tr.getSettings().zoom || Math.max(1, zc.min);
+    try { await tr.applyConstraints({advanced: [{zoom: Math.min(zc.max, Math.max(zc.min, arZBase * arZoom))}]}); } catch {}
+    if (seq !== arZSeq || !arOn) return;
+    k = (tr.getSettings().zoom || arZBase) / arZBase;
+  }
+  dlog("debug", `Sky view: ×${arZoom}${cam ? `, the camera's zoom ×${Math.round(k * 10) / 10} (up to ×${Math.round(zc.max / arZBase * 10) / 10})` : ", the picture enlarged"}`);
+  arZk = k; arZcTo = arZoom / k;
+  if (cam || REDUCED) { arZc = arZcTo; arZoomCss(); }
+}
+function arZoomBtns(){
+  for (const [id, z] of [["arZ2", 2], ["arZ5", 5]]) { const b = $(id); b.classList.toggle("on", arZoom === z); b.setAttribute("aria-pressed", String(arZoom === z)); }
+}
+const arZoomCss = () => { $("arVid").style.transform = arZc === 1 ? "" : `scale(${arZc})`; };
+// Each frame: the enlargement eases to where it is going (about a fifth of a second)
+function arZoomStep(){
+  if (arZc === arZcTo) return;
+  arZc = Math.abs(arZcTo / arZc - 1) < .01 ? arZcTo : arZc * Math.pow(arZcTo / arZc, .25);
+  arZoomCss();
 }
 // 1.75.2: the time the source made the positions (getAircraft's list.now), so the relay's few seconds of keeping them
 // count too; a phone clock far off falls back to when they arrived. Turn rates are measured between two updates.
@@ -1635,7 +1670,7 @@ function arFrame(now){
   if (!arQ) { arQ = p; arQt = now; return; }
   let d = arQ[0] * p[0] + arQ[1] * p[1] + arQ[2] * p[2] + arQ[3] * p[3];
   if (d < 0) { p = p.map(v => -v); d = -d; }
-  const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.exp(-Math.max(ang / .7, deg / 6));
+  const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.sqrt(arZk * arZc) * Math.exp(-Math.max(ang / .7, deg / 6));
   const k = 1 - Math.exp(-Math.min(.2, Math.max(.002, (now - arQt) / 1000)) / tau), m = arQ.map((v, i) => v + (p[i] - v) * k), L = Math.hypot(...m);
   arQ = m.map(v => v / L); arQt = now;
 }
@@ -1667,6 +1702,7 @@ async function arOpen(button){
   arEvN = {abs: 0, rel: 0, ios: 0, motion: 0}; arMo = null; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
   $("arFlag").hidden = !arReportOk(); $("arFlag").classList.remove("sent"); $("arFlag").setAttribute("aria-label", T("Send a report to tune Sky view"));
   arShotAt = 0; arLocked = ""; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
+  $("arZ2").setAttribute("aria-label", T("Zoom in two times")); $("arZ5").setAttribute("aria-label", T("Zoom in five times"));
   arSince = Date.now(); dlog("info", `Sky view opened · ${arList.length} planes around · AUTO ${arAuto ? "on" : "off"}`);
   $("arHint").textContent = T("Hold a plane in the ring for a moment to open it. If the labels sit beside the planes, drag them into place.") +
     (gameOk() && S.live ? " " + T("★ can be scanned for points · CLOSER TO SCAN: more than {s} km away · NO PTS: more than {k} km away.", {s: gScanKm(), k: gKm()}) : "");
@@ -1708,6 +1744,7 @@ function arClose(){
   $("arTour").hidden = true; $("arView").classList.remove("tourBtns"); $("arMoved").hidden = true;
   if (arStream) arStream.getTracks().forEach(t => t.stop());
   arStream = null; $("arVid").srcObject = null;
+  arZoom = arZk = arZc = arZcTo = 1; arZBase = null; arZSeq++; arZoomCss(); arZoomBtns();   // 1.99: back to ×1
   removeEventListener(arEvent(), arOrient); removeEventListener("deviceorientation", arOrient); removeEventListener("devicemotion", arMotion);
   if (arWatch != null && navigator.geolocation) navigator.geolocation.clearWatch(arWatch);
   arWatch = null; cancelAnimationFrame(arRaf);
@@ -1827,6 +1864,7 @@ function arLoop(){
   if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
   const g = cv.getContext("2d");
   g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
+  arZoomStep();                                      // 1.99
   arFrame(performance.now());                        // 1.95.0.2: where the phone points now
   if (!arQ) return;
   const R = arQMatrix(arQ), here = arHere || {lat: S.lat, lon: S.lon}, wx = arWeather();
@@ -1931,7 +1969,7 @@ function arReport(){
     finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
     sun: sun && {az: arR1(sun.az), el: arR1(sun.el), ring: arSunLast && {secs: Math.round((now - arSunLast.t) / 1000), h: arR1(arSunLast.h), p: arR1(arSunLast.p)}},
     moon: moon && moon.el > -.5 ? {az: arR1(moon.az), el: arR1(moon.el)} : null,
-    screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), turned: (screen.orientation && screen.orientation.angle) || 0},
+    screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), zoom: arR1(arZk * arZc), camZoom: arR1(arZk), turned: (screen.orientation && screen.orientation.angle) || 0},
     planes: arShownN,
     // 1.95.0.2: the last 120 gaps between readings and between frames (ms), the readings each frame had, the turn (°/s)
     timing: {ahead: AR_AHEAD, reads: arTim.reads, frames: arTim.frames, fresh: arTim.fresh, turn: arR1(Math.hypot(...arW) * 180 / Math.PI)},
@@ -1966,7 +2004,7 @@ async function arSnap(){
   cv.width = W; cv.height = H + B;
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
   if (v.videoWidth) {                                   // as the screen shows it: the video covers it, cut to fit
-    const k = Math.max(W / v.videoWidth, H / v.videoHeight), w = v.videoWidth * k, h = v.videoHeight * k;
+    const k = Math.max(W / v.videoWidth, H / v.videoHeight) * arZc, w = v.videoWidth * k, h = v.videoHeight * k;
     g.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
   }
   g.drawImage(ov, 0, 0);
@@ -2050,7 +2088,7 @@ function arAutoStep(shown, W, H, avoid, R){
 // Looks for a plane-sized dot in the camera's picture within r of (x, y) on the screen: its screen position, or null.
 // The picture is scaled so the plane (size: its expected span in screen px) comes out about 3 samples across.
 function arFind(v, W, H, x, y, r, size){
-  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh);   // screen px to a video px (cover)
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh) * arZc;   // screen px to a video px (cover; 1.99: enlarged)
   const cx = vw / 2 + (x - W / 2) / s, cy = vh / 2 + (y - H / 2) / s, vr = r / s;
   const x0 = Math.max(0, cx - vr), y0 = Math.max(0, cy - vr), x1 = Math.min(vw, cx + vr), y1 = Math.min(vh, cy + vr);
   const k = Math.min(1, AR_AUTO_N / (2 * vr), 3 / Math.max(1, size / s)), w = Math.round((x1 - x0) * k), h = Math.round((y1 - y0) * k);
@@ -2107,7 +2145,7 @@ function arSunFind(v, R, W, H, sun){
   let top = 0;
   for (let q = 0; q < n; q++) { L[q] = .299 * px[q * 4] + .587 * px[q * 4 + 1] + .114 * px[q * 4 + 2]; if (L[q] > top) top = L[q]; }
   if (top < 245) return null;                        // nothing burnt out: no sun in the picture, or it is behind cloud
-  const T = top - 10, lab = new Uint8Array(n), st = new Int32Array(n), s = Math.max(W / vw, H / vh);
+  const T = top - 10, lab = new Uint8Array(n), st = new Int32Array(n), s = Math.max(W / vw, H / vh) * arZc;
   let best = null, second = 0;
   for (let q0 = 0; q0 < n; q0++) {
     if (lab[q0] || L[q0] < T) continue;
@@ -2251,18 +2289,20 @@ function arHeight(ac, wx){
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
 function arAimDraw(g, W, H){
   const cx = W / 2, cy = H / 2, now = Date.now();
-  const hit = arHits.reduce((a, h) => { const d = Math.hypot(h.x - cx, h.y - cy); return d < AR_AIM_R && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
+  // 1.99: zoomed, the ring catches the same piece of sky as at ×1 (as many times wider); drawn no wider than the screen
+  const catchR = AR_AIM_R * arZk * arZc, R0 = Math.min(catchR, Math.min(W, H) / 2 - 16);
+  const hit = arHits.reduce((a, h) => { const d = Math.hypot(h.x - cx, h.y - cy); return d < catchR && (!a || d < a.d) ? {hex: h.hex, d} : a; }, null);
   const hex = hit ? hit.hex : "";
   if (hex !== arAim.hex) arAim = {hex, since: now, done: hex && hex === arAim.done ? hex : ""};
   const sel = arSel === arWant ? "" : arSel;           // 1.97: the plane Sky view was opened at is picked out, not yet scanned
   const k = hex && hex !== arAim.done && hex !== sel ? Math.min(1, (now - arAim.since) / AR_AIM_MS) : hex === sel && hex ? 1 : 0;
   g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
-  g.beginPath(); g.arc(cx, cy, AR_AIM_R, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.moveTo(cx, cy - AR_AIM_R - 12); g.lineTo(cx, cy - AR_AIM_R + 6); g.moveTo(cx, cy + AR_AIM_R - 6); g.lineTo(cx, cy + AR_AIM_R + 12);
-  g.moveTo(cx - AR_AIM_R - 12, cy); g.lineTo(cx - AR_AIM_R + 6, cy); g.moveTo(cx + AR_AIM_R - 6, cy); g.lineTo(cx + AR_AIM_R + 12, cy); g.stroke();   // 1.76.1: all four sides
+  g.beginPath(); g.arc(cx, cy, R0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.moveTo(cx, cy - R0 - 12); g.lineTo(cx, cy - R0 + 6); g.moveTo(cx, cy + R0 - 6); g.lineTo(cx, cy + R0 + 12);
+  g.moveTo(cx - R0 - 12, cy); g.lineTo(cx - R0 + 6, cy); g.moveTo(cx + R0 - 6, cy); g.lineTo(cx + R0 + 12, cy); g.stroke();   // 1.76.1: all four sides
   if (k > 0) {
     g.strokeStyle = "#f0b429"; g.lineWidth = 5;
-    g.beginPath(); g.arc(cx, cy, AR_AIM_R, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
   }
   arPeekWatch(hex);
   if (hex && k >= 1 && hex !== sel && hex !== arAim.done) {
@@ -2324,7 +2364,7 @@ function arTour(step){
   const drag = `<div class="arTourDrag"><svg class="arTourPlane" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="currentColor"/></svg>` +
     `<div class="arTourLab"><b>OS 411</b><small>A320 · 2,300 m · 6.8 km</small><i class="arTourFinger"></i></div></div>`;
   box.innerHTML = (k === "ring" ? '<i class="arTourRing"></i>' : k === "drag" ? drag : "") +
-    `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
+    `<div class="arTourBox" role="dialog" aria-live="polite"><h3>${escH(T(h))}</h3><p>${escH(T(p))}${k === "btns" ? " " + escH(T("×2 and ×5 zoom in; a second tap goes back.")) : ""}</p><div class="arTourAct"><span>${step + 1} / ${AR_TOUR.length}</span>` +
     (step < AR_TOUR.length - 1 ? `<button class="arTourSkip" type="button">${escH(T("Skip"))}</button>` : "") +
     `<button class="cBtn arNext" type="button">${escH(T(step < AR_TOUR.length - 1 ? "Next" : "Got it"))}</button></div></div>`;
   box.hidden = false;
@@ -2600,6 +2640,7 @@ $("arClose").onclick = arClose;
 $("arShut").onclick = arSnap;
 $("arReset").onclick = () => { ctlSound.click(); arOff = {h: 0, p: 0, v: 2}; arAutoFinds = []; arAutoLock = null; $("arMoved").hidden = true; try { localStorage.removeItem("od.ar.off"); } catch {}
   arHeldAt = 0; arGap = null; };                // 1.86: and north from the compass again, at once
+$("arZ2").onclick = () => arZoomSet(2); $("arZ5").onclick = () => arZoomSet(5);
 { const cv = $("arCv");
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
   cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }

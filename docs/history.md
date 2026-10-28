@@ -943,6 +943,18 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.99 (to-do #161, Dave's request of 28 Oct): **Sky view zooms: ×2 and ×5**, for everyone (not a game unlock).
+  `#arZ2`/`#arZ5` (`.arIb` in `.arZoom`, right, under the top bar; lit with `.on`, `aria-pressed`); `arZoomSet(z)`
+  (a tap on the lit one: ×1). The camera's own zoom where `track.getCapabilities().zoom` exists (`applyConstraints
+  ({advanced: [{zoom}]})` from the zoom it had, `arZBase`, up to its max), the rest a CSS `scale()` of `#arVid`
+  (object-fit: cover kept). `arZk` the camera's part (read back from `getSettings()`), `arZc` the enlargement, easing to
+  `arZcTo` in `arZoomStep` (each frame of `arLoop`; at once with `REDUCED` or a camera zoom). `arFocal` × `arZk·arZc`,
+  so `arProject`/`arUnproject`, the labels, sun and moon rings, edge arrows, the ribbon's frame and the drag follow;
+  `arFind`, `arSunFind` and `arSnap` take screen px per video px × `arZc`. The ring (`arAimDraw`) catches
+  `AR_AIM_R`·zoom px (the same angle as at ×1), drawn no wider than the screen. AUTO keeps running (its search radius
+  and tolerances are angles) but drops its finds and waits 0.8 s on a change. `arFrame`'s held-still smoothing ×
+  √zoom (sky_jitter at ×5: still frame to frame 0.003° instead of 0.005°; 0.35 s instead of 0.16 s to settle after a
+  stop). `arClose` resets to ×1 (`arZSeq` drops a late camera answer). The report sends `zoom` and `camZoom`.
 - 1.98 (to-do #145, #146, Dave's requests of 28 Oct, relay 82): **passive points within 15 km, scans within 10 km, and a
   scan ticket.** `gKm()` is the passive circle (relay `km`, 15), `gScanKm()` the scan's (`scanKm`, 10; an older relay
   without it: `gKm()`), `gScanSet()` the hexes of `/game/me`'s `scan` list (cached on `gme`). `gAwards()` no longer pops

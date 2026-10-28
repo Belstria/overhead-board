@@ -740,6 +740,11 @@ Five buttons along the bottom:
   only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
   and how far off the sun's ring was; no picture and no place), to tune Sky view from real phones; the hint says what
   was sent.
+  **×2 and ×5** (1.99, the round buttons on the right under the top bar): zoom in for a closer look; the one on is lit
+  gold, a second tap goes back to ×1, and so does leaving Sky view. Where the phone's browser offers it (Chrome on most
+  Android phones) the camera zooms itself (sharper); elsewhere (iPhones, other browsers) the picture is enlarged. The
+  labels, rings and arrows stay on the sky, a drag moves them as far as the finger, and the ring catches as much sky as
+  at ×1 (so it is drawn bigger).
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
   plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint (or above the plane's small card): it keeps the sky as on the

@@ -512,7 +512,11 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 /* 1.90: the compass ribbon above the hint (drawn by arRibbon), the report flag lit gold once sent */
 #arView .arRib{position:static;align-self:stretch;width:auto;height:58px;margin-bottom:-6px;pointer-events:none;cursor:default}
 .arIb[hidden]{display:none}
-.arIb.sent{box-shadow:0 0 0 2px var(--amber);color:var(--amber)}
+.arIb.sent,.arIb.on{box-shadow:0 0 0 2px var(--amber);color:var(--amber)}
+/* 1.99: ×2 and ×5 on the right under the top bar (half way down sat on the edge arrows); the one on lit gold */
+.arZoom{position:absolute;right:12px;top:calc(var(--sa-top) + 112px);display:flex;flex-direction:column;gap:10px}
+.arZoom .arIb{font:700 var(--fs-m)/1 var(--f-board)}
+#arView.tourBtns .arZoom{z-index:9}
 #arView .arHint{align-self:stretch;margin:0;padding:10px 12px;border-radius:10px;
   background:rgba(0,0,0,.55);color:var(--c-paper);font:500 var(--fs-s)/1.4 var(--f-board)}
 /* 1.72.2-3: the Sky view card: the small card a lock-on opens (thumbnail, essentials, "swipe up", the line running down
@@ -1142,6 +1146,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
     <button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arIb" type="button" id="arInfo" aria-label="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <button class="arAuto" id="arAuto" type="button" aria-pressed="true"></button>
+  <div class="arZoom"><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
