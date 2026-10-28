@@ -4083,7 +4083,7 @@ function gPop(o){
   if (!box) { box = document.createElement("div"); box.id = "gAws"; }
   if (box.parentNode !== host) host.appendChild(box);
   const el = document.createElement("div");
-  el.className = "gAw" + (o.mini ? " mini" : "") + (o.rip ? " rip" : "");
+  el.className = "gAw" + (o.mini ? " mini" : "") + (o.rip ? " rip" + (o.rip > 1 ? " rip2" : "") : "");
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
     (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
     (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
@@ -4094,6 +4094,7 @@ function gPop(o){
   const out = () => { if (!el.isConnected || el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 350); };
   el.onclick = () => { out(); if (o.scan) arOpenAt(o.scan.hex, o.scan.flight); };
   setTimeout(out, o.scan ? 8000 : o.mini ? 3500 : 6500);
+  return el;
 }
 /* 1.97 (to-do #133, Dave's pick B): a plane's pass, while a scan would still count (seen live in the last 120 s), gets a
    perforated second line: a tap opens Sky view with the plane picked out. It promises only what is sure: the plane's
@@ -4132,17 +4133,19 @@ function gAwards(list, quiet){
   }
 }
 // Sky view's scan: the scan's pass (the top-up and the extras), then the streak's on top of it at the day's first scan.
+// Returns the passes that tear their stub off, in the order they do (1.97.8: the streak's tears a moment after the scan's).
 function gScanPops(r){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
-  gPop({kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
+  const pass = gPop({kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
     lines: main.map(a => gAwLine({tier: r.tier, ...a}, f)), stub: T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true});
-  if (!stk) return;
+  if (!stk) return [pass];
   const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
   const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
-  gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p,
+  const pass2 = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: 2,
     note: wd < 6 ? T("Your first scan today. Scan a plane tomorrow for +{p}.", {p: nf.format(per * (stk.n + 1))}) : T("It starts again on Monday at 03:00, with the league.")});
+  return [pass, pass2];
 }
 // A little shower of coins when points land (with the button sounds on).
 function gCoins(){
@@ -4182,6 +4185,7 @@ function gJingle(){
 }
 function gRip(){
   if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
+  if (sample("tear", actx.currentTime, .9)) return;                  // 1.97.8: a real paper rip; the noise below until it is decoded
   const n = actx.createBuffer(1, actx.sampleRate * .25, actx.sampleRate), d = n.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < .35 ? 1 : .25) * (1 - i / d.length);
   const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
@@ -4376,6 +4380,15 @@ function medalNudge(g0){
 // Sky view held a plane in its ring for 1.5 s: the scan (relay 76; a lock-on before). Once a pass, without a limit, it
 // tops the plane up to its full points, with the extras and the day's streak: their passes slide up from below
 // (gScanPops), with a burst in the ring, the prize jingle and a buzz.
+// The scan's fireworks: eighteen sparks round a point in Sky view (x, y in #arView), the ring by default.
+function gBurst(x, y){
+  let burst = $("arBurst");
+  if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
+  burst.style.left = x == null ? "" : x + "px"; burst.style.top = y == null ? "" : y + "px";
+  const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
+  burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
+  clearTimeout(gBurst.t); gBurst.t = setTimeout(() => { burst.innerHTML = ""; }, 1200);
+}
 async function gLockOn(hex){
   if (!gameOk() || !S.live) return;
   let r;
@@ -4387,14 +4400,28 @@ async function gLockOn(hex){
     if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }
     return;
   }
-  gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r});
-  let burst = $("arBurst");
-  if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
-  const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
-  burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
-  gJingle(); setTimeout(gRip, 1050);                                // 1.97.1.1: the scan pass's stub tears off again (CSS .rip)
+  const passes = gScanPops({hex, callsign: String(ac.flight || "").trim(), reg: ac.r || "", typeCode: ac.t || "", ...r});
+  gJingle();
+  // 1.97.8: each stub tears off (CSS .rip, 1.97.1.1; the streak's .rip2 0.7 s after the scan's) with the paper sound at the
+  // moment it comes off (its animationstart), and the burst starts at the scan's tear line. With reduced motion there is no
+  // tear: the burst stays where it was, in the ring, at once, and the sounds come on the same count.
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (still) gBurst();
+  passes.forEach((pass, i) => {
+    const stub = pass && pass.querySelector(".stub");
+    if (!stub || still) { setTimeout(gRip, 1050 + i * 700); return; }
+    let torn = false;
+    const tear = () => {
+      if (torn) return;
+      torn = true; gRip();
+      if (i || !stub.isConnected) return;
+      const a = stub.getBoundingClientRect(), v = $("arView").getBoundingClientRect();
+      gBurst(a.left - v.left, a.top - v.top + a.height / 2);
+    };
+    stub.addEventListener("animationstart", tear, {once: true});
+    setTimeout(tear, 1500 + i * 700);                              // no animationstart (the page hidden): the sound at least
+  });
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
-  setTimeout(() => { burst.innerHTML = ""; }, 1200);
   setTimeout(() => gRefresh(true), 2500);
 }
 function gameStart(){

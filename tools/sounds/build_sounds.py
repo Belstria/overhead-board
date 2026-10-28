@@ -56,6 +56,16 @@ def click(name, at_ms, length_ms, fade_ms, to=.7):
     return [audio.halve(audio.normalise(audio.trim_tail(clip, rate), to))], rate // 2
 
 
+def tear(name, fade_ms, to=.7):
+    """The scan ticket's paper rip (1.97.8, Zapsplat): the leading silence dropped, so it starts the moment it is played,
+    the natural tail kept (the quiet end dropped, a short fade-out). The MP3 is decoded to a 44.1 kHz mono WAV first."""
+    x, rate = audio.read_mono(SRC / name)
+    a = next(i for i, v in enumerate(x) if abs(v) > .01)
+    clip = audio.trim_tail(x[max(0, a - int(rate * .002)):], rate)
+    clip = audio.cut(clip, rate, 0, pre_ms=0, length_ms=len(clip) * 1000 / rate, fade_ms=0)
+    return [audio.halve(audio.normalise(audio.fade_out(clip, rate, fade_ms), to))], rate // 2
+
+
 def barks(name, start_s, end_s, fade_ms, gate_at):
     """The Airbus "barking dog" (1.49): the PTU's bark-bark-bark with the cabin's hum between the barks turned down
     (a high-pass for the rumble, then a gentle gate), faded out at the end, at a quarter of the rate (11 kHz: it is all
@@ -90,6 +100,8 @@ def main():
         "click": lambda: click("tech-click.wav", 357, 60, 22),
         # navigation (Pixabay 463065, "immersivecontrol button click"): a 10 ms tick, 24 ms into the recording
         "nav": lambda: click("nav-click.wav", 24, 40, 8),
+        # the scan ticket's tear (Zapsplat, 1.97.8): the stub comes off
+        "tear": lambda: tear("tear.wav", 40, .73),
         "dog": lambda: barks("arunangshubanerjee-airbus-ptu-barking-dog.wav", 3.9, 7.25, 1000, .12),   # About, tapped 7 times
     }
     OUT.mkdir(exist_ok=True)

@@ -1092,7 +1092,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .pF .stub em{display:block;width:52px;height:16px;margin-top:4px;background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 3px,currentColor 3px 4px,transparent 4px 6px);opacity:.85}
 @keyframes pfTear{0%{transform:none}12%{transform:translate(2px,1px) rotate(3deg)}30%{transform:translate(10px,-4px) rotate(11deg)}100%{transform:translate(70px,-320px) rotate(38deg) scale(.55);opacity:0}}
 .pF .combo{font:700 var(--fs-tag)/1 var(--f-board);color:var(--t1)}
-#arBurst{position:absolute;left:50%;top:42%;width:0;height:0;z-index:3;pointer-events:none}
+#arBurst{position:absolute;left:50%;top:42%;width:0;height:0;z-index:56;pointer-events:none}
 #arBurst i{position:absolute;left:-4px;top:-4px;width:8px;height:16px;border-radius:2px;animation:pfSpark .9s ease-out forwards}
 @keyframes pfSpark{0%{opacity:1;transform:rotate(var(--r)) translateY(0)}100%{opacity:0;transform:rotate(var(--r)) translateY(-120px)}}
 /* 1.96 (to-do #127, Dave's pick B): the points passes slide up from below, over the tab bar (in Sky view over its
@@ -1105,6 +1105,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 @keyframes gAwOut{to{opacity:0;transform:translateY(40px)}}
 .gAw .pF,.gAw .pF .stub{animation:none}
 .gAw.rip .pF .stub{animation:pfTear 1.1s 1.05s cubic-bezier(.5,0,.7,.4) forwards}  /* 1.97.1.1: the scan's stub tears off, as before 1.96 */
+.gAw.rip2 .pF .stub{animation-delay:1.75s}  /* 1.97.8: the streak's, after the scan's */
 .gAw .pF .main{width:250px}
 .gAw .who{display:flex;align-items:baseline;gap:8px;padding:8px 12px 2px;min-width:0}
 .gAw .who b{font:700 var(--fs-xl)/1 var(--f-board);color:#111;white-space:nowrap}

@@ -536,6 +536,7 @@ window.I18N_ROWS = [
     "Sonidos: interruptor y pulsador de joedeshon (CC BY 4.0) y mando giratorio de shewbox (CC BY 3.0), de freesound.org; botón de EAGLAXLE, campanilla de cabina y el «perro que ladra» del Airbus de arunangshubanerjee (licencia de contenido de Pixabay). Pictogramas de despegue y aterrizaje: Tabler Icons (MIT).",
     "Geluiden: schakelaar en drukknop van joedeshon (CC BY 4.0) en draaiknop van shewbox (CC BY 3.0), van freesound.org; knop van EAGLAXLE, cabinegong en de 'blaffende hond' van de Airbus van arunangshubanerjee (Pixabay-contentlicentie). Pictogrammen voor opstijgen en landen: Tabler Icons (MIT)."],
   ["Button and navigation clicks: Pixabay (Pixabay Content License).", "Klicks für Tasten und Navigation: Pixabay (Pixabay Content License).", "Clics des boutons et de la navigation : Pixabay (Pixabay Content License).", "Clics de botones y navegación: Pixabay (Pixabay Content License).", "Klikgeluiden voor knoppen en navigatie: Pixabay (Pixabay Content License)."],
+  ["Ticket tear: Zapsplat (zapsplat.com)", "Ticket-Riss: Zapsplat (zapsplat.com)", "Déchirure du ticket : Zapsplat (zapsplat.com)", "Rasgado del billete: Zapsplat (zapsplat.com)", "Scheuren van het ticket: Zapsplat (zapsplat.com)"],
   ["Not signed in", "Nicht angemeldet", "Non connecté", "Sin iniciar sesión", "Niet aangemeld"],
   ["How do you want to watch?", "Wie möchtest du zuschauen?", "Comment voulez-vous regarder ?", "¿Cómo quieres verlo?", "Hoe wil je kijken?"],
   ["Phone app", "Handy-App", "Appli téléphone", "App del móvil", "Telefoon-app"],
