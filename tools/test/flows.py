@@ -14,7 +14,7 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
   fresh one does; a hidden page's (bg=1, relay 81) like a stale one, only for a live place; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
-- bingo lines and trophies pay once (relay 83): a line +100, the full card +500, a rank 50 to 250, a one-off 100; earlier
+- bingo lines and trophies pay once (relay 83): a line +50, the full card +500, a rank 50 to 250, a one-off 100; earlier
   wins unpaid, every total kept; a restart, a rescore and the backfills pay nothing again; a new card each Monday
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
@@ -342,7 +342,7 @@ def game_rule_checks(expect):
 
 
 def bingo_trophy_checks(expect):
-    """Relay 83 (to-do #147): bingo lines and trophies pay, once: a line +100, the full card +500 more, a trophy's rank
+    """Relay 83 (to-do #147): bingo lines and trophies pay, once: a line +50, the full card +500 more, a trophy's rank
     by its medal (50 to 250), a one-off trophy +100; on the plane that won them (Recent points), in the day, the week
     (the league) and the level. Only wins from now on: a game with lines and trophies won by relay 82 keeps every total
     when relay 83 starts on it; a restart, a rescore of the logbook from its saved days and the trophies' backfill pay
@@ -432,33 +432,33 @@ def bingo_trophy_checks(expect):
                ("2026-10-26", [1], {"lines": 1, "card": False}))
         pts0 = g["points"]
         rows = [plane(sp, k) for k in ("newtype", "turboprop", "low")]
-        expect("a line made: +100 on the plane that made it, once", [paid(e) for e in rows], [[], [], [("bingo", 100, 0)]])
+        expect("a line made: +50 on the plane that made it, once", [paid(e) for e in rows], [[], [], [("bingo", 50, 0)]])
         expect("... in the plane's gb, the points, the day", (rows[2]["gb"], g["points"], g["days"][day[0]]),
-               (100, pts0 + 15 + 100, day0 + 5 + 15 + 100))
+               (50, pts0 + 15 + 50, day0 + 5 + 15 + 50))
         gulf, fast = plane(sp, "gulf"), plane(sp, "fast")
         expect("the left column and a diagonal, then the middle column", (paid(gulf), paid(fast)),
-               ([("bingo", 100, 3), ("bingo", 100, 7)], [("bingo", 100, 4)]))
+               ([("bingo", 50, 3), ("bingo", 50, 7)], [("bingo", 50, 4)]))
         pts0 = g["points"]
         last = plane(sp, "private")
-        expect("the full card: three lines +100, the card +500, the Full card trophy +100",
-               paid(last), [("bingo", 100, 2), ("bingo", 100, 5), ("bingo", 100, 6), ("card", 500, None), ("trophy", 100, "fullcard")])
-        expect("... 900 more, and the Bingo trophy (won before) never paid",
-               (g["points"] - pts0, last["gb"], sorted(g["trophyPaid"])), (5 + 900, 900, ["fullcard"]))
+        expect("the full card: three lines +50, the card +500, the Full card trophy +100",
+               paid(last), [("bingo", 50, 2), ("bingo", 50, 5), ("bingo", 50, 6), ("card", 500, None), ("trophy", 100, "fullcard")])
+        expect("... 750 more, and the Bingo trophy (won before) never paid",
+               (g["points"] - pts0, last["gb"], sorted(g["trophyPaid"])), (5 + 750, 750, ["fullcard"]))
         again = plane(sp, "private")
         expect("the card done: nothing more this week; the points it brought win High scorer (1,000 points, bronze) +50",
                (paid(again), sorted(g["bingoPay"]["lines"])), ([("trophy", 50, "points1k")], list(range(8))))
-        total = 11 * 5 + 7 * 100 + 500 + 100 + 50
+        total = 11 * 5 + 7 * 50 + 500 + 100 + 50
         g3 = serve.game3_json(sp.book(), day[0])
         with serve._data_lock:
             b = serve.bingo_json(sp, day[0])
         expect("the day, the week (the league's) and the level count them", (g["days"][day[0]], g3["week"], g3["level"]),
                (total, total, serve.level_of(total)[0]))
         expect("bingo_json: the lines and the card that paid; game3_json: the trophies that paid",
-               (b["paid"], g3["trophyPaid"]), ({"lines": 7, "full": True, "line": 100, "card": 500},
+               (b["paid"], g3["trophyPaid"]), ({"lines": 7, "full": True, "line": 50, "card": 500},
                                                {"fullcard": 100, "points1k": 50}))
         row = next(r for r in serve.game_today(sp)["rows"] if r["hex"] == last["hex"])
         expect("Recent points: the plane's gb and its awards", (row["gb"], [a["k"] for a in row["aw"]]),
-               (900, ["pass", "bingo", "bingo", "bingo", "card", "trophy"]))
+               (750, ["pass", "bingo", "bingo", "bingo", "card", "trophy"]))
         # a restart, then a rescore of the logbook and the trophies' backfill: nothing paid again
         save(sp)
         before = snap(sp)
@@ -504,7 +504,7 @@ def bingo_trophy_checks(expect):
         first = plane(sp)
         expect("Monday: a new card, nothing paid", (paid(first), g["bingoPay"]["week"], g["bingoPay"]["lines"]), ([], "2026-11-02", []))
         row0 = [plane(sp, k) for k in card2[:3]]
-        expect("... its top row pays +100 again", paid(row0[2])[:1], [("bingo", 100, 0)])
+        expect("... its top row pays +50 again", paid(row0[2])[:1], [("bingo", 50, 0)])
         save(sp)
     finally:
         serve.board_day, serve._game_bingo, serve._game_trophies = real_day, real_bingo, real_tro

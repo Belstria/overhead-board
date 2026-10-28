@@ -1292,7 +1292,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
-- Relay 83 (1.100, to-do #147): **bingo lines and trophies pay.** `GAME_BINGO` {line: 100, card: 500}, `GAME_MEDAL`
+- Relay 83 (1.100, to-do #147): **bingo lines and trophies pay.** `GAME_BINGO` {line: 50, card: 500} (Dave, 29 Oct: all 8 lines count, so 50 a line; a full card 8 × 50 + 500 = 900), `GAME_MEDAL`
   [50 … 250] (a ladder's rank by its place among `TROPHY_LADDER`'s ids of the same count, `_trophy_pts`), `GAME_SINGLE`
   100; all in `game_rules()`. `game_note` (a new plane) calls `_game_bingo` and `_game_trophies` after `trophy_check`; a
   closer pass's `trophy_pass` wins go to `_game_trophies` too. `_game_pay` puts the points on the plane (`gb`, sent by

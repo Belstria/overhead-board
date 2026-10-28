@@ -496,10 +496,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
   day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
   league. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
-  (from then on; earlier wins stay unpaid): +100 for each line on the weekly bingo card and +500 more for the full card,
+  (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
-  card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +100",
+  card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +50",
   "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only on the
   score strip** (its +N). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
   boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
