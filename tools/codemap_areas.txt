@@ -403,8 +403,8 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark #gameBox .rpList .gHow
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow hangarHtml hgWire
-    hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gScanOffer gScanLine
+    hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gme gmeAt gBusy
+    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gStyleAt gLevelUp gJingle gRip gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
