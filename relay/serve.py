@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 82
+RELAY_VERSION = 83
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -986,6 +986,10 @@ def bingo_json(spot, day):
             spot.changed("book")
     nxt = datetime.datetime.combine(monday + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
     out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
+    st = book.get("bingoPay") or {}
+    if st.get("week") == monday.isoformat():    # relay 83: the lines and the card that paid (the latest ones), and what
+        had = st.get("had") or {}
+        out["paid"] = {"lines": len(st.get("lines") or []) - had.get("lines", 0), "full": bool(st.get("card") and not had.get("card")), **GAME_BINGO}
     spot._bingo = (key, out)
     return out
 
@@ -1040,6 +1044,9 @@ GAME_PASSIVE = {"common": 5, "uncommon": 10, "rare": 15, "epic": 25, "legendary"
 GAME_LIMIT = {"common": 50, "uncommon": 30, "rare": 15, "epic": 5, "legendary": 3}    # passive planes a day per rarity
 GAME_NEW = (("type", 50), ("airline", 25))          # at the first scan of a type or an airline new to the game
 GAME_STREAK = 25            # the day's first scan: +25 × the day of the week's streak (25 … 175)
+GAME_BINGO = {"line": 100, "card": 500}    # relay 83 (to-do #147): a bingo line made, and the full card on top
+GAME_MEDAL = [50, 100, 150, 200, 250]       # relay 83: a trophy's new rank, by its medal (bronze to diamond)
+GAME_SINGLE = 100                           # relay 83: a one-off trophy
 GAME1_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))   # rule 1's extras (Recent points of the switch day)
 LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
@@ -1097,7 +1104,8 @@ def _next_day_ms(day):
 def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
-            "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM}
+            "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
+            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE}
 
 
 def level_of(points):
@@ -1171,17 +1179,104 @@ def game_note(spot, e):
             _game_award(e, "limit", 0, tier=tier, n=k, first=k == GAME_LIMIT[tier] + 1, **({"can": can} if can else {}))
         _game_add(g, day, e["gp"])
         note_records(g, e)
-        for t in trophy_check(g, e, [x for x in spot.entries if "gp" in x]):
+        won = trophy_check(g, e, [x for x in spot.entries if "gp" in x])
+        for t in won:
             event("info", f"Trophy won: {t}", echo=False)
         _game_best(g, day, e)
+        _game_bingo(spot, g, day, e)
+        _game_trophies(g, day, e, won)
     else:
         if d >= e.get("gMin", 99) - 0.05:
             return False
         e["gMin"] = d
         note_records(g, e)
-        trophy_pass(g, e)
+        won = []
+        trophy_pass(g, e, None, won)
+        _game_trophies(g, day, e, won)
     spot.changed("book")
     return True
+
+
+def _trophy_pts(k):
+    """Relay 83: what a trophy pays and its rank: a ladder's rank by its place in the ladder (the app's medals, bronze
+    to diamond), a one-off GAME_SINGLE (rank None)."""
+    if k in TROPHY_LADDER:
+        rungs = [x for x, (what, _) in TROPHY_LADDER.items() if what == TROPHY_LADDER[k][0]]
+        i = rungs.index(k)
+        return GAME_MEDAL[min(i, len(GAME_MEDAL) - 1)], i
+    return GAME_SINGLE, None
+
+
+def _game_pay(g, day, e, kind, pts, **more):
+    """Relay 83: points that came with a plane but aren't its own (a bingo line, a trophy): its "gb", its award, the day."""
+    e["gb"] = e.get("gb", 0) + pts
+    _game_award(e, kind, pts, **more)
+    _game_add(g, day, pts)
+
+
+def _game_trophies(g, day, e, won):
+    """Relay 83 (to-do #147): the game's trophies this plane just won pay, once each (trophy_check and trophy_pass
+    return only one not won before, so one won before relay 83 never pays): a "trophy" award on the plane, and
+    "trophyPaid" {id: points} for the app's pop-ups."""
+    paid = g.setdefault("trophyPaid", {})
+    for k in won:
+        if k not in paid:
+            pts, rank = _trophy_pts(k)
+            paid[k] = pts
+            _game_pay(g, day, e, "trophy", pts, n=k, **({"m": rank} if rank is not None else {}))
+
+
+def _bingo_pay_state(spot, g, day, e):
+    """Relay 83: this week's bingo as the game has paid it, {"week", "done": [goals], "lines": [line indices paid],
+    "card": paid}, made from the saved days when the week is new to it (without what plane e did: that comes next).
+    The very first time (the relay update) the lines and the card done before count as paid: only wins from now on pay."""
+    wk = _monday(day)
+    st = g.get("bingoPay")
+    if isinstance(st, dict) and st.get("week") == wk:
+        return st
+    first = not isinstance(st, dict)
+    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), day, live=True)
+    done = {k for k, ts in done.items() if ts != e.get("ts")}
+    st = g["bingoPay"] = {"week": wk, "done": sorted(done), "lines": [], "card": False}
+    if first:
+        st["lines"] = [i for i, ln in enumerate(BINGO_LINES) if all(card[j] in done for j in ln)]
+        st["card"] = len(done) == 9
+        st["had"] = {"lines": len(st["lines"]), "card": st["card"]}     # counted, never paid
+        got = g.setdefault("trophies", {})
+        for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+            if ok and k not in got:             # won before: kept, unpaid
+                got[k] = int(time.time() * 1000)
+    return st
+
+
+def _game_bingo(spot, g, day, e):
+    """Relay 83 (to-do #147): each bingo line this plane completed pays GAME_BINGO["line"], the full card
+    GAME_BINGO["card"] more; once a week each (g["bingoPay"]). The Bingo and Full card trophies are won here too, on
+    the plane (bingo_json only catches up on one this missed)."""
+    st = _bingo_pay_state(spot, g, day, e)
+    card = random.Random("fallblatt-" + st["week"]).sample(sorted(BINGO), 9)
+    done = set(st["done"])
+    for k in card:
+        if k not in done:
+            try:
+                if BINGO[k](e):
+                    done.add(k)
+            except Exception:
+                pass
+    st["done"] = sorted(done)
+    for i, ln in enumerate(BINGO_LINES):
+        if i not in st["lines"] and all(card[j] in done for j in ln):
+            st["lines"].append(i)
+            _game_pay(g, day, e, "bingo", GAME_BINGO["line"], n=i)
+    if len(done) == 9 and not st["card"]:
+        st["card"] = True
+        _game_pay(g, day, e, "card", GAME_BINGO["card"])
+    got, won, ts = g.setdefault("trophies", {}), [], e.get("ts") or int(time.time() * 1000)
+    for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+        if ok and k not in got:
+            got[k] = ts
+            won.append(k)
+    _game_trophies(g, day, e, won)
 
 
 def _scan_airline(e):
@@ -1202,13 +1297,14 @@ def _game_award(e, kind, pts, **more):
     kinds: "pass" (the passive points), "limit" (nothing: past the rarity's limit), "scan" (Sky view's scan: rule 2 its
     top-up, rule 3 the full points on top), "new" (a type or an airline at its first scan), "streak" (the day's first
     scan); each with its rule ("r"). Rule 1's were "first", "close", "fix" and "lock". Relay 79: "pass" and "limit" carry
-    "can", the extras a scan would add then."""
+    "can", the extras a scan would add then. Relay 83: "bingo" (a line, "n" its index in BINGO_LINES), "card" (the
+    full card) and "trophy" ("n" its id, "m" a ladder's rank from 0), paid with the plane that won them (its "gb")."""
     a = {"t": int(time.time() * 1000), "k": kind, "p": pts, "r": GAME_RULE, **more}
     if kind in ("pass", "limit") and e.get("liveMin") is not None:
         a["d"] = round(e["liveMin"], 1)
     aw = e.setdefault("ga", [])
     aw.append(a)
-    del aw[:-8]
+    del aw[:-12]
 
 
 PLANE_KEYS = ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg", "typeCode", "desc", "aircraftType", "manufacturer")
@@ -1230,7 +1326,7 @@ def game_today(spot):
             aw = [dict(a) for a in e.get("ga") or []]
             # the fields the boards' fromRelay() names a plane from, so it reads as in Spotted today
             r = {**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": e.get("tier") or "", "km": e.get("liveMin"),
-                 "gp": e["gp"], "lock": e.get("lock", 0), "gs": e.get("gs", 0), "rule": e.get("gr", 1), "ts": e.get("ts"), "aw": aw}
+                 "gp": e["gp"], "lock": e.get("lock", 0), "gs": e.get("gs", 0), "gb": e.get("gb", 0), "rule": e.get("gr", 1), "ts": e.get("ts"), "aw": aw}
             if r["rule"] < 2:
                 r.update(base=TIER_BASE.get(e.get("tier"), 30), new=[[k[4:].lower(), v] for k, v in GAME1_NEW if e.get(k)],
                          gk=e.get("gk") or 1.0, gn=e.get("gn") or 1)
@@ -1347,7 +1443,8 @@ def game3_json(book, day):
     out.update(v=3, since=g.get("since"), km=GAME_KM, scanKm=SCAN_KM, level=lv, title=title, into=into, need=need, week=week,
                planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
-               limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules())
+               limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
+               trophyPaid=g.get("trophyPaid") or {})
     return out
 
 
