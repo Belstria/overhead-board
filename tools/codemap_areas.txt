@@ -421,17 +421,17 @@ tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: 
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
 [skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
-tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arAuto .arTour
+tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arAuto .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
     .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAuto #arBtn #arBtn2 #arCal #arCard
-    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #look #lookDir
+    #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
     #lookSub #skyB #skyRow #skySub
 tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
     drawTape lookSoon lookHeadingFrom lookStart arPossible arOn arSince arStream arList arListAt arQ arQt arGap arGapT
     arWatch arHere arRaf arDrag arHits arSel arOff arDec arHintText arAlt arOffSave AR_AIM_R AR_AIM_MS arAim arRaw
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
-    arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arTurns
+    arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arZoom arZk arZc arZcTo arZBase arZSeq arZoomSet arZoomBtns arZoomCss arZoomStep arTurns
     arFeed arEvent arQuat arQMatrix wrap180 arYaw arOrient arGapStep arGyroStep AR_AHEAD arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurn arFrame arHold arOpen arWant arOpenAt arCalCheck
     arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arLoop arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N arAuto
