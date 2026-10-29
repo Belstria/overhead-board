@@ -1372,7 +1372,7 @@ const hgBad = new Set();                                         // photos that 
 function hangarLoad(){
   if (!hangarOk() || Date.now() - hangarAt < 5 * 60000) return;
   hangarAt = Date.now();
-  fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
+  fetchJSON(`${relay()}/game/hangar`, {}, 12000).then(j => { hangar = j; renderGame(); if (hgWant && Date.now() - hgWant < 15000) requestAnimationFrame(hgShow); }).catch(() => { hangarAt = Date.now() - 4 * 60000; });
 }
 // 1.82.2: names as the app's table has them (the relay's are "AIRBUS A-320neo", which Wikipedia doesn't know), the relay's
 // as a second try; the model photo already found for them, else "".
@@ -1391,36 +1391,48 @@ const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 80
 function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
 /* 1.105 (to-do #149, Dave's pick A "metal frames", without its medal on the shelf): mastery. A type's scans climb its
    card bronze, silver, gold (relay 88: rules.mastery, [scans, bonus] a step, paid at the scan that reaches it). On the
-   shelf only the card's frame in its metal (and a thin bar to the next step); the opened card has the three steps. */
-const MST = [[5, 25], [25, 100], [100, 250]], MST_NAME = ["", "Bronze", "Silver", "Gold"];
-const MST_TO = ["{n} of {m} scans to bronze", "{n} of {m} scans to silver", "{n} of {m} scans to gold"];
+   shelf only the card's frame in its metal (and a thin bar to the next step); the opened card has the steps.
+   1.112 (to-do #176, relay 96): four steps, platinum at 100; the bonus is the step's [1] × the type's rarity (as a scan:
+   rules.base / 10, 1 common to 50 special; the hangar's t.mt). A step kept from before (the hangar's t.m: an old bronze
+   at 5–9 scans) keeps its frame. */
+const MST = [[10, 10], [25, 25], [50, 50], [100, 100]], MST_NAME = ["", "Bronze", "Silver", "Gold", "Platinum"];
+const MST_TO = ["{n} of {m} scans to bronze", "{n} of {m} scans to silver", "{n} of {m} scans to gold", "{n} of {m} scans to platinum"];
 const mstSteps = () => { const r = gRules(); return (r && r.mastery) || MST; };
-const mstOf = n => mstSteps().filter(st => (n || 0) >= st[0]).length;
-// the way to the next step: its index, the share done (0–1); null at gold
-function mstNext(n){
-  const st = mstSteps(), k = mstOf(n);
+const mstOf = (n, kept) => Math.max(kept || 0, mstSteps().filter(st => (n || 0) >= st[0]).length);
+const mstMul = tier => (((gRules() || {}).base || {})[tier] || {common: 10, uncommon: 30, rare: 100, epic: 250, legendary: 500}[tier] || 30) / 10;
+// the way to the next step: its index, its bonus for this rarity, the share done (0–1); null at the last
+function mstNext(n, kept, tier){
+  const st = mstSteps(), k = mstOf(n, kept);
   if (k >= st.length) return null;
   const lo = k ? st[k - 1][0] : 0;
-  return {k, at: st[k][0], p: st[k][1], f: Math.max(0, Math.min(1, ((n || 0) - lo) / (st[k][0] - lo)))};
+  return {k, at: st[k][0], p: st[k][1] * mstMul(tier), f: Math.max(0, Math.min(1, ((n || 0) - lo) / (st[k][0] - lo)))};
 }
 const mstBar = f => `<span class="mkBar"><i style="width:${Math.round(f * 100)}%"></i></span>`;
-// the opened card's part: the three steps (scans and bonus; those not reached dimmed), the bar and how far to the next
-function mstHtml(n){
-  const k = mstOf(n), nx = mstNext(n), med = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_STAR}"/></svg>`;
-  return `<div class="mkMast"><h4>${escH(T("Mastery"))}${k ? `<b>${escH(T(MST_NAME[k]))}</b>` : ""}</h4><div class="mkSteps">` +
+// the opened card's part: the steps (scans and bonus at the type's rarity; those not reached dimmed), the bar and how far to the next
+function mstHtml(n, tier, kept){
+  const k = mstOf(n, kept), nx = mstNext(n, kept, tier), mul = mstMul(tier), med = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_STAR}"/></svg>`;
+  // 1.112: the rarity the bonuses go by (the type's, Dave: the same at every step, whatever plane was seen first)
+  const tn = TIER_NAME[tier] ? ` <em>· ${escH(T(TIER_NAME[tier]))} ×${nf.format(mul)}</em>` : "";
+  return `<div class="mkMast"><h4><span>${escH(T("Mastery"))}${tn}</span>${k ? `<b>${escH(T(MST_NAME[k]))}</b>` : ""}</h4><div class="mkSteps">` +
     mstSteps().map(([at, p], i) => `<div class="mk${i + 1}${k > i ? "" : " off"}"><span class="md">${med}</span><b>${escH(T(MST_NAME[i + 1]))}</b>` +
-      `${escH(T("{n} scans · +{p}", {n: nf.format(at), p: nf.format(p)}))}</div>`).join("") + `</div>` +
+      `${escH(T("{n} scans · +{p}", {n: nf.format(at), p: nf.format(p * mul)}))}</div>`).join("") + `</div>` +
     (nx ? mstBar(nx.f) + `<div class="mkBarT"><b>${escH(T(MST_TO[nx.k], {n: nf.format(n || 0), m: nf.format(nx.at)}))}</b><span>+${nf.format(nx.p)}</span></div>`
-      : `<div class="mkBarT"><b>${escH(T("Gold: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
+      : `<div class="mkBarT"><b>${escH(T("Platinum: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
 }
+// 1.112 (to-do #177, Dave: "only shown once I've scanned them"): a type is a full card once Sky view scanned it; one only
+// seen overhead waits greyed as "still to scan" with when it was last overhead (relay 96's t.last); never seen: "still
+// to find". Each shelf: scanned (newest first), still to scan (last overhead first), still to find; its count is the
+// scanned ones. Display only: the game's sets and trophies count as before.
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
+  const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
-      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const mk = mstOf(t.scans), nx = t.scans ? mstNext(t.scans) : null;
+      `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
+      (t && t.last ? `<small>${escH(T("Last overhead {d}", {d: fmtDay(t.last)}))}</small>` : "") + `</button>`;
+    const mk = mstOf(t.scans, t.m), nx = t.scans ? mstNext(t.scans, t.m, t.mt) : null;
     return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span>` +
@@ -1429,14 +1441,18 @@ function hangarHtml(hg){
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
     `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
+  const order = codes => {
+    const by1 = (k, f) => codes.filter(f).sort((a, b) => (by.get(b)[k] || 0) - (by.get(a)[k] || 0));
+    return [...by1("first", scanned), ...by1("last", seen), ...codes.filter(c => !by.has(c))];
+  };
   const shelves = (hg.sets || []).map(s => {
-    const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
-    return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
+    const n = s.types.filter(scanned).length;
+    return shelf(s.name, T(s.name), order(s.types), `${n} / ${s.types.length}`, n >= s.types.length);
   });
   const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
-  if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
-  const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
-  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
+  if (other.length) shelves.push(shelf("_other", T("Other types"), order(other), `${other.filter(scanned).length} / ${other.length}`));
+  const all = (hg.types || []).map(t => t.code), n = all.filter(scanned).length;
+  return secPlate(T("Your hangar"), `<p class="sum">${escH(T("{n} scanned · {m} still to scan", {n: nf.format(n), m: nf.format(all.length - n)}))}</p>${shelves.join("")}`, "hgPlate");
 }
 // The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){
@@ -1517,7 +1533,7 @@ function hangarCard(code, again){
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
-    afterTiles: mstHtml(t.scans),                 // 1.105: mastery
+    afterTiles: mstHtml(t.scans, t.mt || t.tier, t.m),   // 1.105: mastery (1.112: at the type's rarity, a kept step)
     det: [["Aircraft", escH(t.reg || "")], ["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
     btns: `<div class="cBtns">${scBtn(code)}<button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
@@ -1553,13 +1569,31 @@ function scPics(el){
   }
 }
 // The cabinet. o.mine: the empty and locked spots too (your own card); o.pick: each open spot a button (data-scp).
+// 1.112 (to-do #175): on your own card an empty spot is a button to the hangar (data-sce, scEmpWire).
 function scCab(sc, o = {}){
   const pins = (sc && sc.pins) || [], locked = o.mine ? (sc && sc.locked) || [] : [];
-  const at = i => o.pick ? ` data-scp="${i}"` : "";
-  const cells = pins.map((x, i) => x ? scPin(x, at(i)) : o.mine ? `<${o.pick ? `button type="button"${at(i)}` : "div"} class="hgCard sc emp">` +
-      `<b>${escH(T("Empty spot"))}</b><span>${escH(T("Pin one from your hangar"))}</span></${o.pick ? "button" : "div"}>` : "").join("") +
+  const at = i => o.pick ? ` data-scp="${i}"` : " data-sce";
+  const cells = pins.map((x, i) => x ? scPin(x, o.pick ? at(i) : "") : o.mine ? `<button type="button"${at(i)} class="hgCard sc emp">` +
+      `<b>${escH(T("Empty spot"))}</b><span>${escH(T("Pin one from your hangar"))}</span></button>` : "").join("") +
     locked.map(l => `<div class="hgCard sc emp lk">${SC_LOCK}<b>${escH(T("Opens at level {n}", {n: l.level}))}</b><span>${escH(T("{n} to go", {n: nf.format(l.toGo)}))}</span></div>`).join("");
   return cells ? `<div class="scCab">${cells}</div>` : "";
+}
+// 1.112 (to-do #175): an empty spot on your own card: to the club's hangar (once it is in), where a card's "Put in your
+// showcase" pins it.
+let hgWant = 0;
+function hgShow(){
+  const el = document.querySelector("#t-game .hgPlate");
+  if (!el) { hgWant = Date.now(); return; }
+  hgWant = 0;
+  const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;   // below the sticky top and tabs
+  scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+}
+function scEmpWire(el){
+  for (const b of el.querySelectorAll("[data-sce]")) b.onclick = () => {
+    ctlSound.nav(); cardClose(); showTab("game");
+    toast(T("Open a card and tap Put in your showcase"));
+    requestAnimationFrame(hgShow);
+  };
 }
 // The hangar card's button: put the type in (the first empty spot, else the spots to swap with) or take it out.
 function scBtn(code){
@@ -4479,7 +4513,7 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span><span class="gRk" id="gRk"></span>` +
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gRk" id="gRk"></span><span class="gTot" id="gTot"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
   box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
@@ -4606,7 +4640,8 @@ function rankIns(lv, h, o = {}){
 // and the level-up all read: the board styles come from STYLES (their {lvl: n} rule decides), the rest from CAREER_MORE,
 // where another feature adds its row (its kind gets an icon in careerIco and a label in CAREER_KIND; Try it opens the
 // club for a kind that isn't a style). Past level 20 each level is Legend n, one more star on the cap (careerAt).
-const CAREER_MORE = [[3, "slot", 1, "Showcase slot {n}"], [5, "slot", 2, "Showcase slot {n}"], [8, "slot", 3, "Showcase slot {n}"],
+// 1.112 (to-do #174): the showcase slots at 5, 11, 17 (were 3, 5, 8), the unlocks spread out (STYLES' levels).
+const CAREER_MORE = [[5, "slot", 1, "Showcase slot {n}"], [11, "slot", 2, "Showcase slot {n}"], [17, "slot", 3, "Showcase slot {n}"],
   [6, "standby", 1, "Standby (one a week)"], [14, "standby", 2, "Standby (two a week)"], [19, "ace", "", "A gold name in the league"],
   [20, "cap", "", "The Legend cap"]];
 const CAREER = [...STYLES.flatMap(([kind, , items]) => items.filter(x => x[2] && x[2].lvl).map(([id, nm, r]) => [r.lvl, kind, id, nm])),
@@ -4616,13 +4651,11 @@ const CAREER_KIND = {palette: "Board colours", finish: "Flaps", badge: "Title ba
 const careerAt = lv => lv > 20 ? [[lv, "star", "", "Another star on the cap"]] : CAREER.filter(r => r[0] === lv);
 const careerName = r => T(r[3], {n: r[2]});
 const CU_PLANE = `<svg class="cuP" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_PLANE}"/></svg>`;
-// The points a level opens at (as the relay's level_of: 500 to level 2, a quarter more for each next one up to level 20,
-// from there the same as the last).
-function careerPts(lv){
-  let t = 0, need = 500;
-  for (let i = 1; i < lv; i++) { t += Math.round(need); if (i + 1 < 20) need *= 1.25; }
-  return t;
-}
+// The lifetime points a level opens at (1.112, to-do #173: the relay's LEVEL_AT, the same numbers; then 30,000 a level
+// past 20). A player may be kept at a level above its points (relay 96: nobody lost a level at the change).
+const CAREER_AT = [0, 500, 1000, 2000, 3000, 4000, 5500, 7500, 10000, 13000, 17000, 21000, 27000, 34000, 43000, 55000, 70000,
+  85000, 110000, 135000], CAREER_AFTER = 30000;
+const careerPts = lv => lv <= 1 ? 0 : lv <= 20 ? CAREER_AT[lv - 1] : CAREER_AT[19] + CAREER_AFTER * (lv - 20);
 // An unlock's small picture, sz px: an "A" flap in the style for colours, flaps and board styles, the badge's own
 // silhouette (badgeGlyph, drawn once), the cap and its star as the rank insignia draws them.
 const cuBadge = new Map();
@@ -4630,7 +4663,8 @@ function careerIco(r, sz){
   const [, kind, id] = r, box = `width:${sz}px;height:${sz}px;font-size:${Math.round(sz * .62)}px`;
   const flap = (bg, fg, x = "", f = "") => `<span class="cuI flap${x}" style="${box};background:${bg};color:${fg}${f}"><b>A</b></span>`;
   if (kind === "palette") return flap(THEMES.classic.flap[0], (PALETTES[id] || {}).ink || THEMES.classic.ink);
-  if (kind === "finish") return id === "white" ? flap("#f3f1ea", "#111") : flap("#1c1d1f", id === "led" ? "var(--amber)" : "#f3f0e8", " " + id);
+  // 1.112 (to-do #171): "fin-" + the finish, as a bare "led" took the status light's .led (out of line, over the route)
+  if (kind === "finish") return id === "white" ? flap("#f3f1ea", "#111") : flap("#1c1d1f", id === "led" ? "var(--amber)" : "#f3f0e8", " fin-" + id);
   if (kind === "theme") { const t = THEMES[id] || THEMES.classic; return flap(t.flap[0], t.ink, "", `;font-family:${escH(t.font)}`); }
   if (kind === "badge") {
     if (!cuBadge.has(id)) {
@@ -4662,7 +4696,7 @@ function careerMini(g){
     `<button class="gHow" type="button" id="cuOpen">${escH(T("Your route · all {n} stops", {n: 20}))}<i>›</i></button>`;
 }
 // The route (a page of the club, from Your level): a stop per level down a line, solid where you've been and dashed
-// ahead, each with its insignia, title, the points it opens at (ahead) and its unlocks; the plane between your stop and
+// ahead, each with its insignia, title, the points it opens at (the next stop only, 1.112) and its unlocks; the plane between your stop and
 // the next with what is left to go. Past Legend: the stops up to your next one.
 var gRoute = false;                                     // var: showTab (earlier in the file) resets it
 function careerRoute(g){
@@ -4670,7 +4704,7 @@ function careerRoute(g){
   const row = n => {
     const c = n < lv ? "done" : n === lv ? "cur" : n === lv + 1 ? "nx" : "lk", un = careerAt(n);
     return `<li class="${c}"${c === "cur" ? ` style="--p:${(p * 100).toFixed(1)}%;--pf:${p.toFixed(3)}"` : ""}><span class="cuD ${c}">${n}</span>` +
-      `<span class="cuT"><b>${escH(rankTitle(n))}${c === "cur" ? `<small>${escH(T("You are here"))}</small>` : n > lv ? `<small>${nf.format(careerPts(n))}</small>` : ""}</b>` +
+      `<span class="cuT"><b>${escH(rankTitle(n))}${c === "cur" ? `<small>${escH(T("You are here"))}</small>` : n === lv + 1 ? `<small>${nf.format(careerPts(n))}</small>` : ""}</b>` +
       `<span>${un.length ? cuUnl(un, 18) : `<span class="cuUn">${escH(T("The start"))}</span>`}</span></span>${rankIns(n, 30)}` +
       (c === "cur" ? `<span class="cuPl">${CU_PLANE}<em>${escH(cuToGo(g))}</em></span>` : "") + `</li>`;
   };
@@ -4858,7 +4892,7 @@ function gStripRender(g, anim){
   box.classList.toggle("sby", !!sby);
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location")
     : sby ? T("Standby used · streak goes on, day {n}", {n: sby}) : gLevelText(g);
-  const rk = rankIns(g.level, 34, {wings: g.wings});                 // 1.102: the rank insignia
+  const rk = rankIns(g.level, 34);    // 1.102: the rank insignia; 1.112 (to-do #170): in front of the points, the wings only on the club's cards
   if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
   $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
@@ -5280,8 +5314,8 @@ function gHowCard(){
       p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
       p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
-      (R.mastery ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b} or {c} scans adds +{x}, +{y} or +{z} once, and its hangar card turns bronze, silver or gold.",
-        {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], x: nf.format(R.mastery[0][1]), y: nf.format(R.mastery[1][1]), z: nf.format(R.mastery[2][1])})) : "") +   // 1.105 (relay 88)
+      (R.mastery && R.mastery.length > 3 ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b}, {c} or {d} scans adds that many points × its rarity once (×1 common to ×50 special), and its hangar card turns bronze, silver, gold or platinum.",
+        {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], d: R.mastery[3][0]})) : "") +   // 1.105 (relay 88); 1.112 (relay 96): four steps × rarity
       (R.loyalty ? p(T("Member cards:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
         {a: R.loyalty[0][0], b: R.loyalty[1][0], c: R.loyalty[2][0], x: nf.format(R.loyalty[0][1]), y: nf.format(R.loyalty[1][1]), z: nf.format(R.loyalty[2][1])})) : "") +   // 1.106 (relay 89)
       (R.country ? p(T("Passport:"), T("a scanned flight with a known route stamps the countries it flies from and to; a country new to your passport adds +{p}.", {p: nf.format(R.country)})) : "") +   // 1.107 (relay 90)
@@ -5377,7 +5411,7 @@ async function playerCard(id){
     `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + scSection(p) + (medals ? `<div class="plMedals">${medals}</div>` : "") +
     `<ul class="ranks plain cups plLines">` +
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
-    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, scPics);
+    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, el => { scPics(el); if (p.me) scEmpWire(el); });
 }
 /* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
    numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
