@@ -845,14 +845,18 @@ Five buttons along the bottom:
   nothing is lined up yet, the hint asks you to point the phone near it for a moment; gold corners then frame the sun's
   ring ("lined up · sun"). It also looks for nearby planes: where it keeps finding one close to its label it slides
   the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
-  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds.
+  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds. Since
+  1.114.6.1 it only counts what it finds while the phone is steady (the camera's picture is a little late, so a find
+  made while turning is a few degrees off), and the labels hold still while you keep the phone still, even when the
+  gyroscope's readings pause.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
   meanwhile; it opens again only after the ring was empty; 1.114.6: a plane you have scanned doesn't lock on again,
   its ✓ says so, though the shutter still comes for it). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
   eight or a drag (not once the labels are lined up). **Report** (1.90, the flag in the top bar, the owner's phones
   only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
-  and how far off the sun's ring was; no picture and no place), to tune Sky view from real phones; the hint says what
+  and how fast the phone was turning then, how far off the sun's ring was and how far the phone's clock is off; no
+  picture and no place), to tune Sky view from real phones; the hint says what
   was sent.
   **×2 and ×5** (1.99, the round buttons on the right under the top bar): zoom in for a closer look; the one on is lit
   gold, a second tap goes back to ×1, and so does leaving Sky view. Where the phone's browser offers it (Chrome on most
