@@ -948,7 +948,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.114.5 (to-do #196 M1, M3, M5, L3, L6, the idle path (M4 dropped: Dave doesn't mind labels behind the bars); #198 L4, L5; Fable's review of 1.114.2): **Sky view
+- 1.114.6 (to-do #196 M1, M3, M5, L3, L6, the idle path (M4 dropped: Dave doesn't mind labels behind the bars); #198 L4, L5; Fable's review of 1.114.2): **Sky view
   faster.** `arLoop` now works in two steps. First where everything goes: all planes projected (`shown`: ac, d, pr,
   isFeat, alt, el), sorted, then for the 14 drawn only `arLabel(s, game, sm)` builds name, sub, chip, gold, tier, far
   (Spotted today by hex from `arSpotMap()`, rebuilt when `spotted` is a new array or its length changes); widths from
@@ -967,6 +967,11 @@ The repository is public: no addresses, keys or personal data here either.
   `gx`: `arScanned(hex)`; such a plane in the ring sets `arAim.done` and `arLocked` at once (the shutter) without
   filling, sound, card or `gLockOn`. L4: Where to look's turn texts are whole keys (five rows). L5: `arSnapping`.
   `tools/test/sky_jitter.js` finds the sensor code up to `function arOpen(`.
+- 1.114.5 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
+  cancelled (it cleared the timer that called `gLevelUp`); the next `gGain`'s end or `gRefresh` shows it. The fixed
+  aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
+  #logX, #tabs) carry `data-ta` with their English, put through `T()` at start and in `applyLang`. `relayBusy` and
+  `pushBusy`: About opened twice in one fetch starts one `relayLoad` chain; the push button subscribes once at a time.
 - 1.114.4 (to-do #197, review findings M2 and L7): **the Club's model pictures and redraws.** (1) `hgWire` no longer
   queues every hangar frame (74 Wikipedia requests in 10 s with 101 cards, then 429s and blank cards): the
   IntersectionObserver asks for frames as they come into view, and the first time a shelf shows, its first `HG_EAGER`;
@@ -1643,6 +1648,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 98 (1.114.5, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
+  a plane's first score (~15 km out, `game_note`), so "within 1 km" (`close`) and "below 2,500 ft" (`low`), and partly
+  `fast`, never paid while `bingo_json` showed them done and even gave the Bingo trophy, unpaid. Now `take` calls
+  `_game_bingo` again whenever a scored plane's `minDist` or `maxSpeed` moves (after they are updated, so it judges the
+  fresh values); its guards (`st["lines"]`, `st["card"]`, the trophies) pay each once; `st["at"]` keeps when each
+  square filled. `bingo_json` shows only the squares `bingoPay` has (`done` from its `done`, times from the week or
+  `at`), so a line or the card shows once it paid, and no longer gives trophies. The catch-up (Dave: pay this
+  week's once, today): `bingo_migrate()` at start (one log line with counts) runs `bingo_catchup(spot, g)` once per
+  profile. `_bingo_owed` finds this week's squares done (saved entries, final values) that `bingoPay` lacks, puts them,
+  their lines and the card into `bingoPay` and returns what is owed: the lines, the card and a Bingo or Full card
+  trophy won this week unpaid (`bingo_json` gave it) or not won. `g["bingoFix"]` keeps that dict until it pays, as
+  normal Bingo awards dated today (`_game_pay`, `_game_trophies`: Recent points, today's total, the week, the level) on
+  today's newest scored plane, or, with none yet, on the next plane to score (`game_note` calls `bingo_catchup(spot, g,
+  e)` while the marker is a dict; one log line then). Then `bingoFix` is the time it paid (new games get one when made),
+  so it never pays twice. Earlier weeks stay.
+  `_game_award` keeps 24 awards a plane (was 12, review L2), so a rich scan's lines add up to its total.
 - Relay 97 (1.114, to-do #182): **the member cards' details.** `g["scanAirlineInfo"]` {AIRLINE: {first, last, types:
   {TYPE: scans}}} (the scans' times, ms), noted by `_scan_airline_note` at each scan (`game_lockon`) and counted back
   once from the saved days' scans by `_scan_types` (a sighting's `scan` is its scan time). `wallet_info_json(g)` →

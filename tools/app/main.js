@@ -271,7 +271,7 @@ function drawCell(c, p){
   if (f.hidden || P.off || flapsHeld || !P.cssW) return;
   paintCell(P.fxx, c, p, false);
 }
-/* 1.114.5 (to-do #196 M5, Dave: silent in Sky view): while Sky view covers the app the flaps rest. A new value is taken
+/* 1.114.6 (to-do #196 M5, Dave: silent in Sky view): while Sky view covers the app the flaps rest. A new value is taken
    at once, without turning, drawing or a sound (retarget, patched by build.py); on closing every panel is drawn as it is. */
 let flapsHeld = false;
 function flapsHold(on){
@@ -2224,7 +2224,7 @@ function drawLook(){
   // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
   // turn; without it the tape is centred on the plane
   const on = lookOn && lookHeading != null, c = on ? lookHeading : L.brg, d = ((L.brg - c + 540) % 360) - 180;
-  const ad = Math.abs(d), right = d > 0;             // 1.114.5: whole texts, so each has its row (to-do #198 L4)
+  const ad = Math.abs(d), right = d > 0;             // 1.114.6: whole texts, so each has its row (to-do #198 L4)
   $("lookDir").textContent = !on ? T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up})
     : ad <= 8 ? T("Straight ahead · {e}° up", {e: L.up})
     : T(ad < 45 ? (right ? "Turn a little right · {e}° up" : "Turn a little left · {e}° up") : right ? "Turn right · {e}° up" : "Turn left · {e}° up", {e: L.up});
@@ -2563,7 +2563,7 @@ function arHold(why){
   if (!arHeldAt && arGap != null) dlog("debug", `Sky view: lined up (${why}); north held, the compass left out`);
   arHeldAt = Date.now(); arHeldWhy = why;
 }
-/* 1.114.5 (to-do #196 M3): one opening at a time. A second tap while the first waits for the camera (its prompt up) waits
+/* 1.114.6 (to-do #196 M3): one opening at a time. A second tap while the first waits for the camera (its prompt up) waits
    with it; it used to open again, and the first camera stream and location watch were never stopped. */
 let arOpening = null;
 function arOpen(button){
@@ -2610,7 +2610,7 @@ async function arStart(button){
   }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arQ) { $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); dlog("warn", "Sky view: no compass reading after 2.5 s"); } }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
-  arPicSig = ""; arTextW.clear(); flapsHold(true);   // 1.114.5: the board underneath rests (M5)
+  arPicSig = ""; arTextW.clear(); flapsHold(true);   // 1.114.6: the board underneath rests (M5)
   arLoop();
 }
 // 1.90: with the gyroscope's reading (gyro), arGapStep's check is the exact one; the heading swinging while the tilt holds
@@ -2642,7 +2642,7 @@ function arClose(){
   arWatch = null; cancelAnimationFrame(arRaf);
   arSel = arWant = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen"); if ($("gAws")) gAwsBox();
-  flapsHold(false);                                  // 1.114.5: the board catches up, at once and without a sound
+  flapsHold(false);                                  // 1.114.6: the board catches up, at once and without a sound
   lookSoon();
 }
 /* 1.97 (to-do #133): Sky view opened at a plane (a tap on its pass): it is picked out (its card, its ring) and the
@@ -2750,7 +2750,7 @@ function arUnproject(x, y, R, W, H){
   const hh = (arOff.h + arDec) * Math.PI / 180, e = E * Math.cos(hh) + N * Math.sin(hh), n = N * Math.cos(hh) - E * Math.sin(hh);
   return {az: (Math.atan2(e, n) * 180 / Math.PI + 360) % 360, el: Math.atan2(U, Math.hypot(e, n)) * 180 / Math.PI};
 }
-let arPicSig = "";                                  // 1.114.5: what the canvas shows now (the idle path)
+let arPicSig = "";                                  // 1.114.6: what the canvas shows now (the idle path)
 function arLoop(){
   if (!arOn) return;
   arRaf = requestAnimationFrame(arLoop);
@@ -2780,7 +2780,7 @@ function arLoop(){
     shown.push({ac, d, pr, isFeat, alt, el: Math.atan2(u, d) * 180 / Math.PI});
   }
   shown.sort((a, b) => a.d - b.d);
-  // 1.114.5: the labels' words only for the 14 drawn, and where each goes, before anything is drawn
+  // 1.114.6: the labels' words only for the 14 drawn, and where each goes, before anything is drawn
   const top = shown.slice(0, 14), game = gameOk() && S.live, sm = game ? arSpotMap() : null, boxes = [];
   arHits = [];
   for (const s of top) {
@@ -2801,7 +2801,7 @@ function arLoop(){
   // 1.90: with the small card open, the shutter sits above it (it was behind it)
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
-  // 1.114.5: written only when it changes (every frame, it cost two layouts a frame)
+  // 1.114.6: written only when it changes (every frame, it cost two layouts a frame)
   const count = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
   if ($("arCount").textContent !== count) $("arCount").textContent = count;
   const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
@@ -2813,7 +2813,7 @@ function arLoop(){
     : marks.length ? T("Moon beside its ring? Drag the sky until it sits in it: every label follows.") : arHintText;
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
   const aim = arAimStep(W, H);
-  // 1.114.5: the picture is drawn only when it would differ from the last one: where the phone points (to a quarter
+  // 1.114.6: the picture is drawn only when it would differ from the last one: where the phone points (to a quarter
   // pixel), the zoom, the labels (their words and places, to a quarter pixel), the sun and moon, the ring, AUTO's marks
   const f = arFocal(W, H), q = f * 4, rq = v => Math.round(v * 4);
   const brk = arAutoLock ? shown.filter(s => !s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) : [];
@@ -2835,7 +2835,7 @@ function arLoop(){
   arRibbon(R, W, H);
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"), R);
 }
-// 1.114.5 (L6): Spotted today by hex, built once for each new list: the first entry scanned or locked on, and the
+// 1.114.6 (L6): Spotted today by hex, built once for each new list: the first entry scanned or locked on, and the
 // nearest it came live with points
 let arSpotIdx = {src: null, n: -1, map: null};
 function arSpotMap(){
@@ -2953,7 +2953,7 @@ $("arFlag").onclick = async () => {
 // screen, the camera's picture and the labels, with a slim band under it: the mark, the place, the date and time and how
 // many planes. Shown in a card with Share and Save.
 let arShotAt = 0, arShownN = 0, arLocked = "", arLift = 0;   // arLocked (1.90): the plane the ring last filled on
-let arSnapping = false;                              // 1.114.5 (L5): a double tap on the shutter makes one picture
+let arSnapping = false;                              // 1.114.6 (L5): a double tap on the shutter makes one picture
 async function arSnap(){
   if (arSnapping) return;
   ctlSound.click();
@@ -3150,7 +3150,7 @@ $("arAuto").onclick = () => {
 // 1.76: the sun and the moon where they really are, as dashed rings: if the real one isn't in its ring, a drag lines it
 // and every label up. Returns where they are on the screen.
 let arBody = null, arBodyAt = 0;
-// 1.114.5: where they are (arBodiesAt), then drawn (arBodiesDraw) only when the picture changes
+// 1.114.6: where they are (arBodiesAt), then drawn (arBodiesDraw) only when the picture changes
 function arBodiesAt(R, here, W, H){
   const now = Date.now(), out = [], r = Math.PI / 180;
   if (now - arBodyAt > 1000) { arBody = skyBodies(here.lat, here.lon, now); arBodyAt = now; }
@@ -3253,7 +3253,7 @@ function arHeight(ac, wx){
   return wx.temp != null && up > 0 ? wx.elev + up * (wx.temp + 273.15) / (288.15 - .0065 * wx.elev) : m;
 }
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
-// 1.114.5: arAimStep each frame, arAimDraw when the picture changes. A plane scanned already (this session, or Spotted
+// 1.114.6: arAimStep each frame, arAimDraw when the picture changes. A plane scanned already (this session, or Spotted
 // today says so) doesn't lock on again: no sound, card or request (to-do #196 L3); the shutter still comes for it.
 function arAimStep(W, H){
   const cx = W / 2, cy = H / 2, now = Date.now();
@@ -3273,7 +3273,7 @@ function arAimStep(W, H){
   }
   return {cx, cy, R0, k};
 }
-const arScans = new Set();                           // 1.114.5: planes scanned this session (the relay said points, or done)
+const arScans = new Set();                           // 1.114.6: planes scanned this session (the relay said points, or done)
 const arScanned = hex => gameOk() && S.live && (arScans.has(hex) || !!(arSpotMap().get(hex) || {}).gx);
 function arAimDraw(g, {cx, cy, R0, k}){
   g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
@@ -3585,7 +3585,7 @@ function arTry(){
     `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
     box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
-let arGoing = false;                                 // 1.114.5 (M3): one wait for live location at a time
+let arGoing = false;                                 // 1.114.6 (M3): one wait for live location at a time
 async function arGoLive(){
   if (arGoing) return;
   arGoing = true; ctlSound.click(); cardClose();
@@ -3873,6 +3873,7 @@ function applyLang(){
   document.documentElement.style.setProperty("--swFav", JSON.stringify(T("Favourite")));
   document.documentElement.style.setProperty("--swHide", JSON.stringify(T("Hide")));
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.5: fixed labels
   buildTabs(); buildSvTools(); buildRadarLegend();
   if (tab) showTab(tab);
   clearTiles(); refreshPanels(true);
@@ -4040,11 +4041,13 @@ function aboutOpen(){
 }
 /* 1.88 (Dave's pick 13 A): the owner's Relay plate at the top of About: the position sources, Flightradar24, the
    nightly backup and the screens online, from the relay's /relayinfo (69+), which answers only the owner. */
-let relayTimer = 0;
+let relayTimer = 0, relayBusy = false;
 async function relayLoad(){
   clearTimeout(relayTimer);
-  if ((window.OVERHEAD_RELAY_VERSION || 0) < 69 || !relay() || !(GUEST && GUEST.owner) || $("t-about").hidden) return;
+  if (relayBusy || (window.OVERHEAD_RELAY_VERSION || 0) < 69 || !relay() || !(GUEST && GUEST.owner) || $("t-about").hidden) return;
+  relayBusy = true;                                   // 1.114.5: About opened twice in one fetch starts one chain
   const d = await fetch(`${relay()}/relayinfo`).then(r => r.ok ? r.json() : null).catch(() => null);
+  relayBusy = false;
   if (!d || !$("relayPlate")) return;
   relayPlate(d);
   relayTimer = setTimeout(relayLoad, 30000);
@@ -4522,6 +4525,7 @@ async function enablePush(){
     return r.ok ? "" : `HTTP ${r.status}`;
   } catch (e) { return String(e && e.message || e); }
 }
+let pushBusy = false;
 async function renderPush(){
   const box = $("pushBox");
   if (!box) return;
@@ -4559,6 +4563,8 @@ async function renderPush(){
     if (cur) sendSub(cur, prefs, "subscribe");
   };
   $("pushBtn").onclick = async () => {
+    if (pushBusy) return;                               // 1.114.5: one subscribe at a time
+    pushBusy = true;
     ctlSound.press();
     const note = $("pushNote");
     try {
@@ -4571,7 +4577,7 @@ async function renderPush(){
       const err = await enablePush();
       await renderPush();                                  // shows "on" straight away
       if (err && $("pushNote")) $("pushNote").textContent = err;
-    } catch (e) { note.textContent = String(e && e.message || e); }
+    } catch (e) { note.textContent = String(e && e.message || e); } finally { pushBusy = false; }
   };
 }
 function sendSub(sub, prefs, what){
@@ -4953,6 +4959,7 @@ async function start(){
   } catch {}
   pickLang();
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.5: fixed labels
   buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
   for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
   showModes();
@@ -4980,7 +4987,7 @@ const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the sca
 // 1.98: the planes a scan counts for now (the relay's list), as a set (made once for each answer)
 const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set(gme.scan.map(x => x.hex))) : new Set();
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
-let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
+let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [], gLvFrom = 0;   // 1.114.5: a level-up still to show (from that level)
 function gStripSetup(){
   const box = $("gStrip");
   box.hidden = !gameOk();
@@ -5405,7 +5412,8 @@ function gStripRender(g, anim){
 // Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
 function gGain(prev, g){
   const box = $("gStrip"), n = g.points - prev.points;
-  gAnimT.forEach(clearTimeout); gAnimT = [];
+  gAnimT.forEach(clearTimeout); gAnimT = [];           // 1.114.5: a level-up this cancels stays pending (gLvFrom)
+  if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
   $("gTok").textContent = "+" + nf.format(n);
   const lvUp = g.level > prev.level, from = prev.need ? prev.into / prev.need * 100 : 0, to = lvUp ? 100 : g.need ? g.into / g.need * 100 : 0;
@@ -5420,7 +5428,7 @@ function gGain(prev, g){
   }, 2050));
   gAnimT.push(setTimeout(() => {
     box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
-    if (lvUp) gLevelUp(g, prev.level);
+    if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
   }, 3500));
 }
 async function gRefresh(force){
@@ -5434,10 +5442,12 @@ async function gRefresh(force){
     gAwards(g.aw, !gAwAt);
     fsBar();                                                  // 1.103: the flight school's bar on Now
     gTixSync(g.scan);
-    if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
+    const viaGain = prev && g.points > prev.points && tab !== "game";
+    if (viaGain) gGain(prev, g);
     else gStripRender(g);
     if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
-    if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g, prev.level);
+    if (prev && g.level > prev.level && !viaGain) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
+    if (gLvFrom && !viaGain) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }   // 1.114.5: also one a second gain cut off
     if (tab === "game") renderGame();
   } catch {} finally { gBusy = false; }
 }
@@ -6003,7 +6013,7 @@ async function gLockOn(hex){
   try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); }
   catch (e) { dlog("warn", `Sky view scan: no answer (${netError(e, "relay")})`); return; }
   const ac = arList.find(a => a.hex === hex) || {};
-  if (r && (r.bonus || r.why === "done")) arScans.add(hex);   // 1.114.5: not locked on again this session
+  if (r && (r.bonus || r.why === "done")) arScans.add(hex);   // 1.114.6: not locked on again this session
   dlog(r && r.bonus ? "info" : "debug", `Sky view scan: ${String(ac.flight || hex).trim()} ${r && r.bonus ? "+" + r.bonus + (r.streak ? ", streak day " + r.streak : "") : "nothing (" + (r && r.why || "none") + ")"}`);
   if (!r || !r.bonus) {
     if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }

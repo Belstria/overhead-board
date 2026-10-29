@@ -296,7 +296,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   compared with the one before. They count every place.
   In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
-  it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  it says when, and how long until then; a square fills when a scored plane does it, also later in its pass, when it
+  comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
   in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
@@ -846,7 +847,7 @@ Five buttons along the bottom:
   the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
   together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
-  meanwhile; it opens again only after the ring was empty; 1.114.5: a plane you have scanned doesn't lock on again,
+  meanwhile; it opens again only after the ring was empty; 1.114.6: a plane you have scanned doesn't lock on again,
   its ✓ says so, though the shutter still comes for it). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
   eight or a drag (not once the labels are lined up). **Report** (1.90, the flag in the top bar, the owner's phones
@@ -862,7 +863,7 @@ Five buttons along the bottom:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
   plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint (or above the plane's small card): it keeps the sky as on the
   screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
-  to share or save. Since 1.114.5 Sky view draws only when the picture changes (with the phone still and nothing
+  to share or save. Since 1.114.6 Sky view draws only when the picture changes (with the phone still and nothing
   moving it rests, saving battery), and the board underneath doesn't flip or clatter while Sky view is open; it shows
   the latest values when you close it.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
