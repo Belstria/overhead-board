@@ -1124,6 +1124,33 @@ const lyWhen = (ts, short) => {      // short: today without its time (the card'
   y.setDate(y.getDate() - 1);
   return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
 };
+/* 1.114.0.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
+   TUI's sky) can't be engraved: blended into the metal it was a light or grey block. It is looked at once (a small copy
+   on a canvas; both logo sites allow CORS): when its opaque part fills its bounding box, done() gets the margins around
+   that box [top, right, bottom, left] (fractions) and the card shows it in its colours as a plate cut to that box; else
+   (or if it can't be read) null, engraved. */
+const LY_FILL = new Map();
+function lyFill(src, code, done){
+  if (LY_FILL.has(code)) return done(LY_FILL.get(code));
+  const im = new Image(), end = r => { LY_FILL.set(code, r); done(r); };
+  im.crossOrigin = "anonymous";
+  im.onerror = () => end(null);
+  im.onload = () => {
+    try {
+      const w = 90, h = 36, c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const g = c.getContext("2d");
+      g.drawImage(im, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1, n = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) {
+        n++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+      end(x1 >= 0 && n / ((x1 - x0 + 1) * (y1 - y0 + 1)) > .9 ? [y0 / h, (w - 1 - x1) / w, (h - 1 - y1) / h, x0 / w] : null);
+    } catch { end(null); }
+  };
+  im.src = src;
+}
 function lyList(g0){
   const byName = (a, b) => lyName(a[0]).localeCompare(lyName(b[0]));
   const l = Object.entries(g0.wallet).sort((a, b) => b[1] - a[1] || byName(a, b));
@@ -1180,7 +1207,17 @@ function lyWire(box){
   let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
   for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here
     const L = logo(s.dataset.lg, true);
-    const put = () => { if (L.state === "ok" && !s.querySelector("img")) { s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`); s.classList.add("ok"); } };
+    const put = () => {
+      if (L.state !== "ok" || s.querySelector("img")) return;
+      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.0.1: a filled logo as its own plate, the rest engraved
+        if (s.querySelector("img")) return;
+        s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`);
+        s.classList.add("ok");
+        if (!f) return;
+        const clip = `inset(${f.map(v => (v * 100).toFixed(1) + "%").join(" ")} round 6px)`;
+        s.classList.add("fill"); s.firstChild.style.clipPath = clip; s.firstChild.style.webkitClipPath = clip;
+      });
+    };
     if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});
   }
   const flipped = cs.find(c => c.dataset.ly === lyFlipped);
