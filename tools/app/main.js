@@ -1124,7 +1124,7 @@ const lyWhen = ts => {
   y.setDate(y.getDate() - 1);
   return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
 };
-/* 1.114.3 (Dave's "final look 2", 30 Oct; it replaces 1.114.1.1's plates): the logo printed in ink on the metal. Read
+/* 1.114.3 (Dave's "final look 2", 29 Oct; it replaces 1.114.1.1's plates): the logo printed in ink on the metal. Read
    once per logo and card brightness (a copy on a canvas; both logo sites allow CORS): a logo with a filled background of
    its own (SAS, Emirates, airBaltic, TUI fly) loses that background and a 3 px rim inside its box (Emirates left a line
    under it); its mark then takes whichever of its colour and the background's shows on the metal (blue SAS on light

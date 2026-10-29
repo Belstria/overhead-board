@@ -948,7 +948,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.114.3 (Dave's "final look 2" of 30 Oct, after mockup rounds on the hologram, the logos and the layout): **the
+- 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
   member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
   done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled
   background and a 3 px rim inside its box knocked out, which also takes Emirates' line under its mark; the mark takes
