@@ -187,6 +187,39 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .facts dt span{color:var(--label2);margin-left:.5em}
 .facts dd{margin:5px 0 0;font:600 var(--fs-input)/1.2 var(--f-board);color:var(--ink);overflow-wrap:anywhere;text-shadow:0 -1px 0 rgba(0,0,0,.7)}
 .facts .wide{grid-column:1/-1}
+/* 1.111 (to-do #163, Dave's pick C): Today in numbers under its counters: sections between thin rules; the records side
+   by side, the figure first; the most seen as bars; the Plane of the day edged in its tier's colour. A plane named here
+   is a button (.dayJump): it jumps to its row in the timeline, lit gold for a moment (.tline li.fl.jump). */
+.dayFacts{display:block}
+.dayFacts .sec{padding:12px 0 0;margin:12px 0 0;border-top:1px solid rgba(255,255,255,.07)}
+.dayFacts .sec:first-child{margin:0;padding:0;border:0}
+.dayFacts .sec>dt{margin:0 0 7px}
+.dayFacts .rec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.dayFacts .rec>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.dayFacts .rec dt{margin:0 0 5px}
+.dayFacts .rec dd{margin:0}
+.dayFacts .dayJump{display:block;width:100%;min-width:0;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dayFacts span.dayJump{cursor:default}
+.dayFacts p .dayJump{display:inline;width:auto}
+.dayFacts .rec b{display:block;font:700 var(--fs-xl)/1.1 var(--f-board);color:var(--ink);white-space:nowrap}
+.dayFacts small{display:block;margin-top:3px;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dayFacts .bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center}
+.dayFacts .bars span{font:600 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis}
+.dayFacts .bars i{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--amber),rgba(240,180,41,.55));box-shadow:inset 0 -1px 0 rgba(0,0,0,.3)}
+.dayFacts .bars em{font:600 var(--fs-s)/1 var(--f-board);font-style:normal;color:var(--muted);text-align:right;min-width:18px}
+.dayFacts .bars .gap{grid-column:1/-1;height:2px}
+.dayFacts p.new{margin:0;font:600 var(--fs-base)/1.3 var(--f-board);color:var(--ink)}
+.dayFacts p.new small{display:inline;color:var(--muted);font-weight:500;white-space:normal}
+.dayFacts .pod{position:relative;padding:10px 12px 11px 14px;border-radius:10px;background:var(--box-bg);border:var(--box-bd);overflow:hidden}
+.dayFacts .pod::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.dayFacts .pod .k{display:flex;justify-content:space-between;gap:8px;margin:0 0 4px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+.dayFacts .pod .k span{color:var(--tc)}
+.dayFacts .pod b{display:block;font:700 var(--fs-2xl)/1.1 var(--f-board);color:var(--ink)}
+.dayFacts .span{margin:10px 0 0;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted)}
+.dayFacts .span b,.dayFacts .span .dayJump{color:var(--ink);font-weight:600}
+.dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+.tline li.fl.jump{background:rgba(240,180,41,.10);box-shadow:inset 0 0 0 1.5px var(--amber),0 0 18px rgba(240,180,41,.18);transition:background .3s,box-shadow .3s}
+.tline li.fl.jump .l2[data-jl]::after{content:"  ·  " attr(data-jl);color:var(--amber);font-weight:600;letter-spacing:.08em;font-size:var(--fs-tag);text-transform:uppercase}
 /* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
 .flights{list-style:none;margin:6px -10px 0;padding:0}
 .flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
@@ -1691,7 +1724,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
       <h2 data-t="Spotted today">Spotted today</h2>
       <section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-      <dl class="facts" id="todayFacts"></dl></section>
+      <dl class="facts dayFacts" id="todayFacts"></dl></section>
     </div>
     <div class="rcol">
       <div class="groove"></div>

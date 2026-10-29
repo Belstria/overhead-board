@@ -943,11 +943,28 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.110.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
+- 1.111.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
   A95534) showed Planespotters' photo of the Bombardier Global that had the registration before. `psPhoto(reg, hex,
   onReady, model)` sends `model` (`psModel(ac)`: `TYPES[ac.t]` and `ac.desc`, the live type's names; not adsbdb's,
   whose record can be the older aircraft's too); `tlAhead` sends the row's. The relay compares makers (below); the
   card then takes adsbdb's photo or the model's picture as for a plane without one.
+- 1.111 (to-do #163, Dave's pick of 29 Oct: C of round 2, "with A's tap to jump"; no relay change): **Today in numbers,
+  tidier.** `dayHighlights(list, st)` (test/index.html, in the app's E27 with `reviewTime`, now a function, and
+  `TIER_ORDER`) gathers what both screens show: the three records as the list's own entries (the relay's `day_stats`
+  records found by hex and ts, else `fromRelay` of what it sent), the most seen airline (`name` for flaps, `title` as
+  written) and types (twice or more), the newest plane new to the logbook, the Plane of the day (the highest tier) and
+  the day's span (first, last, busiest hour by the rows' `time`). App: `renderTodayNumbers` fills `.dayFacts` (head.html):
+  sections between thin rules; from 21:00 (`reviewTime`) the h3 reads Your day in planes and a `.pod` box edged in
+  `TIER_COL` opens it, the span under it; the records in three columns (figure, then `rowName` · time); the bars (width
+  against the largest count); New in the logbook with "first ever" and "{n} more". Every plane named there that is in
+  the list is a `button.dayJump[data-jump=tlKey]`; `todayJump` clears a filter (`svFilter`, `svQuery` and its box) that
+  hides the row, scrolls it to the middle and gives it `.jump` for 2.6 s (gold ring, the reason after its details from
+  `.l2[data-jl]`). Board: `stLow`/`stHigh`/`stFast` are 9 flaps of the figure, one per third of the width; `statsSubs`
+  (flight · type · time) are engraved under them by `statsEngrave` from `drawStatic`, redrawn when they change;
+  `stTop` is Most seen (`mostSeenFlaps`) or, in the evening with a tiered plane, Plane of the day; `stNew` names the
+  newest new plane; `stFirst`, `topTypesFlaps` and the app's `topTypes` are gone. Checked on a made-up day (the
+  mockups' day.js) by day, in the evening, a quiet day, the test relay's own sightings, a tap with a filter on, and the
+  board at 1280x720 and 960x540.
 - 1.110 (to-dos #159 and #160, Dave's picks of 29 Oct: "Era's look good" and styles A; relay 93): **ticket designs,
   the eras of flying, and Styles as a gallery.** `STYLES` has a `ticket` kind ("" plain, `propage`, `jetage`, `magcard`,
   `holo`; not `prop`/`jet`, the badges' ids) with the rule `{medal: m}` (`TROPHY_MEDALS`' index, 1 silver to 4 diamond):
@@ -1478,7 +1495,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
-- Relay 95 (1.110.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
+- Relay 95 (1.111.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
   `_ps_first`) keeps every photo of the registration with the makers its page name gives after the registration
   (`_ps_makers`: whole dash-separated words from `PS_MAKERS`, families such as Boeing with McDonnell Douglas, Bombardier
   with Canadair, Learjet and de Havilland Canada); `_ps_cache` holds that list, and `_ps_pick` chooses per request the
