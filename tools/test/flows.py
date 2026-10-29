@@ -14,6 +14,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - live location: a request with a stale or missing fix (relay 72: or none sent) records nothing, scores nothing and starts no gap filler; a
   fresh one does; a hidden page's (bg=1, relay 81) like a stale one, only for a live place; a callsign of "@"s is none, also in sightings saved before (relay 70)
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
+- bingo lines and trophies pay once (relay 83): a line +50, the full card +500, a rank 50 to 250, a one-off 100; earlier
+  wins unpaid, every total kept; a restart, a rescore and the backfills pay nothing again; a new card each Monday
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
   ("can"), the daily streak (a missed day, the Monday reset), rule 1's planes not priced again; over HTTP: the rules
@@ -280,9 +282,11 @@ def game_rule_checks(expect):
         for e in legs:
             note(e)
         expect("passive by rarity: rare 15, special 50 up to 3", [rare["gp"]] + [e["gp"] for e in legs], [15, 50, 50, 50, 0])
-        expect("the day's points and limits", (g["days"][day[0]], serve._game_limits(g, day[0])),
-               (250 + 15 + 150, {"common": 52, "rare": 1, "legendary": 4}))
-        expect("extras only with scans: passive awards", sorted({a["k"] for e in sp.entries for a in e["ga"]}), ["limit", "pass"])
+        tro = {a["n"]: a["p"] for e in sp.entries for a in e["ga"] if a["k"] == "trophy"}   # relay 83: trophies pay
+        expect("the day's points and limits (and the Special day trophy's 100, relay 83)",
+               (g["days"][day[0]], serve._game_limits(g, day[0]), tro.get("specialday")),
+               (250 + 15 + 150 + sum(tro.values()), {"common": 52, "rare": 1, "legendary": 4}, 100))
+        expect("extras only with scans: passive awards", sorted({a["k"] for e in sp.entries for a in e["ga"]} - {"trophy"}), ["limit", "pass"])
         commons[1]["liveMin"] = 1.0
         expect("a plane comes closer: not priced again", (note(commons[1]), commons[1]["gp"], len(commons[1]["ga"])), (True, 5, 1))
 
@@ -337,6 +341,175 @@ def game_rule_checks(expect):
         serve.board_day = real_day
 
 
+def bingo_trophy_checks(expect):
+    """Relay 83 (to-do #147): bingo lines and trophies pay, once: a line +50, the full card +500 more, a trophy's rank
+    by its medal (50 to 250), a one-off trophy +100; on the plane that won them (Recent points), in the day, the week
+    (the league) and the level. Only wins from now on: a game with lines and trophies won by relay 82 keeps every total
+    when relay 83 starts on it; a restart, a rescore of the logbook from its saved days and the trophies' backfill pay
+    nothing again; the next Monday's card starts unpaid."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = ["2026-10-28"]                                  # a Wednesday; its card (week of 26 Oct) below
+    real_day, real_bingo, real_tro = serve.board_day, serve._game_bingo, serve._game_trophies
+    serve.board_day = lambda t=None: day[0]
+    noon = lambda d, h=12: int(serve.time.mktime(serve.time.strptime(f"{d} {h:02d}", "%Y-%m-%d %H")) * 1000)
+    # a plane for each bingo goal; the rest of it does none of them (an A320 of no listed airline, at noon)
+    GOAL = {"heli": {"adsbCat": "A7"}, "a380": {"typeCode": "A388"}, "b747": {"typeCode": "B744"}, "b777": {"typeCode": "B77W"},
+            "b787": {"typeCode": "B788"}, "a350": {"typeCode": "A359"}, "a330": {"typeCode": "A333"}, "embraer": {"typeCode": "E190"},
+            "turboprop": {"typeCode": "AT76"}, "cargo": {"callsign": "FDX1"}, "bizjet": {"typeCode": "C56X"},
+            "private": {"callsign": "OEXYZ"}, "military": {"military": True}, "watch": {"watch": True}, "low": {"altAtMin": 2000},
+            "close": {"minDist": 0.5}, "rare": {"tier": "rare"}, "night": {"h": 23}, "early": {"h": 6}, "newtype": {"newType": True},
+            "lhgroup": {"callsign": "DLH1"}, "gulf": {"callsign": "UAE1"}, "lowcost": {"callsign": "RYR1"},
+            "turkish": {"callsign": "THY1"}, "fast": {"maxSpeed": 600}}
+    folder = Path(tempfile.mkdtemp(prefix="fb-pay-"))
+    n = [0]
+
+    def plane(sp, goal=None, **more):
+        n[0] += 1
+        now = serve.time.time()
+        x = {**(GOAL[goal] if goal else {}), **more}
+        e = {"id": f"p{n[0]}", "hex": f"{n[0] + 4000:06x}", "ts": noon(day[0], x.pop("h", 12)) + n[0], "typeCode": "A320",
+             "callsign": "ZZZ1", "tier": "common", "liveMin": 4.0, "liveSeen": now, **x}
+        sp.entries.insert(0, e)
+        sp.by_hex[e["hex"]] = e
+        with serve._data_lock:
+            serve.game_note(sp, e)
+        return e
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def spot():
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            return _j.dumps([g, {k: v for k, v in serve.game3_json(sp.book(), day[0]).items() if k != "rules"},
+                             serve.bingo_json(sp, day[0])], sort_keys=True)
+
+    paid = lambda e: [(a["k"], a["p"], a.get("n")) for a in e.get("ga", []) if a["k"] in ("bingo", "card", "trophy")]
+    try:
+        for k, x in GOAL.items():                         # each plane does its goal only
+            e = {"typeCode": "A320", "callsign": "ZZZ1", "tier": "common", "ts": noon(day[0], x.get("h", 12)),
+                 **{a: b for a, b in x.items() if a != "h"}}
+            hits = [g for g in serve.BINGO if serve.BINGO[g](e)]
+            if hits != [k]:
+                expect(f"the test's plane for bingo goal {k}", hits, [k])
+        card = serve.random.Random("fallblatt-2026-10-26").sample(sorted(serve.BINGO), 9)
+        expect("the week's card (rows: new type, turboprop, low; helicopter, Turkish, bizjet; Gulf, fast, private)", card,
+               ["newtype", "turboprop", "low", "heli", "turkish", "bizjet", "gulf", "fast", "private"])
+        # relay 82 (before): the middle row made and the Bingo trophy won, unpaid
+        serve._game_bingo = serve._game_trophies = lambda *a: None
+        sp, g = spot()
+        for k in ("heli", "turkish", "bizjet"):
+            plane(sp, k)
+        with serve._data_lock:
+            b = serve.bingo_json(sp, day[0])
+        expect("relay 82: a line made, the Bingo trophy won", (b["lines"], "bingo" in g["trophies"], "paid" in b), (1, True, False))
+        save(sp)
+        serve._game_bingo, serve._game_trophies = real_bingo, real_tro
+        sp, g = spot()                                    # relay 83 starts on it
+        before = snap(sp)
+        pts0, day0 = g["points"], g["days"][day[0]]
+        expect("relay 83 on it: nothing changes at the start", snap(sp), before)
+        e = plane(sp)
+        expect("... the next plane pays nothing for the earlier line or trophy", (paid(e), g["points"], g["days"][day[0]]),
+               ([], pts0 + 5, day0 + 5))
+        expect("... the earlier line counts as had, unpaid", (g["bingoPay"]["week"], g["bingoPay"]["lines"], g["bingoPay"]["had"]),
+               ("2026-10-26", [1], {"lines": 1, "card": False}))
+        pts0 = g["points"]
+        rows = [plane(sp, k) for k in ("newtype", "turboprop", "low")]
+        expect("a line made: +50 on the plane that made it, once", [paid(e) for e in rows], [[], [], [("bingo", 50, 0)]])
+        expect("... in the plane's gb, the points, the day", (rows[2]["gb"], g["points"], g["days"][day[0]]),
+               (50, pts0 + 15 + 50, day0 + 5 + 15 + 50))
+        gulf, fast = plane(sp, "gulf"), plane(sp, "fast")
+        expect("the left column and a diagonal, then the middle column", (paid(gulf), paid(fast)),
+               ([("bingo", 50, 3), ("bingo", 50, 7)], [("bingo", 50, 4)]))
+        pts0 = g["points"]
+        last = plane(sp, "private")
+        expect("the full card: three lines +50, the card +500, the Full card trophy +100",
+               paid(last), [("bingo", 50, 2), ("bingo", 50, 5), ("bingo", 50, 6), ("card", 500, None), ("trophy", 100, "fullcard")])
+        expect("... 750 more, and the Bingo trophy (won before) never paid",
+               (g["points"] - pts0, last["gb"], sorted(g["trophyPaid"])), (5 + 750, 750, ["fullcard"]))
+        again = plane(sp, "private")
+        expect("the card done: nothing more this week; the points it brought win High scorer (1,000 points, bronze) +50",
+               (paid(again), sorted(g["bingoPay"]["lines"])), ([("trophy", 50, "points1k")], list(range(8))))
+        total = 11 * 5 + 7 * 50 + 500 + 100 + 50
+        g3 = serve.game3_json(sp.book(), day[0])
+        with serve._data_lock:
+            b = serve.bingo_json(sp, day[0])
+        expect("the day, the week (the league's) and the level count them", (g["days"][day[0]], g3["week"], g3["level"]),
+               (total, total, serve.level_of(total)[0]))
+        expect("bingo_json: the lines and the card that paid; game3_json: the trophies that paid",
+               (b["paid"], g3["trophyPaid"]), ({"lines": 7, "full": True, "line": 50, "card": 500},
+                                               {"fullcard": 100, "points1k": 50}))
+        row = next(r for r in serve.game_today(sp)["rows"] if r["hex"] == last["hex"])
+        expect("Recent points: the plane's gb and its awards", (row["gb"], [a["k"] for a in row["aw"]]),
+               (750, ["pass", "bingo", "bingo", "bingo", "card", "trophy"]))
+        # a restart, then a rescore of the logbook and the trophies' backfill: nothing paid again
+        save(sp)
+        before = snap(sp)
+        sp, g = spot()
+        expect("a restart: the same game", snap(sp), before)
+        for x in sp.entries:
+            x["liveMin"] -= 1.0                       # every plane comes closer: priced again? no
+        with serve._data_lock:
+            for x in list(sp.entries):
+                serve.game_note(sp, x)
+        expect("... planes coming closer pay nothing again", (g["points"], g["bingoPay"]["lines"].__len__()), (total, 8))
+        save(sp)
+        lb = _j.loads((folder / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (folder / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot()
+        expect("a rescore from the saved days and the trophies' backfill: the game's totals the same",
+               (g["points"], g["days"], g["trophyPaid"], g["bingoPay"]["lines"].__len__()),
+               (total, {day[0]: total}, {"fullcard": 100, "points1k": 50}, 8))
+        # trophies: each rank its medal, a one-off +100, once
+        expect("a rank by its medal: bronze 50 to diamond 250; a one-off 100",
+               [serve._trophy_pts(k)[0] for k in ("century", "thousand", "planes10k", "planes50k", "planes100k", "airlines25",
+                                                  "airlines100", "regs10k", "streak30", "beluga", "bingo")],
+               [50, 100, 150, 200, 250, 50, 150, 150, 100, 100, 100])
+        day[0] = "2026-10-29"
+        with serve._data_lock:
+            sp.ensure_day()
+        pts0 = g["points"]
+        bel = [plane(sp, None, typeCode="A3ST") for _ in range(2)]
+        expect("Whale watcher (one-off): +100 once", (paid(bel[0]), paid(bel[1]), g["points"] - pts0),
+               ([("trophy", 100, "beluga")], [], 10 + 100))
+        busy = [plane(sp) for _ in range(298)]
+        tro = [(i, p) for i, e in enumerate(busy, 3) for p in paid(e)]
+        expect("100 planes in a day: Busy sky bronze +50; 300: Rush hour silver +100 (and the game's 100th plane: Century +50)",
+               tro, [(89, ("trophy", 50, "century")), (100, ("trophy", 50, "busyday")), (300, ("trophy", 100, "busy300"))])
+        a = next(x for x in busy[97]["ga"] if x["k"] == "trophy")
+        expect("... the award says its rank (m: 0 bronze)", a.get("m"), 0)
+        # the next Monday: a new card, nothing paid on it yet; its first line pays again
+        day[0] = "2026-11-02"
+        with serve._data_lock:
+            sp.ensure_day()
+        card2 = serve.random.Random("fallblatt-2026-11-02").sample(sorted(serve.BINGO), 9)
+        first = plane(sp)
+        expect("Monday: a new card, nothing paid", (paid(first), g["bingoPay"]["week"], g["bingoPay"]["lines"]), ([], "2026-11-02", []))
+        row0 = [plane(sp, k) for k in card2[:3]]
+        expect("... its top row pays +50 again", paid(row0[2])[:1], [("bingo", 50, 0)])
+        save(sp)
+    finally:
+        serve.board_day, serve._game_bingo, serve._game_trophies = real_day, real_bingo, real_tro
+
+
 def scan_circle_checks(expect):
     """Relay 82 (to-do #145, #146): the two circles through record() on a live place: passive points within 15 km, the
     scan and the list of scannable planes (/game/me's "scan") within 10 km; a live place looks at least 15 km round; a game
@@ -382,7 +555,8 @@ def scan_circle_checks(expect):
         r = serve.game_lockon(sp, "a00008")
         expect("... its scan works and it leaves the list", (r.get("bonus", 0) > 0, "a00008" in listed()), (True, False))
         seen(ac("a00012", 9.5))
-        expect("the 12 km plane comes within 10 km: in the list, not priced again", ("a00012" in listed(), e12["gp"], len(e12["ga"])), (True, 5, 1))
+        expect("the 12 km plane comes within 10 km: in the list, not priced again",       # (at night the night-owl trophy pays too)
+               ("a00012" in listed(), e12["gp"], len([a for a in e12["ga"] if a["k"] != "trophy"])), (True, 5, 1))
         e12["liveSeen"] -= serve.LOCK_FRESH_S + 1
         expect("... not seen live for 120 s: out of the list, and the scan says gone", ("a00012" in listed(), serve.game_lockon(sp, "a00012").get("why")),
                (False, "gone"))
@@ -432,7 +606,7 @@ def scan_circle_checks(expect):
 
 
 def golden_checks(expect):
-    """Relay 83 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
+    """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
     A golden scan pays the plane's full points twice, the extras and the streak as ever; a plain scan is unchanged; a game
     scored before keeps every total and award."""
@@ -506,7 +680,7 @@ def golden_checks(expect):
         expect("the golden plane leaves the list once scanned; the other profile's ticket stays gold", (gh in listed(a), listed(b)),
                (False, {gh: True, nh: False}))
 
-        # a game scored before golden tickets (none gold), then relay 83 with a salt that makes its scanned plane gold
+        # a game scored before golden tickets (none gold), then relay 84 with a salt that makes its scanned plane gold
         folder = tmp / "before"
         folder.mkdir()
 
@@ -536,7 +710,7 @@ def golden_checks(expect):
             if serve.game_gold(old.day, "d00001") and serve.game_gold(old.day, "d00002"):
                 break
         new = serve.Spot(folder, None, lambda: 3)
-        expect("relay 83 on it (its scanned plane gold now): logbook, sightings, game page, Recent points and awards identical",
+        expect("relay 84 on it (its scanned plane gold now): logbook, sightings, game page, Recent points and awards identical",
                [x == y for x, y in zip(snap(new), before)], [True] * 5)
         with serve._data_lock:
             expect("... the points the same", serve.game_book(new.book())["points"], pts)
@@ -570,9 +744,10 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     golden_checks(expect)
-    import serve                    # relay 83: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
+    import serve                    # relay 84: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
     serve.game_gold = lambda day, hx: False
     game_rule_checks(expect)
+    bingo_trophy_checks(expect)
     scan_circle_checks(expect)
     screens_checks(expect)
     live_hidden_checks(expect)

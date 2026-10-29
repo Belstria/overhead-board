@@ -404,14 +404,14 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow hangarHtml hgWire
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gStyleAt gLevelUp gJingle gRip gGold gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
-    game_json GAME3_V GAME_KM SCAN_KM GAME_RULE TIER_BASE GAME_PASSIVE GAME_LIMIT GAME_NEW GAME_STREAK GAME1_NEW LOCK_FRESH_S LEVEL_TITLES game_book
-    _monday _scan_streak _game_limits _next_day_ms game_rules level_of _game_add game_note _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
+    game_json GAME3_V GAME_KM SCAN_KM GAME_RULE TIER_BASE GAME_PASSIVE GAME_LIMIT GAME_NEW GAME_STREAK GAME_BINGO GAME_MEDAL GAME_SINGLE GAME1_NEW LOCK_FRESH_S LEVEL_TITLES game_book
+    _monday _scan_streak _game_limits _next_day_ms game_rules level_of _game_add game_note _trophy_pts _game_pay _game_trophies _bingo_pay_state _game_bingo _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
 docs/architecture.md: "The game (1.72, relay 59)"

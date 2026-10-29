@@ -1893,7 +1893,7 @@ function arLoop(){
     const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && (x.lock || x.scan)) : null;
     const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
     const closer = game && !gx && !near && (d / 1000 <= gKm() || spotted.some(x => x.hex === ac.hex && x.gp != null && x.liveMin != null && x.liveMin <= gKm()));
-    // 1.100 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
+    // 1.101 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
     const gold = near && gGoldSet().has(ac.hex), tier = tierOf(ac, info), pts = gBase(tier) == null ? null : gBase(tier) * (gold ? 2 : 1);
     const chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
     shown.push({ac, d, pr, isFeat, chip, gold, locked: !!gx, tier: near ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: game && !gx && !near, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
@@ -1926,7 +1926,7 @@ function arLoop(){
       g.fillStyle = s.far ? "rgba(255,255,255,.2)" : tc || (s.isFeat ? "#17140e" : "#f0b429"); rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
       g.fillStyle = s.far ? "#e7e2d6" : tc ? (s.tier === "legendary" ? "#17140e" : "#fff") : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
     }
-    if (s.gold) {                                    // 1.100: a gold edge round the label and a GOLDEN ×2 tab on it
+    if (s.gold) {                                    // 1.101: a gold edge round the label and a GOLDEN ×2 tab on it
       const gr = g.createLinearGradient(bx, by, bx + bw, by + bh), tab = T("GOLDEN ×2");
       gr.addColorStop(0, "#fff1b8"); gr.addColorStop(.4, "#e0aa1f"); gr.addColorStop(.7, "#b8860b"); gr.addColorStop(1, "#f6d27a");
       g.strokeStyle = gr; g.lineWidth = 2.5; rr(g, bx, by, bw, bh, 7); g.stroke();
@@ -4129,19 +4129,25 @@ async function gRefresh(force){
    (later ones stay quiet). Recent points lists the same lines (gAwLine). The relay sends the awards since the newest one
    shown (/game/me?since=, relay 76); a scan's come with its answer (gLockOn). A tap puts a pass away. */
 let gAwAt = 0;
+const BINGO_LINE = ["Top row", "Middle row", "Bottom row", "Left column", "Middle column", "Right column", "Diagonal", "Diagonal"];
 const TIER_UP = {common: "COMMON", uncommon: "UNCOMMON", rare: "RARE", epic: "VERY RARE", legendary: "SPECIAL"};
 const gPlus0 = n => n ? gPlus(n) : "0";
 const gTierT = t => T(TIER_NAME[t] || "Uncommon");
 // An award's line, as on its pass and in Recent points: [what, points, class ("x" an extra, "stk" the streak, "lim" none)].
 function gAwLine(a, f, tix){
   const t = gTierT(a.tier), R = gRules(), lim = (R && R.limit[a.tier]) || 0;
-  if (a.k === "scan" && a.gold && tix) return [T("{t} plane {p} ×2", {t, p: gPlus(a.full || a.p / 2)}), a.p, "gold"];     // 1.100: on its ticket
+  if (a.k === "scan" && a.gold && tix) return [T("{t} plane {p} ×2", {t, p: gPlus(a.full || a.p / 2)}), a.p, "gold"];     // 1.101: on its ticket
   if (a.k === "pass") return [T("{t} plane", {t}) + (lim ? " · " + T("{n} of {m} today", {n: nf.format(a.n || 1), m: nf.format(lim)}) : ""), a.p, ""];
   if (a.k === "limit") return [T("{t} limit reached: {m} of {m} today", {t, m: nf.format(lim || (a.n || 1) - 1)}), 0, "lim"];
-  if (a.k === "scan" && a.gold) return [T("Sky view scan · {t} plane ×2 golden", {t}), a.p, "gold"];    // 1.100: a golden ticket's
+  if (a.k === "scan" && a.gold) return [T("Sky view scan · {t} plane ×2 golden", {t}), a.p, "gold"];    // 1.101: a golden ticket's
   if (a.k === "scan") return [a.r === 2 ? T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}) : T("Sky view scan · {t} plane", {t}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
+  // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
+  if (a.k === "bingo") return [T("Bingo line · {l}", {l: T(BINGO_LINE[a.n] || "Line")}), a.p, "x"];
+  if (a.k === "card") return [T("Full bingo card"), a.p, "x"];
+  if (a.k === "trophy") { const tr = TROPHY_TIER.get(a.n), m = TROPHY_MEDALS[a.m];
+    return [tr && m ? T("Trophy · {name} · {m}", {name: T(tr.name), m: T(m)}) : T("Trophy · {name}", {name: trophyText(a.n)[0]}), a.p, "x"]; }
   return [T("Points"), a.p, ""];
 }
 // The passes' box, at the bottom of the screen, or of Sky view while it is open (1.98: moved there when it opens).
@@ -4328,7 +4334,7 @@ function gRip(){
   src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
   src.connect(bp).connect(g).connect(sfxOut()); src.start();
 }
-// 1.100 (to-do #148, Dave's pick B, "Bell sparkle"): a golden ticket's tear: the paper rip, then eight bells climbing a
+// 1.101 (to-do #148, Dave's pick B, "Bell sparkle"): a golden ticket's tear: the paper rip, then eight bells climbing a
 // pentatonic scale (E6 to A7, 55 ms apart) onto a held bright chord with three high glints. Levelled like 1.97.2: the rip
 // stays its loudest moment, the bells' loudest 300 ms a touch above the jingle's.
 function gGold(){
@@ -4423,7 +4429,10 @@ function gHowCard(){
       p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
-      `<div class="gStk">${sd}</div>` : ""));
+      `<div class="gStk">${sd}</div>` +
+      (R.bingo ? `<p class="gHowH">${escH(T("Bingo and trophies"))}</p>` +           // 1.100 (relay 83)
+        p(T("Weekly bingo:"), T("+{l} for each line, +{c} more for the full card. A new card every Monday at 03:00, with the league.", {l: nf.format(R.bingo.line), c: nf.format(R.bingo.card)})) +
+        p(T("Trophies:"), T("a new rank +{a} to +{b} by its medal (bronze to diamond), any other trophy +{s}.", {a: nf.format(R.medal[0]), b: nf.format(R.medal[R.medal.length - 1]), s: nf.format(R.single)})) : "") : ""));
 }
 /* 1.89 (to-do #91, Dave's pick A): Recent points, from a tap on the strip's points: today's total and planes, then each
    plane that scored, newest first (time, flight, airline, type with its rarity, how close, its total) with its awards
@@ -4455,7 +4464,7 @@ async function gRecentCard(){
     const f = fromRelay(r);                  // named as in Spotted today (FR 3EG, not RYR3EG)
     // a plane scored before relay 71: its totals, the first score and a lock-on without their times
     const aw = r.aw.length ? r.aw : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
-    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common", sum = r.gp + (r.lock || 0) + (r.gs || 0);
+    const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common", sum = r.gp + (r.lock || 0) + (r.gs || 0) + (r.gb || 0);
     const lines = aw.map((a, i) => { const [w, p, x] = (r.rule || 1) >= 2 ? gAwLine({tier: r.tier, ...a}, f) : [gWhy(r, a), a.p, ""];
       return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
     const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(f.type || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
@@ -4507,7 +4516,7 @@ function achSpecial(a, dry){
   let box = $("medalMo");
   if (!box) { box = document.createElement("div"); box.id = "medalMo"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   box.style.setProperty("--m", MEDAL_COL[i]); box.setAttribute("aria-label", T("New medal"));
-  box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}))}</span>` +
+  box.innerHTML = `<div class="mmRib"><i></i><b>${ROMAN[i]}</b></div><div class="mmTx"><span>${escH(T("New medal · {m}", {m: T(TROPHY_MEDALS[i])}) + (a.pts ? " · +" + nf.format(a.pts) : ""))}</span>` +
     `<h3>${escH(T(tr.name))}</h3><p>${escH(T(tr.text, {n: nf.format(tr.at)}))} · ${escH(T("rank {i} of {n}", {i: i + 1, n: L[2].length}))}</p></div>`;
   box.hidden = false; box.classList.remove("out");
   fanfare();
@@ -4542,7 +4551,7 @@ function gBurst(x, y, gold){
   if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
   burst.style.left = x == null ? "" : x + "px"; burst.style.top = y == null ? "" : y + "px";
   burst.className = gold ? "gold" : "";
-  // 1.100: a golden ticket throws gold glitter: more, finer pieces in golds and white, and sparkles (✦) among them
+  // 1.101: a golden ticket throws gold glitter: more, finer pieces in golds and white, and sparkles (✦) among them
   const cols = gold ? ["#fff1b8", "#f0b429", "#ffffff", "#e0aa1f", "#c9921a"] : ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"], n = gold ? 24 : 18;
   burst.innerHTML = Array.from({length: n}, (_, i) => `<i style="--r:${i * 360 / n}deg;background:${cols[i % 5]}"></i>`).join("") +
     (gold ? Array.from({length: 10}, (_, i) => `<b style="--r:${i * 36 + 18}deg;animation-delay:${(i % 3) * .08}s">✦</b>`).join("") : "");
@@ -4566,7 +4575,7 @@ async function gLockOn(hex){
   // moment it comes off (its animationstart), and the burst starts at the scan's tear line. With reduced motion there is no
   // tear: the burst stays where it was, in the ring, at once, and the sounds come on the same count.
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // 1.100: a golden ticket's stub tears with its own sound (gGold) and throws gold glitter (none with reduced motion).
+  // 1.101: a golden ticket's stub tears with its own sound (gGold) and throws gold glitter (none with reduced motion).
   const gold = !!r.gold, rip = i => gold && !i ? gGold : gRip;
   if (still && !gold) gBurst();
   passes.forEach((pass, i) => {

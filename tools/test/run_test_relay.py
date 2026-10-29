@@ -11,7 +11,7 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake); David's
                                                screens more than 30 km from the test point (Live location) also get the
                                                gap filler's take-off that only Flightradar24 hears (relay 66)
-    py tools/test/run_test_relay.py --gold     golden tickets (relay 83): every plane in the scan list is gold (--gold HEX,HEX:
+    py tools/test/run_test_relay.py --gold     golden tickets (relay 84): every plane in the scan list is gold (--gold HEX,HEX:
                                                only those); without it none is, so tests don't depend on the salt
     py tools/test/run_test_relay.py --hue      a fake Hue Bridge (fakehue.py, two ports below the relay) for the admin
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
@@ -93,7 +93,7 @@ def main():
         src = src.replace(real, fake, 1)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
     src = re.sub(r"^SKY_REPORTS_MAX = \d+", "SKY_REPORTS_MAX = 2", src, flags=re.M)   # flows.py checks the cap
-    gold = "    return int(h[:8], 16) % GOLD_ONE_IN == 0"    # relay 83: golden tickets only as asked (--gold)
+    gold = "    return int(h[:8], 16) % GOLD_ONE_IN == 0"    # relay 84: golden tickets only as asked (--gold)
     if gold not in src:
         raise SystemExit("relay/serve.py's game_gold changed; update run_test_relay.py")
     src = src.replace(gold, "    return " + ("True" if a.gold == "all" else f"str(hx or '').lower() in {a.gold.lower().split(',') if a.gold else []!r}"), 1)

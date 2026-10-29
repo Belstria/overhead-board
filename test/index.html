@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=16ebf6bf98"></script>
+<script src="i18n.js?v=049f6b5f33"></script>
 <script>
 (() => {
 "use strict";
@@ -6984,15 +6984,16 @@ function achList(g0){
     if (rule && styleOk(rule, g0)) out.push({k: "style:" + id, icon: "◆", title: T("New style unlocked"), text: T("{name} · Settings → Styles", {name: T(nm)})});
   for (const s of g0.sets || []) if (s.total && (s.have || []).length >= s.total)
     out.push({k: "set:" + s.name, icon: "▣", title: T("Collection complete"), text: T("{name}: all {n} seen", {name: T(s.name), n: s.total})});
-  const b = g0.bingo;
+  const b = g0.bingo, bp = (b && b.paid) || null, tp = g0.trophyPaid || {};       // relay 83: what each paid (the latest lines)
   if (b && b.week) {
     for (let n = 1; n <= Math.min(8, b.lines || 0); n++)
-      out.push({k: `line:${b.week}:${n}`, icon: "▦", title: T("Bingo!"), text: n === 1 ? T("A line on this week's bingo card") : T("Line {n} on this week's bingo card", {n})});
-    if (Object.keys(b.done || {}).length >= 9) out.push({k: "card:" + b.week, icon: "▦", title: T("Full card"), text: T("All nine on this week's bingo card")});
+      out.push({k: `line:${b.week}:${n}`, icon: "▦", title: T("Bingo!"), text: n === 1 ? T("A line on this week's bingo card") : T("Line {n} on this week's bingo card", {n}),
+        pts: bp && n > (b.lines || 0) - bp.lines ? bp.line : 0});
+    if (Object.keys(b.done || {}).length >= 9) out.push({k: "card:" + b.week, icon: "▦", title: T("Full card"), text: T("All nine on this week's bingo card"), pts: bp && bp.full ? bp.card : 0});
   }
   for (const id of Object.keys(g0.trophies || {})) {
     const [name, desc] = trophyText(id);
-    out.push({k: "tr:" + id, icon: "★", title: T("Trophy: {name}", {name}), text: desc});
+    out.push({k: "tr:" + id, icon: "★", title: T("Trophy: {name}", {name}), text: desc, pts: tp[id] || 0});
   }
   return out;
 }
@@ -7020,7 +7021,7 @@ function achNext(){
   const list = achQueue.splice(0, 3);
   const tok = cardOpen(`<div class="achBadge" aria-hidden="true">${escH(list[0].icon)}</div>` +
     `<p class="shH">${escH(T("Achievement"))}</p>` +
-    list.map(a => `<h3>${escH(a.title)}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
+    list.map(a => `<h3>${escH(a.title + (a.pts ? " +" + nf.format(a.pts) : ""))}</h3><p class="achTx">${escH(a.text)}</p>`).join("") +
     `<div class="achBar"><i style="animation-duration:${ACH_MS}ms"></i></div>`, el => el.classList.add("ach"));
   confetti();
   fanfare();
@@ -7775,8 +7776,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.100", date: "2026-10-29", notes: [
+  {v: "1.101", date: "2026-10-29", notes: [
     "Now and then a ticket comes up gold: scan it for double points.",
+  ]},
+  {v: "1.100", date: "2026-10-29", notes: [
+    "Bingo lines and trophies now give points.",
   ]},
   {v: "1.99", date: "2026-10-29", notes: [
     "Sky view can zoom in: ×2 and ×5.",
