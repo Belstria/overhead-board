@@ -428,7 +428,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   place there named Home share one list, each plane once.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
-  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open. Since 1.113.1
+  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open. Since 1.114.1
   the grip stays at the top while a card scrolls, and cards have no ✕: a swipe down, back or a tap beside closes them.
 - **Cards** (1.42) open as a short loading window and appear complete once the words and the airport are in (at most
   a few seconds), instead of filling in piece by piece. Since 1.97.3 the photos don't hold a card back: it opens at
@@ -610,8 +610,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   1.112 stays (a bronze from 5 scans isn't paid again at 10). Since 1.106 the club has
   **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
   Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
-  Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). The best card is
-  in front with a bar to the next tier, the others' tops peek out above it (tap one to bring it forward). A plane's
+  Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). Since 1.114 the
+  cards stand in a **carousel**: swipe through them (a flick carries on), tap a side card to bring it in, and tap the
+  front one to **turn it over**. A card shows the airline's logo, your tier, a ring to the next one, since when you're a
+  member and your last scan (platinum shines in rainbow colours); its back the airline's full name and home base, your scans and sightings and the types you
+  scanned most. With six cards or more an **index** under them finds one: **By tier** or **A–Z**, slide your thumb
+  along it and the names there show above it while the cards follow. A plane's
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
 to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new

@@ -1000,22 +1000,71 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 :root{--m-platinum:linear-gradient(135deg,#55606e,#dfe7f1 45%,#fff 55%,#7f8fa1)}
 .lyN{--lbg:#26272b;--lk:#8b8f99} .ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
 .ly2{--lbg:var(--m-gold);--lk:#3a2a05;--mg:var(--m-gold)} .ly3{--lbg:var(--m-platinum);--lk:#1f2a36;--mg:var(--m-platinum)}
-.lyWal{display:grid;margin-top:8px}
-.lyCard{position:relative;display:block;width:100%;height:150px;border:0;border-radius:12px;padding:12px 14px;box-sizing:border-box;text-align:left;
-  background:var(--lbg);color:var(--lk);overflow:hidden;font:inherit;cursor:pointer;box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.22)}
-.lyCard + .lyCard{margin-top:-122px}
-.lyCard.lyN{box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px #3a3c42}
-.lyCard::before{content:"";position:absolute;right:-26px;top:-36px;width:110px;height:110px;border-radius:50%;background:var(--ac);opacity:.95}
-.lyCard.lyN::before{opacity:.35}
-.lyCard .hd{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.lyCard .hd b{min-width:0;text-transform:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-m)/1.1 var(--f-board)}
-.lyCard .hd em{flex:none;margin-right:72px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.16em;text-transform:uppercase}
-.lyCard .hd i{position:absolute;right:0;top:-1px;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#fff}
-.lyCard .nm{position:absolute;left:14px;right:14px;bottom:42px;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase}
-.lyCard.lyN .nm{font-size:var(--fs-l);letter-spacing:.06em;text-transform:none}
-.lyCard .br{position:absolute;left:14px;right:14px;bottom:30px;height:4px;border-radius:2px;background:rgba(0,0,0,.15)}
-.lyCard .br i{display:block;height:100%;border-radius:2px;background:currentColor;opacity:.7}
-.lyCard .ft{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;gap:8px;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+/* 1.114 (to-do #182): the member cards' carousel. The cards (--cw wide, a real card's 1.586) stand in a curve: the front
+   one in the middle, its neighbours turned 42° and dimmed (::after); .go while they snap. A card turns over (.flip) on
+   its own axis; its front and back are faces. The metal card: brushed lines, the logo engraved (multiplied into light
+   metal, screened onto dark), the tier down the right edge, the airline's colour along the left, a hologram, a ring. */
+.lyCar{position:relative;margin:6px -16px 0;overflow:hidden;touch-action:pan-y;--cw:280px;transition:opacity .16s}
+.lySt{position:relative;height:calc(var(--cw) / 1.586 + 22px);perspective:900px;perspective-origin:50% 45%}
+.lyC{position:absolute;left:50%;top:8px;width:var(--cw);height:calc(var(--cw) / 1.586);margin-left:calc(var(--cw) / -2);
+  transform-style:preserve-3d;-webkit-transform-style:preserve-3d;will-change:transform;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;cursor:pointer}
+.lyCar.go .lyC{transition:transform .5s cubic-bezier(.2,.85,.25,1),opacity .4s}
+.lyC::after{content:"";position:absolute;inset:0;border-radius:12px;background:#000;opacity:var(--dim,0);pointer-events:none;transform:translateZ(1px)}
+.lyIn{position:absolute;inset:0;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,1.25,.4,1)}
+.lyC.flip .lyIn{transform:rotateY(180deg)}
+.lyFr,.lyBk{position:absolute;inset:0;border-radius:12px;overflow:hidden;background:var(--lbg);color:var(--lk);backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.22);font:700 var(--fs-tag)/1.15 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+.lyBk{transform:rotateY(180deg)}
+.lyN .lyFr,.lyN .lyBk{box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px #3a3c42}
+.lyBr{position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.04) 1px 2px,transparent 2px 3px);pointer-events:none}
+.lyLg{position:absolute;left:20px;top:14px;height:38px;max-width:150px;display:flex;align-items:center}
+.lyLg img{height:100%;max-width:150px;object-fit:contain;object-position:left center;filter:grayscale(1) contrast(1.4);mix-blend-mode:multiply;opacity:.8}
+.lyN .lyLg img,.ly0 .lyLg img{filter:grayscale(1) brightness(3);mix-blend-mode:screen;opacity:.7}
+.lyLg b{font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75;text-shadow:0 1px 0 rgba(255,255,255,.4)} .lyLg.ok b{display:none}
+.lyVt{position:absolute;right:6px;top:50%;width:150px;margin-right:-62px;transform:translateY(-50%) rotate(90deg);text-align:center;font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.3em;opacity:.85}
+.lyHo{position:absolute;left:20px;bottom:14px;width:46px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(from 30deg,#f6b7d2,#b6e3f9,#c8f5c0,#fbe7a1,#f6b7d2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.25)}
+.lyHo b{font:700 var(--fs-s)/1 var(--f-board);color:rgba(30,30,40,.75);letter-spacing:.04em}
+.lyRg{position:absolute;left:74px;bottom:13px;width:36px;height:36px;transform:rotate(-90deg)}
+.lyRg circle{fill:none;stroke:rgba(0,0,0,.15);stroke-width:3.5} .lyRg .v{stroke:var(--ac);stroke-linecap:round}
+.lyNx{position:absolute;left:118px;right:40px;bottom:15px;display:flex;flex-direction:column;gap:3px}
+.lyN .lyNx{left:78px} .lyNx small{font-size:var(--fs-tag);opacity:.75}
+.lyMs{position:absolute;left:20px;right:50px;top:60px;font-weight:600;letter-spacing:.1em;opacity:.7}   /* clear of the tier on the edge */
+.lyMs > span{display:inline-block;max-width:100%}
+/* platinum: an iridescent sheen over the light metal, so it never reads as silver (Dave's pick B, 29 Oct) */
+.ly3 .lyFr::before,.ly3 .lyBk::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:hard-light;opacity:.9;
+  background:linear-gradient(115deg,rgba(255,90,180,.7),rgba(90,180,255,.7) 30%,rgba(120,255,170,.65) 52%,rgba(255,210,100,.7) 76%,rgba(190,120,255,.7))}
+.lyIdx.tier > i.ly3{background:linear-gradient(115deg,rgba(255,90,180,.45),rgba(90,180,255,.45) 30%,rgba(120,255,170,.4) 52%,rgba(255,210,100,.45) 76%,rgba(190,120,255,.45)),var(--m-platinum)}
+.lySh{position:absolute;inset:0;pointer-events:none;opacity:0;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%)}
+.lyFr.shine .lySh{animation:lyShine .9s ease-out}
+.lyN .lyFr.shine .lySh,.ly0 .lyFr.shine .lySh{animation-duration:.7s;opacity:.4}
+@keyframes lyShine{0%{transform:translateX(-120%);opacity:1}100%{transform:translateX(120%);opacity:1}}
+.lyMag{position:absolute;left:0;right:0;top:14px;height:28px;background:#16171a}
+.lyHm{position:absolute;left:20px;right:14px;top:50px;display:flex;flex-direction:column;gap:3px}
+.lyHm b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:var(--fs-xs)} .lyHm small{font-size:var(--fs-tag);opacity:.75}
+.lyGr{position:absolute;left:20px;right:14px;top:88px;display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.lyGr span{display:flex;flex-direction:column;gap:1px} .lyGr small{font-size:var(--fs-tag);font-weight:600;opacity:.6}
+.lyTy{position:absolute;left:20px;right:14px;bottom:10px;display:flex;flex-wrap:wrap;gap:5px}
+.lyTy i{font-style:normal;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.12)} .lyTy small{margin-left:3px;font-size:var(--fs-tag);opacity:.7}
+.lyCount{display:flex;justify-content:space-between;align-items:baseline;margin:10px 2px 0;font:700 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--c-dim,#9a9a9a)}
+.lyCount b{color:var(--c-text,#eee)}
+.lyDots{display:flex;justify-content:center;gap:7px;margin:8px 0 0}
+.lyDots i{width:7px;height:7px;border-radius:50%;background:#555;transition:background .2s,transform .2s} .lyDots i.on{background:#ddd;transform:scale(1.25)}
+/* the index: a segment per tier (its metal) or the letters; the bubble over the thumb */
+.lySort{margin:10px 0 0}
+.lyIdx{position:relative;display:flex;gap:2px;height:40px;margin:8px 0 0;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none}
+.lyIdx > i{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2b2d32;color:#ddd;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal}
+.lyIdx > i.dim{color:#555;background:#232428} .lyIdx > i.on{background:#f3f0e8;color:#111}
+.lyIdx.tier > i{flex-grow:var(--n);min-width:56px;flex-direction:column;gap:2px;background:var(--lbg);color:var(--lk)} .lyIdx.tier > i small{font-size:var(--fs-tag);opacity:.75}
+.lyIdx.tier > i.on{box-shadow:0 0 0 2px #fff}
+.lyIdx > b{position:absolute;bottom:-5px;width:12px;height:3px;margin-left:-6px;border-radius:2px;background:#fff;transition:left .25s}
+#lyBub{position:fixed;z-index:9000;min-width:150px;max-width:220px;padding:10px 12px;border-radius:12px;background:rgba(24,25,28,.96);color:#ddd;pointer-events:none;opacity:0;
+  box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 0 1px #3a3c42;transform:translate(-50%,-100%) scale(.8);transition:opacity .15s,transform .15s}
+#lyBub.on{opacity:1;transform:translate(-50%,-100%) scale(1)}
+#lyBub > b{display:block;margin-bottom:6px;font:700 var(--fs-hero)/1 var(--f-board);color:#fff}
+#lyBub > span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:600 var(--fs-tag)/1.5 var(--f-board);letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+#lyBub > span.on{opacity:1;color:#ffd36a}
+@media (prefers-reduced-motion:reduce){.lyCar.go .lyC,.lyIn,.lyDots i,#lyBub{transition:none}.lyFr.shine .lySh{animation:none}}
 .gAw .lyFF{display:flex;align-items:center;gap:8px;margin:0 12px 10px;padding:7px 0 0;border-top:1.5px dotted #cfc8b8;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;color:#333}
 .gAw .lyFF i{font-style:normal;color:#999}
 .gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
@@ -1385,7 +1434,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #cardBox.closing .cardIn{transform:translateY(calc(100% + 40px));transition:transform .26s cubic-bezier(.4,0,.8,.5)}
 #cardBox.drag .cardIn{transition:none}
 #cardBox,#cardBox .cardIn{overscroll-behavior:contain}           /* 1.78.1: the page behind never scrolls */
-/* 1.113.1 (to-do #189): the grip stays at the top while the card scrolls under it (in the flow, taking no room: -16 + 4 + 12;
+/* 1.114.1 (to-do #189): the grip stays at the top while the card scrolls under it (in the flow, taking no room: -16 + 4 + 12;
    a sticky top counts from inside the 24 px padding, so -16 is 8 px from the edge);
    no ✕: a swipe down, back or a tap beside closes a card */
 #cardBox .cardIn::before{content:"";position:sticky;top:-16px;z-index:6;display:block;width:40px;height:4px;margin:-16px auto 12px;border-radius:2px;

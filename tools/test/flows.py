@@ -1135,8 +1135,8 @@ def loyalty_checks(expect):
             pre[:] = [g["points"], g["days"].get(day, 0)]           # after the plane's passive points
         return e
 
-    def scan(sp, al="AUA"):
-        return serve.game_lockon(sp, seen(sp, al)["hex"])
+    def scan(sp, al="AUA", tc="A320"):
+        return serve.game_lockon(sp, seen(sp, al, tc)["hex"])
 
     def loy(r):
         return [(a["n"], a["m"], a["p"]) for a in r.get("lines", []) if a["k"] == "loyalty"]
@@ -1228,6 +1228,48 @@ def loyalty_checks(expect):
         expect("... the totals untouched by it", (g["points"], g["days"], g["trophies"]), (old["points"], old["days"], old["trophies"]))
         expect("... SWR's 13th scan pays nothing, its 50th Gold",
                (loy(scan(sp, "SWR")), [i + 14 for i in range(37) if loy(scan(sp, "SWR"))], g["scanAirlines"]["SWR"]), ([], [50], 50))
+        # relay 97 (to-do #182): the member cards' first and last scan and the types scanned with each airline
+        def info(sp):
+            with serve._data_lock:
+                return serve.game3_json(sp.book(), day)["walletInfo"]
+        f4 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f4)
+        t0 = int(serve.time.time() * 1000)
+        for tc, k in (("A320", 3), ("A321", 2), ("E195", 1), ("B763", 1), ("B772", 1)):
+            for _ in range(k):
+                scan(sp, "AUA", tc)
+        scan(sp, "RYR", "B738")
+        seen(sp, "DLH")
+        t1 = int(serve.time.time() * 1000)
+        w = info(sp)
+        a = w["AUA"]
+        expect("the wallet's info: the four types scanned most with the airline", a["types"], [["A320", 3], ["A321", 2], ["B763", 1], ["B772", 1]])
+        expect("... its first and last scan (ms, in order), its planes caught live", (t0 <= a["since"] <= a["last"] <= t1, a["seen"]), (True, 8))
+        expect("... an airline caught live but never scanned: only its sightings", w["DLH"], {"seen": 1})
+        expect("... the scans' times are the sightings' scans", (a["since"], a["last"]),
+               (min(x["scan"] for x in sp.entries if x.get("scan") and x["callsign"].startswith("AUA")),
+                max(x["scan"] for x in sp.entries if x.get("scan") and x["callsign"].startswith("AUA"))))
+        save(sp)
+        before = info(sp)
+        sp, g = spot(f4)
+        expect("... a restart keeps it", info(sp), before)
+        with serve._data_lock:
+            g.pop("scanAirlineInfo")
+        save(sp)
+        old = _j.loads((f4 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f4)
+        expect("... counted back from the saved days when a game has none (relay 96 and before)", (serve.logbook_json(sp)["game"]["walletInfo"], g["points"]),
+               (before, old["points"]))
+        # scans whose days keep no scan times: the day the airline was first caught live stands in, marked
+        with serve._data_lock:
+            g.pop("scanAirlineInfo")
+            for x in sp.entries:
+                x.pop("scan", None)
+        save(sp)
+        sp, g = spot(f4)
+        w = info(sp)
+        expect("... without scan times: member since the first sighting, marked, no types",
+               (w["AUA"].get("seenSince"), w["AUA"]["since"] == g["airlines"]["AUA"]["first"], "types" in w["AUA"], w["DLH"]), (1, True, False, {"seen": 1}))
     finally:
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
