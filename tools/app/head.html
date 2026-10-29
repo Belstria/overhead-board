@@ -871,6 +871,33 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT .hgL.no{color:#5d636c}
 .hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
 .hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
+/* 1.105 (to-do #149, Dave's pick A without the medal on the photo): mastery. A card's frame in its metal, a little bolder
+   than the plain card's line (3 px); a thin bar to the next step; on the opened card the three steps, on a scan's ticket
+   the step reached */
+:root{--m-bronze:linear-gradient(135deg,#7a4a22,#d39058 45%,#f3c491 55%,#9a5f2c);--m-silver:linear-gradient(135deg,#6f767f,#d5dbe2 45%,#fff 55%,#8c939c);
+  --m-gold:linear-gradient(135deg,#8c650b,#e6b93f 45%,#fff0b0 55%,#a77c12)}
+.mk1{--mg:var(--m-bronze)} .mk2{--mg:var(--m-silver)} .mk3{--mg:var(--m-gold)}
+.hgCard.mk1,.hgCard.mk2,.hgCard.mk3{border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.hgCard.mk1::after,.hgCard.mk2::after,.hgCard.mk3::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:var(--mg);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.mkBar{display:block;position:relative;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.mkBar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--amber)}
+.hgT .mkBar{margin-top:4px;height:3px}
+.mkMast{margin-top:6px;padding:10px 12px;border-radius:10px;background:#202125}
+.mkMast h4{margin:0 0 10px;display:flex;justify-content:space-between;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.mkMast h4 b{color:var(--ink)}
+.mkSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.mkSteps div{display:grid;justify-items:center;gap:4px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted);text-align:center}
+.mkSteps .md{width:38px;height:38px;border-radius:50%;background:var(--mg);display:grid;place-items:center;color:rgba(40,25,5,.85);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.mkSteps .md svg{width:18px;height:18px}
+.mkSteps .off .md{filter:grayscale(1) brightness(.45);opacity:.6}
+.mkSteps b{color:var(--ink);font-weight:700;font-size:var(--fs-xs)} .mkSteps .off b{color:var(--muted)}
+.mkBarT{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted)}
+.mkBarT b{color:var(--ink);font-weight:700}
+.gAw .lns div.mst{margin:2px -12px 0;padding:3px 12px;background:linear-gradient(90deg,rgba(160,165,175,.25),rgba(255,255,255,0))}
+.gAw .lns div.mst span{display:flex;align-items:center;gap:6px;color:#222;font-weight:700}
+.gAw .lns div.mst span::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--mg);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.2)}
 /* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
 #medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
   text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}

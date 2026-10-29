@@ -1366,6 +1366,33 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT .hgL.no{color:#5d636c}
 .hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
 .hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
+/* 1.105 (to-do #149, Dave's pick A without the medal on the photo): mastery. A card's frame in its metal, a little bolder
+   than the plain card's line (3 px); a thin bar to the next step; on the opened card the three steps, on a scan's ticket
+   the step reached */
+:root{--m-bronze:linear-gradient(135deg,#7a4a22,#d39058 45%,#f3c491 55%,#9a5f2c);--m-silver:linear-gradient(135deg,#6f767f,#d5dbe2 45%,#fff 55%,#8c939c);
+  --m-gold:linear-gradient(135deg,#8c650b,#e6b93f 45%,#fff0b0 55%,#a77c12)}
+.mk1{--mg:var(--m-bronze)} .mk2{--mg:var(--m-silver)} .mk3{--mg:var(--m-gold)}
+.hgCard.mk1,.hgCard.mk2,.hgCard.mk3{border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.hgCard.mk1::after,.hgCard.mk2::after,.hgCard.mk3::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:var(--mg);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.mkBar{display:block;position:relative;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.mkBar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--amber)}
+.hgT .mkBar{margin-top:4px;height:3px}
+.mkMast{margin-top:6px;padding:10px 12px;border-radius:10px;background:#202125}
+.mkMast h4{margin:0 0 10px;display:flex;justify-content:space-between;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.mkMast h4 b{color:var(--ink)}
+.mkSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.mkSteps div{display:grid;justify-items:center;gap:4px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted);text-align:center}
+.mkSteps .md{width:38px;height:38px;border-radius:50%;background:var(--mg);display:grid;place-items:center;color:rgba(40,25,5,.85);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.mkSteps .md svg{width:18px;height:18px}
+.mkSteps .off .md{filter:grayscale(1) brightness(.45);opacity:.6}
+.mkSteps b{color:var(--ink);font-weight:700;font-size:var(--fs-xs)} .mkSteps .off b{color:var(--muted)}
+.mkBarT{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted)}
+.mkBarT b{color:var(--ink);font-weight:700}
+.gAw .lns div.mst{margin:2px -12px 0;padding:3px 12px;background:linear-gradient(90deg,rgba(160,165,175,.25),rgba(255,255,255,0))}
+.gAw .lns div.mst span{display:flex;align-items:center;gap:6px;color:#222;font-weight:700}
+.gAw .lns div.mst span::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--mg);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.2)}
 /* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
 #medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
   text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}
@@ -2015,7 +2042,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=9b891545a1"></script>
+<script src="../test/i18n.js?v=7c6c782138"></script>
 <script>
 (() => {
 "use strict";
@@ -2662,7 +2689,7 @@ function infoCard(o){
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}${bandMid(o.kind)}${end(o.band[2])}</div>` : "") +
     ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
     (o.tiles && o.tiles.length ? `<div class="cTiles"${o.tiles.length < 3 ? ` style="grid-template-columns:repeat(${o.tiles.length},minmax(0,1fr))"` : ""}>${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
-      `${s ? `<small>${escH(s)}</small>` : ""}</${a ? "button" : "div"}>`).join("")}</div>` : "") +
+      `${s ? `<small>${escH(s)}</small>` : ""}</${a ? "button" : "div"}>`).join("")}</div>` : "") + (o.afterTiles || "") +
     (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
     (det.length ? `<div class="cDet">${det.map(([l, v, w]) => `<div${w ? ' class="w"' : ""}><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` : "") +
     (paras.length ? `<div class="cWikiW"><p class="cWiki clamp">${escH(paras[0])}</p>${paras.length > 1 ? `<div class="cMoreT" hidden>${paras.slice(1).map(p => `<p class="cWiki">${escH(p)}</p>`).join("")}</div>` : ""}` +
@@ -7580,6 +7607,30 @@ const HG_EAGER = 6, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone 
 let hgRun = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
 const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 800);
 function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
+/* 1.105 (to-do #149, Dave's pick A "metal frames", without its medal on the shelf): mastery. A type's scans climb its
+   card bronze, silver, gold (relay 88: rules.mastery, [scans, bonus] a step, paid at the scan that reaches it). On the
+   shelf only the card's frame in its metal (and a thin bar to the next step); the opened card has the three steps. */
+const MST = [[5, 25], [25, 100], [100, 250]], MST_NAME = ["", "Bronze", "Silver", "Gold"];
+const MST_TO = ["{n} of {m} scans to bronze", "{n} of {m} scans to silver", "{n} of {m} scans to gold"];
+const mstSteps = () => { const r = gRules(); return (r && r.mastery) || MST; };
+const mstOf = n => mstSteps().filter(st => (n || 0) >= st[0]).length;
+// the way to the next step: its index, the share done (0–1); null at gold
+function mstNext(n){
+  const st = mstSteps(), k = mstOf(n);
+  if (k >= st.length) return null;
+  const lo = k ? st[k - 1][0] : 0;
+  return {k, at: st[k][0], p: st[k][1], f: Math.max(0, Math.min(1, ((n || 0) - lo) / (st[k][0] - lo)))};
+}
+const mstBar = f => `<span class="mkBar"><i style="width:${Math.round(f * 100)}%"></i></span>`;
+// the opened card's part: the three steps (scans and bonus; those not reached dimmed), the bar and how far to the next
+function mstHtml(n){
+  const k = mstOf(n), nx = mstNext(n), med = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_STAR}"/></svg>`;
+  return `<div class="mkMast"><h4>${escH(T("Mastery"))}${k ? `<b>${escH(T(MST_NAME[k]))}</b>` : ""}</h4><div class="mkSteps">` +
+    mstSteps().map(([at, p], i) => `<div class="mk${i + 1}${k > i ? "" : " off"}"><span class="md">${med}</span><b>${escH(T(MST_NAME[i + 1]))}</b>` +
+      `${escH(T("{n} scans · +{p}", {n: nf.format(at), p: nf.format(p)}))}</div>`).join("") + `</div>` +
+    (nx ? mstBar(nx.f) + `<div class="mkBarT"><b>${escH(T(MST_TO[nx.k], {n: nf.format(n || 0), m: nf.format(nx.at)}))}</b><span>+${nf.format(nx.p)}</span></div>`
+      : `<div class="mkBarT"><b>${escH(T("Gold: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
+}
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
   const card = (code, heli, eager) => {
@@ -7587,11 +7638,12 @@ function hangarHtml(hg){
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
       `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
     if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
+    const mk = mstOf(t.scans), nx = t.scans ? mstNext(t.scans) : null;
+    return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span>` +
       (t.game ? `<span class="hgL"><i>★</i>${escH(T("Scored {n}×", {n: nf.format(t.game)}))}${t.scans ? `<u>· ${escH(T("{n} scanned", {n: nf.format(t.scans)}))}</u>` : ""}</span>`
-        : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + `</span></button>`;
+        : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + (nx ? mstBar(nx.f) : "") + `</span></button>`;
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
     `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
@@ -7683,6 +7735,7 @@ function hangarCard(code, again){
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
+    afterTiles: mstHtml(t.scans),                 // 1.105: mastery
     det: [["Aircraft", escH(t.reg || "")], ["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
     btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
@@ -10467,6 +10520,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.105", date: "2026-10-29", notes: [
+    "Hangar cards earn bronze, silver and gold frames as you scan a type, with a bonus at each step."]},
   {v: "1.104", date: "2026-10-29", notes: [
     "From level 6, a standby keeps your streak through a day without a scan; the club shows your week."]},
   {v: "1.103.0.1", date: "2026-10-29", notes: [
@@ -12565,6 +12620,7 @@ function gAwLine(a, f, tix){
   if (a.k === "scan") return [a.r === 2 ? T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}) : T("Sky view scan · {t} plane", {t}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
+  if (a.k === "mastery") return [((f && f.type) || typeLabel(a.n)) + " · " + T(MST_NAME[a.m] || "Bronze"), a.p, "x mst mk" + (a.m || 1)];   // 1.105
   // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
   if (a.k === "bingo") return [T("Bingo line · {l}", {l: T(BINGO_LINE[a.n] || "Line")}), a.p, "x"];
   if (a.k === "card") return [T("Full bingo card"), a.p, "x"];
@@ -12596,7 +12652,7 @@ function gPassFill(el, o){
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "";
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
     (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
-    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${x === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
+    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
     (o.gold ? `<div class="gl"></div><i class="sp" style="left:222px;top:58px">✦</i><i class="sp" style="left:150px;top:12px">✦</i>` : "") +
     `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em></div></div>`;
@@ -12878,6 +12934,8 @@ function gHowCard(){
       p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
       p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
+      (R.mastery ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b} or {c} scans adds +{x}, +{y} or +{z} once, and its hangar card turns bronze, silver or gold.",
+        {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], x: nf.format(R.mastery[0][1]), y: nf.format(R.mastery[1][1]), z: nf.format(R.mastery[2][1])})) : "") +   // 1.105 (relay 88)
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
       `<div class="gStk">${sd}</div>` +
       (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 03:00 and don't carry over.",
@@ -12918,7 +12976,7 @@ async function gRecentCard(){
     const aw = r.aw.length ? r.aw : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
     const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common", sum = r.gp + (r.lock || 0) + (r.gs || 0) + (r.gb || 0);
     const lines = aw.map((a, i) => { const [w, p, x] = (r.rule || 1) >= 2 ? gAwLine({tier: r.tier, ...a}, f) : [gWhy(r, a), a.p, ""];
-      return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
+      return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak", "mastery"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
     const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(f.type || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
     return `<li class="fl sp${sum ? "" : " lim"}" style="--lamp:${col}${hot && sum ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
       `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus0(sum)}</b>` +

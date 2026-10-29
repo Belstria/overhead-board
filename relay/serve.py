@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 87
+RELAY_VERSION = 88
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1052,6 +1052,7 @@ LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
 GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
 GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
+MASTERY = ((5, 25), (25, 100), (100, 250))   # relay 88 (to-do #149): bronze, silver, gold: a type's scans for the step, its bonus
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
 STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
@@ -1199,7 +1200,7 @@ def game_rules():
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
             "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
-            "standby": [list(s) for s in STANDBY]}
+            "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY]}
 
 
 def level_of(points):
@@ -1507,7 +1508,9 @@ def game_lockon(spot, hx):
     """Sky view held a plane in its ring for 1.5 s: the scan (relay 76). Once a pass, for a plane that came within
     SCAN_KM (relay 82; GAME_KM before) and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
     (relay 79; relay 76 topped it up to them); a type or an airline new to the game adds its extra, and the day's first
-    scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's)."""
+    scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's). Relay 88
+    (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery")."""
+    _scan_types(spot)                           # relay 88: the scans per type exist before the first scan counts
     now = time.time()
     with _data_lock:
         spot.ensure_day()
@@ -1535,8 +1538,12 @@ def game_lockon(spot, hx):
             sc["airlines"].append(al)
             lines.append({"k": "new", "p": can["airline"], "w": "airline", "n": al})
         st = g.get("scanTypes")
-        if tc and st is not None:               # (none yet: hangar_json counts them back from the days first)
-            st[tc.upper()] = st.get(tc.upper(), 0) + 1
+        if tc and st is not None:               # (none yet: _scan_types counts them back from the days first)
+            TC, ms = tc.upper(), _mastery(g)    # relay 88: the mastery steps as they were before this scan
+            st[TC] = st.get(TC, 0) + 1
+            for k in range(ms.get(TC, 0) + 1, mastery_step(st[TC]) + 1):
+                ms[TC] = k
+                lines.append({"k": "mastery", "p": MASTERY[k - 1][1], "n": TC, "m": k})
         streak = 0
         sd = g.setdefault("scanDays", [])
         if day not in sd:
@@ -1696,12 +1703,10 @@ def player_json(hid, me=None):
 _hangar_cache = {}
 
 
-def hangar_json(spot):
-    """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type seen, each with the first aircraft of it (since
-    relay 64 with its photo and thumbnail) and its rarity, the newest first; and the sets with all their types. Relay 76
-    (to-do #127): from the logbook (any sighting, from any screen; it was the game's own logbook), with how often the
-    game scored it ("game", 0: never). Relay 79: and how often Sky view scanned it ("scans"), counted by game_lockon; the
-    scans before (relay 76 on, e["scan"]) are counted back from the saved days once."""
+def _scan_types(spot):
+    """Relay 79: make the scans per type (g["scanTypes"]) the first time, counted back from the saved days' sightings
+    with a scan (relay 76 on, e["scan"]). Relay 88: the scan calls it too (the mastery steps need the counts). Not under
+    _data_lock (it reads every saved day)."""
     with _data_lock:
         need = "scanTypes" not in game_book(spot.book())
     if need:
@@ -1716,6 +1721,29 @@ def hangar_json(spot):
                 g["scanTypes"] = back
                 spot.changed("book")
                 event("info", f"Hangar: {sum(back.values())} Sky view scans counted back by type", echo=False)
+
+
+def mastery_step(n):
+    """Relay 88 (to-do #149): the mastery step a type's scans reach: 0 none, 1 bronze, 2 silver, 3 gold."""
+    return sum(1 for at, _ in MASTERY if n >= at)
+
+
+def _mastery(g):
+    """Relay 88: {TYPE: the step paid or passed}. Made the first time from the scans so far, unpaid: a type already
+    past a step keeps its frame (the app reads it from the scans), and only steps reached from then on pay."""
+    m = g.get("mastery")
+    if not isinstance(m, dict):
+        m = g["mastery"] = {tc: k for tc, k in ((tc, mastery_step(n)) for tc, n in (g.get("scanTypes") or {}).items()) if k}
+    return m
+
+
+def hangar_json(spot):
+    """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type seen, each with the first aircraft of it (since
+    relay 64 with its photo and thumbnail) and its rarity, the newest first; and the sets with all their types. Relay 76
+    (to-do #127): from the logbook (any sighting, from any screen; it was the game's own logbook), with how often the
+    game scored it ("game", 0: never). Relay 79: and how often Sky view scanned it ("scans"), counted by game_lockon; the
+    scans before (relay 76 on, e["scan"]) are counted back from the saved days once."""
+    _scan_types(spot)
     with _data_lock:
         book = spot.book()
         game = {tc: (t or {}).get("count", 0) for tc, t in (game_book(book).get("types") or {}).items()}

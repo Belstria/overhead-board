@@ -573,7 +573,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
   scanned) and the model. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
   shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
-  found shows a helicopter. **Tap a name in the league**
+  found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery): **bronze at 5, silver
+  at 25, gold at 100**, its frame in that metal and a thin bar under it to the next step. The scan that reaches a step
+  pays **+25, +100 or +250** once (in the day, the week and the level), and its ticket says so ("Airbus A321 ·
+  Silver +100"); the opened card shows the three steps with their bonuses and how far the next is ("13 of 25 scans to
+  silver"). Scans from before count for the frames; a step already passed then pays nothing. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board

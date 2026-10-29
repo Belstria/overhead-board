@@ -943,6 +943,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.105 (to-do #149, Dave's pick of 28–29 Oct, A "metal frames" without the medal on the photo; relay 88): **mastery.**
+  `MST` ([scans, bonus] a step; `rules.mastery` from the relay wins, `mstSteps()`), `mstOf(n)` (0–3), `mstNext(n)` (the
+  next step's index, scans, bonus and the share done; null at gold), `mstBar(f)`, `mstHtml(n)` (the opened card's
+  `.mkMast`: the three steps `.mkSteps` with a medal each, `.off` dimmed, the bar and `MST_TO`'s "13 of 25 scans to
+  silver" or "Gold: N scans"; `infoCard`'s new `o.afterTiles` puts it under the tiles). On the shelf `hangarHtml` gives
+  a card `.mk1`–`.mk3` (its frame a masked `::after` in `--mg`, the `--m-bronze/silver/gold` gradients, 3 px, so the
+  card's layout doesn't change) and a thin `.mkBar` under the scored line until gold; no medal on the photo (Dave).
+  `gAwLine` "mastery" {n: type code, m: step}: "Airbus A321 · Silver" with class `x mst mkN` (a metal dot, a grey band
+  on the ticket; `gPassFill` gives "(no ×2)" to any "x" line now); Recent points shows it without a time, like "new". `gHowCard`: a Mastery line from `rules.mastery`.
 - 1.104 (to-do #157, Dave's pick of 28–29 Oct, B "the week's calendar"; relay 87): **the standby.** `gme.standby`
   {week: Mon–Sun "s"/"b"/"", today: index, allow, left}. `gSbyHtml(g)` in `renderGame`'s level card, before the tiles:
   `.gSbyH` (This week; on the right `N standby left` amber, `No standby left` red while the streak hangs on today's
@@ -1376,6 +1385,13 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 88 (1.105, to-do #149): **mastery.** `MASTERY` ((5, 25), (25, 100), (100, 250)), `mastery_step(n)`.
+  `_scan_types(spot)` (hangar_json's count-back of `g["scanTypes"]`, moved out) now also runs at the start of
+  `game_lockon`, so every scan counts per type from the first. `_mastery(g)`: `g["mastery"]` {TYPE: step paid or
+  passed}, made at the first scan after the update from `scanTypes` as they are then, unpaid. `game_lockon` raises the
+  type's count, then adds a `{"k": "mastery", "p", "n": TYPE, "m": step}` line for each step newly reached (an award
+  like "new": in the bonus, the day, the week, the level; not ×2 on a golden ticket). `game_rules()["mastery"]`.
+  Nothing rescored; `GAME3_V`, `GAME_V` and `GAME_RULE` unchanged. flows.py `mastery_checks`.
 - Relay 87 (1.104, to-do #157): **the standby.** `STANDBY` ((14, 2), (6, 1)), `standby_allow(level)`.
   `game_standby(g)` (called by `game_book`) makes `g["standby"]` {since: the board day} on the first touch after the
   update: only days from then on can be covered, so a streak that broke before stays as it was paid. `_standby(g, day)`
