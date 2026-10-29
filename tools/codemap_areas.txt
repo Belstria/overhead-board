@@ -124,7 +124,7 @@ changelog: special|watchlist|emergenc|military|chime|alert
 test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey photoBox rwyFeat featPic featPhoto
     photoReady photoCredit drawCover drawBezel glass paintScreen paintPlain drawPlaque engrave preloadPhoto placePhoto
     $("photoImg").onload $("photoImg").onerror photoLinkSet photoLinkOn photoKey
-    $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_MAKERS MODEL_LIKE
+    $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_PICS_KEY MODEL_PICS_MS modelBad modelKept modelSaveT modelSave modelForget MODEL_MAKERS MODEL_LIKE
     MODEL_NOT MODEL_FILL isRoman modelFold modelNear numCore modelSplit modelMakers numForms modelClash modelHit
     modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic modelAsking
     +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psModel psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
@@ -411,10 +411,10 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
-tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
+tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
-    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
+    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings

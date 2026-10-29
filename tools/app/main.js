@@ -1742,12 +1742,12 @@ const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
 /* 1.103.0.1 (to-do #166): a card's picture sits in a frame of its own size from the start (.hgPh, "heli" with a helicopter
    on the Helicopters shelf), painted in place as photos and model pictures come (hgPaint), so the shelves aren't drawn
    again for them (that made a swipe jump back). The model pictures are asked for in a queue, two at a time (hgAsk): the
-   cards in view first, then every shelf's first HG_EAGER cards, then the rest; one not answered is asked again a minute
+   cards in view first, then their shelf's first HG_EAGER cards (1.114.4: no more, half a second apart); one not answered is asked again a minute
    later (twice at most). Those first cards' pictures load at once, the rest as they come near; a shelf touched has all
    its pictures fetched beside it (hgAll, hgPre), not in it. Nothing in a shelf changes while it moves, not even an
    attribute (the browser snaps it back to its card then: hgMove, hgBusy), and the Club isn't drawn again (hgHeld). */
-const HG_EAGER = 6, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone = new Set();
-let hgRun = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
+const HG_EAGER = 6, HG_GAP = 500, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone = new Set();
+let hgRun = 0, hgLast = 0, hgPumpT = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
 const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 800);
 function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
 /* 1.105 (to-do #149, Dave's pick A "metal frames", without its medal on the shelf): mastery. A type's scans climb its
@@ -1832,11 +1832,20 @@ function hgWire(box){
     r.addEventListener("scroll", touch, {passive: true});
   }
   hgPaint(box);
-  for (const r of rows) frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
-  for (const r of rows) frames(r).slice(HG_EAGER).forEach(el => hgAsk(el));
+  if (!rows.length) return;
+  // 1.114.4 (to-do #197): only frames that come into view are asked for, each with its shelf's first HG_EAGER (there were
+  // all 100 at once, and Wikipedia answered 429)
+  const eager = r => frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
   if (hgIO) hgIO.disconnect();
-  if (typeof IntersectionObserver !== "function") return;
-  hgIO = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { hgIO.unobserve(e.target); hgAsk(e.target, true); } }, {rootMargin: "150px"});
+  if (typeof IntersectionObserver !== "function") return rows.forEach(eager);
+  const shelves = new Set();
+  hgIO = new IntersectionObserver(es => {
+    for (const e of es) if (e.isIntersecting) {
+      hgIO.unobserve(e.target); hgAsk(e.target, true);
+      const r = e.target.closest(".hgRow");
+      if (r && !shelves.has(r)) { shelves.add(r); eager(r); }
+    }
+  }, {rootMargin: "150px"});
   for (const el of box.querySelectorAll(".hgPh")) if (!el.firstChild) hgIO.observe(el);
 }
 // What a frame shows now: the first one's own photo, else its model's ("" none yet).
@@ -1854,7 +1863,7 @@ function hgPaint(root){
     if (!src) { old.remove(); continue; }
     const im = old || document.createElement("img");
     im.alt = ""; im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.loading = el.dataset.e ? "eager" : "lazy";
-    im.onerror = () => { hgBad.add(src); hgPaint(el.parentNode); hgAsk(el, true); };
+    im.onerror = () => { hgBad.add(src); modelForget(src); hgPaint(el.parentNode); hgAsk(el, true); };
     im.src = src;
     if (!old) el.append(im);
   }
@@ -1870,15 +1879,17 @@ function hgAsk(el, first){
 }
 function hgPump(){
   while (hgRun < 2 && hgQ.length && tab === "game") {
+    const wait = hgLast + HG_GAP - Date.now();                 // 1.114.4: a gap between lookups
+    if (wait > 0) { clearTimeout(hgPumpT); hgPumpT = setTimeout(hgPump, wait); return; }
     const q = hgQ.shift();
     if (modelPics.has(q.k)) continue;
-    hgRun++;
+    hgRun++; hgLast = Date.now();
     modelPic(q.names, null, q.code);
     modelLook(q.names, q.code).catch(() => {
       const n = (hgTries.get(q.k) || 0) + 1;
       hgTries.set(q.k, n);
       if (n < 3) setTimeout(() => { if (!modelPics.has(q.k)) { hgQ.push(q); hgPump(); } }, 61000);
-    }).then(() => { hgRun--; hgPaint($("gameBox")); setTimeout(hgPump, 100); });
+    }).then(() => { hgRun--; hgPaint($("gameBox")); hgPump(); });
   }
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
@@ -4860,7 +4871,7 @@ function showTab(t){
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { jumpHold = null; cockpitOpen(); settingsExtra(); renderFavBox(); jumpBuild(); }
-  else if (t === "game") { $("gameBox").dataset.h = ""; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
+  else if (t === "game") { gPlates = null; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   setTimeout(() => appTips(t), 900);
@@ -5758,10 +5769,19 @@ async function gLeagueLoad(force){
   try { gLeague = await fetchJSON(`${relay()}/game/league`, {}, 8000); } catch {}
   if (tab === "game") renderGame();
 }
+/* 1.114.4 (to-do #197): the Club page as its plates' HTML, each plate with what follows it up to the next. A redraw replaces
+   only the plates whose HTML changed (a new sighting redrew all 11,000 nodes, the hangar's pictures with them), so the
+   others keep their pictures, place and wiring; gPlates null (a new visit) draws it whole. One plate inside another
+   would split wrong: then it stays one piece. */
+let gPlates = null;
+function gPlateSplit(h){
+  const parts = h.split(/(?=<section class="plate secPlate)/);
+  return parts.every(p => p.split("<section").length === p.split("</section>").length) ? parts : [h];
+}
 function renderGame(){
   if (tab !== "game") return;
   const g = gme, all = lbData() || {}, g0 = all.game;
-  if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; return; }
+  if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; gPlates = null; return; }
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
@@ -5785,13 +5805,27 @@ function renderGame(){
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
   if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
   h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
-  const box = $("gameBox");
-  if (box.dataset.h === h) return;
+  const box = $("gameBox"), parts = gPlateSplit(h), old = gPlates && gPlates.length === parts.length ? gPlates : null;
+  const changed = parts.map((p, i) => old && old[i] === p ? -1 : i).filter(i => i >= 0);
+  if (old && !changed.length) return;
   if (Date.now() - hgBusy < (hgHeld ? 10000 : 800)) return hgSoon();    // 1.103.0.1: not while a shelf is held or still moving
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
-  box.dataset.h = h; box.innerHTML = h;
-  for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
-  hgWire(box); lyWire(box, renderGame); ppWire(box);
+  const tops = old ? [...box.children].filter(e => e.matches("section.secPlate")) : [];
+  let roots = [box];
+  if (tops.length !== parts.length) box.innerHTML = h;
+  else {                                         // 1.114.4: only the plates that changed, each where it was
+    roots = [];
+    for (const i of changed) {
+      const t = document.createElement("template");
+      t.innerHTML = parts[i];
+      roots.push(...t.content.children);
+      for (let n = tops[i]; n && n !== tops[i + 1];) { const nx = n.nextSibling; n.remove(); n = nx; }
+      box.insertBefore(t.content, tops[i + 1] || null);
+    }
+  }
+  gPlates = parts;
+  for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r && r.scrollLeft !== x) r.scrollLeft = x; }
+  for (const r of roots) { hgWire(r); lyWire(r, renderGame); ppWire(r); }
   if (gHit) gHitDo();
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
