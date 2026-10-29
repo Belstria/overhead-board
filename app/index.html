@@ -9384,11 +9384,24 @@ function arZoomStep(){
   arZoomCss();
 }
 // 1.75.2: the time the source made the positions (getAircraft's list.now), so the relay's few seconds of keeping them
-// count too; a phone clock far off falls back to when they arrived. Turn rates are measured between two updates.
-const arTurns = new Map();                           // hex -> {at, track, rate}
+// count too (a phone clock that is off: below). Turn rates are measured between two updates.
+// 1.114.6.1 (to-do #200): a phone clock 10 s fast carried every plane 10 s on (2 km; 13° at 10 km). An update's lag (its
+// arrival against the source's time) is the source's age, the relay's sharing and the network, 1-6 s, plus the clock's
+// offset. Over the last dozen updates (a minute; four at least) the smallest is about AR_LAG_LOW with a right clock: over
+// AR_LAG_OFF, or under nought, the clock is off and it is taken off down to AR_LAG_LOW. What is left is capped at
+// AR_LAG_MAX like the board's ageOf.
+const arTurns = new Map(), AR_LAG_LOW = 1500, AR_LAG_OFF = 3500, AR_LAG_MAX = 6000;   // hex -> {at, track, rate}; ms
+let arLags = [], arClock = 0;                        // the last updates' lags (ms); the clock's offset taken off (ms)
 function arFeed(list){
-  const now = Date.now(), t = list && list.now;
-  arList = list || []; arListAt = t && now - t > -2000 && now - t < 120000 ? Math.min(now, t) : now;
+  const now = Date.now(), at = list && list.recvAt || now, t = list && list.now;
+  arList = list || []; arListAt = now;
+  if (t > 0) {
+    arLags.push(at - t); if (arLags.length > 12) arLags.shift();
+    const lo = Math.min(...arLags), was = arClock;
+    arClock = arLags.length >= 4 && (lo > AR_LAG_OFF || lo < 0) ? lo - AR_LAG_LOW : 0;
+    if (Math.abs(arClock) >= 2000 && Math.abs(was) < 2000) dlog("info", `Sky view: this phone's clock is about ${Math.round(arClock / 1000)} s off the source's, taken off the planes' age`);
+    arListAt = at - Math.min(AR_LAG_MAX, Math.max(0, at - t - arClock));
+  }
   for (const ac of arList) {
     if (ac.track == null) continue;
     const at = arListAt - (ac.seen_pos || 0) * 1000, was = arTurns.get(ac.hex);
@@ -9434,6 +9447,14 @@ function arOrient(e){
     // 1.86: Android's compass reading. While the gyroscope's comes too, this one only says where north is.
     arAbsR = arQMatrix(arQuat(a, e.beta, e.gamma)); arAbsT = t;
     if (t - arRelT < 400) return arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy, true);
+    if (arRelQ && arGap != null && arRelHolds(t)) {
+      // 1.114.6.1: the gyroscope's reading paused, so the phone is where it left it: the compass's still only says
+      // where north is, and the labels stay on the gyroscope's heading (north added)
+      arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy, true);
+      arGapStep(arYaw(arAbsR, arQMatrix(arRelQ)), t);
+      const h = arGap * Math.PI / 360;
+      return arTurn(arQMul([Math.cos(h), 0, 0, Math.sin(h)], arRelQ), t);
+    }
   }
   else {
     // 1.86: Android's gyroscope reading turns the labels, north added as the gap to the compass's
@@ -9447,6 +9468,20 @@ function arOrient(e){
   if (a == null) return;
   arCalCheck(raw, e.beta, e.gamma, e.webkitCompassAccuracy, arGap != null);
   arTurn(arQuat(a, e.beta, e.gamma), t);
+}
+// 1.114.6.1 (to-do #200): Chrome sends no gyroscope reading while no angle changes by 0.1° (a phone put down or held
+// very steadily); the compass's keeps coming. Following it then made the labels wobble with the compass (±2.4°, jumps
+// of 10 px) and stopped north refining. The pause is taken as the phone being still unless something says it moved:
+// the compass's tilt off the gyroscope's last reading (AR_REL_TILT; a turn about the vertical leaves the tilt alone),
+// the phone's turning rate (devicemotion) or the compass's heading far off north in use (AR_REL_YAW). Then the
+// gyroscope has stopped for good and the compass turns the labels, as before.
+const AR_REL_TILT = 3, AR_REL_YAW = 25, AR_REL_RATE = 5;   // °; °; °/s
+function arRelHolds(t){
+  // (a row of the matrix is a world axis in the phone's own: the third, up, moves with the tilt only)
+  const R = arQMatrix(arRelQ), up = R[2][0] * arAbsR[2][0] + R[2][1] * arAbsR[2][1] + R[2][2] * arAbsR[2][2];
+  if (Math.acos(Math.min(1, up)) * 180 / Math.PI > AR_REL_TILT) return false;
+  if (arMo && t - arMo.t < 200 && arMo.deg > AR_REL_RATE) return false;
+  return Math.abs(wrap180(arYaw(arAbsR, R) - arGap)) < AR_REL_YAW;
 }
 // 1.86: north (the gap between the compass and the gyroscope): the first reading, then followed (1.90: slowly, see
 // AR_GAP_TAU), not at all once lined up. The compass swinging 12° or more against the gyroscope within 4 s (moving
@@ -9509,7 +9544,7 @@ const AR_AHEAD = .15;                                // s
 // start the turning speed afresh. arW is then nought, and carrying a reading on by nought was 0/0: the heading became
 // NaN, and as each frame glides on from the last, it stayed so: no labels, an empty compass ribbon, until closed.
 const AR_GAP_MS = 300;
-let arRd = null, arRdRef = null, arW = [0, 0, 0], arFrT = 0, arFrN = 0, arTim = {reads: [], frames: [], fresh: []}, arMo = null;
+let arTurnLog = [], arRd = null, arRdRef = null, arW = [0, 0, 0], arFrT = 0, arFrN = 0, arTim = {reads: [], frames: [], fresh: []}, arMo = null;
 function arMotion(e){
   const r = e.rotationRate;
   if (!r || typeof r.alpha !== "number") return;
@@ -9522,6 +9557,7 @@ const arTimPush = (a, v) => { a.push(Math.round(v * 10) / 10); if (a.length > 12
 function arTurn(q, t){
   if (!q.every(Number.isFinite)) return;             // 1.112.0.1: a bad reading is left out (the last good one stays)
   arLastQ = q;
+  arTurnLog.push({q, t}); while (t - arTurnLog[0].t > 600) arTurnLog.shift();   // 1.114.6.1: for arTurnNow
   if (arRd) arTimPush(arTim.reads, t - arRd.t);
   const gap = arRd && t - arRd.t > AR_GAP_MS;
   arFrN++; arRd = {q, t};
@@ -9582,14 +9618,14 @@ async function arStart(button){
   // 1.76: labels lined up before true north was known carry the declination in their drag: taken out once
   if (!arOff.v) { if (arOff.h) { arOff.h -= magDecl(S.lat, S.lon); arOffSave(); } arOff.v = 2; }
   try { arAuto = localStorage.getItem("od.ar.auto") !== "0"; } catch {}
-  arAutoFinds = []; arAutoLock = null; arAutoSig = ""; arAutoPause = 0;
+  arAutoFinds = []; arFindLog = []; arAutoLock = null; arAutoSig = ""; arAutoPause = 0;
   const v = $("arVid"); v.srcObject = arStream; v.play().catch(() => {});
   v.addEventListener("loadedmetadata", () => {                 // 1.75.2: what the camera gives, for the log
     const tr = arStream && arStream.getVideoTracks()[0], st = tr && tr.getSettings ? tr.getSettings() : {};
     dlog("debug", `Sky view camera: ${v.videoWidth}×${v.videoHeight}${st.resizeMode ? ` (${st.resizeMode})` : ""}, picture ${Math.round(arFocal($("arCv").clientWidth, $("arCv").clientHeight))} px to the radian`);
   }, {once: true});
   $("arView").hidden = false; document.body.classList.add("arOpen"); if ($("gAws")) gAwsBox(); arOn = true; arQ = null; arGap = null; arAlt = null;
-  arAbsR = null; arRelQ = null; arRelT = 0; arRd = arRdRef = null; arW = [0, 0, 0]; arFrT = arFrN = 0; arTim = {reads: [], frames: [], fresh: []}; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0; arGapRef = null; arGapFast = false;
+  arAbsR = null; arRelQ = null; arRelT = 0; arTurnLog = []; arRd = arRdRef = null; arW = [0, 0, 0]; arFrT = arFrN = 0; arTim = {reads: [], frames: [], fresh: []}; arLastQ = null; arRate = 0; arMovedAt = 0; arGapLog = []; arHeldAt = 0; arGapRef = null; arGapFast = false;
   arEvN = {abs: 0, rel: 0, ios: 0, motion: 0}; arMo = null; arHeldWhy = ""; arSunLast = null; arNote = {text: "", until: 0};
   $("arFlag").hidden = !arReportOk(); $("arFlag").classList.remove("sent"); $("arFlag").setAttribute("aria-label", T("Send a report to tune Sky view"));
   arShotAt = 0; arLocked = ""; $("arShut").hidden = true; $("arShut").setAttribute("aria-label", T("Take a picture"));
@@ -9915,7 +9951,7 @@ function arReport(){
   const now = Date.now(), t = performance.now(), cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, v = $("arVid");
   const c = arQ ? arUnproject(W / 2, H / 2, arQMatrix(arQ), W, H) : null, sun = arBody && arBody.sun, moon = arBody && arBody.moon;
   return {
-    v: 2, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
+    v: 3, app: typeof VERSION === "string" ? VERSION : "", os: /iPhone|iPad/.test(navigator.userAgent) ? "ios" : /Android/.test(navigator.userAgent) ? "android" : "other",
     secs: Math.round((now - arSince) / 1000), events: arEvN, gap: arR1(arGap), dec: arR1(arDec), off: {h: arR1(arOff.h), p: arR1(arOff.p)},
     held: arHeldAt ? {secs: Math.round((now - arHeldAt) / 1000), why: arHeldWhy} : null,
     unsure: now - arCalAt < 4000, rate: arR1(arRate), stillSecs: arR1((t - arMovedAt) / 1000),
@@ -9924,6 +9960,10 @@ function arReport(){
     raw: arRaw.map(([rt, a, b, g]) => [rt - now, arR1(a), arR1(b), arR1(g)]),
     auto: {on: arAuto, sun: !!(arAutoLock && arAutoLock.sun), planes: arAutoLock && !arAutoLock.sun ? arAutoLock.hexes.length : 0},
     finds: arAutoFinds.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p)]),
+    // 1.114.6.1: the last 60 finds, counted or not (made while turning), with the turn then (°/s; about the vertical,
+    // + to the left); and the phone clock's offset taken off the planes' age (s)
+    findLog: arFindLog.map(x => [x.hex === "sun" ? "sun" : "plane", x.t - now, arR1(x.h), arR1(x.p), arR1(x.deg), arR1(x.yaw), x.used ? 1 : 0]),
+    clock: arR1(arClock / 1000), autoRate: AR_AUTO_RATE,
     sun: sun && {az: arR1(sun.az), el: arR1(sun.el), ring: arSunLast && {secs: Math.round((now - arSunLast.t) / 1000), h: arR1(arSunLast.h), p: arR1(arSunLast.p)}},
     moon: moon && moon.el > -.5 ? {az: arR1(moon.az), el: arR1(moon.el)} : null,
     screen: {w: W, h: H, video: [v.videoWidth || 0, v.videoHeight || 0], focal: Math.round(arFocal(W, H)), zoom: arR1(arZk * arZc), camZoom: arR1(arZk), turned: (screen.orientation && screen.orientation.angle) || 0},
@@ -10000,17 +10040,37 @@ function arBrackets(g, x, y, r = 14, arm = 6){
    counts, edges (clouds, roofs) and lines (contrails, wires) don't. */
 const AR_AUTO_MS = 160, AR_AUTO_R = 9, AR_AUTO_N = 240;   // how often, how far around a label (degrees), samples across
 let arAuto = true, arAutoAt = 0, arAutoFinds = [], arAutoLock = null, arAutoPause = 0, arAutoSaved = 0, arAutoSig = "";
+// 1.114.6.1 (to-do #200): the camera's picture is a little late, so a find made while the phone turns is off by that
+// delay times the turn (about 3° at 30°/s): such finds agreed with each other and AUTO slid the labels there, and back
+// after the pan. Finds count only while the phone turns slower than AR_AUTO_RATE. Every find, counted or not, goes into
+// the report with the turn at that moment (arFindLog), so the camera's delay can be measured from real phones.
+const AR_AUTO_RATE = 4;                              // °/s
+let arFindLog = [];
+// How fast the phone turns (°/s), and about the vertical (signed as alpha: + to the left): over the readings of the last third of a second,
+// so a hand's tremor (fast, but to and fro) doesn't count; no reading for that long is a phone held still.
+function arTurnNow(){
+  const t = performance.now(), b = arTurnLog[arTurnLog.length - 1], a = arTurnLog.find(x => b && b.t - x.t <= 330);
+  if (!b || t - b.t > 400 || !a || b.t - a.t < 100) return {deg: 0, yaw: 0};
+  const A = arQMatrix(a.q), B = arQMatrix(b.q), dt = (b.t - a.t) / 1000;
+  return {deg: 360 / Math.PI * Math.acos(Math.min(1, Math.abs(a.q[0] * b.q[0] + a.q[1] * b.q[1] + a.q[2] * b.q[2] + a.q[3] * b.q[3]))) / dt, yaw: arYaw(B, A) / dt};
+}
+function arFindNote(f, turn, used){
+  arFindLog.push({...f, deg: turn.deg, yaw: turn.yaw, used});
+  if (arFindLog.length > 60) arFindLog.shift();
+  if (used) arAutoFinds.push(f);
+}
 const arCan = document.createElement("canvas"), arCx = arCan.getContext("2d", {willReadFrequently: true});
 function arAutoStep(shown, W, H, avoid, R){
   const now = Date.now(), v = $("arVid");
   if (!arAuto || arDrag || now < arAutoPause || now - arAutoAt < AR_AUTO_MS || !(v.readyState >= 2) || !v.videoWidth) return arAutoChip();
   arAutoAt = now;
+  const turn = arTurnNow(), steady = turn.deg < AR_AUTO_RATE || !arRelQ;   // (no gyroscope: the compass's wobble isn't a turn)
   // 1.86: the sun, anywhere in the picture, says how far off the compass is (up to 45°)
   const sun = arBody && arBody.sun;
   if (sun && sun.el > 1 && sun.el < 75) {
     const hit = arSunFind(v, R, W, H, sun);
     if (hit) {
-      arAutoFinds.push({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el});
+      arFindNote({hex: "sun", t: now, h: arOff.h + wrap180(sun.az - hit.az), p: arOff.p + sun.el - hit.el}, turn, steady);
       arSunLast = {t: now, h: wrap180(sun.az - hit.az), p: sun.el - hit.el};   // 1.90: how far off the sun's ring was, for the report
     }
   }
@@ -10021,7 +10081,7 @@ function arAutoStep(shown, W, H, avoid, R){
     if (avoid.some(a => Math.hypot(a.x - o.pr.x, a.y - o.pr.y) < r * 1.6)) continue;                      // the sun's glare
     const span = {A1: 11, A2: 20, A5: 65, A7: 11}[o.ac.category] || 35;                             // wingspan or rotor, metres
     const hit = arFind(v, W, H, o.pr.x, o.pr.y, r, span / o.d * f);
-    if (hit) arAutoFinds.push({hex: o.ac.hex, t: now, h: arOff.h - Math.atan((hit.x - o.pr.x) / f) * 180 / Math.PI, p: arOff.p + Math.atan((hit.y - o.pr.y) / f) * 180 / Math.PI});
+    if (hit) arFindNote({hex: o.ac.hex, t: now, h: arOff.h - Math.atan((hit.x - o.pr.x) / f) * 180 / Math.PI, p: arOff.p + Math.atan((hit.y - o.pr.y) / f) * 180 / Math.PI}, turn, steady);
   }
   arAutoFinds = arAutoFinds.filter(x => now - x.t < 2500);
   // a plane counts when most of its last finds agree (within 0.7°; the sun, 4 finds within 1.2°); the planes counted
@@ -11884,6 +11944,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.6.1", date: "2026-10-29", notes: [
+    "Sky view's labels hold steady when you keep the phone still.",
+    "Sky view lines up with the sun and planes only while the phone is steady, so the labels no longer slide after a turn.",
+    "Planes in Sky view stay in the right place when the phone's clock is a few seconds off."]},
   {v: "1.114.6", date: "2026-10-29", notes: [
     "Sky view runs lighter: with the phone held still it no longer redraws the same picture, which saves battery.",
     "The board underneath rests while Sky view is open: no flipping and no clatter; it shows the latest when you close Sky view.",

@@ -7870,6 +7870,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.6.1", date: "2026-10-29", notes: [
+    "Sky view's labels hold steady when you keep the phone still.",
+    "Sky view lines up with the sun and planes only while the phone is steady, so the labels no longer slide after a turn.",
+    "Planes in Sky view stay in the right place when the phone's clock is a few seconds off."]},
   {v: "1.114.6", date: "2026-10-29", notes: [
     "Sky view runs lighter: with the phone held still it no longer redraws the same picture, which saves battery.",
     "The board underneath rests while Sky view is open: no flipping and no clatter; it shows the latest when you close Sky view.",

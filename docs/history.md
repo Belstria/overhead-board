@@ -948,6 +948,27 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.6.1 (to-do #200, the three safe fixes of Fable's Sky view deep dive): **the labels hold still, the planes' age
+  survives a wrong clock, AUTO only when steady.** (1) Chrome sends no gyroscope reading while no angle changes by 0.1°;
+  after 400 ms `arOrient`'s compass branch drove `arTurn` with the raw compass (±2.4° wobble, 10 px jumps, north not
+  refined). Now, once a gyroscope reading has come, the compass's reading during such a pause feeds `arGapStep` against
+  the last gyroscope orientation and turns the labels by that orientation with north added (`qz(arGap)·arRelQ`), unless
+  `arRelHolds` sees the phone moved: the compass's tilt more than `AR_REL_TILT` (3°) off the gyroscope's last one, the
+  devicemotion rate over `AR_REL_RATE` (5°/s), or the compass's heading more than `AR_REL_YAW` (25°) off north in use;
+  then the gyroscope stopped for good and the compass turns the labels as before. iPhone and compass-only phones are
+  unchanged. Harness (main.js's own code): held still with the gyroscope paused, sd 0.72° → 0.05°, range 4.8° (76 px) →
+  0.2° (3 px), frame step 9.9 → 0.005 px; north during a 15° compass swing worst 2.8° → 0.9° (as with every reading).
+  (2) `arFeed` dated the positions by `list.now` when the phone's clock was up to 120 s ahead; now the lag (`recvAt −
+  list.now`) of the last 12 updates is kept (`arLags`): once there are 4, a smallest lag over `AR_LAG_OFF` (3.5 s) or
+  under 0 means the clock is off and `arClock` takes it down to `AR_LAG_LOW` (1.5 s); what's left is capped at
+  `AR_LAG_MAX` (6 s, as `ageOf`). The log says once when the offset reaches 2 s. Synthetic polls (source 0.5–2.1 s,
+  share 0–4 s, 300 runs): a right clock mean error 0.01 s (0.6 % of updates over 1 s); a clock 3/10/60 s fast or 3 s slow
+  went from its full offset (10 s: 2.3 km, 13° at 10 km) to 0.7 s mean (first 30 s 1.5 s). (3) `arAutoStep` takes finds
+  only while `arTurnNow` (the turn over the last ⅓ s of `arTurnLog`, the readings `arTurn` got, so tremor doesn't count)
+  is under `AR_AUTO_RATE` (4°/s), or without a gyroscope. Every find goes to `arFindLog` (60, with the turn and its yaw
+  part, counted or not) via `arFindNote`; the report (v 3) adds `findLog` ([kind, ms, h, p, °/s, yaw °/s (+ left),
+  counted]), `clock` (s) and `autoRate`, so the camera's delay can be fitted from Dave's phone. Harness (the sun found in
+  a picture 100 ms late): after a 10/20/30°/s pan the labels were 2.7/3.6/4.4° off, gliding back; now 0.2°.
 - 1.114.6 (to-do #196 M1, M3, M5, L3, L6, the idle path (M4 dropped: Dave doesn't mind labels behind the bars); #198 L4, L5; Fable's review of 1.114.2): **Sky view
   faster.** `arLoop` now works in two steps. First where everything goes: all planes projected (`shown`: ac, d, pr,
   isFeat, alt, el), sorted, then for the 14 drawn only `arLabel(s, game, sm)` builds name, sub, chip, gold, tier, far
