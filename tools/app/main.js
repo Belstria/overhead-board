@@ -2829,7 +2829,8 @@ if (ANDROID) window.fallblattBack = fallblattBack;
    is still open the guard is pushed again. Closing by hand (x, a tap) leaves the guard behind: `guardSync` (every 200 ms
    and after each back) then takes it away with history.back(), its own popstate ignored (`guardSelf`), so the next back
    is never a dead one. showTab only replaces the URL (the hash) of the entry it is on, so tab switches never pile up.
-   The entry below keeps the URL it had, so after a back its hash is put right (replaceState) before hashchange runs.
+   The entry below keeps the URL it had, so after a back (the user's or our own) its hash is put right (replaceState)
+   before hashchange runs.
    Not in the Android app (its own back handler does this). */
 let guardOn = !ANDROID && !!(history.state && history.state.fbGuard);   // after a reload the guard may still be there
 let guardSelf = false;
@@ -2848,7 +2849,11 @@ function guardSync(){
 }
 if (!ANDROID) {
   addEventListener("popstate", e => {
-    if (guardSelf) { guardSelf = false; return; }                         // our own history.back()
+    if (guardSelf) {                                                      // our own history.back(): the entry below may
+      guardSelf = false;                                                  // still hold the tab it had (#today), so put the
+      history.replaceState(null, "", location.pathname + location.search + tabHash());   // URL right before hashchange
+      return;                                                             // runs (1.101.0.1: Now went back to that tab)
+    }
     if (e.state && e.state.fbGuard) { guardOn = true; return; }           // forward onto the guard again
     if (!guardOn) return;                                                 // not ours (a typed hash, ...)
     guardOn = false;
@@ -4007,7 +4012,7 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span>` +
+  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span><span class="gRk" id="gRk"></span>` +
     `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
     `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
   box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
@@ -4069,6 +4074,67 @@ function gTotSet(n, anim){
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
 }
 function gLevelText(g){ return T("Lvl {n} · {t} · {a} / {b}", {n: g.level, t: T(g.title), a: nf.format(g.into), b: nf.format(g.need)}); }
+// 1.102 (to-do #154, Dave's pick: round 2's ladder A): the level as a rank insignia, its colour telling the group and
+// its mark the step. 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8 navy with silver chevrons, 9–11 black with
+// 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars; 15–20 a pilot's cap (a gold line on the peak, gold
+// leaves, the peak gold, cord and piping, 19 a red band, 20 white), past 20 a gold star above it for each Legend. The
+// flight school's wings (#153, g.wings) as a pin beside it. The gradients once in the page (#rkDefs), so the same level
+// always draws the same markup (renderGame redraws only when its HTML changed).
+const RK_MET = {S: ["#ffffff", "#8d949e"], G: ["#ffe7a0", "#b8861c"]};
+const RK_CLOTH = {sky: ["#5d9be0", "#2c63a8"], navy: ["#2a3b66", "#111b36"], black: ["#2b2c30", "#0c0c0e"]};
+const RK_WF = "M52,14 C38,7 18,5 2,7 C14,12 32,16 52,19 Z M52,19 C38,15 22,14 9,15.5 C21,20 36,22 52,24 Z M52,24 C40,22.5 28,22.5 17,24.5 C28,28 40,29 52,29 Z";
+const RK_STAR = "M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z";
+const RK_PLANE = "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z";
+const RK_LADDER = [null, ["sky", "pip", 1], ["sky", "pip", 2], ["sky", "pip", 3], ["sky", "pip", 4],
+  ["navy", "chev", 1], ["navy", "chev", 2], ["navy", "chev", 3], ["navy", "chev", 4],
+  ["black", "bar", 2], ["black", "bar", 3], ["black", "bar", 4], ["black", "star", 1], ["black", "star", 2], ["black", "star", 3],
+  ["cap", 1], ["cap", 2], ["cap", 3], ["cap", 4], ["cap", 5], ["cap", 6]];
+function rkDefs(){
+  if ($("rkDefs")) return;
+  const grad = (id, [a, b], x2, y2) => `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
+  document.body.insertAdjacentHTML("beforeend", `<svg id="rkDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>` +
+    Object.entries(RK_MET).map(([k, c]) => grad("rkM" + k, c, 0, 1)).join("") + Object.entries(RK_CLOTH).map(([k, c]) => grad("rkC" + k, c, 1, 1)).join("") + `</defs></svg>`);
+}
+const rkStar = (cx, cy, r, fill) => `<path transform="translate(${cx - r} ${cy - r}) scale(${r / 12})" d="${RK_STAR}" fill="${fill}"/>`;
+const rkWings = (x, y, w) => `<g transform="translate(${x} ${y}) scale(${w / 120})"><g fill="url(#rkMG)" stroke="${RK_MET.G[1]}" stroke-width="1"><path d="${RK_WF}"/><path d="${RK_WF}" transform="matrix(-1 0 0 1 120 0)"/><circle cx="60" cy="20" r="10.5"/></g>` +
+  `<path transform="translate(52 12) scale(.67)" fill="${RK_MET.G[1]}" d="${RK_PLANE}"/></g>`;
+function rkCap(st){
+  const gold = "url(#rkMG)", leaves = y => Array.from({length: 9}, (_, i) => { const x = 18 + i * 5.5; return `<ellipse cx="${x}" cy="${y}" rx="2.6" ry="1.4" transform="rotate(-30 ${x} ${y})" fill="${st >= 3 ? "#8a5f10" : gold}"/>`; }).join("");
+  return `<path d="M6 22 C4 10 20 4 40 4 C60 4 76 10 74 22 Z" fill="${st >= 6 ? "#f5f1e6" : "#16203d"}" stroke="${st >= 6 ? "#cfc6ae" : "none"}"/>` +
+    (st >= 4 ? `<path d="M10 17 C14 9 28 6 40 6 C52 6 66 9 70 17" fill="none" stroke="${gold}" stroke-width="2"/>` : "") +
+    `<rect x="12" y="20" width="56" height="12" rx="2" fill="${st === 5 ? "#a3202a" : "#0a0f1e"}"/>` +
+    (st >= 4 ? `<rect x="12" y="25.5" width="56" height="3" fill="${gold}"/>` : "") +
+    `<path d="M10 32 H70 C66 40 50 44 40 44 C30 44 14 40 10 32 Z" fill="${st >= 3 ? gold : "#05070c"}"/>` +
+    (st <= 2 ? `<path d="M14 35.5 H66" stroke="${gold}" stroke-width="2.4"/>` : "") + (st === 2 ? leaves(40) : st >= 3 ? leaves(38) : "") +
+    `<ellipse cx="40" cy="20" rx="9.5" ry="8.5" fill="#0a0f1e" stroke="${gold}" stroke-width="1.8"/>` + rkWings(27, 14, 26);
+}
+const rankTitle = lv => lv > 20 ? T("Legend {n}", {n: lv - 19}) : T(GAME_LEVELS[Math.max(1, lv) - 1]);
+// A level's insignia, h px tall as a shoulder board (a cap is two thirds of that). o.wings: the wings pin beside it;
+// o.label: said by a screen reader ("Rank: Captain"); without it the insignia is hidden from one (its title is beside it).
+function rankIns(lv, h, o = {}){
+  rkDefs();
+  lv = Math.max(1, Math.round(lv) || 1);
+  const L = RK_LADDER[Math.min(lv, 20)], leg = Math.max(0, lv - 20);
+  let svg;
+  if (L[0] === "cap") {
+    const ch = h * .66 * (leg ? 55 / 48 : 1), r = 5.5, gap = 13;
+    svg = `<svg viewBox="0 ${leg ? -9 : -2} 80 ${leg ? 55 : 48}" height="${ch.toFixed(1)}">${rkCap(L[1])}` +
+      Array.from({length: Math.min(leg, 5)}, (_, i) => rkStar(40 + (i - (Math.min(leg, 5) - 1) / 2) * gap, -4, r, "url(#rkMG)")).join("") + `</svg>`;
+  } else {
+    const [cloth, mark, n] = L, fill = `url(#rkM${mark === "pip" || mark === "chev" ? "S" : "G"})`;
+    let b = `<path d="M5 92 V22 L22 5 L39 22 V92 Z" fill="url(#rkC${cloth})" stroke="${mark === "star" ? fill : "#070a14"}" stroke-width="${mark === "star" ? 2.6 : 1.5}" stroke-linejoin="round"/>` +
+      `<circle cx="22" cy="19" r="4.4" fill="url(#rkMG)" stroke="#7a5a12" stroke-width=".8"/>`;
+    if (mark === "pip") b += Array.from({length: n}, (_, i) => `<circle cx="22" cy="${82 - i * 14}" r="5.4" fill="${fill}" stroke="#5a616b" stroke-width=".8"/>`).join("");
+    if (mark === "chev") b += Array.from({length: n}, (_, i) => `<path d="M9 ${74 - i * 12} L22 ${84 - i * 12} L35 ${74 - i * 12}" fill="none" stroke="${fill}" stroke-width="5" stroke-linejoin="miter"/>`).join("");
+    if (mark === "bar") b += Array.from({length: n}, (_, i) => `<rect x="7" y="${80 - i * 10}" width="30" height="6" rx="1" fill="${fill}"/>`).join("");
+    if (mark === "star") b += Array.from({length: 4}, (_, i) => `<rect x="7" y="${82 - i * 8.5}" width="30" height="5" rx="1" fill="${fill}"/>`).join("") +
+      (n === 3 ? rkStar(22, 46, 6.5, fill) + rkStar(14, 33, 6, fill) + rkStar(30, 33, 6, fill) : n === 2 ? rkStar(22, 46, 6.5, fill) + rkStar(22, 32, 6.5, fill) : rkStar(22, 42, 8, fill));
+    svg = `<svg viewBox="0 0 44 96" height="${h}">${b}</svg>`;
+  }
+  const pin = o.wings ? `<svg class="rkW" viewBox="0 4 120 28" height="${Math.max(7, h * .26).toFixed(1)}">${rkWings(0, 0, 120)}</svg>` : "";
+  const lab = o.label ? [T("Rank: {t}", {t: rankTitle(lv)}), o.wings ? T("Wings") : ""].filter(Boolean).join(" · ") : "";
+  return `<span class="rkI"${lab ? ` role="img" aria-label="${escH(lab)}"` : ' aria-hidden="true"'}>${svg}${pin}</span>`;
+}
 // 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
 // was redrawn only with the next points, up to a minute later.
 let gStripLive = null;
@@ -4081,6 +4147,8 @@ function gStripRender(g, anim){
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
   $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
+  const rk = rankIns(g.level, 34, {wings: g.wings});                 // 1.102: the rank insignia
+  if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
   $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
     : escH(T("Club"));
@@ -4115,7 +4183,7 @@ async function gRefresh(force){
     const g = await fetchJSON(`${relay()}/game/me?since=${gAwAt || 1}`, {}, 8000), prev = gme;
     gme = g;
     gAwards(g.aw, !gAwAt);
-    fsBar();                                                  // 1.102: the flight school's bar on Now
+    fsBar();                                                  // 1.103: the flight school's bar on Now
     gTixSync(g.scan);
     if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
     else gStripRender(g);
@@ -4147,7 +4215,7 @@ function gAwLine(a, f, tix){
   // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
   if (a.k === "bingo") return [T("Bingo line · {l}", {l: T(BINGO_LINE[a.n] || "Line")}), a.p, "x"];
   if (a.k === "card") return [T("Full bingo card"), a.p, "x"];
-  if (a.k === "school") { const m = SCHOOL.find(x => x[0] === a.n); return [T("Flight school · {m}", {m: m ? T(m[1]) : a.n}), a.p, "x"]; }   // 1.102
+  if (a.k === "school") { const m = SCHOOL.find(x => x[0] === a.n); return [T("Flight school · {m}", {m: m ? T(m[1]) : a.n}), a.p, "x"]; }   // 1.103
   if (a.k === "trophy") { const tr = TROPHY_TIER.get(a.n), m = TROPHY_MEDALS[a.m];
     return [tr && m ? T("Trophy · {name} · {m}", {name: T(tr.name), m: T(m)}) : T("Trophy · {name}", {name: trophyText(a.n)[0]}), a.p, "x"]; }
   return [T("Points"), a.p, ""];
@@ -4260,7 +4328,7 @@ function gAwards(list, quiet){
   if (!Array.isArray(list) || !list.length) return;
   const fresh = list.filter(a => a.t > gAwAt);
   gAwAt = Math.max(gAwAt, ...list.map(a => a.t));
-  if (!quiet) for (const a of fresh.filter(x => x.k === "school")) fsStamp(a);     // 1.102: live location or not
+  if (!quiet) for (const a of fresh.filter(x => x.k === "school")) fsStamp(a);     // 1.103: live location or not
   if (quiet || !S.live) return;
   // 1.98 (to-do #146): the passive points show only on the strip (+N); a plane within the scan's circle gets its ticket
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
@@ -4310,7 +4378,7 @@ function gStyleAt(lv){
 }
 function gLevelUp(g){
   let box = $("gLvUp");
-  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g), 2000); return; }   // 1.102: after the wings
+  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g), 2000); return; }   // 1.103: after the wings
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const st = gStyleAt(g.level);
   box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
@@ -4373,7 +4441,7 @@ function renderGame(){
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
-  let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span>${escH(T("Level {n}", {n: g.level}))}</span></div>` +
+  let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
     (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) +
@@ -4384,12 +4452,12 @@ function renderGame(){
   const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
   let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
   lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
-    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span> ' : ""}${escH(r.name)}</span><em>${nf.format(r.points)}</em>` +
+    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span>' : ""}${r.level ? rankIns(r.level, 30, {wings: r.wings, label: true}) : ""}<span class="${r.level >= 19 ? "rkGold" : ""}">${escH(r.name)}</span></span><em>${nf.format(r.points)}</em>` +
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
-  // 1.102: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
+  // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
   const fs = fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
   if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
@@ -4480,7 +4548,7 @@ async function gRecentCard(){
       `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus0(sum)}</b>` +
       `<div class="rt">${what}</div>${lines}</li>`;
   }).map((h, i) => [Math.max(j.rows[i].ts || 0, ...j.rows[i].aw.map(a => a.t)), h]);
-  // 1.102 (relay 85): today's flight school missions, a row of their own (they have no plane), in time with the planes
+  // 1.103 (relay 85): today's flight school missions, a row of their own (they have no plane), in time with the planes
   const fsAw = j.school || [];
   if (fsAw.length) {
     const sum = fsAw.reduce((n, a) => n + a.p, 0), t = Math.max(...fsAw.map(a => a.t));
@@ -4512,8 +4580,9 @@ async function playerCard(id){
   const medals = metals.map((n, i) => n ? `<span class="plMedal" style="--m:${MEDAL_COL[i]}"><i></i>${escH(nf.format(n) + " " + T(TROPHY_MEDALS[i]).toLowerCase())}</span>` : "").join("") +
     (singles ? `<span class="plMedal">${CUP}${escH(T(singles === 1 ? "1 trophy" : "{n} trophies", {n: singles}))}</span>` : "");
   const ra = p.rarest, b = p.best;
-  cardWhenReady(tok, `<div class="plCard"><div class="cHead"><div><h3>${p.crown ? '<span class="crown">♛</span> ' : ""}${escH(p.name)}</h3>` +
-    `<span>${escH(T("Level {n} · {t}", {n: p.level, t: T(p.title)}))}${p.rank ? " · " + escH(T("#{n} this week", {n: p.rank})) : ""}</span></div></div>` +
+  cardWhenReady(tok, `<div class="plCard"><div class="cHead"><div><h3>${p.crown ? '<span class="crown">♛</span> ' : ""}<b class="${p.level >= 19 ? "rkGold" : ""}">${escH(p.name)}</b></h3>` +
+    `<span>${escH(T("Level {n} · {t}", {n: p.level, t: T(p.title)}))}${p.rank ? " · " + escH(T("#{n} this week", {n: p.rank})) : ""}</span></div>` +
+    (p.level ? `<span class="plIns">${rankIns(p.level, 46, {wings: p.wings})}</span>` : "") + `</div>` +
     `<div class="gBar"><i style="width:${(p.need ? p.into / p.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<div class="gTiles"><div><b>${nf.format(p.week || 0)}</b><span>${escH(T("This week"))}</span></div><div><b>${nf.format(p.points || 0)}</b><span>${escH(T("All time"))}</span></div>` +
     `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + (medals ? `<div class="plMedals">${medals}</div>` : "") +
@@ -4612,7 +4681,7 @@ async function gLockOn(hex){
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
   setTimeout(() => gRefresh(true), 2500);
 }
-/* 1.102 (to-do #153, Dave's pick of 29 Oct, round 2's C): the flight school. Five first missions that teach the app, +50
+/* 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C): the flight school. Five first missions that teach the app, +50
    each, once (the relay sees and pays them, relay 85; a plane's card is this app's call, schoolMission); all five earn
    the wings. The Spotters' Club shows a training record: a line per mission, its dated PASSED stamp in its box once done,
    a hint for the next one only, and the WINGS line signed at the end. Now shows a small bar (CHECKLIST 3/5 · NEXT · …,

@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-ASSETS = ("i18n.js", "sounds.js", "signature.js")   # 1.102: the flight school's signature font
+ASSETS = ("i18n.js", "sounds.js", "signature.js")   # 1.103: the flight school's signature font
 
 
 def version(f):

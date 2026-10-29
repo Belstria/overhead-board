@@ -10,7 +10,7 @@ changing. Where this file and the code disagree, the code wins.
 |------|------------|
 | `index.html` | Main board (PROD): a copy of `test/index.html` (only the title "Fallblatt" and one comment differ), made when Dave says "push to main" by `py tools/push_main.py` (also copies `i18n.js`, `sounds.js` to the root). |
 | `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, ...). |
-| `test/i18n.js`, `test/sounds.js`, `test/signature.js` | The translations (`I18N_ROWS`), recorded sounds (`SOUND_DATA`) and (1.102) the flight school signature's single-stroke script font (`SIG_FONT`, EMS Allure, OFL; the app fetches it only to sign; made by `tools/sig_font.py`), loaded by version (`?v=`, stamped by `tools/assets.py`; 1.53.1). |
+| `test/i18n.js`, `test/sounds.js`, `test/signature.js` | The translations (`I18N_ROWS`), recorded sounds (`SOUND_DATA`) and (1.103) the flight school signature's single-stroke script font (`SIG_FONT`, EMS Allure, OFL; the app fetches it only to sign; made by `tools/sig_font.py`), loaded by version (`?v=`, stamped by `tools/assets.py`; 1.53.1). |
 | `test-api/index.html` | Forwards to `/test/`. |
 | `keys/index.html` | Remote key test for the TVs. |
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |

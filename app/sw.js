@@ -1,6 +1,6 @@
 // Fallblatt's service worker: shows the relay's push notifications (the evening summary and "worth going to the
 // window") and opens the app when one is tapped; the light version (/light/) uses it too. It keeps the translations and
-// the sounds (i18n.js, sounds.js, 1.53.1; signature.js, 1.102) and, since 1.64, the last copy of the app itself for when the relay can't be
+// the sounds (i18n.js, sounds.js, 1.53.1; signature.js, 1.103) and, since 1.64, the last copy of the app itself for when the relay can't be
 // reached.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));

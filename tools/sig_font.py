@@ -1,4 +1,4 @@
-"""1.102: make test/signature.js, the flight school's signature font, from EMS Allure's SVG font file.
+"""1.103: make test/signature.js, the flight school's signature font, from EMS Allure's SVG font file.
 
     py tools/sig_font.py EMSAllure.svg          # from https://gitlab.com/oskay/svg-fonts (fonts/EMS/EMSAllure.svg)
 
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "test" / "signature.js"
-HEAD = """// The flight school's signature (1.102, the phone app): the player's name written as with a pen. The letters are
+HEAD = """// The flight school's signature (1.103, the phone app): the player's name written as with a pen. The letters are
 // EMS Allure, a single-stroke script font (each letter a pen's path, not an outline), so the app can draw them stroke
 // by stroke. Fetched only when the signature is drawn. Made by tools/sig_font.py from the font's SVG file: Latin
 // letters, digits and signs (U+0020-U+007E, U+00C0-U+00FF), coordinates rounded; y up, 1000 units to the em, the

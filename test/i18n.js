@@ -1324,11 +1324,14 @@ window.I18N_ROWS = [
     "un nouveau rang +{a} à +{b} selon sa médaille (bronze à diamant), tout autre trophée +{s}.",
     "un rango nuevo +{a} a +{b} según su medalla (bronce a diamante), cualquier otro trofeo +{s}.",
     "een nieuwe rang +{a} tot +{b} naar zijn medaille (brons tot diamant), elke andere trofee +{s}."],
-  // 1.102: the flight school
+  // 1.102: the rank insignia (to-do #154)
+  ["Rank: {t}", "Rang: {t}", "Grade : {t}", "Rango: {t}", "Rang: {t}"],
+  ["Legend {n}", "Legende {n}", "Légende {n}", "Leyenda {n}", "Legenda {n}"],
+  ["Wings", "Schwingen", "Ailes", "Alas", "Vleugels"],
+  // 1.103: the flight school (and Wings above)
   ["Flight school", "Flugschule", "École de pilotage", "Escuela de vuelo", "Vliegschool"],
   ["Passed", "Bestanden", "Réussi", "Aprobado", "Geslaagd"],
   ["Next up", "Als Nächstes", "Ensuite", "A continuación", "Hierna"],
-  ["Wings", "Schwingen", "Ailes", "Alas", "Vleugels"],
   ["Training record · pre-flight", "Ausbildungsnachweis · vor dem Flug", "Carnet de formation · avant le vol", "Registro de formación · antes del vuelo", "Opleidingsverslag · vóór de vlucht"],
   ["Checklist {n}/{m}", "Checkliste {n}/{m}", "Check-list {n}/{m}", "Lista {n}/{m}", "Checklist {n}/{m}"],
   ["Next up · {m}", "Als Nächstes · {m}", "Ensuite · {m}", "A continuación · {m}", "Hierna · {m}"],
