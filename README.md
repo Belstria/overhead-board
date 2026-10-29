@@ -552,7 +552,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
-  Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, this week's points with your place
+  Logbook), and Styles. **Career path** (1.109): the strip's line names the next stop and what it opens ("Next stop
+  Logkeeper · Black on white"); Your level shows a mini route (your stop, the plane with the points still to go, the
+  next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route: a stop per level down a
+  line, solid where you've been and dashed ahead, each with its rank insignia, title, the points it opens at and what
+  it unlocks (the board colours, flaps, badges and board styles; showcase slots at 3, 5 and 8; standby at 6 and 14; a
+  gold name in the league at 19; the Legend cap at 20; then a stop every 27,756 points, each a star on the cap). A
+  level-up is an arrival there: "Arrived at Logkeeper", a luggage tag for each thing it opened, the next stop, and
+  **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
   each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on
   one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch

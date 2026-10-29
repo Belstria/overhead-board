@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.109 (to-do #152, Dave's pick of 29 Oct, round 2's B "route map"; no relay change): **the career path.** `CAREER`
+  is the one table of unlocks, `[level, kind, id, name]` sorted by level: the styles built from `STYLES`' `{lvl: n}`
+  rules (the code decides), then `CAREER_MORE` (showcase slots 3/5/8, standby 6/14, `ace` 19, `cap` 20), where a new
+  feature adds its row (an icon in `careerIco`, a label in `CAREER_KIND`; Try it opens the club for a kind that isn't a
+  style). `careerAt(lv)` (past 20: a `star` row), `careerName`, `careerPts(lv)` (the relay's `level_of` thresholds:
+  500 × 1.25ⁿ up to 20, then 27,756 a level). `careerIco(r, sz)`: an "A" flap per colour/finish/board style, the badge's
+  `badgeGlyph` drawn once to a data URL (`cuBadge`), the cap via `rankIns(20, …)`. The strip's `gLevelText` is now "Next
+  stop {t} · {u}"; `careerMini(g)` replaces Your level's bar and its line (`.cuMini`, `.cuStop`, `#cuOpen`);
+  `careerRoute(g)` is the club's page while `gRoute` is set (`careerOpen`; `#cuBack`; showTab clears it, a `var` because
+  showTab is earlier in the file), the plane `.cuPl` placed by `--pf` in the current stop's `li`. `gLevelUp(g, from)`
+  (callers pass the previous level): `.cuArrive` with `.cuArr`, a `.cuTag` per unlock of the levels passed (up to 3),
+  Try it (`stylesCard(kind)` or the club) and Later; closes after 20 s (`gLvT`). `gStyleAt` and `#gLvUp .badge` went.
+  Reduced motion: `.cuPl`, `.cuArr`, `.cuTag` without animation.
 - 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
   school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
   `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with

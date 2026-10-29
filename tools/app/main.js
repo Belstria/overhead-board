@@ -3848,6 +3848,7 @@ function showTab(t){
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
+  if (t !== "game") gRoute = false;                  // 1.109: the club opens at its top again, not on Your route
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
@@ -4073,7 +4074,6 @@ function gTotSet(n, anim){
     if (!anim) { s.textContent = v; return; }
     setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
 }
-function gLevelText(g){ return T("Lvl {n} · {t} · {a} / {b}", {n: g.level, t: T(g.title), a: nf.format(g.into), b: nf.format(g.need)}); }
 // 1.102 (to-do #154, Dave's pick: round 2's ladder A): the level as a rank insignia, its colour telling the group and
 // its mark the step. 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8 navy with silver chevrons, 9–11 black with
 // 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars; 15–20 a pilot's cap (a gold line on the peak, gold
@@ -4135,6 +4135,88 @@ function rankIns(lv, h, o = {}){
   const lab = o.label ? [T("Rank: {t}", {t: rankTitle(lv)}), o.wings ? T("Wings") : ""].filter(Boolean).join(" · ") : "";
   return `<span class="rkI"${lab ? ` role="img" aria-label="${escH(lab)}"` : ' aria-hidden="true"'}>${svg}${pin}</span>`;
 }
+// 1.109 (to-do #152, Dave's pick of 29 Oct, round 2's B: the route map): the career path, a stop for each level and what
+// it opens. CAREER is the one table of unlocks, [level, kind, id, name] by level, that the route, Your level, the strip
+// and the level-up all read: the board styles come from STYLES (their {lvl: n} rule decides), the rest from CAREER_MORE,
+// where another feature adds its row (its kind gets an icon in careerIco and a label in CAREER_KIND; Try it opens the
+// club for a kind that isn't a style). Past level 20 each level is Legend n, one more star on the cap (careerAt).
+const CAREER_MORE = [[3, "slot", 1, "Showcase slot {n}"], [5, "slot", 2, "Showcase slot {n}"], [8, "slot", 3, "Showcase slot {n}"],
+  [6, "standby", 1, "Standby (one a week)"], [14, "standby", 2, "Standby (two a week)"], [19, "ace", "", "A gold name in the league"],
+  [20, "cap", "", "The Legend cap"]];
+const CAREER = [...STYLES.flatMap(([kind, , items]) => items.filter(x => x[2] && x[2].lvl).map(([id, nm, r]) => [r.lvl, kind, id, nm])),
+  ...CAREER_MORE].sort((a, b) => a[0] - b[0]);
+const CAREER_KIND = {palette: "Board colours", finish: "Flaps", badge: "Title badge", theme: "Board style", slot: "Showcase",
+  standby: "Standby", ace: "League", cap: "Rank", star: "Rank"};
+const careerAt = lv => lv > 20 ? [[lv, "star", "", "Another star on the cap"]] : CAREER.filter(r => r[0] === lv);
+const careerName = r => T(r[3], {n: r[2]});
+const CU_PLANE = `<svg class="cuP" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_PLANE}"/></svg>`;
+// The points a level opens at (as the relay's level_of: 500 to level 2, a quarter more for each next one up to level 20,
+// from there the same as the last).
+function careerPts(lv){
+  let t = 0, need = 500;
+  for (let i = 1; i < lv; i++) { t += Math.round(need); if (i + 1 < 20) need *= 1.25; }
+  return t;
+}
+// An unlock's small picture, sz px: an "A" flap in the style for colours, flaps and board styles, the badge's own
+// silhouette (badgeGlyph, drawn once), the cap and its star as the rank insignia draws them.
+const cuBadge = new Map();
+function careerIco(r, sz){
+  const [, kind, id] = r, box = `width:${sz}px;height:${sz}px;font-size:${Math.round(sz * .62)}px`;
+  const flap = (bg, fg, x = "", f = "") => `<span class="cuI flap${x}" style="${box};background:${bg};color:${fg}${f}"><b>A</b></span>`;
+  if (kind === "palette") return flap(THEMES.classic.flap[0], (PALETTES[id] || {}).ink || THEMES.classic.ink);
+  if (kind === "finish") return id === "white" ? flap("#f3f1ea", "#111") : flap("#1c1d1f", id === "led" ? "var(--amber)" : "#f3f0e8", " " + id);
+  if (kind === "theme") { const t = THEMES[id] || THEMES.classic; return flap(t.flap[0], t.ink, "", `;font-family:${escH(t.font)}`); }
+  if (kind === "badge") {
+    if (!cuBadge.has(id)) {
+      let u = "";
+      try { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const g = cv.getContext("2d");
+        g.translate(32, 32); g.fillStyle = "#f0b429"; badgeGlyph(g, id, 26); u = cv.toDataURL("image/png"); } catch {}
+      cuBadge.set(id, u);
+    }
+    return `<span class="cuI bdg" style="${box}">${cuBadge.get(id) ? `<img src="${cuBadge.get(id)}" alt="">` : ""}</span>`;
+  }
+  if (kind === "cap") return `<span class="cuI cuCap" style="${box}">${rankIns(20, sz * 1.2)}</span>`;
+  if (kind === "star") { rkDefs(); return `<span class="cuI cuCap" style="${box}"><svg viewBox="0 0 24 24" width="${sz * .8}">${rkStar(12, 12, 11, "url(#rkMG)")}</svg></span>`; }
+  const inner = {slot: "<i></i>", standby: "<b>SBY</b>", ace: "<b>Aa</b>"}[kind] || "";
+  return `<span class="cuI ${kind}" style="${box}">${inner}</span>`;
+}
+const cuUnl = (rs, sz) => rs.map(r => `<span class="cuUn">${careerIco(r, sz)}${escH(careerName(r))}</span>`).join("");
+const cuToGo = g => T("{n} to go", {n: nf.format(Math.max(0, g.need - g.into))});
+// The strip's line: the next stop and what it opens (short: it is cut off on a phone).
+function gLevelText(g){
+  const un = careerAt(g.level + 1);
+  return T("Next stop {t} · {u}", {t: rankTitle(g.level + 1), u: un.length ? careerName(un[0]) : cuToGo(g)});
+}
+// Your level's mini route: your stop, the plane on its way, the next stop; what that opens; the way to the whole route.
+function careerMini(g){
+  const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0, un = careerAt(lv + 1);
+  return `<div class="cuMini" style="--p:${(p * 100).toFixed(1)}%"><div class="cuLn"><span class="cuD cur">${lv}</span><i><b></b>${CU_PLANE}</i><span class="cuD nx">${lv + 1}</span></div>` +
+    `<div class="cuLb"><small>${escH(rankTitle(lv))}</small><small class="go">${escH(cuToGo(g))}</small><small>${escH(rankTitle(lv + 1))}</small></div></div>` +
+    (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("At the next stop"))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "") +
+    `<button class="gHow" type="button" id="cuOpen">${escH(T("Your route · all {n} stops", {n: 20}))}<i>›</i></button>`;
+}
+// The route (a page of the club, from Your level): a stop per level down a line, solid where you've been and dashed
+// ahead, each with its insignia, title, the points it opens at (ahead) and its unlocks; the plane between your stop and
+// the next with what is left to go. Past Legend: the stops up to your next one.
+var gRoute = false;                                     // var: showTab (earlier in the file) resets it
+function careerRoute(g){
+  const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0;
+  const row = n => {
+    const c = n < lv ? "done" : n === lv ? "cur" : n === lv + 1 ? "nx" : "lk", un = careerAt(n);
+    return `<li class="${c}"${c === "cur" ? ` style="--p:${(p * 100).toFixed(1)}%;--pf:${p.toFixed(3)}"` : ""}><span class="cuD ${c}">${n}</span>` +
+      `<span class="cuT"><b>${escH(rankTitle(n))}${c === "cur" ? `<small>${escH(T("You are here"))}</small>` : n > lv ? `<small>${nf.format(careerPts(n))}</small>` : ""}</b>` +
+      `<span>${un.length ? cuUnl(un, 18) : `<span class="cuUn">${escH(T("The start"))}</span>`}</span></span>${rankIns(n, 30)}` +
+      (c === "cur" ? `<span class="cuPl">${CU_PLANE}<em>${escH(cuToGo(g))}</em></span>` : "") + `</li>`;
+  };
+  return `<button type="button" class="cuBack" id="cuBack">‹ ${escH(T("Spotters' Club"))}</button>` + secPlate(T("Your route"),
+    `<ol class="cuRt">${Array.from({length: Math.max(20, lv + 1)}, (_, i) => row(i + 1)).join("")}</ol>` +
+    `<p class="sum">${escH(T("After Legend, a stop every {n} points, each a star on the cap.", {n: nf.format(careerPts(21) - careerPts(20))}))}</p>`, "cuPlate");
+}
+function careerOpen(){
+  ctlSound.nav(); gRoute = true; renderGame();
+  const cur = document.querySelector(".cuRt li.cur");
+  if (cur) cur.scrollIntoView({block: "center"});
+}
 // 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
 // was redrawn only with the next points, up to a minute later.
 let gStripLive = null;
@@ -4171,7 +4253,7 @@ function gGain(prev, g){
   }, 2050));
   gAnimT.push(setTimeout(() => {
     box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
-    if (lvUp) gLevelUp(g);
+    if (lvUp) gLevelUp(g, prev.level);
   }, 3500));
 }
 async function gRefresh(force){
@@ -4188,7 +4270,7 @@ async function gRefresh(force){
     if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
     else gStripRender(g);
     if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
-    if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g);
+    if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g, prev.level);
     if (tab === "game") renderGame();
   } catch {} finally { gBusy = false; }
 }
@@ -4371,22 +4453,37 @@ function gCoins(){
     o.connect(g).connect(out); o.start(t); o.stop(t + .15);
   }
 }
-// The style a level unlocks (STYLES rules {lvl: n}), for the level-up.
-function gStyleAt(lv){
-  for (const [, , items] of STYLES) for (const it of items) if (it[2] && it[2].lvl === lv) return it[1];
-  return "";
-}
-function gLevelUp(g){
+// 1.109 (to-do #152, Dave's pick B): the level-up is an arrival on the route: the plane flies from the last stop to the
+// new one, a luggage tag for each thing it opened (from CAREER; the levels passed at once too), the next stop, and Try
+// it (a style: the Styles card at its row; anything else: the club). Reduced motion: all of it standing still.
+let gLvT = 0;
+function gLevelUp(g, from){
   let box = $("gLvUp");
-  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g), 2000); return; }   // 1.103: after the wings
+  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g, from), 2000); return; }   // 1.103: after the wings
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
-  const st = gStyleAt(g.level);
-  box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
-    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") + `<p>${escH(T("Tap to carry on"))}</p></div>`;
+  const lv = g.level, was = Math.max(1, Math.min(lv - 1, from || lv - 1)), got = [];
+  for (let n = was + 1; n <= lv; n++) got.push(...careerAt(n));
+  const tags = got.slice(0, 3).map((r, i) => `<div class="cuTag" style="--r:${i % 2 ? 1.5 : -2}deg;--d:${(1.1 + i * .25).toFixed(2)}s">${careerIco(r, 48)}` +
+    `<span><small>${escH(T("Lv{n} · Unlocked", {n: r[0]}))}</small><b>${escH(careerName(r))}</b><span>${escH(T(CAREER_KIND[r[1]] || ""))}</span></span></div>`).join("");
+  box.innerHTML = `<div class="lvBox cuArrive"><span class="eyebrow">${escH(T("Level up"))}</span>${rankIns(lv, 48, {wings: g.wings})}` +
+    `<h3>${escH(T("Arrived at {t}", {t: rankTitle(lv)}))}</h3>` +
+    `<div class="cuArr"><span class="cuD done">${was}</span><i>${CU_PLANE}</i><span class="cuD now">${lv}</span><i class="f"></i></div>` + tags +
+    `<p>${escH(T("Next stop: {t} · {n}", {t: rankTitle(lv + 1), n: nf.format(careerPts(lv + 1))}))}</p>` +
+    `<div class="cuTry">${got.length ? `<button class="cBtn" type="button" data-try>${escH(T("Try it"))}</button>` : ""}<button type="button" class="cuLater" data-later>${escH(T("Later"))}</button></div></div>`;
   box.hidden = false;
   gJingle();
-  const close = () => { box.hidden = true; };
-  box.onclick = close; setTimeout(close, 7000);
+  clearTimeout(gLvT);
+  const close = () => { clearTimeout(gLvT); box.hidden = true; };
+  box.onclick = e => { if (e.target === box) close(); };
+  box.querySelector("[data-later]").onclick = () => { ctlSound.click(); close(); };
+  const t = box.querySelector("[data-try]");
+  if (t) t.onclick = () => {
+    const r = got[0], style = STYLES.some(([k]) => k === r[1]);
+    close(); ctlSound.nav();
+    if (style) stylesCard(r[1]);
+    else { gRoute = false; showTab("game"); window.scrollTo(0, 0); }
+  };
+  gLvT = setTimeout(close, 20000);
 }
 // The fairground prize jingle (a lock-on, a level up): four rising chime notes and a bright chord.
 function gJingle(){
@@ -4437,13 +4534,17 @@ function renderGame(){
   if (tab !== "game") return;
   const g = gme, all = lbData() || {}, g0 = all.game;
   if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; return; }
-  const next = g.level < 20 ? GAME_LEVELS[g.level] : "";
+  if (gRoute) {                                              // 1.109: Your route, a page of the club
+    const box = $("gameBox"), h = careerRoute(g);
+    if (box.dataset.h !== h) { box.dataset.h = h; box.innerHTML = h; }
+    $("cuBack").onclick = () => { ctlSound.nav(); gRoute = false; renderGame(); window.scrollTo(0, 0); };
+    return;
+  }
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
   let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
-    `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
-    `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
+    careerMini(g) +                                          // 1.109: the mini route, the next stop, Your route
     (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
@@ -4471,6 +4572,7 @@ function renderGame(){
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
+  $("cuOpen").onclick = careerOpen;
   trWire(box, renderGame);
   $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
