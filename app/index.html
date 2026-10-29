@@ -3198,7 +3198,10 @@ function modelPic(names, onReady, code){
 const PS_KEEP_MS = 3600000;                   // the relay keeps an answer 23 hours, a screen one more at most
 const psPhotos = new Map(), psBad = new Set();   // registration -> {at, photo (null: none, undefined: asking), cbs}; photos that didn't load
 const psOk = () => !S.demo && !!relay() && (window.OVERHEAD_RELAY_VERSION || 0) >= 73;
-function psPhoto(reg, hex, onReady){
+// 1.111.0.1 (to-do #168): the plane's model names from its live type (not adsbdb's, which can be the registration's
+// aircraft before), so the relay (95) skips a photo of another maker's aircraft that once had the registration.
+const psModel = ac => [...new Set([TYPES[String(ac.t || "").toUpperCase()], ac.desc].filter(Boolean))].join(" / ").slice(0, 200);
+function psPhoto(reg, hex, onReady, model){
   reg = String(reg || "").trim().toUpperCase();
   if (!reg || !psOk()) return null;
   const h = psPhotos.get(reg);
@@ -3208,7 +3211,7 @@ function psPhoto(reg, hex, onReady){
   }
   const ask = {at: Date.now(), photo: undefined, cbs: onReady ? [onReady] : []};
   psPhotos.set(reg, ask);
-  fetchJSON(`${relay()}/planephoto?reg=${encodeURIComponent(reg)}&hex=${encodeURIComponent(hex || "")}`, {}, 9000)
+  fetchJSON(`${relay()}/planephoto?reg=${encodeURIComponent(reg)}&hex=${encodeURIComponent(hex || "")}&model=${encodeURIComponent(model || "")}`, {}, 9000)
     .then(j => { ask.photo = j && j.photo && j.photo.src && j.photo.link ? j.photo : null; },
       () => { ask.photo = null; ask.at = Date.now() - PS_KEEP_MS + 120000; })     // not answered: asked again in two minutes
     .then(() => { for (const f of ask.cbs.splice(0)) try { f(); } catch {} });
@@ -3218,7 +3221,7 @@ function psPhoto(reg, hex, onReady){
 // Planespotters is being asked (so the screen doesn't change twice) or nothing was found; `asking`: still being looked
 // for (1.97.3: a card shows an empty photo window with a spinner, then takes the photo).
 function planePic(ac, info, d, onReady, noPs){
-  const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady);
+  const reg = info.reg || d.reg || ac.r, ps = noPs ? null : psPhoto(reg, ac.hex, onReady, psModel(ac));
   if (ps === undefined) return {src: "", kind: "", asking: true};
   if (ps && !psBad.has(ps.src)) return {src: ps.src, kind: "ps", by: ps.by, link: ps.link};
   if (d.photo) return {src: d.photo, kind: "own"};
@@ -7333,7 +7336,7 @@ function tlAhead(list){
   const e = list.find(x => x.reg && !psPhotos.has(String(x.reg).trim().toUpperCase()));
   if (!e) return;
   tlAsking = true;                               // once answered, the model's picture for one without a photo, then the next
-  psPhoto(e.reg, e.hex, () => setTimeout(() => { tlAsking = false; tlPic(e); renderRecent(); }, 1500));
+  psPhoto(e.reg, e.hex, () => setTimeout(() => { tlAsking = false; tlPic(e); renderRecent(); }, 1500), psModel({t: e.typeCode, desc: e.desc}));
 }
 function tlAgo(e){
   const m = Math.max(0, Math.floor((Date.now() - (e.ts || 0)) / 6e4));
@@ -11223,6 +11226,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.111.0.1", date: "2026-10-29", notes: [
+    "A plane no longer shows the photo of an older aircraft that had its registration."]},
   {v: "1.111", date: "2026-10-29", notes: [
     "Today in numbers is tidier: the records side by side, the most seen as bars, the Plane of the day in the evening, and a tap takes you to the plane."]},
   {v: "1.110", date: "2026-10-29", notes: [

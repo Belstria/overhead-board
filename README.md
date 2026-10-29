@@ -175,7 +175,8 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
   screen is off while the page falls into place and warms up after it lands.
 - **Whose photo** (1.93, relay 73): the plane's own photo from **Planespotters.net** comes first, looked up by its
-  registration through the relay (and only kept when the photo shows that registration); then its own photo from
+  registration through the relay (and only kept when the photo shows that registration and, since 1.111.0.1, not an
+  aircraft of another maker that had it before); then its own photo from
   airport-data.com (through adsbdb); then its model's picture. Each says where it comes from on the photo, in small
   capitals: "© photographer · Planespotters.net ↗", "Photo · airport-data.com" or "Model only · Wikimedia Commons".
   A Planespotters photo is a link to its page there (their terms): click or tap the photo, in the app, on the board and

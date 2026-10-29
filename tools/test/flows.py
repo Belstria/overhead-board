@@ -1946,6 +1946,17 @@ def checks():
     st, _, b = photo("reg=A6-EVB&hex=896180")
     expect("a photo found by hex with the same registration on it", ((json.loads(b).get("photo") or {}).get("link") or "").split("/")[-1] if st == 200 else st,
            "a6-evb-emirates-airbus-a380-861?utm_source=api")
+    # relay 95: a photo of another maker's aircraft that had the registration is skipped (the next one, else none: the
+    # board takes the model's picture); the same maker, or a model naming no maker, keeps the photo; asked once for all
+    piper = "&model=" + urllib.parse.quote("Piper M700 Fury / PIPER PA-46-600TP")
+    pid = lambda st, b: ((json.loads(b).get("photo") or {}).get("link") or "-/-").split("/")[-2] if st == 200 else st   # noqa: E731
+    expect("a photo of another maker's aircraft is skipped", pid(*photo("reg=N700GR&hex=a95534" + piper)[::2]), "-")
+    expect("... kept when the plane's maker is unknown", pid(*photo("reg=N700GR&hex=a95534&model=M700")[::2]), "1000004")
+    expect("... and without a model (older boards)", pid(*photo("reg=N700GR&hex=a95534")[::2]), "1000004")
+    expect("... asked once", (asked().get("reg/N700GR"), asked().get("hex/A95534")), (1, None))
+    expect("the next photo, of the plane's maker, is taken", pid(*photo("reg=N800GR&hex=a95535" + piper)[::2]), "1000006")
+    expect("a photo of the same maker stays", pid(*photo("reg=OE-LBN&hex=440a01&model=" + urllib.parse.quote("Airbus A320neo / AIRBUS A-320neo"))[::2]),
+           "1000001")
     st, _, b = photo("hex=440a01")
     expect("no registration: no photo, nothing asked", (st, json.loads(b).get("photo", "-") if st == 200 else None, asked().get("hex/440A01")), (200, None, None))
     expect("/planephoto for strangers", call("/planephoto?reg=OE-LBN")[0] in (401, 403), True)
