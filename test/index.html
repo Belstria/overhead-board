@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=4ef8181d29"></script>
+<script src="i18n.js?v=a60311cd90"></script>
 <script>
 (() => {
 "use strict";
@@ -7870,6 +7870,12 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.5", date: "2026-10-29", notes: [
+    "Bingo squares for a plane within 1 km or below 2,500 ft now fill and pay when it comes that close; this week's unpaid lines pay once, today.",
+    "The bingo card shows a line or the Bingo trophy only once it has paid.",
+    "Recent points keeps every line of a plane with many awards.",
+    "A level-up no longer goes missing when more points arrive right after.",
+    "Screen readers hear the remaining fixed labels in your language; double taps on a few buttons no longer run twice."]},
   {v: "1.114.4", date: "2026-10-29", notes: [
     "Your hangar's model pictures load as the cards come into view and are kept for a week, so they no longer go blank after a busy start.",
     "The Spotters' Club redraws only the part that changed: the member cards, the passport map and the pictures stay where they are."]},

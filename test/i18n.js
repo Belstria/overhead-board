@@ -1558,4 +1558,8 @@ window.I18N_ROWS = [
   ["Closest: {name}, {a} of {b}", "Am nächsten: {name}, {a} von {b}", "Le plus proche : {name}, {a} sur {b}", "Lo más cerca: {name}, {a} de {b}", "Dichtstbij: {name}, {a} van {b}"],
   ["Unlocks at level {n}, {t}", "Freigeschaltet ab Level {n}, {t}", "Se débloque au niveau {n}, {t}", "Se desbloquea en el nivel {n}, {t}", "Ontgrendeld bij level {n}, {t}"],
   ["For last week's league winner, all week", "Für den Ligasieger der letzten Woche, die ganze Woche", "Pour le vainqueur de la ligue de la semaine dernière, toute la semaine", "Para el ganador de la liga de la semana pasada, toda la semana", "Voor de competitiewinnaar van vorige week, de hele week"],
+  ["Line the labels up again", "Beschriftungen neu ausrichten", "Réaligner les étiquettes", "Volver a alinear las etiquetas", "Labels opnieuw uitlijnen"],
+  ["How Sky view works", "So funktioniert die Himmelsansicht", "Comment fonctionne la vue du ciel", "Cómo funciona la vista del cielo", "Zo werkt Luchtzicht"],
+  ["Radar: the planes around you, north up", "Radar: die Flugzeuge um dich, Norden oben", "Radar : les avions autour de vous, nord en haut", "Radar: los aviones a tu alrededor, norte arriba", "Radar: de vliegtuigen om je heen, noorden boven"],
+  ["Pages", "Seiten", "Pages", "Páginas", "Pagina's"],
 ];
