@@ -152,9 +152,9 @@ changelog: photo|credit|planespotters|model picture
 [pages] Rotating pages in the lower half: Recent flights, This aircraft, Today in numbers; the falling page; the app on its side
 test/index.html: shownEmpty emptyNote recentFlights RECENT_KEY loadRecent saveRecent noteFeatured recentInfo
     withShared recentShown renderSpotted PAGE_ORDER_OVERHEAD pageOrder isAc ROTATION_OVERHEAD rotLoops statsTurn
-    rotation rotStep page pageSince switching reviewTime pageTitle fieldsOf pageAvailable goPage PANEL bigFlap FLIP_PX
+    rotation rotStep page pageSince switching +reviewTime pageTitle fieldsOf pageAvailable goPage PANEL bigFlap FLIP_PX
     capturePanel FALL startBigFlap endBigFlap nextPage syncRotation pageHold pickPage stepPage renderPage
-    topTypesFlaps renderStats #flipCv +PAGE_FIELDS +pdef +renderAircraft +PAGE_KEYS 'pdef("stats"' 'pdef("aircraft"'
+    statsSubs STATS_RECS mostSeenFlaps statsEngrave renderStats +dayHighlights #flipCv +PAGE_FIELDS +pdef +renderAircraft +PAGE_KEYS 'pdef("stats"' 'pdef("aircraft"'
     +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: #recent .lcol .pages #t-now #sideAlert #acP #acSec #acTitle #nowEmpty #nowPages #recentP
     #recentSec .pageEmpty
@@ -182,14 +182,14 @@ changelog: view|rail|button|tab\b|tabs
 [spotted] Spotted today: the day's sightings from the relay, the board's table, filter and legend, the app's Today tab and lists
 test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS_MS entryTime dedupe spotted logDay
     rollDay sightRev sightBusy relayStats sightDay fromRelay sightDone syncSightings fullDay loadFullDay dayList
-    todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary svQuery spotMatch svFindHtml svFindWire lampOf
+    todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary TIER_ORDER reviewTime dayHighlights svQuery spotMatch svFindHtml svFindWire lampOf
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
-tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts #todayP
+tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts .dayFacts #todayP
     #todayTop .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
-    rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml topTypes todayNumbers
-    todayFactsSig renderTodayNumbers renderToday renderLists
+    rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
+    todayFactsSig renderTodayNumbers todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane

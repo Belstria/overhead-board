@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=3450684f91"></script>
+<script src="i18n.js?v=3ed26bfc0b"></script>
 <script>
 (() => {
 "use strict";
@@ -1096,11 +1096,10 @@ pdef("stats", "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"
 pdef("stats", "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Airlines","Airlines"]});
 pdef("stats", "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 pdef("stats", "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead","Direkt drüber"]});
-pdef("stats", "stLow",      {kind:"chars", n:24, dur:60, label:["Lowest pass","Tiefster Überflug"]});
-pdef("stats", "stHigh",     {kind:"chars", n:24, dur:60, label:["Highest pass","Höchster Überflug"]});
-pdef("stats", "stFast",     {kind:"chars", n:24, dur:60, label:["Fastest","Schnellster"]});
-pdef("stats", "stTop",      {kind:"chars", n:24, dur:60, label:["Most seen airline","Häufigste Airline"]});
-pdef("stats", "stFirst",    {kind:"chars", n:24, dur:60, label:["Most seen types",""]});     // 1.82: was First of the day
+pdef("stats", "stLow",      {kind:"chars", n:9, dur:60, label:["Lowest pass","Tiefster Überflug"]});     // 1.111: the figure only, the plane engraved under it
+pdef("stats", "stHigh",     {kind:"chars", n:9, dur:60, label:["Highest pass","Höchster Überflug"]});
+pdef("stats", "stFast",     {kind:"chars", n:9, dur:60, label:["Fastest","Schnellster"]});
+pdef("stats", "stTop",      {kind:"chars", n:24, dur:60, label:["Most seen",""]});     // 1.111: the airline and the types; from 21:00 the Plane of the day
 pdef("stats", "stNew",      {kind:"chars", n:24, dur:60, style:"amber", label:["New in the logbook","Neu im Logbuch"]});
 pdef("aircraft", "acReg",     {kind:"chars", n:8,  dur:70, style:"amber", label:["Registration","Kennzeichen"]});
 pdef("aircraft", "acHex",     {kind:"chars", n:6,  dur:70, label:["Mode S","Mode S"]});
@@ -1209,7 +1208,8 @@ function layout(){
   }
   const L0 = Y.list0;
   placeRow(["stPlanes","stAirlines","stTypes","stOver"], [7, 7, 7], L0, IW / 34, 1.45);        // 1.82: four across, no busiest hour
-  [["stLow","stHigh"], ["stFast","stTop"], ["stFirst","stNew"]].forEach((pair, i) => placeRow(pair, [2], L0 + 101 + i * 74, IW / 50, 1.45));
+  ["stLow", "stHigh", "stFast"].forEach((id, i) => placeRow([id], [], L0 + 101, IW / 50, 1.45, M + i * IW / 3));      // 1.111: side by side, the plane engraved under
+  placeRow(["stTop","stNew"], [2], L0 + 234, IW / 50, 1.45);
   const ax = M + PHOTO.w + 40, as = (IW - PHOTO.w - 40) / 29;
   placeRow(["acReg","acHex","acFlight"], [1.5, 1.5], L0 + 6, as, 1.45, ax);
   placeRow(["acType"], [], L0 + 86, as, 1.45, ax);
@@ -1881,6 +1881,7 @@ function drawStatic(){
   }
   if (view) return;
   if (page === "spotted") listHints(g);
+  if (page === "stats") statsEngrave(g);
   g.font = `700 30px ${FONT}`; g.fillStyle = COL.ink; g.fillText(T(pageTitle(page)[0]), M, Y.listHead);
   if (page === "aplists") g.fillText(T("Landings"), M + 34 * IW / 66, Y.listHead);     // the right-hand list's own title
   if (airportMode() && !isAc(page) && AP.rwyLine) {                                    // the runways in use
@@ -3775,9 +3776,8 @@ let rotLoops = 0, statsTurn = false;
 const rotation = () => !airportMode() ? ROTATION_OVERHEAD : ["aplists", "apdep", "aplists", "apland"];
 let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
-// From 21:00 until the day ends (03:00), Today in numbers is the day in review: the rarest plane of the day in place of
-// the most seen types (1.89.1: no day's points on the board, the game is the phone app's).
-const reviewTime = () => { const h = new Date().getHours(); return h >= 21 || h < 3; };
+// From 21:00 until the day ends (03:00), Today in numbers is the day in review: the Plane of the day (the rarest) in place of
+// the most seen (1.89.1: no day's points on the board, the game is the phone app's; reviewTime: with dayHighlights).
 function pageTitle(p){
   return {spotted: ["Recent flights", "Letzte Flüge"], stats: reviewTime() && relayV5() ? ["Your day in planes", ""] : ["Today in numbers", "Heute in Zahlen"],
     aircraft: ["This aircraft", "Dieses Flugzeug"], aplists: ["Take-offs", "Abflüge"], apland: ["Landing", "Landung"],
@@ -3983,62 +3983,42 @@ function renderPage(){
   else if (page === "aplists") renderApLists();
   else if (isAc(page)) renderAircraft();
 }
-/* Today in numbers. 1.82 (Dave's to-do 10, his pick A): as on the phone: no busiest hour, the four counters across,
-   and the most seen types (the day's top three, "A320 12 B738 7 E195 5") in First of the day's place. */
-function topTypesFlaps(list){
-  const c = new Map();
-  for (const e of list) { const k = String(e.typeCode || "").toUpperCase(); if (k) c.set(k, (c.get(k) || 0) + 1); }
-  let out = "";
-  // 1.87.2.1: only types seen twice or more; a day of one of each has no most seen
-  for (const [k, n] of [...c].filter(x => x[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3)) { const t = `${out ? out + " " : ""}${k} ${n}`; if (t.length > 24) break; out = t; }
-  return out || (c.size ? T("No type twice yet") : "");
+/* Today in numbers. 1.82 (Dave's to-do 10, his pick A): as on the phone, the four counters across. 1.111 (to-do #163,
+   his pick C): the three records side by side, the figure on flaps and the plane engraved under it (statsSubs, drawn
+   with the page by statsEngrave); then the most seen (the airline and the top types, "AUSTRIAN 8 - A320 6 A321 3") and
+   the newest plane new to the logbook. From 21:00 the Plane of the day takes the most seen's place. */
+let statsSubs = ["", "", ""];
+const STATS_RECS = ["stLow", "stHigh", "stFast"];
+function mostSeenFlaps(h){
+  const al = h.airline && h.airline.count > 1 ? `${h.airline.name} ${h.airline.count}` : "";
+  let ty = "";
+  for (const [k, n] of h.types) { const t = `${ty ? ty + " " : ""}${k} ${n}`; if ((al ? al.length + 3 : 0) + t.length > 24) break; ty = t; }
+  return [al, ty].filter(Boolean).join(" - ") || (h.typesSeen ? T("Nothing seen twice yet") : "");
+}
+function statsEngrave(g){
+  g.font = `500 20px ${FONT}`; g.fillStyle = COL.muted; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  STATS_RECS.forEach((id, i) => { const f = fields[id]; if (!f.hidden && statsSubs[i]) fitText(g, statsSubs[i], f.x, f.y + f.ch + 26, IW / 3 - 40); });
 }
 function renderStats(){
-  const st = relayV5() && !liveWaiting() && relayStats;
-  if (st) {                                           // the relay counts the whole day; its list only has the newest
-    const name = x => x ? fromRelay(x).flight : "";
-    setChars("stPlanes", String(st.planes));
-    setChars("stAirlines", String(st.airlines), 60);
-    setChars("stTypes", String(st.types), 120);
-    setChars("stOver", String(st.overhead), 180);
-    setChars("stLow", st.lowest ? `${name(st.lowest)} - ${altitudeStr(st.lowest.altAtMin)}` : "-", 300);
-    setChars("stHigh", st.highest ? `${name(st.highest)} - ${altitudeStr(st.highest.altAtMin)}` : "-", 360);
-    setChars("stFast", st.fastest ? `${name(st.fastest)} - ${speedStr(st.fastest.maxSpeed)}` : "-", 420);
-    const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
-    setChars("stTop", t ? (t.count > 1 ? `${tn} - ${t.count}` : T("No airline twice yet")) : "-", 480);
-    const rev = reviewTime(), lab = rev ? ["Rarest today", ""] : ["Most seen types", ""];
-    if (fields.stFirst.label[0] !== lab[0]) {
-      fields.stFirst.label = lab;
-      if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic();
-    }
-    if (rev) {
-      const order = {common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5};
-      const rar = spotted.reduce((a, e) => !a || (order[e.tier] || 0) > (order[a.tier] || 0) ? e : a, null);
-      setChars("stFirst", rar && rar.tier ? `${trimTo(rar.type || rar.typeCode || "", 15)} - ${T(TIER_NAME[rar.tier] || "").toUpperCase()}` : "-", 540);
-    } else setChars("stFirst", topTypesFlaps(spotted) || "-", 540);
-    setChars("stNew", st.newTypes || st.newAirlines ? T("{a} types - {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet"), 600);
-    return;
-  }
-  const list = spotted;
+  const st = relayV5() && !liveWaiting() && relayStats, list = spotted;      // the relay counts the whole day; its list only has the newest
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
-  setChars("stPlanes", String(list.length));
-  setChars("stAirlines", String(uniq(e => e.airlineCode || clean(e.airline))), 60);
-  setChars("stTypes", String(uniq(e => e.typeCode || clean(e.type))), 120);
-  setChars("stOver", String(list.filter(overEntry).length), 180);
-  const withAlt = list.filter(e => typeof e.altAtMin === "number");
-  const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
-  const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
-  const fast = list.filter(e => e.maxSpeed).reduce((a, e) => !a || e.maxSpeed > a.maxSpeed ? e : a, null);
-  setChars("stLow", low ? `${low.flight} - ${altitudeStr(low.altAtMin)}` : "-", 300);
-  setChars("stHigh", high ? `${high.flight} - ${altitudeStr(high.altAtMin)}` : "-", 360);
-  setChars("stFast", fast ? `${fast.flight} - ${speedStr(fast.maxSpeed)}` : "-", 420);
-  const airlines = {};
-  for (const e of list) { const a = shortAirline(e.airline); if (a) airlines[a] = (airlines[a] || 0) + 1; }
-  const top = Object.entries(airlines).sort((a, b) => b[1] - a[1])[0];
-  setChars("stTop", top ? (top[1] > 1 ? `${top[0]} - ${top[1]}` : T("No airline twice yet")) : "-", 480);
-  setChars("stFirst", topTypesFlaps(list) || "-", 540);
-  const nt = list.filter(e => e.newType).length, na = list.filter(e => e.newAirline).length;
-  setChars("stNew", relayV5() || S.demo ? (nt || na ? T("{a} types - {b} airlines", {a: nt, b: na}) : T("Nothing new yet")) : T("Needs the home relay"), 600);
+  setChars("stPlanes", String(st ? st.planes : list.length));
+  setChars("stAirlines", String(st ? st.airlines : uniq(e => e.airlineCode || clean(e.airline))), 60);
+  setChars("stTypes", String(st ? st.types : uniq(e => e.typeCode || clean(e.type))), 120);
+  setChars("stOver", String(st ? st.overhead : list.filter(overEntry).length), 180);
+  const h = dayHighlights(list, st || null), val = [e => altitudeStr(e.altAtMin), e => altitudeStr(e.altAtMin), e => speedStr(e.maxSpeed)];
+  const subs = [h.low, h.high, h.fast].map((e, i) => {
+    setChars(STATS_RECS[i], e ? val[i](e) : "-", 300 + i * 60);
+    return e ? [e.flight, e.type || e.typeCode, e.time].filter(Boolean).join("  ·  ") : "";
+  });
+  const pod = reviewTime() && h.pod && h.pod.tier, lab = pod ? ["Plane of the day", ""] : ["Most seen", ""];
+  if (subs.join("|") !== statsSubs.join("|") || fields.stTop.label[0] !== lab[0]) {
+    statsSubs = subs; fields.stTop.label = lab;
+    if (!view && page === "stats" && !switching && !bigFlap.on) drawStatic();
+  }
+  setChars("stTop", pod ? `${trimTo(h.pod.type || h.pod.typeCode || "", 15)} - ${T(TIER_NAME[h.pod.tier] || "").toUpperCase()}` : mostSeenFlaps(h) || "-", 480);
+  const nw = h.newest, nwName = nw && (nw.newType ? nw.type || nw.typeCode : nw.airline) || "";
+  setChars("stNew", !relayV5() && !S.demo ? T("Needs the home relay") : nw ? `${trimTo(nwName, 15)} - ${nw.flight}` : T("Nothing new yet"), 600);
 }
 
 /* This aircraft: photo and registration details for the plane on the board */
@@ -4288,6 +4268,37 @@ function spottedSummary(){
   return [pl(n, "{n} plane", "{n} planes"), pl(na, "{n} airline", "{n} airlines"), pl(nt, "{n} aircraft type", "{n} aircraft types"),
     T("{n} directly overhead", {n: st ? st.overhead : counts.over})].join(" · ") +
     `${API_NOTE()}${S.demo ? " · " + T("sample flights (demo mode)") : ""}`;
+}
+// 1.111 (to-do #163, Dave's pick C with A's tap): the day's highlights for Today in numbers, on the board's page and the
+// app's Today: the three records, the most seen airline and types, the newest plane new to the logbook, the Plane of
+// the day (the rarest) and the day's span. Planes are the list's own entries where they are in it (the app's tap jumps
+// to them in the timeline). `st`: the relay's day_stats, which counts the whole day; its records are found in the list
+// by hex and time, else drawn from what the relay sends.
+const TIER_ORDER = {common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5};
+function reviewTime(){ const h = new Date().getHours(); return h >= 21 || h < 3; }     // the evening: Your day in planes
+function dayHighlights(list, st){
+  const find = r => r ? list.find(e => e.hex === r.hex && e.ts === r.ts) || list.find(e => e.hex === r.hex && e.time === r.time) || fromRelay(r) : null;
+  const best = (ok, better) => list.reduce((a, e) => ok(e) && (!a || better(e, a)) ? e : a, null);
+  const hasAlt = e => typeof e.altAtMin === "number" && e.altAtMin > 0;
+  const low = st ? find(st.lowest) : best(hasAlt, (e, a) => e.altAtMin < a.altAtMin);
+  const high = st ? find(st.highest) : best(hasAlt, (e, a) => e.altAtMin > a.altAtMin);
+  const fast = st ? find(st.fastest) : best(e => e.maxSpeed > 0, (e, a) => e.maxSpeed > a.maxSpeed);
+  const count = key => { const c = new Map(); for (const e of list) { const k = key(e); if (k) c.set(k, (c.get(k) || 0) + 1); } return c; };
+  let top = st && st.topAirline;
+  if (!st) { const c = count(e => e.airlineCode || clean(e.airline)), [k, n] = [...c].sort((a, b) => b[1] - a[1])[0] || [];
+    const e = k && list.find(x => (x.airlineCode || clean(x.airline)) === k); top = k ? {code: k, name: e.airline, count: n} : null; }
+  const aln = top ? top.name || (AIRLINES[top.code] || [])[1] || top.code : "";      // name: for flaps; title: as written (the app)
+  const airline = top ? {name: shortAirline(aln), title: aln.length > 14 ? aln.replace(/\b(airlines|airways|air lines|airline|international|limited|ltd|gmbh|ag)\b/gi, "").replace(/\s+/g, " ").trim() || aln : aln, count: top.count} : null;
+  const tc = count(e => e.typeCode || clean(e.type));
+  // 1.87.2.1: only types seen twice or more; a day of one of each has no most seen
+  const types = [...tc].filter(x => x[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const news = list.filter(e => e.newType || e.newAirline);
+  const pod = best(e => TIER_ORDER[e.tier], (e, a) => TIER_ORDER[e.tier] > TIER_ORDER[a.tier]);
+  const first = best(e => e.ts, (e, a) => e.ts < a.ts), last = best(e => e.ts, (e, a) => e.ts > a.ts);
+  const hours = count(e => /^\d\d/.test(e.time || "") ? +e.time.slice(0, 2) + 1 : new Date(e.ts || 0).getHours() + 1);
+  const [bh, bn] = [...hours].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] || [];
+  return {low, high, fast, airline, types, typesSeen: tc.size, newest: news[0] || null, newN: news.length,
+    pod, first, last, busy: bh ? {h: bh - 1, n: bn} : null, inList: e => !!e && list.includes(e)};
 }
 // 1.50: the filter above Spotted today (where there is a keyboard): words, comma-separated, each found in the airline,
 // flight, places, aircraft type, registration or remarks ("Austrian, Vienna", "jumbo"). Per device, gone on a reload.
@@ -7790,6 +7801,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.111", date: "2026-10-29", notes: [
+    "Today in numbers is tidier: the records side by side, the most seen as bars, the Plane of the day in the evening, and a tap takes you to the plane."]},
   {v: "1.110", date: "2026-10-29", notes: [
     "Ticket designs from the eras of flying: your first silver, gold, platinum and diamond medal each unlock one.",
     "Settings → Styles is a gallery with tabs for the board, the ticket and the badge: tap a style to see it big and what unlocks it."]},
