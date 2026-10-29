@@ -943,6 +943,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.102 (to-do #154, Dave's pick of 29 Oct: round 2's ladder A, the original cap): **rank insignia.** `rankIns(lv, h,
+  {wings, label})` draws a level as an SVG (`RK_LADDER`: shoulder board `[cloth, mark, n]` or `["cap", step]`; `rkCap`;
+  past 20 a gold star per Legend above the cap, at most five drawn). The gradients live once in the page (`rkDefs`,
+  `#rkDefs`, ids `rkMS`/`rkMG`/`rkCsky`…), so the markup is the same each time (renderGame compares its HTML). A board
+  is h px tall, a cap two thirds of that. Shown in the strip (`#gRk`, 34 px, redrawn only when it changed), Your level
+  (`.rkLv`, 40), each league row (30, from the relay's `level`, `role="img"` "Rank: {t}") and the player card
+  (`.plIns`, 46). `.rkGold`: a name in gold from level 19 (league rows, player card). The flight school's wings (#153)
+  show as a pin (`.rkW`, `rkWings`) beside it when `g.wings` / `r.wings` / `p.wings` is truthy. No relay change.
 - 1.101 (to-do #148, Dave's pick of 28–29 Oct, mockup A "gold foil", sound B "bell sparkle"): **golden tickets.** The
   relay's scan list (`/game/me` `scan`, `game_scannable`) marks a golden plane `gold: true` (relay 84, `game_gold`);
   `gTixShow` makes its ticket gold (`gPassFill` `o.gold`: `.pF.gold`, the foil, a sheen `.gl` with `@gSheen`, two ✦; the
