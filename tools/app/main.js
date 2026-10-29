@@ -4183,6 +4183,7 @@ async function gRefresh(force){
     const g = await fetchJSON(`${relay()}/game/me?since=${gAwAt || 1}`, {}, 8000), prev = gme;
     gme = g;
     gAwards(g.aw, !gAwAt);
+    fsBar();                                                  // 1.103: the flight school's bar on Now
     gTixSync(g.scan);
     if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
     else gStripRender(g);
@@ -4214,6 +4215,7 @@ function gAwLine(a, f, tix){
   // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
   if (a.k === "bingo") return [T("Bingo line · {l}", {l: T(BINGO_LINE[a.n] || "Line")}), a.p, "x"];
   if (a.k === "card") return [T("Full bingo card"), a.p, "x"];
+  if (a.k === "school") { const m = SCHOOL.find(x => x[0] === a.n); return [T("Flight school · {m}", {m: m ? T(m[1]) : a.n}), a.p, "x"]; }   // 1.103
   if (a.k === "trophy") { const tr = TROPHY_TIER.get(a.n), m = TROPHY_MEDALS[a.m];
     return [tr && m ? T("Trophy · {name} · {m}", {name: T(tr.name), m: T(m)}) : T("Trophy · {name}", {name: trophyText(a.n)[0]}), a.p, "x"]; }
   return [T("Points"), a.p, ""];
@@ -4326,6 +4328,7 @@ function gAwards(list, quiet){
   if (!Array.isArray(list) || !list.length) return;
   const fresh = list.filter(a => a.t > gAwAt);
   gAwAt = Math.max(gAwAt, ...list.map(a => a.t));
+  if (!quiet) for (const a of fresh.filter(x => x.k === "school")) fsStamp(a);     // 1.103: live location or not
   if (quiet || !S.live) return;
   // 1.98 (to-do #146): the passive points show only on the strip (+N); a plane within the scan's circle gets its ticket
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
@@ -4375,6 +4378,7 @@ function gStyleAt(lv){
 }
 function gLevelUp(g){
   let box = $("gLvUp");
+  if (box && !box.hidden && box.classList.contains("fsW")) { setTimeout(() => gLevelUp(g), 2000); return; }   // 1.103: after the wings
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const st = gStyleAt(g.level);
   box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
@@ -4453,6 +4457,10 @@ function renderGame(){
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
   if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
+  // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
+  const fs = fsState();
+  if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
+  if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
   h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
@@ -4528,7 +4536,7 @@ async function gRecentCard(){
   if (tok !== cardTok) return;
   if (!j) { cardOpen(`<p class="note">${escH(T("Couldn't load today's points."))}</p>`); return; }
   const at = t => t ? hhmm(new Date(t)) : "";
-  const rows = j.rows.map(r => {
+  let rows = j.rows.map(r => {
     const f = fromRelay(r);                  // named as in Spotted today (FR 3EG, not RYR3EG)
     // a plane scored before relay 71: its totals, the first score and a lock-on without their times
     const aw = r.aw.length ? r.aw : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
@@ -4539,7 +4547,16 @@ async function gRecentCard(){
     return `<li class="fl sp${sum ? "" : " lim"}" style="--lamp:${col}${hot && sum ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
       `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus0(sum)}</b>` +
       `<div class="rt">${what}</div>${lines}</li>`;
-  }).join("");
+  }).map((h, i) => [Math.max(j.rows[i].ts || 0, ...j.rows[i].aw.map(a => a.t)), h]);
+  // 1.103 (relay 85): today's flight school missions, a row of their own (they have no plane), in time with the planes
+  const fsAw = j.school || [];
+  if (fsAw.length) {
+    const sum = fsAw.reduce((n, a) => n + a.p, 0), t = Math.max(...fsAw.map(a => a.t));
+    rows.push([t, `<li class="fl sp fsRow"><div class="tc"><time>${escH(at(t))}</time></div><div class="who"><strong>${escH(T("Flight school"))}</strong></div><b class="pts">${gPlus0(sum)}</b>` +
+      fsAw.map((a, i) => { const m = SCHOOL.find(x => x[0] === a.n), w = m ? T(m[1]) : gAwLine(a)[0], p = a.p; return `<div class="meta${i ? " top" : ""} x"><span>${escH(at(a.t) + " · " + w)}</span><span>${gPlus0(p)}</span></div>`; }).join("") + `</li>`]);
+    rows.sort((a, b) => b[0] - a[0]);
+  }
+  rows = rows.map(r => r[1]).join("");
   cardOpen(`<div class="cHead"><div><h3>${escH(T("Recent points"))}</h3><span>${escH(T(j.planes === 1 ? "Today {p} · 1 plane · newest first" : "Today {p} · {n} planes · newest first", {p: nf.format(j.today || 0), n: nf.format(j.planes || 0)}))}</span></div></div>` +
     (rows ? `<ul class="flights rpList">${rows}</ul>` : `<p class="sum">${escH(T(S.live ? "No points yet today. Planes score the first time they come within {k} km of you; within {s} km you can scan them." : "Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</p>`) +
     `<button class="gHow" type="button" data-club>${escH(T("Spotters' Club: level and league"))}<i>›</i></button>`,
@@ -4663,6 +4680,194 @@ async function gLockOn(hex){
   });
   try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch {}
   setTimeout(() => gRefresh(true), 2500);
+}
+/* 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C): the flight school. Five first missions that teach the app, +50
+   each, once (the relay sees and pays them, relay 85; a plane's card is this app's call, schoolMission); all five earn
+   the wings. The Spotters' Club shows a training record: a line per mission, its dated PASSED stamp in its box once done,
+   a hint for the next one only, and the WINGS line signed at the end. Now shows a small bar (CHECKLIST 3/5 · NEXT · …,
+   five marks) until the wings. A mission done lands a big stamp (fsStamp); the fifth then signs the record with the
+   player's first name, written as with a pen (sigWrite: signature.js's single-stroke script, stroke by stroke), and
+   Cleared for take-off comes with the wings (fsWings). A profile at level 4 when relay 85 came has its wings without the
+   school (school.pre) and never sees it. Reduced motion: the stamps and the signature appear without moving. */
+const SCHOOL = [["scan", "Scan a plane", "In Sky view, hold a plane in the ring"], ["card", "Open a plane's card", "Tap a plane on Now or Today"],
+  ["bingo", "Fill a bingo square", "Spot a plane on this week's bingo card"], ["fav", "Add a favourite", "Swipe a plane in Today to the right"],
+  ["uncommon", "Catch an uncommon", "An uncommon plane within {k} km of you"]];
+const fsState = () => { const s = gameOk() && gme && gme.school; return s && !s.pre ? s : null; };
+const fsNext = s => SCHOOL.find(([m]) => !s.done[m]);
+const fsPts = () => (gRules() || {}).school || 50;
+const fsStill = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fsDate = t => new Date(t).toLocaleDateString(LOC(), {day: "numeric", month: "short"}).replace(/\.$/, "").toUpperCase();
+const fsBox = (t, big) => `<span class="fsBox${big ? " big" : ""}"><small>${escH(T("Flight school"))}</small><b>${escH(T("Passed"))}</b><small>${escH(fsDate(t))} · +${fsPts()}</small></span>`;
+// The training record: o.sig the WINGS line's signature (an <svg>), o.next false: no hint (the wings' copy)
+function fsRecord(s, o = {}){
+  const n = SCHOOL.filter(([m]) => s.done[m]).length, nx = !s.wings && o.next !== false && fsNext(s);
+  return `<div class="fsRec"><div class="hd"><span>${escH(T("Training record · pre-flight"))}</span><span>${n} / ${SCHOOL.length}</span></div>` +
+    SCHOOL.map(([m, t, h]) => { const d = s.done[m], next = nx && nx[0] === m;
+      return `<div class="r${d ? " on" : next ? " nx" : ""}"><span class="t"><b>${escH(T(t))}</b><span>${escH(next ? T(h, {k: gKm()}) : "+" + fsPts())}</span></span>` +
+        `<span class="bx">${d ? fsBox(d) : next ? escH(T("Next up")) : ""}</span></div>`; }).join("") +
+    `<div class="sg"><span>${escH(T("Wings"))}</span><span class="ln${s.wings || o.sig ? "" : " no"}">${o.sig || ""}</span><span>${s.wings ? escH(fsDate(s.wings)) : `${n} / ${SCHOOL.length}`}</span></div></div>`;
+}
+// The bar on Now, above the plane overhead, until the wings; a tap opens the club.
+function fsBar(){
+  const s = fsState(), nx = s && !s.wings && fsNext(s);
+  let bar = $("fsBar");
+  if (!bar) {
+    if (!nx || !$("hero")) return;
+    bar = document.createElement("button"); bar.type = "button"; bar.id = "fsBar";
+    bar.onclick = () => { ctlSound.nav(); showTab("game"); window.scrollTo(0, 0); };
+    $("hero").before(bar);
+  }
+  bar.hidden = !nx;
+  if (!nx) return;
+  const n = SCHOOL.filter(([m]) => s.done[m]).length;
+  const h = `<b>${escH(T("Checklist {n}/{m}", {n, m: SCHOOL.length}))}</b><span>${escH(T("Next up · {m}", {m: T(nx[1])}))}</span>` +
+    `<span class="bx">${SCHOOL.map(([m]) => `<u${s.done[m] ? ' class="on"' : ""}></u>`).join("")}</span>`;
+  if (bar.dataset.h !== h) { bar.dataset.h = h; bar.innerHTML = h; }
+}
+// A plane's card opened (planeCard): the relay is told once; its +50 then comes with /game/me's awards (the stamp).
+let fsCardAsked = false;
+async function schoolMission(m){
+  const s = fsState();
+  if (m !== "card" || !s || s.wings || s.done.card || fsCardAsked) return;
+  fsCardAsked = true;
+  try {
+    const r = await fetchJSON(`${relay()}/game/school`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({m})}, 6000);
+    if (r && r.school && gme) gme.school = r.school;
+    gRefresh(true);
+  } catch { fsCardAsked = false; }
+}
+// A mission done: its line slides in at the top and the big stamp lands in its box, with a thud; one at a time, not
+// over Sky view or another big notice (they wait).
+const fsQ = [];
+let fsBusy = false;
+function fsStamp(a){ fsQ.push(a); fsShow(); }
+function fsShow(){
+  if (fsBusy || !fsQ.length) return;
+  if (($("arView") && !$("arView").hidden) || ($("gLvUp") && !$("gLvUp").hidden) || document.hidden) { setTimeout(fsShow, 1500); return; }
+  const a = fsQ.shift(), m = SCHOOL.find(x => x[0] === a.n);
+  if (!m) { fsShow(); return; }
+  fsBusy = true;
+  const el = document.createElement("div");
+  el.id = "fsStamp"; el.setAttribute("role", "status");
+  el.innerHTML = `<div class="fsRec"><div class="hd"><span>${escH(T("Checked · {n} of {m}", {n: a.i || 1, m: SCHOOL.length}))}</span><span>+${nf.format(a.p)}</span></div>` +
+    `<div class="r on"><span class="t"><b>${escH(T(m[1]))}</b><span>${escH(T("{n} points", {n: "+" + nf.format(a.p)}))}</span></span><span class="bx">${fsBox(a.t, true)}</span></div></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, fsStill() ? 0 : 640);   // as the stamp hits
+  let shut = false;
+  const close = () => {
+    if (shut) return;
+    shut = true; el.classList.add("out");
+    setTimeout(() => { el.remove(); fsBusy = false; if (a.wings) fsWings(a); else fsShow(); }, fsStill() ? 0 : 350);
+  };
+  el.onclick = close; setTimeout(close, 3800);
+}
+// The stamp's sound (with the button sounds on): a soft low thump and the click of its edge on the paper.
+function fsThud(){
+  if (!S.sound || !actx || actx.state !== "running") return;
+  const t = actx.currentTime + .01, o = actx.createOscillator(), g = actx.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + .12);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.55, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .2);
+  o.connect(g).connect(sfxOut()); o.start(t); o.stop(t + .22);
+  const n = actx.createBuffer(1, actx.sampleRate * .05, actx.sampleRate), d = n.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
+  const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+  src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 1500; ng.gain.value = .35;
+  src.connect(bp).connect(ng).connect(sfxOut()); src.start(t);
+}
+// Pilot's wings in gold (the club's and the wings' notice).
+const fsWingsSvg = (w = 120) => { const f = "M52,14 C38,7 18,5 2,7 C14,12 32,16 52,19 Z M52,19 C38,15 22,14 9,15.5 C21,20 36,22 52,24 Z M52,24 C40,22.5 28,22.5 17,24.5 C28,28 40,29 52,29 Z";
+  return `<svg class="fsWings" width="${w}" height="${w / 3}" viewBox="0 0 120 40" aria-hidden="true"><defs><linearGradient id="fsWg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#b8861c"/></linearGradient></defs>` +
+    `<g fill="url(#fsWg)" stroke="#b8861c" stroke-width=".6"><path d="${f}"/><path d="${f}" transform="matrix(-1 0 0 1 120 0)"/><circle cx="60" cy="20" r="10.5"/></g>` +
+    `<path transform="translate(51.5 11.5) scale(.7)" fill="#b8861c" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>`; };
+// The signature's font (signature.js, fetched the first time it is needed; tried again a minute after a failure).
+let sigLoad = null, sigFailed = 0;
+function sigFont(){
+  if (window.SIG_FONT) return Promise.resolve(window.SIG_FONT);
+  if (!sigLoad && Date.now() - sigFailed > 60000) sigLoad = new Promise(done => {
+    const s = document.createElement("script");
+    s.src = SIG_JS; s.async = true;
+    s.onload = () => done(window.SIG_FONT || null);
+    s.onerror = () => { sigLoad = null; sigFailed = Date.now(); s.remove(); done(null); };
+    document.head.appendChild(s);
+  });
+  return sigLoad || Promise.resolve(null);
+}
+const fsName = () => String((GUEST && GUEST.name) || "").trim().split(/\s+/)[0] || T("Pilot");
+// The name as pen strokes: a <path> per stroke (a letter's M … pieces) in writing order, each letter flipped (y is up
+// in the font) and set at its place on the line. A letter the font lacks: its base letter (é → e); none: null (the
+// name is then written in the phone's script font, uncovered from the left).
+function sigSvg(name, F){
+  let x = 0;
+  const strokes = [];
+  for (const ch of name) {
+    const g = F[ch] || F[ch.normalize("NFD").replace(/[̀-ͯ]/g, "")];
+    if (!g) return null;
+    for (const d of g[1].split(/(?=M)/).filter(Boolean)) strokes.push(`<path data-x="${x}" transform="translate(${x} 800) scale(1 -1)" d="${d}"/>`);
+    x += g[0];
+  }
+  return `<svg class="fsSig" viewBox="-60 -20 ${x + 120} 1140" role="img" aria-label="${escH(name)}">${strokes.join("")}</svg>`;
+}
+const fsSigHtml = name => (window.SIG_FONT && sigSvg(name, window.SIG_FONT)) || `<span class="fsSigT">${escH(name)}</span>`;
+// Writing it: each stroke drawn along its length at a pen's pace (a little slower into and out of a stroke), the pen
+// lifted for a moment between strokes, a nib of ink at the tip. Reduced motion: all at once.
+function sigWrite(el, done){
+  const paths = el.tagName === "svg" ? [...el.querySelectorAll("path")] : [];
+  el.classList.remove("pre");                              // (unseen until the pen starts: fsWings)
+  if (fsStill() || (!paths.length && el.tagName === "svg")) { done(); return; }
+  if (!paths.length) { el.classList.add("writing"); setTimeout(done, 1800); return; }     // the script font's text
+  const L = paths.map(p => p.getTotalLength()), sum = L.reduce((a, b) => a + b, 0);
+  const per = Math.min(3400, Math.max(1500, sum / 5)) / sum, LIFT = 110;        // ms per font unit; a pen lift
+  const at = [];
+  let t = 0;
+  L.forEach((l, i) => { at.push(t); t += l * per + (i < L.length - 1 ? LIFT : 0); });
+  paths.forEach((p, i) => { p.style.strokeDasharray = `${L[i]} ${L[i] + 10}`; p.style.strokeDashoffset = L[i]; });
+  const nib = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  nib.setAttribute("class", "nib"); nib.setAttribute("r", "17");
+  el.appendChild(nib);
+  const ease = u => u - Math.sin(2 * Math.PI * u) / (2 * Math.PI) * .35;
+  const tip = (i, u) => { const q = paths[i].getPointAtLength(L[i] * u); return [+paths[i].dataset.x + q.x, 800 - q.y]; };
+  const t0 = performance.now();
+  const step = now => {
+    if (!el.isConnected) return;
+    const e = now - t0;
+    let pos = null;
+    paths.forEach((p, i) => {
+      const dur = L[i] * per, u = Math.max(0, Math.min(1, (e - at[i]) / dur));
+      p.style.strokeDashoffset = L[i] * (1 - ease(u));
+      if (e >= at[i] && (u < 1 || i === paths.length - 1)) pos = tip(i, ease(u));
+      else if (u >= 1 && i < paths.length - 1 && e < at[i + 1]) {         // the pen moving to the next stroke
+        const k = (e - at[i] - dur) / LIFT, [x1, y1] = tip(i, 1), [x2, y2] = tip(i + 1, 0);
+        pos = [x1 + (x2 - x1) * k, y1 + (y2 - y1) * k];
+      }
+    });
+    if (pos) { nib.setAttribute("cx", pos[0].toFixed(1)); nib.setAttribute("cy", pos[1].toFixed(1)); }
+    if (e < t) requestAnimationFrame(step);
+    else { nib.classList.add("off"); done(); }
+  };
+  requestAnimationFrame(step);
+}
+// All five: the record, signed as you watch on its WINGS line, then the wings and Cleared for take-off.
+function fsWings(a){
+  const s = Object.assign({done: {}}, gme && gme.school, {wings: (gme && gme.school && gme.school.wings) || a.t});
+  let box = $("gLvUp");
+  if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
+  box.innerHTML = `<div class="lvBox fsWin"><span class="eyebrow">${escH(T("Training record signed"))}</span>${fsWingsSvg(190)}<h3>${escH(T("Cleared for take-off"))}</h3>` +
+    fsRecord(s, {sig: '<i class="fsSigAt"></i>', next: false}) +
+    `<p>${escH(T("Your wings: five missions, +{p} points.", {p: nf.format(fsPts() * SCHOOL.length)}))}</p><button class="cBtn" type="button">${escH(T("Take off"))}</button></div>`;
+  box.classList.add("fsW"); box.classList.remove("signed");
+  box.hidden = false; box.onclick = null;
+  const close = () => { box.hidden = true; box.classList.remove("fsW", "signed"); };
+  box.querySelector(".cBtn").onclick = () => { ctlSound.click(); close(); };
+  sigFont().then(() => {
+    const at = box.querySelector(".fsSigAt");
+    if (!at) return;
+    at.outerHTML = fsSigHtml(fsName()).replace(/class="fsSig(T?)"/, 'class="fsSig$1 pre"');
+    const el = box.querySelector(".fsSig, .fsSigT");
+    setTimeout(() => sigWrite(el, () => {
+      box.classList.add("signed"); gJingle();
+      try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch {}
+    }), fsStill() ? 0 : 700);
+  });
 }
 function gameStart(){
   gStripSetup();

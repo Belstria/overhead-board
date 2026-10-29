@@ -605,6 +605,172 @@ def scan_circle_checks(expect):
         serve.where_name, serve.watch_of = real
 
 
+def school_checks(expect):
+    """Relay 85 (to-do #153): the flight school. Each of the five missions pays +50 once, as an award without a plane, in
+    the day, the week and the level; the fifth sets the wings (nothing more paid). A game scored before keeps every
+    total when relay 85 starts on it; one at level 4 or above gets its wings at once without points and never pays a
+    mission; a restart, planes coming closer and a rescore of the logbook pay nothing again."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-28"                                    # a Wednesday: the week of 26 Oct's card has the helicopter
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day
+    serve.game_gold = lambda d, h: False
+    n = [0]
+
+    def plane(sp, **more):
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"s{n[0]}", "hex": f"{n[0] + 7000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320", "callsign": "ZZZ1",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now, **more}
+        sp.entries.insert(0, e)
+        sp.by_hex[e["hex"]] = e
+        with serve._data_lock:
+            serve.game_note(sp, e)
+        return e
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def snap(sp, school=True):
+        with serve._data_lock:
+            g = {k: v for k, v in serve.game_book(sp.book()).items() if school or k != "school"}
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules" and (school or k not in ("school", "wings"))}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    def relay84(folder, extra=0):
+        """A game scored by relay 84 (no school), saved: a plane, a scan, a bingo square; `extra` points on top."""
+        serve.school_pass = lambda *a, **k: None
+        try:
+            sp, g = spot(folder)
+            e = plane(sp, tier="rare")
+            plane(sp, adsbCat="A7")
+            serve.game_lockon(sp, e["hex"])
+            if extra:
+                serve._game_add(g, day, extra)
+            g.pop("school", None)
+            save(sp)
+        finally:
+            serve.school_pass = real_pass
+        return snap(sp, False)
+
+    school = lambda g: [(a["n"], a["p"], a["i"], bool(a.get("wings"))) for a in g["school"]["aw"]]   # noqa: E731
+    try:
+        # a game scored before (level 1): relay 85 starts on it with every total kept; the school starts empty
+        f1 = Path(tempfile.mkdtemp(prefix="fb-school-"))
+        before = relay84(f1)
+        sp, g = spot(f1)
+        expect("relay 85 on a game scored before: every total kept", snap(sp, False), before)
+        expect("... the school starts empty (nothing from before counts)", (g["school"]["done"], g["school"]["aw"], g["school"].get("wings")),
+               ({}, [], None))
+        pts0 = g["points"]
+        plane(sp)
+        expect("a common plane: no mission", (g["points"] - pts0, g["school"]["done"]), (5, {}))
+        up = plane(sp, tier="uncommon")
+        expect("the first uncommon that scores: +50 once", (school(g), g["points"] - pts0), ([("uncommon", 50, 1, False)], 5 + 10 + 50))
+        plane(sp, tier="epic")
+        expect("... a second (rarer) one: nothing more", (len(g["school"]["aw"]), g["points"] - pts0), (1, 5 + 10 + 50 + 25))
+        pts0 = g["points"]
+        plane(sp, callsign="THY1")                       # a square new to the week's card (Turkish Airlines)
+        expect("the first bingo square: +50", (school(g)[-1], g["points"] - pts0), (("bingo", 50, 2, False), 5 + 50))
+        plane(sp, typeCode="C56X")                       # another square (a business jet)
+        expect("... another square: nothing more", len(g["school"]["aw"]), 2)
+        pts0 = g["points"]
+        with serve._data_lock:
+            lk = serve.game_lockon(sp, up["hex"])
+        expect("the first scan: +50, not in the scan's bonus", (school(g)[-1], g["points"] - pts0, lk["points"]),
+               (("scan", 50, 3, False), lk["bonus"] + 50, g["points"]))
+        with serve._data_lock:
+            again = serve.game_lockon(sp, plane(sp, tier="rare")["hex"])
+        expect("... another scan: nothing more", (len(g["school"]["aw"]), again["bonus"] > 0), (3, True))
+        pts0 = g["points"]
+        with serve._data_lock:
+            fav = serve.school_pass(sp, g, "fav")
+            twice = serve.school_pass(sp, g, "fav")
+            odd = serve.school_pass(sp, g, "wings")
+        expect("a favourite: +50 once; no such mission", (fav["p"], twice, odd, g["points"] - pts0), (50, None, None, 50))
+        expect("... four of five: no wings yet", (g["school"].get("wings"), serve.game3_json(sp.book(), day)["wings"]), (None, False))
+        with serve._data_lock:
+            card = serve.school_pass(sp, g, "card")
+        expect("the fifth (a plane's card): +50 and the wings, nothing more for them",
+               (card["p"], bool(card.get("wings")), g["points"] - pts0, [x[0] for x in school(g)]),
+               (50, True, 100, ["uncommon", "bingo", "scan", "fav", "card"]))
+        g3 = serve.game3_json(sp.book(), day)
+        expect("game3_json: the wings and the school", (g3["wings"], sorted(g3["school"]["done"]), bool(g3["school"]["wings"]), g3["school"]["pre"]),
+               (True, sorted(serve.SCHOOL), True, False))
+        expect("five awards of 50 today, in the day, the week (the league's) and the level",
+               (sum(a["p"] for a in g["school"]["aw"] if a["day"] == day), g3["week"], g3["points"], g3["level"]),
+               (250, g["days"][day], g["points"], serve.level_of(g["points"])[0]))
+        with serve._data_lock:
+            aw = serve.game_awards(sp, 1)
+            td = serve.game_today(sp)
+        expect("the awards for the pop-ups (no plane) and Recent points' school", ([a["n"] for a in aw if a["k"] == "school"],
+               [a["n"] for a in td["school"]], any(a.get("hex") for a in aw if a["k"] == "school")),
+               (["uncommon", "bingo", "scan", "fav", "card"], ["uncommon", "bingo", "scan", "fav", "card"], False))
+        with serve._data_lock:
+            late = [serve.school_pass(sp, g, m) for m in serve.SCHOOL]
+        expect("with the wings: no mission pays again", late, [None] * 5)
+        # a restart, planes coming closer, a rescore of the logbook: nothing paid again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        for x in sp.entries:
+            x["liveMin"] -= 1.0
+        with serve._data_lock:
+            for x in list(sp.entries):
+                serve.game_note(sp, x)
+        expect("... planes coming closer pay nothing again", (g["points"], len(g["school"]["aw"])), (total, 5))
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's totals the same", (g["points"], len(g["school"]["aw"]), bool(g["school"]["wings"])),
+               (total, 5, True))
+        # a game at level 4 or above when relay 85 starts: the wings at once, no points, the school never shown
+        f2 = Path(tempfile.mkdtemp(prefix="fb-school-"))
+        need4 = 500 + 625 + 781
+        before = relay84(f2, need4)
+        sp, g = spot(f2)
+        g3 = serve.game3_json(sp.book(), day)
+        expect("level 4 when relay 85 starts: every total kept", snap(sp, False), before)
+        expect("... the wings at once, without points", (g3["level"] >= 4, g3["wings"], g3["school"]["pre"], g3["school"]["done"], g["school"]["aw"]),
+               (True, True, True, {}, []))
+        pts0 = g["points"]
+        e = plane(sp, tier="uncommon")
+        with serve._data_lock:
+            pay = [serve.school_pass(sp, g, m) for m in serve.SCHOOL]
+        expect("... and no mission pays (only the plane's own points)", (pay, g["school"]["aw"], g["points"] - pts0),
+               ([None] * 5, [], e["gp"] + e.get("gb", 0)))
+        # level 3 when it starts: the school (it counts the level then, not later)
+        f3 = Path(tempfile.mkdtemp(prefix="fb-school-"))
+        relay84(f3, 500 + 625)
+        sp, g = spot(f3)
+        expect("level 3 when relay 85 starts: the school", (serve.level_of(g["points"])[0], g["school"].get("wings"), g["school"].get("pre")),
+               (3, None, None))
+        expect("the league's and the player card's wings (read only): as the school has them, else by the level",
+               [serve.school_wings(x) for x in (g, {"points": need4}, {"points": need4 - 1}, {"points": 0, "school": {"wings": 1}})],
+               [False, True, False, True])
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -743,8 +909,11 @@ def checks():
         if got != want:
             bad.append(f"{what}: got {got}, expected {want}")
 
+    school_checks(expect)
+    import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
+    serve.school_pass = lambda *a, **k: None
     golden_checks(expect)
-    import serve                    # relay 84: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
+                                    # relay 84: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
     serve.game_gold = lambda day, hx: False
     game_rule_checks(expect)
     bingo_trophy_checks(expect)
@@ -897,6 +1066,24 @@ def checks():
         expect("the same plane scanned twice", json.loads(b).get("why") if st == 200 else st, "done")
         st, _, b = call("/game/me", "test-device")
         expect("... and it left the scan list (relay 82)", hx in [x["hex"] for x in (json.loads(b) if st == 200 else {}).get("scan") or []], False)
+    # relay 85: the flight school over HTTP: the scan above and the favourite added earlier were missions; a plane's
+    # card is the app's call, paid once
+    sc = (json.loads(call("/game/me", "test-device")[2]).get("school") or {})
+    if not sc.get("pre"):
+        expect("the school: the scan and the favourite counted", ("scan" in sc.get("done", {}), "fav" in sc.get("done", {})), (bool(hx), True))
+    card_paid = [json.loads(b).get("paid") if st == 200 else st for st, _, b in (call("/game/school", "test-device", body={"m": "card"}) for _ in range(2))]
+    expect("a plane's card: +50, then nothing", card_paid, [0, 0] if sc.get("pre") else [50, 0])
+    expect("... the relay sees the other missions itself", call("/game/school", "test-device", body={"m": "scan"})[0], 400)
+    expect("... from another site", call("/game/school", "test-device", {"Origin": "https://evil.example"}, {"m": "card"})[0] in (403, 429), True)
+    expect("... from a stranger", call("/game/school", None, None, {"m": "card"})[0] in (401, 403), True)
+    me = json.loads(call("/game/me?since=1", "test-device")[2])
+    expect("/game/me: the school's awards (no plane) and the card done", ([a["n"] for a in me.get("aw", []) if a.get("k") == "school"][-1:],
+           "card" in (me.get("school") or {}).get("done", {})), ([] if sc.get("pre") else ["card"], not sc.get("pre")))
+    lgw = json.loads(call("/game/league", "test-device")[2])
+    mine = next((r for r in lgw.get("rows", []) if r.get("me")), {})
+    pw = json.loads(call(f"/game/player?id={mine.get('id', '')}", "test-device")[2]) if mine.get("id") else {}
+    expect("the wings in /game/me, the league's rows and the player card (the rank's pin)",
+           (type(me.get("wings")), type(mine.get("wings")), type(pw.get("wings"))), (bool, bool, bool))
     # relay 71: Recent points, today's awards per plane (relay 76: the passive tenth, the scan and its extras); the
     # profile's own only
     today = lambda ck: json.loads(call("/game/today", ck)[2])     # noqa: E731

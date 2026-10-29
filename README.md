@@ -399,7 +399,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   plane-departure and plane-arrival, MIT licence, © Paweł Kuna), on the flaps, in the app's chips and on the page buttons.
 - **Typefaces** (1.64): Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License, `fonts/OFL.txt`) come
   from the relay (`fonts/`, made by `tools/fonts.py`), not from Google Fonts: opening a board tells Google nothing, and
-  the TVs draw their first flaps sooner.
+  the TVs draw their first flaps sooner. The flight school's signature (1.103) is written in EMS Allure, a single-stroke
+  script (the same licence; `test/signature.js`, made by `tools/sig_font.py`, 31 KB, fetched only when it is drawn).
 - **Tap About seven times** (1.49) within a few seconds (the board: the About button, then the About heading; the app:
   About, then the page's title) and the Airbus "barking dog" plays: the hydraulic power transfer unit's bark.
 - **Emirates boarding music** (1.49, relay 42): opening the Emirates airline card plays the first 30 seconds of the
@@ -520,7 +521,18 @@ The main board has everything below. New features are tried on `/test/` first; o
   plane is gold for everyone that day. In Sky view its label has a gold edge and a "GOLDEN ×2" tab, its ★ shows the
   doubled points; its stub tears off throwing gold glitter, with a sound of its own (the paper rip, then bells climbing
   to a bright chord). Recent points: "Sky view scan · Rare plane ×2 golden". With reduced motion it stays gold, without
-  the sheen or the glitter. (Until 1.96 a lock-on paid +25 % of the
+  the sheen or the glitter. **Flight school** (1.103, relay 85): a new player gets five first missions that teach the
+  app: scan a plane, open a plane's card, fill a bingo square (a square new to the week's card), add a favourite and
+  catch an uncommon (or rarer) plane that scores. Each pays **+50 once** (in the day, the week's league and the level);
+  all five earn the **wings** (nothing more paid; the rank shows a wings pin). The Spotters' Club shows a cream training
+  record: a line per mission with its stamp box (a red "FLIGHT SCHOOL · PASSED · 29 OCT · +50" stamp once done, a hint
+  for the next one only); Now shows a small bar "CHECKLIST 2/5 · NEXT UP · SCAN A PLANE" with five marks until the
+  wings. A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
+  the record's WINGS line with your first name, written stroke by stroke as with a pen, and "Cleared for take-off"
+  comes with the wings; the signed record moves to the end of the club. Recent points lists the missions in a Flight
+  school row. With reduced motion the stamps and the signature appear without moving. A player already at level 4 when
+  relay 85 came got the wings at once, without points, and never sees the school; below that the school started then
+  (nothing from before counts). (Until 1.96 a lock-on paid +25 % of the
   plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
   Sky view's labels (1.72.1) carry a ★ for the planes
   a scan counts for (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 30; since 1.98 only
