@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 85
+RELAY_VERSION = 91
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1052,8 +1052,13 @@ LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
 GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
 GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
+MASTERY = ((5, 25), (25, 100), (100, 250))   # relay 88 (to-do #149): bronze, silver, gold: a type's scans for the step, its bonus
+LOYALTY = ((10, 25), (50, 100), (200, 250))  # relay 89 (to-do #162): an airline's Silver, Gold, Platinum: its planes scanned, the bonus (Member at the first)
+GAME_COUNTRY = 25           # relay 90 (to-do #150): a country new to the passport at a scan (from the route's airports)
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
+STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
+SHOWCASE_AT = (3, 5, 8)         # relay 91 (to-do #156): the showcase's spots open at these levels (one, two, three)
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1074,6 +1079,7 @@ def game_book(book):
         g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
         g["rule2"] = int(time.time() * 1000)
     game_school(g)
+    game_standby(g)
     return g
 
 
@@ -1129,10 +1135,119 @@ def _monday(day):
     return (d - datetime.timedelta(days=d.weekday())).isoformat()
 
 
+def game_standby(g):
+    """Relay 87 (to-do #157): {"since": the board day the standby came}. Made the first time the game is touched after
+    the update: only days from then on can be covered, so a streak that broke before stays as it was paid."""
+    st = g.get("standby")
+    if not isinstance(st, dict):
+        st = g["standby"] = {"since": board_day()}
+    return st
+
+
+def level_points(level):
+    """Relay 91: the points total a level starts at (level_of's steps added up)."""
+    tot, need = 0, 500.0
+    for lv in range(1, level):
+        tot += round(need)
+        if lv + 1 < 20:
+            need *= 1.25
+    return tot
+
+
+def showcase_json(g):
+    """Relay 91 (to-do #156): the showcase: a spot for each level of SHOWCASE_AT reached, each a pinned catch or None,
+    and the spots still locked ({"level": level, "toGo": points}). A pin holds its catch (type, plane, flight, airline,
+    time, route, photo), never where it was seen."""
+    pts = g.get("points", 0)
+    n = sum(1 for lv in SHOWCASE_AT if level_of(pts)[0] >= lv)
+    pins = [x if isinstance(x, dict) else None for x in (g.get("showcase") or [])][:n]
+    return {"pins": pins + [None] * (n - len(pins)),
+            "locked": [{"level": lv, "toGo": max(0, level_points(lv) - pts)} for lv in SHOWCASE_AT[n:]]}
+
+
+def showcase_catch(spot, code):
+    """Relay 91: the catch a hangar card pins: of the type's sightings, one Sky view scanned first, then one the game
+    scored, then any; of those one with a known route; then the first. None: never seen. Not under _data_lock (it
+    reads every saved day)."""
+    best = None
+    for e in _logbook_entries(spot):
+        if str(e.get("typeCode") or "").upper() != code:
+            continue
+        o, d = e.get("from"), e.get("to")
+        rt = [str(x.get("code") or "")[:4] for x in (o, d)] if isinstance(o, dict) and isinstance(d, dict) else []
+        rt = rt if rt and all(rt) else None
+        k = (2 if e.get("scan") else 1 if e.get("gp") else 0, 1 if rt else 0, -(e.get("ts") or 0))
+        if best is None or k > best[0]:
+            best = (k, e, rt)
+    if not best:
+        return None
+    _, e, rt = best
+    with _data_lock:
+        t = (spot.book().get("types") or {}).get(code) or (game_book(spot.book()).get("types") or {}).get(code) or {}
+    return {"code": code, "name": str(t.get("name") or e.get("aircraftType") or "")[:60],
+            "tier": e.get("tier") or tier_of({}, {"typeCode": code}), "reg": str(e.get("reg") or "")[:12],
+            "flight": str(e.get("flightIata") or e.get("callsign") or "")[:10], "airline": str(e.get("airlineName") or "")[:40],
+            "ts": e.get("ts"), "route": rt, "photo": e.get("photo") or "", "thumb": e.get("photoThumb") or "",
+            "how": "scan" if e.get("scan") else "game" if e.get("gp") else "seen"}
+
+
+def showcase_pin(spot, code, at):
+    """Relay 91: pin a type's best catch into spot `at` (code "": empty it), the one pinned there going back to the
+    hangar; a type already in another spot moves. Returns (status, showcase_json or a message): 403 for a spot the
+    level hasn't opened, 404 for a type never seen. Only the asking profile's own spot: nobody pins for another."""
+    shut = lambda: f"That spot opens at level {SHOWCASE_AT[min(at, len(SHOWCASE_AT) - 1)]}"   # noqa: E731
+    with _data_lock:
+        if not 0 <= at < len(showcase_json(game_book(spot.book()))["pins"]):
+            return 403, shut()
+    pin = showcase_catch(spot, code) if code else None
+    if code and not pin:
+        return 404, "Not in your hangar"
+    with _data_lock:
+        spot.ensure_day()
+        g = game_book(spot.book())
+        sc = showcase_json(g)
+        if not 0 <= at < len(sc["pins"]):
+            return 403, shut()
+        pins = [None if x and x.get("code") == code else x for x in sc["pins"]]
+        pins[at] = pin
+        g["showcase"] = pins
+        spot.changed("book")
+        return 200, showcase_json(g)
+
+
+def standby_allow(level):
+    """Relay 87: standbys a week at this level (none below 6, one from 6, two from 14)."""
+    return next((n for lv, n in STANDBY if level >= lv), 0)
+
+
+def _standby(g, day):
+    """Relay 87 (to-do #157): this week's standbys. A day over without a scan, the day before it a streak day (scanned or
+    covered; so never Monday, where the streak starts again), is covered while the week has a standby left at the level
+    the day ended on (standby_allow; its points from the days' points): a streak day that pays nothing. Worked out from
+    the scan days and the days' points each time (nothing kept, so a restart changes nothing), and only for days from the
+    update on (game_standby's "since"; a game it hasn't met: none). Returns (covered days, left now, allowed now)."""
+    wk, rd, days, pts = _monday(day), set(g.get("scanDays") or []), g.get("days") or {}, g.get("points", 0)
+    st = g.get("standby")
+    since = max(wk, st.get("since") or day) if isinstance(st, dict) else day
+    cov, alive, d = [], False, datetime.date.fromisoformat(wk)
+    while d.isoformat() < day:
+        ds = d.isoformat()
+        if ds in rd:
+            alive = True
+        elif alive and ds >= since and len(cov) < standby_allow(level_of(pts - sum(v for k, v in days.items() if k > ds))[0]):
+            cov.append(ds)
+        else:
+            alive = False
+        d += datetime.timedelta(days=1)
+    allow = standby_allow(level_of(pts)[0])
+    return cov, max(0, allow - len(cov)), allow
+
+
 def _scan_streak(g, day):
     """Relay 76: the daily streak: the days in a row with a Sky view scan, back from today (from yesterday while today
-    has none yet), counted from this week's Monday on (it starts again with the league)."""
-    rd, wk, n = set(g.get("scanDays") or []), _monday(day), 0
+    has none yet), counted from this week's Monday on (it starts again with the league). Relay 87: a day a standby
+    covered counts (_standby)."""
+    rd, wk, n = set(g.get("scanDays") or []) | set(_standby(g, day)[0]), _monday(day), 0
     d = datetime.date.fromisoformat(day)
     if day not in rd:
         d -= datetime.timedelta(days=1)
@@ -1158,7 +1273,9 @@ def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
-            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL}
+            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
+            "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY],
+            "loyalty": [list(m) for m in LOYALTY], "country": GAME_COUNTRY, "showcase": list(SHOWCASE_AT)}
 
 
 def level_of(points):
@@ -1466,7 +1583,11 @@ def game_lockon(spot, hx):
     """Sky view held a plane in its ring for 1.5 s: the scan (relay 76). Once a pass, for a plane that came within
     SCAN_KM (relay 82; GAME_KM before) and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
     (relay 79; relay 76 topped it up to them); a type or an airline new to the game adds its extra, and the day's first
-    scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's)."""
+    scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's). Relay 88
+    (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery"). Relay 89
+    (to-do #162): and an airline to 10, 50 or 200 its Silver, Gold or Platinum once ("loyalty"); "airline": its scans now."""
+    _scan_types(spot)                           # relay 88: the scans per type exist before the first scan counts
+    db = _passport_make(spot)                   # relay 90: the countries of earlier scans, stamped unpaid (once)
     now = time.time()
     with _data_lock:
         spot.ensure_day()
@@ -1494,8 +1615,26 @@ def game_lockon(spot, hx):
             sc["airlines"].append(al)
             lines.append({"k": "new", "p": can["airline"], "w": "airline", "n": al})
         st = g.get("scanTypes")
-        if tc and st is not None:               # (none yet: hangar_json counts them back from the days first)
-            st[tc.upper()] = st.get(tc.upper(), 0) + 1
+        if tc and st is not None:               # (none yet: _scan_types counts them back from the days first)
+            TC, ms = tc.upper(), _mastery(g)    # relay 88: the mastery steps as they were before this scan
+            st[TC] = st.get(TC, 0) + 1
+            for k in range(ms.get(TC, 0) + 1, mastery_step(st[TC]) + 1):
+                ms[TC] = k
+                lines.append({"k": "mastery", "p": MASTERY[k - 1][1], "n": TC, "m": k})
+        sa = g.get("scanAirlines")
+        if al and sa is not None:               # relay 89: the airline's tier, the same way
+            ly = _loyalty(g)                    # (as it was before this scan)
+            sa[al] = sa.get(al, 0) + 1
+            for k in range(ly.get(al, 0) + 1, loyalty_step(sa[al]) + 1):
+                ly[al] = k
+                lines.append({"k": "loyalty", "p": LOYALTY[k - 1][1], "n": al, "m": k})
+        pp, route = g.get("passport"), []
+        if db and isinstance(pp, dict):         # relay 90 (to-do #150): the route's countries; one new to the passport pays
+            for cc, ap in route_countries(e, db):
+                route.append([ap, cc, cc not in pp])
+                if cc not in pp:
+                    pp[cc] = {"d": day, "ap": ap, "p": GAME_COUNTRY}
+                    lines.append({"k": "country", "p": GAME_COUNTRY, "n": cc, "ap": ap})
         streak = 0
         sd = g.setdefault("scanDays", [])
         if day not in sd:
@@ -1518,6 +1657,8 @@ def game_lockon(spot, hx):
         spot.changed("book", "day")
         lv = level_of(g["points"])
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
+                "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
+                "route": route, "countries": len(pp) if isinstance(pp, dict) else None,
                 "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 
@@ -1537,8 +1678,20 @@ def game3_json(book, day):
                planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
-               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")))
+               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
+               standby=standby_json(g, day), wallet=wallet_json(g), passport=passport_json(g),
+               showcase=showcase_json(g))
     return out
+
+
+def standby_json(g, day):
+    """Relay 87 (to-do #157): the club's week for the app: Monday to Sunday ("s" scanned, "b" covered by a standby, ""
+    neither), today's place in it, the standbys allowed and left now."""
+    cov, left, allow = _standby(g, day)
+    rd, wk = set(g.get("scanDays") or []), datetime.date.fromisoformat(_monday(day))
+    week = [(wk + datetime.timedelta(days=i)).isoformat() for i in range(7)]
+    return {"week": ["s" if d in rd else "b" if d in cov else "" for d in week], "today": week.index(day),
+            "allow": allow, "left": left}
 
 
 _league_cache = {}
@@ -1634,7 +1787,7 @@ def player_json(hid, me=None):
                "trophies": sorted(k for k, v in (g.get("trophies") or {}).items() if v),
                "rarest": {"code": top[0], "name": top[1].get("name") or "", "tier": tier_of({}, {"typeCode": top[0]})} if top else None,
                "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since"),
-               "wings": school_wings(g)}
+               "wings": school_wings(g), "showcase": showcase_json(g)}
     lg = league_json(me)
     r = next((x for x in lg["rows"] if x["id"] == hid), None)
     out.update(rank=r["rank"] if r else None, crown=bool(r and r["crown"]))
@@ -1644,26 +1797,134 @@ def player_json(hid, me=None):
 _hangar_cache = {}
 
 
+def _scan_types(spot):
+    """Relay 79: make the scans per type (g["scanTypes"]) the first time, counted back from the saved days' sightings
+    with a scan (relay 76 on, e["scan"]). Relay 88: the scan calls it too (the mastery steps need the counts). Not under
+    _data_lock (it reads every saved day). Relay 89: the scans per airline (g["scanAirlines"], the member cards') too."""
+    with _data_lock:
+        g = game_book(spot.book())
+        need = [k for k in ("scanTypes", "scanAirlines") if k not in g]
+    if need:
+        back = {"scanTypes": {}, "scanAirlines": {}}
+        for e in _logbook_entries(spot):
+            if not e.get("scan"):
+                continue
+            for k, c in (("scanTypes", str(e.get("typeCode") or "").upper()), ("scanAirlines", _scan_airline(e))):
+                if c:
+                    back[k][c] = back[k].get(c, 0) + 1
+        with _data_lock:
+            g = game_book(spot.book())
+            for k in need:
+                if k not in g:
+                    g[k] = back[k]
+                    spot.changed("book")
+                    event("info", f"Club: {sum(back[k].values())} Sky view scans counted back by "
+                                  f"{'type' if k == 'scanTypes' else 'airline'}", echo=False)
+
+
+def mastery_step(n):
+    """Relay 88 (to-do #149): the mastery step a type's scans reach: 0 none, 1 bronze, 2 silver, 3 gold."""
+    return sum(1 for at, _ in MASTERY if n >= at)
+
+
+def _mastery(g):
+    """Relay 88: {TYPE: the step paid or passed}. Made the first time from the scans so far, unpaid: a type already
+    past a step keeps its frame (the app reads it from the scans), and only steps reached from then on pay."""
+    m = g.get("mastery")
+    if not isinstance(m, dict):
+        m = g["mastery"] = {tc: k for tc, k in ((tc, mastery_step(n)) for tc, n in (g.get("scanTypes") or {}).items()) if k}
+    return m
+
+
+def loyalty_step(n):
+    """Relay 89 (to-do #162): the tier an airline's scanned planes reach above Member: 0 none, 1 Silver, 2 Gold, 3 Platinum."""
+    return sum(1 for at, _ in LOYALTY if n >= at)
+
+
+def _loyalty(g):
+    """Relay 89: {AIRLINE: the tier paid or passed}, made the first time from the scans so far, unpaid (as _mastery)."""
+    m = g.get("loyalty")
+    if not isinstance(m, dict):
+        m = g["loyalty"] = {al: k for al, k in ((al, loyalty_step(n)) for al, n in (g.get("scanAirlines") or {}).items()) if k}
+    return m
+
+
+def wallet_json(g):
+    """Relay 89 (to-do #162): the club's member cards: every airline the game caught live (what the airline trophies
+    count, so the wallet's size is theirs), with its planes scanned (0: not a member yet)."""
+    sa = g.get("scanAirlines") or {}
+    return {al: sa.get(al, 0) for al in g.get("airlines") or {}}
+
+
+def _cc_ready():
+    """Relay 90: the airport list with each airport's country (its v4); None while it loads or with only an older copy."""
+    db = _airports_ready()
+    return db if db and db.get("v") == 4 else None
+
+
+def _ap_row(db, code):
+    code = str(code or "").upper()
+    return (db.get("iata") or {}).get(code) or (db.get("iata") or {}).get((db.get("icao") or {}).get(code, ""))
+
+
+def route_countries(e, db):
+    """Relay 90 (to-do #150): the countries of a sighting's known route, [(country, airport code)], origin first, each
+    country once; [] without a route (both ends) or an airport the list lacks."""
+    out = []
+    if not (isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict)):
+        return out
+    for k in ("from", "to"):
+        code = str(e[k].get("code") or "").upper()
+        row = _ap_row(db, code)
+        cc = row[7] if row and len(row) > 7 else ""
+        if re.fullmatch(r"[A-Z]{2}", cc) and cc not in [c for c, _ in out]:
+            out.append((cc, code))
+    return out
+
+
+def _passport_make(spot):
+    """Relay 90: the passport the first time, from the saved days' scans with a known route ({country: {"d": day,
+    "ap": airport, "p": 0}}, the first scan's), unpaid. Not under _data_lock (it reads every saved day). Returns the
+    airport list with countries (None while it loads: then no passport yet, and a scan stamps nothing)."""
+    db = _cc_ready()
+    with _data_lock:
+        if not db or isinstance(game_book(spot.book()).get("passport"), dict):
+            return db
+    pp = {}
+    for e in sorted(_logbook_entries(spot), key=lambda x: x.get("scan") or 0):
+        if e.get("scan"):
+            for cc, ap in route_countries(e, db):
+                pp.setdefault(cc, {"d": board_day(e["scan"] / 1000), "ap": ap, "p": 0})
+    with _data_lock:
+        g = game_book(spot.book())
+        if not isinstance(g.get("passport"), dict):
+            g["passport"] = pp
+            spot.changed("book")
+            event("info", f"Passport: {len(pp)} countries stamped from earlier scans", echo=False)
+    return db
+
+
+def passport_json(g):
+    """Relay 90 (to-do #150): the player's passport (their own, never on other players' cards): {country: [day, airport,
+    lat, lon, continent, paid]}; None until it is made (the airport list still loading)."""
+    pp, db = g.get("passport"), _airports or {}
+    if not isinstance(pp, dict):
+        return None
+    out = {}
+    for cc, s in pp.items():
+        row = _ap_row(db, s.get("ap")) or []
+        out[cc] = [s.get("d") or "", s.get("ap") or "", row[1] if len(row) > 2 else None, row[2] if len(row) > 2 else None,
+                   row[8] if len(row) > 8 else "", s.get("p") or 0]
+    return out
+
+
 def hangar_json(spot):
     """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type seen, each with the first aircraft of it (since
     relay 64 with its photo and thumbnail) and its rarity, the newest first; and the sets with all their types. Relay 76
     (to-do #127): from the logbook (any sighting, from any screen; it was the game's own logbook), with how often the
     game scored it ("game", 0: never). Relay 79: and how often Sky view scanned it ("scans"), counted by game_lockon; the
     scans before (relay 76 on, e["scan"]) are counted back from the saved days once."""
-    with _data_lock:
-        need = "scanTypes" not in game_book(spot.book())
-    if need:
-        back = {}
-        for e in _logbook_entries(spot):
-            tc = str(e.get("typeCode") or "").upper()
-            if e.get("scan") and tc:
-                back[tc] = back.get(tc, 0) + 1
-        with _data_lock:
-            g = game_book(spot.book())
-            if "scanTypes" not in g:
-                g["scanTypes"] = back
-                spot.changed("book")
-                event("info", f"Hangar: {sum(back.values())} Sky view scans counted back by type", echo=False)
+    _scan_types(spot)
     with _data_lock:
         book = spot.book()
         game = {tc: (t or {}).get("count", 0) for tc, t in (game_book(book).get("types") or {}).items()}
@@ -2317,7 +2578,7 @@ def _load_airports():
     """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
     global _airports
     db = _load(AIRPORTS_FILE, None)
-    if db and db.get("v") == 3 and time.time() - db.get("fetched", 0) < 60 * 86400:
+    if db and db.get("v") == 4 and time.time() - db.get("fetched", 0) < 60 * 86400:
         _airports = db
         return
     status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
@@ -2341,10 +2602,11 @@ def _load_airports():
                 elev = int(float(r.get("elevation_ft") or 0))
             except ValueError:
                 elev = 0
-            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev]
+            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev,
+                          (r.get("iso_country") or "").strip().upper()[:2], (r.get("continent") or "").strip().upper()[:2]]   # relay 90: the passport's
         if ic:
             icao[ic] = code
-    _airports = {"v": 3, "fetched": time.time(), "iata": iata, "icao": icao}
+    _airports = {"v": 4, "fetched": time.time(), "iata": iata, "icao": icao}
     try:
         DATA_DIR.mkdir(exist_ok=True)
         AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
@@ -3111,6 +3373,8 @@ def category_top_json(spot, cat, places=None):
 
 
 def logbook_json(spot):
+    _scan_types(spot)                           # relay 89: the member cards' scans per airline, counted back once
+    _passport_make(spot)                        # relay 90: the passport's countries from earlier scans, once
     with _data_lock:
         b = spot.book()
         regs = b.get("regs", {})
@@ -8373,7 +8637,7 @@ class Handler(BaseHTTPRequestHandler):
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
             keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
-                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings")   # relay 76: the limits, the rules; no more combo; 85: the school
+                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby", "showcase")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
             out = {k: g.get(k) for k in keep}
             out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
             if aw is not None:
@@ -8697,6 +8961,17 @@ class Handler(BaseHTTPRequestHandler):
                 g = game_book(self.spot.book())
                 a = school_pass(self.spot, g, "card")
                 out = {"paid": a["p"] if a else 0, "school": school_json(g), "points": g.get("points", 0)}
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/showcase":        # relay 91 (to-do #156): pin a hangar card's catch to a spot (only your own)
+            if not self.same_origin() or not allow("showcase:" + self.guest[0], 1, 5):
+                return self.reply(429, "text/plain", b"Not now")
+            j = self.json_body()
+            code, at = re.sub(r"[^A-Z0-9]", "", str(j.get("code") or "").upper())[:4], j.get("spot")
+            if not isinstance(at, int) or isinstance(at, bool) or not 0 <= at < len(SHOWCASE_AT):
+                return self.reply(400, "text/plain", b"spot missing")
+            st, out = showcase_pin(self.spot, code, at)
+            if st != 200:
+                return self.reply(st, "text/plain", out.encode())
             return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/skyreport":            # relay 72: Sky view's sensor readings, for tuning the compass (the owner's)
             if not self.same_origin():
