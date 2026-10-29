@@ -2042,11 +2042,11 @@ const wrap180 = d => ((d % 360) + 540) % 360 - 180;
 // 1.86: the turn about the vertical that takes orientation B to A (degrees, counted as alpha is)
 const arYaw = (A, B) => Math.atan2(A[1][0] * B[0][0] + A[1][1] * B[0][1] + A[1][2] * B[0][2], A[0][0] * B[0][0] + A[0][1] * B[0][1] + A[0][2] * B[0][2]) * 180 / Math.PI;
 function arOrient(e){
-  if (e.beta == null || e.gamma == null) return;
+  if (!Number.isFinite(e.beta) || !Number.isFinite(e.gamma)) return;   // 1.112.0.1: NaN too, not only null
   const t = performance.now();
   arEvN[typeof e.webkitCompassHeading === "number" ? "ios" : e.type === "deviceorientationabsolute" || e.absolute ? "abs" : "rel"]++;   // 1.90: for the report
-  let a = e.alpha, raw = a;
-  if (typeof e.webkitCompassHeading === "number" && e.webkitCompassHeading >= 0) {
+  let a = Number.isFinite(e.alpha) ? e.alpha : null, raw = a;
+  if (Number.isFinite(e.webkitCompassHeading) && e.webkitCompassHeading >= 0) {
     // iPhone: alpha comes from the gyro (steady, but with its own zero) and the compass says where north is
     raw = 360 - e.webkitCompassHeading;
     if (a == null) a = raw;
@@ -2079,7 +2079,8 @@ function arOrient(e){
 // AR_GAP_TAU), not at all once lined up. The compass swinging 12° or more against the gyroscope within 4 s (moving
 // or not) wants calibrating: the note asks for a figure of eight.
 function arGapStep(meas, t, poor){
-  if (arGap == null) { arGap = arGapRef = meas; arGapT = arGap0 = t; arGapLog = []; return; }
+  if (!Number.isFinite(meas)) return;
+  if (arGap == null || !Number.isFinite(arGap)) { arGap = arGapRef = meas; arGapT = arGap0 = t; arGapLog = []; return; }
   if (arGapRef == null) arGapRef = meas;             // (after the gyroscope's zero jumped)
   const off = wrap180(meas - arGap), dt = Math.min(.2, Math.max(0, (t - arGapT) / 1000));
   arGapT = t;
@@ -2131,6 +2132,10 @@ function arGyroStep(q, t){
 // Chrome sends no reading while no angle changes by 0.1°, so an old reading may mean a stop: the gyroscope's rate
 // (devicemotion, arMotion; sent 60 times a second, still or not) tells which. Under 2°/s nothing is run on.
 const AR_AHEAD = .15;                                // s
+// 1.112.0.1 (to-do #187): readings that stop for a moment (the page lost focus, e.g. under the browser's search sheet)
+// start the turning speed afresh. arW is then nought, and carrying a reading on by nought was 0/0: the heading became
+// NaN, and as each frame glides on from the last, it stayed so: no labels, an empty compass ribbon, until closed.
+const AR_GAP_MS = 300;
 let arRd = null, arRdRef = null, arW = [0, 0, 0], arFrT = 0, arFrN = 0, arTim = {reads: [], frames: [], fresh: []}, arMo = null;
 function arMotion(e){
   const r = e.rotationRate;
@@ -2142,10 +2147,12 @@ const arQMul = (a, b) => [a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
   a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1], a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0]];
 const arTimPush = (a, v) => { a.push(Math.round(v * 10) / 10); if (a.length > 120) a.shift(); };   // for the report
 function arTurn(q, t){
+  if (!q.every(Number.isFinite)) return;             // 1.112.0.1: a bad reading is left out (the last good one stays)
   arLastQ = q;
   if (arRd) arTimPush(arTim.reads, t - arRd.t);
+  const gap = arRd && t - arRd.t > AR_GAP_MS;
   arFrN++; arRd = {q, t};
-  if (!arRdRef) { arRdRef = arRd; return; }
+  if (!arRdRef || gap) { arRdRef = arRd; arW = [0, 0, 0]; return; }   // after a gap, the speed afresh
   const dt = (t - arRdRef.t) / 1000;
   if (dt < .008) return;                             // (two handed over at once: the speed from a longer span)
   const p = arRdRef.q, s = p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3] < 0 ? -1 : 1;
@@ -2163,13 +2170,20 @@ function arFrame(now){
   const ahead = arMo ? AR_AHEAD : .05, age = Math.max(0, (now - arRd.t) / 1000), lead = age <= ahead ? age : Math.max(0, 2 * ahead - age);
   const wl = Math.hypot(...arW), deg = arMo && now - arMo.t < 100 ? arMo.deg : wl * 180 / Math.PI, run = lead * Math.min(1, Math.max(0, (deg - 2) / 4));
   let p = arRd.q;
-  if (run > 0) { const h = wl * run / 2, s = Math.sin(h) / wl; p = arQMul([Math.cos(h), arW[0] * s, arW[1] * s, arW[2] * s], p); }
-  if (!arQ) { arQ = p; arQt = now; return; }
+  if (run > 0 && wl > 1e-9) { const h = wl * run / 2, s = Math.sin(h) / wl; p = arQMul([Math.cos(h), arW[0] * s, arW[1] * s, arW[2] * s], p); }
+  if (!p.every(Number.isFinite)) return;             // 1.112.0.1: never into arQ (the last good heading stays)
+  if (!arQ || !arQ.every(Number.isFinite)) { arQ = p; arQt = now; return; }
   let d = arQ[0] * p[0] + arQ[1] * p[1] + arQ[2] * p[2] + arQ[3] * p[3];
   if (d < 0) { p = p.map(v => -v); d = -d; }
   const ang = 360 / Math.PI * Math.acos(Math.min(1, d)), tau = .03 + .17 * Math.sqrt(arZk * arZc) * Math.exp(-Math.max(ang / .7, deg / 6));
   const k = 1 - Math.exp(-Math.min(.2, Math.max(.002, (now - arQt) / 1000)) / tau), m = arQ.map((v, i) => v + (p[i] - v) * k), L = Math.hypot(...m);
-  arQ = m.map(v => v / L); arQt = now;
+  if (L > 1e-9 && m.every(Number.isFinite)) arQ = m.map(v => v / L);
+  arQt = now;
+}
+function arResume(){
+  if (!arOn) return;
+  arRdRef = null; arW = [0, 0, 0]; arMo = null; arRibSig = "";
+  dlog("debug", "Sky view: back in focus, the readings go on");
 }
 // 1.86: lined up (AUTO or a drag): north is held, the gyroscope alone turns the labels until ⟲ or Sky view closes.
 function arHold(why){
@@ -3151,6 +3165,9 @@ $("arZ2").onclick = () => arZoomSet(2); $("arZ5").onclick = () => arZoomSet(5);
   cv.addEventListener("pointerdown", arDragStart); cv.addEventListener("pointermove", arDragMove);
   cv.addEventListener("pointerup", arDragEnd); cv.addEventListener("pointercancel", arDragEnd); }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "visible") arClose(); });
+// 1.112.0.1 (to-do #187): back from something over the page (the browser's search sheet): the labels go on from the last
+// good heading, the turning speed afresh, the compass ribbon drawn again
+addEventListener("focus", arResume);
 
 // A notification while the app is open: the service worker passes it on, and the page plays its chime (the airport bell
 // for special planes) instead of the phone's notification sound.

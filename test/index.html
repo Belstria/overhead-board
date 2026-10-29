@@ -24,7 +24,8 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
-body{background:var(--wall);color:var(--ink);font:15px/1.45 var(--f-board);overflow:hidden;-webkit-user-select:none;user-select:none}
+body{background:var(--wall);color:var(--ink);font:15px/1.45 var(--f-board);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}   /* 1.112.0.1: text fields keep it */
 body.idle{cursor:none}
 #stage{position:absolute;background:var(--housing);overflow:hidden}
 html{touch-action:manipulation}
@@ -7807,7 +7808,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.112", date: "2026-10-29", notes: [
+  {v: "1.112.0.1", date: "2026-10-29", notes: [
+    "Text no longer gets selected by a tap (no more search bar popping up).",
+    "Sky view keeps its labels and compass when the phone's readings drop out for a moment."]},
+  {v: "1.112",date: "2026-10-29", notes: [
     "Ranks need rounder totals and the unlocks are spread out; anything you unlocked stays yours.",
     "Mastery has four steps now, up to platinum at 100 scans, and rarer types pay a bigger bonus.",
     "Your route shows the points for the next rank only; an empty showcase spot on your card takes you to the hangar.",
