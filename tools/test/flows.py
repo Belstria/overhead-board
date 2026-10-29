@@ -1860,6 +1860,11 @@ def checks():
     for _ in range(30):
         call("/aircraft/48.2085/16.3731/25", "test-device")
         call("/sightings?api=1", "test-device")       # a board with Flightradar24 asks for the day's flights
+        # ... and for the plane it shows. The list's lookups skip planes still in the radius's outer quarter (relay 45),
+        # and the place that recorded a pass first (here the saved place "Home" or the live phone above, depending on
+        # how far the made-up flights had come) is the only one that brings its distance closer, so ask directly
+        for cs, hx in (("LDM5AB", "440b12"), ("DLH1234", "3c6744")):
+            call(f"/flightinfo?cs={cs}&hex={hx}", "test-device")
         st, _, b = call("/sightings", "test-device")
         rows = json.loads(b) if st == 200 else []
         rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
@@ -1882,11 +1887,15 @@ def checks():
     expect("a name it had stays", row("AUA9")[8] if row("AUA9") else None, "Austrian")
     expect("Flightradar24's flight number in the CSV", row("LDM5AB")[4] if row("LDM5AB") else None, "FR6203")
     # "New guest" has Flightradar24 off: its sighting of the same flight keeps the free route (it recorded LDM5AB on
-    # the go above, before Flightradar24 answered)
-    st, _, b = call("/sightings", "new-device")
-    rows = json.loads(b) if st == 200 else []
-    rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
-    g = next((r for r in rows if r.get("callsign") == "LDM5AB"), {})
+    # the go above, before Flightradar24 answered), once its route has been looked up
+    for _ in range(30):
+        st, _, b = call("/sightings", "new-device")
+        rows = json.loads(b) if st == 200 else []
+        rows = rows.get("entries", rows) if isinstance(rows, dict) else rows
+        g = next((r for r in rows if r.get("callsign") == "LDM5AB"), {})
+        if g.get("looked"):
+            break
+        time.sleep(1)
     expect("a profile with Flightradar24 off keeps its free route", (g.get("flightIata"), g.get("routeSrc")), ("OE215", None))
     st, _, b = call("/logbook", "test-device")
     expect("the logbook's airline", ((json.loads(b).get("airlines") or {}).get("EIN") or {}).get("name") if st == 200 else st, "Aer Lingus")
