@@ -1103,34 +1103,194 @@ const lyName = icao => shortAirline((AIRLINES[icao] || [])[1] || icao);
 const lyCol = icao => LY_COL[icao] || `hsl(${[...icao].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 360} 55% 38%)`;
 // a ticket's printed line: the airline's code and your tier with it (none while not a member)
 const lyTicket = (icao, n) => { const t = lyOf(n); return icao && t >= 0 ? {code: lyCode(icao), t} : null; };
-let lyFront = "", lyAll = false;
+/* 1.114 (to-do #182, Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2):
+   the wallet is a carousel. The cards stand side by side, the front one in the middle and its neighbours turned away;
+   a swipe moves them with the thumb (a flick carries on, then they snap), a tap on a side card brings it in, a tap on
+   the front one turns it over. Front: brushed metal in the tier's colour, the airline's logo engraved (logo(), else its
+   code), the tier down the edge, a hologram with the code, a ring to the next tier, member since and the last scan.
+   Back: the full name and home base (AIRLINE_HOME), scans, sightings, member since, last scan and the types scanned
+   with it (relay 97: g0.walletInfo). A light sweeps over the metal when a card comes to the front. From six cards an
+   index finds one: by tier (a segment each) or A–Z; a thumb slid along it shows the names there in a bubble and the
+   carousel follows. Reduced motion: a quick fade instead of the moves. */
+let lyAt = "", lySort = "tier", lyFlipped = "";
+const LY_RING = 2 * Math.PI * 15;
+const lyStill = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lyLetter = icao => (lyName(icao).match(/[A-Z]/i) || [""])[0].toUpperCase();
+const lyWhen = (ts, short) => {      // short: today without its time (the card's front)
+  const d = new Date(ts), y = new Date(), day = x => x.toDateString();
+  if (day(d) === day(y)) return short ? T("today") : T("today {t}", {t: d.toLocaleTimeString(LOC(), {hour: "2-digit", minute: "2-digit"})});
+  y.setDate(y.getDate() - 1);
+  return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
+};
+function lyList(g0){
+  const byName = (a, b) => lyName(a[0]).localeCompare(lyName(b[0]));
+  const l = Object.entries(g0.wallet).sort((a, b) => b[1] - a[1] || byName(a, b));
+  return lySort === "az" ? l.sort(byName) : l;
+}
+function lyCardHtml([icao, s], info, i){
+  const t = lyOf(s), st = lySteps(), nx = t >= 0 ? st[t] : null, lo = t > 0 ? st[t - 1][0] : 1;
+  const pct = nx ? Math.min(100, (s - lo) / (nx[0] - lo) * 100) : 100, code = lyCode(icao), f = AIRLINE_HOME[icao] || [];
+  const since = info.since ? fmtDay(info.since) : "", last = info.last ? lyWhen(info.last) : "";
+  const home = [f[2] || "", f[1] ? ppName(f[1]) : ""].filter(Boolean).join(" · ");
+  const kv = (k, v) => `<span><small>${escH(k)}</small>${escH(v || "—")}</span>`;
+  const front = `<i class="lyBr"></i><span class="lyLg" data-lg="${escH(code)}"><b>${escH(code)}</b></span>` +
+    `<span class="lyVt">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}</span><span class="lyHo"><b>${escH(code)}</b></span>` +
+    (t < 0 ? `<span class="lyNx"><b>${escH(T("Not a member yet"))}</b><small>${escH(T("Scan one of its planes to join"))}</small></span>`
+      : `<svg class="lyRg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="v" cx="18" cy="18" r="15" stroke-dasharray="${(LY_RING * pct / 100).toFixed(1)} ${LY_RING.toFixed(1)}"/></svg>` +
+        `<span class="lyNx"><b>${escH(T("{n} scanned", {n: nf.format(s)}))}</b><small>${escH(nx ? T(LY_TO[t], {n: nf.format(nx[0] - s)}) : T("Top tier"))}</small></span>`) +
+    `<span class="lyMs">${t < 0 ? escH(info.seen ? T(info.seen === 1 ? "1 sighting" : "{n} sightings", {n: nf.format(info.seen)}) : "")    // short, in two pieces
+      : [since && T("Since {d}", {d: since}), info.last && T("Last scan {d}", {d: lyWhen(info.last, true)})].filter(Boolean).map(x => `<span>${escH(x)}</span>`).join(" · ")}</span><i class="lySh"></i>`;
+  const back = `<i class="lyMag"></i><span class="lyHm"><b>${escH(f[0] || lyName(icao))}</b>${home ? `<small>${escH(T("Home base {p}", {p: home}))}</small>` : ""}</span>` +
+    `<span class="lyGr">${kv(T("Scanned"), nf.format(s))}${kv(T("Sightings"), info.seen ? nf.format(info.seen) : "")}${kv(T("Member since"), since)}${kv(T("Last scan"), last)}</span>` +
+    ((info.types || []).length ? `<span class="lyTy">${info.types.map(([tc, n]) => `<i>${escH(tc)}<small>×${nf.format(n)}</small></i>`).join("")}</span>` : "");
+  return `<div class="lyC ${t >= 0 ? "ly" + t : "lyN"}" data-i="${i}" data-t="${t}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}"><div class="lyIn">` +
+    `<div class="lyFr">${front}</div><div class="lyBk">${back}</div></div></div>`;
+}
 function walletHtml(g0){
   const w = g0 && g0.wallet;
   if (!w) return "";
-  const list = Object.entries(w).sort((a, b) => b[1] - a[1] || lyName(a[0]).localeCompare(lyName(b[0]))), n = list.length;
+  const list = lyList(g0), n = list.length, info = g0.walletInfo || {};
   const st = trophyLadder(g0, TROPHY_LADDERS.find(l => l[0] === "airlines")), [a, b, c] = lySteps();
   const sum = [T(n === 1 ? "1 airline" : "{n} airlines", {n: nf.format(n)}), st.next ? T("{t} at {n}", {t: T(st.next[2]), n: nf.format(st.next[1])}) : ""].filter(Boolean).join(" · ");
   const rule = T("Scan an airline's planes to climb: Silver at {a}, Gold at {b}, Platinum at {c}.", {a: a[0], b: b[0], c: c[0]});
   if (!n) return secPlate(T("Member cards"), `<p class="sum">${escH(rule)}</p>`, "lyPlate");
-  const front = list.find(x => x[0] === lyFront) || list[0], rest = list.filter(x => x !== front);
-  const card = ([icao, s], big) => {
-    const t = lyOf(s), nx = t >= 0 ? lySteps()[t] : null, lo = t > 0 ? lySteps()[t - 1][0] : 1;
-    const tier = t >= 0 ? T(LY_NAME[t]) : "";
-    return `<button type="button" class="lyCard ${t >= 0 ? "ly" + t : "lyN"}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}">` +
-      `<span class="hd"><b>${escH(lyName(icao))}</b><em>${escH(tier)}</em><i>${escH(lyCode(icao))}</i></span>` +
-      (!big ? "" : t < 0 ? `<span class="nm">${escH(T("Not a member yet"))}</span><span class="ft"><span>${escH(T("Scan one of its planes to join"))}</span></span>`
-        : `<span class="nm">${escH(tier)}</span>` + (nx ? `<span class="br"><i style="width:${Math.min(100, (s - lo) / (nx[0] - lo) * 100).toFixed(1)}%"></i></span>` : "") +
-          `<span class="ft"><span>${escH(T("{n} scanned", {n: nf.format(s)}))}</span><span>${nx ? escH(T(LY_TO[t], {n: nf.format(nx[0] - s)})) : ""}</span></span>`) + `</button>`;
-  };
-  const tops = (lyAll ? rest : rest.slice(0, 4)).reverse();
-  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyWal">${tops.map(x => card(x)).join("")}${card(front, true)}</div>` +
-    `<p class="sum">${escH(rule)}${n > 1 ? " " + escH(T("Tap a card to bring it to the front.")) : ""}</p>` +
-    (rest.length > 4 ? `<button class="gHow" type="button" data-lyall>${escH(lyAll ? T("Fewer cards") : T("All {n} cards", {n: nf.format(n)}))}<i>›</i></button>` : ""), "lyPlate");
+  let nav = "";
+  if (n >= 6) {                      // the index: a segment per tier, or the letters
+    const seg = `<div class="seg gSeg lySort" role="group">` + [["tier", T("By tier")], ["az", T("A–Z")]].map(([k, l]) =>
+      `<button type="button" data-lys="${k}" aria-pressed="${lySort === k}">${escH(l)}</button>`).join("") + `</div>`;
+    const have = new Set(list.map(x => lyLetter(x[0])));
+    nav = seg + (lySort === "az"
+      ? `<div class="lyIdx az">${[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(l => `<i class="${have.has(l) ? "" : "dim"}" data-l="${l}">${l}</i>`).join("")}<b></b></div>`
+      : `<div class="lyIdx tier">${[3, 2, 1, 0, -1].map(t => { const k = list.filter(x => lyOf(x[1]) === t).length;
+          return k ? `<i class="${t >= 0 ? "ly" + t : "lyN"}" data-t="${t}" style="--n:${k + 4}">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}<small>${nf.format(k)}</small></i>` : ""; }).join("")}<b></b></div>`);
+  } else if (n > 1) nav = `<div class="lyDots">${list.map(() => "<i></i>").join("")}</div>`;
+  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyCar"><div class="lySt">` +
+    list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"><span></span><span></span></div>` + nav +
+    `<p class="sum">${escH(rule)} ${escH(n > 1 ? T("Swipe through your cards; tap the front one to turn it over.") : T("Tap the card to turn it over."))}</p>`, "lyPlate");
 }
-function lyWire(box, redraw){
-  for (const b of box.querySelectorAll("[data-ly]")) b.onclick = () => { if (b.dataset.ly === lyFront) return; ctlSound.click(); lyFront = b.dataset.ly; redraw(); };
-  const all = box.querySelector("[data-lyall]");
-  if (all) all.onclick = () => { ctlSound.nav(); lyAll = !lyAll; redraw(); };
+function lyWire(box){
+  const car = box.querySelector(".lyCar");
+  if (!car) return;
+  const plate = car.closest(".lyPlate"), cs = [...car.querySelectorAll(".lyC")], n = cs.length;
+  const cw = Math.min(300, Math.round(car.clientWidth * .8)), step = cw * .6;
+  car.style.setProperty("--cw", cw + "px");
+  const ids = cs.map(c => c.dataset.ly);
+  let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
+  for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here
+    const L = logo(s.dataset.lg, true);
+    const put = () => { if (L.state === "ok" && !s.querySelector("img")) { s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`); s.classList.add("ok"); } };
+    if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});
+  }
+  const flipped = cs.find(c => c.dataset.ly === lyFlipped);
+  if (flipped && +flipped.dataset.i === pos) flipped.classList.add("flip");
+  const [nm, ix] = plate.querySelectorAll(".lyCount span"), bar = plate.querySelector(".lyIdx"), dots = [...plate.querySelectorAll(".lyDots i")];
+  const cells = bar ? [...bar.querySelectorAll("i")] : [], az = bar && bar.classList.contains("az");
+  const lay = () => {
+    for (const c of cs) {
+      const d = +c.dataset.i - pos, a = Math.abs(d), sg = Math.sign(d), k = Math.min(a, 1);
+      c.style.transform = `translateX(${(sg * (k * step + Math.max(0, a - 1) * cw * .14)).toFixed(1)}px) translateZ(${(-k * 120 - Math.max(0, a - 1) * 40).toFixed(1)}px) rotateY(${(-sg * k * 42).toFixed(1)}deg)`;
+      c.style.zIndex = 100 - Math.round(a * 10);
+      c.style.opacity = a > 3.2 ? 0 : 1;
+      c.style.visibility = a > 4 ? "hidden" : "";
+      c.style.setProperty("--dim", (Math.min(a, 2.5) * .22).toFixed(2));
+    }
+    const i = Math.round(Math.max(0, Math.min(n - 1, pos))), c = cs[i], t = +c.dataset.t;
+    nm.innerHTML = `<b>${escH(lyName(c.dataset.ly))}</b> · ${escH(t >= 0 ? T(LY_NAME[t]) : T("Not a member yet"))}`;
+    ix.textContent = n > 1 ? `${i + 1} / ${n}` : "";
+    dots.forEach((d, j) => d.classList.toggle("on", j === i));
+    if (bar) {
+      const L = lyLetter(c.dataset.ly), cell = cells.find(x => az ? x.dataset.l === L : +x.dataset.t === t);
+      for (const x of cells) x.classList.toggle("on", x === cell);
+      if (cell) bar.querySelector("b").style.left = (cell.offsetLeft + cell.offsetWidth / 2) + "px";
+    }
+    lyAt = c.dataset.ly;
+  };
+  const shine = () => {
+    const i = Math.round(pos), f = cs[i].querySelector(".lyFr");
+    shown = i;
+    if (lyStill()) return;
+    f.classList.remove("shine"); void f.offsetWidth; f.classList.add("shine");
+  };
+  const unflip = () => { for (const c of cs) c.classList.remove("flip"); lyFlipped = ""; };
+  const go = (to, quiet) => {
+    to = Math.max(0, Math.min(n - 1, to));
+    if (to !== shown) unflip();
+    if (lyStill()) {                                     // reduced motion: the change behind a quick fade
+      car.style.opacity = 0;
+      setTimeout(() => { car.classList.remove("go"); pos = to; lay(); car.style.opacity = 1; if (!quiet) shine(); }, 160);
+      return;
+    }
+    car.classList.add("go"); pos = to; lay();
+    if (!quiet) { ctlSound.click(); clearTimeout(tm); tm = setTimeout(shine, 420); }
+  };
+  const hold = on => { hgHeld = on; hgBusy = Date.now(); };    // the club isn't drawn again under the thumb
+  // the thumb on the cards: a swipe follows it, a flick carries on; a tap brings a card in or turns the front one over
+  let drag = null;
+  car.onpointerdown = e => {
+    drag = {x: e.clientX, p: pos, moved: false, hist: [[e.timeStamp, e.clientX]], c: e.target.closest(".lyC")};
+    car.setPointerCapture(e.pointerId); hold(true);
+  };
+  car.onpointermove = e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(dx) > 8) { drag.moved = true; car.classList.remove("go"); unflip(); }
+    if (!drag.moved) return;
+    let to = drag.p - dx / step;
+    if (to < 0) to *= .3;
+    if (to > n - 1) to = n - 1 + (to - n + 1) * .3;      // a little give at the ends
+    pos = to; lay();
+    drag.hist.push([e.timeStamp, e.clientX]);
+    if (drag.hist.length > 6) drag.hist.shift();
+  };
+  car.onpointerup = car.onpointercancel = e => {
+    if (!drag) return;
+    const d = drag;
+    drag = null; hold(false);
+    if (!d.moved) {
+      if (!d.c) return;
+      const i = +d.c.dataset.i;
+      if (i !== Math.round(pos)) return go(i);
+      ctlSound.click();
+      const turn = () => { const on = d.c.classList.toggle("flip"); lyFlipped = on ? d.c.dataset.ly : ""; };
+      if (lyStill()) { car.style.opacity = 0; setTimeout(() => { turn(); car.style.opacity = 1; }, 160); } else turn();
+      return;
+    }
+    const [t0, x0] = d.hist[0], v = (e.clientX - x0) / Math.max(16, e.timeStamp - t0);    // px a ms
+    go(Math.round(pos - v * 220 / step));
+  };
+  for (const b of plate.querySelectorAll("[data-lys]")) b.onclick = () => { if (lySort === b.dataset.lys) return; ctlSound.nav(); lySort = b.dataset.lys; renderGame(); };
+  if (bar) {                     // the index: the card under the thumb, the names there in a bubble, the carousel following
+    let bub = document.getElementById("lyBub");
+    if (!bub) { bub = document.createElement("div"); bub.id = "lyBub"; document.body.appendChild(bub); }
+    const pick = e => {
+      const r = bar.getBoundingClientRect(), x = Math.max(r.left, Math.min(r.right - 1, e.clientX));
+      let cell = cells[cells.length - 1], best = 1e9;
+      for (const q of cells) { const b = q.getBoundingClientRect(), dd = x < b.left ? b.left - x : x > b.right ? x - b.right : 0; if (dd < best) { best = dd; cell = q; } }
+      const b = cell.getBoundingClientRect();
+      if (az) {                  // the first airline of the letter, or of the next letter there is
+        const ls = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", l0 = ls.indexOf(cell.dataset.l);
+        for (let k = 0; k < 26; k++) {
+          const L = ls[(l0 + k) % 26], i = ids.findIndex(id => lyLetter(id) === L);
+          if (i >= 0) return {i, title: L, names: ids.filter(id => lyLetter(id) === L)};
+        }
+      }
+      const t = +cell.dataset.t, g = cs.filter(c => +c.dataset.t === t).map(c => +c.dataset.i);
+      const f = Math.max(0, Math.min(.999, (x - b.left) / b.width));
+      return {i: g[Math.floor(f * g.length)], title: t >= 0 ? T(LY_NAME[t]) : T("Guest"), names: g.map(j => ids[j])};
+    };
+    const show = (P, e) => {
+      const k = P.names.indexOf(ids[P.i]), from = Math.max(0, Math.min(k - 2, P.names.length - 5));
+      bub.innerHTML = `<b>${escH(P.title)}</b>` + P.names.slice(from, from + 5).map(id => `<span class="${id === ids[P.i] ? "on" : ""}">${escH(lyName(id))}</span>`).join("");
+      bub.style.left = Math.max(90, Math.min(innerWidth - 90, e.clientX)) + "px";
+      bub.style.top = (bar.getBoundingClientRect().top - 12) + "px";
+      bub.classList.add("on");
+    };
+    let on = false, last = -1;
+    bar.onpointerdown = e => { on = true; bar.setPointerCapture(e.pointerId); hold(true); const P = pick(e); last = P.i; go(P.i, true); show(P, e); };
+    bar.onpointermove = e => { if (!on) return; const P = pick(e); show(P, e); if (P.i !== last) { last = P.i; go(P.i, true); } };
+    bar.onpointerup = bar.onpointercancel = () => { if (!on) return; on = false; hold(false); bub.classList.remove("on"); ctlSound.click(); shine(); };
+  }
+  lay();
 }
 /* 1.107 (to-do #150, Dave's pick: round 1's C, the stamp shelves, with round 2's C map, the ink patchwork, and B's
    scratch as an option): the passport. Each scanned flight with a known route stamps the countries of its two airports

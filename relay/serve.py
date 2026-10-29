@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 96
+RELAY_VERSION = 97
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1733,6 +1733,9 @@ def game_lockon(spot, hx):
             for k in range(ly.get(al, 0) + 1, loyalty_step(sa[al]) + 1):
                 ly[al] = k
                 lines.append({"k": "loyalty", "p": LOYALTY[k - 1][1], "n": al, "m": k})
+        si = g.get("scanAirlineInfo")
+        if al and si is not None:               # relay 97: the member card's first and last scan, the types
+            _scan_airline_note(si, al, int(now * 1000), tc)
         pp, route = g.get("passport"), []
         if db and isinstance(pp, dict):         # relay 90 (to-do #150): the route's countries; one new to the passport pays
             for cc, ap in route_countries(e, db):
@@ -1784,7 +1787,7 @@ def game3_json(book, day):
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
                trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
-               standby=standby_json(g, day), wallet=wallet_json(g), passport=passport_json(g),
+               standby=standby_json(g, day), wallet=wallet_json(g), walletInfo=wallet_info_json(g), passport=passport_json(g),
                showcase=showcase_json(g), styleKept=ranks_kept(g)["styles"])
     return out
 
@@ -1905,26 +1908,41 @@ _hangar_cache = {}
 def _scan_types(spot):
     """Relay 79: make the scans per type (g["scanTypes"]) the first time, counted back from the saved days' sightings
     with a scan (relay 76 on, e["scan"]). Relay 88: the scan calls it too (the mastery steps need the counts). Not under
-    _data_lock (it reads every saved day). Relay 89: the scans per airline (g["scanAirlines"], the member cards') too."""
+    _data_lock (it reads every saved day). Relay 89: the scans per airline (g["scanAirlines"], the member cards') too.
+    Relay 97 (to-do #182): and each airline's first and last scan and the types scanned with it (g["scanAirlineInfo"])."""
     with _data_lock:
         g = game_book(spot.book())
-        need = [k for k in ("scanTypes", "scanAirlines") if k not in g]
+        need = [k for k in ("scanTypes", "scanAirlines", "scanAirlineInfo") if k not in g]
     if need:
-        back = {"scanTypes": {}, "scanAirlines": {}}
+        back = {"scanTypes": {}, "scanAirlines": {}, "scanAirlineInfo": {}}
         for e in _logbook_entries(spot):
             if not e.get("scan"):
                 continue
             for k, c in (("scanTypes", str(e.get("typeCode") or "").upper()), ("scanAirlines", _scan_airline(e))):
                 if c:
                     back[k][c] = back[k].get(c, 0) + 1
+            al = _scan_airline(e)
+            if al:
+                _scan_airline_note(back["scanAirlineInfo"], al, e["scan"], e.get("typeCode"))
         with _data_lock:
             g = game_book(spot.book())
             for k in need:
                 if k not in g:
                     g[k] = back[k]
                     spot.changed("book")
-                    event("info", f"Club: {sum(back[k].values())} Sky view scans counted back by "
-                                  f"{'type' if k == 'scanTypes' else 'airline'}", echo=False)
+                    if k != "scanAirlineInfo":
+                        event("info", f"Club: {sum(back[k].values())} Sky view scans counted back by "
+                                      f"{'type' if k == 'scanTypes' else 'airline'}", echo=False)
+
+
+def _scan_airline_note(info, al, ts, tc):
+    """Relay 97 (to-do #182): a scan of one of the airline's planes, into {AL: {first, last, types: {TYPE: scans}}}
+    (first and last: the scans' times, ms)."""
+    r = info.setdefault(al, {"first": ts, "last": ts, "types": {}})
+    r["first"], r["last"] = min(r["first"], ts), max(r["last"], ts)
+    tc = str(tc or "").upper()
+    if tc:
+        r["types"][tc] = r["types"].get(tc, 0) + 1
 
 
 def mastery_step(n):
@@ -1959,6 +1977,22 @@ def wallet_json(g):
     count, so the wallet's size is theirs), with its planes scanned (0: not a member yet)."""
     sa = g.get("scanAirlines") or {}
     return {al: sa.get(al, 0) for al in g.get("airlines") or {}}
+
+
+def wallet_info_json(g):
+    """Relay 97 (to-do #182): what the member cards print beside the scans, by airline: "seen" (its planes caught live),
+    and once scanned "since" and "last" (the first and the last scan, ms) and "types" (the four types scanned most,
+    [[TYPE, scans], ...]). A member whose scans have no times (days no longer kept) gets the day it was first caught
+    live as "since", with "seenSince": 1."""
+    sa, si, out = g.get("scanAirlines") or {}, g.get("scanAirlineInfo") or {}, {}
+    for al, a in (g.get("airlines") or {}).items():
+        o = out[al] = {"seen": a.get("count", 0)}
+        r = si.get(al)
+        if r:
+            o.update(since=r["first"], last=r["last"], types=[[t, k] for t, k in sorted(r["types"].items(), key=lambda t: (-t[1], t[0]))[:4]])
+        elif sa.get(al) and a.get("first"):
+            o.update(since=a["first"], seenSince=1)
+    return out
 
 
 def _cc_ready():

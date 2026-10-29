@@ -1495,22 +1495,71 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 :root{--m-platinum:linear-gradient(135deg,#55606e,#dfe7f1 45%,#fff 55%,#7f8fa1)}
 .lyN{--lbg:#26272b;--lk:#8b8f99} .ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
 .ly2{--lbg:var(--m-gold);--lk:#3a2a05;--mg:var(--m-gold)} .ly3{--lbg:var(--m-platinum);--lk:#1f2a36;--mg:var(--m-platinum)}
-.lyWal{display:grid;margin-top:8px}
-.lyCard{position:relative;display:block;width:100%;height:150px;border:0;border-radius:12px;padding:12px 14px;box-sizing:border-box;text-align:left;
-  background:var(--lbg);color:var(--lk);overflow:hidden;font:inherit;cursor:pointer;box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.22)}
-.lyCard + .lyCard{margin-top:-122px}
-.lyCard.lyN{box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px #3a3c42}
-.lyCard::before{content:"";position:absolute;right:-26px;top:-36px;width:110px;height:110px;border-radius:50%;background:var(--ac);opacity:.95}
-.lyCard.lyN::before{opacity:.35}
-.lyCard .hd{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.lyCard .hd b{min-width:0;text-transform:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-m)/1.1 var(--f-board)}
-.lyCard .hd em{flex:none;margin-right:72px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.16em;text-transform:uppercase}
-.lyCard .hd i{position:absolute;right:0;top:-1px;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#fff}
-.lyCard .nm{position:absolute;left:14px;right:14px;bottom:42px;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase}
-.lyCard.lyN .nm{font-size:var(--fs-l);letter-spacing:.06em;text-transform:none}
-.lyCard .br{position:absolute;left:14px;right:14px;bottom:30px;height:4px;border-radius:2px;background:rgba(0,0,0,.15)}
-.lyCard .br i{display:block;height:100%;border-radius:2px;background:currentColor;opacity:.7}
-.lyCard .ft{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;gap:8px;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+/* 1.114 (to-do #182): the member cards' carousel. The cards (--cw wide, a real card's 1.586) stand in a curve: the front
+   one in the middle, its neighbours turned 42° and dimmed (::after); .go while they snap. A card turns over (.flip) on
+   its own axis; its front and back are faces. The metal card: brushed lines, the logo engraved (multiplied into light
+   metal, screened onto dark), the tier down the right edge, the airline's colour along the left, a hologram, a ring. */
+.lyCar{position:relative;margin:6px -16px 0;overflow:hidden;touch-action:pan-y;--cw:280px;transition:opacity .16s}
+.lySt{position:relative;height:calc(var(--cw) / 1.586 + 22px);perspective:900px;perspective-origin:50% 45%}
+.lyC{position:absolute;left:50%;top:8px;width:var(--cw);height:calc(var(--cw) / 1.586);margin-left:calc(var(--cw) / -2);
+  transform-style:preserve-3d;-webkit-transform-style:preserve-3d;will-change:transform;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;cursor:pointer}
+.lyCar.go .lyC{transition:transform .5s cubic-bezier(.2,.85,.25,1),opacity .4s}
+.lyC::after{content:"";position:absolute;inset:0;border-radius:12px;background:#000;opacity:var(--dim,0);pointer-events:none;transform:translateZ(1px)}
+.lyIn{position:absolute;inset:0;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,1.25,.4,1)}
+.lyC.flip .lyIn{transform:rotateY(180deg)}
+.lyFr,.lyBk{position:absolute;inset:0;border-radius:12px;overflow:hidden;background:var(--lbg);color:var(--lk);backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.22);font:700 var(--fs-tag)/1.15 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+.lyBk{transform:rotateY(180deg)}
+.lyN .lyFr,.lyN .lyBk{box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px #3a3c42}
+.lyBr{position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.04) 1px 2px,transparent 2px 3px);pointer-events:none}
+.lyLg{position:absolute;left:20px;top:14px;height:38px;max-width:150px;display:flex;align-items:center}
+.lyLg img{height:100%;max-width:150px;object-fit:contain;object-position:left center;filter:grayscale(1) contrast(1.4);mix-blend-mode:multiply;opacity:.8}
+.lyN .lyLg img,.ly0 .lyLg img{filter:grayscale(1) brightness(3);mix-blend-mode:screen;opacity:.7}
+.lyLg b{font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75;text-shadow:0 1px 0 rgba(255,255,255,.4)} .lyLg.ok b{display:none}
+.lyVt{position:absolute;right:6px;top:50%;width:150px;margin-right:-62px;transform:translateY(-50%) rotate(90deg);text-align:center;font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.3em;opacity:.85}
+.lyHo{position:absolute;left:20px;bottom:14px;width:46px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(from 30deg,#f6b7d2,#b6e3f9,#c8f5c0,#fbe7a1,#f6b7d2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.25)}
+.lyHo b{font:700 var(--fs-s)/1 var(--f-board);color:rgba(30,30,40,.75);letter-spacing:.04em}
+.lyRg{position:absolute;left:74px;bottom:13px;width:36px;height:36px;transform:rotate(-90deg)}
+.lyRg circle{fill:none;stroke:rgba(0,0,0,.15);stroke-width:3.5} .lyRg .v{stroke:var(--ac);stroke-linecap:round}
+.lyNx{position:absolute;left:118px;right:40px;bottom:15px;display:flex;flex-direction:column;gap:3px}
+.lyN .lyNx{left:78px} .lyNx small{font-size:var(--fs-tag);opacity:.75}
+.lyMs{position:absolute;left:20px;right:50px;top:60px;font-weight:600;letter-spacing:.1em;opacity:.7}   /* clear of the tier on the edge */
+.lyMs > span{display:inline-block;max-width:100%}
+/* platinum: an iridescent sheen over the light metal, so it never reads as silver (Dave's pick B, 29 Oct) */
+.ly3 .lyFr::before,.ly3 .lyBk::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:hard-light;opacity:.9;
+  background:linear-gradient(115deg,rgba(255,90,180,.7),rgba(90,180,255,.7) 30%,rgba(120,255,170,.65) 52%,rgba(255,210,100,.7) 76%,rgba(190,120,255,.7))}
+.lyIdx.tier > i.ly3{background:linear-gradient(115deg,rgba(255,90,180,.45),rgba(90,180,255,.45) 30%,rgba(120,255,170,.4) 52%,rgba(255,210,100,.45) 76%,rgba(190,120,255,.45)),var(--m-platinum)}
+.lySh{position:absolute;inset:0;pointer-events:none;opacity:0;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%)}
+.lyFr.shine .lySh{animation:lyShine .9s ease-out}
+.lyN .lyFr.shine .lySh,.ly0 .lyFr.shine .lySh{animation-duration:.7s;opacity:.4}
+@keyframes lyShine{0%{transform:translateX(-120%);opacity:1}100%{transform:translateX(120%);opacity:1}}
+.lyMag{position:absolute;left:0;right:0;top:14px;height:28px;background:#16171a}
+.lyHm{position:absolute;left:20px;right:14px;top:50px;display:flex;flex-direction:column;gap:3px}
+.lyHm b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:var(--fs-xs)} .lyHm small{font-size:var(--fs-tag);opacity:.75}
+.lyGr{position:absolute;left:20px;right:14px;top:88px;display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.lyGr span{display:flex;flex-direction:column;gap:1px} .lyGr small{font-size:var(--fs-tag);font-weight:600;opacity:.6}
+.lyTy{position:absolute;left:20px;right:14px;bottom:10px;display:flex;flex-wrap:wrap;gap:5px}
+.lyTy i{font-style:normal;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.12)} .lyTy small{margin-left:3px;font-size:var(--fs-tag);opacity:.7}
+.lyCount{display:flex;justify-content:space-between;align-items:baseline;margin:10px 2px 0;font:700 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--c-dim,#9a9a9a)}
+.lyCount b{color:var(--c-text,#eee)}
+.lyDots{display:flex;justify-content:center;gap:7px;margin:8px 0 0}
+.lyDots i{width:7px;height:7px;border-radius:50%;background:#555;transition:background .2s,transform .2s} .lyDots i.on{background:#ddd;transform:scale(1.25)}
+/* the index: a segment per tier (its metal) or the letters; the bubble over the thumb */
+.lySort{margin:10px 0 0}
+.lyIdx{position:relative;display:flex;gap:2px;height:40px;margin:8px 0 0;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none}
+.lyIdx > i{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#2b2d32;color:#ddd;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal}
+.lyIdx > i.dim{color:#555;background:#232428} .lyIdx > i.on{background:#f3f0e8;color:#111}
+.lyIdx.tier > i{flex-grow:var(--n);min-width:56px;flex-direction:column;gap:2px;background:var(--lbg);color:var(--lk)} .lyIdx.tier > i small{font-size:var(--fs-tag);opacity:.75}
+.lyIdx.tier > i.on{box-shadow:0 0 0 2px #fff}
+.lyIdx > b{position:absolute;bottom:-5px;width:12px;height:3px;margin-left:-6px;border-radius:2px;background:#fff;transition:left .25s}
+#lyBub{position:fixed;z-index:9000;min-width:150px;max-width:220px;padding:10px 12px;border-radius:12px;background:rgba(24,25,28,.96);color:#ddd;pointer-events:none;opacity:0;
+  box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 0 1px #3a3c42;transform:translate(-50%,-100%) scale(.8);transition:opacity .15s,transform .15s}
+#lyBub.on{opacity:1;transform:translate(-50%,-100%) scale(1)}
+#lyBub > b{display:block;margin-bottom:6px;font:700 var(--fs-hero)/1 var(--f-board);color:#fff}
+#lyBub > span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:600 var(--fs-tag)/1.5 var(--f-board);letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+#lyBub > span.on{opacity:1;color:#ffd36a}
+@media (prefers-reduced-motion:reduce){.lyCar.go .lyC,.lyIn,.lyDots i,#lyBub{transition:none}.lyFr.shine .lySh{animation:none}}
 .gAw .lyFF{display:flex;align-items:center;gap:8px;margin:0 12px 10px;padding:7px 0 0;border-top:1.5px dotted #cfc8b8;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;color:#333}
 .gAw .lyFF i{font-style:normal;color:#999}
 .gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
@@ -2340,7 +2389,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=71508ab921"></script>
+<script src="../test/i18n.js?v=cfb8fcfde6"></script>
 <script>
 (() => {
 "use strict";
@@ -5491,6 +5540,39 @@ const AIRLINES = {
   LGL:["LG","Luxair"],AHY:["J2","Azerbaijan Airlines"],TAR:["TU","Tunisair"],RAM:["AT","Royal Air Maroc"],OMA:["WY","Oman Air"],
   GFA:["GF","Gulf Air"],KAC:["KU","Kuwait Airways"],JAF:["TB","TUI fly"],SDM:["FV","Rossiya"]
 };
+// airline-home:start (tools/airline_home.py; Wikidata, CC0)
+// The member cards' names and home bases by ICAO code: [full name, country ISO, hub IATA] (1.114, to-do #182)
+const AIRLINE_HOME = {
+  AAL:["American Airlines","US","DFW"],ACA:["Air Canada","CA","YYZ"],AEE:["Aegean Airlines","GR","ATH"],
+  AFR:["Air France","FR","CDG"],AHY:["Azerbaijan Airlines","AZ","GYD"],ASL:["Air Serbia","RS","BEG"],
+  AUA:["Austrian Airlines","AT","VIE"],BAW:["British Airways","GB","LHR"],
+  BCS:["European Air Transport Leipzig","DE","LEJ"],BEL:["Brussels Airlines","BE","BRU"],BOX:["AeroLogic","DE","LEJ"],
+  BTI:["airBaltic","LV","RIX"],CAI:["Corendon Airlines","TR","AYT"],CCA:["Air China","CN","PEK"],
+  CES:["China Eastern Airlines","CN","PVG"],CFG:["Condor","DE","FRA"],CHH:["Hainan Airlines","CN","HAK"],
+  CLX:["Cargolux","LU","LUX"],CND:["Corendon Dutch Airlines","NL","AMS"],CSA:["Czech Airlines","CZ","PRG"],
+  CTN:["Croatia Airlines","HR","ZAG"],CXI:["Corendon Airlines Europe","MT",""],DAL:["Delta Air Lines","US","ATL"],
+  DHK:["DHL Air UK","GB","EMA"],DLH:["Lufthansa","DE","FRA"],EJU:["easyJet Europe","AT","VIE"],
+  ELY:["El Al","IL","TLV"],ENT:["Enter Air","PL","WAW"],ETD:["Etihad Airways","AE","AUH"],
+  ETH:["Ethiopian Airlines","ET","ADD"],EVA:["EVA Air","TW","TPE"],EWG:["Eurowings","DE","DUS"],
+  EXS:["Jet2.com","GB","MAN"],EZY:["easyJet","GB","LTN"],FDB:["flydubai","AE","DXB"],FDX:["FedEx Express","US","MEM"],
+  FHY:["Freebird Airlines","TR","AYT"],FIN:["Finnair","FI","HEL"],GEC:["Lufthansa Cargo","DE","FRA"],
+  GFA:["Gulf Air","BH","BAH"],HFY:["Hi Fly","PT","LIS"],IBE:["Iberia","ES","MAD"],ICE:["Icelandair","IS","KEF"],
+  ITY:["ITA Airways","IT","FCO"],JAF:["TUI fly Belgium","BE","BRU"],KAC:["Kuwait Airways","KW","KWI"],
+  KAL:["Korean Air","KR","ICN"],KLM:["KLM","NL","AMS"],KZR:["Air Astana","KZ","ALA"],LDA:["Lauda Europe","MT",""],
+  LGL:["Luxair","LU","LUX"],LOT:["LOT Polish Airlines","PL","WAW"],MAC:["Air Arabia Maroc","MA","CMN"],
+  MSR:["EgyptAir","EG","CAI"],NOS:["Neos","IT","MXP"],NOZ:["Norwegian Air Shuttle","NO","OSL"],
+  OMA:["Oman Air","OM","MCT"],PGT:["Pegasus Airlines","TR","SAW"],QTR:["Qatar Airways","QA","DOH"],
+  RAM:["Royal Air Maroc","MA","CMN"],RJA:["Royal Jordanian","JO","AMM"],ROT:["TAROM","RO","OTP"],
+  RYR:["Ryanair","IE","DUB"],SAS:["Scandinavian Airlines","DK","CPH"],SBI:["S7 Airlines","RU","OVB"],
+  SDM:["Rossiya","RU","LED"],SIA:["Singapore Airlines","SG","SIN"],SVA:["Saudia","SA","JED"],
+  SWR:["Swiss International Air Lines","CH","ZRH"],SXS:["SunExpress","TR","AYT"],TAP:["TAP Air Portugal","PT","LIS"],
+  TAR:["Tunisair","TN","TUN"],TFL:["TUI fly Netherlands","NL","AMS"],THY:["Turkish Airlines","TR","IST"],
+  TOM:["TUI Airways","GB","LTN"],TUI:["TUI fly Deutschland","DE","HAJ"],TVS:["Smartwings","CZ","PRG"],
+  UAE:["Emirates","AE","DXB"],UAL:["United Airlines","US","ORD"],UPS:["UPS Airlines","US","SDF"],
+  VLG:["Vueling","ES","BCN"],WMT:["Wizz Air Malta","MT",""],WUK:["Wizz Air UK","GB","LGW"],
+  WZZ:["Wizz Air","HU","BUD"]
+};
+// airline-home:end
 const TYPES = {
   A318:"Airbus A318",A319:"Airbus A319",A320:"Airbus A320",A321:"Airbus A321",A19N:"Airbus A319neo",A20N:"Airbus A320neo",A21N:"Airbus A321neo",
   BCS1:"Airbus A220-100",BCS3:"Airbus A220-300",A332:"Airbus A330-200",A333:"Airbus A330-300",A338:"Airbus A330-800neo",A339:"Airbus A330-900neo",
@@ -7964,34 +8046,194 @@ const lyName = icao => shortAirline((AIRLINES[icao] || [])[1] || icao);
 const lyCol = icao => LY_COL[icao] || `hsl(${[...icao].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 360} 55% 38%)`;
 // a ticket's printed line: the airline's code and your tier with it (none while not a member)
 const lyTicket = (icao, n) => { const t = lyOf(n); return icao && t >= 0 ? {code: lyCode(icao), t} : null; };
-let lyFront = "", lyAll = false;
+/* 1.114 (to-do #182, Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2):
+   the wallet is a carousel. The cards stand side by side, the front one in the middle and its neighbours turned away;
+   a swipe moves them with the thumb (a flick carries on, then they snap), a tap on a side card brings it in, a tap on
+   the front one turns it over. Front: brushed metal in the tier's colour, the airline's logo engraved (logo(), else its
+   code), the tier down the edge, a hologram with the code, a ring to the next tier, member since and the last scan.
+   Back: the full name and home base (AIRLINE_HOME), scans, sightings, member since, last scan and the types scanned
+   with it (relay 97: g0.walletInfo). A light sweeps over the metal when a card comes to the front. From six cards an
+   index finds one: by tier (a segment each) or A–Z; a thumb slid along it shows the names there in a bubble and the
+   carousel follows. Reduced motion: a quick fade instead of the moves. */
+let lyAt = "", lySort = "tier", lyFlipped = "";
+const LY_RING = 2 * Math.PI * 15;
+const lyStill = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lyLetter = icao => (lyName(icao).match(/[A-Z]/i) || [""])[0].toUpperCase();
+const lyWhen = (ts, short) => {      // short: today without its time (the card's front)
+  const d = new Date(ts), y = new Date(), day = x => x.toDateString();
+  if (day(d) === day(y)) return short ? T("today") : T("today {t}", {t: d.toLocaleTimeString(LOC(), {hour: "2-digit", minute: "2-digit"})});
+  y.setDate(y.getDate() - 1);
+  return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
+};
+function lyList(g0){
+  const byName = (a, b) => lyName(a[0]).localeCompare(lyName(b[0]));
+  const l = Object.entries(g0.wallet).sort((a, b) => b[1] - a[1] || byName(a, b));
+  return lySort === "az" ? l.sort(byName) : l;
+}
+function lyCardHtml([icao, s], info, i){
+  const t = lyOf(s), st = lySteps(), nx = t >= 0 ? st[t] : null, lo = t > 0 ? st[t - 1][0] : 1;
+  const pct = nx ? Math.min(100, (s - lo) / (nx[0] - lo) * 100) : 100, code = lyCode(icao), f = AIRLINE_HOME[icao] || [];
+  const since = info.since ? fmtDay(info.since) : "", last = info.last ? lyWhen(info.last) : "";
+  const home = [f[2] || "", f[1] ? ppName(f[1]) : ""].filter(Boolean).join(" · ");
+  const kv = (k, v) => `<span><small>${escH(k)}</small>${escH(v || "—")}</span>`;
+  const front = `<i class="lyBr"></i><span class="lyLg" data-lg="${escH(code)}"><b>${escH(code)}</b></span>` +
+    `<span class="lyVt">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}</span><span class="lyHo"><b>${escH(code)}</b></span>` +
+    (t < 0 ? `<span class="lyNx"><b>${escH(T("Not a member yet"))}</b><small>${escH(T("Scan one of its planes to join"))}</small></span>`
+      : `<svg class="lyRg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="v" cx="18" cy="18" r="15" stroke-dasharray="${(LY_RING * pct / 100).toFixed(1)} ${LY_RING.toFixed(1)}"/></svg>` +
+        `<span class="lyNx"><b>${escH(T("{n} scanned", {n: nf.format(s)}))}</b><small>${escH(nx ? T(LY_TO[t], {n: nf.format(nx[0] - s)}) : T("Top tier"))}</small></span>`) +
+    `<span class="lyMs">${t < 0 ? escH(info.seen ? T(info.seen === 1 ? "1 sighting" : "{n} sightings", {n: nf.format(info.seen)}) : "")    // short, in two pieces
+      : [since && T("Since {d}", {d: since}), info.last && T("Last scan {d}", {d: lyWhen(info.last, true)})].filter(Boolean).map(x => `<span>${escH(x)}</span>`).join(" · ")}</span><i class="lySh"></i>`;
+  const back = `<i class="lyMag"></i><span class="lyHm"><b>${escH(f[0] || lyName(icao))}</b>${home ? `<small>${escH(T("Home base {p}", {p: home}))}</small>` : ""}</span>` +
+    `<span class="lyGr">${kv(T("Scanned"), nf.format(s))}${kv(T("Sightings"), info.seen ? nf.format(info.seen) : "")}${kv(T("Member since"), since)}${kv(T("Last scan"), last)}</span>` +
+    ((info.types || []).length ? `<span class="lyTy">${info.types.map(([tc, n]) => `<i>${escH(tc)}<small>×${nf.format(n)}</small></i>`).join("")}</span>` : "");
+  return `<div class="lyC ${t >= 0 ? "ly" + t : "lyN"}" data-i="${i}" data-t="${t}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}"><div class="lyIn">` +
+    `<div class="lyFr">${front}</div><div class="lyBk">${back}</div></div></div>`;
+}
 function walletHtml(g0){
   const w = g0 && g0.wallet;
   if (!w) return "";
-  const list = Object.entries(w).sort((a, b) => b[1] - a[1] || lyName(a[0]).localeCompare(lyName(b[0]))), n = list.length;
+  const list = lyList(g0), n = list.length, info = g0.walletInfo || {};
   const st = trophyLadder(g0, TROPHY_LADDERS.find(l => l[0] === "airlines")), [a, b, c] = lySteps();
   const sum = [T(n === 1 ? "1 airline" : "{n} airlines", {n: nf.format(n)}), st.next ? T("{t} at {n}", {t: T(st.next[2]), n: nf.format(st.next[1])}) : ""].filter(Boolean).join(" · ");
   const rule = T("Scan an airline's planes to climb: Silver at {a}, Gold at {b}, Platinum at {c}.", {a: a[0], b: b[0], c: c[0]});
   if (!n) return secPlate(T("Member cards"), `<p class="sum">${escH(rule)}</p>`, "lyPlate");
-  const front = list.find(x => x[0] === lyFront) || list[0], rest = list.filter(x => x !== front);
-  const card = ([icao, s], big) => {
-    const t = lyOf(s), nx = t >= 0 ? lySteps()[t] : null, lo = t > 0 ? lySteps()[t - 1][0] : 1;
-    const tier = t >= 0 ? T(LY_NAME[t]) : "";
-    return `<button type="button" class="lyCard ${t >= 0 ? "ly" + t : "lyN"}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}">` +
-      `<span class="hd"><b>${escH(lyName(icao))}</b><em>${escH(tier)}</em><i>${escH(lyCode(icao))}</i></span>` +
-      (!big ? "" : t < 0 ? `<span class="nm">${escH(T("Not a member yet"))}</span><span class="ft"><span>${escH(T("Scan one of its planes to join"))}</span></span>`
-        : `<span class="nm">${escH(tier)}</span>` + (nx ? `<span class="br"><i style="width:${Math.min(100, (s - lo) / (nx[0] - lo) * 100).toFixed(1)}%"></i></span>` : "") +
-          `<span class="ft"><span>${escH(T("{n} scanned", {n: nf.format(s)}))}</span><span>${nx ? escH(T(LY_TO[t], {n: nf.format(nx[0] - s)})) : ""}</span></span>`) + `</button>`;
-  };
-  const tops = (lyAll ? rest : rest.slice(0, 4)).reverse();
-  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyWal">${tops.map(x => card(x)).join("")}${card(front, true)}</div>` +
-    `<p class="sum">${escH(rule)}${n > 1 ? " " + escH(T("Tap a card to bring it to the front.")) : ""}</p>` +
-    (rest.length > 4 ? `<button class="gHow" type="button" data-lyall>${escH(lyAll ? T("Fewer cards") : T("All {n} cards", {n: nf.format(n)}))}<i>›</i></button>` : ""), "lyPlate");
+  let nav = "";
+  if (n >= 6) {                      // the index: a segment per tier, or the letters
+    const seg = `<div class="seg gSeg lySort" role="group">` + [["tier", T("By tier")], ["az", T("A–Z")]].map(([k, l]) =>
+      `<button type="button" data-lys="${k}" aria-pressed="${lySort === k}">${escH(l)}</button>`).join("") + `</div>`;
+    const have = new Set(list.map(x => lyLetter(x[0])));
+    nav = seg + (lySort === "az"
+      ? `<div class="lyIdx az">${[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(l => `<i class="${have.has(l) ? "" : "dim"}" data-l="${l}">${l}</i>`).join("")}<b></b></div>`
+      : `<div class="lyIdx tier">${[3, 2, 1, 0, -1].map(t => { const k = list.filter(x => lyOf(x[1]) === t).length;
+          return k ? `<i class="${t >= 0 ? "ly" + t : "lyN"}" data-t="${t}" style="--n:${k + 4}">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}<small>${nf.format(k)}</small></i>` : ""; }).join("")}<b></b></div>`);
+  } else if (n > 1) nav = `<div class="lyDots">${list.map(() => "<i></i>").join("")}</div>`;
+  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyCar"><div class="lySt">` +
+    list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"><span></span><span></span></div>` + nav +
+    `<p class="sum">${escH(rule)} ${escH(n > 1 ? T("Swipe through your cards; tap the front one to turn it over.") : T("Tap the card to turn it over."))}</p>`, "lyPlate");
 }
-function lyWire(box, redraw){
-  for (const b of box.querySelectorAll("[data-ly]")) b.onclick = () => { if (b.dataset.ly === lyFront) return; ctlSound.click(); lyFront = b.dataset.ly; redraw(); };
-  const all = box.querySelector("[data-lyall]");
-  if (all) all.onclick = () => { ctlSound.nav(); lyAll = !lyAll; redraw(); };
+function lyWire(box){
+  const car = box.querySelector(".lyCar");
+  if (!car) return;
+  const plate = car.closest(".lyPlate"), cs = [...car.querySelectorAll(".lyC")], n = cs.length;
+  const cw = Math.min(300, Math.round(car.clientWidth * .8)), step = cw * .6;
+  car.style.setProperty("--cw", cw + "px");
+  const ids = cs.map(c => c.dataset.ly);
+  let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
+  for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here
+    const L = logo(s.dataset.lg, true);
+    const put = () => { if (L.state === "ok" && !s.querySelector("img")) { s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`); s.classList.add("ok"); } };
+    if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});
+  }
+  const flipped = cs.find(c => c.dataset.ly === lyFlipped);
+  if (flipped && +flipped.dataset.i === pos) flipped.classList.add("flip");
+  const [nm, ix] = plate.querySelectorAll(".lyCount span"), bar = plate.querySelector(".lyIdx"), dots = [...plate.querySelectorAll(".lyDots i")];
+  const cells = bar ? [...bar.querySelectorAll("i")] : [], az = bar && bar.classList.contains("az");
+  const lay = () => {
+    for (const c of cs) {
+      const d = +c.dataset.i - pos, a = Math.abs(d), sg = Math.sign(d), k = Math.min(a, 1);
+      c.style.transform = `translateX(${(sg * (k * step + Math.max(0, a - 1) * cw * .14)).toFixed(1)}px) translateZ(${(-k * 120 - Math.max(0, a - 1) * 40).toFixed(1)}px) rotateY(${(-sg * k * 42).toFixed(1)}deg)`;
+      c.style.zIndex = 100 - Math.round(a * 10);
+      c.style.opacity = a > 3.2 ? 0 : 1;
+      c.style.visibility = a > 4 ? "hidden" : "";
+      c.style.setProperty("--dim", (Math.min(a, 2.5) * .22).toFixed(2));
+    }
+    const i = Math.round(Math.max(0, Math.min(n - 1, pos))), c = cs[i], t = +c.dataset.t;
+    nm.innerHTML = `<b>${escH(lyName(c.dataset.ly))}</b> · ${escH(t >= 0 ? T(LY_NAME[t]) : T("Not a member yet"))}`;
+    ix.textContent = n > 1 ? `${i + 1} / ${n}` : "";
+    dots.forEach((d, j) => d.classList.toggle("on", j === i));
+    if (bar) {
+      const L = lyLetter(c.dataset.ly), cell = cells.find(x => az ? x.dataset.l === L : +x.dataset.t === t);
+      for (const x of cells) x.classList.toggle("on", x === cell);
+      if (cell) bar.querySelector("b").style.left = (cell.offsetLeft + cell.offsetWidth / 2) + "px";
+    }
+    lyAt = c.dataset.ly;
+  };
+  const shine = () => {
+    const i = Math.round(pos), f = cs[i].querySelector(".lyFr");
+    shown = i;
+    if (lyStill()) return;
+    f.classList.remove("shine"); void f.offsetWidth; f.classList.add("shine");
+  };
+  const unflip = () => { for (const c of cs) c.classList.remove("flip"); lyFlipped = ""; };
+  const go = (to, quiet) => {
+    to = Math.max(0, Math.min(n - 1, to));
+    if (to !== shown) unflip();
+    if (lyStill()) {                                     // reduced motion: the change behind a quick fade
+      car.style.opacity = 0;
+      setTimeout(() => { car.classList.remove("go"); pos = to; lay(); car.style.opacity = 1; if (!quiet) shine(); }, 160);
+      return;
+    }
+    car.classList.add("go"); pos = to; lay();
+    if (!quiet) { ctlSound.click(); clearTimeout(tm); tm = setTimeout(shine, 420); }
+  };
+  const hold = on => { hgHeld = on; hgBusy = Date.now(); };    // the club isn't drawn again under the thumb
+  // the thumb on the cards: a swipe follows it, a flick carries on; a tap brings a card in or turns the front one over
+  let drag = null;
+  car.onpointerdown = e => {
+    drag = {x: e.clientX, p: pos, moved: false, hist: [[e.timeStamp, e.clientX]], c: e.target.closest(".lyC")};
+    car.setPointerCapture(e.pointerId); hold(true);
+  };
+  car.onpointermove = e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(dx) > 8) { drag.moved = true; car.classList.remove("go"); unflip(); }
+    if (!drag.moved) return;
+    let to = drag.p - dx / step;
+    if (to < 0) to *= .3;
+    if (to > n - 1) to = n - 1 + (to - n + 1) * .3;      // a little give at the ends
+    pos = to; lay();
+    drag.hist.push([e.timeStamp, e.clientX]);
+    if (drag.hist.length > 6) drag.hist.shift();
+  };
+  car.onpointerup = car.onpointercancel = e => {
+    if (!drag) return;
+    const d = drag;
+    drag = null; hold(false);
+    if (!d.moved) {
+      if (!d.c) return;
+      const i = +d.c.dataset.i;
+      if (i !== Math.round(pos)) return go(i);
+      ctlSound.click();
+      const turn = () => { const on = d.c.classList.toggle("flip"); lyFlipped = on ? d.c.dataset.ly : ""; };
+      if (lyStill()) { car.style.opacity = 0; setTimeout(() => { turn(); car.style.opacity = 1; }, 160); } else turn();
+      return;
+    }
+    const [t0, x0] = d.hist[0], v = (e.clientX - x0) / Math.max(16, e.timeStamp - t0);    // px a ms
+    go(Math.round(pos - v * 220 / step));
+  };
+  for (const b of plate.querySelectorAll("[data-lys]")) b.onclick = () => { if (lySort === b.dataset.lys) return; ctlSound.nav(); lySort = b.dataset.lys; renderGame(); };
+  if (bar) {                     // the index: the card under the thumb, the names there in a bubble, the carousel following
+    let bub = document.getElementById("lyBub");
+    if (!bub) { bub = document.createElement("div"); bub.id = "lyBub"; document.body.appendChild(bub); }
+    const pick = e => {
+      const r = bar.getBoundingClientRect(), x = Math.max(r.left, Math.min(r.right - 1, e.clientX));
+      let cell = cells[cells.length - 1], best = 1e9;
+      for (const q of cells) { const b = q.getBoundingClientRect(), dd = x < b.left ? b.left - x : x > b.right ? x - b.right : 0; if (dd < best) { best = dd; cell = q; } }
+      const b = cell.getBoundingClientRect();
+      if (az) {                  // the first airline of the letter, or of the next letter there is
+        const ls = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", l0 = ls.indexOf(cell.dataset.l);
+        for (let k = 0; k < 26; k++) {
+          const L = ls[(l0 + k) % 26], i = ids.findIndex(id => lyLetter(id) === L);
+          if (i >= 0) return {i, title: L, names: ids.filter(id => lyLetter(id) === L)};
+        }
+      }
+      const t = +cell.dataset.t, g = cs.filter(c => +c.dataset.t === t).map(c => +c.dataset.i);
+      const f = Math.max(0, Math.min(.999, (x - b.left) / b.width));
+      return {i: g[Math.floor(f * g.length)], title: t >= 0 ? T(LY_NAME[t]) : T("Guest"), names: g.map(j => ids[j])};
+    };
+    const show = (P, e) => {
+      const k = P.names.indexOf(ids[P.i]), from = Math.max(0, Math.min(k - 2, P.names.length - 5));
+      bub.innerHTML = `<b>${escH(P.title)}</b>` + P.names.slice(from, from + 5).map(id => `<span class="${id === ids[P.i] ? "on" : ""}">${escH(lyName(id))}</span>`).join("");
+      bub.style.left = Math.max(90, Math.min(innerWidth - 90, e.clientX)) + "px";
+      bub.style.top = (bar.getBoundingClientRect().top - 12) + "px";
+      bub.classList.add("on");
+    };
+    let on = false, last = -1;
+    bar.onpointerdown = e => { on = true; bar.setPointerCapture(e.pointerId); hold(true); const P = pick(e); last = P.i; go(P.i, true); show(P, e); };
+    bar.onpointermove = e => { if (!on) return; const P = pick(e); show(P, e); if (P.i !== last) { last = P.i; go(P.i, true); } };
+    bar.onpointerup = bar.onpointercancel = () => { if (!on) return; on = false; hold(false); bub.classList.remove("on"); ctlSound.click(); shine(); };
+  }
+  lay();
 }
 /* 1.107 (to-do #150, Dave's pick: round 1's C, the stamp shelves, with round 2's C map, the ink patchwork, and B's
    scratch as an option): the passport. Each scanned flight with a known route stamps the countries of its two airports
@@ -11287,6 +11529,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114", date: "2026-10-29", notes: [
+    "Member cards are a carousel now: swipe through them and tap the front one to turn it over.",
+    "Each card shows the airline's logo, member since and your last scan; its back the home base and the types you scanned.",
+    "With six cards or more, an index by tier or A–Z finds a card: slide your thumb along it.",
+    "Platinum cards shine in rainbow colours, so they no longer look like silver."]},
   {v: "1.112.0.1", date: "2026-10-29", notes: [
     "Text no longer gets selected by a tap (no more search bar popping up).",
     "Sky view keeps its labels and compass when the phone's readings drop out for a moment."]},

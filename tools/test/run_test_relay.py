@@ -17,6 +17,7 @@ are not touched: the test relay runs from a temporary folder.
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --club     the Test profile has a game from the old rules (1.112's move at start: level 9
                                                kept above its points, styles, three showcase spots, mastery up to platinum)
+                                               and 40 member cards, Platinum down to not a member yet (1.114)
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
                                                for screenshots) instead of the fake's (relay 73)
     py tools/test/run_test_relay.py --live-facts   the cards' facts (relay 74) from the real Wikipedia and Wikidata (needs the
@@ -61,7 +62,7 @@ def main():
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--club", action="store_true", help="the Test profile has a game from the old rules (relay 96's move: a kept "
-                                                       "level, styles, showcase spots, mastery steps up to platinum)")
+                                                       "level, styles, showcase spots, mastery steps up to platinum) and 40 member cards")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
     p.add_argument("--live-facts", action="store_true", help="the cards' facts from the real Wikipedia and Wikidata")
     p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
@@ -148,13 +149,26 @@ def main():
         scans = {"A320": 120, "B744": 60, "DH8D": 7, "E195": 30, "B789": 3}
         types = {tc: {"count": n + 2, "first": t0 + i, "last": t0 + 86400000 * (5 + i), "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}
         types["B77W"] = {"count": 2, "first": t0, "last": t0 + 86400000 * 12, "name": "Boeing 777-300ER"}   # seen, never scanned
+        # relay 97 (1.114): a wallet of 40 member cards, Platinum down to not a member yet, with the scans' times and types
+        wal = {"AUA": 486, "DLH": 231, "RYR": 172, "EWG": 120, "WZZ": 88, "LDA": 64, "AEE": 51, "SWR": 44, "THY": 39, "EZY": 31, "BAW": 27,
+               "AFR": 22, "KLM": 20, "LOT": 18, "ITY": 15, "TAP": 13, "IBE": 12, "UAE": 11, "QTR": 10, "SAS": 9, "FIN": 8, "CTN": 7, "VLG": 6,
+               "TVS": 6, "EJU": 5, "BTI": 5, "CSA": 4, "ROT": 4, "BEL": 3, "ELY": 3, "CFG": 2, "PGT": 2, "SXS": 2, "ETD": 1, "ICE": 1, "TUI": 1,
+               "DAL": 0, "UAL": 0, "ACA": 0, "SVA": 0}
+        fleet, now_ms = ["A320", "A321", "B738", "E195", "A20N"], int(now * 1000)
+        g_airlines = {al: {"name": "", "first": t0 + 3600000 * i, "count": n + 5 + i % 37, "last": now_ms - 3600000 * (i + 1)}
+                      for i, (al, n) in enumerate(wal.items())}
+        g_info = {al: {"first": t0 + 86400000 * (i % 17) + 3600000, "last": now_ms - 3600000 * (2 * i + 1),
+                       "types": {fleet[(i + k) % 5]: (n - n // 3 - n // 5 if k == 0 else n // 3 if k == 1 else n // 5) for k in range(3)
+                                 if (n - n // 3 - n // 5 if k == 0 else n // 3 if k == 1 else n // 5)}}
+                  for i, (al, n) in enumerate(wal.items()) if n}
         (tmp / "data" / "profiles" / "test0001" / "logbook.json").write_text(json.dumps({
             "since": day, "startedTs": now - 86400 * 20, "sightings": 230, "types": types, "airlines": {}, "regs": {},
             "gameV": v["GAME_V"], "recordsV": 1, "trophiesV": v["TROPHIES_V"], "cardsV": 1, "flightsV": 1,
-            "game3": {"v": v["GAME3_V"], "since": t0, "sightings": 230, "types": types, "airlines": {}, "regs": {}, "countries": {},
+            "game3": {"v": v["GAME3_V"], "since": t0, "sightings": 230, "types": types, "airlines": g_airlines, "regs": {}, "countries": {},
                       "categories": {}, "hours": [], "points": 9950, "days": {today: 9950}, "planes": {}, "tiers": {"common": 200},
                       "rareDays": [], "records": {}, "trophies": {}, "bingoCards": {}, "best": {}, "lock": {"at": 0, "n": 220},
-                      "scanned": {"types": sorted(scans), "airlines": []}, "scanTypes": scans,
+                      "scanned": {"types": sorted(scans), "airlines": sorted(g_info)}, "scanTypes": scans,
+                      "scanAirlines": {al: n for al, n in wal.items() if n}, "scanAirlineInfo": g_info,
                       "mastery": {"A320": 3, "B744": 2, "DH8D": 1, "E195": 2}}}), encoding="utf-8")
     # ... and Flightradar24's answer about it, still in the cache: written into the sighting at start
     (tmp / "data" / "fr24.json").write_text(json.dumps({"usage": {}, "flights": {"4ca2b8|EIN1XY": {

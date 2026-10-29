@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=71508ab921"></script>
+<script src="i18n.js?v=cfb8fcfde6"></script>
 <script>
 (() => {
 "use strict";
@@ -2400,6 +2400,39 @@ const AIRLINES = {
   LGL:["LG","Luxair"],AHY:["J2","Azerbaijan Airlines"],TAR:["TU","Tunisair"],RAM:["AT","Royal Air Maroc"],OMA:["WY","Oman Air"],
   GFA:["GF","Gulf Air"],KAC:["KU","Kuwait Airways"],JAF:["TB","TUI fly"],SDM:["FV","Rossiya"]
 };
+// airline-home:start (tools/airline_home.py; Wikidata, CC0)
+// The member cards' names and home bases by ICAO code: [full name, country ISO, hub IATA] (1.114, to-do #182)
+const AIRLINE_HOME = {
+  AAL:["American Airlines","US","DFW"],ACA:["Air Canada","CA","YYZ"],AEE:["Aegean Airlines","GR","ATH"],
+  AFR:["Air France","FR","CDG"],AHY:["Azerbaijan Airlines","AZ","GYD"],ASL:["Air Serbia","RS","BEG"],
+  AUA:["Austrian Airlines","AT","VIE"],BAW:["British Airways","GB","LHR"],
+  BCS:["European Air Transport Leipzig","DE","LEJ"],BEL:["Brussels Airlines","BE","BRU"],BOX:["AeroLogic","DE","LEJ"],
+  BTI:["airBaltic","LV","RIX"],CAI:["Corendon Airlines","TR","AYT"],CCA:["Air China","CN","PEK"],
+  CES:["China Eastern Airlines","CN","PVG"],CFG:["Condor","DE","FRA"],CHH:["Hainan Airlines","CN","HAK"],
+  CLX:["Cargolux","LU","LUX"],CND:["Corendon Dutch Airlines","NL","AMS"],CSA:["Czech Airlines","CZ","PRG"],
+  CTN:["Croatia Airlines","HR","ZAG"],CXI:["Corendon Airlines Europe","MT",""],DAL:["Delta Air Lines","US","ATL"],
+  DHK:["DHL Air UK","GB","EMA"],DLH:["Lufthansa","DE","FRA"],EJU:["easyJet Europe","AT","VIE"],
+  ELY:["El Al","IL","TLV"],ENT:["Enter Air","PL","WAW"],ETD:["Etihad Airways","AE","AUH"],
+  ETH:["Ethiopian Airlines","ET","ADD"],EVA:["EVA Air","TW","TPE"],EWG:["Eurowings","DE","DUS"],
+  EXS:["Jet2.com","GB","MAN"],EZY:["easyJet","GB","LTN"],FDB:["flydubai","AE","DXB"],FDX:["FedEx Express","US","MEM"],
+  FHY:["Freebird Airlines","TR","AYT"],FIN:["Finnair","FI","HEL"],GEC:["Lufthansa Cargo","DE","FRA"],
+  GFA:["Gulf Air","BH","BAH"],HFY:["Hi Fly","PT","LIS"],IBE:["Iberia","ES","MAD"],ICE:["Icelandair","IS","KEF"],
+  ITY:["ITA Airways","IT","FCO"],JAF:["TUI fly Belgium","BE","BRU"],KAC:["Kuwait Airways","KW","KWI"],
+  KAL:["Korean Air","KR","ICN"],KLM:["KLM","NL","AMS"],KZR:["Air Astana","KZ","ALA"],LDA:["Lauda Europe","MT",""],
+  LGL:["Luxair","LU","LUX"],LOT:["LOT Polish Airlines","PL","WAW"],MAC:["Air Arabia Maroc","MA","CMN"],
+  MSR:["EgyptAir","EG","CAI"],NOS:["Neos","IT","MXP"],NOZ:["Norwegian Air Shuttle","NO","OSL"],
+  OMA:["Oman Air","OM","MCT"],PGT:["Pegasus Airlines","TR","SAW"],QTR:["Qatar Airways","QA","DOH"],
+  RAM:["Royal Air Maroc","MA","CMN"],RJA:["Royal Jordanian","JO","AMM"],ROT:["TAROM","RO","OTP"],
+  RYR:["Ryanair","IE","DUB"],SAS:["Scandinavian Airlines","DK","CPH"],SBI:["S7 Airlines","RU","OVB"],
+  SDM:["Rossiya","RU","LED"],SIA:["Singapore Airlines","SG","SIN"],SVA:["Saudia","SA","JED"],
+  SWR:["Swiss International Air Lines","CH","ZRH"],SXS:["SunExpress","TR","AYT"],TAP:["TAP Air Portugal","PT","LIS"],
+  TAR:["Tunisair","TN","TUN"],TFL:["TUI fly Netherlands","NL","AMS"],THY:["Turkish Airlines","TR","IST"],
+  TOM:["TUI Airways","GB","LTN"],TUI:["TUI fly Deutschland","DE","HAJ"],TVS:["Smartwings","CZ","PRG"],
+  UAE:["Emirates","AE","DXB"],UAL:["United Airlines","US","ORD"],UPS:["UPS Airlines","US","SDF"],
+  VLG:["Vueling","ES","BCN"],WMT:["Wizz Air Malta","MT",""],WUK:["Wizz Air UK","GB","LGW"],
+  WZZ:["Wizz Air","HU","BUD"]
+};
+// airline-home:end
 const TYPES = {
   A318:"Airbus A318",A319:"Airbus A319",A320:"Airbus A320",A321:"Airbus A321",A19N:"Airbus A319neo",A20N:"Airbus A320neo",A21N:"Airbus A321neo",
   BCS1:"Airbus A220-100",BCS3:"Airbus A220-300",A332:"Airbus A330-200",A333:"Airbus A330-300",A338:"Airbus A330-800neo",A339:"Airbus A330-900neo",
@@ -7808,6 +7841,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114", date: "2026-10-29", notes: [
+    "Member cards are a carousel now: swipe through them and tap the front one to turn it over.",
+    "Each card shows the airline's logo, member since and your last scan; its back the home base and the types you scanned.",
+    "With six cards or more, an index by tier or A–Z finds a card: slide your thumb along it.",
+    "Platinum cards shine in rainbow colours, so they no longer look like silver."]},
   {v: "1.112.0.1", date: "2026-10-29", notes: [
     "Text no longer gets selected by a tap (no more search bar popping up).",
     "Sky view keeps its labels and compass when the phone's readings drop out for a moment."]},

@@ -334,7 +334,7 @@ tools/test/flows.py: "the Airport style keeps"
 changelog: airport style|runway|take-off|landing|gate
 
 [names] Names: airlines, aircraft types and airports (the reference tables, logos, the relay's airline and airport lists)
-test/index.html: +AIRPORTS logos logo drawLogo airlineCodeOf AIRLINE_WORDS AIRLINES TYPES typeName fmtFlight
+test/index.html: +AIRPORTS logos logo drawLogo airlineCodeOf AIRLINE_WORDS AIRLINES AIRLINE_HOME TYPES typeName fmtFlight
     shortAirline code3 airlineAsked airlineQ airlineT airlineAsk airlineSend +liveryLine +enrich +fromRelay
 relay/serve.py: AIRPORTS_CSV AIRPORTS_FILE AIRLINES_CSV AIRLINES_FILE AIRLINES_EVERY_S CITY_FIX ICAO_FOR _airlines
     airline_fields _load_airlines _airline_fill _backfill_airlines _airlines_worker _airports _airports_lock _airport
@@ -406,7 +406,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
 tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @gFlp .gLv .gBar @gShine @gGlow .gChip
     .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
-    .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyWal .lyCard .lyFF
+    .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx .lyMs .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppNew.inked .ppNew.scr .ppDrop @ppLand @ppLift .ppTip @ppTip .scSc .scPick .scCab
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
@@ -419,7 +419,7 @@ tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad 
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
-    LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyFront lyAll walletHtml lyWire
+    LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyAt lySort lyFlipped LY_RING lyStill lyLetter lyWhen lyList lyCardHtml walletHtml lyWire
     worldLoad worldFailed worldMap PP_REG PP_ME PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath
     ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew
     SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
@@ -432,7 +432,7 @@ relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of scor
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
     SCHOOL GAME_SCHOOL SCHOOL_LEVEL game_school school_pass school_wings school_json /game/school STANDBY game_standby standby_allow _standby standby_json
-    MASTERY _scan_types mastery_step _mastery LOYALTY loyalty_step _loyalty wallet_json GAME_COUNTRY _cc_ready _ap_row route_countries _passport_make passport_json
+    MASTERY _scan_types mastery_step _mastery LOYALTY loyalty_step _loyalty wallet_json wallet_info_json _scan_airline_note GAME_COUNTRY _cc_ready _ap_row route_countries _passport_make passport_json
     SHOWCASE_AT level_points showcase_json showcase_catch showcase_pin /game/showcase
 docs/architecture.md: "The game (1.72, relay 59)"
 README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **Rarity and the Collection**"
