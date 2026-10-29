@@ -3064,14 +3064,15 @@ function cardSheetClose(b){
 // The finger on a card: down from its top (when it isn't scrolled) drags it; let go past 90 px, or flicked, it goes,
 // else it springs back. 1.78.1: pulled up where it can't scroll any further (a short card, or at its end) it gives a
 // little against a spring and comes back when let go; both ways in one movement. A scrolling card keeps its scroll to
-// itself, and a finger on the dark beside it moves nothing: the page behind never scrolls.
+// itself, and a finger on the dark beside it moves nothing: the page behind never scrolls. 1.113: a card whose part
+// scrolls by itself (.cScroll, Your route) is judged by that part; on its fixed head the finger drags the card.
 { let drag = null, dragged = 0;
   document.addEventListener("touchstart", e => {
     const box = $("cardBox");
     if (!box || box.hidden) { drag = null; return; }
-    const ci = e.target.closest && e.target.closest("#cardBox .cardIn"), y = e.touches[0].clientY;
+    const ci = e.target.closest && e.target.closest("#cardBox .cardIn"), y = e.touches[0].clientY, sc = ci && (e.target.closest("#cardBox .cScroll") || ci);
     drag = !ci ? {beside: true}
-      : {ci, y0: y, on: false, top: ci.scrollTop <= 0, end: ci.scrollTop + ci.clientHeight >= ci.scrollHeight - 1, dy: 0, v: 0, lt: performance.now(), ly: y};
+      : {ci, y0: y, on: false, top: sc.scrollTop <= 0, end: sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1, dy: 0, v: 0, lt: performance.now(), ly: y};
   }, {passive: true});
   document.addEventListener("touchmove", e => {
     if (!drag) return;
@@ -4849,7 +4850,7 @@ function careerMini(g){
 // left to go. Past Legend: the stops up to your next one.
 // 1.113 (to-do #184, Dave's pick B, kept at its height): a sheet over the club (the info cards' cardOpen: the grip, ✕,
 // swiped down, back), no longer a page of it; opened by the level card's "Your route" row at half the screen's height,
-// scrolled to your stop; the route scrolls inside it.
+// scrolled to your stop. Only the route scrolls (.cScroll): the grip, the title and ✕ stay on top.
 function careerRouteList(g){
   const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0;
   const row = n => {
@@ -4867,9 +4868,10 @@ function careerOpen(){
   if (!g) return;
   ctlSound.nav();
   cardOpen(`<div class="cuSheet"><div class="cHead"><div><h3>${escH(T("Your route"))}</h3><span>${escH(T("Level {n}", {n: g.level}))} · ${escH(rankTitle(g.level))}</span></div></div>` +
-    careerRouteList(g) + `</div>`, ci => {
+    `<div class="cScroll">${careerRouteList(g)}</div></div>`, ci => {
     ci.classList.add("cuHalf");
-    requestAnimationFrame(() => { const cur = ci.querySelector(".cuRt li.cur"); if (cur) ci.scrollTop = Math.max(0, cur.offsetTop - ci.clientHeight / 3); });
+    requestAnimationFrame(() => { const cur = ci.querySelector(".cuRt li.cur"), sc = ci.querySelector(".cScroll");
+      if (cur) sc.scrollTop = Math.max(0, cur.getBoundingClientRect().top - sc.getBoundingClientRect().top - sc.clientHeight / 3); });
   });
 }
 /* 1.110 (to-do #160, Dave's pick A): Settings → Styles as a gallery, a page over Settings like About (stylesCard hands

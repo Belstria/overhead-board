@@ -965,7 +965,9 @@ The repository is public: no addresses, keys or personal data here either.
   1.7 s, 760 ms after the stamp drops); a tap inks it at once. #181: `.pCard` centres by flex (the grid track grew to the
   stamp's width and pushed it right); `.pS.rc` a fixed 136 px; the round stamp's plane above the name, `small.lg` for
   names over 14 letters, tighter dates. #184 (pick B, kept at its height): `careerOpen` opens `careerRouteList(g)` in a
-  `cardOpen` sheet `.cardIn.cuHalf` (55dvh), scrolled to your stop; `gRoute`, `careerRoute` and `#cuBack` went. #183: the
+  `cardOpen` sheet `.cardIn.cuHalf` (55dvh, a flex column), scrolled to your stop; only `.cScroll` scrolls, so the grip,
+  title and ✕ stay on top (the sheet's touch handler judges a drag by the `.cScroll` under the finger, else the card);
+  `gRoute`, `careerRoute` and `#cuBack` went. #183: the
   notice/ticket swipe takes `dx` either way (`shift` ±120%). #185: the Logbook's type, airline and aircraft rows are `.lbTap`
   with `data-ct`/`data-co`/`data-cr` and go through the categories' click handler. #188: `.cuTag` without `--r`.
 - 1.112.0.1 (to-do #186, #187; Dave's phone, 29 Oct): **no text selection; Sky view's heading can't turn NaN.**
