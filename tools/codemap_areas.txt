@@ -453,7 +453,7 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
     arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arZoom arZk arZc arZcTo arZBase arZSeq arZoomSet arZoomBtns arZoomCss arZoomStep arTurns
     arFeed arEvent arQuat arQMatrix wrap180 arYaw arOrient arGapStep arGyroStep AR_AHEAD AR_GAP_MS arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurn arFrame arResume arHold arOpen arOpening arStart arWant arOpenAt arCalCheck
-    arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arTextW arTW arNoGoC arNoGo arPlace arLabelDraw arReportOk arR1 arReport
+    arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arTextW arTW arLabelDraw arReportOk arR1 arReport
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N arAuto
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arAutoSig arCan arCx arAutoStep arFind arSunCan arSunCx
     arSunFind arAutoChip $("arAuto").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove

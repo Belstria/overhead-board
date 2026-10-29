@@ -2610,7 +2610,7 @@ async function arStart(button){
   }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arQ) { $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); dlog("warn", "Sky view: no compass reading after 2.5 s"); } }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
-  arPicSig = ""; arNoGoC.at = 0; arTextW.clear(); flapsHold(true);   // 1.114.5: the board underneath rests (M5)
+  arPicSig = ""; arTextW.clear(); flapsHold(true);   // 1.114.5: the board underneath rests (M5)
   arLoop();
 }
 // 1.90: with the gyroscope's reading (gyro), arGapStep's check is the exact one; the heading swinging while the tilt holds
@@ -2781,14 +2781,15 @@ function arLoop(){
   }
   shown.sort((a, b) => a.d - b.d);
   // 1.114.5: the labels' words only for the 14 drawn, and where each goes, before anything is drawn
-  const top = shown.slice(0, 14), game = gameOk() && S.live, sm = game ? arSpotMap() : null, noGo = arNoGo(cv, W, H), boxes = [];
+  const top = shown.slice(0, 14), game = gameOk() && S.live, sm = game ? arSpotMap() : null, boxes = [];
   arHits = [];
   for (const s of top) {
     arLabel(s, game, sm);
     if (s.pr.edge) continue;
     const {x, y} = s.pr, w1 = arTW(g, `700 15px ${FONT}`, s.name), w2 = arTW(g, `500 12px ${FONT}`, s.sub);
     const wc = s.chip ? arTW(g, `700 10px ${FONT}`, s.chip) + 12 : 0, bw = Math.max(w1 + (wc ? wc + 6 : 0), w2) + 18, bh = 40;
-    const [bx, by] = arPlace(x, y, bw, bh, W, H, boxes, noGo);
+    let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
+    for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
     s.w1 = w1; s.wc = wc; s.box = [bx, by, bw, bh];
     boxes.push(s.box); arHits.push({hex: s.ac.hex, x, y, box: s.box});
   }
@@ -2877,52 +2878,12 @@ function arTW(g, font, s){
   return w;
 }
 if (document.fonts) document.fonts.addEventListener("loadingdone", () => { arTextW.clear(); arPicSig = ""; });
-/* 1.114.5 (M4): where Sky view's controls are on the canvas, [left, top, right, bottom, leader too]: the top bar, AUTO,
-   the zoom buttons, the "labels moved" note and the bottom (ribbon and hint). Read once a second. */
-let arNoGoC = {at: 0, list: []};
-function arNoGo(cv, W, H){
-  const now = Date.now();
-  if (now - arNoGoC.at < 1000) return arNoGoC.list;
-  const c = cv.getBoundingClientRect(), list = [];
-  for (const [sel, line] of [["#arView .arTop", 0], ["#arAuto", 1], ["#arView .arZoom", 1], ["#arMoved", 1], ["#arView .arBot", 0]]) {
-    const el = document.querySelector(sel), r = el && !el.hidden ? el.getBoundingClientRect() : null;
-    if (!r || !r.width || !r.height) continue;
-    // the zoom buttons and the note from the top bar down, so no label sits above them with its line through them
-    const top = line ? Math.min(r.top - c.top, list.length ? list[0][3] : 0) : r.top - c.top;
-    list.push([r.left - c.left - 4, top - 4, r.right - c.left + 4, r.bottom - c.top + 4, line]);
-  }
-  arNoGoC = {at: now, list};
-  return list;
-}
-// 1.114.5 (M4): a label's place: above its plane, else higher up clear of the others, else below the plane; never on a
-// control (nor its line through one); beside a button when that keeps it over its plane. With no free place: over the
-// others, still clear of the controls.
-function arPlace(x, y, bw, bh, W, H, boxes, noGo){
-  const bx0 = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), xs = [bx0];
-  for (const r of noGo) for (const bx of [r[0] - bw - 2, r[2] + 2]) if (bx >= 6 && bx + bw <= W - 6 && x >= bx + 8 && x <= bx + bw - 8) xs.push(bx);
-  const ys = [];
-  for (let k = 0; k < 8; k++) ys.push(y - 26 - bh - k * (bh + 6));
-  for (let k = 0; k < 8; k++) ys.push(y + 26 + k * (bh + 6));
-  const clear = (bx, by) => {
-    const lo = by > y ? y + 6 : by + bh, hi = by > y ? by : y - 6;   // the leader line, from the plane to the label
-    return by >= 0 && by + bh <= H && !noGo.some(r => (bx < r[2] && bx + bw > r[0] && by < r[3] && by + bh > r[1]) ||
-      (r[4] && x > r[0] && x < r[2] && !(y > r[1] && y < r[3]) && lo < r[3] && hi > r[1]));   // (a plane under a control: its line starts there anyway)
-  };
-  const free = (bx, by) => !boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]);
-  let fall = null;
-  for (const by of ys) for (const bx of xs) {
-    if (!clear(bx, by)) continue;
-    if (free(bx, by)) return [bx, by];
-    if (!fall) fall = [bx, by];
-  }
-  return fall || [bx0, y - 26 - bh];
-}
 // A label: its line down to the plane, the box with the name, type · height · distance, the chip and a golden edge
 function arLabelDraw(g, s){
-  const {x, y} = s.pr, [bx, by, bw, bh] = s.box, w1 = s.w1, wc = s.wc, below = by > y;
+  const {x, y} = s.pr, [bx, by, bw, bh] = s.box, w1 = s.w1, wc = s.wc;
   const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
   if (s.ac.hex === arSel || s.ac.hex === arWant) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
-  g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, below ? y + 6 : y - 6); g.lineTo(x, below ? by : by + bh); g.stroke();
+  g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
   g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
   g.globalAlpha = s.far ? .62 : 1;                 // too far for points: dimmed
   g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();

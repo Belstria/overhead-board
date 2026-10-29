@@ -818,8 +818,7 @@ Five buttons along the bottom:
   its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
   open" or "Not now"), since Sky view shows the planes around you wherever you are: the camera full screen, with a label on every plane
   within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
-  edge when it is out of the picture; 1.114.5: labels stay below the title bar and clear of the buttons, and go below
-  their plane when there is no room above). It works from the phone's own location (or the place in Settings), the compass
+  edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
   data was made (the relay may keep it a few seconds), follows a plane round its turn and up or down its climb, and
   makes heights true with the home airport's air pressure and temperature (from its METAR; with live location the airport
