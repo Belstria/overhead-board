@@ -943,6 +943,30 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.102 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
+  school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
+  `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with
+  `fsBox(t)` (the small red stamp: Flight school, Passed, its date `fsDate` · +50), `.nx` the next one hatched with its
+  hint, the `.sg` WINGS line, `o.sig` its signature). `renderGame` puts it first (`.fsPlate`) until the wings, then at
+  the end with the signature. `fsBar()` (from `gRefresh`): `#fsBar` before `#hero` on Now, "Checklist n/5 · Next up ·
+  …" and five `u` marks, a tap opens the club; hidden with the wings. `gAwards` passes each fresh "school" award (live
+  location or not) to `fsStamp` → `fsShow`: one at a time, waiting while Sky view or `#gLvUp` is open; `#fsStamp`
+  slides in (`@fsSlip`) with the mission's line, its `.fsBox.big` lands at 0.35 s (`@fsLand`, from ×2.6 and −26°, an
+  ink halo `@fsInk`), `fsThud()` (a 150→48 Hz sine and a band-passed click, button sounds on) and a 30 ms buzz at the
+  hit; gone after 3.8 s or a tap; the fifth (`a.wings`) then opens `fsWings(a)`: `#gLvUp.fsW` with the record (no hint),
+  the WINGS line signed by `sigWrite` (the profile's first name, `fsName()`; "Pilot" without one), then `.signed`:
+  `fsWingsSvg` (`@fsWingIn`), "Cleared for take-off" (`@fsCleared`), the note and Take off; `gJingle` and a buzz;
+  `gLevelUp` waits while it is open. The signature: `sigFont()` loads `SIG_JS` (`test/signature.js`, `SIG_FONT`, EMS
+  Allure (OFL, a single-stroke script derived from Allura; `tools/sig_font.py` keeps U+0020–7E and U+00C0–FF, 31 KB, 9 KB
+  gzipped; `fonts/OFL.txt`), stamped by `tools/assets.py`, cached by sw.js, `../test/` in the app (build.py)), only
+  when a signature is drawn. `sigSvg(name, F)`: a `<path>` per stroke (a letter's `M` pieces), flipped and set at its
+  advance; a letter it lacks: its base letter, else none (`fsSigHtml` falls back to the `cursive` text, `.fsSigT`, wiped
+  in from the left). `sigWrite(el, done)`: each stroke's dash offset runs along its length (1.5–3.4 s in all, a pen lift
+  of 110 ms between strokes, `u − sin(2πu)/2π·0.35` easing), a nib (`circle.nib`) at the tip and gliding across the
+  lifts; `.pre` keeps it unseen until the pen starts. Reduced motion: the stamp lands without moving, the signature is
+  there at once. `schoolMission("card")` (from `planeCard`, the shared code; lint OPTIONAL) posts `/game/school` once.
+  Recent points: a "Flight school" row (`j.school`) in time order with the planes; `gAwLine` names "school" awards.
+  Twenty-four i18n rows (title-case keys, `text-transform`; the flap status "PASSED" stays the flap's).
 - 1.101 (to-do #148, Dave's pick of 28–29 Oct, mockup A "gold foil", sound B "bell sparkle"): **golden tickets.** The
   relay's scan list (`/game/me` `scan`, `game_scannable`) marks a golden plane `gold: true` (relay 84, `game_gold`);
   `gTixShow` makes its ticket gold (`gPassFill` `o.gold`: `.pF.gold`, the foil, a sheen `.gl` with `@gSheen`, two ✦; the
@@ -1306,6 +1330,23 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 85 (1.102, to-do #153): **the flight school.** `SCHOOL` (scan, card, bingo, fav, uncommon), `GAME_SCHOOL` 50,
+  `SCHOOL_LEVEL` 4. `game_school(g)` (called by `game_book`, so on the first touch after the update, before any points
+  can change) makes `g["school"]` {since, done: {mission: ms}, aw: [awards], wings: ms}; a game at level 4 or above
+  then gets `wings` at once and `pre: true` (no points, the app never shows the school). `school_pass(spot, g, m)` pays
+  a mission once: an award {k: "school", p: 50, n: mission, i: its count, day, r: GAME_RULE, wings on the fifth} kept
+  in the school (it has no plane), `_game_add` (day, week, level); the fifth sets `wings` (nothing more paid); None
+  after the wings, for a mission done or an unknown one. Detected: `game_lockon` (after a scan that pays; its 50 aren't
+  in the scan's `bonus`), `game_note` (a non-common plane whose passive points are > 0), `_game_bingo` (a square new to
+  the week's card), `/lists` (an "add" to "fav"; not a whole-list save), `POST /game/school {m: "card"}` (the app's
+  plane card; other missions 400; same origin, `allow` 1/s). Out: `game_awards` adds the school's awards after `since`
+  (no plane keys), `game_today` sends `school` (today's), `game3_json` `school` (`school_json`: done, wings, pre) and
+  `wings`, `/game/me` keeps both; `/game/league` rows and `/game/player` `wings` via `school_wings(g)` (read only: the
+  school's, else by the level, as `game_school` will decide); `game_rules()` `school`. Nothing rescored: `GAME_RULE`,
+  `GAME3_V`, `GAME_V` unchanged; `_rescore` and the backfills work on the logbook. flows.py `school_checks` (each +50
+  once, the wings, a game from relay 84 kept exactly, level 4 → wings without points, level 3 → the school, a
+  restart, planes coming closer and a rescore pay nothing; the other in-process checks run with `school_pass` off) and
+  HTTP checks (the card once, other missions 400, another site, a stranger, the awards, `wings` in the three answers).
 - Relay 84 (1.101, to-do #148): **golden tickets.** `game_gold(day, hex)`: sha256 of the salt, the board's day and the
   plane, gold when its first 32 bits are 0 mod `GOLD_ONE_IN` (20). The salt (`_gold_key()`) is made once with
   `secrets.token_hex(16)` in `data/gold.key` (mode 600; `GOLD_FILE`) and read back at start, so a restart doesn't re-roll

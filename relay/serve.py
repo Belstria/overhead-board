@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 84
+RELAY_VERSION = 85
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1051,6 +1051,9 @@ GAME1_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))   # rule 1's
 LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
 GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
 GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
+SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
+GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
+SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1070,7 +1073,55 @@ def game_book(book):
     if "scanned" not in g:
         g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
         g["rule2"] = int(time.time() * 1000)
+    game_school(g)
     return g
+
+
+def game_school(g):
+    """Relay 85 (to-do #153): the flight school, {"since", "done": {mission: ms}, "aw": [its awards], "wings": ms}. Made
+    the first time the game is touched after the update (points only change through game_book, so that is the level
+    the profile had when this relay started): at SCHOOL_LEVEL or above the wings at once, without points ("pre": the
+    school is never shown); below it the school starts empty (nothing from before counts)."""
+    st = g.get("school")
+    if not isinstance(st, dict):
+        now = int(time.time() * 1000)
+        st = g["school"] = {"since": now, "done": {}, "aw": []}
+        if level_of(g.get("points", 0))[0] >= SCHOOL_LEVEL:
+            st.update(wings=now, pre=True)
+    return st
+
+
+def school_pass(spot, g, m):
+    """Relay 85: mission m done: GAME_SCHOOL points once (into the day, the week and the level, like any award), and the
+    wings with the fifth. Its award has no plane: it is kept in the school ("aw") and sent with the planes' (game_awards,
+    game_today). Call under _data_lock. Returns the award, or None (done before, wings already, not a mission)."""
+    st = game_school(g)
+    if m not in SCHOOL or st.get("wings") or m in st["done"]:
+        return None
+    now, day = int(time.time() * 1000), spot.day
+    st["done"][m] = now
+    a = {"t": now, "k": "school", "p": GAME_SCHOOL, "r": GAME_RULE, "n": m, "day": day, "i": len(st["done"])}
+    if all(k in st["done"] for k in SCHOOL):
+        st["wings"] = a["wings"] = now
+    st["aw"].append(a)
+    _game_add(g, day, GAME_SCHOOL)
+    spot.changed("book")
+    event("info", f"Flight school: {m} ({len(st['done'])} of {len(SCHOOL)})" + (", wings" if a.get("wings") else ""), echo=False)
+    return a
+
+
+def school_wings(g):
+    """Relay 85: has this game its wings (the league's rows, a player's card: read only, so a game the school hasn't
+    met yet answers as game_school will: by its level)."""
+    st = g.get("school")
+    return bool(st.get("wings")) if isinstance(st, dict) else level_of(g.get("points", 0))[0] >= SCHOOL_LEVEL
+
+
+def school_json(g):
+    """Relay 85: the school for the app: the missions done (when), the wings (when; 0: not yet) and "pre" (given at the
+    update, the school never shown)."""
+    st = game_school(g)
+    return {"done": dict(st["done"]), "wings": st.get("wings") or 0, "pre": bool(st.get("pre"))}
 
 
 def _monday(day):
@@ -1107,7 +1158,7 @@ def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
-            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE}
+            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL}
 
 
 def level_of(points):
@@ -1180,6 +1231,8 @@ def game_note(spot, e):
             e["gp"] = 0                         # past the limit: listed, with the reason; only the first one pops up
             _game_award(e, "limit", 0, tier=tier, n=k, first=k == GAME_LIMIT[tier] + 1, **({"can": can} if can else {}))
         _game_add(g, day, e["gp"])
+        if tier != "common" and e["gp"] > 0:    # relay 85: the school's "catch an uncommon" (or rarer, that scores)
+            school_pass(spot, g, "uncommon")
         note_records(g, e)
         won = trophy_check(g, e, [x for x in spot.entries if "gp" in x])
         for t in won:
@@ -1258,6 +1311,7 @@ def _game_bingo(spot, g, day, e):
     st = _bingo_pay_state(spot, g, day, e)
     card = random.Random("fallblatt-" + st["week"]).sample(sorted(BINGO), 9)
     done = set(st["done"])
+    had = len(done)
     for k in card:
         if k not in done:
             try:
@@ -1266,6 +1320,8 @@ def _game_bingo(spot, g, day, e):
             except Exception:
                 pass
     st["done"] = sorted(done)
+    if len(done) > had:                         # relay 85: the school's "fill a bingo square" (a square new to the card)
+        school_pass(spot, g, "bingo")
     for i, ln in enumerate(BINGO_LINES):
         if i not in st["lines"] and all(card[j] in done for j in ln):
             st["lines"].append(i)
@@ -1333,9 +1389,10 @@ def game_today(spot):
                 r.update(base=TIER_BASE.get(e.get("tier"), 30), new=[[k[4:].lower(), v] for k, v in GAME1_NEW if e.get(k)],
                          gk=e.get("gk") or 1.0, gn=e.get("gn") or 1)
             out.append(r)
+        school = [dict(a) for a in game_school(g)["aw"] if a.get("day") == day]     # relay 85: today's missions (no plane)
     out.sort(key=lambda r: max([a["t"] for a in r["aw"]] or [r["ts"] or 0]), reverse=True)
     return {"day": day, "today": total, "planes": planes, "rows": out, "limits": {t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS},
-            "resets": _next_day_ms(day)}
+            "resets": _next_day_ms(day), "school": school}
 
 
 def game_awards(spot, since):
@@ -1345,6 +1402,7 @@ def game_awards(spot, since):
         for a in e.get("ga") or []:
             if a.get("t", 0) > since and a.get("r", 1) >= 2:
                 out.append({**a, **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")})
+    out += [dict(a) for a in game_school(game_book(spot.book()))["aw"] if a["t"] > since]    # relay 85: no plane
     out.sort(key=lambda a: a["t"])
     return out[-20:]
 
@@ -1456,6 +1514,7 @@ def game_lockon(spot, hx):
                                                      "type": e.get("typeCode") or "", "pts": e["lock"]})
         _game_add(g, day, bonus)
         _game_best(g, day, e)
+        school_pass(spot, g, "scan")            # relay 85: the school's "scan a plane" (its 50 aren't in the bonus)
         spot.changed("book", "day")
         lv = level_of(g["points"])
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
@@ -1478,7 +1537,7 @@ def game3_json(book, day):
                planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
-               trophyPaid=g.get("trophyPaid") or {})
+               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")))
     return out
 
 
@@ -1518,14 +1577,14 @@ def league_json(me=None):
                          "before": sum(v for k, v in days.items() if wk <= k < day),
                          "lastWeek": sum(v for k, v in days.items() if last <= k < wk), "all": g.get("points", 0),
                          "level": level_of(g.get("points", 0))[0], "best": (g.get("best") or {}).get(wk),
-                         "lock": (g.get("lock") or {}).get("last")})
+                         "lock": (g.get("lock") or {}).get("last"), "wings": school_wings(g)})
         _league_cache.clear()
         _league_cache[key] = rows
     champ = max((r for r in rows if r["lastWeek"] > 0), key=lambda r: r["lastWeek"], default=None)
     prev = {r["pid"]: i for i, r in enumerate(sorted((r for r in rows if r["before"] > 0), key=lambda r: -r["before"]))}
     def out(r, i, order):
         o = {"name": r["name"], "points": r[order], "all": r["all"], "level": r["level"], "rank": i + 1,
-             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me, "id": _league_id(r["pid"])}
+             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me, "id": _league_id(r["pid"]), "wings": r["wings"]}
         if order == "week":
             o["best"] = r["best"]
             if r["pid"] in prev and day != wk:
@@ -1574,7 +1633,8 @@ def player_json(hid, me=None):
                "counts": {k: counts.get(k) for k in ("planes", "types", "airlines", "countries")},
                "trophies": sorted(k for k, v in (g.get("trophies") or {}).items() if v),
                "rarest": {"code": top[0], "name": top[1].get("name") or "", "tier": tier_of({}, {"typeCode": top[0]})} if top else None,
-               "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since")}
+               "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since"),
+               "wings": school_wings(g)}
     lg = league_json(me)
     r = next((x for x in lg["rows"] if x["id"] == hid), None)
     out.update(rank=r["rank"] if r else None, crown=bool(r and r["crown"]))
@@ -8313,7 +8373,7 @@ class Handler(BaseHTTPRequestHandler):
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
             keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
-                    "scanKm", "lockons", "limits", "resets", "rules")      # relay 76: the limits, the rules; no more combo
+                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings")   # relay 76: the limits, the rules; no more combo; 85: the school
             out = {k: g.get(k) for k in keep}
             out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
             if aw is not None:
@@ -8627,6 +8687,17 @@ class Handler(BaseHTTPRequestHandler):
             if out.get("bonus"):
                 event("info", f"Sky view scan for {self.guest[1].get('name')}: +{out['bonus']}")
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/school":          # relay 85 (to-do #153): the app opened a plane's card (the school's mission)
+            if not self.same_origin() or not allow("school:" + self.guest[0], 1, 4):
+                return self.reply(429, "text/plain", b"Not now")
+            if self.json_body().get("m") != "card":     # the others the relay sees itself
+                return self.reply(400, "text/plain", b"mission missing")
+            with _data_lock:
+                self.spot.ensure_day()
+                g = game_book(self.spot.book())
+                a = school_pass(self.spot, g, "card")
+                out = {"paid": a["p"] if a else 0, "school": school_json(g), "points": g.get("points", 0)}
+            return self.reply(200, "application/json", json.dumps(out).encode())
         if path == "/skyreport":            # relay 72: Sky view's sensor readings, for tuning the compass (the owner's)
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
@@ -8653,6 +8724,9 @@ class Handler(BaseHTTPRequestHandler):
                     if op not in ("add", "remove") or which not in ("fav", "hide"):
                         continue
                     item = _clean_list([o.get("item")])
+                    if op == "add" and which == "fav" and item and self.spot:    # relay 85: the school's "add a favourite"
+                        self.spot.ensure_day()
+                        school_pass(self.spot, game_book(self.spot.book()), "fav")
                     keep = [i for i in L.get(which, []) if not item or (i.get("k"), i.get("v")) != (item[0].get("k"), item[0].get("v"))]
                     L[which] = _clean_list(keep[-199:] + item if op == "add" else keep)
                 for k in ("fav", "hide"):
