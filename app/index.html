@@ -1334,9 +1334,12 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 }
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
-#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:6px var(--gut) 8px;position:relative;box-sizing:border-box}
+#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:0 var(--gut);position:relative;box-sizing:border-box}
 #gStrip[hidden]{display:none}
-#gStrip .gMain{all:unset;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+#gStrip .gMain{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+#gStrip .gB{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;min-height:44px;padding:0 2px}
+#gStrip .gLvB{flex:1;min-width:0}
+.secPlate.hit h3{animation:ppHit 1.4s ease-out}
 .gTot{display:inline-flex;gap:2px;font:600 var(--fs-l)/1 var(--f-flap,"Oswald",var(--f-board))}
 .gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
   background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
@@ -1351,7 +1354,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes gShine{from{background-position:200% 0}to{background-position:0 0}}
 #gStrip.gain{animation:gGlow 1.4s}
 @keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
-.gChip{all:unset;cursor:pointer;display:inline-grid;perspective:200px;flex:none}
+.gChip{all:unset;cursor:pointer;display:inline-grid;align-content:center;min-height:44px;perspective:200px;flex:none}
 .gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
 .gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
 .skyIco{width:18px;height:18px;flex:none}
@@ -1728,7 +1731,7 @@ button.ppShelf.ppNone{all:unset;display:block;box-sizing:border-box;width:100%;m
 .ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
 .ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 @keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
-@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b,.secPlate.hit h3{animation:none!important}}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}
@@ -2414,7 +2417,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=eebc3572cc"></script>
+<script src="../test/i18n.js?v=2cb9f89e21"></script>
 <script>
 (() => {
 "use strict";
@@ -2778,7 +2781,12 @@ function toast(text, o = {}){
   const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
   if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.click(); go(); if (o.run) o.run(); };
   box.appendChild(t);
-  setTimeout(go, o.ms || (o.err ? 6000 : 4000));
+  const ms = o.ms || (o.err ? 6000 : 4000);
+  let until = Date.now() + ms, tm = setTimeout(go, ms);
+  // 1.114.2 (to-do #193): a finger on it holds its time (the app's swipe handler); on letting go the rest runs as normal,
+  // or, if the time is up, 1.5 s more
+  t.hold = () => clearTimeout(tm);
+  t.release = () => { clearTimeout(tm); const left = until - Date.now(); until = Date.now() + (left > 0 ? left : 1500); tm = setTimeout(go, until - Date.now()); };
   return t;
 }
 let cardTok = 0;
@@ -6729,8 +6737,7 @@ function firstLines(ac, info){
   if (t && fresh(b.types[t])) out.push(T("FIRST: TYPE"));                         // 1.73.2: without "ever"; 1.78.1: "FIRST:"
   else if (reg && !seenBefore(reg).n) out.push(T("FIRST: PLANE"));
   if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST: AIRLINE"));
-  const f = icao ? seenGet("cs", cs) : null;
-  if (f && !seenBefore(f).n) out.push(T("FIRST: FLIGHT"));
+  // 1.114.2 (to-do #191): no FIRST: FLIGHT any more
   return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
@@ -11724,6 +11731,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.2", date: "2026-10-29", notes: [
+    "Remarks no longer say FIRST: FLIGHT.",
+    "The score strip: tap the level or its bar for Your level, the points for Recent points, the league number for the league.",
+    "A ticket or notice stays while a finger is on it, then 1.5 more seconds if its time ran out."]},
   {v: "1.114.1.1", date: "2026-10-29", notes: [
     "Airline logos with a coloured background show in their own colours on member cards, no longer as a pale block."]},
   {v: "1.114.1", date: "2026-10-29", notes: [
@@ -13667,11 +13678,34 @@ function gStripSetup(){
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  box.innerHTML = `<button type="button" class="gMain" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gRk" id="gRk"></span><span class="gTot" id="gTot"></span>` +
-    `<span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button>` +
-    `<button type="button" class="gChip" id="gChip"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  box.querySelector(".gMain").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else showTab("game"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else showTab("game"); };
+  // 1.114.2 (to-do #192): each part opens its own place: the lapel and the level line your level, the points the
+  // point history, the league number the league (each a button of thumb size, with a gap between them)
+  box.innerHTML = `<div class="gMain"><button type="button" class="gB" id="gBRk" aria-label="${escH(T("Your level"))}"><span class="gRk" id="gRk"></span></button>` +
+    `<button type="button" class="gB" id="gBTot" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span></button>` +
+    `<button type="button" class="gB gLvB" id="gBLv" aria-label="${escH(T("Your level"))}"><span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button></div>` +
+    `<button type="button" class="gChip" id="gChip" aria-label="${escH(T("League"))}"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
+  $("gBRk").onclick = $("gBLv").onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
+  $("gBTot").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else gGoPlate("gHero"); };
+  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else gGoPlate("lgPlate"); };
+}
+// 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
+// for a moment, as the passport's regions do.
+// A page drawn again meanwhile (the points or the league came in) keeps the light and the place (gHit).
+let gHit = null;
+function gGoPlate(cls){
+  if (tab !== "game") showTab("game");
+  gHit = {cls, until: Date.now() + 1500, done: false};
+  gHitDo();
+}
+function gHitDo(){
+  const el = gHit && gHit.until > Date.now() ? document.querySelector("#t-game ." + gHit.cls) : null;
+  if (!el) return;
+  if (!gHit.done) {
+    gHit.done = true;
+    const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;
+    scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: REDUCED ? "auto" : "smooth"});
+  }
+  el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
@@ -13688,7 +13722,7 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
 { let sw = null;
   // 1.98: the points passes and the tickets too (their slide-in holds `transform`, so they move by `translate`)
   const shift = (t, x) => { if (t.classList.contains("gAw")) t.style.translate = x ? x + " 0" : ""; else t.style.transform = x ? `translateX(${x})` : ""; };
-  const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; };
+  const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; if (t.hold) t.hold(); };    // 1.114.2: its time waits
   const move = x => { if (!sw) return; sw.dx = x - sw.x0; shift(sw.t, sw.dx + "px"); sw.t.style.opacity = String(Math.max(.2, 1 - Math.abs(sw.dx) / 260)); };
   const end = () => {
     if (!sw) return;
@@ -13698,7 +13732,7 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
       shift(t, dx > 0 ? "120%" : "-120%"); t.style.opacity = "0";
       if (t.classList.contains("gAw")) { clearTimeout(t.outT); gTixOut.delete(t); setTimeout(() => { t.remove(); gTixStack(); gTixBack(); }, 260); }
       else setTimeout(() => t.remove(), 260);
-    } else { shift(t, ""); t.style.opacity = ""; }
+    } else { shift(t, ""); t.style.opacity = ""; if (t.release) t.release(); }
   };
   const toastAt = e => e.target && e.target.closest && (e.target.closest("#gAws .gAw:not(.out)") || !e.target.closest("button") && e.target.closest("#toasts .toast"));
   document.addEventListener("touchstart", e => { const t = toastAt(e); if (t) start(t, e.touches[0].clientX); }, {passive: true});
@@ -14180,11 +14214,20 @@ function gPassFill(el, o){
   };
   el.onclick = () => {
     if (el.swiped) { el.swiped = false; return; }
+    if (el.longHold) { el.longHold = false; return; }       // 1.114.2: holding it is no tap
     if (!o.sky) return out();
     audioInit(); if (arOn) ctlSound.nav(); arOpenAt(o.sky.hex, o.sky.flight);   // the ticket stays; in Sky view it only picks the plane out (opening it sounds by itself)
   };
   const life = o.life || 6500;
-  el.until = Date.now() + life; clearTimeout(el.outT); el.outT = setTimeout(out, life);
+  el.until = Date.now() + life; clearTimeout(el.outT); if (!el.held) el.outT = setTimeout(out, life);
+  // 1.114.2 (to-do #193): a finger on the pass holds its time (the swipe handler); on letting go the rest runs as normal,
+  // or, if the time is up, 1.5 s more
+  el.hold = () => { el.held = true; el.heldAt = Date.now(); el.longHold = false; clearTimeout(el.outT); };
+  el.release = () => {
+    el.held = false; el.longHold = Date.now() - el.heldAt > 400; clearTimeout(el.outT);
+    const left = el.until - Date.now();
+    el.until = Date.now() + (left > 0 ? left : 1500); el.outT = setTimeout(out, el.until - Date.now());
+  };
   return el;
 }
 const SKY_ICO = `<svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -14413,6 +14456,7 @@ function renderGame(){
   box.dataset.h = h; box.innerHTML = h;
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
   hgWire(box); lyWire(box, renderGame); ppWire(box);
+  if (gHit) gHitDo();
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
