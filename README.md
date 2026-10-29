@@ -847,7 +847,8 @@ Five buttons along the bottom:
   the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
   together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
-  meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
+  meanwhile; it opens again only after the ring was empty; 1.114.6: a plane you have scanned doesn't lock on again,
+  its ✓ says so, though the shutter still comes for it). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
   eight or a drag (not once the labels are lined up). **Report** (1.90, the flag in the top bar, the owner's phones
   only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
@@ -862,7 +863,9 @@ Five buttons along the bottom:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
   plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint (or above the plane's small card): it keeps the sky as on the
   screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
-  to share or save.
+  to share or save. Since 1.114.6 Sky view draws only when the picture changes (with the phone still and nothing
+  moving it rests, saving battery), and the board underneath doesn't flip or clatter while Sky view is open; it shows
+  the latest values when you close it.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
   off as the board shows through. With sound on it plays the board's clack for each letter and a whoosh for the
   take-off, where the phone lets a page play sound before the first tap (the Android app; never on an iPhone); not in

@@ -51,7 +51,7 @@ def extract(text):
         "E3": ex("/* ---------- tiles: each flap face pre-rendered once ---------- */", "/* ---------- drawing a flap, mid-flip or at rest ---------- */"),
         "E4": ex("// Paints a flap onto the board, or onto the page that is falling away", "function redrawAll(){"),
         "E5": patched(ex("let running = false, lastFrame = 0;", "/* ---------- printed parts of the board ---------- */"),
-                      ("if (REDUCED || snapping) {", "if (REDUCED || snapping || c.f.panel.off) {")),
+                      ("if (REDUCED || snapping) {", "if (REDUCED || snapping || c.f.panel.off || flapsHeld) {")),
         "E6": ex("function drawPlane(g, cx, cy, size, color){", "const metalCache = "),
         "E8": ex("const shadowSprites = new Map();", "function slots(g){"),
         "E9": ex("function screw(g, x, y, r){", "/* ---------- the aircraft photo"),

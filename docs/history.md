@@ -948,6 +948,25 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.6 (to-do #196 M1, M3, M5, L3, L6, the idle path (M4 dropped: Dave doesn't mind labels behind the bars); #198 L4, L5; Fable's review of 1.114.2): **Sky view
+  faster.** `arLoop` now works in two steps. First where everything goes: all planes projected (`shown`: ac, d, pr,
+  isFeat, alt, el), sorted, then for the 14 drawn only `arLabel(s, game, sm)` builds name, sub, chip, gold, tier, far
+  (Spotted today by hex from `arSpotMap()`, rebuilt when `spotted` is a new array or its length changes); widths from
+  `arTW` (a cache cleared on open and on `document.fonts` loadingdone); each box placed as before (pushed up past the others); `arBodiesAt` gives
+  the sun and moon (and refreshes `arBody`); `arAimStep` runs the ring's logic. Then the picture is drawn
+  (`arBodiesDraw(g, bodies, …)`, `arLabelDraw`, `arEdge`, brackets, `arAimDraw(g, aim)`) only when `arPicSig` changes:
+  W/H/px, the focal length, `LANG`, `R` and the heading/pitch offsets scaled by the focal length to a quarter pixel,
+  the screen angle, sun/moon az/el (0.01°), the ring (R0, fill to 0.5 %), AUTO's brackets and per drawn label its
+  words, flags and box/position to a quarter pixel. A canvas resize, opening and a font arriving reset it. M1: `#arCount`
+  and `#arReset.moved` are written only when they change (the write forced two layouts a frame: 120 layouts/s → <1).
+  M3: `arOpen` returns the open under way
+  (`arOpening`, the body is `arStart`); `arGoLive` keeps one wait (`arGoing`). M5 (Dave: silent in Sky view):
+  `flapsHold(on)` (engine2 region): on open every cell mid-turn lands on its target, `flapsHeld` makes `drawCell` draw
+  nothing and the app's `retarget` (build.py's E5 patch) take a new value at once, so there's no turning and no `clack`;
+  on close `refreshPanels()`. L3: `arScans` (hexes the relay answered with points or `done`) and `arSpotMap()`'s
+  `gx`: `arScanned(hex)`; such a plane in the ring sets `arAim.done` and `arLocked` at once (the shutter) without
+  filling, sound, card or `gLockOn`. L4: Where to look's turn texts are whole keys (five rows). L5: `arSnapping`.
+  `tools/test/sky_jitter.js` finds the sensor code up to `function arOpen(`.
 - 1.114.5 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
   cancelled (it cleared the timer that called `gLevelUp`); the next `gGain`'s end or `gRefresh` shows it. The fixed
   aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
