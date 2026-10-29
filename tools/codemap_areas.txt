@@ -413,7 +413,7 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart

@@ -839,9 +839,12 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 /*CAPS_AND_COCKPIT*/
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
-#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:6px var(--gut) 8px;position:relative;box-sizing:border-box}
+#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:0 var(--gut);position:relative;box-sizing:border-box}
 #gStrip[hidden]{display:none}
-#gStrip .gMain{all:unset;cursor:pointer;flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+#gStrip .gMain{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+#gStrip .gB{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;min-height:44px;padding:0 2px}
+#gStrip .gLvB{flex:1;min-width:0}
+.secPlate.hit h3{animation:ppHit 1.4s ease-out}
 .gTot{display:inline-flex;gap:2px;font:600 var(--fs-l)/1 var(--f-flap,"Oswald",var(--f-board))}
 .gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
   background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
@@ -856,7 +859,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes gShine{from{background-position:200% 0}to{background-position:0 0}}
 #gStrip.gain{animation:gGlow 1.4s}
 @keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
-.gChip{all:unset;cursor:pointer;display:inline-grid;perspective:200px;flex:none}
+.gChip{all:unset;cursor:pointer;display:inline-grid;align-content:center;min-height:44px;perspective:200px;flex:none}
 .gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
 .gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
 .skyIco{width:18px;height:18px;flex:none}
@@ -1233,7 +1236,7 @@ button.ppShelf.ppNone{all:unset;display:block;box-sizing:border-box;width:100%;m
 .ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
 .ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 @keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
-@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b,.secPlate.hit h3{animation:none!important}}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}

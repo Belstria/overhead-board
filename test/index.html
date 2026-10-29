@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=eebc3572cc"></script>
+<script src="i18n.js?v=2cb9f89e21"></script>
 <script>
 (() => {
 "use strict";
@@ -3624,8 +3624,7 @@ function firstLines(ac, info){
   if (t && fresh(b.types[t])) out.push(T("FIRST: TYPE"));                         // 1.73.2: without "ever"; 1.78.1: "FIRST:"
   else if (reg && !seenBefore(reg).n) out.push(T("FIRST: PLANE"));
   if (icao && b.airlines && fresh(b.airlines[icao])) out.push(T("FIRST: AIRLINE"));
-  const f = icao ? seenGet("cs", cs) : null;
-  if (f && !seenBefore(f).n) out.push(T("FIRST: FLIGHT"));
+  // 1.114.2 (to-do #191): no FIRST: FLIGHT any more
   return out;
 }
 // The Remarks (1.34): the interesting things about a plane, shown in turn: how often it was seen here, another
@@ -5779,7 +5778,12 @@ function toast(text, o = {}){
   const go = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
   if (o.action) t.querySelector("button").onclick = e => { e.stopPropagation(); ctlSound.click(); go(); if (o.run) o.run(); };
   box.appendChild(t);
-  setTimeout(go, o.ms || (o.err ? 6000 : 4000));
+  const ms = o.ms || (o.err ? 6000 : 4000);
+  let until = Date.now() + ms, tm = setTimeout(go, ms);
+  // 1.114.2 (to-do #193): a finger on it holds its time (the app's swipe handler); on letting go the rest runs as normal,
+  // or, if the time is up, 1.5 s more
+  t.hold = () => clearTimeout(tm);
+  t.release = () => { clearTimeout(tm); const left = until - Date.now(); until = Date.now() + (left > 0 ? left : 1500); tm = setTimeout(go, until - Date.now()); };
   return t;
 }
 let cardTok = 0;
@@ -7841,6 +7845,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.2", date: "2026-10-29", notes: [
+    "Remarks no longer say FIRST: FLIGHT.",
+    "The score strip: tap the level or its bar for Your level, the points for Recent points, the league number for the league.",
+    "A ticket or notice stays while a finger is on it, then 1.5 more seconds if its time ran out."]},
   {v: "1.114.1.1", date: "2026-10-29", notes: [
     "Airline logos with a coloured background show in their own colours on member cards, no longer as a pale block."]},
   {v: "1.114.1", date: "2026-10-29", notes: [

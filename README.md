@@ -389,8 +389,7 @@ The main board has everything below. New features are tried on `/test/` first; o
 - **Model photos** (1.43) carried an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT"; since 1.93 only their credit line
   says so ("Model only").
 - **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST:
-  TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
-  flight numbers since relay 38 and learned the old ones from the saved days). Nothing during a new logbook's first day.
+  TYPE** (the model), **PLANE** (this aircraft) or **AIRLINE** (1.114.2: no FIRST: FLIGHT any more). Nothing during a new logbook's first day.
 - **Tips** (1.42): the first time you open each page (and for the less obvious things: swiping a row, tapping an
   airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
   and gently fades the rest; tap anywhere to close it. Each shows once per device; Settings → Device (the board: the
@@ -557,7 +556,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
   it for each Legend after that; also on Your level and a player's card), the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
-  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71): today's
+  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71; since 1.114.2 the level and its bar open **Your level** and the league number the **League**, scrolled to and lit up like the passport's regions; each part is a thumb-sized button): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. Tap the place
   chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the

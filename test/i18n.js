@@ -1510,6 +1510,7 @@ window.I18N_ROWS = [
   ["Your route · all {n} stops", "Deine Route · alle {n} Halte", "Votre itinéraire · les {n} arrêts", "Tu ruta · las {n} paradas", "Je route · alle {n} haltes"],
   ["You are here", "Du bist hier", "Vous êtes ici", "Estás aquí", "Je bent hier"],
   ["The start", "Der Anfang", "Le départ", "El comienzo", "Het begin"],
+  ["Your level", "Dein Level", "Votre niveau", "Tu nivel", "Jouw level"],
   ["Your route", "Deine Route", "Votre itinéraire", "Tu ruta", "Je route"],
   ["After Legend, a stop every {n} points, each a star on the cap.", "Nach Legende alle {n} Punkte ein Halt, jeder ein Stern auf der Mütze.",
     "Après Légende, un arrêt tous les {n} points, chacun une étoile sur la casquette.", "Después de Leyenda, una parada cada {n} puntos, cada una una estrella en la gorra.",

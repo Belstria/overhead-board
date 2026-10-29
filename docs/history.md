@@ -948,6 +948,14 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.2 (to-dos #191, #192, #193): **three small changes.** #191: `firstLines` no longer pushes FIRST: FLIGHT (the relay
+  still counts flight numbers, `seenGet("cs", …)` is just not asked any more). #192: the strip's `.gMain` is a div of three
+  buttons (`#gBRk` lapel, `#gBTot` points, `#gBLv` level line and bar; `.gB`, 44 px tall, 6 px apart) and the chip: the
+  lapel and level line call `gGoPlate("gHero")`, the points `gRecentCard` (without the relay's history: the same),
+  the chip `gGoPlate("lgPlate")` (Go live while live is off, as before). `gGoPlate` switches to the Club's tab and scrolls
+  to the plate, which gets `.hit` (its heading flashes amber, as the passport's `ppGo`). #193: a finger on a pass or a
+  toast holds its timer: `hold()`/`release()` on `gPassFill`'s element and on `toast`'s, called from the swipe handler's
+  `start` and `end` (not after a swipe away); on release the rest of the time runs, or 1.5 s if it was up.
 - 1.114.1.1 (to-do #190): **filled logos on the member cards.** A logo with a background of its own (SAS, Emirates,
   airBaltic, TUI fly among `AIRLINES`) blended into the metal as a pale or grey block. `lyFill(src, code, done)` looks at
   each logo once (a 90×36 copy on a canvas, `crossOrigin` "anonymous": img.wway.io and pics.avs.io send
