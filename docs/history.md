@@ -948,6 +948,29 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.5 (to-do #196 M1, M3, M4, M5, L3, L6, the idle path; #198 L4, L5; Fable's review of 1.114.2): **Sky view
+  faster.** `arLoop` now works in two steps. First where everything goes: all planes projected (`shown`: ac, d, pr,
+  isFeat, alt, el), sorted, then for the 14 drawn only `arLabel(s, game, sm)` builds name, sub, chip, gold, tier, far
+  (Spotted today by hex from `arSpotMap()`, rebuilt when `spotted` is a new array or its length changes); widths from
+  `arTW` (a cache cleared on open and on `document.fonts` loadingdone); `arPlace` places each box; `arBodiesAt` gives
+  the sun and moon (and refreshes `arBody`); `arAimStep` runs the ring's logic. Then the picture is drawn
+  (`arBodiesDraw(g, bodies, …)`, `arLabelDraw`, `arEdge`, brackets, `arAimDraw(g, aim)`) only when `arPicSig` changes:
+  W/H/px, the focal length, `LANG`, `R` and the heading/pitch offsets scaled by the focal length to a quarter pixel,
+  the screen angle, sun/moon az/el (0.01°), the ring (R0, fill to 0.5 %), AUTO's brackets and per drawn label its
+  words, flags and box/position to a quarter pixel. A canvas resize, opening and a font arriving reset it. M1: `#arCount`
+  and `#arReset.moved` are written only when they change (the write forced two layouts a frame: 120 layouts/s → <1).
+  M4: `arNoGo(cv, W, H)` reads the top bar, `#arAuto`, `.arZoom` (from the bar down), `#arMoved` and `.arBot` once a
+  second as [l, t, r, b, line]; `arPlace` tries above the plane (then up to 7 steps higher), then below it (8 steps),
+  each at the centred x or beside a control while still over the plane; a place must keep clear of the controls (and
+  its leader line of those marked `line`) and of the labels already placed; with none free, the first clear of the
+  controls. A label below its plane has its line from the plane's bottom. M3: `arOpen` returns the open under way
+  (`arOpening`, the body is `arStart`); `arGoLive` keeps one wait (`arGoing`). M5 (Dave: silent in Sky view):
+  `flapsHold(on)` (engine2 region): on open every cell mid-turn lands on its target, `flapsHeld` makes `drawCell` draw
+  nothing and the app's `retarget` (build.py's E5 patch) take a new value at once, so there's no turning and no `clack`;
+  on close `refreshPanels()`. L3: `arScans` (hexes the relay answered with points or `done`) and `arSpotMap()`'s
+  `gx`: `arScanned(hex)`; such a plane in the ring sets `arAim.done` and `arLocked` at once (the shutter) without
+  filling, sound, card or `gLockOn`. L4: Where to look's turn texts are whole keys (five rows). L5: `arSnapping`.
+  `tools/test/sky_jitter.js` finds the sensor code up to `function arOpen(`.
 - 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
   member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
   done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled

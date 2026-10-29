@@ -2417,7 +2417,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=4ef8181d29"></script>
+<script src="../test/i18n.js?v=5e9ffbdd39"></script>
 <script>
 (() => {
 "use strict";
@@ -5031,8 +5031,16 @@ function tile(f, value, variant = 0){
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
 function drawCell(c, p){
   const f = c.f, P = f.panel;
-  if (f.hidden || P.off || !P.cssW) return;
+  if (f.hidden || P.off || flapsHeld || !P.cssW) return;
   paintCell(P.fxx, c, p, false);
+}
+/* 1.114.5 (to-do #196 M5, Dave: silent in Sky view): while Sky view covers the app the flaps rest. A new value is taken
+   at once, without turning, drawing or a sound (retarget, patched by build.py); on closing every panel is drawn as it is. */
+let flapsHeld = false;
+function flapsHold(on){
+  flapsHeld = on;
+  if (on) { for (const c of allCells) if (c.anim || c.queue.length) { c.queue = []; c.anim = null; c.cur = c.target; } }
+  else refreshPanels();
 }
 // Paints a flap onto the board, or onto the page that is falling away (opaque: it has no board behind it).
 function paintCell(g, c, p, opaque){
@@ -5145,7 +5153,7 @@ function retarget(c, value, delay){
     for (let n = 3 + Math.floor(Math.random() * 4); n > 0; n--) q.push("|" + pool[Math.floor(Math.random() * pool.length)]);
     q.push(value);
   }
-  if (REDUCED || snapping || c.f.panel.off) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
+  if (REDUCED || snapping || c.f.panel.off || flapsHeld) { c.queue = []; c.anim = null; c.cur = value; drawCell(c); return; }
   const now = performance.now();
   if (!c.queue.length && !c.anim) { c.next = now + (S.quick ? Math.min(delay, 1200) * .25 : delay * pace()); c.over = 0; }
   // Quick flaps (Settings): the whole run, A to Z and every word on the drum, takes about 1.5 s, the flaps a blur on the
@@ -9180,9 +9188,10 @@ function drawLook(){
   // 1.73.1: a heading tape: with the compass the directions slide as the phone turns and the words say which way to
   // turn; without it the tape is centred on the plane
   const on = lookOn && lookHeading != null, c = on ? lookHeading : L.brg, d = ((L.brg - c + 540) % 360) - 180;
-  const ad = Math.abs(d), side = d > 0 ? "right" : "left";
+  const ad = Math.abs(d), right = d > 0;             // 1.114.5: whole texts, so each has its row (to-do #198 L4)
   $("lookDir").textContent = !on ? T("LOOK {d} · {e}° UP", {d: L.dir, e: L.up})
-    : ad <= 8 ? T("Straight ahead · {e}° up", {e: L.up}) : T(ad < 45 ? `Turn a little ${side} · {e}° up` : `Turn ${side} · {e}° up`, {e: L.up});
+    : ad <= 8 ? T("Straight ahead · {e}° up", {e: L.up})
+    : T(ad < 45 ? (right ? "Turn a little right · {e}° up" : "Turn a little left · {e}° up") : right ? "Turn right · {e}° up" : "Turn left · {e}° up", {e: L.up});
   $("lookSub").textContent = [L.dir, T("{n} km away · {a}", {n: L.km < 10 ? L.km.toFixed(1) : Math.round(L.km), a: altitudeStr(L.alt).toLowerCase()})].join(" · ") + " · " +
     (lookErr && Date.now() - lookErrAt < 10000 ? lookErr : on ? T("The gold line is where you face.")
       : !lookOn && /iPhone|iPad/.test(navigator.userAgent) && window.isSecureContext ? T("Tap the strip to let it turn with your phone.") : T("The plane is in the middle."));
@@ -9518,7 +9527,14 @@ function arHold(why){
   if (!arHeldAt && arGap != null) dlog("debug", `Sky view: lined up (${why}); north held, the compass left out`);
   arHeldAt = Date.now(); arHeldWhy = why;
 }
-async function arOpen(button){
+/* 1.114.5 (to-do #196 M3): one opening at a time. A second tap while the first waits for the camera (its prompt up) waits
+   with it; it used to open again, and the first camera stream and location watch were never stopped. */
+let arOpening = null;
+function arOpen(button){
+  if (arOn) return Promise.resolve();
+  return arOpening || (arOpening = arStart(button).finally(() => { arOpening = null; }));
+}
+async function arStart(button){
   button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the Sky view buttons click like buttons
   const fail = () => { lookErr = T("Sky view needs the camera and the motion sensors, on the https address."); lookErrAt = Date.now(); lookSoon();
     dlog("warn", `Sky view: no camera or motion sensors (refused, or ${window.isSecureContext ? "not available" : "not on https"})`); };
@@ -9558,6 +9574,7 @@ async function arOpen(button){
   }, () => {}, {enableHighAccuracy: true, maximumAge: 15000});
   setTimeout(() => { if (arOn && !arQ) { $("arHint").textContent = T("No compass reading yet: move the phone in a figure of eight."); dlog("warn", "Sky view: no compass reading after 2.5 s"); } }, 2500);
   try { if (!localStorage.getItem("od.ar.tour")) setTimeout(() => { if (arOn) arTour(0); }, 700); } catch {}   // 1.72.7: the first time
+  arPicSig = ""; arNoGoC.at = 0; arTextW.clear(); flapsHold(true);   // 1.114.5: the board underneath rests (M5)
   arLoop();
 }
 // 1.90: with the gyroscope's reading (gyro), arGapStep's check is the exact one; the heading swinging while the tilt holds
@@ -9589,6 +9606,7 @@ function arClose(){
   arWatch = null; cancelAnimationFrame(arRaf);
   arSel = arWant = ""; arCardRender();
   $("arView").hidden = true; document.body.classList.remove("arOpen"); if ($("gAws")) gAwsBox();
+  flapsHold(false);                                  // 1.114.5: the board catches up, at once and without a sound
   lookSoon();
 }
 /* 1.97 (to-do #133): Sky view opened at a plane (a tap on its pass): it is picked out (its card, its ring) and the
@@ -9696,16 +9714,16 @@ function arUnproject(x, y, R, W, H){
   const hh = (arOff.h + arDec) * Math.PI / 180, e = E * Math.cos(hh) + N * Math.sin(hh), n = N * Math.cos(hh) - E * Math.sin(hh);
   return {az: (Math.atan2(e, n) * 180 / Math.PI + 360) % 360, el: Math.atan2(U, Math.hypot(e, n)) * 180 / Math.PI};
 }
+let arPicSig = "";                                  // 1.114.5: what the canvas shows now (the idle path)
 function arLoop(){
   if (!arOn) return;
   arRaf = requestAnimationFrame(arLoop);
   const cv = $("arCv"), W = cv.clientWidth, H = cv.clientHeight, px = Math.min(2, devicePixelRatio || 1);
-  if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); }
+  if (cv.width !== Math.round(W * px) || cv.height !== Math.round(H * px)) { cv.width = Math.round(W * px); cv.height = Math.round(H * px); arPicSig = ""; }
   const g = cv.getContext("2d");
-  g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
   arZoomStep();                                      // 1.99
   arFrame(performance.now());                        // 1.95.0.2: where the phone points now
-  if (!arQ) return;
+  if (!arQ) { if (arPicSig !== "-") { arPicSig = "-"; g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H); } return; }
   const R = arQMatrix(arQ), here = arHere || {lat: S.lat, lon: S.lon}, wx = arWeather();
   arDec = magDecl(here.lat, here.lon);
   const r = here.lat * Math.PI / 180, ky = 111132.95 - 559.82 * Math.cos(2 * r) + 1.18 * Math.cos(4 * r), kx = 111412.84 * Math.cos(r) - 93.5 * Math.cos(3 * r);
@@ -9723,60 +9741,22 @@ function arLoop(){
     const u = Math.max(h + mv[2], Math.min(h, wx.elev)) - (arAlt != null ? arAlt : wx.elev) - d * d / (2 * 6371000) * .87;
     const pr = arProject(e, n, u, R, W, H), isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex;
     if (pr.edge && !isFeat) continue;
-    const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
-    // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only).
-    // 1.80 (Dave's to-do 7, his pick A): the ★ in the plane's rarity colour, with what it gives (what it gave, once scored).
-    // 1.96: what a scan gives (the relay's rules); 1.97: the plane's full points, on top of what it scored on its way in
-    // 1.98 (relay 82): ★ only for a plane a scan counts for (the relay's list, or within the scan's 10 km now); one within
-    // the passive circle (15 km), now or on its way, scored already: CLOSER TO SCAN
-    const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && (x.lock || x.scan)) : null;
-    const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
-    const closer = game && !gx && !near && (d / 1000 <= gKm() || spotted.some(x => x.hex === ac.hex && x.gp != null && x.liveMin != null && x.liveMin <= gKm()));
-    // 1.101 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
-    const gold = near && gGoldSet().has(ac.hex), tier = tierOf(ac, info), pts = gBase(tier) == null ? null : gBase(tier) * (gold ? 2 : 1);
-    const chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
-    shown.push({ac, d, pr, isFeat, chip, gold, locked: !!gx, tier: near ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: game && !gx && !near, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
-      sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
+    shown.push({ac, d, pr, isFeat, alt, el: Math.atan2(u, d) * 180 / Math.PI});
   }
   shown.sort((a, b) => a.d - b.d);
-  const marks = arBodiesDraw(g, R, here, W, H), boxes = [];
+  // 1.114.5: the labels' words only for the 14 drawn, and where each goes, before anything is drawn
+  const top = shown.slice(0, 14), game = gameOk() && S.live, sm = game ? arSpotMap() : null, noGo = arNoGo(cv, W, H), boxes = [];
   arHits = [];
-  g.textBaseline = "alphabetic";
-  for (const s of shown.slice(0, 14)) {
-    if (s.pr.edge) { arEdge(g, s, W, H); continue; }
-    const {x, y} = s.pr;
-    g.font = `700 15px ${FONT}`; const w1 = g.measureText(s.name).width; g.font = `500 12px ${FONT}`; const w2 = g.measureText(s.sub).width;
-    g.font = `700 10px ${FONT}`; const wc = s.chip ? g.measureText(s.chip).width + 12 : 0;
-    const bw = Math.max(w1 + (wc ? wc + 6 : 0), w2) + 18, bh = 40;
-    let bx = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), by = y - 26 - bh;
-    for (let k = 0; k < 8 && boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]); k++) by -= bh + 6;   // no overlaps
-    boxes.push([bx, by, bw, bh]); arHits.push({hex: s.ac.hex, x, y, box: [bx, by, bw, bh]});
-    const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
-    if (s.ac.hex === arSel || s.ac.hex === arWant) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
-    g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 6); g.lineTo(x, by + bh); g.stroke();
-    g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
-    g.globalAlpha = s.far ? .62 : 1;                 // too far for points: dimmed
-    g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
-    g.fillStyle = s.isFeat ? "#111" : "#f3f0e8"; g.font = `700 15px ${FONT}`; g.fillText(s.name, bx + 9, by + 18);
-    g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
-    if (s.chip) {
-      const cx = bx + 9 + w1 + 6;
-      const tc = TIER_COL[s.tier] && !(s.isFeat && s.tier === "legendary") ? TIER_COL[s.tier] : "";   // gold on the gold label: as before
-      g.fillStyle = s.far ? "rgba(255,255,255,.2)" : tc || (s.isFeat ? "#17140e" : "#f0b429"); rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
-      g.fillStyle = s.far ? "#e7e2d6" : tc ? (s.tier === "legendary" ? "#17140e" : "#fff") : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
-    }
-    if (s.gold) {                                    // 1.101: a gold edge round the label and a GOLDEN ×2 tab on it
-      const gr = g.createLinearGradient(bx, by, bx + bw, by + bh), tab = T("GOLDEN ×2");
-      gr.addColorStop(0, "#fff1b8"); gr.addColorStop(.4, "#e0aa1f"); gr.addColorStop(.7, "#b8860b"); gr.addColorStop(1, "#f6d27a");
-      g.strokeStyle = gr; g.lineWidth = 2.5; rr(g, bx, by, bw, bh, 7); g.stroke();
-      g.font = `700 9px ${FONT}`; const tw = g.measureText(tab).width + 10;
-      g.fillStyle = gr; rr(g, bx + 10, by - 9, tw, 14, 7); g.fill();
-      g.fillStyle = "#17140e"; g.fillText(tab, bx + 15, by + 1.5);
-    }
-    g.globalAlpha = 1;
+  for (const s of top) {
+    arLabel(s, game, sm);
+    if (s.pr.edge) continue;
+    const {x, y} = s.pr, w1 = arTW(g, `700 15px ${FONT}`, s.name), w2 = arTW(g, `500 12px ${FONT}`, s.sub);
+    const wc = s.chip ? arTW(g, `700 10px ${FONT}`, s.chip) + 12 : 0, bw = Math.max(w1 + (wc ? wc + 6 : 0), w2) + 18, bh = 40;
+    const [bx, by] = arPlace(x, y, bw, bh, W, H, boxes, noGo);
+    s.w1 = w1; s.wc = wc; s.box = [bx, by, bw, bh];
+    boxes.push(s.box); arHits.push({hex: s.ac.hex, x, y, box: s.box});
   }
-  if (arAutoLock) for (const s of shown) if (!s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) arBrackets(g, s.pr.x, s.pr.y);
-  if (arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
+  const bodies = arBodiesAt(R, here, W, H), marks = bodies.filter(m => !m.pr.edge);
   arShownN = shown.length;
   if (arLocked && shown.some(s => s.ac.hex === arLocked && !s.pr.edge)) arShotAt = Date.now();   // 1.90: only once locked on (the ring full)
   const shut = $("arShut"), snap = Date.now() - arShotAt < 5000;
@@ -9784,17 +9764,149 @@ function arLoop(){
   // 1.90: with the small card open, the shutter sits above it (it was behind it)
   const card = $("arCard"), lift = snap && !card.hidden && !arFull && arP === 0 ? card.offsetHeight + 4 : 0;
   if (lift !== arLift) { arLift = lift; $("arView").style.setProperty("--ar-lift", lift + "px"); }
-  $("arCount").textContent = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
-  $("arReset").classList.toggle("moved", Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5);   // 1.72.7: the labels were dragged
+  // 1.114.5: written only when it changes (every frame, it cost two layouts a frame)
+  const count = shown.length ? T(shown.length === 1 ? "1 plane" : "{n} planes", {n: shown.length}) : T("No planes nearby");
+  if ($("arCount").textContent !== count) $("arCount").textContent = count;
+  const moved = Math.abs(arOff.h) > .5 || Math.abs(arOff.p) > .5;
+  if ($("arReset").classList.contains("moved") !== moved) $("arReset").classList.toggle("moved", moved);   // 1.72.7: the labels were dragged
   // 1.86: until the labels are lined up, AUTO asks for a look near the sun (it finds it in the picture by itself)
   const sunUp = arBody && arBody.sun.el > 1 && arBody.sun.el < 75;
   const hint = Date.now() < arNote.until ? arNote.text : arHeldAt ? arHintText : arAuto && sunUp ? T("Point the phone near the sun for a moment, without looking into it: AUTO finds it and lines every label up.")
     : marks.some(m => m.k === "sun") ? T("Sun beside its ring? Drag the sky until it sits in it on the screen: every label follows. Don't look into the sun.")
     : marks.length ? T("Moon beside its ring? Drag the sky until it sits in it: every label follows.") : arHintText;
   if (hint && $("arHint").textContent !== hint) $("arHint").textContent = hint;
-  arAimDraw(g, W, H);
+  const aim = arAimStep(W, H);
+  // 1.114.5: the picture is drawn only when it would differ from the last one: where the phone points (to a quarter
+  // pixel), the zoom, the labels (their words and places, to a quarter pixel), the sun and moon, the ring, AUTO's marks
+  const f = arFocal(W, H), q = f * 4, rq = v => Math.round(v * 4);
+  const brk = arAutoLock ? shown.filter(s => !s.pr.edge && arAutoLock.hexes.includes(s.ac.hex)) : [];
+  const sig = [W, H, px, Math.round(f * 10), LANG, ...R.map(c => c.map(v => Math.round(v * q)).join(",")), Math.round((arOff.h + arDec) * Math.PI / 180 * q), Math.round(arOff.p * Math.PI / 180 * q),
+    (screen.orientation && screen.orientation.angle) || window.orientation || 0, ...bodies.map(m => m.k + Math.round(m.b.az * 100) + "," + Math.round(m.b.el * 100)),
+    aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
+    ...top.map(s => [s.ac.hex, s.name, s.sub, s.chip, +s.isFeat, +s.gold, +s.far, s.tier, +(s.ac.hex === arSel || s.ac.hex === arWant),
+      s.pr.edge ? Math.round(Math.atan2(s.pr.edge[1], s.pr.edge[0]) * 1000) : rq(s.pr.x) + "," + rq(s.pr.y) + "," + s.box.map(rq).join(",")].join("|"))].join("~");
+  if (sig !== arPicSig) {
+    arPicSig = sig;
+    g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
+    arBodiesDraw(g, bodies, R, W, H);
+    g.textBaseline = "alphabetic";
+    for (const s of top) s.pr.edge ? arEdge(g, s, W, H) : arLabelDraw(g, s);
+    for (const s of brk) arBrackets(g, s.pr.x, s.pr.y);
+    if (arAutoLock && arAutoLock.sun) for (const m of marks) if (m.k === "sun") arBrackets(g, m.x, m.y, 32, 10);   // 1.86
+    arAimDraw(g, aim);
+  }
   arRibbon(R, W, H);
   arAutoStep(shown, W, H, marks.filter(m => m.k === "sun"), R);
+}
+// 1.114.5 (L6): Spotted today by hex, built once for each new list: the first entry scanned or locked on, and the
+// nearest it came live with points
+let arSpotIdx = {src: null, n: -1, map: null};
+function arSpotMap(){
+  if (arSpotIdx.src === spotted && arSpotIdx.n === spotted.length) return arSpotIdx.map;
+  const map = new Map();
+  for (const x of spotted) {
+    let m = map.get(x.hex);
+    if (!m) map.set(x.hex, m = {gx: null, live: Infinity});
+    if (!m.gx && (x.lock || x.scan)) m.gx = x;
+    if (x.gp != null && x.liveMin != null && x.liveMin < m.live) m.live = x.liveMin;
+  }
+  arSpotIdx = {src: spotted, n: spotted.length, map};
+  return map;
+}
+// A drawn label's words: its name, type · height · distance, and the game's chip
+function arLabel(s, game, sm){
+  const ac = s.ac, d = s.d;
+  const info = (infoCache.get(ac.hex + "|" + String(ac.flight || "").trim().toUpperCase()) || {}).info || baseInfo(ac);
+  // 1.72.1: the game's chip: ★ within reach of points, ✓ once locked on, NO PTS too far (live location only).
+  // 1.80 (Dave's to-do 7, his pick A): the ★ in the plane's rarity colour, with what it gives (what it gave, once scored).
+  // 1.96: what a scan gives (the relay's rules); 1.97: the plane's full points, on top of what it scored on its way in
+  // 1.98 (relay 82): ★ only for a plane a scan counts for (the relay's list, or within the scan's 10 km now); one within
+  // the passive circle (15 km), now or on its way, scored already: CLOSER TO SCAN
+  const sp = game && sm.get(ac.hex), gx = sp ? sp.gx : null;
+  const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
+  const closer = game && !gx && !near && (d / 1000 <= gKm() || !!sp && sp.live <= gKm());
+  // 1.101 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
+  const gold = near && gGoldSet().has(ac.hex), tier = tierOf(ac, info), pts = gBase(tier) == null ? null : gBase(tier) * (gold ? 2 : 1);
+  s.chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
+  s.gold = gold; s.locked = !!gx; s.tier = near ? tier : ""; s.far = game && !gx && !near;
+  s.name = info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase();
+  s.sub = [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(s.alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ");
+}
+// Text widths, measured once (cleared when Sky view opens and when a font arrives)
+const arTextW = new Map();
+function arTW(g, font, s){
+  const k = font + "|" + s;
+  let w = arTextW.get(k);
+  if (w == null) { if (arTextW.size > 600) arTextW.clear(); g.font = font; w = g.measureText(s).width; arTextW.set(k, w); }
+  return w;
+}
+if (document.fonts) document.fonts.addEventListener("loadingdone", () => { arTextW.clear(); arPicSig = ""; });
+/* 1.114.5 (M4): where Sky view's controls are on the canvas, [left, top, right, bottom, leader too]: the top bar, AUTO,
+   the zoom buttons, the "labels moved" note and the bottom (ribbon and hint). Read once a second. */
+let arNoGoC = {at: 0, list: []};
+function arNoGo(cv, W, H){
+  const now = Date.now();
+  if (now - arNoGoC.at < 1000) return arNoGoC.list;
+  const c = cv.getBoundingClientRect(), list = [];
+  for (const [sel, line] of [["#arView .arTop", 0], ["#arAuto", 1], ["#arView .arZoom", 1], ["#arMoved", 1], ["#arView .arBot", 0]]) {
+    const el = document.querySelector(sel), r = el && !el.hidden ? el.getBoundingClientRect() : null;
+    if (!r || !r.width || !r.height) continue;
+    // the zoom buttons and the note from the top bar down, so no label sits above them with its line through them
+    const top = line ? Math.min(r.top - c.top, list.length ? list[0][3] : 0) : r.top - c.top;
+    list.push([r.left - c.left - 4, top - 4, r.right - c.left + 4, r.bottom - c.top + 4, line]);
+  }
+  arNoGoC = {at: now, list};
+  return list;
+}
+// 1.114.5 (M4): a label's place: above its plane, else higher up clear of the others, else below the plane; never on a
+// control (nor its line through one); beside a button when that keeps it over its plane. With no free place: over the
+// others, still clear of the controls.
+function arPlace(x, y, bw, bh, W, H, boxes, noGo){
+  const bx0 = Math.min(W - bw - 6, Math.max(6, x - bw / 2)), xs = [bx0];
+  for (const r of noGo) for (const bx of [r[0] - bw - 2, r[2] + 2]) if (bx >= 6 && bx + bw <= W - 6 && x >= bx + 8 && x <= bx + bw - 8) xs.push(bx);
+  const ys = [];
+  for (let k = 0; k < 8; k++) ys.push(y - 26 - bh - k * (bh + 6));
+  for (let k = 0; k < 8; k++) ys.push(y + 26 + k * (bh + 6));
+  const clear = (bx, by) => {
+    const lo = by > y ? y + 6 : by + bh, hi = by > y ? by : y - 6;   // the leader line, from the plane to the label
+    return by >= 0 && by + bh <= H && !noGo.some(r => (bx < r[2] && bx + bw > r[0] && by < r[3] && by + bh > r[1]) ||
+      (r[4] && x > r[0] && x < r[2] && !(y > r[1] && y < r[3]) && lo < r[3] && hi > r[1]));   // (a plane under a control: its line starts there anyway)
+  };
+  const free = (bx, by) => !boxes.some(b => bx < b[0] + b[2] && bx + bw > b[0] && by < b[1] + b[3] && by + bh > b[1]);
+  let fall = null;
+  for (const by of ys) for (const bx of xs) {
+    if (!clear(bx, by)) continue;
+    if (free(bx, by)) return [bx, by];
+    if (!fall) fall = [bx, by];
+  }
+  return fall || [bx0, y - 26 - bh];
+}
+// A label: its line down to the plane, the box with the name, type · height · distance, the chip and a golden edge
+function arLabelDraw(g, s){
+  const {x, y} = s.pr, [bx, by, bw, bh] = s.box, w1 = s.w1, wc = s.wc, below = by > y;
+  const col = s.isFeat ? "#f0b429" : "rgba(255,255,255,.85)";
+  if (s.ac.hex === arSel || s.ac.hex === arWant) { g.strokeStyle = "#f3f0e8"; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 14, 0, Math.PI * 2); g.stroke(); }
+  g.strokeStyle = col; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, below ? y + 6 : y - 6); g.lineTo(x, below ? by : by + bh); g.stroke();
+  g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.stroke();
+  g.globalAlpha = s.far ? .62 : 1;                 // too far for points: dimmed
+  g.fillStyle = s.isFeat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.78)"; rr(g, bx, by, bw, bh, 7); g.fill();
+  g.fillStyle = s.isFeat ? "#111" : "#f3f0e8"; g.font = `700 15px ${FONT}`; g.fillText(s.name, bx + 9, by + 18);
+  g.fillStyle = s.isFeat ? "#2a2108" : "#b9b3a3"; g.font = `500 12px ${FONT}`; g.fillText(s.sub, bx + 9, by + 33);
+  if (s.chip) {
+    const cx = bx + 9 + w1 + 6;
+    const tc = TIER_COL[s.tier] && !(s.isFeat && s.tier === "legendary") ? TIER_COL[s.tier] : "";   // gold on the gold label: as before
+    g.fillStyle = s.far ? "rgba(255,255,255,.2)" : tc || (s.isFeat ? "#17140e" : "#f0b429"); rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
+    g.fillStyle = s.far ? "#e7e2d6" : tc ? (s.tier === "legendary" ? "#17140e" : "#fff") : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
+  }
+  if (s.gold) {                                    // 1.101: a gold edge round the label and a GOLDEN ×2 tab on it
+    const gr = g.createLinearGradient(bx, by, bx + bw, by + bh), tab = T("GOLDEN ×2");
+    gr.addColorStop(0, "#fff1b8"); gr.addColorStop(.4, "#e0aa1f"); gr.addColorStop(.7, "#b8860b"); gr.addColorStop(1, "#f6d27a");
+    g.strokeStyle = gr; g.lineWidth = 2.5; rr(g, bx, by, bw, bh, 7); g.stroke();
+    g.font = `700 9px ${FONT}`; const tw = g.measureText(tab).width + 10;
+    g.fillStyle = gr; rr(g, bx + 10, by - 9, tw, 14, 7); g.fill();
+    g.fillStyle = "#17140e"; g.fillText(tab, bx + 15, by + 1.5);
+  }
+  g.globalAlpha = 1;
 }
 /* 1.90 (Dave's pick A, relay 72): the flag in the top bar sends the relay what Sky view knows about the compass, so it can
    be tuned from real phones: the readings the sensors gave, north as the compass says and as it is in use, the gyroscope's
@@ -9844,10 +9956,13 @@ $("arFlag").onclick = async () => {
 // screen, the camera's picture and the labels, with a slim band under it: the mark, the place, the date and time and how
 // many planes. Shown in a card with Share and Save.
 let arShotAt = 0, arShownN = 0, arLocked = "", arLift = 0;   // arLocked (1.90): the plane the ring last filled on
+let arSnapping = false;                              // 1.114.5 (L5): a double tap on the shutter makes one picture
 async function arSnap(){
+  if (arSnapping) return;
   ctlSound.click();
   const v = $("arVid"), ov = $("arCv"), W = ov.width, H = ov.height, B = Math.round(W * .16), d = new Date(), n = arShownN;
   if (!W || !H) return;
+  arSnapping = true;
   const cv = document.createElement("canvas"), g = cv.getContext("2d");
   cv.width = W; cv.height = H + B;
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
@@ -9871,6 +9986,7 @@ async function arSnap(){
   g.fillText([d.toLocaleDateString(LOC(), {day: "numeric", month: "short", year: "numeric"}), hhmm(d), T(n === 1 ? "1 plane" : "{n} planes", {n}), right ? "" : by].filter(Boolean).join(" · "), tx, H + B * .75);
   const fl = document.createElement("div"); fl.className = "arFlash"; $("arView").appendChild(fl); setTimeout(() => fl.remove(), 450);
   const blob = await new Promise(ok => cv.toBlob(ok, "image/png"));
+  arSnapping = false;
   dlog(blob ? "info" : "warn", blob ? `Sky view snapshot · ${n} planes · ${W}×${H + B}` : "Sky view snapshot: couldn't make the picture");
   if (blob) picCard(blob, `fallblatt-sky-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${hhmm(d).replace(":", "")}.png`);
 }
@@ -10037,20 +10153,25 @@ $("arAuto").onclick = () => {
 // 1.76: the sun and the moon where they really are, as dashed rings: if the real one isn't in its ring, a drag lines it
 // and every label up. Returns where they are on the screen.
 let arBody = null, arBodyAt = 0;
-function arBodiesDraw(g, R, here, W, H){
+// 1.114.5: where they are (arBodiesAt), then drawn (arBodiesDraw) only when the picture changes
+function arBodiesAt(R, here, W, H){
   const now = Date.now(), out = [], r = Math.PI / 180;
   if (now - arBodyAt > 1000) { arBody = skyBodies(here.lat, here.lon, now); arBodyAt = now; }
   for (const [k, b, name] of [["sun", arBody.sun, "SUN"], ["moon", arBody.moon, "MOON"]]) {
     if (b.el < -.5 || (k === "moon" && b.lit < .04)) continue;
     const pr = arProject(Math.sin(b.az * r) * Math.cos(b.el * r), Math.cos(b.az * r) * Math.cos(b.el * r), Math.sin(b.el * r), R, W, H);
+    out.push({k, b, name, pr, x: pr.x, y: pr.y});
+  }
+  return out;
+}
+function arBodiesDraw(g, bodies, R, W, H){
+  for (const {k, b, name, pr} of bodies) {
     if (pr.edge) { arBodyEdge(g, k, b, pr, R, W, H); continue; }
-    out.push({k, x: pr.x, y: pr.y});
     g.save(); g.shadowColor = "rgba(0,0,0,.55)"; g.shadowBlur = 4;
     g.setLineDash([6, 5]); g.strokeStyle = "#f0b429"; g.lineWidth = 2.5; g.beginPath(); g.arc(pr.x, pr.y, 22, 0, Math.PI * 2); g.stroke();
     g.font = `700 12px ${FONT}`; g.fillStyle = "#f0b429"; g.textAlign = "center"; g.fillText((k === "sun" ? "☀ " : "☾ ") + T(name), pr.x, pr.y - 30);
     g.restore();
   }
-  return out;
 }
 // 1.90 (Dave's pick A): the sun or the moon out of the picture: a dashed arrow at the edge pointing the way, as the plane
 // on top's arrow does, with how far to turn ("☀ SUN · 139° right"; up or down when it is above or below the picture).
@@ -10135,7 +10256,9 @@ function arHeight(ac, wx){
   return wx.temp != null && up > 0 ? wx.elev + up * (wx.temp + 273.15) / (288.15 - .0065 * wx.elev) : m;
 }
 // The ring: the plane nearest its middle within it is aimed at; after AR_AIM_MS it opens (once, until the ring empties).
-function arAimDraw(g, W, H){
+// 1.114.5: arAimStep each frame, arAimDraw when the picture changes. A plane scanned already (this session, or Spotted
+// today says so) doesn't lock on again: no sound, card or request (to-do #196 L3); the shutter still comes for it.
+function arAimStep(W, H){
   const cx = W / 2, cy = H / 2, now = Date.now();
   // 1.99: zoomed, the ring catches the same piece of sky as at ×1 (as many times wider); drawn no wider than the screen
   const catchR = AR_AIM_R * arZk * arZc, R0 = Math.min(catchR, Math.min(W, H) / 2 - 16);
@@ -10143,7 +10266,19 @@ function arAimDraw(g, W, H){
   const hex = hit ? hit.hex : "";
   if (hex !== arAim.hex) arAim = {hex, since: now, done: hex && hex === arAim.done ? hex : ""};
   const sel = arSel === arWant ? "" : arSel;           // 1.97: the plane Sky view was opened at is picked out, not yet scanned
+  if (hex && hex !== sel && hex !== arAim.done && arScanned(hex)) { arAim.done = hex; arLocked = hex; }
   const k = hex && hex !== arAim.done && hex !== sel ? Math.min(1, (now - arAim.since) / AR_AIM_MS) : hex === sel && hex ? 1 : 0;
+  arPeekWatch(hex);
+  if (hex && k >= 1 && hex !== sel && hex !== arAim.done) {
+    if (hex === arWant) arWant = "";
+    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.nav(); arCardRender();
+    gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
+  }
+  return {cx, cy, R0, k};
+}
+const arScans = new Set();                           // 1.114.5: planes scanned this session (the relay said points, or done)
+const arScanned = hex => gameOk() && S.live && (arScans.has(hex) || !!(arSpotMap().get(hex) || {}).gx);
+function arAimDraw(g, {cx, cy, R0, k}){
   g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)";
   g.beginPath(); g.arc(cx, cy, R0, 0, Math.PI * 2); g.stroke();
   g.beginPath(); g.moveTo(cx, cy - R0 - 12); g.lineTo(cx, cy - R0 + 6); g.moveTo(cx, cy + R0 - 6); g.lineTo(cx, cy + R0 + 12);
@@ -10151,12 +10286,6 @@ function arAimDraw(g, W, H){
   if (k > 0) {
     g.strokeStyle = "#f0b429"; g.lineWidth = 5;
     g.beginPath(); g.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); g.stroke();
-  }
-  arPeekWatch(hex);
-  if (hex && k >= 1 && hex !== sel && hex !== arAim.done) {
-    if (hex === arWant) arWant = "";
-    arAim.done = hex; arSel = hex; arLocked = hex; arFull = false; arAwayAt = 0; arCardSig = ""; ctlSound.nav(); arCardRender();
-    gLockOn(hex);                                    // 1.72: the game's bonus, and its boarding pass
   }
 }
 // The plane on top, out of the picture: an arrow at the edge pointing the way to turn.
@@ -10459,15 +10588,17 @@ function arTry(){
     `<div class="liveAsk"><button class="liveGo" type="button">${escH(T("Go live and open"))}</button><button class="liveNo" type="button">${escH(T("Not now"))}</button></div>`,
     box => { box.querySelector(".liveGo").onclick = arGoLive; box.querySelector(".liveNo").onclick = () => { ctlSound.click(); cardClose(); }; });
 }
+let arGoing = false;                                 // 1.114.5 (M3): one wait for live location at a time
 async function arGoLive(){
-  ctlSound.click(); cardClose();
+  if (arGoing) return;
+  arGoing = true; ctlSound.click(); cardClose();
   // iPhones let a page ask for the motion sensors only straight from a tap: asked now, before waiting for the location
   try { if (typeof DeviceOrientationEvent.requestPermission === "function") await DeviceOrientationEvent.requestPermission(); } catch {}
   gGoLive();
   const t0 = Date.now(), wait = setInterval(() => {
-    if (S.live && !liveFirst) { clearInterval(wait); arOpen(); }
+    if (S.live && !liveFirst) { clearInterval(wait); arGoing = false; arOpen(); }
     else if (!S.live || Date.now() - t0 > 15000) {
-      clearInterval(wait); lookErr = T("Couldn't find where you are, so Sky view stays closed."); lookErrAt = Date.now(); lookSoon();
+      clearInterval(wait); arGoing = false; lookErr = T("Couldn't find where you are, so Sky view stays closed."); lookErrAt = Date.now(); lookSoon();
     }
   }, 300);
 }
@@ -11755,6 +11886,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.5", date: "2026-10-29", notes: [
+    "Sky view runs lighter: with the phone held still it no longer redraws the same picture, which saves battery.",
+    "Sky view's labels stay below the title bar and clear of the buttons; with no room above a plane, its label goes below it.",
+    "The board underneath rests while Sky view is open: no flipping and no clatter; it shows the latest when you close Sky view.",
+    "A plane you've scanned doesn't lock on again when it passes through the ring.",
+    "Two quick taps on Sky view open it once; a double tap on the shutter takes one picture.",
+    "Where to look's \"Turn a little left/right\" is translated."]},
   {v: "1.114.3", date: "2026-10-29", notes: [
     "Member cards look new: the logo printed in its colours, the code in holographic ink; member since and last scan on the back."]},
   {v: "1.114.2", date: "2026-10-29", notes: [
@@ -14698,6 +14836,7 @@ async function gLockOn(hex){
   try { r = await fetchJSON(`${relay()}/game/lockon`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({hex})}, 6000); }
   catch (e) { dlog("warn", `Sky view scan: no answer (${netError(e, "relay")})`); return; }
   const ac = arList.find(a => a.hex === hex) || {};
+  if (r && (r.bonus || r.why === "done")) arScans.add(hex);   // 1.114.5: not locked on again this session
   dlog(r && r.bonus ? "info" : "debug", `Sky view scan: ${String(ac.flight || hex).trim()} ${r && r.bonus ? "+" + r.bonus + (r.streak ? ", streak day " + r.streak : "") : "nothing (" + (r && r.why || "none") + ")"}`);
   if (!r || !r.bonus) {
     if (r && r.why === "far") { $("arHint").hidden = false; $("arHint").textContent = T("Too far for points: they come within {k} km.", {k: gKm()}); }

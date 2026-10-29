@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=4ef8181d29"></script>
+<script src="i18n.js?v=5e9ffbdd39"></script>
 <script>
 (() => {
 "use strict";
@@ -7845,6 +7845,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.114.5", date: "2026-10-29", notes: [
+    "Sky view runs lighter: with the phone held still it no longer redraws the same picture, which saves battery.",
+    "Sky view's labels stay below the title bar and clear of the buttons; with no room above a plane, its label goes below it.",
+    "The board underneath rests while Sky view is open: no flipping and no clatter; it shows the latest when you close Sky view.",
+    "A plane you've scanned doesn't lock on again when it passes through the ring.",
+    "Two quick taps on Sky view open it once; a double tap on the shutter takes one picture.",
+    "Where to look's \"Turn a little left/right\" is translated."]},
   {v: "1.114.3", date: "2026-10-29", notes: [
     "Member cards look new: the logo printed in its colours, the code in holographic ink; member since and last scan on the back."]},
   {v: "1.114.2", date: "2026-10-29", notes: [
