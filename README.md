@@ -310,8 +310,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   once a day, about 17,000 aircraft worth a look, and a plane on it says what it is in its status and the lists:
   POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or
   UNUSUAL (air forces stay MILITARY). The list is © its contributors, under the ODbL 1.0 / DbCL 1.0.
-- **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes, and its last
-  row shows the rarest plane of the day (the day's points only until 1.89.1).
+- **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes and shows
+  the Plane of the day, the rarest plane seen (the day's points only until 1.89.1). On the board it takes the most
+  seen's place; on the phone (1.111) it opens the plate, with the day's span under it: the first and the last plane and
+  the busiest hour.
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the planes within the spotting radius on flaps beside it. In the
   Airport style (1.33) it is centred on the home airport, with the spotting radius around the airport and the logo
@@ -376,8 +378,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   Now), not in Settings, the radar or the lists; the chimes for special planes and favourites still sound everywhere.
   Achievements have their own short festive flourish (1.45).
 - **Today in numbers** on the board (1.82) is laid out like the phone's: planes, airlines, types and overhead across
-  the top, then the lowest and highest pass, the fastest, the most seen airline, the most seen types (the day's top
-  three) and what's new in the logbook; no busiest hour or first of the day. The Records & trophies page shows each
+  the top. Since 1.111 the lowest and highest pass and the fastest sit side by side under them, the figure on flaps and
+  the plane (flight, type, time) engraved under it; then the most seen (the airline and the top types, "AUSTRIAN 8 -
+  A320 6") and the newest plane new to the logbook. The Records & trophies page shows each
   rank's medal as on the phone: the cup in its metal (filled once won) and a tag after the name.
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
@@ -727,9 +730,11 @@ Five buttons along the bottom:
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today**: today's numbers on flaps, the day's highlights (lowest and highest pass, fastest, most seen airline, the
-  most seen aircraft types since 1.78.2, what's new in the logbook; since 1.87.2.1 "most seen" only counts what came at
-  least twice, else "No airline twice yet"), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
+- **Today**: today's numbers on flaps, the day's highlights (1.111: the lowest and highest pass and the fastest side by
+  side, the figure first and the plane under it; the most seen airline and aircraft types as bars, counting only what
+  came at least twice; the newest plane new to the logbook; from 21:00 the Plane of the day first). Tap a plane named
+  there and the list below scrolls to it and lights its row for a moment (a filter that hides it is cleared). Then every
+  plane spotted today, with the same filters and legend as the board, and the same filter box.
   Since 1.95 the list is the same timeline as Recent flights, grouped by the hour, and a tap opens a plane's card in place.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,

@@ -943,6 +943,23 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.111 (to-do #163, Dave's pick of 29 Oct: C of round 2, "with A's tap to jump"; no relay change): **Today in numbers,
+  tidier.** `dayHighlights(list, st)` (test/index.html, in the app's E27 with `reviewTime`, now a function, and
+  `TIER_ORDER`) gathers what both screens show: the three records as the list's own entries (the relay's `day_stats`
+  records found by hex and ts, else `fromRelay` of what it sent), the most seen airline (`name` for flaps, `title` as
+  written) and types (twice or more), the newest plane new to the logbook, the Plane of the day (the highest tier) and
+  the day's span (first, last, busiest hour by the rows' `time`). App: `renderTodayNumbers` fills `.dayFacts` (head.html):
+  sections between thin rules; from 21:00 (`reviewTime`) the h3 reads Your day in planes and a `.pod` box edged in
+  `TIER_COL` opens it, the span under it; the records in three columns (figure, then `rowName` · time); the bars (width
+  against the largest count); New in the logbook with "first ever" and "{n} more". Every plane named there that is in
+  the list is a `button.dayJump[data-jump=tlKey]`; `todayJump` clears a filter (`svFilter`, `svQuery` and its box) that
+  hides the row, scrolls it to the middle and gives it `.jump` for 2.6 s (gold ring, the reason after its details from
+  `.l2[data-jl]`). Board: `stLow`/`stHigh`/`stFast` are 9 flaps of the figure, one per third of the width; `statsSubs`
+  (flight · type · time) are engraved under them by `statsEngrave` from `drawStatic`, redrawn when they change;
+  `stTop` is Most seen (`mostSeenFlaps`) or, in the evening with a tiered plane, Plane of the day; `stNew` names the
+  newest new plane; `stFirst`, `topTypesFlaps` and the app's `topTypes` are gone. Checked on a made-up day (the
+  mockups' day.js) by day, in the evening, a quiet day, the test relay's own sightings, a tap with a filter on, and the
+  board at 1280x720 and 960x540.
 - 1.108 (to-do #156, Dave's pick of 29 Oct: A, the glass cabinet, "and add the origin/destination"; relay 91): **the
   showcase.** `scSection(p)` in `playerCard` between the three numbers and the medals: `scCab(sc, o)`, a `.scCab` of
   `scPin(x)` cards (the hangar's `.hgCard` smaller, `.sc`: the pin's photo, else the model's via `modelPic`, painted

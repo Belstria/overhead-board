@@ -736,45 +736,69 @@ function legendHtml(){
     items.map(([r, t]) => `<li>${chip(r)}<span>${escH(t)}</span></li>`).join("") + "</ul>").join("") +
     `<p class="sum">${escH(T("A plane can be more than one of these; the board shows the most special one, in the order listed. Arriving, Departing and Overflight only show in the lists."))}</p>`;
 }
-// 1.78.2: the most seen aircraft types today (up to three, "A320 ×12"), counted from the day's list
-function topTypes(list){
-  const c = new Map();
-  for (const e of list) { const k = e.typeCode || clean(e.type); if (k) c.set(k, (c.get(k) || 0) + 1); }
-  // 1.87.2.1: only types seen twice or more; a day of one of each has no most seen
-  return [...c].filter(x => x[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${shortType(TYPES[k] || k)} ×${n}`).join(" · ")
-    || (c.size ? T("No type twice yet") : "");
-}
 function todayNumbers(){
   const st = relayV5() && (allPlaces ? fullDay.all && fullDay.stats : !liveWaiting() && relayStats), list = todayList();
-  if (st) {
-    const name = x => x ? fromRelay(x).flight : "";
-    const t = st.topAirline, tn = t ? shortAirline(t.name || (AIRLINES[t.code] || [])[1] || t.code) : "";
-    return {planes: st.planes, airlines: st.airlines, types: st.types, over: st.overhead, facts: [
-      ["Lowest pass", "Tiefster", st.lowest ? `${name(st.lowest)} · ${altText(st.lowest.altAtMin)}` : ""],   // 1.78.2: no busiest hour, no first
-      ["Highest pass", "Höchster", st.highest ? `${name(st.highest)} · ${altText(st.highest.altAtMin)}` : ""],
-      ["Fastest", "Schnellster", st.fastest ? `${name(st.fastest)} · ${speedStr(st.fastest.maxSpeed).toLowerCase()}` : ""],
-      ["Most seen airline", "", t ? (t.count > 1 ? `${tn} · ${t.count}` : T("No airline twice yet")) : ""],
-      ["Most seen types", "", topTypes(list)],
-      ["New in the logbook", "Neu", st.newTypes || st.newAirlines ? T("{a} types · {b} airlines", {a: st.newTypes, b: st.newAirlines}) : T("Nothing new yet")]]};
-  }
   const uniq = fn => new Set(list.map(fn).filter(Boolean)).size;
-  const withAlt = list.filter(e => typeof e.altAtMin === "number");
-  const low = withAlt.reduce((a, e) => !a || e.altAtMin < a.altAtMin ? e : a, null);
-  const high = withAlt.reduce((a, e) => !a || e.altAtMin > a.altAtMin ? e : a, null);
-  return {planes: list.length, airlines: uniq(e => e.airlineCode || clean(e.airline)), types: uniq(e => e.typeCode || clean(e.type)),
-    over: list.filter(overEntry).length, facts: [
-      ["Lowest pass", "Tiefster", low ? `${low.flight} · ${altText(low.altAtMin)}` : ""],
-      ["Highest pass", "Höchster", high ? `${high.flight} · ${altText(high.altAtMin)}` : ""],
-      ["Most seen types", "", topTypes(list)]]};
+  return {planes: st ? st.planes : list.length, airlines: st ? st.airlines : uniq(e => e.airlineCode || clean(e.airline)),
+    types: st ? st.types : uniq(e => e.typeCode || clean(e.type)), over: st ? st.overhead : list.filter(overEntry).length,
+    h: dayHighlights(list, st || null)};
 }
+// 1.111 (to-do #163, Dave's pick C with A's tap): under the counters, the three records side by side (the figure first,
+// the plane and time under it), the most seen as bars and the newest plane new to the logbook; from 21:00 "Your day in
+// planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
 let todayFactsSig = "";
 function renderTodayNumbers(){
-  const n = todayNumbers();
+  const n = todayNumbers(), h = n.h, ev = reviewTime() && !!(h.pod && h.pod.tier);
   setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
   setChars("stTypes", String(n.types), 120); setChars("stOver", String(n.over), 180);
-  const html = n.facts.filter(f => f[2]).map(([en, de, v]) => `<div><dt>${escH(T(en))}</dt><dd>${escH(v)}</dd></div>`).join("");
+  // a plane: a button when its row is in the list
+  const jump = (e, what, inner) => h.inList(e) ? `<button type="button" class="dayJump" data-jump="${escH(tlKey(e))}" data-jl="${escH(T(what))}">${inner}</button>` : `<span class="dayJump">${inner}</span>`;
+  const rec = (what, e, v) => `<div><dt>${escH(T(what))}</dt><dd>${e ? jump(e, what, `<b>${escH(v(e))}</b><small>${escH(rowName(e))} · ${escH(e.time || "")}</small>`) : "–"}</dd></div>`;
+  const max = Math.max(h.airline ? h.airline.count : 0, ...h.types.map(t => t[1]));
+  const bar = (k, c) => `<span>${escH(k)}</span><i style="width:${Math.max(6, c / max * 100).toFixed(1)}%"></i><em>${nf.format(c)}</em>`;
+  const bars = (h.airline && h.airline.count > 1 ? bar(h.airline.title, h.airline.count) + (h.types.length ? `<b class="gap"></b>` : "") : "") +
+    h.types.map(([k, c]) => bar(shortType(TYPES[k] || k), c)).join("");
+  const p = h.pod, nw = h.newest, hh = x => String(x % 24).padStart(2, "0");
+  const fl = e => jump(e, e === h.first ? "First of the day" : "Last of the day", escH(rowName(e)));
+  // the translations are ours, so the time and the flights go in as HTML
+  const span = h.first && h.last && h.first !== h.last ? T("From {a} ({f}) to {b} ({l})", {a: `<b>${escH(h.first.time || "")}</b>`, f: fl(h.first), b: `<b>${escH(h.last.time || "")}</b>`, l: fl(h.last)}) +
+    (h.busy && h.busy.n > 1 ? " · " + T("busiest {h} ({n})", {h: `<b>${hh(h.busy.h)}–${hh(h.busy.h + 1)}h</b>`, n: h.busy.n}) : "") : "";
+  const html = (ev ? `<div class="sec"><div class="pod" style="--tc:${TIER_COL[p.tier]}">${jump(p, "Plane of the day",
+      `<span class="k">${escH(T("Plane of the day"))}<span>${escH(T(TIER_NAME[p.tier] || ""))}</span></span><b>${escH(shortType(p.type) || p.typeCode || rowName(p))}</b>` +
+      `<small>${escH([rowName(p), p.from || p.to ? `${(p.from && (p.from.city || p.from.code)) || "···"} → ${(p.to && (p.to.city || p.to.code)) || "···"}` : "", p.time].filter(Boolean).join(" · "))}</small>`)}</div>` +
+      (span ? `<p class="span">${span}</p>` : "") + `</div>` : "") +
+    `<div class="sec rec">${rec("Lowest pass", h.low, e => altText(e.altAtMin))}${rec("Highest pass", h.high, e => altText(e.altAtMin))}${rec("Fastest", h.fast, e => speedStr(e.maxSpeed).toLowerCase())}</div>` +
+    `<div class="sec"><dt>${escH(T("Most seen"))}</dt>${bars ? `<div class="bars">${bars}</div>` : `<p class="new">${escH(h.typesSeen ? T("Nothing seen twice yet") : "–")}</p>`}</div>` +
+    `<div class="sec"><dt>${escH(T("New in the logbook"))}</dt><p class="new">${nw ? jump(nw, "New in the logbook", `${escH(nw.newType ? shortType(nw.type) || nw.typeCode : nw.airline || rowName(nw))} <small>· ${escH(rowName(nw))} · ${escH(nw.time || "")} · ${escH(T("first ever"))}` +
+      `${h.newN > 1 ? " · " + escH(T("{n} more", {n: h.newN - 1})) : ""}</small>`) : escH(T("Nothing new yet"))}</p></div>`;
   if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
+  const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = $("todayTop").querySelector("h3");
+  if (h3.textContent !== title) h3.textContent = title;
 }
+// A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment, what it was named for after its
+// details. A filter that hides it is cleared first.
+function todayJump(k, what){
+  const row = () => $("svList").querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
+  if (!row() && (svFilter !== "all" || svQuery)) {
+    svFilter = "all"; svQuery = "";
+    const inp = $("svTools").querySelector("[data-q]"), x = $("svTools").querySelector("[data-qx]");
+    if (inp) inp.value = ""; if (x) x.hidden = true;
+    svSig = ""; renderToday();
+  }
+  const li = row();
+  if (!li) return;
+  ctlSound.nav();
+  for (const o of document.querySelectorAll("#svList li.jump")) o.classList.remove("jump");
+  const l2 = li.querySelector(".l2");
+  if (l2) l2.dataset.jl = what;
+  li.classList.add("jump");
+  li.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  clearTimeout(todayJump.t); todayJump.t = setTimeout(() => li.classList.remove("jump"), 2600);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("#todayFacts button[data-jump]");
+  if (b) todayJump(b.dataset.jump, b.dataset.jl);
+});
 function renderToday(){
   if (tab !== "today") return;
   loadFullDay();
