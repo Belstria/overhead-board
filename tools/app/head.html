@@ -1018,6 +1018,61 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .perCard .perHead .perArr{margin-left:auto}
 .hgPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
 .hgPlate .hgShelf:first-of-type{margin-top:6px}
+/* 1.107 (to-do #150, Dave's pick: the stamp shelves with the ink patchwork map): the passport. The map printed on
+   passport paper, each stamped country inked in its stamp's colour; a shelf per region of stamp cards (the stamps drawn
+   at 1.5× and set down to their card's size, so their small print keeps to the type scale); a face-down card for a
+   country nearby still to stamp */
+.ppPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
+.ppShelf{margin:14px 0 0}
+.ppMap{position:relative;display:block;width:100%;aspect-ratio:360/190;padding:0;border:0;border-radius:10px;overflow:hidden;cursor:pointer;
+  background:#f3eee2 repeating-radial-gradient(circle at 50% 120%,rgba(31,79,184,.06) 0 1px,transparent 1px 7px);box-shadow:inset 0 0 0 1px #d8cfba}
+.ppMap svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ppMap .ppInk{mix-blend-mode:multiply}
+.ppMap .ct{position:absolute;right:10px;top:8px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#7a2416}
+.ppMap .lg{position:absolute;left:10px;bottom:8px;font:600 var(--fs-tag)/1 var(--f-board);color:#8a8170}
+.ppMap.big{aspect-ratio:360/440;margin:0 0 12px;cursor:default}
+.ppMap .ppLbl text{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;fill:#f3eee2;text-anchor:middle;paint-order:stroke;stroke:rgba(40,30,20,.35);stroke-width:2px}
+.pCard{flex:none;width:112px;height:118px;border-radius:12px;display:grid;place-items:center;overflow:hidden;scroll-snap-align:start;
+  background:#f3eee2 repeating-radial-gradient(circle at 50% 120%,rgba(31,79,184,.05) 0 1px,transparent 1px 7px);box-shadow:inset 0 0 0 1px #d8cfba}
+.pCard.no{box-sizing:border-box;place-content:center;justify-items:center;gap:4px;padding:0 8px;text-align:center;background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px);
+  box-shadow:none;border:1px dashed rgba(255,255,255,.16);font:700 var(--fs-tag)/1.25 var(--f-board);letter-spacing:.06em;color:var(--muted)}
+.pCard.no b{font:700 var(--fs-m)/1 var(--f-board);letter-spacing:.1em;color:#4a4d55}
+.pS{position:relative;flex:none;display:inline-grid;place-items:center;align-content:center;gap:3px;box-sizing:border-box;padding:8px 10px;text-align:center;color:var(--ink-c);
+  border:3px solid currentColor;box-shadow:inset 0 0 0 3px transparent,inset 0 0 0 5px currentColor;opacity:.86;mix-blend-mode:multiply;font-family:var(--f-board);
+  transform:rotate(var(--r,-8deg)) scale(.66)}
+.pS.rd{width:114px;height:114px;border-radius:50%}
+.pS.rc{min-width:130px;min-height:84px;border-radius:8px}
+.pS.ov{width:140px;height:94px;border-radius:50%}
+.pS small{max-width:112px;font:700 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.pS.rd small{max-width:88px}
+.pS b{font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.06em}
+.pS i{display:flex;align-items:center;gap:3px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.08em}
+.pS i svg{width:14px;height:14px}
+/* the scan's ticket: the route, a country new to the passport in red */
+.gAw .ppRt{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:4px 12px 6px;padding:7px 10px;border-radius:8px;background:#efe9da}
+.gAw .ppRt b{font:700 var(--fs-l)/1 var(--f-board);color:#111}
+.gAw .ppRt b small{display:block;margin-top:3px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:#777}
+.gAw .ppRt b:last-child{text-align:right}
+.gAw .ppRt b.nw,.gAw .ppRt b.nw small{color:#b3262d}
+.gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
+.gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
+/* a new country: the card over the ticket; the stamp lands (fsLand), the country soaks up its ink, or the finger rubs it in */
+.gAw.ppNew{width:340px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.ppNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
+.ppNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
+.ppNew .ppMap{aspect-ratio:340/170;border-radius:0;box-shadow:none;cursor:crosshair;touch-action:none}
+.ppNew .ppMap .sv{position:absolute;inset:0}
+.ppNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+.ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
+.ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+@keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
+.ppNew.scr .ppDrop .pS{animation:ppLift .4s ease-in forwards}
+@keyframes ppLift{to{opacity:0;transform:rotate(-12deg) scale(.82) translateY(-14px)}}
+.ppTip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:6px 10px;border-radius:12px;white-space:nowrap;pointer-events:none;
+  font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#f3eee2;background:rgba(122,36,22,.88);animation:ppTip 1.6s .9s ease-in-out infinite alternate both}
+@keyframes ppTip{from{opacity:.75}to{opacity:1}}
+.ppNew.inked .ppTip,.ppNew.scr .ppTip{opacity:0;animation:none;transition:opacity .3s}
+@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppTip{animation:none!important}}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}

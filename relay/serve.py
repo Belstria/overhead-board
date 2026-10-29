@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 89
+RELAY_VERSION = 90
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1054,6 +1054,7 @@ GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
 MASTERY = ((5, 25), (25, 100), (100, 250))   # relay 88 (to-do #149): bronze, silver, gold: a type's scans for the step, its bonus
 LOYALTY = ((10, 25), (50, 100), (200, 250))  # relay 89 (to-do #162): an airline's Silver, Gold, Platinum: its planes scanned, the bonus (Member at the first)
+GAME_COUNTRY = 25           # relay 90 (to-do #150): a country new to the passport at a scan (from the route's airports)
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
 STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
@@ -1202,7 +1203,7 @@ def game_rules():
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
             "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
             "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY],
-            "loyalty": [list(m) for m in LOYALTY]}
+            "loyalty": [list(m) for m in LOYALTY], "country": GAME_COUNTRY}
 
 
 def level_of(points):
@@ -1514,6 +1515,7 @@ def game_lockon(spot, hx):
     (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery"). Relay 89
     (to-do #162): and an airline to 10, 50 or 200 its Silver, Gold or Platinum once ("loyalty"); "airline": its scans now."""
     _scan_types(spot)                           # relay 88: the scans per type exist before the first scan counts
+    db = _passport_make(spot)                   # relay 90: the countries of earlier scans, stamped unpaid (once)
     now = time.time()
     with _data_lock:
         spot.ensure_day()
@@ -1554,6 +1556,13 @@ def game_lockon(spot, hx):
             for k in range(ly.get(al, 0) + 1, loyalty_step(sa[al]) + 1):
                 ly[al] = k
                 lines.append({"k": "loyalty", "p": LOYALTY[k - 1][1], "n": al, "m": k})
+        pp, route = g.get("passport"), []
+        if db and isinstance(pp, dict):         # relay 90 (to-do #150): the route's countries; one new to the passport pays
+            for cc, ap in route_countries(e, db):
+                route.append([ap, cc, cc not in pp])
+                if cc not in pp:
+                    pp[cc] = {"d": day, "ap": ap, "p": GAME_COUNTRY}
+                    lines.append({"k": "country", "p": GAME_COUNTRY, "n": cc, "ap": ap})
         streak = 0
         sd = g.setdefault("scanDays", [])
         if day not in sd:
@@ -1577,6 +1586,7 @@ def game_lockon(spot, hx):
         lv = level_of(g["points"])
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
                 "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
+                "route": route, "countries": len(pp) if isinstance(pp, dict) else None,
                 "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 
@@ -1597,7 +1607,7 @@ def game3_json(book, day):
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
                trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
-               standby=standby_json(g, day), wallet=wallet_json(g))
+               standby=standby_json(g, day), wallet=wallet_json(g), passport=passport_json(g))
     return out
 
 
@@ -1771,6 +1781,68 @@ def wallet_json(g):
     count, so the wallet's size is theirs), with its planes scanned (0: not a member yet)."""
     sa = g.get("scanAirlines") or {}
     return {al: sa.get(al, 0) for al in g.get("airlines") or {}}
+
+
+def _cc_ready():
+    """Relay 90: the airport list with each airport's country (its v4); None while it loads or with only an older copy."""
+    db = _airports_ready()
+    return db if db and db.get("v") == 4 else None
+
+
+def _ap_row(db, code):
+    code = str(code or "").upper()
+    return (db.get("iata") or {}).get(code) or (db.get("iata") or {}).get((db.get("icao") or {}).get(code, ""))
+
+
+def route_countries(e, db):
+    """Relay 90 (to-do #150): the countries of a sighting's known route, [(country, airport code)], origin first, each
+    country once; [] without a route (both ends) or an airport the list lacks."""
+    out = []
+    if not (isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict)):
+        return out
+    for k in ("from", "to"):
+        code = str(e[k].get("code") or "").upper()
+        row = _ap_row(db, code)
+        cc = row[7] if row and len(row) > 7 else ""
+        if re.fullmatch(r"[A-Z]{2}", cc) and cc not in [c for c, _ in out]:
+            out.append((cc, code))
+    return out
+
+
+def _passport_make(spot):
+    """Relay 90: the passport the first time, from the saved days' scans with a known route ({country: {"d": day,
+    "ap": airport, "p": 0}}, the first scan's), unpaid. Not under _data_lock (it reads every saved day). Returns the
+    airport list with countries (None while it loads: then no passport yet, and a scan stamps nothing)."""
+    db = _cc_ready()
+    with _data_lock:
+        if not db or isinstance(game_book(spot.book()).get("passport"), dict):
+            return db
+    pp = {}
+    for e in sorted(_logbook_entries(spot), key=lambda x: x.get("scan") or 0):
+        if e.get("scan"):
+            for cc, ap in route_countries(e, db):
+                pp.setdefault(cc, {"d": board_day(e["scan"] / 1000), "ap": ap, "p": 0})
+    with _data_lock:
+        g = game_book(spot.book())
+        if not isinstance(g.get("passport"), dict):
+            g["passport"] = pp
+            spot.changed("book")
+            event("info", f"Passport: {len(pp)} countries stamped from earlier scans", echo=False)
+    return db
+
+
+def passport_json(g):
+    """Relay 90 (to-do #150): the player's passport (their own, never on other players' cards): {country: [day, airport,
+    lat, lon, continent, paid]}; None until it is made (the airport list still loading)."""
+    pp, db = g.get("passport"), _airports or {}
+    if not isinstance(pp, dict):
+        return None
+    out = {}
+    for cc, s in pp.items():
+        row = _ap_row(db, s.get("ap")) or []
+        out[cc] = [s.get("d") or "", s.get("ap") or "", row[1] if len(row) > 2 else None, row[2] if len(row) > 2 else None,
+                   row[8] if len(row) > 8 else "", s.get("p") or 0]
+    return out
 
 
 def hangar_json(spot):
@@ -2433,7 +2505,7 @@ def _load_airports():
     """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
     global _airports
     db = _load(AIRPORTS_FILE, None)
-    if db and db.get("v") == 3 and time.time() - db.get("fetched", 0) < 60 * 86400:
+    if db and db.get("v") == 4 and time.time() - db.get("fetched", 0) < 60 * 86400:
         _airports = db
         return
     status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
@@ -2457,10 +2529,11 @@ def _load_airports():
                 elev = int(float(r.get("elevation_ft") or 0))
             except ValueError:
                 elev = 0
-            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev]
+            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev,
+                          (r.get("iso_country") or "").strip().upper()[:2], (r.get("continent") or "").strip().upper()[:2]]   # relay 90: the passport's
         if ic:
             icao[ic] = code
-    _airports = {"v": 3, "fetched": time.time(), "iata": iata, "icao": icao}
+    _airports = {"v": 4, "fetched": time.time(), "iata": iata, "icao": icao}
     try:
         DATA_DIR.mkdir(exist_ok=True)
         AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
@@ -3228,6 +3301,7 @@ def category_top_json(spot, cat, places=None):
 
 def logbook_json(spot):
     _scan_types(spot)                           # relay 89: the member cards' scans per airline, counted back once
+    _passport_make(spot)                        # relay 90: the passport's countries from earlier scans, once
     with _data_lock:
         b = spot.book()
         regs = b.get("regs", {})

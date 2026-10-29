@@ -943,6 +943,29 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.107 (to-do #150, Dave's pick of 29 Oct: round 1's C "stamp shelves" with round 2's C map "ink patchwork", and B's
+  scratch as an option; relay 90): **the passport.** The map: `test/world.js` (`window.WORLD` {CC: [region, label lon ×
+  10, label lat × 10, rings]}, Natural Earth admin-0 1:110m, public domain, 174 countries, 88.6 KB / 35 KB gzipped, made
+  by `tools/world_map.py`), a versioned asset like `signature.js` (`WORLD_JS`, `tools/assets.py`, the build's path
+  patch, `sw.js` keeps it), fetched by `worldMap()` only when the passport shows. Regions `PP_REG` (E Europe with the
+  Caucasus and Cyprus, M Middle East with Iran, F, A, N, O); a stamped country the map lacks (Malta, Singapore, …) is
+  a dot at its airport and gets its region from the airport's continent (`PP_ME` for the Middle East). Inks `PP_INK`
+  (six), `ppInkAll(pp)`: each country its own by its code (`ppHash`), else the next one no stamped neighbour within 12°
+  has, decided in stamp order so a colour never changes. `ppMapSvg(pp, view, {labels, fresh})`: Mercator (`ppView`,
+  `PP_VIEW` eu / world), the land once a view (`ppLand`), the inks under round 2's rough-edge filter, multiplied onto
+  the paper; never a mark for the player's place. `passportHtml(g0)` after the collection (under Your hangar): the
+  plate `.ppPlate`, the map `.ppMap` ("N countries", tap: `ppCard`), a shelf per region (`.ppShelf` with the hangar's
+  `.hgHead`/`.hgRow`, `data-set="pp-E"`) of stamp cards `.pCard` (`ppStamp`: `.pS` round/box/oval by the code, the
+  country by `Intl.DisplayNames`, the airport, the day "24 OCT 2026"; drawn at 1.5× and scaled down so the print
+  keeps to the type scale) newest first, then up to three face-down `.pCard.no` of the region nearest a stamped one
+  (`ppGoals`). No stamps yet: the empty map and a line. `ppCard()`: "N of M countries inked in", Europe & around /
+  World (`.seg.gSeg`, `ppAt`), the map with codes, a bar per region (the Sets list's `.ranks.cats`). At a scan:
+  `gPassFill`'s `o.route` (`ppRoute(r.route)`: "BCN ✈ VIE", a new country red with "SPAIN · NEW") on the ticket;
+  `gAwLine` "country" "New country · Spain"; 1.4 s later `ppNew(r)`: the card `.gAw.ppNew` over the ticket, the map
+  round the new country (its largest ring), the stamp landing (`ppLand`, `fsThud`), the country masked (`.ppSoak`):
+  left alone 3.2 s, a blot from the stamp grows over it (displaced into a ragged soak); a finger on it ("Scratch Spain
+  in", `.ppTip`) draws broad strokes into the mask instead, and 1.8 s after the finger stops the rest soaks in. A tap
+  inks it at once, then puts it away. `gHowCard` a Passport line.
 - 1.106 (to-do #162, Dave's pick of 29 Oct, A "printed line" with the airline trophies; relay 89): **airline loyalty,
   the member cards.** `LY` ([scans, bonus] a tier above Member; `rules.loyalty` wins, `lySteps()`), `lyOf(n)` (-1 not a
   member yet, 0 Member, 1–3 Silver, Gold, Platinum), `lyCode` (IATA from `AIRLINES`, else the ICAO), `lyName`, `lyCol`
@@ -1398,6 +1421,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 90 (1.107, to-do #150): **the passport.** The airport list (v4) keeps each airport's `iso_country` and
+  `continent` (rows [.., 7: country, 8: continent]); `_cc_ready()` is that list (None while it loads or with an older
+  copy). `route_countries(e, db)`: the countries of a sighting's `from`/`to` (IATA or ICAO via `_ap_row`), each once;
+  none without both ends. `GAME_COUNTRY` 25. `_passport_make(spot)` (from `game_lockon` and `logbook_json`) makes
+  `g["passport"]` {CC: {"d": day, "ap": airport, "p": paid}} once, from the saved days' scans, unpaid. `game_lockon`
+  stamps the scanned route's countries: one not in it pays `{"k": "country", "p": 25, "n": CC, "ap"}`; the answer has
+  `route` [[airport, CC, new]] and `countries`. `passport_json(g)` in `game3_json` ("passport", {CC: [day, airport, lat,
+  lon, continent, paid]}): the player's own logbook only (not `/game/me`, not the league's cards).
+  `game_rules()["country"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py `passport_checks`.
 - Relay 89 (1.106, to-do #162): **airline loyalty.** `LOYALTY` ((10, 25), (50, 100), (200, 250)), `loyalty_step(n)`.
   `_scan_types` also makes `g["scanAirlines"]` {ICAO: planes scanned} (counted back once from the saved days' scans by
   `_scan_airline`); `logbook_json` calls it too, so the wallet is right before the first scan. `_loyalty(g)`:

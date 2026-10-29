@@ -10,19 +10,19 @@ changing. Where this file and the code disagree, the code wins.
 |------|------------|
 | `index.html` | Main board (PROD): a copy of `test/index.html` (only the title "Fallblatt" and one comment differ), made when Dave says "push to main" by `py tools/push_main.py` (also copies `i18n.js`, `sounds.js` to the root). |
 | `test/index.html` | The test board, with the Flightradar24 features (`USE_API`, `apiLookup`, ...). |
-| `test/i18n.js`, `test/sounds.js`, `test/signature.js` | The translations (`I18N_ROWS`), recorded sounds (`SOUND_DATA`) and (1.103) the flight school signature's single-stroke script font (`SIG_FONT`, EMS Allure, OFL; the app fetches it only to sign; made by `tools/sig_font.py`), loaded by version (`?v=`, stamped by `tools/assets.py`; 1.53.1). |
+| `test/i18n.js`, `test/sounds.js`, `test/signature.js`, `test/world.js` | The translations (`I18N_ROWS`), recorded sounds (`SOUND_DATA`) and (1.103) the flight school signature's single-stroke script font (`SIG_FONT`, EMS Allure, OFL; the app fetches it only to sign; made by `tools/sig_font.py`) and (1.107) the passport's map (`WORLD`, Natural Earth's countries at 1:110m, public domain; the app fetches it only for the passport; made by `tools/world_map.py`), loaded by version (`?v=`, stamped by `tools/assets.py`; 1.53.1). |
 | `test-api/index.html` | Forwards to `/test/`. |
 | `keys/index.html` | Remote key test for the TVs. |
 | `app/` | Phone web app: `index.html` (generated, never hand-edit), `manifest.webmanifest`, icons, `sw.js`. |
 | `light/`, `glass/` | Parked since 1.71.3: each `index.html` only forwards to `/app/`. Not built, checked or linked. |
 | `android/` | Android app: a WebView showing the relay's `/app/` (Kotlin, no AndroidX). Built by `.github/workflows/android.yml`. |
-| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (85 now). |
+| `relay/serve.py` | The home relay. Python standard library only, 3.8+. `RELAY_VERSION` at the top (90 now). |
 | `relay/install.sh`, `relay/overhead-relay.service` | Install or update the relay as a systemd service. |
 | `tools/app/` | Builds `app/index.html`: `build.py`, `head.html` (markup, CSS), `main.js` (phone layout and glue). `WMM.COF`: NOAA's World Magnetic Model (public domain), packed into main.js's `WMM_C` for Sky view's true north. |
 | `tools/light/`, `tools/glass/` | Parked source of the light version (`light.js` for main.js's `//@L:name` ... `//@L:end` regions, `light.css`) and Glass (`glass.js`, `glass.css`). Kept for later; running their `build.py` overwrites the forwarders. |
 | `tools/sounds/` | `build_sounds.py` cuts recorded sounds (originals in git-ignored `sounds-src/`) into `test/sounds.js`. |
 | `fonts/` | The typefaces (woff2, Latin and Latin Extended, named by content) and `fonts.css`, loaded by every board and app as `../fonts/fonts.css` (1.64); made by `tools/fonts.py`. |
-| `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js`/`signature.js` into the boards (the app build does it first); make the main board. |
+| `tools/assets.py`, `tools/push_main.py` | Stamp the versions of `i18n.js`/`sounds.js`/`signature.js`/`world.js` into the boards (the app build does it first); make the main board. |
 | `tools/model_pages.py` | Writes `MODEL_PAGES` (type code → Wikipedia page, for model pictures) into `test/index.html` from Wikipedia's list of type designators plus its own fixes and additions, all checked online; run by hand, then rebuild the app (1.93.1.1). |
 | `tools/test/` | `flows.py` (the relay's access rules and saves, run by smoke.py), `run_test_relay.py` (fake flights + test relay), `fakesrc.py`, `fakehue.py` (a fake Hue Bridge, `--hue`), `smoke.py`, `shoot.py` (screenshots), `cockpit_list.py` (Settings controls per target), `sky_jitter.js` (Sky view's label jitter on a made-up sensor stream, 1.90), `model_pics.js` (the model pictures' lookup over a list of types, against Wikipedia, 1.93.1.1). |
 | `docs/history.md` | Version details; `docs/design-brief.md` the design brief. |

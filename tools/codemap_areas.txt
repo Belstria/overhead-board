@@ -397,11 +397,12 @@ changelog: share|picture
 test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME drawTierIcon +fanfare LEGENDARY FLEET
     fleetTier tierOf TROPHY_LADDERS TROPHY_SINGLES TROPHY_IDS TROPHY_TEXT TROPHY_MEDALS MEDAL_COL TROPHY_TIER
     trophyLadder GOAL_TEXT goalText bingoReset trophyText game ACH_KEY ACH_MS achQueue achTimer achList achCheck
-    achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS
+    achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
 tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @gFlp .gLv .gBar @gShine @gGlow .gChip
     .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
     .mk1 .mk2 .mk3 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyWal .lyCard .lyFF
+    .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppNew.inked .ppNew.scr .ppDrop @ppLand @ppLift .ppTip @ppTip
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
@@ -413,6 +414,8 @@ tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad 
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyFront lyAll walletHtml lyWire
+    worldLoad worldFailed worldMap PP_REG PP_ME PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath
+    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
@@ -421,7 +424,7 @@ relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of scor
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
     SCHOOL GAME_SCHOOL SCHOOL_LEVEL game_school school_pass school_wings school_json /game/school STANDBY game_standby standby_allow _standby standby_json
-    MASTERY _scan_types mastery_step _mastery LOYALTY loyalty_step _loyalty wallet_json
+    MASTERY _scan_types mastery_step _mastery LOYALTY loyalty_step _loyalty wallet_json GAME_COUNTRY _cc_ready _ap_row route_countries _passport_make passport_json
 docs/architecture.md: "The game (1.72, relay 59)"
 README.md: "- **The game** (1.72" "- **The game stays in the phone app**" "- **Rarity and the Collection**"
     "- **Achievements**"

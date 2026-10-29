@@ -1,6 +1,6 @@
 // Fallblatt's service worker: shows the relay's push notifications (the evening summary and "worth going to the
 // window") and opens the app when one is tapped; the light version (/light/) uses it too. It keeps the translations and
-// the sounds (i18n.js, sounds.js, 1.53.1; signature.js, 1.103) and, since 1.64, the last copy of the app itself for when the relay can't be
+// the sounds (i18n.js, sounds.js, 1.53.1; signature.js, 1.103; world.js, 1.107) and, since 1.64, the last copy of the app itself for when the relay can't be
 // reached.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
@@ -40,7 +40,7 @@ self.addEventListener("fetch", e => {
 const KEEP = "fallblatt-files";
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
-  if (e.request.method !== "GET" || u.origin !== location.origin || !/\/(i18n|sounds|signature)\.js$/.test(u.pathname) || !u.searchParams.get("v")) return;
+  if (e.request.method !== "GET" || u.origin !== location.origin || !/\/(i18n|sounds|signature|world)\.js$/.test(u.pathname) || !u.searchParams.get("v")) return;
   e.respondWith(caches.open(KEEP).then(async c => {
     const hit = await c.match(e.request);
     if (hit) return hit;

@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=76edb25a30"></script>
+<script src="i18n.js?v=0b73f74dfd"></script>
 <script>
 (() => {
 "use strict";
@@ -2094,6 +2094,7 @@ let actx = null, noise = null, lastClack = 0, soundForced = false;   // forced: 
 // decoded once; until then, and if the file can't be had (it is tried again a minute later), the synthesised sounds play.
 const SOUNDS_JS = "sounds.js?v=d4c8864b86";
 const SIG_JS = "signature.js?v=dac4282d39";       // 1.103: the flight school's signature (the phone app's; a pen-stroke script font)
+const WORLD_JS = "world.js?v=326d51cb15";       // 1.107: the passport's map (the phone app's; Natural Earth countries)
 const SND = {};
 let sndLoading = false, sndFile = null, sndFailed = 0;
 function soundFile(){
@@ -7779,6 +7780,8 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.107", date: "2026-10-29", notes: [
+    "A passport: the countries your scanned flights came from or went to, inked in on a map, with a bonus for each new one."]},
   {v: "1.106", date: "2026-10-29", notes: [
     "Airlines now have member cards: Silver, Gold and Platinum as you scan their planes, with a bonus at each."]},
   {v: "1.105", date: "2026-10-29", notes: [

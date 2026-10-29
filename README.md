@@ -582,7 +582,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
   Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). The best card is
   in front with a bar to the next tier, the others' tops peek out above it (tap one to bring it forward). A plane's
-  ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. **Tap a name in the league**
+  ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
+has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
+to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new
+country marked). A card then shows the stamp coming down and the country soaking up its ink, or **rub it in with your
+finger** ("Scratch Spain in"). The plate shows the map with each country inked in its stamp's colour (never where you
+are; tap it for Europe or the whole world and a bar per region) and a shelf of stamps per region, with nearby
+countries still to stamp face down. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board

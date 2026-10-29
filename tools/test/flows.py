@@ -1209,6 +1209,150 @@ def loyalty_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def passport_checks(expect):
+    """Relay 90 (to-do #150): the passport. A scan of a flight with a known route stamps the countries of its two
+    airports (from the airport list's countries); one new to the passport pays +25 once, with the scan. Countries of
+    scans before relay 90 are stamped unpaid (counted back from the saved days); a restart and a rescore pay nothing
+    again; a game scored before keeps every total. No route, or the airport list still loading: nothing stamped."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-29"
+    real_day, real_pass, real_gold, real_ap = serve.board_day, serve.school_pass, serve.game_gold, serve._airports
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    ap = {"VIE": ("LOWW", "AT", "EU", 48.11, 16.57), "BCN": ("LEBL", "ES", "EU", 41.30, 2.08), "LHR": ("EGLL", "GB", "EU", 51.47, -0.45),
+          "FRA": ("EDDF", "DE", "EU", 50.03, 8.57), "DXB": ("OMDB", "AE", "AS", 25.25, 55.36), "SZG": ("LOWS", "AT", "EU", 47.79, 13.0)}
+    table = {"v": 4, "fetched": serve.time.time(), "iata": {k: ["", la, lo, ic, "", 1, 0, cc, ct] for k, (ic, cc, ct, la, lo) in ap.items()},
+             "icao": {v[0]: k for k, v in ap.items()}}
+    serve._airports = table
+    n, pre = [0], [0, 0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def scan(sp, fr=None, to=None):
+        """A plane flying fr to to (codes; None: no route) comes within 4 km and is scanned: the scan's answer."""
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"p{n[0]}", "hex": f"{n[0] + 31000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320", "callsign": f"AUA{n[0]}",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now, **({"from": {"code": fr}, "to": {"code": to}} if fr else {})}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            g = serve.game_book(sp.book())
+            pre[:] = [g["points"], g["days"].get(day, 0)]
+        return serve.game_lockon(sp, e["hex"])
+
+    def cc(r):
+        return [(a["n"], a["ap"], a["p"]) for a in r.get("lines", []) if a["k"] == "country"]
+
+    def stamps(g):
+        return {c: (s["ap"], s["p"]) for c, s in (g.get("passport") or {}).items()}
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules"}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    try:
+        expect("the rules for the app", serve.game_rules()["country"], 25)
+        expect("a route's countries: each once, origin first; an airport by its ICAO code too; none without a route",
+               [serve.route_countries(e, table) for e in ({"from": {"code": "BCN"}, "to": {"code": "VIE"}}, {"from": {"code": "SZG"}, "to": {"code": "LOWW"}},
+                                                          {"from": {"code": "XXX"}, "to": {"code": "DXB"}}, {"to": {"code": "DXB"}}, {})],
+               [[("ES", "BCN"), ("AT", "VIE")], [("AT", "SZG")], [("AE", "DXB")], [], []])
+        # a new game: the first scan with a route stamps both countries and pays each; the way back pays nothing
+        f1 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f1)
+        r = scan(sp, "BCN", "VIE")
+        expect("a scan BCN-VIE: Spain and Austria stamped, +25 each", (cc(r), stamps(g)),
+               ([("ES", "BCN", 25), ("AT", "VIE", 25)], {"ES": ("BCN", 25), "AT": ("VIE", 25)}))
+        expect("... in the scan's bonus, the total and the day", (r["bonus"] == sum(a["p"] for a in r["lines"]), g["points"] - pre[0], g["days"][day] - pre[1]),
+               (True, r["bonus"], r["bonus"]))
+        expect("... the answer has the route with the new ones marked, and the count", (r["route"], r["countries"]), ([["BCN", "ES", True], ["VIE", "AT", True]], 2))
+        aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "country"]
+        expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["n"], a["p"], a["r"]) for a in aw),
+               [("AT", 25, serve.GAME_RULE), ("ES", 25, serve.GAME_RULE)])
+        r = scan(sp, "VIE", "BCN")
+        expect("the way back: both stamped already, nothing more", (cc(r), r["route"], r["countries"]), ([], [["VIE", "AT", False], ["BCN", "ES", False]], 2))
+        expect("a new country on the next route pays once: LHR-VIE", cc(scan(sp, "LHR", "VIE")), [("GB", "LHR", 25)])
+        expect("... and not again", cc(scan(sp, "LHR", "SZG")), [])
+        r = scan(sp)
+        expect("a flight without a route stamps nothing", (cc(r), r["route"], len(g["passport"])), ([], [], 3))
+        expect("an airport the list lacks: only the other end", cc(scan(sp, "XXX", "DXB")), [("AE", "DXB", 25)])
+        with serve._data_lock:
+            pj = serve.game3_json(sp.book(), day)["passport"]
+        expect("the passport for the app: day, airport, its place and continent, paid",
+               pj, {"ES": [day, "BCN", 41.3, 2.08, "EU", 25], "AT": [day, "VIE", 48.11, 16.57, "EU", 25], "GB": [day, "LHR", 51.47, -0.45, "EU", 25],
+                    "AE": [day, "DXB", 25.25, 55.36, "AS", 25]})
+        # a restart, then a rescore: the same game, and the same routes pay nothing again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's total and the passport the same", (g["points"], stamps(g)),
+               (total, {"ES": ("BCN", 25), "AT": ("VIE", 25), "GB": ("LHR", 25), "AE": ("DXB", 25)}))
+        expect("... and the same routes pay nothing again", (cc(scan(sp, "BCN", "LHR")), cc(scan(sp, "DXB", "VIE"))), ([], []))
+        # a game from before relay 90: scans with routes, no passport yet; the airport list still loading at first
+        f2 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f2)
+        for fr, to in (("VIE", "LHR"), ("FRA", "VIE"), ("VIE", "LHR")):
+            scan(sp, fr, to)
+        with serve._data_lock:
+            g.pop("passport")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        serve._airports = {**table, "v": 3}                     # an older copy of the list, without countries
+        sp, g = spot(f2)
+        expect("relay 90 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
+        r = scan(sp, "VIE", "BCN")
+        expect("... while the list has no countries: nothing stamped, no passport yet", (cc(r), r["route"], r["countries"], "passport" in g), ([], [], None, False))
+        with serve._data_lock:
+            expect("... none for the app either", serve.game3_json(sp.book(), day)["passport"], None)
+        serve._airports = table
+        pts0 = (g["points"], dict(g["days"]))
+        expect("the list ready: the logbook stamps the earlier scans' countries, unpaid (that BCN scan too)",
+               (sorted(serve.logbook_json(sp)["game"]["passport"].items()), stamps(g)),
+               (sorted({"AT": [day, "VIE", 48.11, 16.57, "EU", 0], "GB": [day, "LHR", 51.47, -0.45, "EU", 0], "DE": [day, "FRA", 50.03, 8.57, "EU", 0],
+                        "ES": [day, "BCN", 41.3, 2.08, "EU", 0]}.items()), {"AT": ("VIE", 0), "GB": ("LHR", 0), "DE": ("FRA", 0), "ES": ("BCN", 0)}))
+        expect("... the totals untouched by it", (g["points"], g["days"]), pts0)
+        expect("... an earlier country pays nothing, a new one +25", (cc(scan(sp, "LHR", "FRA")), cc(scan(sp, "DXB", "VIE"))), ([], [("AE", "DXB", 25)]))
+        # the first scan after the update makes the passport itself (no logbook asked for before it)
+        f3 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f3)
+        scan(sp, "SZG", "LHR")
+        with serve._data_lock:
+            g.pop("passport")
+        save(sp)
+        expect("the first scan after the update: earlier countries unpaid first, then its own new one",
+               (cc(scan(sp, "LHR", "BCN")), stamps(g)), ([("ES", "BCN", 25)], {"AT": ("SZG", 0), "GB": ("LHR", 0), "ES": ("BCN", 25)}))
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+        serve._airports = real_ap if real_ap is not None else {"v": 4, "iata": {}, "icao": {}}   # no download in the other checks
+
+
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -1347,6 +1491,7 @@ def checks():
         if got != want:
             bad.append(f"{what}: got {got}, expected {want}")
 
+    passport_checks(expect)
     school_checks(expect)
     standby_checks(expect)
     mastery_checks(expect)

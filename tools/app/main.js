@@ -1108,6 +1108,232 @@ function lyWire(box, redraw){
   const all = box.querySelector("[data-lyall]");
   if (all) all.onclick = () => { ctlSound.nav(); lyAll = !lyAll; redraw(); };
 }
+/* 1.107 (to-do #150, Dave's pick: round 1's C, the stamp shelves, with round 2's C map, the ink patchwork, and B's
+   scratch as an option): the passport. Each scanned flight with a known route stamps the countries of its two airports
+   (relay 90: g0.passport, {country: [day, airport, lat, lon, continent, paid]}; a country new to it pays +25 at the scan).
+   The plate under Your hangar: the map (test/world.js, Natural Earth's countries, fetched when the passport first
+   shows) printed on passport paper, each stamped country inked in its stamp's colour, the player's place never marked;
+   then a shelf per region, a stamp card for each country (its name, the airport, the day, in its ink) and up to three
+   nearby countries not yet stamped face down. A tap on the map opens it large (Europe & around or the World, a bar per
+   region). A scan that stamps a new country shows its route on the ticket, and a card on top presses the stamp and
+   inks the country in, unless the player rubs it in with a finger first (ppNew). Never on other players' cards. */
+let worldLoad = null, worldFailed = 0;
+function worldMap(){
+  if (window.WORLD) return Promise.resolve(window.WORLD);
+  if (!worldLoad && Date.now() - worldFailed > 60000) worldLoad = new Promise(done => {
+    const s = document.createElement("script");
+    s.src = WORLD_JS; s.async = true;
+    s.onload = () => done(window.WORLD || null);
+    s.onerror = () => { worldLoad = null; worldFailed = Date.now(); s.remove(); done(null); };
+    document.head.appendChild(s);
+  });
+  return worldLoad || Promise.resolve(null);
+}
+const PP_REG = [["E", "Europe"], ["M", "Middle East"], ["F", "Africa"], ["A", "Asia"], ["N", "Americas"], ["O", "Oceania"]];
+const PP_ME = new Set("AE BH IL IQ IR JO KW LB OM PS QA SA SY TR YE".split(" "));   // a country the map lacks: by its airport's continent, these the Middle East
+const PP_INK = ["#1f4fb8", "#b3262d", "#333", "#1f7a3c", "#6b3fa0", "#7a2416"];
+const PP_VIEW = {eu: [16, 46, 6.2], world: [12, 24, 1.02]};       // the map's centre (lon, lat) and its scale (px a degree)
+const ppHash = cc => [...cc].reduce((h, c) => h * 31 + c.charCodeAt(0), 7);
+// Each stamp's ink: its own by its code, else the next one no stamped neighbour (within 12°) has; taken in the order they
+// were stamped, so a stamp keeps its colour when others come.
+let ppInks = {}, ppInksKey = "";
+function ppInkAll(pp){
+  const W = window.WORLD, key = Object.keys(pp).sort().join() + (W ? "+" : "");
+  if (key === ppInksKey) return;
+  ppInksKey = key; ppInks = {};
+  const pt = c => W && W[c] ? [W[c][1] / 10, W[c][2] / 10] : pp[c][2] != null ? [pp[c][3], pp[c][2]] : null;
+  for (const [c] of Object.entries(pp).sort((a, b) => String(a[1][0]).localeCompare(String(b[1][0])) || a[0].localeCompare(b[0]))) {
+    const p = pt(c), h = ppHash(c);
+    const near = new Set(Object.keys(ppInks).filter(o => { const q = pt(o); return p && q && Math.hypot(p[0] - q[0], p[1] - q[1]) < 12; }).map(o => ppInks[o]));
+    let i = 0;
+    while (i < PP_INK.length - 1 && near.has(PP_INK[(h + i) % PP_INK.length])) i++;
+    ppInks[c] = PP_INK[(h + i) % PP_INK.length];
+  }
+}
+const ppInk = cc => ppInks[cc] || PP_INK[ppHash(cc) % PP_INK.length];
+const ppReg = (cc, s) => (window.WORLD && window.WORLD[cc] ? window.WORLD[cc][0] : PP_ME.has(cc) ? "M" : {EU: "E", AF: "F", AS: "A", NA: "N", SA: "N", OC: "O"}[s && s[4]] || "A");
+let ppNames = null;
+function ppName(cc){
+  try { ppNames = ppNames || new Intl.DisplayNames([LANG], {type: "region"}); return ppNames.of(cc) || cc; } catch { return cc; }
+}
+const ppDate = d => { try { return new Intl.DateTimeFormat(LANG === "en" ? "en-GB" : LANG, {day: "numeric", month: "short", year: "numeric"}).format(new Date(d + "T12:00")).toUpperCase(); } catch { return d; } };
+const ppToday = () => { const d = new Date(Date.now() - 3 * 3600e3); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const ppList = pp => Object.entries(pp || {}).sort((a, b) => String(b[1][0]).localeCompare(String(a[1][0])) || ppName(a[0]).localeCompare(ppName(b[0])));
+// A stamp, as on its card: round, a box or an oval (by the country), tilted, in the country's ink.
+function ppStamp(cc, s){
+  const h = ppHash(cc), sh = ["rd", "rc", "ov"][h % 3];
+  return `<span class="pS ${sh}" style="--ink-c:${ppInk(cc)};--r:${(h >> 3) % 21 - 10}deg"><small>${escH(ppName(cc))}</small><b>${escH(s[1] || cc)}</b>` +
+    `<i>${sh === "rd" ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${RK_PLANE}" fill="currentColor"/></svg>` : ""}${escH(ppDate(s[0]))}</i></span>`;
+}
+// The map: Mercator, the countries' outer rings (whole tenths of a degree), those outside the view left out.
+const ppMerc = la => Math.log(Math.tan(Math.PI / 4 + Math.max(-80, Math.min(84, la)) * Math.PI / 360)) * 180 / Math.PI;
+const ppView = (w, h, [lon, lat, k]) => ({w, h, k: [lon, lat, k].join(), x: lo => w / 2 + (lo - lon) * k, y: la => h / 2 - (ppMerc(la) - ppMerc(lat)) * k});
+function ppPath(v, cc){
+  let out = "";
+  for (const r of (window.WORLD[cc] || [])[3] || []) {
+    let a = 1e9, b = -1e9, c = 1e9, d = -1e9, p = "";
+    for (let i = 0; i < r.length; i += 2) {
+      const x = v.x(r[i] / 10), y = v.y(r[i + 1] / 10);
+      a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, y); d = Math.max(d, y);
+      p += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    if (b > -20 && a < v.w + 20 && d > -20 && c < v.h + 20) out += p + "Z";
+  }
+  return out;
+}
+const ppLand = new Map();                                        // the paper's land, once a view
+let ppUid = 0;
+// o.labels: the stamped countries' codes; o.fresh: countries still to ink (masked: ppNew soaks or scratches them in).
+function ppMapSvg(pp, v, o = {}){
+  const id = "pp" + (++ppUid), fresh = o.fresh || [], have = Object.keys(pp).filter(c => !fresh.includes(c));
+  if (!ppLand.has(v.w + "," + v.h + "," + v.k)) ppLand.set(v.w + "," + v.h + "," + v.k, Object.keys(window.WORLD).map(c => ppPath(v, c)).join(""));
+  const ink = (c, more = "") => window.WORLD[c] ? `<path d="${ppPath(v, c)}" fill="${ppInk(c)}" fill-opacity=".8"${more}/>`
+    : pp[c] && pp[c][2] != null ? `<circle cx="${v.x(pp[c][3]).toFixed(1)}" cy="${v.y(pp[c][2]).toFixed(1)}" r="${o.labels ? 4 : 3}" fill="${ppInk(c)}"${more}/>` : "";
+  const lbl = c => { const w = window.WORLD[c]; if (!w) return ""; const x = v.x(w[1] / 10), y = v.y(w[2] / 10);
+    return x < 6 || x > v.w - 6 || y < 6 || y > v.h - 6 ? "" : `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}">${c}</text>`; };
+  return `<svg viewBox="0 0 ${v.w} ${v.h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>` +
+    `<filter id="${id}r" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="d"/>` +
+    `<feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="9" result="s"/><feColorMatrix in="s" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -7 6" result="h"/>` +
+    `<feComposite in="d" in2="h" operator="in"/></filter>` +
+    (fresh.length ? `<filter id="${id}b" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="12" result="n"/>` +
+      `<feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter>` +
+      `<mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="${v.w}" height="${v.h}"><g class="ppSoak" filter="url(#${id}b)" fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"></g></mask>` : "") +
+    `</defs><path d="${ppLand.get(v.w + "," + v.h + "," + v.k)}" fill="#e6ddc7" stroke="#b5a98d" stroke-width=".5" stroke-linejoin="round"/>` +
+    `<g filter="url(#${id}r)" class="ppInk">${have.map(c => ink(c)).join("")}</g>` +
+    (fresh.length ? `<g mask="url(#${id}m)" class="ppInk">${fresh.map(c => ink(c, ` filter="url(#${id}r)"`)).join("")}</g>` : "") +
+    `<path d="${have.filter(c => window.WORLD[c]).map(c => ppPath(v, c)).join("")}" fill="none" stroke="rgba(60,45,30,.35)" stroke-width=".5"/>` +
+    (o.labels ? `<g class="ppLbl">${have.map(lbl).join("")}</g>` : "") + `</svg>`;
+}
+// The countries of each region (the map's, and those stamped that it lacks, as dots).
+function ppTotals(pp){
+  const t = {};
+  for (const c of new Set([...Object.keys(window.WORLD), ...Object.keys(pp)])) t[ppReg(c, pp[c])] = (t[ppReg(c, pp[c])] || 0) + 1;
+  return t;
+}
+// Up to three countries of the region not yet stamped, those nearest a stamped one first (by the map's label points).
+function ppGoals(pp, reg, have){
+  const pts = have.map(c => window.WORLD[c]).filter(Boolean);
+  if (!pts.length) return [];
+  return Object.keys(window.WORLD).filter(c => !pp[c] && window.WORLD[c][0] === reg)
+    .map(c => [c, Math.min(...pts.map(p => Math.hypot(p[1] - window.WORLD[c][1], p[2] - window.WORLD[c][2])))]).sort((a, b) => a[1] - b[1]).slice(0, 3).map(x => x[0]);
+}
+function passportHtml(g0){
+  const pp = g0 && g0.passport;
+  if (!pp) return "";                                            // relay 89 or older, or its airport list still loading
+  if (!window.WORLD) worldMap().then(w => w && renderGame());
+  ppInkAll(pp);
+  const list = ppList(pp), n = list.length;
+  const map = `<button type="button" class="ppMap" data-ppmap aria-label="${escH(T("Open the map"))}">${window.WORLD ? ppMapSvg(pp, ppView(360, 190, PP_VIEW.eu)) : ""}` +
+    `<span class="ct">${escH(T(n === 1 ? "1 country" : "{n} countries", {n: nf.format(n)}))}</span><span class="lg">${escH(T("inked in each stamp's colour"))}</span></button>`;
+  if (!n) return secPlate(T("Passport"), map + `<p class="sum">${escH(T("Scan a flight with a known route: the countries it flies from and to are stamped here."))}</p>`, "ppPlate");
+  const shelves = PP_REG.map(([reg, name]) => {
+    const have = list.filter(([c, s]) => ppReg(c, s) === reg);
+    if (!have.length) return "";
+    const goals = window.WORLD ? ppGoals(pp, reg, have.map(x => x[0])) : [];
+    return `<div class="ppShelf"><div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} stamped", {n: nf.format(have.length)}))}</em></div>` +
+      `<div class="hgRow" data-set="pp-${reg}">${have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("")}` +
+      goals.map(c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`).join("") + `</div></div>`;
+  }).join("");
+  return secPlate(T("Passport"), map + shelves, "ppPlate");
+}
+function ppWire(box){
+  const m = box.querySelector("[data-ppmap]");
+  if (m) m.onclick = ppCard;
+}
+let ppAt = "eu";
+function ppCard(){
+  const g0 = (lbData() || {}).game, pp = g0 && g0.passport;
+  if (!pp || !window.WORLD) return;
+  ctlSound.nav(); ppInkAll(pp);
+  const n = Object.keys(pp).length, tot = ppTotals(pp), all = Object.values(tot).reduce((a, b) => a + b, 0);
+  const bars = PP_REG.filter(([reg]) => tot[reg]).map(([reg, name]) => { const h = Object.entries(pp).filter(([c, s]) => ppReg(c, s) === reg).length;
+    return `<li style="--lamp:${h ? "#b3262d" : "var(--muted)"}"><i class="lamp"></i><span class="name">${escH(T(name))}</span><span class="n">${escH(T("{n} of {m}", {n: nf.format(h), m: nf.format(tot[reg])}))}</span>` +
+      `<span class="bar"><i style="width:${(h / tot[reg] * 100).toFixed(1)}%;background:#b3262d;opacity:1"></i></span></li>`; }).join("");
+  const draw = el => { el.innerHTML = ppMapSvg(pp, ppView(360, 440, PP_VIEW[ppAt]), {labels: true}); };
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Passport"))}</h3><span>${escH(T("{n} of {m} countries inked in", {n: nf.format(n), m: nf.format(all)}))}</span></div></div>` +
+    `<div class="seg gSeg" role="group"><button type="button" data-ppv="eu" aria-pressed="${ppAt === "eu"}">${escH(T("Europe & around"))}</button>` +
+    `<button type="button" data-ppv="world" aria-pressed="${ppAt === "world"}">${escH(T("World"))}</button></div>` +
+    `<div class="ppMap big"></div><ul class="ranks cats">${bars}</ul>`, box => {
+    draw(box.querySelector(".ppMap.big"));
+    for (const b of box.querySelectorAll("[data-ppv]")) b.onclick = () => {
+      if (ppAt === b.dataset.ppv) return;
+      ctlSound.click(); ppAt = b.dataset.ppv;
+      for (const x of box.querySelectorAll("[data-ppv]")) x.setAttribute("aria-pressed", String(x === b));
+      draw(box.querySelector(".ppMap.big"));
+    };
+  });
+}
+// The scan's ticket: the route, the countries new to the passport marked (relay 90: r.route, [[airport, country, new]]).
+const ppRoute = rt => rt && rt.length === 2 ? `<div class="ppRt">${rt.map(([ap, cc, nw], i) => (i ? "<i></i>" : "") +
+  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${escH(ppName(cc))}${nw ? " · " + escH(T("NEW")) : ""}</small></b>`).join("")}</div>` : "";
+/* A country new to the passport, at the scan: a card over the scan's ticket, the map round the country. The stamp
+   comes down on it (fsThud) and the ink soaks in from where it landed; or, before it does, the player rubs it in
+   with a finger ("Scratch Spain in"). Left alone, or once the finger stops, it inks the rest itself. */
+function ppNew(r){
+  const nw = (r.route || []).filter(x => x[2]), g0 = (lbData() || {}).game;
+  if (!nw.length) return;
+  if (g0 && g0.passport) for (const [ap, cc] of nw) g0.passport[cc] = g0.passport[cc] || [ppToday(), ap, null, null, "", (gRules() || {}).country || 25];
+  worldMap().then(W => {
+    if (!W || !$("gAws")) return;
+    const pp = {...((g0 && g0.passport) || {})}, ccs = nw.map(x => x[1]), c0 = ccs.find(c => W[c]) || ccs[0];
+    for (const [ap, cc] of nw) pp[cc] = pp[cc] || [ppToday(), ap];
+    ppInkAll(pp);
+    // the view: the country's largest ring, with room round it
+    const ring = ((W[c0] || [])[3] || []).reduce((a, b) => b.length > a.length ? b : a, []);
+    const xs = ring.filter((_, i) => i % 2 === 0).map(x => x / 10), ys = ring.filter((_, i) => i % 2).map(y => ppMerc(y / 10));
+    const lon = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 16, mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : ppMerc(46);
+    const lat = Math.atan(Math.sinh(mid * Math.PI / 180)) * 180 / Math.PI;
+    const k = Math.max(1, Math.min(16, 340 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 170 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
+    const v = ppView(340, 170, [lon, lat, k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    const name = ccs.map(ppName).join(" · "), count = r.countries || Object.keys(pp).length;
+    const el = document.createElement("div");
+    el.className = "gAw ppNew"; el.setAttribute("role", "status");
+    el.innerHTML = `<div class="hd"><span>${escH(T("PASSPORT · NEW STAMP"))}</span><b>+${nf.format(nw.length * ((gRules() || {}).country || 25))}</b></div>` +
+      `<div class="ppMap"><div class="sv">${ppMapSvg(pp, v, {fresh: ccs})}</div>` +
+      `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span>` +
+      `<span class="ppTip">${escH(T("Scratch {c} in", {c: ppName(c0)}))}</span></div>` +
+      `<div class="ft">${escH(ccs.length > 1 ? T("{c}: new to your passport. {n} countries now.", {c: name, n: nf.format(count)})
+        : T("{c}: country {n} in your passport.", {c: name, n: nf.format(count)}))}</div>`;
+    const box = $("gAws");
+    box.appendChild(el); gTixStack();
+    const soak = el.querySelector(".ppSoak"), mapEl = el.querySelector(".ppMap"), still = fsStill();
+    const NS = "http://www.w3.org/2000/svg", blot = document.createElementNS(NS, "circle");
+    blot.setAttribute("cx", sx.toFixed(1)); blot.setAttribute("cy", sy.toFixed(1)); blot.setAttribute("r", "0");
+    soak.appendChild(blot);
+    let raf = 0, auto = 0, done = false, line = null, scratched = false;
+    const full = Math.hypot(Math.max(sx, v.w - sx), Math.max(sy, v.h - sy)) + 30;
+    const inkIn = (ms = 1600) => {                                   // the rest soaks in from the stamp
+      if (done) return;
+      done = true; el.classList.add("inked"); clearTimeout(auto);
+      const t0 = performance.now(), r0 = +blot.getAttribute("r");
+      const step = t => { const f = Math.min(1, (t - t0) / ms); blot.setAttribute("r", (r0 + (full - r0) * (1 - Math.pow(1 - f, 3))).toFixed(1)); if (f < 1) raf = requestAnimationFrame(step); };
+      if (still) blot.setAttribute("r", full.toFixed(1)); else raf = requestAnimationFrame(step);
+    };
+    const wait = ms => { clearTimeout(auto); auto = setTimeout(() => inkIn(), ms); };
+    // the finger: each stroke inks a broad band under it; the stamp's own soak waits until it stops
+    const at = e => { const b = mapEl.getBoundingClientRect(), s = Math.max(v.w / b.width, v.h / b.height); return [v.w / 2 + (e.clientX - b.left - b.width / 2) * s, v.h / 2 + (e.clientY - b.top - b.height / 2) * s]; };
+    mapEl.addEventListener("pointerdown", e => {
+      if (done) return;
+      e.stopPropagation(); clearTimeout(auto);
+      if (!scratched) { scratched = true; el.classList.add("scr"); }
+      line = document.createElementNS(NS, "polyline");
+      line.setAttribute("fill", "none"); line.setAttribute("stroke-width", String(Math.max(18, k * 1.6)));
+      line.setAttribute("points", at(e).map(x => x.toFixed(1)).join(","));
+      soak.appendChild(line);
+      try { mapEl.setPointerCapture(e.pointerId); } catch {}
+    });
+    mapEl.addEventListener("pointermove", e => { if (line && !done) line.setAttribute("points", line.getAttribute("points") + " " + at(e).map(x => x.toFixed(1)).join(",")); });
+    const up = () => { if (line) { line = null; wait(1800); } };
+    mapEl.addEventListener("pointerup", up); mapEl.addEventListener("pointercancel", up);
+    mapEl.addEventListener("click", e => e.stopPropagation());
+    const out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); clearTimeout(auto); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350); };
+    el.onclick = () => (done ? out() : inkIn(500));
+    setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
+    wait(still ? 300 : 3200);                                        // time to put a finger on it
+    el.outT = setTimeout(function later(){ if (line || (!done && scratched)) { el.outT = setTimeout(later, 2000); return; } out(); }, TIX_MS + 4000);
+  });
+}
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
    collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
    its colour, the name, when and which; the types still missing lie face down. Types in no set get a shelf of their
@@ -4356,6 +4582,7 @@ function gAwLine(a, f, tix){
   if (a.k === "scan") return [a.r === 2 ? T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}) : T("Sky view scan · {t} plane", {t}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
+  if (a.k === "country") return [T("New country · {c}", {c: ppName(a.n)}), a.p, "x"];     // 1.107 (relay 90): the passport
   if (a.k === "loyalty") return [((f && f.airline) || lyName(a.n)) + " · " + T(LY_NAME[a.m] || "Silver"), a.p, "x mst ly" + (a.m || 1)];   // 1.106
   if (a.k === "mastery") return [((f && f.type) || typeLabel(a.n)) + " · " + T(MST_NAME[a.m] || "Bronze"), a.p, "x mst mk" + (a.m || 1)];   // 1.105
   // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
@@ -4388,7 +4615,7 @@ function gPassFill(el, o){
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "";
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
+    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") + (o.route || "") +
     (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
     (o.ly ? `<div class="lyFF ly${o.ly.t}"><b>${escH(o.ly.code)}</b><i>·</i><em>${escH(T(LY_NAME[o.ly.t]))}</em></div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
@@ -4492,7 +4719,7 @@ function gScanPops(r){
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
   const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
     lines: main.map(a => gAwLine({tier: r.tier, ...a}, f, true)), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS, gold: !!r.gold,
-    ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null};
+    ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null, route: ppRoute(r.route)};    // 1.107: the route, a new country marked
   const w = r.airline && ((lbData() || {}).game || {}).wallet;
   if (w) w[r.airline.code] = r.airline.scans;
   const box = $("gAws"), tix = box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"));
@@ -4502,6 +4729,7 @@ function gScanPops(r){
     if (tix !== box.lastChild) box.appendChild(tix);
     pass = gPassFill(tix, o); gTixStack();
   } else pass = gPop(o);
+  setTimeout(() => ppNew(r), fsStill() ? 0 : 1400);                 // 1.107: a country new to the passport, over the ticket
   if (!stk) return [pass];
   const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
@@ -4606,7 +4834,7 @@ function renderGame(){
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
-  if (g0) h += collectionHtml(g0) + walletHtml(g0) + recordsHtml(all, g0);     // 1.106: the member cards
+  if (g0) h += collectionHtml(g0) + passportHtml(g0) + walletHtml(g0) + recordsHtml(all, g0);     // 1.106: the member cards; 1.107: the passport
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
   const fs = fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
@@ -4618,7 +4846,7 @@ function renderGame(){
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
   box.dataset.h = h; box.innerHTML = h;
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
-  hgWire(box); lyWire(box, renderGame);
+  hgWire(box); lyWire(box, renderGame); ppWire(box);
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
@@ -4679,6 +4907,7 @@ function gHowCard(){
         {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], x: nf.format(R.mastery[0][1]), y: nf.format(R.mastery[1][1]), z: nf.format(R.mastery[2][1])})) : "") +   // 1.105 (relay 88)
       (R.loyalty ? p(T("Member cards:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
         {a: R.loyalty[0][0], b: R.loyalty[1][0], c: R.loyalty[2][0], x: nf.format(R.loyalty[0][1]), y: nf.format(R.loyalty[1][1]), z: nf.format(R.loyalty[2][1])})) : "") +   // 1.106 (relay 89)
+      (R.country ? p(T("Passport:"), T("a scanned flight with a known route stamps the countries it flies from and to; a country new to your passport adds +{p}.", {p: nf.format(R.country)})) : "") +   // 1.107 (relay 90)
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
       `<div class="gStk">${sd}</div>` +
       (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 03:00 and don't carry over.",
