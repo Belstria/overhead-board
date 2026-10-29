@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 88
+RELAY_VERSION = 89
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1053,6 +1053,7 @@ GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes
 GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
 MASTERY = ((5, 25), (25, 100), (100, 250))   # relay 88 (to-do #149): bronze, silver, gold: a type's scans for the step, its bonus
+LOYALTY = ((10, 25), (50, 100), (200, 250))  # relay 89 (to-do #162): an airline's Silver, Gold, Platinum: its planes scanned, the bonus (Member at the first)
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
 STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
@@ -1200,7 +1201,8 @@ def game_rules():
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
             "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
-            "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY]}
+            "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY],
+            "loyalty": [list(m) for m in LOYALTY]}
 
 
 def level_of(points):
@@ -1509,7 +1511,8 @@ def game_lockon(spot, hx):
     SCAN_KM (relay 82; GAME_KM before) and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
     (relay 79; relay 76 topped it up to them); a type or an airline new to the game adds its extra, and the day's first
     scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's). Relay 88
-    (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery")."""
+    (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery"). Relay 89
+    (to-do #162): and an airline to 10, 50 or 200 its Silver, Gold or Platinum once ("loyalty"); "airline": its scans now."""
     _scan_types(spot)                           # relay 88: the scans per type exist before the first scan counts
     now = time.time()
     with _data_lock:
@@ -1544,6 +1547,13 @@ def game_lockon(spot, hx):
             for k in range(ms.get(TC, 0) + 1, mastery_step(st[TC]) + 1):
                 ms[TC] = k
                 lines.append({"k": "mastery", "p": MASTERY[k - 1][1], "n": TC, "m": k})
+        sa = g.get("scanAirlines")
+        if al and sa is not None:               # relay 89: the airline's tier, the same way
+            ly = _loyalty(g)                    # (as it was before this scan)
+            sa[al] = sa.get(al, 0) + 1
+            for k in range(ly.get(al, 0) + 1, loyalty_step(sa[al]) + 1):
+                ly[al] = k
+                lines.append({"k": "loyalty", "p": LOYALTY[k - 1][1], "n": al, "m": k})
         streak = 0
         sd = g.setdefault("scanDays", [])
         if day not in sd:
@@ -1566,6 +1576,7 @@ def game_lockon(spot, hx):
         spot.changed("book", "day")
         lv = level_of(g["points"])
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
+                "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
                 "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 
@@ -1586,7 +1597,7 @@ def game3_json(book, day):
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
                trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
-               standby=standby_json(g, day))
+               standby=standby_json(g, day), wallet=wallet_json(g))
     return out
 
 
@@ -1706,21 +1717,26 @@ _hangar_cache = {}
 def _scan_types(spot):
     """Relay 79: make the scans per type (g["scanTypes"]) the first time, counted back from the saved days' sightings
     with a scan (relay 76 on, e["scan"]). Relay 88: the scan calls it too (the mastery steps need the counts). Not under
-    _data_lock (it reads every saved day)."""
+    _data_lock (it reads every saved day). Relay 89: the scans per airline (g["scanAirlines"], the member cards') too."""
     with _data_lock:
-        need = "scanTypes" not in game_book(spot.book())
+        g = game_book(spot.book())
+        need = [k for k in ("scanTypes", "scanAirlines") if k not in g]
     if need:
-        back = {}
+        back = {"scanTypes": {}, "scanAirlines": {}}
         for e in _logbook_entries(spot):
-            tc = str(e.get("typeCode") or "").upper()
-            if e.get("scan") and tc:
-                back[tc] = back.get(tc, 0) + 1
+            if not e.get("scan"):
+                continue
+            for k, c in (("scanTypes", str(e.get("typeCode") or "").upper()), ("scanAirlines", _scan_airline(e))):
+                if c:
+                    back[k][c] = back[k].get(c, 0) + 1
         with _data_lock:
             g = game_book(spot.book())
-            if "scanTypes" not in g:
-                g["scanTypes"] = back
-                spot.changed("book")
-                event("info", f"Hangar: {sum(back.values())} Sky view scans counted back by type", echo=False)
+            for k in need:
+                if k not in g:
+                    g[k] = back[k]
+                    spot.changed("book")
+                    event("info", f"Club: {sum(back[k].values())} Sky view scans counted back by "
+                                  f"{'type' if k == 'scanTypes' else 'airline'}", echo=False)
 
 
 def mastery_step(n):
@@ -1735,6 +1751,26 @@ def _mastery(g):
     if not isinstance(m, dict):
         m = g["mastery"] = {tc: k for tc, k in ((tc, mastery_step(n)) for tc, n in (g.get("scanTypes") or {}).items()) if k}
     return m
+
+
+def loyalty_step(n):
+    """Relay 89 (to-do #162): the tier an airline's scanned planes reach above Member: 0 none, 1 Silver, 2 Gold, 3 Platinum."""
+    return sum(1 for at, _ in LOYALTY if n >= at)
+
+
+def _loyalty(g):
+    """Relay 89: {AIRLINE: the tier paid or passed}, made the first time from the scans so far, unpaid (as _mastery)."""
+    m = g.get("loyalty")
+    if not isinstance(m, dict):
+        m = g["loyalty"] = {al: k for al, k in ((al, loyalty_step(n)) for al, n in (g.get("scanAirlines") or {}).items()) if k}
+    return m
+
+
+def wallet_json(g):
+    """Relay 89 (to-do #162): the club's member cards: every airline the game caught live (what the airline trophies
+    count, so the wallet's size is theirs), with its planes scanned (0: not a member yet)."""
+    sa = g.get("scanAirlines") or {}
+    return {al: sa.get(al, 0) for al in g.get("airlines") or {}}
 
 
 def hangar_json(spot):
@@ -3191,6 +3227,7 @@ def category_top_json(spot, cat, places=None):
 
 
 def logbook_json(spot):
+    _scan_types(spot)                           # relay 89: the member cards' scans per airline, counted back once
     with _data_lock:
         b = spot.book()
         regs = b.get("regs", {})

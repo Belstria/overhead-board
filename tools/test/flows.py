@@ -1066,6 +1066,149 @@ def mastery_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def loyalty_checks(expect):
+    """Relay 89 (to-do #162): airline loyalty. The scan that brings an airline to 10, 50 or 200 scanned planes pays +25,
+    +100 or +250 once (Silver, Gold, Platinum; Member at the first, unpaid). An airline already past a step when relay 89
+    meets the game keeps the tier unpaid; scans counted back from the saved days count the same. A restart and a rescore
+    pay nothing again; a game scored before keeps every total; the wallet holds what the airline trophies count."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-28"
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n, pre = [0], [0, 0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def seen(sp, al, tc="A320"):
+        """A plane of airline al comes within 4 km (the game scores it passively): the entry."""
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"l{n[0]}", "hex": f"{n[0] + 21000:06x}", "ts": int(now * 1000) + n[0], "typeCode": tc, "callsign": f"{al}{n[0]}",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            g = serve.game_book(sp.book())
+            pre[:] = [g["points"], g["days"].get(day, 0)]           # after the plane's passive points
+        return e
+
+    def scan(sp, al="AUA"):
+        return serve.game_lockon(sp, seen(sp, al)["hex"])
+
+    def loy(r):
+        return [(a["n"], a["m"], a["p"]) for a in r.get("lines", []) if a["k"] == "loyalty"]
+
+    def wallet(sp):
+        with serve._data_lock:
+            g3 = serve.game3_json(sp.book(), day)
+            return g3["wallet"], g3["trophyCounts"]["airlines"]
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules"}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    try:
+        expect("the tiers an airline's scans reach", [serve.loyalty_step(x) for x in (0, 1, 9, 10, 49, 50, 199, 200, 900)], [0, 0, 0, 1, 1, 2, 2, 3, 3])
+        expect("the rules for the app", serve.game_rules()["loyalty"], [[10, 25], [50, 100], [200, 250]])
+        # a new game: the 10th, 50th and 200th AUA scan pay, each once, with the scan (its total, the day, the level)
+        f1 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f1)
+        paid, sums, cnt = {}, [], []
+        for i in range(1, 206):
+            r = scan(sp)
+            pts0, day0 = pre
+            if loy(r):
+                paid[i] = loy(r)
+            cnt.append(r["airline"] == {"code": "AUA", "scans": i})
+            sums.append(r["bonus"] == sum(a["p"] for a in r["lines"]) and g["points"] - pts0 == r["bonus"] == g["days"][day] - day0)
+        expect("a new game: the 10th, 50th and 200th scan of an airline pay +25, +100, +250, once",
+               paid, {10: [("AUA", 1, 25)], 50: [("AUA", 2, 100)], 200: [("AUA", 3, 250)]})
+        expect("... each in the scan's bonus, the total and the day", all(sums), True)
+        expect("... the scan's answer has the airline's scans", all(cnt), True)
+        aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "loyalty"]
+        expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["m"], a["p"], a["n"], a["r"]) for a in aw),
+               [(1, 25, "AUA", serve.GAME_RULE), (2, 100, "AUA", serve.GAME_RULE), (3, 250, "AUA", serve.GAME_RULE)])
+        expect("... another airline counts on its own", [loy(scan(sp, "RYR")) for _ in range(10)][-1], [("RYR", 1, 25)])
+        seen(sp, "DLH")                                             # caught live, never scanned
+        w, tc = wallet(sp)
+        expect("the wallet: every airline caught live, with its scans (0: not a member yet)", w, {"AUA": 205, "RYR": 10, "DLH": 0})
+        expect("... its size is what the airline trophies count", len(w), tc)
+        # a restart, then a rescore of the logbook: the same game, and the next scans pay no tier again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's totals the same", (g["points"], g["loyalty"], g["scanAirlines"]),
+               (total, {"AUA": 3, "RYR": 1}, {"AUA": 205, "RYR": 10}))
+        w, tc = wallet(sp)
+        expect("... the wallet the same, its size the trophies'", (w, len(w)), ({"AUA": 205, "RYR": 10, "DLH": 0}, tc))
+        expect("... and a scan after them pays no tier again", (loy(scan(sp)), loy(scan(sp, "RYR"))), ([], []))
+        # a game from before relay 89: EZY at 9 scans, WZZ at 60 (past Gold), THY at 200 (Platinum); no "loyalty" yet
+        f2 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f2)
+        for al, k in (("EZY", 9), ("WZZ", 60), ("THY", 200)):
+            for _ in range(k):
+                scan(sp, al)
+        with serve._data_lock:
+            g.pop("loyalty")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f2)
+        expect("relay 89 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
+        pts0 = g["points"]
+        r1, r2 = scan(sp, "WZZ"), scan(sp, "THY")
+        expect("... an airline past a tier gets it unpaid: WZZ's 61st and THY's 201st scan pay no tier",
+               (loy(r1), loy(r2), g["loyalty"]), ([], [], {"WZZ": 2, "THY": 3}))
+        expect("... and only the plane's own points", g["points"] - pts0, r1["bonus"] + r2["bonus"])
+        expect("... EZY's 10th scan pays Silver", loy(scan(sp, "EZY")), [("EZY", 1, 25)])
+        late = [loy(scan(sp, "WZZ")) for _ in range(139)]
+        expect("... WZZ at 200 pays Platinum, never Gold", [(i + 62, x) for i, x in enumerate(late) if x], [(200, [("WZZ", 3, 250)])])
+        # scans from before relay 89 (none counted per airline yet): counted back from the saved days, past tiers unpaid
+        f3 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f3)
+        for _ in range(12):
+            scan(sp, "SWR")
+        with serve._data_lock:
+            g.pop("loyalty")
+            g.pop("scanAirlines")
+        save(sp)
+        old = _j.loads((f3 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f3)
+        expect("counted back from the days on loading the logbook", (serve.logbook_json(sp)["game"]["wallet"], g["scanAirlines"]), ({"SWR": 12}, {"SWR": 12}))
+        expect("... the totals untouched by it", (g["points"], g["days"], g["trophies"]), (old["points"], old["days"], old["trophies"]))
+        expect("... SWR's 13th scan pays nothing, its 50th Gold",
+               (loy(scan(sp, "SWR")), [i + 14 for i in range(37) if loy(scan(sp, "SWR"))], g["scanAirlines"]["SWR"]), ([], [50], 50))
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -1207,6 +1350,7 @@ def checks():
     school_checks(expect)
     standby_checks(expect)
     mastery_checks(expect)
+    loyalty_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
     serve.school_pass = lambda *a, **k: None
     golden_checks(expect)

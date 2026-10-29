@@ -898,6 +898,33 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .lns div.mst{margin:2px -12px 0;padding:3px 12px;background:linear-gradient(90deg,rgba(160,165,175,.25),rgba(255,255,255,0))}
 .gAw .lns div.mst span{display:flex;align-items:center;gap:6px;color:#222;font-weight:700}
 .gAw .lns div.mst span::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--mg);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.2)}
+/* 1.106 (to-do #162, Dave's pick A): airline loyalty. The club's wallet of member cards (the best in front, the others'
+   tops peeking out over it), each in its tier's metal with the airline's colour and code; on a ticket a printed line
+   "OS · GOLD" (a plain one for a member); the step-up a line in the tier's metal as mastery's */
+:root{--m-platinum:linear-gradient(135deg,#55606e,#dfe7f1 45%,#fff 55%,#7f8fa1)}
+.lyN{--lbg:#26272b;--lk:#8b8f99} .ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
+.ly2{--lbg:var(--m-gold);--lk:#3a2a05;--mg:var(--m-gold)} .ly3{--lbg:var(--m-platinum);--lk:#1f2a36;--mg:var(--m-platinum)}
+.lyWal{display:grid;margin-top:8px}
+.lyCard{position:relative;display:block;width:100%;height:150px;border:0;border-radius:12px;padding:12px 14px;box-sizing:border-box;text-align:left;
+  background:var(--lbg);color:var(--lk);overflow:hidden;font:inherit;cursor:pointer;box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.22)}
+.lyCard + .lyCard{margin-top:-122px}
+.lyCard.lyN{box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px #3a3c42}
+.lyCard::before{content:"";position:absolute;right:-26px;top:-36px;width:110px;height:110px;border-radius:50%;background:var(--ac);opacity:.95}
+.lyCard.lyN::before{opacity:.35}
+.lyCard .hd{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lyCard .hd b{min-width:0;text-transform:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-m)/1.1 var(--f-board)}
+.lyCard .hd em{flex:none;margin-right:72px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.16em;text-transform:uppercase}
+.lyCard .hd i{position:absolute;right:0;top:-1px;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#fff}
+.lyCard .nm{position:absolute;left:14px;right:14px;bottom:42px;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase}
+.lyCard.lyN .nm{font-size:var(--fs-l);letter-spacing:.06em;text-transform:none}
+.lyCard .br{position:absolute;left:14px;right:14px;bottom:30px;height:4px;border-radius:2px;background:rgba(0,0,0,.15)}
+.lyCard .br i{display:block;height:100%;border-radius:2px;background:currentColor;opacity:.7}
+.lyCard .ft{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;gap:8px;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+.gAw .lyFF{display:flex;align-items:center;gap:8px;margin:0 12px 10px;padding:7px 0 0;border-top:1.5px dotted #cfc8b8;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;color:#333}
+.gAw .lyFF i{font-style:normal;color:#999}
+.gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.gAw .lyFF.ly0 em{background:none;box-shadow:inset 0 0 0 1px #c9c2b2;color:#888}
 /* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
 #medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
   text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}

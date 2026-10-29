@@ -943,6 +943,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.106 (to-do #162, Dave's pick of 29 Oct, A "printed line" with the airline trophies; relay 89): **airline loyalty,
+  the member cards.** `LY` ([scans, bonus] a tier above Member; `rules.loyalty` wins, `lySteps()`), `lyOf(n)` (-1 not a
+  member yet, 0 Member, 1–3 Silver, Gold, Platinum), `lyCode` (IATA from `AIRLINES`, else the ICAO), `lyName`, `lyCol`
+  (`LY_COL` for airlines common here, else a hue from the code). `walletHtml(g0)` after the collection in `renderGame`:
+  the plate "Member cards" (`.lyPlate`), its top "N airlines · Frequent flyer at 50" (the airlines trophy ladder's next
+  rank via `trophyLadder`), `.lyWal` with the four next-best cards' tops (`.lyCard` 150 px, each `margin-top:-122px`)
+  and the front one in full (big tier name, `.br` bar, "142 scanned · 58 to Platinum"; a non-member "Not a member yet");
+  a tap brings a card to the front (`lyFront`), "All N cards" shows every top (`lyAll`); `lyWire`. Tier classes
+  `.lyN`, `.ly0`–`.ly3` set `--lbg/--lk/--mg` (silver and gold are mastery's `--m-*`, `--m-platinum` new). A ticket's
+  `o.ly` {code, t} prints `.lyFF` "OS · GOLD" (Member a plain outlined tag; nothing when not a member) above "Scan in Sky
+  view": `gTixShow` from `g0.wallet`, `gScanPops` from the scan's `airline` {code, scans} (and writes it into the wallet).
+  `gAwLine` "loyalty" {n: ICAO, m: tier}: "Austrian · Gold" with `x mst lyN` (mastery's metal dot). Recent points
+  without a time; `gHowCard` a Member cards line.
 - 1.105 (to-do #149, Dave's pick of 28–29 Oct, A "metal frames" without the medal on the photo; relay 88): **mastery.**
   `MST` ([scans, bonus] a step; `rules.mastery` from the relay wins, `mstSteps()`), `mstOf(n)` (0–3), `mstNext(n)` (the
   next step's index, scans, bonus and the share done; null at gold), `mstBar(f)`, `mstHtml(n)` (the opened card's
@@ -1385,6 +1398,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 89 (1.106, to-do #162): **airline loyalty.** `LOYALTY` ((10, 25), (50, 100), (200, 250)), `loyalty_step(n)`.
+  `_scan_types` also makes `g["scanAirlines"]` {ICAO: planes scanned} (counted back once from the saved days' scans by
+  `_scan_airline`); `logbook_json` calls it too, so the wallet is right before the first scan. `_loyalty(g)`:
+  `g["loyalty"]` {ICAO: tier paid or passed}, made unpaid from the counts as they are then. `game_lockon` raises the
+  airline's count and adds `{"k": "loyalty", "p", "n": ICAO, "m": tier}` per tier newly reached (as mastery's), and
+  answers `airline` {code, scans}. `wallet_json(g)` in `game3_json` ("wallet"): every key of `g["airlines"]` (the
+  airlines the game caught live, which the airlines trophies count) with its scans, 0 for none, so the wallet's size is
+  the trophy's count. `game_rules()["loyalty"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py
+  `loyalty_checks`.
 - Relay 88 (1.105, to-do #149): **mastery.** `MASTERY` ((5, 25), (25, 100), (100, 250)), `mastery_step(n)`.
   `_scan_types(spot)` (hangar_json's count-back of `g["scanTypes"]`, moved out) now also runs at the start of
   `game_lockon`, so every scan counts per type from the first. `_mastery(g)`: `g["mastery"]` {TYPE: step paid or
