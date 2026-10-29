@@ -943,6 +943,42 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.110 (to-dos #159 and #160, Dave's picks of 29 Oct: "Era's look good" and styles A; relay 93): **ticket designs,
+  the eras of flying, and Styles as a gallery.** `STYLES` has a `ticket` kind ("" plain, `propage`, `jetage`, `magcard`,
+  `holo`; not `prop`/`jet`, the badges' ids) with the rule `{medal: m}` (`TROPHY_MEDALS`' index, 1 silver to 4 diamond):
+  `styleOk` → `medalWon(g0, m)`, a trophy at that place in any of `TROPHY_LADDERS` (so diamond only comes from the
+  planes ladder); `styleRuleText` → `MEDAL_FIRST`. `styleKinds()` offers `ticket` only where `COCKPIT_FOR` is "phone";
+  `settingsChanged` sends `S.ticket` with the styles there only (a TV's save would reset it otherwise). Not in `CAREER`
+  (no level). The ticket: `tixEra()` (`S.ticket` while `styleOk`), `gPassFill` puts `e-<era>` on `.pF` (not on a gold
+  one; `o.era` overrides, for the previews) and `tixEraHtml` the ornaments after the band (the 1950s `.ttl` heading and a
+  serial number made from the hex, the 1990s `.hd` form head, the 1970s `.eo.sun`), the stub the 1950s `.punch` or the
+  hologram's `.patch`. CSS `.gAw .pF.e-*` (head.html, after the golden ticket): paper, corners, stripes as `::after` with
+  padding under them, ornaments under the text (`.main` isolation, `.eo` z-index -1). `--f-era`: Old Standard TT Bold
+  (OFL; `fonts/old-standard-tt-latin-*.woff2` 24 KB and latin-ext 28 KB, `fonts/fonts.css`, `fonts/OFL.txt`; added to
+  `tools/fonts.py`'s list, fetched once by hand the same way so the other files stay) only for `.ttl` and the flight
+  number. The gallery: `stylesCard` hands over to `stylesPage(kind)` in the app (`ST_TAB_OF` picks the tab; the TVs and
+  light keep the 1.61 card, its remote keys untouched); `#t-styles` is a page over Settings like About/Log (`stylesHide`
+  from `backStep`, Escape, `showTab`, `#stylesX`). `stylesRender`: `.seg.gSeg` tabs (`stTab`), `ST_SECS` sections, `.stCd`
+  cards (`stTag`: IN USE / ✓ YOURS / 🔒 `stRuleShort`). Previews: tickets `stTixHtml(era, scale)` (`ST_TIX` sample
+  planes, `gPassFill` with `o.era`, the timer cleared), the rest `stylesThumb(cv, look, badgeOnly)` drawn inside
+  `stLook(look, fn)`, which lends `S`, `FLAP`, `COL.ink/amber` and `FONT` from `stTheme(look)` and puts them back (the
+  flaps cached under `f.style` "st:theme/palette/finish/fontsReady"); `stThumbs` again once every theme's font loaded.
+  `stOpen(k, id)`: a `cardOpen` sheet, `stWhat` (`ST_WHAT`, `ERA_WHAT`), `stProgress` (level: `careerPts`; medal: the
+  ladder closest to that tier, "Closest: {name}, {a} of {b}"), Use → `applySettings` (and `draft`), as the old card.
+  Relay 93: the eras in `STYLE_GRANTS`, so the admin page can grant them.
+- 1.109 (to-do #152, Dave's pick of 29 Oct, round 2's B "route map"; no relay change): **the career path.** `CAREER`
+  is the one table of unlocks, `[level, kind, id, name]` sorted by level: the styles built from `STYLES`' `{lvl: n}`
+  rules (the code decides), then `CAREER_MORE` (showcase slots 3/5/8, standby 6/14, `ace` 19, `cap` 20), where a new
+  feature adds its row (an icon in `careerIco`, a label in `CAREER_KIND`; Try it opens the club for a kind that isn't a
+  style). `careerAt(lv)` (past 20: a `star` row), `careerName`, `careerPts(lv)` (the relay's `level_of` thresholds:
+  500 × 1.25ⁿ up to 20, then 27,756 a level). `careerIco(r, sz)`: an "A" flap per colour/finish/board style, the badge's
+  `badgeGlyph` drawn once to a data URL (`cuBadge`), the cap via `rankIns(20, …)`. The strip's `gLevelText` is now "Next
+  stop {t} · {u}"; `careerMini(g)` replaces Your level's bar and its line (`.cuMini`, `.cuStop`, `#cuOpen`);
+  `careerRoute(g)` is the club's page while `gRoute` is set (`careerOpen`; `#cuBack`; showTab clears it, a `var` because
+  showTab is earlier in the file), the plane `.cuPl` placed by `--pf` in the current stop's `li`. `gLevelUp(g, from)`
+  (callers pass the previous level): `.cuArrive` with `.cuArr`, a `.cuTag` per unlock of the levels passed (up to 3),
+  Try it (`stylesCard(kind)` or the club) and Later; closes after 20 s (`gLvT`). `gStyleAt` and `#gLvUp .badge` went.
+  Reduced motion: `.cuPl`, `.cuArr`, `.cuTag` without animation.
 - 1.108 (to-do #156, Dave's pick of 29 Oct: A, the glass cabinet, "and add the origin/destination"; relay 91): **the
   showcase.** `scSection(p)` in `playerCard` between the three numbers and the medals: `scCab(sc, o)`, a `.scCab` of
   `scPin(x)` cards (the hangar's `.hgCard` smaller, `.sc`: the pin's photo, else the model's via `modelPic`, painted
@@ -1437,6 +1473,8 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 93 (1.110, to-do #159): `STYLE_GRANTS` lists the app's ticket designs (`propage`, `jetage`, `magcard`, `holo`), so
+  the owner can grant them on the admin page like the other styles.
 - Relay 91 (1.108, to-do #156): **the showcase.** `SHOWCASE_AT` (3, 5, 8): a spot opens at each. `g["showcase"]` a
   list of pins or None by spot. `showcase_json(g)` {pins (as many as the level opens), locked [{level, toGo}]}
   (`level_points(lv)`, where a level starts), in `game3_json`, `/game/me` and `player_json` (others' cards). A pin is

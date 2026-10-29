@@ -41,7 +41,8 @@ are one `COCKPIT` for board, app and light (`for`/`flaps`/`phone`/`light` flags,
 About too as `view` plates, 1.56), checked with
 `tools/test/cockpit_list.py`; smoke.py fails when a plate overflows at Fire TV size (`tools/test/plates.py`, 1.58). The radar's optional map (1.55) is OpenFreeMap vector tiles drawn by the board
 itself (`radarMapBuild`, `mvtRead`; no text, no key); trophies are mostly tiers (`TROPHY_LADDERS`, relay `TROPHY_LADDER`,
-progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()` (◀ ▶ rows, 1.61), flap finishes in `tile()`;
+progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()` (◀ ▶ rows, 1.61; in the app since 1.110 the
+gallery page `stylesPage()`), flap finishes in `tile()`, the app's ticket designs (1.110, `ticket`: medals) in `gPassFill`;
 colours and finishes only with the Classic board (`classicLook()`); badge icons `app/icon-*-<badge>.png` by `tools/app/make_icons.py`.
 Realistic look is `S.real`/`REAL()`. The game (1.72, relay 59): only "live" sightings within `GAME_KM` (15 km) score, scans only within `SCAN_KM` (10 km, relay 82), kept in
 the logbook's own `game3` part (`game_note`, `game_lockon` (the scan), `game_awards`, `level_of`, `league_json`); the app's score
