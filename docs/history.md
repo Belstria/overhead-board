@@ -948,7 +948,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.114.4 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
+- 1.114.5 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
   cancelled (it cleared the timer that called `gLevelUp`); the next `gGain`'s end or `gRefresh` shows it. The fixed
   aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
   #logX, #tabs) carry `data-ta` with their English, put through `T()` at start and in `applyLang`. `relayBusy` and
@@ -1615,7 +1615,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
-- Relay 98 (1.114.4, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
+- Relay 98 (1.114.5, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
   a plane's first score (~15 km out, `game_note`), so "within 1 km" (`close`) and "below 2,500 ft" (`low`), and partly
   `fast`, never paid while `bingo_json` showed them done and even gave the Bingo trophy, unpaid. Now `take` calls
   `_game_bingo` again whenever a scored plane's `minDist` or `maxSpeed` moves (after they are updated, so it judges the
