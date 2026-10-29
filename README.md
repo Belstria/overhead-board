@@ -691,7 +691,7 @@ Five buttons along the bottom:
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
   latest planes spotted. **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
-  colour of its remark, grouped by quarter hour ("Now · 14:45 – 15:00"), two slim lines a plane (time, flight, route,
+  colour of its remark, grouped by quarter hour ("Now · 14:45 – 15:00"), each plane in its own box (1.103.1), two slim lines a plane (time, flight, route,
   remark; then airline, type, closest distance and height), "8 in the last hour" at the top and "All 64 planes today ›"
   at the end, which goes to Today. A plane without a flight number shows its registration (or its owner); without a
   route the row says "No route: private or local flight" or "Route not known". **Tap a plane** and its card opens right

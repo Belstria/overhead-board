@@ -943,6 +943,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.103.1 (to-do #164, Dave's pick A of 29 Oct): **each plane in the timeline sits in its own box.** Recent flights and
+  Today (the shared `.tline` code): `.tline li.fl` is the page's box (`--box-bg`, `--box-bd`, 12 px corners, as the
+  rail's `li.st` notes), 22 px in from the rail with 8 px between boxes; the node sits on the rail beside it, with a
+  short stub (`::after`, node colour) to the box. Rail, groups, node colours and the two lines are unchanged. An opened
+  card (`li.fl.open`) drops the row's box (the gold `.tlCard` is the box), and `.tlWas` (the row fading while it opens)
+  carries the box look; `.tlGone` now starts at the li's own left edge.
 - 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
   school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
   `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with
