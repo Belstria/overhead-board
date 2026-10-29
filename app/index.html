@@ -9222,7 +9222,8 @@ if (ANDROID) window.fallblattBack = fallblattBack;
    is still open the guard is pushed again. Closing by hand (x, a tap) leaves the guard behind: `guardSync` (every 200 ms
    and after each back) then takes it away with history.back(), its own popstate ignored (`guardSelf`), so the next back
    is never a dead one. showTab only replaces the URL (the hash) of the entry it is on, so tab switches never pile up.
-   The entry below keeps the URL it had, so after a back its hash is put right (replaceState) before hashchange runs.
+   The entry below keeps the URL it had, so after a back (the user's or our own) its hash is put right (replaceState)
+   before hashchange runs.
    Not in the Android app (its own back handler does this). */
 let guardOn = !ANDROID && !!(history.state && history.state.fbGuard);   // after a reload the guard may still be there
 let guardSelf = false;
@@ -9241,7 +9242,11 @@ function guardSync(){
 }
 if (!ANDROID) {
   addEventListener("popstate", e => {
-    if (guardSelf) { guardSelf = false; return; }                         // our own history.back()
+    if (guardSelf) {                                                      // our own history.back(): the entry below may
+      guardSelf = false;                                                  // still hold the tab it had (#today), so put the
+      history.replaceState(null, "", location.pathname + location.search + tabHash());   // URL right before hashchange
+      return;                                                             // runs (1.101.0.1: Now went back to that tab)
+    }
     if (e.state && e.state.fbGuard) { guardOn = true; return; }           // forward onto the guard again
     if (!guardOn) return;                                                 // not ours (a typed hash, ...)
     guardOn = false;
@@ -10303,6 +10308,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.101.0.1", date: "2026-10-29", notes: [
+    "In the web app, tapping Now from another tab stays on Now again.",
+  ]},
   {v: "1.101", date: "2026-10-29", notes: [
     "Now and then a ticket comes up gold: scan it for double points.",
   ]},
