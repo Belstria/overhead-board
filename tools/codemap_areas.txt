@@ -281,7 +281,7 @@ test/index.html: +aboutTaps +aboutTap CHANGELOG VERSION fmtVerDate publishedText
     aboutOpen remarkChip legendHtml #nvBox #btnNew #cockpit.about .scrollBtns +accountOpen .notes .vers .keys .legend
     .lg .ver .log .tabs +cockpitOpen +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: #nvBox #t-about css:body.aboutOpen #aboutBox .about .relayP #aboutX
-tools/app/main.js: aboutOpen relayTimer relayLoad relayPlate renderAbout aboutShow aboutHide nvGoing NV.busy +DEFAULTS
+tools/app/main.js: aboutOpen relayTimer relayBusy relayLoad relayPlate renderAbout aboutShow aboutHide nvGoing NV.busy +DEFAULTS
     +applySettings
 relay/serve.py: BACKUP_FILE BACKUP_LATE_S relay_panel_json /pageversion /relayinfo +main +STATE +SOURCES +aircraft
     +board_html
@@ -413,7 +413,7 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
@@ -428,7 +428,7 @@ relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of scor
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
     game_json GAME3_V GAME_KM SCAN_KM GAME_RULE TIER_BASE GAME_PASSIVE GAME_LIMIT GAME_NEW GAME_STREAK GAME_BINGO GAME_MEDAL GAME_SINGLE GAME1_NEW LOCK_FRESH_S LEVEL_TITLES game_book
-    _monday _scan_streak _game_limits _next_day_ms game_rules level_of level_title game_level LEVEL_AT LEVEL_AFTER STYLE_LVL _OLD_STYLE_LVL _OLD_SHOWCASE_AT _OLD_MASTERY _old_level ranks_kept game_ranks ranks_migrate _game_add game_note _trophy_pts _game_pay _game_trophies _bingo_pay_state _game_bingo _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
+    _monday _scan_streak _game_limits _next_day_ms game_rules level_of level_title game_level LEVEL_AT LEVEL_AFTER STYLE_LVL _OLD_STYLE_LVL _OLD_SHOWCASE_AT _OLD_MASTERY _old_level ranks_kept game_ranks ranks_migrate bingo_catchup bingo_migrate _game_add game_note _trophy_pts _game_pay _game_trophies _bingo_pay_state _game_bingo _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
     SCHOOL GAME_SCHOOL SCHOOL_LEVEL game_school school_pass school_wings school_json /game/school STANDBY game_standby standby_allow _standby standby_json
@@ -474,7 +474,7 @@ changelog: sky view|where to look|compass|gyro|auto\b|sun|moon
 test/index.html: +COCKPIT +DEFAULTS +applySettings
 tools/app/head.html: .pushOpt #pushBox .pushKinds
 tools/app/main.js: PUSH_KINDS PUSH_KIND_DEFAULTS PUSH_PREFS SW_DIR NATIVE_PUSH NATIVE_ON nativeOn nativeToken pushSub
-    pushPossible swReady swRegister enablePush renderPush sendSub +DEFAULTS +applySettings
+    pushPossible swReady swRegister enablePush pushBusy renderPush sendSub +DEFAULTS +applySettings
 relay/serve.py: try: VAPID_FILE _vapid SUMMARY_AT _sent _b64u _ub64 vapid _hkdf FCM_FILE _fcm fcm_ready _fcm_token
     fcm_send push_send PUSH_TEXT DIRS ptext push_targets PUSH_HOSTS push_endpoint_ok _deliver _fav_tokens PUSH_KINDS
     WINDOW_GAP_S _last_window _countdown _push_prefs now_json window_planes window_check countdown_send summary_check

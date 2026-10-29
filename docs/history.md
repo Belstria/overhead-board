@@ -948,6 +948,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.4 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
+  cancelled (it cleared the timer that called `gLevelUp`); the next `gGain`'s end or `gRefresh` shows it. The fixed
+  aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
+  #logX, #tabs) carry `data-ta` with their English, put through `T()` at start and in `applyLang`. `relayBusy` and
+  `pushBusy`: About opened twice in one fetch starts one `relayLoad` chain; the push button subscribes once at a time.
 - 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
   member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
   done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled
@@ -1610,6 +1615,18 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 98 (1.114.4, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
+  a plane's first score (~15 km out, `game_note`), so "within 1 km" (`close`) and "below 2,500 ft" (`low`), and partly
+  `fast`, never paid while `bingo_json` showed them done and even gave the Bingo trophy, unpaid. Now `take` calls
+  `_game_bingo` again whenever a scored plane's `minDist` or `maxSpeed` moves (after they are updated, so it judges the
+  fresh values); its guards (`st["lines"]`, `st["card"]`, the trophies) pay each once; `st["at"]` keeps when each
+  square filled. `bingo_json` shows only the squares `bingoPay` has (`done` from its `done`, times from the week or
+  `at`), so a line or the card shows once it paid, and no longer gives trophies. `bingo_catchup(spot, g)`, once per
+  profile (`g["bingoFix"]`, set at creation for new games; `bingo_migrate()` at start, one log line with counts): this
+  week's scored planes, oldest first, that fill a square `bingoPay` lacks go through `_game_bingo` in their own day
+  (award on the plane, the day, the week, the level; `day_changed` for an earlier day); a Bingo or Full card trophy
+  that `bingo_json` gave unpaid this week is taken back first so it is won again and pays. Earlier weeks stay.
+  `_game_award` keeps 24 awards a plane (was 12, review L2), so a rich scan's lines add up to its total.
 - Relay 97 (1.114, to-do #182): **the member cards' details.** `g["scanAirlineInfo"]` {AIRLINE: {first, last, types:
   {TYPE: scans}}} (the scans' times, ms), noted by `_scan_airline_note` at each scan (`game_lockon`) and counted back
   once from the saved days' scans by `_scan_types` (a sighting's `scan` is its scan time). `wallet_info_json(g)` →

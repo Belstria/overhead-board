@@ -3770,6 +3770,7 @@ function applyLang(){
   document.documentElement.style.setProperty("--swFav", JSON.stringify(T("Favourite")));
   document.documentElement.style.setProperty("--swHide", JSON.stringify(T("Hide")));
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.4: fixed labels
   buildTabs(); buildSvTools(); buildRadarLegend();
   if (tab) showTab(tab);
   clearTiles(); refreshPanels(true);
@@ -3937,11 +3938,13 @@ function aboutOpen(){
 }
 /* 1.88 (Dave's pick 13 A): the owner's Relay plate at the top of About: the position sources, Flightradar24, the
    nightly backup and the screens online, from the relay's /relayinfo (69+), which answers only the owner. */
-let relayTimer = 0;
+let relayTimer = 0, relayBusy = false;
 async function relayLoad(){
   clearTimeout(relayTimer);
-  if ((window.OVERHEAD_RELAY_VERSION || 0) < 69 || !relay() || !(GUEST && GUEST.owner) || $("t-about").hidden) return;
+  if (relayBusy || (window.OVERHEAD_RELAY_VERSION || 0) < 69 || !relay() || !(GUEST && GUEST.owner) || $("t-about").hidden) return;
+  relayBusy = true;                                   // 1.114.4: About opened twice in one fetch starts one chain
   const d = await fetch(`${relay()}/relayinfo`).then(r => r.ok ? r.json() : null).catch(() => null);
+  relayBusy = false;
   if (!d || !$("relayPlate")) return;
   relayPlate(d);
   relayTimer = setTimeout(relayLoad, 30000);
@@ -4419,6 +4422,7 @@ async function enablePush(){
     return r.ok ? "" : `HTTP ${r.status}`;
   } catch (e) { return String(e && e.message || e); }
 }
+let pushBusy = false;
 async function renderPush(){
   const box = $("pushBox");
   if (!box) return;
@@ -4456,6 +4460,8 @@ async function renderPush(){
     if (cur) sendSub(cur, prefs, "subscribe");
   };
   $("pushBtn").onclick = async () => {
+    if (pushBusy) return;                               // 1.114.4: one subscribe at a time
+    pushBusy = true;
     ctlSound.press();
     const note = $("pushNote");
     try {
@@ -4468,7 +4474,7 @@ async function renderPush(){
       const err = await enablePush();
       await renderPush();                                  // shows "on" straight away
       if (err && $("pushNote")) $("pushNote").textContent = err;
-    } catch (e) { note.textContent = String(e && e.message || e); }
+    } catch (e) { note.textContent = String(e && e.message || e); } finally { pushBusy = false; }
   };
 }
 function sendSub(sub, prefs, what){
@@ -4850,6 +4856,7 @@ async function start(){
   } catch {}
   pickLang();
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
+  for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.4: fixed labels
   buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
   for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
   showModes();
@@ -4877,7 +4884,7 @@ const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the sca
 // 1.98: the planes a scan counts for now (the relay's list), as a set (made once for each answer)
 const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set(gme.scan.map(x => x.hex))) : new Set();
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
-let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
+let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [], gLvFrom = 0;   // 1.114.4: a level-up still to show (from that level)
 function gStripSetup(){
   const box = $("gStrip");
   box.hidden = !gameOk();
@@ -5302,7 +5309,8 @@ function gStripRender(g, anim){
 // Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
 function gGain(prev, g){
   const box = $("gStrip"), n = g.points - prev.points;
-  gAnimT.forEach(clearTimeout); gAnimT = [];
+  gAnimT.forEach(clearTimeout); gAnimT = [];           // 1.114.4: a level-up this cancels stays pending (gLvFrom)
+  if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
   $("gTok").textContent = "+" + nf.format(n);
   const lvUp = g.level > prev.level, from = prev.need ? prev.into / prev.need * 100 : 0, to = lvUp ? 100 : g.need ? g.into / g.need * 100 : 0;
@@ -5317,7 +5325,7 @@ function gGain(prev, g){
   }, 2050));
   gAnimT.push(setTimeout(() => {
     box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
-    if (lvUp) gLevelUp(g, prev.level);
+    if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
   }, 3500));
 }
 async function gRefresh(force){
@@ -5331,10 +5339,12 @@ async function gRefresh(force){
     gAwards(g.aw, !gAwAt);
     fsBar();                                                  // 1.103: the flight school's bar on Now
     gTixSync(g.scan);
-    if (prev && g.points > prev.points && tab !== "game") gGain(prev, g);
+    const viaGain = prev && g.points > prev.points && tab !== "game";
+    if (viaGain) gGain(prev, g);
     else gStripRender(g);
     if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
-    if (prev && g.level > prev.level && !(g.points > prev.points && tab !== "game")) gLevelUp(g, prev.level);
+    if (prev && g.level > prev.level && !viaGain) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
+    if (gLvFrom && !viaGain) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }   // 1.114.4: also one a second gain cut off
     if (tab === "game") renderGame();
   } catch {} finally { gBusy = false; }
 }

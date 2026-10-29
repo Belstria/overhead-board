@@ -425,9 +425,10 @@ def bingo_trophy_checks(expect):
         sp, g = spot()
         for k in ("heli", "turkish", "bizjet"):
             plane(sp, k)
+        g["trophies"]["bingo"] = noon(day[0])            # relay 82's bingo_json gave it (relay 98's no longer does)
         with serve._data_lock:
             b = serve.bingo_json(sp, day[0])
-        expect("relay 82: a line made, the Bingo trophy won", (b["lines"], "bingo" in g["trophies"], "paid" in b), (1, True, False))
+        expect("relay 82: a line made, unpaid, so the card shows none (relay 98)", (b["lines"], "paid" in b), (0, False))
         save(sp)
         serve._game_bingo, serve._game_trophies = real_bingo, real_tro
         sp, g = spot()                                    # relay 83 starts on it
@@ -517,6 +518,103 @@ def bingo_trophy_checks(expect):
         save(sp)
     finally:
         serve.board_day, serve._game_bingo, serve._game_trophies = real_day, real_bingo, real_tro
+
+
+def bingo_closer_checks(expect):
+    """Relay 98 (to-do #195): a bingo square a plane fills later in its pass ("within 1 km", "below 2,500 ft") pays its
+    line and the Bingo trophy once, through record() on a live place; bingo_json shows no line or trophy that hasn't
+    paid; this week's lines that relay 97 left unpaid pay once (bingo_catchup), on the plane in its day, and never again
+    after a restart. Relay 98 (review L2): a plane keeps 24 awards, so a rich scan's lines all stay."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = ["2026-11-23"]                                  # a Monday; its card's bottom row: low, B787, close
+    real = serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo
+    serve.board_day = lambda t=None: day[0]
+    serve.where_name, serve.watch_of = (lambda lat, lon: {}), (lambda hx: None)
+    lat, lon = 48.2085, 16.3731
+    paid = lambda e: [(a["k"], a["p"], a.get("n")) for a in e.get("ga", [])
+                      if a["k"] in ("bingo", "card") or a["k"] == "trophy" and a.get("n") in ("bingo", "fullcard")]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, lambda: 3)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def seen(sp, hx, km, ft):
+        sp.record([{"hex": hx, "lat": lat + km / 111.2, "lon": lon, "alt_baro": ft, "gs": 250, "t": "B788", "flight": "ZZZ7"}],
+                  str(lat), str(lon), key="live")
+        return sp.by_hex[hx]
+
+    def card_of(sp):
+        with serve._data_lock:
+            b = serve.bingo_json(sp, day[0])
+        return b["lines"], sorted(b["done"])
+    try:
+        card = serve.random.Random("fallblatt-2026-11-23").sample(sorted(serve.BINGO), 9)
+        expect("the card of 23 Nov: its bottom row is low, B787, close", card[6:], ["low", "b787", "close"])
+        # relay 98: a B787 scores 14 km out at 9,000 ft (B787 done), then passes 0.5 km away at 2,000 ft
+        sp, g = spot(Path(tempfile.mkdtemp(prefix="fb-closer-")))
+        e = seen(sp, "c00001", 14, 9000)
+        pts0 = g["points"]
+        expect("far out: scored, the B787 square, no line", ("gp" in e, paid(e), card_of(sp)), (True, [], (0, ["b787"])))
+        seen(sp, "c00001", 0.5, 2000)
+        expect("within 1 km below 2,500 ft: the bottom row +50, the Bingo trophy +100, on the plane",
+               (paid(e), e.get("gb"), g["points"] - pts0), ([("bingo", 50, 2), ("trophy", 100, "bingo")], 150, 150))
+        seen(sp, "c00001", 0.4, 1500)
+        expect("... closer still: nothing paid again", (paid(e), g["points"] - pts0), ([("bingo", 50, 2), ("trophy", 100, "bingo")], 150))
+        expect("... the card: one line, low, B787 and close done", card_of(sp), (1, ["b787", "close", "low"]))
+        # relay 97 left such a line unpaid (the closer look didn't judge the squares) and bingo_json gave the trophy
+        folder = Path(tempfile.mkdtemp(prefix="fb-catchup-"))
+        sp, g = spot(folder)
+        e = seen(sp, "c00002", 14, 9000)
+        serve._game_bingo = lambda *a: None
+        seen(sp, "c00002", 0.5, 2000)
+        serve._game_bingo = real[3]
+        g["trophies"]["bingo"] = int(serve.time.mktime(serve.time.strptime("2026-11-24 12", "%Y-%m-%d %H")) * 1000)  # unpaid
+        del g["bingoFix"]
+        with serve._data_lock:
+            b = serve.bingo_json(sp, day[0])
+        expect("relay 97's game: bingo_json shows no unpaid line and gives no trophy", (b["lines"], sorted(b["done"]), len(g["trophies"])),
+               (0, ["b787"], 1))
+        save(sp)
+        day[0] = "2026-11-25"                             # relay 98 starts on Wednesday
+        sp, g = spot(folder)
+        pts0, mon0 = g["points"], g["days"]["2026-11-23"]
+        with serve._data_lock:
+            got = serve.bingo_catchup(sp, g)
+        expect("the catch-up: one line and the Bingo trophy, paid once", got, {"lines": 1, "cards": 0, "trophies": 1})
+        expect("... in Monday (the plane's day), the week and the level",
+               (g["points"] - pts0, g["days"]["2026-11-23"] - mon0, g["days"].get("2026-11-25", 0), serve.game3_json(sp.book(), day[0])["week"]),
+               (150, 150, 0, g["points"]))
+        save(sp)
+        mon = _j.loads((folder / "sightings-2026-11-23.json").read_text())
+        expect("... on the plane, saved with its day", [paid(x) for x in mon], [[("bingo", 50, 2), ("trophy", 100, "bingo")]])
+        expect("... the card shows the line now", card_of(sp), (1, ["b787", "close", "low"]))
+        before = g["points"]
+        sp, g = spot(folder)                              # a restart
+        with serve._data_lock:
+            again = serve.bingo_catchup(sp, g)
+        expect("a restart: the catch-up never runs twice", (again, g["points"]), (None, before))
+        # review L2: 24 awards a plane
+        x = {}
+        for i in range(20):
+            serve._game_award(x, "bingo" if i else "pass", 5)
+        expect("a rich scan's 20 award lines all stay, the pass first", (len(x["ga"]), x["ga"][0]["k"]), (20, "pass"))
+    finally:
+        serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo = real
 
 
 def scan_circle_checks(expect):
@@ -1834,6 +1932,7 @@ def checks():
     serve.game_gold = lambda day, hx: False
     game_rule_checks(expect)
     bingo_trophy_checks(expect)
+    bingo_closer_checks(expect)
     scan_circle_checks(expect)
     screens_checks(expect)
     live_hidden_checks(expect)

@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 97
+RELAY_VERSION = 98
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -584,6 +584,9 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                     self.changed("book")
                 if moved:
                     trophy_pass(self.book(), e)
+                if moved and "gp" in e:             # relay 98 (to-do #195): a closer look (1 km, 2,500 ft) or more speed
+                    _game_bingo(self, game_book(self.book()), self.day, e)     # can fill a bingo square
+                    self.changed("book")
                 em = _emergency(ac)
                 if em and em != e.get("emergency"):
                     e["emergency"], changed = em, True
@@ -973,21 +976,19 @@ def bingo_json(spot, day):
     if cached and cached[0] == key:
         return cached[1]
     card, done = _bingo_week(spot, monday, day, live=True)
-    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
     book = game_book(spot.book())           # relay 59: the game's card, from live planes only
+    st = book.get("bingoPay") or {}
+    wk = st.get("week") == monday.isoformat()
+    at, start = st.get("at") or {}, int(datetime.datetime.combine(monday, datetime.time(DAY_STARTS_H)).timestamp() * 1000)
+    paid = set(st.get("done") or []) if wk else set()   # relay 98: the squares as the game paid them (no line unpaid)
+    done = {k: done.get(k) or at.get(k) or start for k in card if k in paid}
+    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
     if len(done) == 9 and monday.isoformat() not in book.setdefault("bingoCards", {}):     # relay 51: full cards
         book["bingoCards"][monday.isoformat()] = max(v or 0 for v in done.values())
         spot.changed("book")
-    got = book.setdefault("trophies", {})
-    now = int(time.time() * 1000)
-    for k, ok in (("bingo", lines >= 1), ("fullcard", len(done) == 9)):
-        if ok and k not in got:
-            got[k] = now
-            spot.changed("book")
     nxt = datetime.datetime.combine(monday + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
     out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
-    st = book.get("bingoPay") or {}
-    if st.get("week") == monday.isoformat():    # relay 83: the lines and the card that paid (the latest ones), and what
+    if wk:                                  # relay 83: the lines and the card that paid (the latest ones), and what
         had = st.get("had") or {}
         out["paid"] = {"lines": len(st.get("lines") or []) - had.get("lines", 0), "full": bool(st.get("card") and not had.get("card")), **GAME_BINGO}
     spot._bingo = (key, out)
@@ -1085,7 +1086,7 @@ def game_book(book):
         g = book["game3"] = {"v": GAME3_V, "since": int(time.time() * 1000), "sightings": 0, "types": {}, "airlines": {},
                              "regs": {}, "countries": {}, "categories": {}, "hours": [], "points": 0, "days": {}, "planes": {},
                              "tiers": {}, "rareDays": [], "records": {}, "trophies": {}, "bingoCards": {}, "best": {},
-                             "lock": {"at": 0, "n": 0}}
+                             "lock": {"at": 0, "n": 0}, "bingoFix": int(time.time() * 1000)}
     if "scanned" not in g:
         g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
         g["rule2"] = int(time.time() * 1000)
@@ -1395,6 +1396,73 @@ def ranks_migrate():
                       f"{c['slots']} showcase spots kept above their new levels, {c['marked']} mastery steps marked passed (unpaid)")
 
 
+def bingo_catchup(spot, g):
+    """Relay 98 (to-do #195): once per profile (g["bingoFix"]), this week's bingo squares that a closer look filled but
+    that never paid (before relay 98 only a plane's first score judged them). Each scored plane of the week, oldest
+    first, is judged again as _game_bingo does: its lines, the card and the Bingo trophies pay on it, in its day (the
+    trophies bingo_json gave unpaid this week are won again). Earlier weeks stay. Returns the counts paid, or None
+    when made before. Call under _data_lock."""
+    if g.get("bingoFix"):
+        return None
+    g["bingoFix"] = int(time.time() * 1000)
+    spot.changed("book")
+    c, day, st = {"lines": 0, "cards": 0, "trophies": 0}, spot.day, g.get("bingoPay")
+    wk = _monday(day)
+    if not isinstance(st, dict) or st.get("week") != wk:
+        return c                                # no plane scored this week: nothing done, nothing owed
+    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), day, live=True)
+    if not set(done) - set(st.get("done") or []):
+        return c
+    got, paid = g.setdefault("trophies", {}), g.get("trophyPaid") or {}
+    start = int(datetime.datetime.combine(datetime.date.fromisoformat(wk), datetime.time(DAY_STARTS_H)).timestamp() * 1000)
+    for k in ("bingo", "fullcard"):
+        if k in got and k not in paid and got[k] >= start:
+            del got[k]
+    lines, full, tp = len(st["lines"]), st["card"], set(paid)
+    for i in range(7):
+        d = (datetime.date.fromisoformat(wk) + datetime.timedelta(days=i)).isoformat()
+        if d > day:
+            break
+        entries, hit = spot.day_entries(d), False
+        for e in reversed(entries):
+            try:
+                due = "gp" in e and any(k not in st["done"] and BINGO[k](e) for k in card)
+            except Exception:
+                due = False
+            if due:
+                _game_bingo(spot, g, d, e)
+                hit = True
+        if hit:
+            spot.day_changed(d, entries)
+    c["lines"], c["cards"] = len(st["lines"]) - lines, int(st["card"] and not full)
+    c["trophies"] = sum(1 for k in ("bingo", "fullcard") if k in g.get("trophyPaid", {}) and k not in tp)
+    return c
+
+
+def bingo_migrate():
+    """Relay 98: bingo_catchup for every profile, once, at start; one line in the log (counts only)."""
+    n, c = 0, {"lines": 0, "cards": 0, "trophies": 0}
+    with _data_lock:
+        pids = list(profiles()["profiles"])
+    for pid in pids:
+        try:
+            sp = guest_spot(pid)
+            with _data_lock:
+                g = sp.book().get("game3")
+                if not isinstance(g, dict) or g.get("v") != GAME3_V or g.get("bingoFix"):
+                    continue
+                got = bingo_catchup(sp, g)
+        except Exception as e:
+            event("warn", f"Bingo: a profile's week couldn't be checked ({e})")
+            continue
+        n += 1
+        for k in c:
+            c[k] += got[k]
+    if n:
+        event("info", f"Bingo: {n} profiles checked; paid {c['lines']} lines, {c['cards']} full cards and {c['trophies']} "
+                      f"trophies this week's closer looks had filled")
+
+
 def _game_add(g, day, pts):
     g["points"] = g.get("points", 0) + pts
     days = g.setdefault("days", {})
@@ -1528,7 +1596,8 @@ def _bingo_pay_state(spot, g, day, e):
 def _game_bingo(spot, g, day, e):
     """Relay 83 (to-do #147): each bingo line this plane completed pays GAME_BINGO["line"], the full card
     GAME_BINGO["card"] more; once a week each (g["bingoPay"]). The Bingo and Full card trophies are won here too, on
-    the plane (bingo_json only catches up on one this missed)."""
+    the plane. Relay 98: called again when a scored plane comes closer or faster (take), so "within 1 km" and "below
+    2,500 ft" pay too; st["at"] keeps when each square filled (bingo_json shows the squares as paid)."""
     st = _bingo_pay_state(spot, g, day, e)
     card = random.Random("fallblatt-" + st["week"]).sample(sorted(BINGO), 9)
     done = set(st["done"])
@@ -1538,6 +1607,7 @@ def _game_bingo(spot, g, day, e):
             try:
                 if BINGO[k](e):
                     done.add(k)
+                    st.setdefault("at", {})[k] = e.get("ts") or int(time.time() * 1000)
             except Exception:
                 pass
     st["done"] = sorted(done)
@@ -1583,7 +1653,7 @@ def _game_award(e, kind, pts, **more):
         a["d"] = round(e["liveMin"], 1)
     aw = e.setdefault("ga", [])
     aw.append(a)
-    del aw[:-12]
+    del aw[:-24]                            # relay 98: a rich scan's lines all stay (they add up to its total)
 
 
 PLANE_KEYS = ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg", "typeCode", "desc", "aircraftType", "manufacturer")
@@ -9348,6 +9418,7 @@ def main():
         profiles()
         merge_home()
     ranks_migrate()                           # relay 96: once per profile (its marker), before the first request
+    bingo_migrate()                           # relay 98: this week's unpaid bingo, once per profile (its marker)
     threading.Thread(target=_airlines_worker, daemon=True).start()
     threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()

@@ -296,7 +296,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   compared with the one before. They count every place.
   In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
-  it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  it says when, and how long until then; a square fills when a scored plane does it, also later in its pass, when it
+  comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.4), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
   in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
