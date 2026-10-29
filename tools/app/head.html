@@ -902,6 +902,18 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gHow:focus-visible,#cardBox .gHow:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 #cardBox .gHow{margin-top:8px;padding-top:12px;width:100%}
 #t-game .gOff{color:#e7a39d}
+/* 1.104 (to-do #157, Dave's pick B): the week's calendar in the level card: scanned days amber, today outlined (filled
+   once scanned), a day a standby covered hatched SBY, a day missed red; the standbys left on the right */
+#t-game .gSbyH{display:flex;justify-content:space-between;gap:10px}
+#t-game .gSbyH em{font-style:normal;color:var(--amber)} #t-game .gSbyH em.used{color:var(--muted)} #t-game .gSbyH em.none{color:#e7a39d}
+.gWk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.gWk i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:7px 0;border:1.5px dashed #3a3c42;border-radius:6px;color:var(--label2)}
+.gWk i.on{border:1.5px solid var(--amber);color:var(--amber);background:rgba(240,180,41,.1)}
+.gWk i.now{background:var(--amber);border:1.5px solid var(--amber);color:#17140e}
+.gWk i.todo{border:1.5px solid var(--amber);color:var(--ink);box-shadow:0 0 0 3px rgba(240,180,41,.18)}
+.gWk i.sby{border:1.5px solid var(--amber);color:var(--amber);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
+.gWk i.miss{border-color:#5a2a2a;color:#c0626a}
+#gStrip.sby .gLv small{color:var(--amber)}
 #t-game .gHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
 #t-game .gHead h3{margin:0}
 #t-game .gHead .seg{margin:0;flex:0 1 230px}

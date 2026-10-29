@@ -16,6 +16,9 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - bingo lines and trophies pay once (relay 83): a line +50, the full card +500, a rank 50 to 250, a one-off 100; earlier
   wins unpaid, every total kept; a restart, a rescore and the backfills pay nothing again; a new card each Monday
+- the standby (relay 87): a day without a scan with a standby left keeps the streak and pays nothing, the next scan
+  pays the next day's; one a week at level 6–13, two from 14, none below; Monday renews; a game scored before keeps
+  every total and its broken streak; a restart and a rescore change nothing
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
   ("can"), the daily streak (a missed day, the Monday reset), rule 1's planes not priced again; over HTTP: the rules
@@ -771,6 +774,167 @@ def school_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def standby_checks(expect):
+    """Relay 87 (to-do #157): the standby. A day without a scan, with a standby left this week, keeps the streak and pays
+    nothing; the next scan pays the next day's amount. One a week at level 6 to 13, two from 14, none below 6 (the level
+    the day ended on); Monday brings them fresh. A game scored before keeps every total and its broken streak; a
+    restart and a rescore change nothing."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = ["2026-10-26"]                                  # a Monday
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day[0]
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n = [0]
+
+    def at_level(lv):
+        p = 0
+        while serve.level_of(p)[0] < lv:
+            _, _, into, need = serve.level_of(p)
+            p += need - into
+        return p
+
+    L6, L14 = at_level(6), at_level(14)
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def fresh():
+        """A new profile on Monday (its standby from then on)."""
+        day[0] = "2026-10-26"
+        return spot(Path(tempfile.mkdtemp(prefix="fb-sby-")))
+
+    def go(sp, d, scan=True):
+        """Day d (03:00 on): a plane comes within 4 km and is scanned; the scan's streak line (None: no scan that day)."""
+        day[0] = d
+        with serve._data_lock:
+            sp.ensure_day()
+            if not scan:
+                return None
+            n[0] += 1
+            now = serve.time.time()
+            e = {"id": f"b{n[0]}", "hex": f"{n[0] + 9000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320",
+                 "callsign": "ZZZ1", "tier": "common", "liveMin": 4.0, "liveSeen": now}
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            r = serve.game_lockon(sp, e["hex"])
+            return next(((x["k"], x["p"]) for x in r.get("lines", []) if x["k"] == "streak"), None)
+
+    def week(sp, points, plan):
+        """A game at `points` (scored the Sunday before), then the week's days by plan ("s" a scan, "-" none): the
+        streak lines paid, in order."""
+        with serve._data_lock:
+            serve._game_add(serve.game_book(sp.book()), "2026-10-25", points)
+        out = []
+        for i, c in enumerate(plan):
+            r = go(sp, f"2026-10-{26 + i:02d}" if 26 + i <= 31 else f"2026-11-{26 + i - 31:02d}", c == "s")
+            if r:
+                out.append(r)
+        return out
+
+    def g3(sp):
+        with serve._data_lock:
+            return serve.game3_json(sp.book(), day[0])
+
+    try:
+        expect("standbys a week by level: none below 6, one from 6, two from 14",
+               [serve.standby_allow(lv) for lv in (1, 5, 6, 13, 14, 20, 25)], [0, 0, 1, 1, 2, 2, 2])
+        # level 6: Mon–Wed scanned, no scan Thu: covered; Fri's first scan is day 5 (+125)
+        f1 = Path(tempfile.mkdtemp(prefix="fb-sby-"))
+        sp, g = spot(f1)
+        expect("level 6 at the start (with a standby since Monday)", (serve.level_of(L6)[0], serve.game_standby(g)["since"]), (6, "2026-10-26"))
+        paid = week(sp, L6, "sss-")
+        day[0] = "2026-10-30"
+        sb = g3(sp)
+        expect("Friday morning: Thursday covered, the streak 4, none left",
+               (sb["streak"], sb["standby"]["week"], sb["standby"]["left"], sb["standby"]["allow"], sb["scannedToday"]),
+               (4, ["s", "s", "s", "b", "", "", ""], 0, 1, False))
+        pts = g["points"]
+        expect("... the covered day paid nothing", (g["days"].get("2026-10-29"), paid), (None, [("streak", 25), ("streak", 50), ("streak", 75)]))
+        expect("the next scan pays day 5 (+125), then day 6", (go(sp, "2026-10-30"), go(sp, "2026-10-31")), (("streak", 125), ("streak", 150)))
+        expect("... and the points are only the scans'", g["points"] - pts > 0 and g["days"].get("2026-10-29") is None, True)
+        # a restart and a rescore change nothing
+        day[0] = "2026-11-01"                             # Sunday, no scan yet
+        save(sp)
+        before, total = _j.dumps(g3(sp), sort_keys=True), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game, the same week", (_j.dumps(g3(sp), sort_keys=True), g["points"]), (before, total))
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the same", (_j.dumps(g3(sp), sort_keys=True), g["points"]), (before, total))
+        expect("Monday 03:00: a fresh standby, the streak from day 1",
+               (go(sp, "2026-11-02"), g3(sp)["standby"]["left"], g3(sp)["standby"]["week"]), (("streak", 25), 1, ["s"] + [""] * 6))
+        # below level 6: no standby, Thursday breaks it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 5: no standby, a day without a scan starts it again", week(sp, L6 - 1000, "sss-ss"),
+               [("streak", 25), ("streak", 50), ("streak", 75), ("streak", 25), ("streak", 50)])
+        expect("... the week shows no covered day", (g3(sp)["standby"]["week"], g3(sp)["standby"]["allow"]), (["s", "s", "s", "", "s", "s", ""], 0))
+        # level 6 to 13: one a week; a second day without a scan breaks it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 13: one a week, the second day without a scan starts it again", week(sp, L14 - 1000, "ss--s"),
+               [("streak", 25), ("streak", 50), ("streak", 25)])
+        expect("... Wednesday covered, Thursday not", g3(sp)["standby"]["week"], ["s", "s", "b", "", "s", "", ""])
+        # level 14: two a week
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 14: two a week, two days covered (Sat's first scan is day 5)", week(sp, L14, "ss--ss"),
+               [("streak", 25), ("streak", 50), ("streak", 125), ("streak", 150)])
+        expect("... both shown, none left", (g3(sp)["standby"]["week"], g3(sp)["standby"]["left"]), (["s", "s", "b", "b", "s", "s", ""], 0))
+        # Monday is never covered (nothing to keep), nor a day with no streak before it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("no scan Monday: nothing to keep, the standby kept", (week(sp, L6, "-s"), g3(sp)["standby"]["left"]), ([("streak", 25)], 1))
+        # the level the day ended on: below 6 on Thursday, 6 by Friday's points: Thursday not covered
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        week(sp, L6 - 2000, "sss-")
+        with serve._data_lock:
+            serve._game_add(g, "2026-10-30", 2000)
+        day[0] = "2026-10-30"
+        expect("level 6 only after the day without a scan: not covered", (serve.level_of(g["points"])[0], g3(sp)["streak"], g3(sp)["standby"]["left"]),
+               (6, 0, 1))
+        # a game scored before relay 87 (no standby): every total kept; a day missed before it isn't covered
+        f2 = Path(tempfile.mkdtemp(prefix="fb-sby-"))
+        sp, g = spot(f2)
+        day[0] = "2026-10-26"
+        week(sp, L6, "ss-")
+        g.pop("standby")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        day[0] = "2026-10-29"
+        sp, g = spot(f2)
+        new = {k: v for k, v in g.items() if k != "standby"}
+        expect("relay 87 on a game scored before: every total kept", _j.dumps(new, sort_keys=True), _j.dumps(old, sort_keys=True))
+        expect("... the standby starts today, Wednesday's break stays", (g["standby"], g3(sp)["streak"], go(sp, "2026-10-29")),
+               ({"since": "2026-10-29"}, 0, ("streak", 25)))
+        expect("... a player card's streak (read only) on a game the standby hasn't met: as before", serve._scan_streak({"scanDays": ["2026-10-26", "2026-10-27"], "points": L6}, "2026-10-29"), 0)
+        expect("the rules for the app: one from level 6, two from 14", serve.game_rules()["standby"], [[14, 2], [6, 1]])
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -910,6 +1074,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     school_checks(expect)
+    standby_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
     serve.school_pass = lambda *a, **k: None
     golden_checks(expect)

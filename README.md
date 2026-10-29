@@ -496,7 +496,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
   day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
-  league. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
+  level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
+  and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
+  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the score strip says
+  "Standby used" the day after, and warns in the club when none is left and today has no scan yet. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement

@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 85
+RELAY_VERSION = 87
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1054,6 +1054,7 @@ GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
+STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1074,6 +1075,7 @@ def game_book(book):
         g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
         g["rule2"] = int(time.time() * 1000)
     game_school(g)
+    game_standby(g)
     return g
 
 
@@ -1129,10 +1131,48 @@ def _monday(day):
     return (d - datetime.timedelta(days=d.weekday())).isoformat()
 
 
+def game_standby(g):
+    """Relay 87 (to-do #157): {"since": the board day the standby came}. Made the first time the game is touched after
+    the update: only days from then on can be covered, so a streak that broke before stays as it was paid."""
+    st = g.get("standby")
+    if not isinstance(st, dict):
+        st = g["standby"] = {"since": board_day()}
+    return st
+
+
+def standby_allow(level):
+    """Relay 87: standbys a week at this level (none below 6, one from 6, two from 14)."""
+    return next((n for lv, n in STANDBY if level >= lv), 0)
+
+
+def _standby(g, day):
+    """Relay 87 (to-do #157): this week's standbys. A day over without a scan, the day before it a streak day (scanned or
+    covered; so never Monday, where the streak starts again), is covered while the week has a standby left at the level
+    the day ended on (standby_allow; its points from the days' points): a streak day that pays nothing. Worked out from
+    the scan days and the days' points each time (nothing kept, so a restart changes nothing), and only for days from the
+    update on (game_standby's "since"; a game it hasn't met: none). Returns (covered days, left now, allowed now)."""
+    wk, rd, days, pts = _monday(day), set(g.get("scanDays") or []), g.get("days") or {}, g.get("points", 0)
+    st = g.get("standby")
+    since = max(wk, st.get("since") or day) if isinstance(st, dict) else day
+    cov, alive, d = [], False, datetime.date.fromisoformat(wk)
+    while d.isoformat() < day:
+        ds = d.isoformat()
+        if ds in rd:
+            alive = True
+        elif alive and ds >= since and len(cov) < standby_allow(level_of(pts - sum(v for k, v in days.items() if k > ds))[0]):
+            cov.append(ds)
+        else:
+            alive = False
+        d += datetime.timedelta(days=1)
+    allow = standby_allow(level_of(pts)[0])
+    return cov, max(0, allow - len(cov)), allow
+
+
 def _scan_streak(g, day):
     """Relay 76: the daily streak: the days in a row with a Sky view scan, back from today (from yesterday while today
-    has none yet), counted from this week's Monday on (it starts again with the league)."""
-    rd, wk, n = set(g.get("scanDays") or []), _monday(day), 0
+    has none yet), counted from this week's Monday on (it starts again with the league). Relay 87: a day a standby
+    covered counts (_standby)."""
+    rd, wk, n = set(g.get("scanDays") or []) | set(_standby(g, day)[0]), _monday(day), 0
     d = datetime.date.fromisoformat(day)
     if day not in rd:
         d -= datetime.timedelta(days=1)
@@ -1158,7 +1198,8 @@ def game_rules():
     """Relay 76: the rules for the app (one source for the points it shows)."""
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
-            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL}
+            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
+            "standby": [list(s) for s in STANDBY]}
 
 
 def level_of(points):
@@ -1537,8 +1578,19 @@ def game3_json(book, day):
                planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
                records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
-               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")))
+               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
+               standby=standby_json(g, day))
     return out
+
+
+def standby_json(g, day):
+    """Relay 87 (to-do #157): the club's week for the app: Monday to Sunday ("s" scanned, "b" covered by a standby, ""
+    neither), today's place in it, the standbys allowed and left now."""
+    cov, left, allow = _standby(g, day)
+    rd, wk = set(g.get("scanDays") or []), datetime.date.fromisoformat(_monday(day))
+    week = [(wk + datetime.timedelta(days=i)).isoformat() for i in range(7)]
+    return {"week": ["s" if d in rd else "b" if d in cov else "" for d in week], "today": week.index(day),
+            "allow": allow, "left": left}
 
 
 _league_cache = {}
@@ -8373,7 +8425,7 @@ class Handler(BaseHTTPRequestHandler):
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
             keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
-                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings")   # relay 76: the limits, the rules; no more combo; 85: the school
+                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
             out = {k: g.get(k) for k in keep}
             out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
             if aw is not None:

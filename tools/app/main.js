@@ -4146,7 +4146,10 @@ function gStripRender(g, anim){
   gStripLive = !off;
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
-  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
+  const sby = !off && gSbyUsed(g);                                  // 1.104: the day after a standby, the line says so in amber
+  box.classList.toggle("sby", !!sby);
+  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location")
+    : sby ? T("Standby used · streak goes on, day {n}", {n: sby}) : gLevelText(g);
   const rk = rankIns(g.level, 34, {wings: g.wings});                 // 1.102: the rank insignia
   if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
@@ -4444,7 +4447,7 @@ function renderGame(){
   let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
-    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) +
+    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) + gSbyHtml(g) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
     `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
@@ -4473,6 +4476,26 @@ function renderGame(){
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
   $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+}
+// 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
+// without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday
+// of the i-th, from a Monday), the standbys left on the right, and a warning while the streak hangs on today's scan.
+const sbyDay = (i, w) => new Date(2026, 9, 26 + i).toLocaleDateString(LOC(), {weekday: w});
+// The day after a standby: the streak's day the next scan pays (today's, once scanned); else 0.
+const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.week[s.today - 1] === "b" ? (g.streak || 0) + (g.scannedToday ? 0 : 1) : 0; };
+function gSbyHtml(g){
+  const s = g.standby, R = gRules();
+  if (!s || !s.week) return "";
+  const t = s.today, used = s.week.lastIndexOf("b"), risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0;
+  const from = R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
+  const right = !s.allow ? `<em class="used">${escH(T("Standby from level {n}", {n: from}))}</em>`
+    : s.left ? `<em>${escH(s.left === 1 ? T("1 standby left") : T("{n} standbys left", {n: s.left}))}</em>`
+    : risk ? `<em class="none">${escH(T("No standby left"))}</em>`
+    : `<em class="used">${escH(used >= 0 ? T("Standby used {d}", {d: sbyDay(used, "long")}) : T("No standby left"))}</em>`;
+  const cls = (c, i) => c === "s" ? (i === t ? "now" : "on") : c === "b" ? "sby" : i === t ? "todo" : i < t ? "miss" : "";
+  return `<div class="gRule gSbyH"><span>${escH(T("This week"))}</span>${right}</div>` +
+    `<div class="gWk">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
+    (risk ? `<span class="gRule">${escH(T("No scan yet today: scan before 03:00 or your streak starts again at day 1."))}</span>` : "");
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
@@ -4506,6 +4529,8 @@ function gHowCard(){
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
       `<div class="gStk">${sd}</div>` +
+      (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 03:00 and don't carry over.",
+        {a: R.standby[R.standby.length - 1][0], b: R.standby[0][0]})) : "") +              // 1.104 (relay 87)
       (R.bingo ? `<p class="gHowH">${escH(T("Bingo and trophies"))}</p>` +           // 1.100 (relay 83)
         p(T("Weekly bingo:"), T("+{l} for each line, +{c} more for the full card. A new card every Monday at 03:00, with the league.", {l: nf.format(R.bingo.line), c: nf.format(R.bingo.card)})) +
         p(T("Trophies:"), T("a new rank +{a} to +{b} by its medal (bronze to diamond), any other trophy +{s}.", {a: nf.format(R.medal[0]), b: nf.format(R.medal[R.medal.length - 1]), s: nf.format(R.single)})) : "") : ""));

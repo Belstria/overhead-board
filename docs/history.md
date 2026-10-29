@@ -943,6 +943,15 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.104 (to-do #157, Dave's pick of 28–29 Oct, B "the week's calendar"; relay 87): **the standby.** `gme.standby`
+  {week: Mon–Sun "s"/"b"/"", today: index, allow, left}. `gSbyHtml(g)` in `renderGame`'s level card, before the tiles:
+  `.gSbyH` (This week; on the right `N standby left` amber, `No standby left` red while the streak hangs on today's
+  scan, else `Standby used {weekday}` or, below level 6, `Standby from level {n}` muted) and `.gWk` (seven cells:
+  `.on` scanned, `.now` scanned today, `.todo` today unscanned, `.sby` hatched SBY, `.miss` a past day missed; letters
+  from `sbyDay(i, "narrow")`, a fixed Monday + i in the app's locale), plus the warning line when none is left.
+  `gSbyUsed(g)`: the day after a covered day, the streak day the next scan pays (today's once scanned); `gStripRender`
+  then shows "Standby used · streak goes on, day N" and `#gStrip.sby` turns it amber. `gHowCard`: a Standby line from
+  `rules.standby`.
 - 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
   school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
   `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with
@@ -1344,6 +1353,16 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 87 (1.104, to-do #157): **the standby.** `STANDBY` ((14, 2), (6, 1)), `standby_allow(level)`.
+  `game_standby(g)` (called by `game_book`) makes `g["standby"]` {since: the board day} on the first touch after the
+  update: only days from then on can be covered, so a streak that broke before stays as it was paid. `_standby(g, day)`
+  works the week out each time from `scanDays` and the days' points (nothing else kept; a restart or a rescore changes
+  nothing): from Monday to yesterday, a day without a scan whose day before was a streak day (so never Monday), not
+  before `since`, is covered while fewer than `standby_allow(level at that day's end)` are used (the level from
+  `points` less the later days' points). `_scan_streak` counts covered days like scanned ones, so the next scan pays the
+  next day's amount and a covered day pays nothing. `standby_json` in `game3_json` and `/game/me` ("standby"),
+  `game_rules()["standby"]`. A game the standby hasn't met (a player card, read only) covers nothing. GAME3_V, GAME_V
+  and GAME_RULE unchanged. flows.py `standby_checks`.
 - Relay 85 (1.103, to-do #153): **the flight school.** `SCHOOL` (scan, card, bingo, fav, uncommon), `GAME_SCHOOL` 50,
   `SCHOOL_LEVEL` 4. `game_school(g)` (called by `game_book`, so on the first touch after the update, before any points
   can change) makes `g["school"]` {since, done: {mission: ms}, aw: [awards], wings: ms}; a game at level 4 or above
