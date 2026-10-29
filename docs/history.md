@@ -951,6 +951,12 @@ The repository is public: no addresses, keys or personal data here either.
   (`.rkLv`, 40), each league row (30, from the relay's `level`, `role="img"` "Rank: {t}") and the player card
   (`.plIns`, 46). `.rkGold`: a name in gold from level 19 (league rows, player card). The flight school's wings (#153)
   show as a pin (`.rkW`, `rkWings`) beside it when `g.wings` / `r.wings` / `p.wings` is truthy. No relay change.
+- 1.101.0.1 (Dave's screen recording of 29 Oct, an iPhone web app): **Now stays Now.** Since 1.97.7 a tap on Now from
+  another tab bounced back to the tab the back guard was first pushed on (usually Today): showTab("now") replaced the
+  guard's URL, `guardSync` then dropped the guard with `history.back()`, and the entry below still had that tab's
+  hash, so after the popstate (ours, ignored) `hashchange` ran `showTab` for it. The popstate handler now puts the URL
+  right (`replaceState` with `tabHash()`) for our own back too, as it already did for the user's. Not in the Android
+  app (no guard there).
 - 1.101 (to-do #148, Dave's pick of 28–29 Oct, mockup A "gold foil", sound B "bell sparkle"): **golden tickets.** The
   relay's scan list (`/game/me` `scan`, `game_scannable`) marks a golden plane `gold: true` (relay 84, `game_gold`);
   `gTixShow` makes its ticket gold (`gPassFill` `o.gold`: `.pF.gold`, the foil, a sheen `.gl` with `@gSheen`, two ✦; the
