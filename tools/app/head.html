@@ -361,12 +361,13 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .flights.tline{position:relative;margin:4px 0 0;padding:0}
 .flights.tline::before{content:"";position:absolute;left:6px;top:8px;bottom:14px;width:2px;border-radius:1px;background:linear-gradient(var(--amber),rgba(240,180,41,.15) 30%,#2c2e33)}
 .tline li{border:0;box-shadow:none}
-.tline li.tg{margin:12px 0 4px;padding:0 0 0 22px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--label2)}
+.tline li.tg{margin:14px 0 6px;padding:0 0 0 22px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--label2)}
 .tline li.tg:first-child{margin-top:4px}
 .tline li.tg b{color:var(--muted);font-weight:600}
-.tline li.fl{display:block;margin:0 0 2px;padding:7px 10px 8px 32px;border-radius:10px;cursor:pointer}
-.tline li.fl::before{content:"";position:absolute;left:2px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--node);box-shadow:0 0 0 3px #111214,0 0 8px var(--node)}
-.tline li.fl:active{background:rgba(255,255,255,.07)}
+.tline li.fl{display:block;position:relative;margin:0 0 8px 22px;padding:9px 12px 10px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);cursor:pointer}
+.tline li.fl::before{content:"";position:absolute;left:-20px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--node);box-shadow:0 0 0 3px #111214,0 0 8px var(--node)}
+.tline li.fl::after{content:"";position:absolute;left:-10px;top:19px;width:10px;height:2px;background:var(--node);opacity:.55}
+.tline li.fl:active{background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.07)),var(--box-bg)}
 .tline li.fl:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
 .tline .l1{display:grid;grid-template-columns:40px 66px minmax(0,1fr) auto;gap:8px;align-items:baseline}
 .tline .l1 time{font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
@@ -384,8 +385,9 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlFoot{display:flex;justify-content:center;margin:8px 0 0}
 /* the card in place: the gold-edged box of a page's highlight, when and how long ago, ⌃ (the chevron of what opens,
    turned up) to fold it; a smaller photo than a card's; while it opens, the row's copy, the gliding texts, the old card */
-.tline li.fl.open{padding:0 0 0 22px;margin:4px 0 10px;cursor:default;background:none}
+.tline li.fl.open{padding:0;margin:4px 0 10px 22px;border:0;cursor:default;background:none}
 .tline li.fl.open::before{top:17px}
+.tline li.fl.open::after{display:none}
 .tline li.fl.tlAnim{overflow:hidden}
 .tlCard{position:relative;padding:10px 12px 12px;border-radius:14px}
 .tlBg{position:absolute;inset:0;border-radius:14px;background:var(--box-bg);border:1px solid rgba(240,180,41,.35);pointer-events:none}
@@ -398,8 +400,8 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tlX:focus-visible{outline:2px solid var(--amber);border-radius:6px}
 .tlCard .cInfo .cSkyPic .cPic{height:170px}
 .tlCard .cSkyPic,.tlCard .cOvPlain{cursor:pointer}
-.tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:7px 10px 8px 32px;pointer-events:none}
-.tlGone{position:absolute;left:22px;right:0;top:0;z-index:2;pointer-events:none}
+.tlWas{position:absolute;left:0;right:0;top:0;z-index:2;padding:9px 12px 10px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);pointer-events:none}
+.tlGone{position:absolute;left:0;right:0;top:0;z-index:2;pointer-events:none}
 #sheet{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 #sheet[hidden]{display:none}
 #sheet .shBox{width:100%;max-width:520px;box-sizing:border-box;padding:16px 16px calc(var(--sa-bottom) + 14px);border-radius:16px 16px 0 0;

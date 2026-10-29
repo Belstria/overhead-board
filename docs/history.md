@@ -1007,6 +1007,12 @@ The repository is public: no addresses, keys or personal data here either.
   `gSbyUsed(g)`: the day after a covered day, the streak day the next scan pays (today's once scanned); `gStripRender`
   then shows "Standby used · streak goes on, day N" and `#gStrip.sby` turns it amber. `gHowCard`: a Standby line from
   `rules.standby`.
+- 1.103.1 (to-do #164, Dave's pick A of 29 Oct): **each plane in the timeline sits in its own box.** Recent flights and
+  Today (the shared `.tline` code): `.tline li.fl` is the page's box (`--box-bg`, `--box-bd`, 12 px corners, as the
+  rail's `li.st` notes), 22 px in from the rail with 8 px between boxes; the node sits on the rail beside it, with a
+  short stub (`::after`, node colour) to the box. Rail, groups, node colours and the two lines are unchanged. An opened
+  card (`li.fl.open`) drops the row's box (the gold `.tlCard` is the box), and `.tlWas` (the row fading while it opens)
+  carries the box look; `.tlGone` now starts at the li's own left edge.
 - 1.103.0.1 (to-dos #166 and #167, Dave's iPhone web app, 29 Oct): **the hangar's pictures and the unknown model's
   card.** (1) Every picture that arrived (`modelPic` → `hgSoon` → `renderGame`) drew the whole Club again; the shelves
   kept `scrollLeft`, but on a phone a redraw mid-swipe ends the finger's drag and the momentum, and the browser
