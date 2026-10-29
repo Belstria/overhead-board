@@ -943,6 +943,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.110.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
+  A95534) showed Planespotters' photo of the Bombardier Global that had the registration before. `psPhoto(reg, hex,
+  onReady, model)` sends `model` (`psModel(ac)`: `TYPES[ac.t]` and `ac.desc`, the live type's names; not adsbdb's,
+  whose record can be the older aircraft's too); `tlAhead` sends the row's. The relay compares makers (below); the
+  card then takes adsbdb's photo or the model's picture as for a plane without one.
 - 1.110 (to-dos #159 and #160, Dave's picks of 29 Oct: "Era's look good" and styles A; relay 93): **ticket designs,
   the eras of flying, and Styles as a gallery.** `STYLES` has a `ticket` kind ("" plain, `propage`, `jetage`, `magcard`,
   `holo`; not `prop`/`jet`, the badges' ids) with the rule `{medal: m}` (`TROPHY_MEDALS`' index, 1 silver to 4 diamond):
@@ -1473,6 +1478,14 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 95 (1.110.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
+  `_ps_first`) keeps every photo of the registration with the makers its page name gives after the registration
+  (`_ps_makers`: whole dash-separated words from `PS_MAKERS`, families such as Boeing with McDonnell Douglas, Bombardier
+  with Canadair, Learjet and de Havilland Canada); `_ps_cache` holds that list, and `_ps_pick` chooses per request the
+  first photo whose makers meet the plane's (from `model`; `PS_ALSO` adds Bombardier for an A220 and a CRJ, Mitsubishi
+  for a CRJ, BAe for a Hawker) or where either side names no known maker (older boards send no model: kept as before).
+  No extra request: Planespotters' answer already has the page name. Flows: fakesrc's N700GR (a Bombardier photo:
+  skipped for a Piper, kept for an unknown maker or no model) and N800GR (Bombardier, then Piper: the second is taken).
 - Relay 93 (1.110, to-do #159): `STYLE_GRANTS` lists the app's ticket designs (`propage`, `jetage`, `magcard`, `holo`), so
   the owner can grant them on the admin page like the other styles.
 - Relay 91 (1.108, to-do #156): **the showcase.** `SHOWCASE_AT` (3, 5, 8): a spot opens at each. `g["showcase"]` a

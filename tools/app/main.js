@@ -554,7 +554,7 @@ function tlAhead(list){
   const e = list.find(x => x.reg && !psPhotos.has(String(x.reg).trim().toUpperCase()));
   if (!e) return;
   tlAsking = true;                               // once answered, the model's picture for one without a photo, then the next
-  psPhoto(e.reg, e.hex, () => setTimeout(() => { tlAsking = false; tlPic(e); renderRecent(); }, 1500));
+  psPhoto(e.reg, e.hex, () => setTimeout(() => { tlAsking = false; tlPic(e); renderRecent(); }, 1500), psModel({t: e.typeCode, desc: e.desc}));
 }
 function tlAgo(e){
   const m = Math.max(0, Math.floor((Date.now() - (e.ts || 0)) / 6e4));

@@ -127,7 +127,7 @@ test/index.html: PHOTO BEZEL photoStyle engravedSrc photoShown photoPaintKey pho
     $("photoLink").addEventListener("click") MODEL_PAGES MODEL_OTHER modelPics modelAsk modelLooks MODEL_MAKERS MODEL_LIKE
     MODEL_NOT MODEL_FILL isRoman modelFold modelNear numCore modelSplit modelMakers numForms modelClash modelHit
     modelTitles WIKI_API wikiOne wikiPages wikidataPic modelOk modelFits modelPage modelKey modelLook modelWiki modelPic modelAsking
-    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
+    +planeLate +planeTok PS_KEEP_MS psPhotos psBad psOk psModel psPhoto planePic picCreditParts picCredit picCreditHtml PIC_BLANK picDone picHtml picFailed +shareImg
     +shareCanvas +picCard +planeAgain .photo @screenOnLite @screenOn #photoImg .pLink #photoCr .crBy .crSrc #photoCv
     #photoFrame #photoLink +aboutHtml +SITE_LINKS +siteLinks +viewItemHtml +planeBody +wikiImg +wikiPage +wikiFind
     +renderAircraft +isAc +pageHold +pickPage +document.addEventListener("keydown") +placeCard +typeCard +KEYS
@@ -139,7 +139,7 @@ tools/app/main.js: +shownPhoto +renderAircraftInfo +rwyE +hgBad +modelPicNow +pl
 tools/model_pages.py: FIX ADD ANY designators board_bits pages main
 tools/test/model_pics.js: "The model pictures' lookup"
 relay/serve.py: +PHOTO_HOSTS +PHOTO_TYPES +PHOTO_MAX +_photos +_photo_host_ok +photo_get PS_API PS_AGENT PS_KEEP
-    PS_FAIL PS_GAP PS_WAIT PS_REST PS_IMG _ps_cache _ps_next _ps_rest _ps_like _ps_first _ps_ask plane_photo
+    PS_FAIL PS_GAP PS_WAIT PS_REST PS_IMG _ps_cache _ps_next _ps_rest _ps_like _ps_makers _ps_list _ps_pick PS_MAKERS PS_ALSO _ps_ask plane_photo
     /planephoto /photo
 docs/architecture.md: "photos in the order Planespotters.net"
 README.md: "- **The aircraft photo**" "- **Whose photo**" "- **Model photos** (1.34)" "- **Model photos** (1.43)"

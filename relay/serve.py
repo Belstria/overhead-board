@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 93
+RELAY_VERSION = 95
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -6174,7 +6174,7 @@ PS_API = "https://api.planespotters.net/pub/photos"
 PS_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
 PS_KEEP, PS_FAIL, PS_GAP, PS_WAIT, PS_REST = 23 * 3600, 600, 1.0, 4.0, 1800
 PS_IMG = ("https://",)                     # the photo's own address must be one of these
-_ps_cache = collections.OrderedDict()      # registration -> (time, photo or None, answered)
+_ps_cache = collections.OrderedDict()      # registration -> (time, [(photo, its makers)], answered)
 _ps_next = [0.0]                           # the earliest time for the next request: one a second
 _ps_rest = [0.0]                           # refused (403, 429): no requests until then
 
@@ -6186,8 +6186,41 @@ def _ps_like(reg):
     return re.compile("-?".join(chars) + "(-|$)") if chars else None
 
 
-def _ps_first(photos, like):
-    """The board's part of the first photo in an answer that shows this registration, with addresses that are theirs."""
+# Relay 95 (to-do #168): a registration can pass to another aircraft (a US one takes its hex along), and Planespotters
+# may still show the one before: N700GR, now a Piper M700, gave a Bombardier Global's photo. A photo's page name says
+# what it shows (n700gr-goodrich-bombardier-global-5000-...), so a photo whose makers don't include the plane's is
+# skipped (the next one is taken, else the model's picture), without another request. When the photo or the plane (its
+# model's names, from the board) names no maker known here, the photo stays. Makers that merged or took over a model
+# count as one; PS_ALSO: models another maker built first (an A220's older photos say Bombardier CSeries).
+PS_MAKERS = {
+    "airbus": ("airbus", "airbus-helicopters", "eurocopter", "aerospatiale", "sud-aviation", "mbb"),
+    "boeing": ("boeing", "mcdonnell-douglas", "douglas", "mcdonnell"),
+    "bombardier": ("bombardier", "canadair", "learjet", "de-havilland", "dhc", "viking"),
+    "embraer": ("embraer",), "atr": ("atr",), "fokker": ("fokker",), "saab": ("saab",),
+    "textron": ("cessna", "beechcraft", "beech", "hawker", "raytheon", "textron"),
+    "bae": ("bae", "british-aerospace", "avro", "hawker-siddeley"), "gulfstream": ("gulfstream", "grumman"),
+    "dassault": ("dassault",), "pilatus": ("pilatus",), "daher": ("daher", "socata", "tbm"), "piper": ("piper",),
+    "cirrus": ("cirrus",), "diamond": ("diamond",), "mooney": ("mooney",), "honda": ("honda", "hondajet"),
+    "bell": ("bell",), "sikorsky": ("sikorsky",), "robinson": ("robinson",),
+    "leonardo": ("leonardo", "agustawestland", "agusta", "westland"), "lockheed": ("lockheed", "lockheed-martin"),
+    "antonov": ("antonov",), "ilyushin": ("ilyushin",), "tupolev": ("tupolev",), "sukhoi": ("sukhoi",),
+    "comac": ("comac",), "mitsubishi": ("mitsubishi",), "tecnam": ("tecnam",),
+}
+PS_ALSO = ((re.compile(r"-a-?220-|-bcs[13]-"), {"bombardier"}), (re.compile(r"-crj"), {"bombardier", "mitsubishi"}),
+           (re.compile(r"-hawker-"), {"bae"}))
+
+
+def _ps_makers(text, plane=False):
+    """The makers (PS_MAKERS' keys) that a photo's page name or a plane's model names name, as whole words."""
+    t = "-" + re.sub(r"[^a-z0-9]+", "-", str(text or "").lower()).strip("-") + "-"
+    found = {m for m, words in PS_MAKERS.items() if any(f"-{w}-" in t for w in words)}
+    return found.union(*(ms for rx, ms in PS_ALSO if rx.search(t))) if plane else found
+
+
+def _ps_list(photos, like):
+    """The board's part of the photos in an answer that show this registration, with addresses that are theirs, each
+    with the makers its page name gives after the registration."""
+    out = []
     for p in photos or []:
         try:
             img, link = p["thumbnail_large"], p["link"]
@@ -6195,11 +6228,18 @@ def _ps_first(photos, like):
         except (KeyError, TypeError, ValueError, AttributeError):
             continue
         name = page.path.rstrip("/").rsplit("/", 1)[-1].lower()
-        if (like and like.match(name) and page.scheme == "https" and (page.hostname or "").endswith("planespotters.net")
+        m = like.match(name) if like else None
+        if (m and page.scheme == "https" and (page.hostname or "").endswith("planespotters.net")
                 and str(src).startswith(PS_IMG)):
-            return {"src": src, "w": size.get("width"), "h": size.get("height"), "link": link,
-                    "by": str(p.get("photographer") or "").strip()[:80]}
-    return None
+            out.append(({"src": src, "w": size.get("width"), "h": size.get("height"), "link": link,
+                         "by": str(p.get("photographer") or "").strip()[:80]}, _ps_makers(name[m.end():])))
+    return out
+
+
+def _ps_pick(found, model):
+    """The first photo whose aircraft can be the plane: the same maker, or a maker one of them doesn't name."""
+    plane = _ps_makers(model, True)
+    return next((p for p, makers in found or [] if not plane or not makers or plane & makers), None)
 
 
 def _ps_ask(kind, value):
@@ -6231,10 +6271,12 @@ def _ps_ask(kind, value):
     return j["photos"] if isinstance(j.get("photos"), list) else [] if "error" in j else None   # "Reg input missing": none
 
 
-def plane_photo(reg, hex_=""):
-    """{"photo": {src, w, h, link, by} or None} for a registration, or None when Planespotters couldn't be asked."""
+def plane_photo(reg, hex_="", model=""):
+    """{"photo": {src, w, h, link, by} or None} for a registration, or None when Planespotters couldn't be asked. model:
+    the plane's model names (relay 95), so that a photo of another maker's aircraft is skipped."""
     key = re.sub(r"[^A-Z0-9-]", "", str(reg or "").upper())[:12]
     hex_ = re.sub(r"[^0-9A-F]", "", str(hex_ or "").upper())[:6]
+    model = str(model or "")[:200]
     like = _ps_like(key)
     if not like:
         return {"photo": None}
@@ -6242,19 +6284,19 @@ def plane_photo(reg, hex_=""):
     with _lock:
         hit = _ps_cache.get(key)
         if hit and now - hit[0] < (PS_KEEP if hit[2] else PS_FAIL):
-            return {"photo": hit[1]} if hit[2] else None
+            return {"photo": _ps_pick(hit[1], model)} if hit[2] else None
     photos = _ps_ask("reg", key)
-    photo = _ps_first(photos, like)
-    if photos is not None and not photo and len(hex_) == 6:
+    found = _ps_list(photos, like)
+    if photos is not None and not found and len(hex_) == 6:
         photos = _ps_ask("hex", hex_)
-        photo = _ps_first(photos, like)
+        found = _ps_list(photos, like)
     answered = photos is not None
     with _lock:
-        _ps_cache[key] = (now, photo, answered)
+        _ps_cache[key] = (now, found, answered)
         _ps_cache.move_to_end(key)
         while len(_ps_cache) > 3000:
             _ps_cache.popitem(last=False)
-    return {"photo": photo} if answered else None
+    return {"photo": _ps_pick(found, model)} if answered else None
 
 
 # ---------- the cards' facts (relay 74, to-do #113) ----------
@@ -8489,7 +8531,7 @@ class Handler(BaseHTTPRequestHandler):
             if not allow("pphoto:" + self.guest[0], 2, 30):
                 return self.reply(429, "text/plain", b"Too many requests")
             q = self.query()
-            r = plane_photo((q.get("reg") or [""])[0], (q.get("hex") or [""])[0])
+            r = plane_photo((q.get("reg") or [""])[0], (q.get("hex") or [""])[0], (q.get("model") or [""])[0])
             if r is None:
                 return self.reply(503, "text/plain", b"Planespotters.net can't be asked right now", {"Retry-After": "120"})
             return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "no-store"})

@@ -80,7 +80,11 @@ SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" 
 # asked (/ps/asked, for flows.py's cache check). Their photos are 420 px wide at most; the stand-in is an evening sky.
 PS_PHOTOS = {"reg/OE-LBN": ("1000001", "oe-lbn-austrian-airlines-airbus-a320-214"),
              "hex/896180": ("1000002", "a6-evb-emirates-airbus-a380-861"),
-             "hex/44D0AB": ("1000003", "oo-tek-tea-belgium-boeing-737-2q9-adv")}
+             "hex/44D0AB": ("1000003", "oo-tek-tea-belgium-boeing-737-2q9-adv"),
+             # relay 95: photos of the aircraft that had the registration before (a list: photos in their order)
+             "reg/N700GR": [("1000004", "n700gr-goodrich-bombardier-global-5000-bd-700-1a11")],
+             "reg/N800GR": [("1000005", "n800gr-private-bombardier-global-6000-bd-700-1a10"),
+                            ("1000006", "n800gr-private-piper-pa-46-600tp-m700-fury")]}
 PS_ASKED = collections.Counter()
 NAMES_FAILED = set()        # SLOW_NAMES=1 (run_test_relay.py --slow-names): the points whose first name lookup failed
 PS_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" viewBox="0 0 420 280">
@@ -439,10 +443,11 @@ class H(BaseHTTPRequestHandler):
             kind, _, v = path[len("/ps/pub/photos/"):].partition("/")
             k = f"{kind}/{urllib.parse.unquote(v).upper()}"
             PS_ASKED[k] += 1
-            p = PS_PHOTOS.get(k)
-            img = lambda w, h, s: {"src": f"http://127.0.0.1:{PORT}/psimg/{p[0]}_{s}.svg", "size": {"width": w, "height": h}}   # noqa: E731
-            photos = [{"id": p[0], "thumbnail": img(200, 133, "t"), "thumbnail_large": img(420, 280, "280"),
-                       "link": f"https://www.planespotters.net/photo/{p[0]}/{p[1]}?utm_source=api", "photographer": "Test Photographer"}] if p else []
+            ps = PS_PHOTOS.get(k) or []
+            img = lambda p, w, h, s: {"src": f"http://127.0.0.1:{PORT}/psimg/{p[0]}_{s}.svg", "size": {"width": w, "height": h}}   # noqa: E731
+            photos = [{"id": p[0], "thumbnail": img(p, 200, 133, "t"), "thumbnail_large": img(p, 420, 280, "280"),
+                       "link": f"https://www.planespotters.net/photo/{p[0]}/{p[1]}?utm_source=api", "photographer": "Test Photographer"}
+                      for p in (ps if isinstance(ps, list) else [ps])]
             return self.send(200, "application/json", json.dumps({"photos": photos}).encode())
         if path == "/ps/asked":
             return self.send(200, "application/json", json.dumps(PS_ASKED).encode())
