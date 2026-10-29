@@ -529,14 +529,17 @@ The main board has everything below. New features are tried on `/test/` first; o
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
-  the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
+  the total on flaps, your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
+  navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a
+  pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
+  it for each Legend after that; also on Your level and a player's card), the level bar and the league place on every tab (grey with Go live when live location is off);
   when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
   **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. Tap the place
   chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
-  out), today, how points work, the collections, records, bingo and trophies (no longer in the
+  out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
   each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on

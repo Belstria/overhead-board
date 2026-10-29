@@ -1324,4 +1324,8 @@ window.I18N_ROWS = [
     "un nouveau rang +{a} à +{b} selon sa médaille (bronze à diamant), tout autre trophée +{s}.",
     "un rango nuevo +{a} a +{b} según su medalla (bronce a diamante), cualquier otro trofeo +{s}.",
     "een nieuwe rang +{a} tot +{b} naar zijn medaille (brons tot diamant), elke andere trofee +{s}."],
+  // 1.102: the rank insignia (to-do #154)
+  ["Rank: {t}", "Rang: {t}", "Grade : {t}", "Rango: {t}", "Rang: {t}"],
+  ["Legend {n}", "Legende {n}", "Légende {n}", "Leyenda {n}", "Legenda {n}"],
+  ["Wings", "Schwingen", "Ailes", "Alas", "Vleugels"],
 ];

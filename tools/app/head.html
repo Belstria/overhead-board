@@ -817,6 +817,16 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gLeague li i{font-style:normal;font-size:var(--fs-xs);text-align:right}
 .gLeague .up{color:var(--c-good)} .gLeague .dn{color:var(--c-bad)} .gLeague .crown,.plCard .crown{color:var(--amber)}
 .gLeague li.plTap{cursor:pointer}
+/* 1.102 (to-do #154): the level's rank insignia (shoulder board or cap, rankIns) in the strip, Your level, the league and
+   a player's card; the flight school's wings as a pin beside it; from level 19 the name in gold */
+.rkI{flex:none;display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
+.rkI svg{display:block;flex:none;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5))}
+.rkGold{background:linear-gradient(#fff6d6,#f3c75a 50%,#d09a2c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none}
+#gStrip .gRk{flex:none;display:grid;place-items:center}
+#t-game .gBig .rkLv{display:flex;align-items:center;gap:8px}
+.gLeague li>span{display:flex;align-items:center;gap:8px;min-width:0} .gLeague .rkI>svg:first-child{min-width:34px}
+.plCard .cHead{display:flex;align-items:center;gap:12px} .plCard .cHead>div{flex:1;min-width:0}
+.plIns{flex:none;display:grid;place-items:center;padding:6px 10px;margin-right:36px;border-radius:10px;background:#121315}
 /* 1.81: a league player's card (Dave's to-do 6, pick A): the club's bar and three numbers, medals by metal, two lines */
 .plCard{display:grid;gap:10px}
 .plCard .cHead{margin:0}
