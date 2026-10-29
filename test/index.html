@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=71508ab921"></script>
+<script src="i18n.js?v=c3cae6e126"></script>
 <script>
 (() => {
 "use strict";
@@ -2105,7 +2105,7 @@ let actx = null, noise = null, lastClack = 0, soundForced = false;   // forced: 
 // decoded once; until then, and if the file can't be had (it is tried again a minute later), the synthesised sounds play.
 const SOUNDS_JS = "sounds.js?v=d4c8864b86";
 const SIG_JS = "signature.js?v=dac4282d39";       // 1.103: the flight school's signature (the phone app's; a pen-stroke script font)
-const WORLD_JS = "world.js?v=326d51cb15";       // 1.107: the passport's map (the phone app's; Natural Earth countries)
+const WORLD_JS = "world.js?v=77e0ddcf77";       // 1.107: the passport's map (the phone app's; Natural Earth countries)
 const SND = {};
 let sndLoading = false, sndFile = null, sndFailed = 0;
 function soundFile(){
@@ -7808,6 +7808,15 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.113", date: "2026-10-29", notes: [
+    "The passport's map moves: drag it, pinch to zoom, and tap a region to jump to its stamps. Thirteen regions now, small countries included.",
+    "Each region lists every country still to stamp, nearest first.",
+    "A new country inks itself in on the map when its stamp lands.",
+    "Stamps sit in the middle of their cards, and long country names fit.",
+    "Your route opens as a panel you can swipe down to close.",
+    "Tickets and notices swipe away to either side.",
+    "Tap an aircraft type, airline or aircraft in the Logbook to open its card.",
+    "The unlock cards at a level up are straight."]},
   {v: "1.112.0.1", date: "2026-10-29", notes: [
     "Text no longer gets selected by a tap (no more search bar popping up).",
     "Sky view keeps its labels and compass when the phone's readings drop out for a moment."]},

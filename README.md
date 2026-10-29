@@ -564,7 +564,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. **Career path** (1.109): the strip's line names the next stop and what it opens ("Next stop
   Logkeeper · Black on white"); Your level shows a mini route (your stop, the plane with the points still to go, the
-  next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route: a stop per level down a
+  next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route (since 1.113 a panel over the
+  club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, ✕ or back closes
+  it): a stop per level down a
   line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
   also with the lifetime points it opens at (since 1.112 only the next one). Since 1.112 the levels open at rounder
   totals: 500, 1,000, 2,000, 3,000, 4,000, 5,500, 7,500, 10,000, 13,000, 17,000, 21,000, 27,000, 34,000, 43,000,
@@ -612,10 +614,16 @@ The main board has everything below. New features are tried on `/test/` first; o
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
 to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new
-country marked). A card then shows the stamp coming down and the country soaking up its ink, or **rub it in with your
-finger** ("Scratch Spain in"). The plate shows the map with each country inked in its stamp's colour (never where you
-are; tap it for Europe or the whole world and a bar per region) and a shelf of stamps per region, with nearby
-countries still to stamp face down. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
+country marked). A card then shows the stamp coming down and the country inking itself in, the ink spreading out from
+the stamp (since 1.113; the finger's scratch went). The plate shows the map with each country inked in its stamp's colour
+(never where you are). Since 1.113 the map **moves**: drag it, pinch it (the wheel on a computer), ⟲ takes it back to
+Europe; each region's land is printed in its own paper shade, and a **tap on a region** outlines it, names it with its
+count ("Southeast Asia · 2 of 11") and takes you to its stamps. **N countries ›** opens the large map (Europe & around
+or the World, a bar per region). Below, a shelf of stamps per region (13 since 1.113: Western, Northern, Southern and
+Eastern Europe, the Middle East, North Africa, Sub-Saharan Africa, Central & South Asia, East Asia, Southeast Asia,
+North & Central America, South America and Oceania; small countries such as Malta or Singapore count too) with **every
+country still to stamp** face down after your stamps, nearest first; regions without a stamp yet are a line each under
+"Not stamped yet" that opens with a tap. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. Since 1.108 a card has a **showcase**: up to three of the player's best
   catches pinned behind glass, each as its hangar card in miniature with the airline, the day and the route ("DXB → VIE").
@@ -784,7 +792,8 @@ Five buttons along the bottom:
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
   Since 1.91 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
-  open) and the Favourites & hidden list picker.
+  open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its
+  card, as the rows inside a category do, and one of **Most seen aircraft** searches the logbook for it.
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
   result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
   on the go from before relay 63 only know their country (their place was guessed from the day's planes).
