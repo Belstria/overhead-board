@@ -391,7 +391,12 @@ The repository is public: no addresses, keys or personal data here either.
   client gone before its answer; ~24 tracebacks in 3 days, from `profile_post`), one line under `--verbose`.
   Test: fakesrc.py serves `/airlines.csv` (5 real rows, 120 made-up) and EIN6AB (no route; the board's table has no
   EIN); run_test_relay.py starts the Test profile with yesterday's EIN1XY (no name) and AUA9 (named), and EIN1XY's
-  answer in `fr24.json`; flows.py checks the names, the backfill, the CSV and the written answers.
+  answer in `fr24.json`; flows.py checks the names, the backfill, the CSV and the written answers. (29 Oct 2026, test
+  only: the check also asks `/flightinfo` for LDM5AB and DLH1234, as a board does for the plane it shows. The list's
+  lookups skip planes in the radius's outer quarter (relay 45), and only the place that recorded a pass first (the live
+  phone or, since relay 75, the saved place "Home" in earlier checks) brings its `minDist` closer, so on a fast machine
+  they started 14 km out and were never looked up; CI's slower runners got there later. The New guest check after it
+  waits for its route lookup.)
 - 1.87.1 (the gap filler on the real Flightradar24, the first evening: it filled in RYR4328 landing at 4,400 ft, but two
   short looks cost 112 credits, not the 5–8 the old estimate implied): relay 67 trims it. **One record per profile**
   (`fill_want` finds it by `pid` and moves it to each asking screen; more than `FILL_KM` away it starts afresh, asking
