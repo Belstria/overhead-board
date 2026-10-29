@@ -1081,21 +1081,32 @@ function hangarLoad(){
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
 const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
+/* 1.103.0.1 (to-do #166): a card's picture sits in a frame of its own size from the start (.hgPh, "heli" with a helicopter
+   on the Helicopters shelf), painted in place as photos and model pictures come (hgPaint), so the shelves aren't drawn
+   again for them (that made a swipe jump back). The model pictures are asked for in a queue, two at a time (hgAsk): the
+   cards in view first, then every shelf's first HG_EAGER cards, then the rest; one not answered is asked again a minute
+   later (twice at most). Those first cards' pictures load at once, the rest as they come near; a shelf touched has all
+   its pictures fetched beside it (hgAll, hgPre), not in it. Nothing in a shelf changes while it moves, not even an
+   attribute (the browser snaps it back to its card then: hgMove, hgBusy), and the Club isn't drawn again (hgHeld). */
+const HG_EAGER = 6, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone = new Set();
+let hgRun = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
+const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 800);
+function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
-  const card = code => {
+  const card = (code, heli, eager) => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
-    const img = pic => pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img(modelPicNow(names, code))}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
-    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img(pic) +
+    const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
+      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span>` +
       (t.game ? `<span class="hgL"><i>★</i>${escH(T("Scored {n}×", {n: nf.format(t.game)}))}${t.scans ? `<u>· ${escH(T("{n} scanned", {n: nf.format(t.scans)}))}</u>` : ""}</span>`
         : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + `</span></button>`;
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
-    `<div class="hgRow" data-set="${escH(key)}">${codes.map(card).join("")}</div></div>`;
+    `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
   const shelves = (hg.sets || []).map(s => {
     const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
     return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
@@ -1105,14 +1116,71 @@ function hangarHtml(hg){
   const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
   return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
 }
-// The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
+// The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){
   for (const b of box.querySelectorAll("[data-hg]")) b.onclick = () => hangarCard(b.dataset.hg);
-  for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
-  const ph = box.querySelectorAll(".hgPh[data-mp]");
-  if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon, e.target.closest("[data-hg]").dataset.hg); } }, {rootMargin: "120px"});
-  for (const el of ph) io.observe(el);
+  const rows = [...box.querySelectorAll(".hgRow")], frames = r => [...r.querySelectorAll(".hgPh")];
+  for (const r of rows) {
+    const touch = () => {
+      hgBusy = Date.now(); hgMove = r;
+      if (hgAll.has(r.dataset.set)) return;
+      hgAll.add(r.dataset.set);
+      for (const el of frames(r).reverse()) { hgPre(hgPic(el)); hgAsk(el, true); }
+    };
+    r.addEventListener("touchstart", () => { hgHeld = true; touch(); }, {passive: true});
+    r.addEventListener("touchend", () => { hgHeld = false; hgBusy = Date.now(); }, {passive: true});
+    r.addEventListener("touchcancel", () => { hgHeld = false; }, {passive: true});
+    r.addEventListener("scroll", touch, {passive: true});
+  }
+  hgPaint(box);
+  for (const r of rows) frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
+  for (const r of rows) frames(r).slice(HG_EAGER).forEach(el => hgAsk(el));
+  if (hgIO) hgIO.disconnect();
+  if (typeof IntersectionObserver !== "function") return;
+  hgIO = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { hgIO.unobserve(e.target); hgAsk(e.target, true); } }, {rootMargin: "150px"});
+  for (const el of box.querySelectorAll(".hgPh")) if (!el.firstChild) hgIO.observe(el);
+}
+// What a frame shows now: the first one's own photo, else its model's ("" none yet).
+function hgPic(el){
+  const own = (el.dataset.own || "").split(" ").find(u => u && !hgBad.has(u));
+  const mp = modelPicNow(el.dataset.mp.split("|").filter(Boolean), el.closest("[data-hg]").dataset.hg);
+  return own || (mp && !hgBad.has(mp) ? mp : "");
+}
+function hgPaint(root){
+  for (const el of root.querySelectorAll(".hgPh")) {
+    const src = hgPic(el), old = el.firstElementChild, row = el.closest(".hgRow");
+    if (old ? old.getAttribute("src") === src : !src) continue;
+    if (hgMoving(row)) { clearTimeout(hgLate); hgLate = setTimeout(() => hgPaint($("gameBox")), 900); continue; }    // once it stands still
+    if (hgAll.has(row.dataset.set)) hgPre(src);
+    if (!src) { old.remove(); continue; }
+    const im = old || document.createElement("img");
+    im.alt = ""; im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.loading = el.dataset.e ? "eager" : "lazy";
+    im.onerror = () => { hgBad.add(src); hgPaint(el.parentNode); hgAsk(el, true); };
+    im.src = src;
+    if (!old) el.append(im);
+  }
+}
+function hgAsk(el, first){
+  if (S.demo || !el.isConnected || hgPic(el)) return;
+  const code = el.closest("[data-hg]").dataset.hg, names = el.dataset.mp.split("|").filter(Boolean), k = modelKey(names, code);
+  if (modelPics.has(k)) return;                                  // being looked for, or looked for already
+  const i = hgQ.findIndex(q => q.k === k);
+  if (i >= 0) { if (!first) return; hgQ.splice(i, 1); }
+  hgQ[first ? "unshift" : "push"]({k, names, code});
+  hgPump();
+}
+function hgPump(){
+  while (hgRun < 2 && hgQ.length && tab === "game") {
+    const q = hgQ.shift();
+    if (modelPics.has(q.k)) continue;
+    hgRun++;
+    modelPic(q.names, null, q.code);
+    modelLook(q.names, q.code).catch(() => {
+      const n = (hgTries.get(q.k) || 0) + 1;
+      hgTries.set(q.k, n);
+      if (n < 3) setTimeout(() => { if (!modelPics.has(q.k)) { hgQ.push(q); hgPump(); } }, 61000);
+    }).then(() => { hgRun--; hgPaint($("gameBox")); setTimeout(hgPump, 100); });
+  }
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
 function hangarCard(code, again){
@@ -4467,6 +4535,7 @@ function renderGame(){
   h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
+  if (Date.now() - hgBusy < (hgHeld ? 10000 : 800)) return hgSoon();    // 1.103.0.1: not while a shelf is held or still moving
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
   box.dataset.h = h; box.innerHTML = h;
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }

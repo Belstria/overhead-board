@@ -1349,12 +1349,17 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT em{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--t,#7d838c)}
 .hgT b{font:700 var(--fs-s)/1.2 var(--f-board);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hgT>span{font:500 var(--fs-tag)/1.3 var(--f-board);color:var(--muted)}
-.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);place-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
+.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);align-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
   background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px)}
 /* 1.96: a face-down card shows its model, dimmed. 1.97 (to-do #132, pick 2): a line under the name, how often the game
    scored the type and how often it was scanned (no badge on the photo any more) */
 .hgCard.back img,.hgCard.back .hgPh{filter:grayscale(1) brightness(.5);opacity:.55;margin-bottom:4px}
 .hgCard{position:relative}
+/* 1.103.0.1 (to-do #166): the picture in its frame from the start (one column, so Safari doesn't narrow a face-down
+   card's frame to its text); a helicopter in the empty frames of helicopters */
+.hgCard{grid-template-columns:minmax(0,1fr)}
+.hgCard .hgPh>img{width:100%;height:100%;margin:0;filter:none;opacity:1;background:none}
+.hgCard .hgPh.heli{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23555b64' d='M3 4.5h18v1.4H3zM11.3 5.9h1.4V8h-1.4zM9 8h4a4 4 0 0 1 4 4v1.5a2.5 2.5 0 0 1-2.5 2.5H9a4 4 0 0 1-4-4 4 4 0 0 1 4-4zM16 10.5h5V12h-5zM20.5 7.5H22v5h-1.5zM8.3 16h1.2v3H8.3zM13.3 16h1.2v3h-1.2zM6 19h11v1.2H6z'/%3E%3C/svg%3E"),linear-gradient(160deg,#2a2d33,#16181b)}
 .hgT .hgL{display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--amber)}
 .hgT .hgL i{font-style:normal}
 .hgT .hgL u{text-decoration:none;color:var(--muted)}
@@ -2622,10 +2627,11 @@ function planeFunFacts(g){
   if (g && g.n >= 2 && g.first) out.push([T("You first spotted it on {d}.", {d: longDate(g.first)}), T("your logbook")]);
   return out;
 }
-// A model's rarity as a chip on its photo (Rare, Very rare ...), by its type code.
+// A model's rarity as a chip on its photo (Rare, Very rare ...), by its type code; 1.103.0.1 (to-do #167): a code missing
+// from FLEET is uncommon, as the relay scores it.
 function tierChip(code){
   code = String(code || "").toUpperCase();
-  const tier = LEGENDARY.has(code) ? "legendary" : FLEET[code] != null ? fleetTier(code) : "";
+  const tier = !code ? "" : LEGENDARY.has(code) ? "legendary" : fleetTier(code);
   return tier ? `<span class="cChip" style="background:${TIER_COL[tier]};color:#fff">${escH(T(TIER_NAME[tier]))}</span>` : "";
 }
 // One info card (o: {pic: a planePic-like photo, picAttr (the photo opens something: only its credit is a link), logo,
@@ -2655,7 +2661,7 @@ function infoCard(o){
     (typeof o.band === "string" ? `<p class="cNoRoute">${escH(o.band)}</p>` :
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}${bandMid(o.kind)}${end(o.band[2])}</div>` : "") +
     ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
-    (o.tiles ? `<div class="cTiles">${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
+    (o.tiles && o.tiles.length ? `<div class="cTiles"${o.tiles.length < 3 ? ` style="grid-template-columns:repeat(${o.tiles.length},minmax(0,1fr))"` : ""}>${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
       `${s ? `<small>${escH(s)}</small>` : ""}</${a ? "button" : "div"}>`).join("")}</div>` : "") +
     (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
     (det.length ? `<div class="cDet">${det.map(([l, v, w]) => `<div${w ? ' class="w"' : ""}><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` : "") +
@@ -3306,10 +3312,10 @@ async function typeCard(x){
     const f = fx && fx.facts || {}, e = f.engines;
     const fam = fx && modelFold(fx.title) !== modelFold(t.name) ? T("{name} family", {name: familyName(fx.title)}) : "";
     return infoCard({pic: w && w.img ? {src: wikiImg(w.img, 500), kind: "wm"} : null, title: t.name,
-      sub: [p0 && p0.maker && t.code ? modelMakers(p0.maker)[0] : "", t.code].filter(Boolean).join(" · "),
+      sub: [p0 && p0.maker && t.code ? modelMakers(p0.maker)[0] : "", t.code !== t.name ? t.code : ""].filter(Boolean).join(" · "),
       chip: tierChip(t.code), kind: "model", band: [f.firstFlight ? [yearOf(f.firstFlight), T("First flight")] : null, "", f.introduced ? [yearOf(f.introduced), T("In service")] : null],
       tiles: [["Built", f.built ? nf.format(f.built) + (f.builtMore ? "+" : "") : "", f.built ? fam : ""], ["In service", n ? "≈ " + nf.format(n) : "", n ? T("this model") : ""],
-        ["Spotted", t.code ? timesText(sp ? sp.sightings : lb && lb.count) : ""]],
+        ["Spotted", t.code ? timesText(sp ? sp.sightings : lb && lb.count) : ""]].filter(x => x[1]),   // 1.103.0.1: what isn't known left out (#167)
       facts: modelFunFacts(f, sp && sp.planes),
       det: [["Code", escH(t.code)], ["Engines", e ? escH(e.name ? (e.n ? `${e.n} × ` : "") + e.name : `${e.n} × ${T(ENGINE_KIND[e.kind] || "Engine")}`) : ""],
         ["Seats", f.seats ? escH(T("up to {n}", {n: nf.format(f.seats)})) : ""], ["Wingspan", f.span ? escH(mText(f.span)) : ""],
@@ -5151,7 +5157,7 @@ const TYPES = {
   B739:"Boeing 737-900",B37M:"Boeing 737 MAX 7",B38M:"Boeing 737 MAX 8",B39M:"Boeing 737 MAX 9",B3XM:"Boeing 737 MAX 10",B752:"Boeing 757-200",
   B753:"Boeing 757-300",B762:"Boeing 767-200",B763:"Boeing 767-300",B764:"Boeing 767-400",B772:"Boeing 777-200",B77L:"Boeing 777-200LR",
   B773:"Boeing 777-300",B77W:"Boeing 777-300ER",B778:"Boeing 777-8",B779:"Boeing 777-9",B744:"Boeing 747-400",B748:"Boeing 747-8",
-  B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E170:"Embraer E170",E75L:"Embraer E175",E75S:"Embraer E175",E190:"Embraer E190",
+  B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E170:"Embraer E170",E175:"Embraer E175",E75L:"Embraer E175",E75S:"Embraer E175",E190:"Embraer E190",
   E195:"Embraer E195",E290:"Embraer E190-E2",E295:"Embraer E195-E2",E135:"Embraer ERJ-135",E145:"Embraer ERJ-145",CRJ2:"Bombardier CRJ200",
   CRJ7:"Bombardier CRJ700",CRJ9:"Bombardier CRJ900",CRJX:"Bombardier CRJ1000",DH8D:"Dash 8 Q400",DH8C:"Dash 8-300",
   AT43:"ATR 42",AT45:"ATR 42-500",AT46:"ATR 42-600",AT72:"ATR 72",AT75:"ATR 72-500",AT76:"ATR 72-600",F100:"Fokker 100",F70:"Fokker 70",
@@ -5161,7 +5167,7 @@ const TYPES = {
   C25A:"Citation CJ2",C25B:"Citation CJ3",C25C:"Citation CJ4",C56X:"Citation Excel",C68A:"Citation Latitude",C700:"Citation Longitude",
   CL35:"Challenger 350",CL60:"Challenger 650",GLF5:"Gulfstream G550",GLF6:"Gulfstream G650",GL5T:"Global 5000",GLEX:"Global Express",
   GL7T:"Global 7500",E55P:"Phenom 300",F2TH:"Falcon 2000",F900:"Falcon 900",FA7X:"Falcon 7X",FA8X:"Falcon 8X",LJ45:"Learjet 45",
-  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",B190:"Beech 1900",
+  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",M700:"Piper M700 Fury",B190:"Beech 1900",
   B741:"Boeing 747-100",B742:"Boeing 747-200",B743:"Boeing 747-300",B74S:"Boeing 747SP",B74R:"Boeing 747SR",A124:"Antonov An-124",A225:"Antonov An-225",
   AN22:"Antonov An-22",A3ST:"Airbus Beluga",A337:"Airbus BelugaXL",CONC:"Concorde",C17:"Boeing C-17",C5M:"C-5 Galaxy",K35R:"KC-135",
   EUFI:"Eurofighter",F16:"F-16",F35:"F-35",P3:"P-3 Orion",C295:"Airbus C295",E390:"Embraer C-390",EC55:"Airbus H155",EC75:"Airbus H175",
@@ -7563,21 +7569,32 @@ function hangarLoad(){
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
 const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
+/* 1.103.0.1 (to-do #166): a card's picture sits in a frame of its own size from the start (.hgPh, "heli" with a helicopter
+   on the Helicopters shelf), painted in place as photos and model pictures come (hgPaint), so the shelves aren't drawn
+   again for them (that made a swipe jump back). The model pictures are asked for in a queue, two at a time (hgAsk): the
+   cards in view first, then every shelf's first HG_EAGER cards, then the rest; one not answered is asked again a minute
+   later (twice at most). Those first cards' pictures load at once, the rest as they come near; a shelf touched has all
+   its pictures fetched beside it (hgAll, hgPre), not in it. Nothing in a shelf changes while it moves, not even an
+   attribute (the browser snaps it back to its card then: hgMove, hgBusy), and the Club isn't drawn again (hgHeld). */
+const HG_EAGER = 6, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone = new Set();
+let hgRun = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
+const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 800);
+function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
-  const card = code => {
+  const card = (code, heli, eager) => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
-    const img = pic => pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img(modelPicNow(names, code))}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
-    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img(pic) +
+    const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
+      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span>` +
       (t.game ? `<span class="hgL"><i>★</i>${escH(T("Scored {n}×", {n: nf.format(t.game)}))}${t.scans ? `<u>· ${escH(T("{n} scanned", {n: nf.format(t.scans)}))}</u>` : ""}</span>`
         : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + `</span></button>`;
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
-    `<div class="hgRow" data-set="${escH(key)}">${codes.map(card).join("")}</div></div>`;
+    `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
   const shelves = (hg.sets || []).map(s => {
     const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
     return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
@@ -7587,14 +7604,71 @@ function hangarHtml(hg){
   const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
   return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
 }
-// The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
+// The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){
   for (const b of box.querySelectorAll("[data-hg]")) b.onclick = () => hangarCard(b.dataset.hg);
-  for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
-  const ph = box.querySelectorAll(".hgPh[data-mp]");
-  if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon, e.target.closest("[data-hg]").dataset.hg); } }, {rootMargin: "120px"});
-  for (const el of ph) io.observe(el);
+  const rows = [...box.querySelectorAll(".hgRow")], frames = r => [...r.querySelectorAll(".hgPh")];
+  for (const r of rows) {
+    const touch = () => {
+      hgBusy = Date.now(); hgMove = r;
+      if (hgAll.has(r.dataset.set)) return;
+      hgAll.add(r.dataset.set);
+      for (const el of frames(r).reverse()) { hgPre(hgPic(el)); hgAsk(el, true); }
+    };
+    r.addEventListener("touchstart", () => { hgHeld = true; touch(); }, {passive: true});
+    r.addEventListener("touchend", () => { hgHeld = false; hgBusy = Date.now(); }, {passive: true});
+    r.addEventListener("touchcancel", () => { hgHeld = false; }, {passive: true});
+    r.addEventListener("scroll", touch, {passive: true});
+  }
+  hgPaint(box);
+  for (const r of rows) frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
+  for (const r of rows) frames(r).slice(HG_EAGER).forEach(el => hgAsk(el));
+  if (hgIO) hgIO.disconnect();
+  if (typeof IntersectionObserver !== "function") return;
+  hgIO = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { hgIO.unobserve(e.target); hgAsk(e.target, true); } }, {rootMargin: "150px"});
+  for (const el of box.querySelectorAll(".hgPh")) if (!el.firstChild) hgIO.observe(el);
+}
+// What a frame shows now: the first one's own photo, else its model's ("" none yet).
+function hgPic(el){
+  const own = (el.dataset.own || "").split(" ").find(u => u && !hgBad.has(u));
+  const mp = modelPicNow(el.dataset.mp.split("|").filter(Boolean), el.closest("[data-hg]").dataset.hg);
+  return own || (mp && !hgBad.has(mp) ? mp : "");
+}
+function hgPaint(root){
+  for (const el of root.querySelectorAll(".hgPh")) {
+    const src = hgPic(el), old = el.firstElementChild, row = el.closest(".hgRow");
+    if (old ? old.getAttribute("src") === src : !src) continue;
+    if (hgMoving(row)) { clearTimeout(hgLate); hgLate = setTimeout(() => hgPaint($("gameBox")), 900); continue; }    // once it stands still
+    if (hgAll.has(row.dataset.set)) hgPre(src);
+    if (!src) { old.remove(); continue; }
+    const im = old || document.createElement("img");
+    im.alt = ""; im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.loading = el.dataset.e ? "eager" : "lazy";
+    im.onerror = () => { hgBad.add(src); hgPaint(el.parentNode); hgAsk(el, true); };
+    im.src = src;
+    if (!old) el.append(im);
+  }
+}
+function hgAsk(el, first){
+  if (S.demo || !el.isConnected || hgPic(el)) return;
+  const code = el.closest("[data-hg]").dataset.hg, names = el.dataset.mp.split("|").filter(Boolean), k = modelKey(names, code);
+  if (modelPics.has(k)) return;                                  // being looked for, or looked for already
+  const i = hgQ.findIndex(q => q.k === k);
+  if (i >= 0) { if (!first) return; hgQ.splice(i, 1); }
+  hgQ[first ? "unshift" : "push"]({k, names, code});
+  hgPump();
+}
+function hgPump(){
+  while (hgRun < 2 && hgQ.length && tab === "game") {
+    const q = hgQ.shift();
+    if (modelPics.has(q.k)) continue;
+    hgRun++;
+    modelPic(q.names, null, q.code);
+    modelLook(q.names, q.code).catch(() => {
+      const n = (hgTries.get(q.k) || 0) + 1;
+      hgTries.set(q.k, n);
+      if (n < 3) setTimeout(() => { if (!modelPics.has(q.k)) { hgQ.push(q); hgPump(); } }, 61000);
+    }).then(() => { hgRun--; hgPaint($("gameBox")); setTimeout(hgPump, 100); });
+  }
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
 function hangarCard(code, again){
@@ -10395,6 +10469,10 @@ setInterval(() => {
 const CHANGELOG = [
   {v: "1.104", date: "2026-10-29", notes: [
     "From level 6, a standby keeps your streak through a day without a scan; the club shows your week."]},
+  {v: "1.103.0.1", date: "2026-10-29", notes: [
+    "Your hangar loads its pictures ahead, and a shelf no longer jumps back while you swipe it.",
+    "Cards still to find show their model's picture again, and a helicopter where none is found.",
+    "A model card shows its rarity even for a type the board doesn't know, and leaves out what isn't known."]},
   {v: "1.103", date: "2026-10-29", notes: [
     "New players get a flight school: five first missions, 50 points each, and their wings at the end."]},
   {v: "1.102", date: "2026-10-29", notes: [
@@ -12739,6 +12817,7 @@ function renderGame(){
   h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
+  if (Date.now() - hgBusy < (hgHeld ? 10000 : 800)) return hgSoon();    // 1.103.0.1: not while a shelf is held or still moving
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
   box.dataset.h = h; box.innerHTML = h;
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
