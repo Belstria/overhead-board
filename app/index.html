@@ -1516,7 +1516,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyLg img{height:100%;max-width:150px;object-fit:contain;object-position:left center;filter:grayscale(1) contrast(1.4);mix-blend-mode:multiply;opacity:.8}
 .lyN .lyLg img,.ly0 .lyLg img{filter:grayscale(1) brightness(3);mix-blend-mode:screen;opacity:.7}
 .lyLg b{font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75;text-shadow:0 1px 0 rgba(255,255,255,.4)} .lyLg.ok b{display:none}
-/* 1.114.0.1 (to-do #190): a logo with a filled background of its own: in its colours, cut to a rounded plate (lyFill) */
+/* 1.114.1.1 (to-do #190): a logo with a filled background of its own: in its colours, cut to a rounded plate (lyFill) */
 .lyLg.fill{height:34px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .lyLg.fill img,.lyN .lyLg.fill img,.ly0 .lyLg.fill img{filter:none;mix-blend-mode:normal;opacity:1}
 .lyVt{position:absolute;right:6px;top:50%;width:150px;margin-right:-62px;transform:translateY(-50%) rotate(90deg);text-align:center;font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.3em;opacity:.85}
@@ -1932,7 +1932,12 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #cardBox.closing .cardIn{transform:translateY(calc(100% + 40px));transition:transform .26s cubic-bezier(.4,0,.8,.5)}
 #cardBox.drag .cardIn{transition:none}
 #cardBox,#cardBox .cardIn{overscroll-behavior:contain}           /* 1.78.1: the page behind never scrolls */
-#cardBox .cardIn::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.28)}
+/* 1.114.1 (to-do #189): the grip stays at the top while the card scrolls under it (in the flow, taking no room: -16 + 4 + 12;
+   a sticky top counts from inside the 24 px padding, so -16 is 8 px from the edge);
+   no ✕: a swipe down, back or a tap beside closes a card */
+#cardBox .cardIn::before{content:"";position:sticky;top:-16px;z-index:6;display:block;width:40px;height:4px;margin:-16px auto 12px;border-radius:2px;
+  background:rgba(255,255,255,.4);box-shadow:0 0 0 3px rgba(20,21,23,.45)}
+#cardBox .cardX{display:none!important}
 #cardBox .cardIn.swap>*{animation:cardSwap .24s ease-out}
 @keyframes cardSwap{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){#cardBox,#cardBox .cardIn,#cardBox.closing .cardIn{transition:none}#cardBox .cardIn.swap>*{animation:none}}
@@ -8087,7 +8092,7 @@ const lyWhen = (ts, short) => {      // short: today without its time (the card'
   y.setDate(y.getDate() - 1);
   return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
 };
-/* 1.114.0.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
+/* 1.114.1.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
    TUI's sky) can't be engraved: blended into the metal it was a light or grey block. It is looked at once (a small copy
    on a canvas; both logo sites allow CORS): when its opaque part fills its bounding box, done() gets the margins around
    that box [top, right, bottom, left] (fractions) and the card shows it in its colours as a plate cut to that box; else
@@ -8172,7 +8177,7 @@ function lyWire(box){
     const L = logo(s.dataset.lg, true);
     const put = () => {
       if (L.state !== "ok" || s.querySelector("img")) return;
-      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.0.1: a filled logo as its own plate, the rest engraved
+      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.1.1: a filled logo as its own plate, the rest engraved
         if (s.querySelector("img")) return;
         s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`);
         s.classList.add("ok");
@@ -11719,8 +11724,10 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
-  {v: "1.114.0.1", date: "2026-10-29", notes: [
+  {v: "1.114.1.1", date: "2026-10-29", notes: [
     "Airline logos with a coloured background show in their own colours on member cards, no longer as a pale block."]},
+  {v: "1.114.1", date: "2026-10-29", notes: [
+    "In the app, pop-up cards keep their grip at the top while you scroll and close with a swipe down, back or a tap outside (no more ✕)."]},
   {v: "1.114", date: "2026-10-29", notes: [
     "Member cards are a carousel now: swipe through them and tap the front one to turn it over.",
     "Each card shows the airline's logo, member since and your last scan; its back the home base and the types you scanned.",

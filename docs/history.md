@@ -948,13 +948,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.114.0.1 (to-do #190): **filled logos on the member cards.** A logo with a background of its own (SAS, Emirates,
+- 1.114.1.1 (to-do #190): **filled logos on the member cards.** A logo with a background of its own (SAS, Emirates,
   airBaltic, TUI fly among `AIRLINES`) blended into the metal as a pale or grey block. `lyFill(src, code, done)` looks at
   each logo once (a 90×36 copy on a canvas, `crossOrigin` "anonymous": img.wway.io and pics.avs.io send
   `Access-Control-Allow-Origin: *`; the board's own `logo()` is untouched): when the opaque part fills over 90% of its
   bounding box, the margins around that box; cached in `LY_FILL`. `lyWire` then shows it in its colours (`.lyLg.fill`),
   cut to a rounded plate (`clip-path: inset(... round 6px)`) with a drop shadow, on every tier; the rest stay engraved.
   A logo that can't be read stays engraved.
+- 1.114.1 (to-do #189, Dave: "Pin the grip, the X can be removed"): **the cards' grip stays, the ✕ went** (the app only;
+  the boards keep theirs, Escape and Back close them on the TVs). `#cardBox .cardIn::before` is `position: sticky` in the
+  flow (`margin: -16px auto 12px`, net no room; a sticky `top` counts from inside the card's 24 px padding, so `-16px`
+  keeps it 8 px from the edge) with a faint dark ring for photos under it; `#cardBox .cardX` `display: none!important`
+  (the later `.cardX` rules set `display`). A card closes by a swipe down, back or a tap on the dark beside it (the
+  box's click, since 1.78). Your route keeps its title above its `.cScroll`.
 - 1.114 (to-do #182; Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2;
   relay 97): **the member cards as a carousel.** `walletHtml(g0)` draws `.lyCar`: every card (`lyCardHtml`, `.lyC`
   with `.lyIn` turning between `.lyFr` and `.lyBk`) in one row, ordered by `lyList` (by scans, or A–Z with `lySort`);

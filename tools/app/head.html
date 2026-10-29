@@ -1021,7 +1021,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyLg img{height:100%;max-width:150px;object-fit:contain;object-position:left center;filter:grayscale(1) contrast(1.4);mix-blend-mode:multiply;opacity:.8}
 .lyN .lyLg img,.ly0 .lyLg img{filter:grayscale(1) brightness(3);mix-blend-mode:screen;opacity:.7}
 .lyLg b{font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75;text-shadow:0 1px 0 rgba(255,255,255,.4)} .lyLg.ok b{display:none}
-/* 1.114.0.1 (to-do #190): a logo with a filled background of its own: in its colours, cut to a rounded plate (lyFill) */
+/* 1.114.1.1 (to-do #190): a logo with a filled background of its own: in its colours, cut to a rounded plate (lyFill) */
 .lyLg.fill{height:34px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .lyLg.fill img,.lyN .lyLg.fill img,.ly0 .lyLg.fill img{filter:none;mix-blend-mode:normal;opacity:1}
 .lyVt{position:absolute;right:6px;top:50%;width:150px;margin-right:-62px;transform:translateY(-50%) rotate(90deg);text-align:center;font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.3em;opacity:.85}
@@ -1437,7 +1437,12 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #cardBox.closing .cardIn{transform:translateY(calc(100% + 40px));transition:transform .26s cubic-bezier(.4,0,.8,.5)}
 #cardBox.drag .cardIn{transition:none}
 #cardBox,#cardBox .cardIn{overscroll-behavior:contain}           /* 1.78.1: the page behind never scrolls */
-#cardBox .cardIn::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.28)}
+/* 1.114.1 (to-do #189): the grip stays at the top while the card scrolls under it (in the flow, taking no room: -16 + 4 + 12;
+   a sticky top counts from inside the 24 px padding, so -16 is 8 px from the edge);
+   no ✕: a swipe down, back or a tap beside closes a card */
+#cardBox .cardIn::before{content:"";position:sticky;top:-16px;z-index:6;display:block;width:40px;height:4px;margin:-16px auto 12px;border-radius:2px;
+  background:rgba(255,255,255,.4);box-shadow:0 0 0 3px rgba(20,21,23,.45)}
+#cardBox .cardX{display:none!important}
 #cardBox .cardIn.swap>*{animation:cardSwap .24s ease-out}
 @keyframes cardSwap{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){#cardBox,#cardBox .cardIn,#cardBox.closing .cardIn{transition:none}#cardBox .cardIn.swap>*{animation:none}}

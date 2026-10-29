@@ -1124,7 +1124,7 @@ const lyWhen = (ts, short) => {      // short: today without its time (the card'
   y.setDate(y.getDate() - 1);
   return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
 };
-/* 1.114.0.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
+/* 1.114.1.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
    TUI's sky) can't be engraved: blended into the metal it was a light or grey block. It is looked at once (a small copy
    on a canvas; both logo sites allow CORS): when its opaque part fills its bounding box, done() gets the margins around
    that box [top, right, bottom, left] (fractions) and the card shows it in its colours as a plate cut to that box; else
@@ -1209,7 +1209,7 @@ function lyWire(box){
     const L = logo(s.dataset.lg, true);
     const put = () => {
       if (L.state !== "ok" || s.querySelector("img")) return;
-      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.0.1: a filled logo as its own plate, the rest engraved
+      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.1.1: a filled logo as its own plate, the rest engraved
         if (s.querySelector("img")) return;
         s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`);
         s.classList.add("ok");
