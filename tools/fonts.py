@@ -1,4 +1,5 @@
-"""Fetch the board's typefaces (Archivo Narrow, Oswald, Barlow Condensed, and since 1.71 Inter for the glass version; SIL Open Font License) from Google Fonts
+"""Fetch the board's typefaces (Archivo Narrow, Oswald, Barlow Condensed, since 1.71 Inter for the glass version, since 1.110 Old Standard TT Bold for the app's
+1950s ticket; SIL Open Font License) from Google Fonts
 into fonts/, with fonts/fonts.css naming them by file. Since 1.64 the boards, the app and the light version load the
 fonts from there (the relay or GitHub Pages), so opening a board no longer asks Google for them.
 
@@ -15,7 +16,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "fonts"
 CSS = ("https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800"
-       "&family=Barlow+Condensed:wght@400;500;600;700&display=swap")
+       "&family=Barlow+Condensed:wght@400;500;600;700&family=Old+Standard+TT:wght@700&display=swap")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"   # woff2
 KEEP = ("latin", "latin-ext")
 

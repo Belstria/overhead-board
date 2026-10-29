@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 91
+RELAY_VERSION = 93
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -999,7 +999,8 @@ STYLE_GRANTS = [("heathrow", "Heathrow yellow"), ("solari", "Solari green"), ("i
                 ("white", "Black on white"), ("brass", "Brass trim"), ("enamel", "Worn enamel"), ("led", "LED dots"),
                 ("star", "Star"), ("prop", "Propeller"), ("heli", "Helicopter"), ("jumbo", "Jumbo"), ("jet", "Fighter jet"),
                 ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night"), ("goldleaf", "Gold leaf"),
-                ("firstclass", "First Class")]
+                ("firstclass", "First Class"), ("propage", "Propeller age ticket"), ("jetage", "Jet age ticket"),   # relay 93 (1.110): the app's ticket designs
+                ("magcard", "Magnetic card ticket"), ("holo", "Hologram ticket")]
 
 
 def style_grants(p):
