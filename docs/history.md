@@ -953,6 +953,20 @@ The repository is public: no addresses, keys or personal data here either.
   aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
   #logX, #tabs) carry `data-ta` with their English, put through `T()` at start and in `applyLang`. `relayBusy` and
   `pushBusy`: About opened twice in one fetch starts one `relayLoad` chain; the push button subscribes once at a time.
+- 1.114.4 (to-do #197, review findings M2 and L7): **the Club's model pictures and redraws.** (1) `hgWire` no longer
+  queues every hangar frame (74 Wikipedia requests in 10 s with 101 cards, then 429s and blank cards): the
+  IntersectionObserver asks for frames as they come into view, and the first time a shelf shows, its first `HG_EAGER`;
+  `hgPump` keeps two in flight, `HG_GAP` (500 ms) apart. Without an observer each shelf's first `HG_EAGER` as before.
+  (2) The model pictures found are kept in localStorage `od.modelPics` (`modelKept`: key → [address, time], a week;
+  `modelSave` writes 2 s later), loaded into `modelPics` at start (board and app); `hgPaint`'s image error calls
+  `modelForget` (dropped, looked up again; `modelBad` keeps it from being stored again). Failed lookups and models
+  without a picture aren't kept. (3) `renderGame` splits its HTML into plates (`gPlateSplit`: at each
+  `<section class="plate secPlate`, a plate with what follows it; one piece if sections nest) and keeps them in
+  `gPlates`; a redraw replaces only the plates whose HTML changed (a `<template>` each, in place) and wires only those
+  (`hgWire`, `lyWire`, `ppWire` take the new plate; `hgWire` leaves the observer alone without shelves); a different
+  number of plates or `gPlates = null` (`showTab`, Loading) draws it whole. Measured (seed `--club`, 4× CPU): a new catch
+  redrew in ~200 ms, now ~33 ms (only Your catch); the carousel, the passport map and the hangar's pictures stay the same
+  nodes; the first visit's whole draw is unchanged (~200 ms).
 - 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
   member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
   done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled
