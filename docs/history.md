@@ -948,6 +948,18 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.112.0.1 (to-do #186, #187; Dave's phone, 29 Oct): **no text selection; Sky view's heading can't turn NaN.**
+  #186: a tap on a scan ticket's points selected "105" and Chrome's Touch to Search sheet opened. The app's `html` (head.html)
+  and the test board's `body` have `user-select: none` and `-webkit-touch-callout: none`; `input`, `textarea` and
+  `[contenteditable]` keep selection (iOS can't type otherwise); the log keeps its Copy button. #187: Sky view lost every
+  label and the ribbon's letters for good. `arFrame` carried the newest reading on by `arW` with `sin(h) / |arW|`, and
+  `arW` is exactly nought after Sky view's first reading and after any jump (`arTurn`), e.g. when readings resume after a
+  pause (the search sheet took the page's focus). With `devicemotion` saying the phone turns, that was 0/0: `arQ` became
+  NaN and every frame glides on from it, so projections (labels) and `arRibbon`'s letters were drawn at NaN; only the
+  ribbon's picture-width window, which doesn't use the heading, stayed. Now the run-on needs a speed; nothing non-finite
+  gets into `arQ`, `arGap` or `arTurn` (`arOrient` drops NaN angles); a pause over `AR_GAP_MS` (300 ms) starts the speed
+  afresh; `arResume` (window `focus`) does the same and redraws the ribbon, keeping the last good heading.
+  `tools/test/sky_jitter.js` gained the paused/NaN cases (exit 1 if the heading is lost).
 - 1.112 (to-do #170–#176, Dave's batch of 29 Oct; relay 96): **rounder ranks, spread-out unlocks, four mastery steps.**
   #173: `careerPts(lv)` reads `CAREER_AT` (500, 1,000, 2,000 … 135,000 for levels 2–20) and `CAREER_AFTER` (30,000 a
   level past 20), the relay's `LEVEL_AT`/`LEVEL_AFTER`. #174: `STYLES`' `{lvl}` moved (styles on even levels: 2 Heathrow

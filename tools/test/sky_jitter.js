@@ -129,3 +129,26 @@ for (const [name, gaps] of [["readings as late and bunched as in Dave's recordin
     ` · still while the sky moves in ${(avg("held") * 100).toFixed(0)}% of frames · ${avg("behind").toFixed(1)} px behind on average` +
     ` · after a stop runs on past the sky ${avg("runOn").toFixed(1)} px, back within 0.2° after ${avg("back").toFixed(2)} s`);
 }
+
+// 1.112.0.1 (to-do #187): panning at 40°/s with the gyroscope's rate coming, the frames between the readings, and the
+// readings stopping for a while (the page lost focus under the browser's search sheet), or one coming as NaN. The
+// labels' heading must stay a number (it became NaN for good: no labels, an empty ribbon) and follow the turn again.
+let bad = 0;
+for (const gap of [0, 300, 800, 3000]) for (const nan of [false, true]) {
+  let clock = 0, first = null;
+  const [ar] = load(() => clock, 1), dt = 1000 / 60;
+  for (; clock < 8000; clock += dt) {
+    const yaw = 40 * clock / 1000, off = clock > 2000 && clock < 2000 + gap;
+    if (!off) {
+      ar.arOrient({type: "deviceorientationabsolute", absolute: true, alpha: yaw % 360, beta: 70, gamma: 0});
+      ar.arOrient({type: "deviceorientation", absolute: false, alpha: nan && clock > 4000 && clock < 4100 ? NaN : (yaw + 77) % 360, beta: 70, gamma: 0});
+    }
+    ar.arMotion({rotationRate: {alpha: 40, beta: 0, gamma: 0}});
+    ar.arFrame(clock + 8);
+    if (ar.arQ && !ar.arQ.every(Number.isFinite) && first == null) first = clock;
+  }
+  const off = ar.arQ ? Math.abs(w180(ar.arYaw(ar.arQMatrix(ar.arQ), I) - 40 * clock / 1000)) : 999;
+  if (first != null || !(off < 5)) bad++;
+  console.log(`readings stopping ${gap} ms${nan ? ", a NaN reading" : ""}: ${first != null ? `heading NaN from ${Math.round(first)} ms` : `heading ${off.toFixed(1)}° off the turn at the end`}`);
+}
+if (bad) { console.log(`${bad} case(s) lost the heading`); process.exitCode = 1; }
