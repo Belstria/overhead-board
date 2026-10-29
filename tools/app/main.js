@@ -1118,35 +1118,62 @@ let lyAt = "", lySort = "tier", lyFlipped = "";
 const LY_RING = 2 * Math.PI * 15;
 const lyStill = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const lyLetter = icao => (lyName(icao).match(/[A-Z]/i) || [""])[0].toUpperCase();
-const lyWhen = (ts, short) => {      // short: today without its time (the card's front)
+const lyWhen = ts => {
   const d = new Date(ts), y = new Date(), day = x => x.toDateString();
-  if (day(d) === day(y)) return short ? T("today") : T("today {t}", {t: d.toLocaleTimeString(LOC(), {hour: "2-digit", minute: "2-digit"})});
+  if (day(d) === day(y)) return T("today {t}", {t: d.toLocaleTimeString(LOC(), {hour: "2-digit", minute: "2-digit"})});
   y.setDate(y.getDate() - 1);
   return day(d) === day(y) ? T("yesterday") : fmtDay(ts);
 };
-/* 1.114.1.1 (to-do #190): a logo drawn on a filled background of its own (SAS's blue, Emirates' red, airBaltic's lime,
-   TUI's sky) can't be engraved: blended into the metal it was a light or grey block. It is looked at once (a small copy
-   on a canvas; both logo sites allow CORS): when its opaque part fills its bounding box, done() gets the margins around
-   that box [top, right, bottom, left] (fractions) and the card shows it in its colours as a plate cut to that box; else
-   (or if it can't be read) null, engraved. */
-const LY_FILL = new Map();
-function lyFill(src, code, done){
-  if (LY_FILL.has(code)) return done(LY_FILL.get(code));
-  const im = new Image(), end = r => { LY_FILL.set(code, r); done(r); };
+/* 1.114.3 (Dave's "final look 2", 30 Oct; it replaces 1.114.1.1's plates): the logo printed in ink on the metal. Read
+   once per logo and card brightness (a copy on a canvas; both logo sites allow CORS): a logo with a filled background of
+   its own (SAS, Emirates, airBaltic, TUI fly) loses that background and a 3 px rim inside its box (Emirates left a line
+   under it); its mark then takes whichever of its colour and the background's shows on the metal (blue SAS on light
+   metal, white on Member; airBaltic's lime on Member). On a dark card only a mark's darkest parts print light, so
+   Turkish keeps its red bird and myAustrian its red. Trimmed to what's left; done(dataURL), or null if it can't be
+   read (the logo as it comes, in ink). */
+const LY_INK = new Map();
+function lyInk(src, key, dark, done){
+  const k = key + (dark ? "/d" : "/l");
+  if (LY_INK.has(k)) return done(LY_INK.get(k));
+  const im = new Image(), end = r => { LY_INK.set(k, r); done(r); };
   im.crossOrigin = "anonymous";
   im.onerror = () => end(null);
   im.onload = () => {
     try {
-      const w = 90, h = 36, c = document.createElement("canvas");
+      const w = im.naturalWidth, h = im.naturalHeight, c = document.createElement("canvas");
       c.width = w; c.height = h;
       const g = c.getContext("2d");
-      g.drawImage(im, 0, 0, w, h);
-      const d = g.getImageData(0, 0, w, h).data;
-      let x0 = w, y0 = h, x1 = -1, y1 = -1, n = 0;
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) {
-        n++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      g.drawImage(im, 0, 0);
+      const D = g.getImageData(0, 0, w, h), d = D.data, lum = p => (.3 * d[p] + .59 * d[p + 1] + .11 * d[p + 2]) / 255;
+      const box = () => {            // the opaque part's box and how much of it is opaque
+        let x0 = w, y0 = h, x1 = -1, y1 = -1, n = 0;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) {
+          n++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+        }
+        return [x0, y0, x1, y1, n];
+      };
+      let [x0, y0, x1, y1, n] = box();
+      if (x1 < 0) return end(null);
+      const filled = n / ((x1 - x0 + 1) * (y1 - y0 + 1)) > .9, bi = ((y0 + 3) * w + x0 + 3) * 4, bg = [d[bi], d[bi + 1], d[bi + 2]];
+      if (filled) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const p = (y * w + x) * 4;
+        if (x - x0 < 3 || x1 - x < 3 || y - y0 < 3 || y1 - y < 3) { d[p + 3] = 0; continue; }
+        d[p + 3] = Math.round(d[p + 3] * Math.max(0, Math.min(1, (Math.hypot(d[p] - bg[0], d[p + 1] - bg[1], d[p + 2] - bg[2]) - 40) / 60)));
       }
-      end(x1 >= 0 && n / ((x1 - x0 + 1) * (y1 - y0 + 1)) > .9 ? [y0 / h, (w - 1 - x1) / w, (h - 1 - y1) / h, x0 / w] : null);
+      let s = 0, m = 0;
+      for (let p = 0; p < d.length; p += 4) if (d[p + 3] > 128) { s += lum(p); m++; }
+      const mk = m ? s / m : 0, bl = (.3 * bg[0] + .59 * bg[1] + .11 * bg[2]) / 255, useBg = filled && (dark ? bl > mk : bl < mk);
+      for (let p = 0; p < d.length; p += 4) {
+        if (useBg) { d[p] = bg[0]; d[p + 1] = bg[1]; d[p + 2] = bg[2]; }
+        else if (dark && lum(p) < .34 && !(d[p] > d[p + 1] + 60 && d[p] > d[p + 2] + 60)) d[p] = d[p + 1] = d[p + 2] = 232;   // reds keep theirs
+      }
+      g.putImageData(D, 0, 0);
+      [x0, y0, x1, y1] = box();
+      if (x1 < 0) return end(null);
+      const o = document.createElement("canvas");
+      o.width = x1 - x0 + 3; o.height = y1 - y0 + 3;
+      o.getContext("2d").drawImage(c, x0 - 1, y0 - 1, o.width, o.height, 0, 0, o.width, o.height);
+      end(o.toDataURL());
     } catch { end(null); }
   };
   im.src = src;
@@ -1162,13 +1189,13 @@ function lyCardHtml([icao, s], info, i){
   const since = info.since ? fmtDay(info.since) : "", last = info.last ? lyWhen(info.last) : "";
   const home = [f[2] || "", f[1] ? ppName(f[1]) : ""].filter(Boolean).join(" · ");
   const kv = (k, v) => `<span><small>${escH(k)}</small>${escH(v || "—")}</span>`;
-  const front = `<i class="lyBr"></i><span class="lyLg" data-lg="${escH(code)}"><b>${escH(code)}</b></span>` +
-    `<span class="lyVt">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}</span><span class="lyHo"><b>${escH(code)}</b></span>` +
+  // 1.114.3: the front holds four things: the logo (its name until it's here), the code in holographic ink, the scans
+  // bottom left, the tier bottom right; member since and the last scan are on the back
+  const front = `<i class="lyBr"></i><span class="lyLg" data-lg="${escH(code)}"><b>${escH(lyName(icao))}</b></span><span class="lyHo">${escH(code)}</span>` +
     (t < 0 ? `<span class="lyNx"><b>${escH(T("Not a member yet"))}</b><small>${escH(T("Scan one of its planes to join"))}</small></span>`
       : `<svg class="lyRg" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="v" cx="18" cy="18" r="15" stroke-dasharray="${(LY_RING * pct / 100).toFixed(1)} ${LY_RING.toFixed(1)}"/></svg>` +
         `<span class="lyNx"><b>${escH(T("{n} scanned", {n: nf.format(s)}))}</b><small>${escH(nx ? T(LY_TO[t], {n: nf.format(nx[0] - s)}) : T("Top tier"))}</small></span>`) +
-    `<span class="lyMs">${t < 0 ? escH(info.seen ? T(info.seen === 1 ? "1 sighting" : "{n} sightings", {n: nf.format(info.seen)}) : "")    // short, in two pieces
-      : [since && T("Since {d}", {d: since}), info.last && T("Last scan {d}", {d: lyWhen(info.last, true)})].filter(Boolean).map(x => `<span>${escH(x)}</span>`).join(" · ")}</span><i class="lySh"></i>`;
+    `<span class="lyVt">${escH(t >= 0 ? T(LY_NAME[t]) : T("Guest"))}</span><i class="lySh"></i>`;
   const back = `<i class="lyMag"></i><span class="lyHm"><b>${escH(f[0] || lyName(icao))}</b>${home ? `<small>${escH(T("Home base {p}", {p: home}))}</small>` : ""}</span>` +
     `<span class="lyGr">${kv(T("Scanned"), nf.format(s))}${kv(T("Sightings"), info.seen ? nf.format(info.seen) : "")}${kv(T("Member since"), since)}${kv(T("Last scan"), last)}</span>` +
     ((info.types || []).length ? `<span class="lyTy">${info.types.map(([tc, n]) => `<i>${escH(tc)}<small>×${nf.format(n)}</small></i>`).join("")}</span>` : "");
@@ -1205,17 +1232,14 @@ function lyWire(box){
   car.style.setProperty("--cw", cw + "px");
   const ids = cs.map(c => c.dataset.ly);
   let pos = Math.max(0, ids.indexOf(lyAt)), shown = pos, tm = 0;
-  for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here
-    const L = logo(s.dataset.lg, true);
+  for (const s of car.querySelectorAll(".lyLg")) {            // the logos the board uses, once they're here, in ink
+    const L = logo(s.dataset.lg, true), dark = /\bly(N|0)\b/.test(s.closest(".lyC").className);
     const put = () => {
       if (L.state !== "ok" || s.querySelector("img")) return;
-      lyFill(L.img.src, s.dataset.lg, f => {           // 1.114.1.1: a filled logo as its own plate, the rest engraved
+      lyInk(L.img.src, s.dataset.lg, dark, url => {
         if (s.querySelector("img")) return;
-        s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(L.img.src)}">`);
+        s.insertAdjacentHTML("afterbegin", `<img alt="" src="${escH(url || L.img.src)}">`);
         s.classList.add("ok");
-        if (!f) return;
-        const clip = `inset(${f.map(v => (v * 100).toFixed(1) + "%").join(" ")} round 6px)`;
-        s.classList.add("fill"); s.firstChild.style.clipPath = clip; s.firstChild.style.webkitClipPath = clip;
       });
     };
     if (L && L.state === "ok") put(); else if (L && L.state === "loading") L.img.addEventListener("load", () => setTimeout(put, 0), {once: true});

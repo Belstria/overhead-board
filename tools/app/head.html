@@ -1020,23 +1020,23 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyBk{transform:rotateY(180deg)}
 .lyN .lyFr,.lyN .lyBk{box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px #3a3c42}
 .lyBr{position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.04) 1px 2px,transparent 2px 3px);pointer-events:none}
-.lyLg{position:absolute;left:20px;top:14px;height:38px;max-width:150px;display:flex;align-items:center}
-.lyLg img{height:100%;max-width:150px;object-fit:contain;object-position:left center;filter:grayscale(1) contrast(1.4);mix-blend-mode:multiply;opacity:.8}
-.lyN .lyLg img,.ly0 .lyLg img{filter:grayscale(1) brightness(3);mix-blend-mode:screen;opacity:.7}
-.lyLg b{font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75;text-shadow:0 1px 0 rgba(255,255,255,.4)} .lyLg.ok b{display:none}
-/* 1.114.1.1 (to-do #190): a logo with a filled background of its own: in its colours, cut to a rounded plate (lyFill) */
-.lyLg.fill{height:34px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
-.lyLg.fill img,.lyN .lyLg.fill img,.ly0 .lyLg.fill img{filter:none;mix-blend-mode:normal;opacity:1}
-.lyVt{position:absolute;right:6px;top:50%;width:150px;margin-right:-62px;transform:translateY(-50%) rotate(90deg);text-align:center;font:700 var(--fs-l)/1 var(--f-board);letter-spacing:.3em;opacity:.85}
-.lyHo{position:absolute;left:20px;bottom:14px;width:46px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;
-  background:conic-gradient(from 30deg,#f6b7d2,#b6e3f9,#c8f5c0,#fbe7a1,#f6b7d2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.25)}
-.lyHo b{font:700 var(--fs-s)/1 var(--f-board);color:rgba(30,30,40,.75);letter-spacing:.04em}
-.lyRg{position:absolute;left:74px;bottom:13px;width:36px;height:36px;transform:rotate(-90deg)}
+/* 1.114.3 (final look 2): the logo printed in ink top left (lyInk), the code in holographic ink top right, the scans
+   bottom left, the tier across the bottom right; member since and the last scan on the back */
+.lyLg{position:absolute;left:20px;top:16px;height:44px;max-width:170px;display:flex;align-items:center}
+.lyLg img{max-height:34px;max-width:170px;object-fit:contain;object-position:left center;mix-blend-mode:multiply;opacity:.95}
+.lyN .lyLg img,.ly0 .lyLg img{mix-blend-mode:normal}
+.lyLg b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75} .lyLg.ok b{display:none}
+.lyHo{position:absolute;right:16px;top:20px;height:40px;display:flex;align-items:center;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.04em;color:transparent;
+  background:linear-gradient(115deg,#e0479e,#3fa9f5 17%,#2fc070 33%,#f2a922 50%,#e0479e 67%,#3fa9f5 83%,#2fc070) 0 50%/300% 100%;-webkit-background-clip:text;background-clip:text}
+.ly1 .lyHo,.ly2 .lyHo,.ly3 .lyHo{background-image:linear-gradient(115deg,#c2187a,#1e7fd6 17%,#14934c 33%,#c27f08 50%,#c2187a 67%,#1e7fd6 83%,#14934c)}
+.lyN .lyHo,.ly0 .lyHo{filter:brightness(1.25)}
+.lyFr.shine .lyHo{animation:lyHolo .9s ease-out}
+@keyframes lyHolo{from{background-position:0% 50%}to{background-position:100% 50%}}
+.lyVt{position:absolute;right:16px;bottom:16px;font:700 var(--fs-m)/1 var(--f-board);letter-spacing:.18em;text-align:right;opacity:.85}
+.lyRg{position:absolute;left:18px;bottom:13px;width:36px;height:36px;transform:rotate(-90deg)}
 .lyRg circle{fill:none;stroke:rgba(0,0,0,.15);stroke-width:3.5} .lyRg .v{stroke:var(--ac);stroke-linecap:round}
-.lyNx{position:absolute;left:118px;right:40px;bottom:15px;display:flex;flex-direction:column;gap:3px}
-.lyN .lyNx{left:78px} .lyNx small{font-size:var(--fs-tag);opacity:.75}
-.lyMs{position:absolute;left:20px;right:50px;top:60px;font-weight:600;letter-spacing:.1em;opacity:.7}   /* clear of the tier on the edge */
-.lyMs > span{display:inline-block;max-width:100%}
+.lyNx{position:absolute;left:62px;bottom:15px;max-width:112px;display:flex;flex-direction:column;gap:3px}
+.lyN .lyNx{left:20px;max-width:150px} .lyNx small{font-size:var(--fs-tag);opacity:.75}
 /* platinum: an iridescent sheen over the light metal, so it never reads as silver (Dave's pick B, 29 Oct) */
 .ly3 .lyFr::before,.ly3 .lyBk::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:hard-light;opacity:.9;
   background:linear-gradient(115deg,rgba(255,90,180,.7),rgba(90,180,255,.7) 30%,rgba(120,255,170,.65) 52%,rgba(255,210,100,.7) 76%,rgba(190,120,255,.7))}
@@ -1070,7 +1070,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #lyBub > b{display:block;margin-bottom:6px;font:700 var(--fs-hero)/1 var(--f-board);color:#fff}
 #lyBub > span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:600 var(--fs-tag)/1.5 var(--f-board);letter-spacing:.06em;text-transform:uppercase;opacity:.6}
 #lyBub > span.on{opacity:1;color:#ffd36a}
-@media (prefers-reduced-motion:reduce){.lyCar.go .lyC,.lyIn,.lyDots i,#lyBub{transition:none}.lyFr.shine .lySh{animation:none}}
+@media (prefers-reduced-motion:reduce){.lyCar.go .lyC,.lyIn,.lyDots i,#lyBub{transition:none}.lyFr.shine .lySh,.lyFr.shine .lyHo{animation:none}}
 .gAw .lyFF{display:flex;align-items:center;gap:8px;margin:0 12px 10px;padding:7px 0 0;border-top:1.5px dotted #cfc8b8;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;color:#333}
 .gAw .lyFF i{font-style:normal;color:#999}
 .gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
