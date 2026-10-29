@@ -1385,7 +1385,12 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #cardBox.closing .cardIn{transform:translateY(calc(100% + 40px));transition:transform .26s cubic-bezier(.4,0,.8,.5)}
 #cardBox.drag .cardIn{transition:none}
 #cardBox,#cardBox .cardIn{overscroll-behavior:contain}           /* 1.78.1: the page behind never scrolls */
-#cardBox .cardIn::before{content:"";position:absolute;left:50%;top:8px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:rgba(255,255,255,.28)}
+/* 1.113.1 (to-do #189): the grip stays at the top while the card scrolls under it (in the flow, taking no room: -16 + 4 + 12;
+   a sticky top counts from inside the 24 px padding, so -16 is 8 px from the edge);
+   no ✕: a swipe down, back or a tap beside closes a card */
+#cardBox .cardIn::before{content:"";position:sticky;top:-16px;z-index:6;display:block;width:40px;height:4px;margin:-16px auto 12px;border-radius:2px;
+  background:rgba(255,255,255,.4);box-shadow:0 0 0 3px rgba(20,21,23,.45)}
+#cardBox .cardX{display:none!important}
 #cardBox .cardIn.swap>*{animation:cardSwap .24s ease-out}
 @keyframes cardSwap{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){#cardBox,#cardBox .cardIn,#cardBox.closing .cardIn{transition:none}#cardBox .cardIn.swap>*{animation:none}}

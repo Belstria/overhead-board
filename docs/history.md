@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.113.1 (to-do #189, Dave: "Pin the grip, the X can be removed"): **the cards' grip stays, the ✕ went** (the app only;
+  the boards keep theirs, Escape and Back close them on the TVs). `#cardBox .cardIn::before` is `position: sticky` in the
+  flow (`margin: -16px auto 12px`, net no room; a sticky `top` counts from inside the card's 24 px padding, so `-16px`
+  keeps it 8 px from the edge) with a faint dark ring for photos under it; `#cardBox .cardX` `display: none!important`
+  (the later `.cardX` rules set `display`). A card closes by a swipe down, back or a tap on the dark beside it (the
+  box's click, since 1.78). Your route keeps its title above its `.cScroll`.
 - 1.113 (to-dos #178–#181, #183–#185, #188, Dave's batch of 29 Oct; no relay change): **the passport moves, Your route is
   a sheet.** #179: `tools/world_map.py` packs 13 regions from the UN subregions (`REGION`, `OWN`: Cyprus SE, the Caucasus
   EE, Iran ME; places without an airport region "") and adds 1:50m's small countries as label points without rings

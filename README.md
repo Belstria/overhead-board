@@ -428,7 +428,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   place there named Home share one list, each plane once.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
-  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open.
+  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open. Since 1.113.1
+  the grip stays at the top while a card scrolls, and cards have no ✕: a swipe down, back or a tap beside closes them.
 - **Cards** (1.42) open as a short loading window and appear complete once the words and the airport are in (at most
   a few seconds), instead of filling in piece by piece. Since 1.97.3 the photos don't hold a card back: it opens at
   once, its photo window keeps its size and shows the loading spinner, and the photo fades in when it has loaded (a
@@ -565,7 +566,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Logbook), and Styles. **Career path** (1.109): the strip's line names the next stop and what it opens ("Next stop
   Logkeeper · Black on white"); Your level shows a mini route (your stop, the plane with the points still to go, the
   next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route (since 1.113 a panel over the
-  club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, ✕ or back closes
+  club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, back or a tap beside closes
   it): a stop per level down a
   line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
   also with the lifetime points it opens at (since 1.112 only the next one). Since 1.112 the levels open at rounder
