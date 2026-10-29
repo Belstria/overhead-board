@@ -16,6 +16,12 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - Recent points: today's awards per plane (the first score, a close-pass top-up, the lock-on), the profile's own only (relay 71)
 - bingo lines and trophies pay once (relay 83): a line +50, the full card +500, a rank 50 to 250, a one-off 100; earlier
   wins unpaid, every total kept; a restart, a rescore and the backfills pay nothing again; a new card each Monday
+- the standby (relay 87): a day without a scan with a standby left keeps the streak and pays nothing, the next scan
+  pays the next day's; one a week at level 6–13, two from 14, none below; Monday renews; a game scored before keeps
+  every total and its broken streak; a restart and a rescore change nothing
+- mastery (relay 88): a type's 5th, 25th and 100th scan pay +25, +100, +250 once, in the day and the level; a type
+  already past a step (counted or counted back) keeps it unpaid; a restart and a rescore pay nothing again; a game
+  scored before keeps every total
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
   ("can"), the daily streak (a missed day, the Monday reset), rule 1's planes not priced again; over HTTP: the rules
@@ -304,7 +310,7 @@ def game_rule_checks(expect):
         expect("the same plane scanned again", scan(commons[0]), (0, "done"))
         expect("a common past the limit: the full 10 from a scan, nothing new", scan(commons[51]), (10, [("scan", 10)]))
         expect("scans have no limit", [scan(e)[0] for e in legs], [500 + 50 + 25, 500, 500, 500])
-        expect("the scans counted per type (relay 79; from the start here)", g.get("scanTypes"), None)
+        expect("the scans counted per type (relay 88: by the scan itself, from the first)", g.get("scanTypes"), {"A320": 2, "A388": 4})
         far = plane("uncommon", "A320", "AUA999", km=12.0)
         note(far)
         expect("a plane at 12 km scores (relay 82) but can't be scanned", (far["gp"], scan(far)), (10, (0, "closer")))
@@ -771,6 +777,662 @@ def school_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def standby_checks(expect):
+    """Relay 87 (to-do #157): the standby. A day without a scan, with a standby left this week, keeps the streak and pays
+    nothing; the next scan pays the next day's amount. One a week at level 6 to 13, two from 14, none below 6 (the level
+    the day ended on); Monday brings them fresh. A game scored before keeps every total and its broken streak; a
+    restart and a rescore change nothing."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = ["2026-10-26"]                                  # a Monday
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day[0]
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n = [0]
+
+    def at_level(lv):
+        p = 0
+        while serve.level_of(p)[0] < lv:
+            _, _, into, need = serve.level_of(p)
+            p += need - into
+        return p
+
+    L6, L14 = at_level(6), at_level(14)
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def fresh():
+        """A new profile on Monday (its standby from then on)."""
+        day[0] = "2026-10-26"
+        return spot(Path(tempfile.mkdtemp(prefix="fb-sby-")))
+
+    def go(sp, d, scan=True):
+        """Day d (03:00 on): a plane comes within 4 km and is scanned; the scan's streak line (None: no scan that day)."""
+        day[0] = d
+        with serve._data_lock:
+            sp.ensure_day()
+            if not scan:
+                return None
+            n[0] += 1
+            now = serve.time.time()
+            e = {"id": f"b{n[0]}", "hex": f"{n[0] + 9000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320",
+                 "callsign": "ZZZ1", "tier": "common", "liveMin": 4.0, "liveSeen": now}
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            r = serve.game_lockon(sp, e["hex"])
+            return next(((x["k"], x["p"]) for x in r.get("lines", []) if x["k"] == "streak"), None)
+
+    def week(sp, points, plan):
+        """A game at `points` (scored the Sunday before), then the week's days by plan ("s" a scan, "-" none): the
+        streak lines paid, in order."""
+        with serve._data_lock:
+            serve._game_add(serve.game_book(sp.book()), "2026-10-25", points)
+        out = []
+        for i, c in enumerate(plan):
+            r = go(sp, f"2026-10-{26 + i:02d}" if 26 + i <= 31 else f"2026-11-{26 + i - 31:02d}", c == "s")
+            if r:
+                out.append(r)
+        return out
+
+    def g3(sp):
+        with serve._data_lock:
+            return serve.game3_json(sp.book(), day[0])
+
+    try:
+        expect("standbys a week by level: none below 6, one from 6, two from 14",
+               [serve.standby_allow(lv) for lv in (1, 5, 6, 13, 14, 20, 25)], [0, 0, 1, 1, 2, 2, 2])
+        # level 6: Mon–Wed scanned, no scan Thu: covered; Fri's first scan is day 5 (+125)
+        f1 = Path(tempfile.mkdtemp(prefix="fb-sby-"))
+        sp, g = spot(f1)
+        expect("level 6 at the start (with a standby since Monday)", (serve.level_of(L6)[0], serve.game_standby(g)["since"]), (6, "2026-10-26"))
+        paid = week(sp, L6, "sss-")
+        day[0] = "2026-10-30"
+        sb = g3(sp)
+        expect("Friday morning: Thursday covered, the streak 4, none left",
+               (sb["streak"], sb["standby"]["week"], sb["standby"]["left"], sb["standby"]["allow"], sb["scannedToday"]),
+               (4, ["s", "s", "s", "b", "", "", ""], 0, 1, False))
+        pts = g["points"]
+        expect("... the covered day paid nothing", (g["days"].get("2026-10-29"), paid), (None, [("streak", 25), ("streak", 50), ("streak", 75)]))
+        expect("the next scan pays day 5 (+125), then day 6", (go(sp, "2026-10-30"), go(sp, "2026-10-31")), (("streak", 125), ("streak", 150)))
+        expect("... and the points are only the scans'", g["points"] - pts > 0 and g["days"].get("2026-10-29") is None, True)
+        # a restart and a rescore change nothing
+        day[0] = "2026-11-01"                             # Sunday, no scan yet
+        save(sp)
+        before, total = _j.dumps(g3(sp), sort_keys=True), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game, the same week", (_j.dumps(g3(sp), sort_keys=True), g["points"]), (before, total))
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the same", (_j.dumps(g3(sp), sort_keys=True), g["points"]), (before, total))
+        expect("Monday 03:00: a fresh standby, the streak from day 1",
+               (go(sp, "2026-11-02"), g3(sp)["standby"]["left"], g3(sp)["standby"]["week"]), (("streak", 25), 1, ["s"] + [""] * 6))
+        # below level 6: no standby, Thursday breaks it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 5: no standby, a day without a scan starts it again", week(sp, L6 - 1000, "sss-ss"),
+               [("streak", 25), ("streak", 50), ("streak", 75), ("streak", 25), ("streak", 50)])
+        expect("... the week shows no covered day", (g3(sp)["standby"]["week"], g3(sp)["standby"]["allow"]), (["s", "s", "s", "", "s", "s", ""], 0))
+        # level 6 to 13: one a week; a second day without a scan breaks it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 13: one a week, the second day without a scan starts it again", week(sp, L14 - 1000, "ss--s"),
+               [("streak", 25), ("streak", 50), ("streak", 25)])
+        expect("... Wednesday covered, Thursday not", g3(sp)["standby"]["week"], ["s", "s", "b", "", "s", "", ""])
+        # level 14: two a week
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("level 14: two a week, two days covered (Sat's first scan is day 5)", week(sp, L14, "ss--ss"),
+               [("streak", 25), ("streak", 50), ("streak", 125), ("streak", 150)])
+        expect("... both shown, none left", (g3(sp)["standby"]["week"], g3(sp)["standby"]["left"]), (["s", "s", "b", "b", "s", "s", ""], 0))
+        # Monday is never covered (nothing to keep), nor a day with no streak before it
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        expect("no scan Monday: nothing to keep, the standby kept", (week(sp, L6, "-s"), g3(sp)["standby"]["left"]), ([("streak", 25)], 1))
+        # the level the day ended on: below 6 on Thursday, 6 by Friday's points: Thursday not covered
+        sp, g = fresh()
+        day[0] = "2026-10-26"
+        week(sp, L6 - 2000, "sss-")
+        with serve._data_lock:
+            serve._game_add(g, "2026-10-30", 2000)
+        day[0] = "2026-10-30"
+        expect("level 6 only after the day without a scan: not covered", (serve.level_of(g["points"])[0], g3(sp)["streak"], g3(sp)["standby"]["left"]),
+               (6, 0, 1))
+        # a game scored before relay 87 (no standby): every total kept; a day missed before it isn't covered
+        f2 = Path(tempfile.mkdtemp(prefix="fb-sby-"))
+        sp, g = spot(f2)
+        day[0] = "2026-10-26"
+        week(sp, L6, "ss-")
+        g.pop("standby")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        day[0] = "2026-10-29"
+        sp, g = spot(f2)
+        new = {k: v for k, v in g.items() if k != "standby"}
+        expect("relay 87 on a game scored before: every total kept", _j.dumps(new, sort_keys=True), _j.dumps(old, sort_keys=True))
+        expect("... the standby starts today, Wednesday's break stays", (g["standby"], g3(sp)["streak"], go(sp, "2026-10-29")),
+               ({"since": "2026-10-29"}, 0, ("streak", 25)))
+        expect("... a player card's streak (read only) on a game the standby hasn't met: as before", serve._scan_streak({"scanDays": ["2026-10-26", "2026-10-27"], "points": L6}, "2026-10-29"), 0)
+        expect("the rules for the app: one from level 6, two from 14", serve.game_rules()["standby"], [[14, 2], [6, 1]])
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
+def mastery_checks(expect):
+    """Relay 88 (to-do #149): mastery. The scan that brings a type to 5, 25 or 100 scans pays +25, +100 or +250 once
+    (an award with the scan's, in the day and the level). A type already past a step when relay 88 meets the game keeps
+    the step unpaid (its frame comes from the scans); scans counted back from the saved days count the same. A restart
+    and a rescore pay nothing again; a game scored before keeps every total."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-28"
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n, pre = [0], [0, 0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def scan(sp, tc="A320"):
+        """A plane of type tc comes within 4 km and is scanned: the scan's answer."""
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"m{n[0]}", "hex": f"{n[0] + 11000:06x}", "ts": int(now * 1000) + n[0], "typeCode": tc, "callsign": "ZZZ1",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            g = serve.game_book(sp.book())
+            pre[:] = [g["points"], g["days"].get(day, 0)]           # after the plane's passive points
+        return serve.game_lockon(sp, e["hex"])
+
+    def mst(r):
+        return [(a["n"], a["m"], a["p"]) for a in r.get("lines", []) if a["k"] == "mastery"]
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules"}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    try:
+        expect("the steps a type's scans reach", [serve.mastery_step(x) for x in (0, 4, 5, 24, 25, 99, 100, 500)], [0, 0, 1, 1, 2, 2, 3, 3])
+        expect("the rules for the app", serve.game_rules()["mastery"], [[5, 25], [25, 100], [100, 250]])
+        # a new game: the 5th, 25th and 100th A320 scan pay, each once, with the scan (its total, the day, the level)
+        f1 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
+        sp, g = spot(f1)
+        paid, sums = {}, []
+        for i in range(1, 106):
+            r = scan(sp)
+            pts0, day0 = pre
+            if mst(r):
+                paid[i] = mst(r)
+            sums.append(r["bonus"] == sum(a["p"] for a in r["lines"]) and g["points"] - pts0 == r["bonus"] == g["days"][day] - day0)
+        expect("a new game: the 5th, 25th and 100th scan of a type pay +25, +100, +250, once",
+               paid, {5: [("A320", 1, 25)], 25: [("A320", 2, 100)], 100: [("A320", 3, 250)]})
+        expect("... each in the scan's bonus, the total and the day", all(sums), True)
+        aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "mastery"]
+        expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["m"], a["p"], a["n"], a["r"]) for a in aw),
+               [(1, 25, "A320", serve.GAME_RULE), (2, 100, "A320", serve.GAME_RULE), (3, 250, "A320", serve.GAME_RULE)])
+        expect("... another type counts on its own", [mst(scan(sp, "B738")) for _ in range(5)][-1], [("B738", 1, 25)])
+        expect("... the hangar's scans", {t["code"]: t["scans"] for t in serve.hangar_json(sp)["types"] if t["code"] in ("A320", "B738")},
+               {"A320": 105, "B738": 5})
+        # a restart, then a rescore of the logbook: the same game, and the next scans pay no step again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's totals the same", (g["points"], g["mastery"], g["scanTypes"]["A320"]),
+               (total, {"A320": 3, "B738": 1}, 105))
+        expect("... and a scan after them pays no step again", (mst(scan(sp)), mst(scan(sp, "B738"))), ([], []))
+        # a game from before relay 88: A321 at 4 scans, B744 at 30 (past bronze), DH8D at 100 (gold); no "mastery" yet
+        f2 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
+        sp, g = spot(f2)
+        for tc, k in (("A321", 4), ("B744", 30), ("DH8D", 100)):
+            for _ in range(k):
+                scan(sp, tc)
+        with serve._data_lock:
+            g.pop("mastery")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f2)
+        expect("relay 88 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
+        expect("... the hangar's scans (the frames) as they were", {t["code"]: t["scans"] for t in serve.hangar_json(sp)["types"]},
+               {"A321": 4, "B744": 30, "DH8D": 100})
+        pts0 = g["points"]
+        r1, r2 = scan(sp, "B744"), scan(sp, "DH8D")
+        expect("... a type past a step gets it unpaid: B744's 31st and DH8D's 101st scan pay no step",
+               (mst(r1), mst(r2), g["mastery"]), ([], [], {"B744": 2, "DH8D": 3}))
+        expect("... and only the plane's own points", g["points"] - pts0, r1["bonus"] + r2["bonus"])
+        expect("... A321's 5th scan pays bronze", mst(scan(sp, "A321")), [("A321", 1, 25)])
+        late = [mst(scan(sp, "B744")) for _ in range(69)]
+        expect("... B744 at 100 pays gold, never silver", [(i + 32, x) for i, x in enumerate(late) if x], [(100, [("B744", 3, 250)])])
+        # scans from before relay 79 (none counted per type yet): counted back from the saved days, past steps unpaid
+        f3 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
+        sp, g = spot(f3)
+        for _ in range(7):
+            scan(sp, "E195")
+        with serve._data_lock:
+            g.pop("mastery")
+            g.pop("scanTypes")
+        save(sp)
+        sp, g = spot(f3)
+        expect("counted back from the days: E195's 8th scan pays nothing, its 25th silver",
+               (mst(scan(sp, "E195")), [i + 9 for i in range(17) if mst(scan(sp, "E195"))], g["scanTypes"]["E195"]), ([], [25], 25))
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
+def loyalty_checks(expect):
+    """Relay 89 (to-do #162): airline loyalty. The scan that brings an airline to 10, 50 or 200 scanned planes pays +25,
+    +100 or +250 once (Silver, Gold, Platinum; Member at the first, unpaid). An airline already past a step when relay 89
+    meets the game keeps the tier unpaid; scans counted back from the saved days count the same. A restart and a rescore
+    pay nothing again; a game scored before keeps every total; the wallet holds what the airline trophies count."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-28"
+    real_day, real_pass, real_gold = serve.board_day, serve.school_pass, serve.game_gold
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n, pre = [0], [0, 0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def seen(sp, al, tc="A320"):
+        """A plane of airline al comes within 4 km (the game scores it passively): the entry."""
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"l{n[0]}", "hex": f"{n[0] + 21000:06x}", "ts": int(now * 1000) + n[0], "typeCode": tc, "callsign": f"{al}{n[0]}",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            g = serve.game_book(sp.book())
+            pre[:] = [g["points"], g["days"].get(day, 0)]           # after the plane's passive points
+        return e
+
+    def scan(sp, al="AUA"):
+        return serve.game_lockon(sp, seen(sp, al)["hex"])
+
+    def loy(r):
+        return [(a["n"], a["m"], a["p"]) for a in r.get("lines", []) if a["k"] == "loyalty"]
+
+    def wallet(sp):
+        with serve._data_lock:
+            g3 = serve.game3_json(sp.book(), day)
+            return g3["wallet"], g3["trophyCounts"]["airlines"]
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules"}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    try:
+        expect("the tiers an airline's scans reach", [serve.loyalty_step(x) for x in (0, 1, 9, 10, 49, 50, 199, 200, 900)], [0, 0, 0, 1, 1, 2, 2, 3, 3])
+        expect("the rules for the app", serve.game_rules()["loyalty"], [[10, 25], [50, 100], [200, 250]])
+        # a new game: the 10th, 50th and 200th AUA scan pay, each once, with the scan (its total, the day, the level)
+        f1 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f1)
+        paid, sums, cnt = {}, [], []
+        for i in range(1, 206):
+            r = scan(sp)
+            pts0, day0 = pre
+            if loy(r):
+                paid[i] = loy(r)
+            cnt.append(r["airline"] == {"code": "AUA", "scans": i})
+            sums.append(r["bonus"] == sum(a["p"] for a in r["lines"]) and g["points"] - pts0 == r["bonus"] == g["days"][day] - day0)
+        expect("a new game: the 10th, 50th and 200th scan of an airline pay +25, +100, +250, once",
+               paid, {10: [("AUA", 1, 25)], 50: [("AUA", 2, 100)], 200: [("AUA", 3, 250)]})
+        expect("... each in the scan's bonus, the total and the day", all(sums), True)
+        expect("... the scan's answer has the airline's scans", all(cnt), True)
+        aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "loyalty"]
+        expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["m"], a["p"], a["n"], a["r"]) for a in aw),
+               [(1, 25, "AUA", serve.GAME_RULE), (2, 100, "AUA", serve.GAME_RULE), (3, 250, "AUA", serve.GAME_RULE)])
+        expect("... another airline counts on its own", [loy(scan(sp, "RYR")) for _ in range(10)][-1], [("RYR", 1, 25)])
+        seen(sp, "DLH")                                             # caught live, never scanned
+        w, tc = wallet(sp)
+        expect("the wallet: every airline caught live, with its scans (0: not a member yet)", w, {"AUA": 205, "RYR": 10, "DLH": 0})
+        expect("... its size is what the airline trophies count", len(w), tc)
+        # a restart, then a rescore of the logbook: the same game, and the next scans pay no tier again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's totals the same", (g["points"], g["loyalty"], g["scanAirlines"]),
+               (total, {"AUA": 3, "RYR": 1}, {"AUA": 205, "RYR": 10}))
+        w, tc = wallet(sp)
+        expect("... the wallet the same, its size the trophies'", (w, len(w)), ({"AUA": 205, "RYR": 10, "DLH": 0}, tc))
+        expect("... and a scan after them pays no tier again", (loy(scan(sp)), loy(scan(sp, "RYR"))), ([], []))
+        # a game from before relay 89: EZY at 9 scans, WZZ at 60 (past Gold), THY at 200 (Platinum); no "loyalty" yet
+        f2 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f2)
+        for al, k in (("EZY", 9), ("WZZ", 60), ("THY", 200)):
+            for _ in range(k):
+                scan(sp, al)
+        with serve._data_lock:
+            g.pop("loyalty")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f2)
+        expect("relay 89 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
+        pts0 = g["points"]
+        r1, r2 = scan(sp, "WZZ"), scan(sp, "THY")
+        expect("... an airline past a tier gets it unpaid: WZZ's 61st and THY's 201st scan pay no tier",
+               (loy(r1), loy(r2), g["loyalty"]), ([], [], {"WZZ": 2, "THY": 3}))
+        expect("... and only the plane's own points", g["points"] - pts0, r1["bonus"] + r2["bonus"])
+        expect("... EZY's 10th scan pays Silver", loy(scan(sp, "EZY")), [("EZY", 1, 25)])
+        late = [loy(scan(sp, "WZZ")) for _ in range(139)]
+        expect("... WZZ at 200 pays Platinum, never Gold", [(i + 62, x) for i, x in enumerate(late) if x], [(200, [("WZZ", 3, 250)])])
+        # scans from before relay 89 (none counted per airline yet): counted back from the saved days, past tiers unpaid
+        f3 = Path(tempfile.mkdtemp(prefix="fb-loy-"))
+        sp, g = spot(f3)
+        for _ in range(12):
+            scan(sp, "SWR")
+        with serve._data_lock:
+            g.pop("loyalty")
+            g.pop("scanAirlines")
+        save(sp)
+        old = _j.loads((f3 / "logbook.json").read_text())["game3"]
+        sp, g = spot(f3)
+        expect("counted back from the days on loading the logbook", (serve.logbook_json(sp)["game"]["wallet"], g["scanAirlines"]), ({"SWR": 12}, {"SWR": 12}))
+        expect("... the totals untouched by it", (g["points"], g["days"], g["trophies"]), (old["points"], old["days"], old["trophies"]))
+        expect("... SWR's 13th scan pays nothing, its 50th Gold",
+               (loy(scan(sp, "SWR")), [i + 14 for i in range(37) if loy(scan(sp, "SWR"))], g["scanAirlines"]["SWR"]), ([], [50], 50))
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
+def showcase_checks(expect):
+    """Relay 91 (to-do #156): the showcase. Its spots open at levels 3, 5 and 8 (a level-up opens the next one); a pin
+    over the spots open is refused, and one of a type never seen; a hangar card pins its best catch (scanned before
+    scored before seen, then one with a route, then the first); a type pinned again moves; "" empties a spot; the pins
+    survive a restart; no points change."""
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    expect("level_points is where each level starts", [(serve.level_of(serve.level_points(lv))[0], serve.level_of(serve.level_points(lv) - 1)[0])
+                                                       for lv in range(2, 26)], [(lv, lv - 1) for lv in range(2, 26)])
+    f = Path(tempfile.mkdtemp(prefix="fb-sc-"))
+
+    def spot():
+        sp = serve.Spot(f, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def codes(r):
+        return [x and x["code"] for x in r["pins"]] if isinstance(r, dict) else r
+
+    sp, g = spot()
+    t0 = int(serve.time.time() * 1000) - 50000
+    rt = lambda a, b: {"from": {"code": a, "city": "x", "lat": 1, "lon": 2}, "to": {"code": b}}   # noqa: E731
+    with serve._data_lock:
+        for i, e in enumerate([{"typeCode": "B789", "flightIata": "OS1"},                          # seen, the first
+                               {"typeCode": "B789", "flightIata": "OS2", "gp": 15, **rt("NRT", "VIE")},   # scored, a route
+                               {"typeCode": "B789", "flightIata": "OS3", "gp": 15, "scan": t0},   # scanned, no route
+                               {"typeCode": "B789", "flightIata": "EK4", "gp": 15, "scan": t0, "airlineName": "Emirates", "reg": "A6-XYZ",
+                                "photo": "https://x/p.jpg", "lat": 48.2, "lon": 16.3, "place": "home", **rt("DXB", "VIE")},
+                               {"typeCode": "B789", "flightIata": "EK5", "gp": 15, "scan": t0 + 9, **rt("DXB", "VIE")},  # a later one
+                               {"typeCode": "A359", "flightIata": "LH6", "gp": 15},
+                               {"typeCode": "BCS3", "flightIata": "LX7"}]):
+            sp.entries.insert(0, {"id": f"s{i}", "hex": f"{i + 41000:06x}", "ts": t0 + i, "tier": "rare", **e})
+        g["points"] = 100
+    save(sp)                    # (_logbook_entries reads the days saved)
+    r = serve.showcase_json(g)
+    expect("level 1: no spot open, three locked with the points to go", (r["pins"], [(x["level"], x["toGo"]) for x in r["locked"]]),
+           ([], [(lv, serve.level_points(lv) - 100) for lv in (3, 5, 8)]))
+    expect("... a pin refused", serve.showcase_pin(sp, "B789", 0)[0], 403)
+    g["points"] = serve.level_points(3)
+    expect("level 3: one spot, empty", (codes(serve.showcase_json(g)), len(serve.showcase_json(g)["locked"])), ([None], 2))
+    st, r = serve.showcase_pin(sp, "B789", 0)
+    pin = r["pins"][0] if st == 200 else {}
+    expect("a hangar card pins its best catch: scanned, with a route, the first", (st, pin.get("flight"), pin.get("route"), pin.get("how")),
+           (200, "EK4", ["DXB", "VIE"], "scan"))
+    expect("... with its plane, airline, photo and time", (pin.get("reg"), pin.get("airline"), pin.get("photo"), pin.get("ts"), pin.get("tier")),
+           ("A6-XYZ", "Emirates", "https://x/p.jpg", t0 + 3, "rare"))
+    expect("... and never where it was seen", [k for k in ("lat", "lon", "place", "at", "liveMin") if k in pin], [])
+    expect("a pin over the spots open is refused", serve.showcase_pin(sp, "A359", 1), (403, "That spot opens at level 5"))
+    expect("a type never seen is refused", serve.showcase_pin(sp, "A388", 0)[0], 404)
+    expect("a type the game never scored: its sighting", serve.showcase_catch(sp, "BCS3")["how"], "seen")
+    expect("one without a route has none", serve.showcase_catch(sp, "A359")["route"], None)
+    g["points"] = serve.level_points(5)
+    expect("a level-up opens the next spot", codes(serve.showcase_json(g)), ["B789", None])
+    expect("... and pins into it", codes(serve.showcase_pin(sp, "A359", 1)[1]), ["B789", "A359"])
+    g["points"] = serve.level_points(8) + 5
+    expect("level 8: the third spot, nothing locked", (codes(serve.showcase_json(g)), serve.showcase_json(g)["locked"]), (["B789", "A359", None], []))
+    expect("a type pinned again moves", codes(serve.showcase_pin(sp, "B789", 2)[1]), [None, "A359", "B789"])
+    expect("a pin swaps out the one in its spot", codes(serve.showcase_pin(sp, "BCS3", 1)[1]), [None, "BCS3", "B789"])
+    expect('"" empties a spot', codes(serve.showcase_pin(sp, "", 1)[1]), [None, None, "B789"])
+    serve.showcase_pin(sp, "A359", 0)
+    expect("no points change", g["points"], serve.level_points(8) + 5)
+    expect("the app's own data has it", codes(serve.game3_json(sp.book(), serve.board_day())["showcase"]), ["A359", None, "B789"])
+    expect("the rules say where the spots open", serve.game_rules()["showcase"], [3, 5, 8])
+    save(sp)
+    sp2, g2 = spot()
+    expect("the pins survive a restart", (codes(serve.showcase_json(g2)), serve.showcase_json(g2)["pins"][2]["route"]), (["A359", None, "B789"], ["DXB", "VIE"]))
+
+
+def passport_checks(expect):
+    """Relay 90 (to-do #150): the passport. A scan of a flight with a known route stamps the countries of its two
+    airports (from the airport list's countries); one new to the passport pays +25 once, with the scan. Countries of
+    scans before relay 90 are stamped unpaid (counted back from the saved days); a restart and a rescore pay nothing
+    again; a game scored before keeps every total. No route, or the airport list still loading: nothing stamped."""
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-29"
+    real_day, real_pass, real_gold, real_ap = serve.board_day, serve.school_pass, serve.game_gold, serve._airports
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    ap = {"VIE": ("LOWW", "AT", "EU", 48.11, 16.57), "BCN": ("LEBL", "ES", "EU", 41.30, 2.08), "LHR": ("EGLL", "GB", "EU", 51.47, -0.45),
+          "FRA": ("EDDF", "DE", "EU", 50.03, 8.57), "DXB": ("OMDB", "AE", "AS", 25.25, 55.36), "SZG": ("LOWS", "AT", "EU", 47.79, 13.0)}
+    table = {"v": 4, "fetched": serve.time.time(), "iata": {k: ["", la, lo, ic, "", 1, 0, cc, ct] for k, (ic, cc, ct, la, lo) in ap.items()},
+             "icao": {v[0]: k for k, v in ap.items()}}
+    serve._airports = table
+    n, pre = [0], [0, 0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def scan(sp, fr=None, to=None):
+        """A plane flying fr to to (codes; None: no route) comes within 4 km and is scanned: the scan's answer."""
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"p{n[0]}", "hex": f"{n[0] + 31000:06x}", "ts": int(now * 1000) + n[0], "typeCode": "A320", "callsign": f"AUA{n[0]}",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now, **({"from": {"code": fr}, "to": {"code": to}} if fr else {})}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            g = serve.game_book(sp.book())
+            pre[:] = [g["points"], g["days"].get(day, 0)]
+        return serve.game_lockon(sp, e["hex"])
+
+    def cc(r):
+        return [(a["n"], a["ap"], a["p"]) for a in r.get("lines", []) if a["k"] == "country"]
+
+    def stamps(g):
+        return {c: (s["ap"], s["p"]) for c, s in (g.get("passport") or {}).items()}
+
+    def snap(sp):
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g3 = {k: v for k, v in serve.game3_json(sp.book(), day).items() if k != "rules"}
+            return _j.dumps([g, g3], sort_keys=True)
+
+    try:
+        expect("the rules for the app", serve.game_rules()["country"], 25)
+        expect("a route's countries: each once, origin first; an airport by its ICAO code too; none without a route",
+               [serve.route_countries(e, table) for e in ({"from": {"code": "BCN"}, "to": {"code": "VIE"}}, {"from": {"code": "SZG"}, "to": {"code": "LOWW"}},
+                                                          {"from": {"code": "XXX"}, "to": {"code": "DXB"}}, {"to": {"code": "DXB"}}, {})],
+               [[("ES", "BCN"), ("AT", "VIE")], [("AT", "SZG")], [("AE", "DXB")], [], []])
+        # a new game: the first scan with a route stamps both countries and pays each; the way back pays nothing
+        f1 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f1)
+        r = scan(sp, "BCN", "VIE")
+        expect("a scan BCN-VIE: Spain and Austria stamped, +25 each", (cc(r), stamps(g)),
+               ([("ES", "BCN", 25), ("AT", "VIE", 25)], {"ES": ("BCN", 25), "AT": ("VIE", 25)}))
+        expect("... in the scan's bonus, the total and the day", (r["bonus"] == sum(a["p"] for a in r["lines"]), g["points"] - pre[0], g["days"][day] - pre[1]),
+               (True, r["bonus"], r["bonus"]))
+        expect("... the answer has the route with the new ones marked, and the count", (r["route"], r["countries"]), ([["BCN", "ES", True], ["VIE", "AT", True]], 2))
+        aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "country"]
+        expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["n"], a["p"], a["r"]) for a in aw),
+               [("AT", 25, serve.GAME_RULE), ("ES", 25, serve.GAME_RULE)])
+        r = scan(sp, "VIE", "BCN")
+        expect("the way back: both stamped already, nothing more", (cc(r), r["route"], r["countries"]), ([], [["VIE", "AT", False], ["BCN", "ES", False]], 2))
+        expect("a new country on the next route pays once: LHR-VIE", cc(scan(sp, "LHR", "VIE")), [("GB", "LHR", 25)])
+        expect("... and not again", cc(scan(sp, "LHR", "SZG")), [])
+        r = scan(sp)
+        expect("a flight without a route stamps nothing", (cc(r), r["route"], len(g["passport"])), ([], [], 3))
+        expect("an airport the list lacks: only the other end", cc(scan(sp, "XXX", "DXB")), [("AE", "DXB", 25)])
+        with serve._data_lock:
+            pj = serve.game3_json(sp.book(), day)["passport"]
+        expect("the passport for the app: day, airport, its place and continent, paid",
+               pj, {"ES": [day, "BCN", 41.3, 2.08, "EU", 25], "AT": [day, "VIE", 48.11, 16.57, "EU", 25], "GB": [day, "LHR", 51.47, -0.45, "EU", 25],
+                    "AE": [day, "DXB", 25.25, 55.36, "AS", 25]})
+        # a restart, then a rescore: the same game, and the same routes pay nothing again
+        save(sp)
+        before, total = snap(sp), g["points"]
+        sp, g = spot(f1)
+        expect("a restart: the same game", snap(sp), before)
+        save(sp)
+        lb = _j.loads((f1 / "logbook.json").read_text())
+        lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
+        (f1 / "logbook.json").write_text(_j.dumps(lb))
+        sp, g = spot(f1)
+        expect("a rescore from the saved days: the game's total and the passport the same", (g["points"], stamps(g)),
+               (total, {"ES": ("BCN", 25), "AT": ("VIE", 25), "GB": ("LHR", 25), "AE": ("DXB", 25)}))
+        expect("... and the same routes pay nothing again", (cc(scan(sp, "BCN", "LHR")), cc(scan(sp, "DXB", "VIE"))), ([], []))
+        # a game from before relay 90: scans with routes, no passport yet; the airport list still loading at first
+        f2 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f2)
+        for fr, to in (("VIE", "LHR"), ("FRA", "VIE"), ("VIE", "LHR")):
+            scan(sp, fr, to)
+        with serve._data_lock:
+            g.pop("passport")
+        save(sp)
+        old = _j.loads((f2 / "logbook.json").read_text())["game3"]
+        serve._airports = {**table, "v": 3}                     # an older copy of the list, without countries
+        sp, g = spot(f2)
+        expect("relay 90 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
+        r = scan(sp, "VIE", "BCN")
+        expect("... while the list has no countries: nothing stamped, no passport yet", (cc(r), r["route"], r["countries"], "passport" in g), ([], [], None, False))
+        with serve._data_lock:
+            expect("... none for the app either", serve.game3_json(sp.book(), day)["passport"], None)
+        serve._airports = table
+        pts0 = (g["points"], dict(g["days"]))
+        expect("the list ready: the logbook stamps the earlier scans' countries, unpaid (that BCN scan too)",
+               (sorted(serve.logbook_json(sp)["game"]["passport"].items()), stamps(g)),
+               (sorted({"AT": [day, "VIE", 48.11, 16.57, "EU", 0], "GB": [day, "LHR", 51.47, -0.45, "EU", 0], "DE": [day, "FRA", 50.03, 8.57, "EU", 0],
+                        "ES": [day, "BCN", 41.3, 2.08, "EU", 0]}.items()), {"AT": ("VIE", 0), "GB": ("LHR", 0), "DE": ("FRA", 0), "ES": ("BCN", 0)}))
+        expect("... the totals untouched by it", (g["points"], g["days"]), pts0)
+        expect("... an earlier country pays nothing, a new one +25", (cc(scan(sp, "LHR", "FRA")), cc(scan(sp, "DXB", "VIE"))), ([], [("AE", "DXB", 25)]))
+        # the first scan after the update makes the passport itself (no logbook asked for before it)
+        f3 = Path(tempfile.mkdtemp(prefix="fb-pp-"))
+        sp, g = spot(f3)
+        scan(sp, "SZG", "LHR")
+        with serve._data_lock:
+            g.pop("passport")
+        save(sp)
+        expect("the first scan after the update: earlier countries unpaid first, then its own new one",
+               (cc(scan(sp, "LHR", "BCN")), stamps(g)), ([("ES", "BCN", 25)], {"AT": ("SZG", 0), "GB": ("LHR", 0), "ES": ("BCN", 25)}))
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+        serve._airports = real_ap if real_ap is not None else {"v": 4, "iata": {}, "icao": {}}   # no download in the other checks
+
+
 def golden_checks(expect):
     """Relay 84 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
     600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
@@ -909,7 +1571,12 @@ def checks():
         if got != want:
             bad.append(f"{what}: got {got}, expected {want}")
 
+    passport_checks(expect)
+    showcase_checks(expect)
     school_checks(expect)
+    standby_checks(expect)
+    mastery_checks(expect)
+    loyalty_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)
     serve.school_pass = lambda *a, **k: None
     golden_checks(expect)
@@ -1160,6 +1827,18 @@ def checks():
     pl = json.loads(b) if st == 200 else {}
     expect("a league player's card", (pl.get("name"), pl.get("level", 0) >= 1, isinstance(pl.get("trophies"), list)), ("Test", True, True))
     expect("the card shows no places", any(k in b.decode() for k in ('"lat"', '"lon"', '"at"', '"place"')), False)
+    # relay 91 (to-do #156): the showcase in the player's card and the player's own data; pins only for oneself
+    expect("the player's card sends the showcase", sorted((pl.get("showcase") or {}).keys()), ["locked", "pins"])
+    st, _, b = call("/game/me", "test-device")
+    sc = json.loads(b).get("showcase") if st == 200 else None
+    expect("... and /game/me", isinstance(sc, dict) and len(sc.get("pins", [])) + len(sc.get("locked", [])), 3)
+    own = json.loads(call("/game/me", "owner-device")[2]).get("showcase")
+    n = len((sc or {}).get("pins", []))
+    st = call("/game/showcase", "test-device", body={"code": "ZZZZ", "spot": n, "id": me_row.get("id")})[0]
+    expect("a spot not open yet is refused", st, 403 if n < 3 else 400)
+    expect("a pin is only one's own: another profile's showcase unchanged", json.loads(call("/game/me", "owner-device")[2]).get("showcase"), own)
+    expect("a pin for strangers", call("/game/showcase", body={"code": "A320", "spot": 0})[0] in (401, 403), True)
+    expect("a pin without a spot", call("/game/showcase", "test-device", body={"code": "A320"})[0], 400)
     expect("an unknown player", call("/game/player?id=000000000000", "test-device")[0], 404)
     expect("a player's card for strangers", call("/game/player?id=x")[0] in (401, 403), True)
     # relay 77 (to-do #126): the place bar learns which places are one spot; no doubles in the spot's numbers

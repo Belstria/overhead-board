@@ -496,7 +496,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
   day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
-  league. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
+  level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
+  and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
+  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the score strip says
+  "Standby used" the day after, and warns in the club when none is left and today has no scan yet. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
@@ -567,9 +571,31 @@ The main board has everything below. New features are tried on `/test/` first; o
   the name, when and which; since 1.97 a line under it, "★ Scored 6× · 2 scanned" or "Not scored yet": how often
   the game scored the type within 15 km (10 km until 1.98) and how often Sky view scanned it), the missing types face down with their
   model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
-  scanned) and the model. **Tap a name in the league**
+  scanned) and the model. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
+  shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
+  found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery): **bronze at 5, silver
+  at 25, gold at 100**, its frame in that metal and a thin bar under it to the next step. The scan that reaches a step
+  pays **+25, +100 or +250** once (in the day, the week and the level), and its ticket says so ("Airbus A321 ·
+  Silver +100"); the opened card shows the three steps with their bonuses and how far the next is ("13 of 25 scans to
+  silver"). Scans from before count for the frames; a step already passed then pays nothing. Since 1.106 the club has
+  **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
+  Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
+  Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). The best card is
+  in front with a bar to the next tier, the others' tops peek out above it (tap one to bring it forward). A plane's
+  ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
+has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
+to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new
+country marked). A card then shows the stamp coming down and the country soaking up its ink, or **rub it in with your
+finger** ("Scratch Spain in"). The plate shows the map with each country inked in its stamp's colour (never where you
+are; tap it for Europe or the whole world and a bar per region) and a shelf of stamps per region, with nearby
+countries still to stamp face down. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
-  week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  week's best plane, never where they are. Since 1.108 a card has a **showcase**: up to three of the player's best
+  catches pinned behind glass, each as its hangar card in miniature with the airline, the day and the route ("DXB → VIE").
+  The spots open at **levels 3, 5 and 8**; on your own card a locked spot says when it opens and how many points are
+  still to go. Pin from a plane's card in Your hangar (**Put in your showcase**; when every open spot is full, tap the
+  one to swap); the plane pinned is that type's best catch: a scanned one first, then one the game scored, then any,
+  one with a known route before one without, then the first. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
   showed the week's league as a **League** page in its rotation until 1.89.1. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.

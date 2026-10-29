@@ -1061,6 +1061,279 @@ function collectionHtml(g0){
   return secPlate(T("Your catch"), `<ul class="ranks cats tiers">${tiers}</ul>`) +
     (hangar && tab === "game" ? hangarHtml(hangar) : secPlate(T("Sets"), `<ul class="ranks cats">${sets}</ul>`));
 }
+/* 1.106 (to-do #162, Dave's pick A, with the airline trophies): airline loyalty. Each airline's planes you scan raise your
+   tier with it: Member at the first, Silver, Gold, Platinum (relay 89: rules.loyalty, [scans, bonus] a tier, paid at the
+   scan that reaches it). The club's wallet holds a member card for every airline the game caught live (g0.wallet, what the
+   airline trophies count; 0 scans: not a member yet), the best in front, the others' tops peeking out; a tap on one
+   brings it to the front. A ticket prints "OS · GOLD" (a member's plain); the step-up is a line of the scan's. */
+const LY = [[10, 25], [50, 100], [200, 250]], LY_NAME = ["Member", "Silver", "Gold", "Platinum"];
+const LY_TO = ["{n} to Silver", "{n} to Gold", "{n} to Platinum"];
+// the airline's own colour on its card (a few that fly here often); any other gets one from its code
+const LY_COL = {AUA: "#d81e05", RYR: "#073590", DLH: "#0a1d3d", WZZ: "#c6007e", WMT: "#c6007e", WAZ: "#c6007e", SWR: "#e2001a", THY: "#c8102e",
+  LDA: "#e30613", UAE: "#b5121b", QTR: "#5c0632", EZY: "#ff6600", EJU: "#ff6600", EWG: "#a5027d", BAW: "#075aaa", AFR: "#002157", KLM: "#00a1de",
+  ITY: "#0047bb", LOT: "#11397e", TAP: "#e1261c", IBE: "#d7192d", SAS: "#000f7a", FIN: "#0b1560", AEE: "#0a3a7a", ELY: "#0b2a6f", CTN: "#d8232a"};
+const lySteps = () => { const r = gRules(); return (r && r.loyalty) || LY; };
+const lyOf = n => (n || 0) < 1 ? -1 : lySteps().filter(s => n >= s[0]).length;    // -1: not a member yet; 0 Member … 3 Platinum
+const lyCode = icao => (AIRLINES[icao] || [])[0] || icao;
+const lyName = icao => shortAirline((AIRLINES[icao] || [])[1] || icao);
+const lyCol = icao => LY_COL[icao] || `hsl(${[...icao].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 360} 55% 38%)`;
+// a ticket's printed line: the airline's code and your tier with it (none while not a member)
+const lyTicket = (icao, n) => { const t = lyOf(n); return icao && t >= 0 ? {code: lyCode(icao), t} : null; };
+let lyFront = "", lyAll = false;
+function walletHtml(g0){
+  const w = g0 && g0.wallet;
+  if (!w) return "";
+  const list = Object.entries(w).sort((a, b) => b[1] - a[1] || lyName(a[0]).localeCompare(lyName(b[0]))), n = list.length;
+  const st = trophyLadder(g0, TROPHY_LADDERS.find(l => l[0] === "airlines")), [a, b, c] = lySteps();
+  const sum = [T(n === 1 ? "1 airline" : "{n} airlines", {n: nf.format(n)}), st.next ? T("{t} at {n}", {t: T(st.next[2]), n: nf.format(st.next[1])}) : ""].filter(Boolean).join(" · ");
+  const rule = T("Scan an airline's planes to climb: Silver at {a}, Gold at {b}, Platinum at {c}.", {a: a[0], b: b[0], c: c[0]});
+  if (!n) return secPlate(T("Member cards"), `<p class="sum">${escH(rule)}</p>`, "lyPlate");
+  const front = list.find(x => x[0] === lyFront) || list[0], rest = list.filter(x => x !== front);
+  const card = ([icao, s], big) => {
+    const t = lyOf(s), nx = t >= 0 ? lySteps()[t] : null, lo = t > 0 ? lySteps()[t - 1][0] : 1;
+    const tier = t >= 0 ? T(LY_NAME[t]) : "";
+    return `<button type="button" class="lyCard ${t >= 0 ? "ly" + t : "lyN"}" data-ly="${escH(icao)}" style="--ac:${lyCol(icao)}">` +
+      `<span class="hd"><b>${escH(lyName(icao))}</b><em>${escH(tier)}</em><i>${escH(lyCode(icao))}</i></span>` +
+      (!big ? "" : t < 0 ? `<span class="nm">${escH(T("Not a member yet"))}</span><span class="ft"><span>${escH(T("Scan one of its planes to join"))}</span></span>`
+        : `<span class="nm">${escH(tier)}</span>` + (nx ? `<span class="br"><i style="width:${Math.min(100, (s - lo) / (nx[0] - lo) * 100).toFixed(1)}%"></i></span>` : "") +
+          `<span class="ft"><span>${escH(T("{n} scanned", {n: nf.format(s)}))}</span><span>${nx ? escH(T(LY_TO[t], {n: nf.format(nx[0] - s)})) : ""}</span></span>`) + `</button>`;
+  };
+  const tops = (lyAll ? rest : rest.slice(0, 4)).reverse();
+  return secPlate(T("Member cards"), `<p class="sum">${escH(sum)}</p><div class="lyWal">${tops.map(x => card(x)).join("")}${card(front, true)}</div>` +
+    `<p class="sum">${escH(rule)}${n > 1 ? " " + escH(T("Tap a card to bring it to the front.")) : ""}</p>` +
+    (rest.length > 4 ? `<button class="gHow" type="button" data-lyall>${escH(lyAll ? T("Fewer cards") : T("All {n} cards", {n: nf.format(n)}))}<i>›</i></button>` : ""), "lyPlate");
+}
+function lyWire(box, redraw){
+  for (const b of box.querySelectorAll("[data-ly]")) b.onclick = () => { if (b.dataset.ly === lyFront) return; ctlSound.click(); lyFront = b.dataset.ly; redraw(); };
+  const all = box.querySelector("[data-lyall]");
+  if (all) all.onclick = () => { ctlSound.nav(); lyAll = !lyAll; redraw(); };
+}
+/* 1.107 (to-do #150, Dave's pick: round 1's C, the stamp shelves, with round 2's C map, the ink patchwork, and B's
+   scratch as an option): the passport. Each scanned flight with a known route stamps the countries of its two airports
+   (relay 90: g0.passport, {country: [day, airport, lat, lon, continent, paid]}; a country new to it pays +25 at the scan).
+   The plate under Your hangar: the map (test/world.js, Natural Earth's countries, fetched when the passport first
+   shows) printed on passport paper, each stamped country inked in its stamp's colour, the player's place never marked;
+   then a shelf per region, a stamp card for each country (its name, the airport, the day, in its ink) and up to three
+   nearby countries not yet stamped face down. A tap on the map opens it large (Europe & around or the World, a bar per
+   region). A scan that stamps a new country shows its route on the ticket, and a card on top presses the stamp and
+   inks the country in, unless the player rubs it in with a finger first (ppNew). Never on other players' cards. */
+let worldLoad = null, worldFailed = 0;
+function worldMap(){
+  if (window.WORLD) return Promise.resolve(window.WORLD);
+  if (!worldLoad && Date.now() - worldFailed > 60000) worldLoad = new Promise(done => {
+    const s = document.createElement("script");
+    s.src = WORLD_JS; s.async = true;
+    s.onload = () => done(window.WORLD || null);
+    s.onerror = () => { worldLoad = null; worldFailed = Date.now(); s.remove(); done(null); };
+    document.head.appendChild(s);
+  });
+  return worldLoad || Promise.resolve(null);
+}
+const PP_REG = [["E", "Europe"], ["M", "Middle East"], ["F", "Africa"], ["A", "Asia"], ["N", "Americas"], ["O", "Oceania"]];
+const PP_ME = new Set("AE BH IL IQ IR JO KW LB OM PS QA SA SY TR YE".split(" "));   // a country the map lacks: by its airport's continent, these the Middle East
+const PP_INK = ["#1f4fb8", "#b3262d", "#333", "#1f7a3c", "#6b3fa0", "#7a2416"];
+const PP_VIEW = {eu: [16, 46, 6.2], world: [12, 24, 1.02]};       // the map's centre (lon, lat) and its scale (px a degree)
+const ppHash = cc => [...cc].reduce((h, c) => h * 31 + c.charCodeAt(0), 7);
+// Each stamp's ink: its own by its code, else the next one no stamped neighbour (within 12°) has; taken in the order they
+// were stamped, so a stamp keeps its colour when others come.
+let ppInks = {}, ppInksKey = "";
+function ppInkAll(pp){
+  const W = window.WORLD, key = Object.keys(pp).sort().join() + (W ? "+" : "");
+  if (key === ppInksKey) return;
+  ppInksKey = key; ppInks = {};
+  const pt = c => W && W[c] ? [W[c][1] / 10, W[c][2] / 10] : pp[c][2] != null ? [pp[c][3], pp[c][2]] : null;
+  for (const [c] of Object.entries(pp).sort((a, b) => String(a[1][0]).localeCompare(String(b[1][0])) || a[0].localeCompare(b[0]))) {
+    const p = pt(c), h = ppHash(c);
+    const near = new Set(Object.keys(ppInks).filter(o => { const q = pt(o); return p && q && Math.hypot(p[0] - q[0], p[1] - q[1]) < 12; }).map(o => ppInks[o]));
+    let i = 0;
+    while (i < PP_INK.length - 1 && near.has(PP_INK[(h + i) % PP_INK.length])) i++;
+    ppInks[c] = PP_INK[(h + i) % PP_INK.length];
+  }
+}
+const ppInk = cc => ppInks[cc] || PP_INK[ppHash(cc) % PP_INK.length];
+const ppReg = (cc, s) => (window.WORLD && window.WORLD[cc] ? window.WORLD[cc][0] : PP_ME.has(cc) ? "M" : {EU: "E", AF: "F", AS: "A", NA: "N", SA: "N", OC: "O"}[s && s[4]] || "A");
+let ppNames = null;
+function ppName(cc){
+  try { ppNames = ppNames || new Intl.DisplayNames([LANG], {type: "region"}); return ppNames.of(cc) || cc; } catch { return cc; }
+}
+const ppDate = d => { try { return new Intl.DateTimeFormat(LANG === "en" ? "en-GB" : LANG, {day: "numeric", month: "short", year: "numeric"}).format(new Date(d + "T12:00")).toUpperCase(); } catch { return d; } };
+const ppToday = () => { const d = new Date(Date.now() - 3 * 3600e3); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const ppList = pp => Object.entries(pp || {}).sort((a, b) => String(b[1][0]).localeCompare(String(a[1][0])) || ppName(a[0]).localeCompare(ppName(b[0])));
+// A stamp, as on its card: round, a box or an oval (by the country), tilted, in the country's ink.
+function ppStamp(cc, s){
+  const h = ppHash(cc), sh = ["rd", "rc", "ov"][h % 3];
+  return `<span class="pS ${sh}" style="--ink-c:${ppInk(cc)};--r:${(h >> 3) % 21 - 10}deg"><small>${escH(ppName(cc))}</small><b>${escH(s[1] || cc)}</b>` +
+    `<i>${sh === "rd" ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${RK_PLANE}" fill="currentColor"/></svg>` : ""}${escH(ppDate(s[0]))}</i></span>`;
+}
+// The map: Mercator, the countries' outer rings (whole tenths of a degree), those outside the view left out.
+const ppMerc = la => Math.log(Math.tan(Math.PI / 4 + Math.max(-80, Math.min(84, la)) * Math.PI / 360)) * 180 / Math.PI;
+const ppView = (w, h, [lon, lat, k]) => ({w, h, k: [lon, lat, k].join(), x: lo => w / 2 + (lo - lon) * k, y: la => h / 2 - (ppMerc(la) - ppMerc(lat)) * k});
+function ppPath(v, cc){
+  let out = "";
+  for (const r of (window.WORLD[cc] || [])[3] || []) {
+    let a = 1e9, b = -1e9, c = 1e9, d = -1e9, p = "";
+    for (let i = 0; i < r.length; i += 2) {
+      const x = v.x(r[i] / 10), y = v.y(r[i + 1] / 10);
+      a = Math.min(a, x); b = Math.max(b, x); c = Math.min(c, y); d = Math.max(d, y);
+      p += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    if (b > -20 && a < v.w + 20 && d > -20 && c < v.h + 20) out += p + "Z";
+  }
+  return out;
+}
+const ppLand = new Map();                                        // the paper's land, once a view
+let ppUid = 0;
+// o.labels: the stamped countries' codes; o.fresh: countries still to ink (masked: ppNew soaks or scratches them in).
+function ppMapSvg(pp, v, o = {}){
+  const id = "pp" + (++ppUid), fresh = o.fresh || [], have = Object.keys(pp).filter(c => !fresh.includes(c));
+  if (!ppLand.has(v.w + "," + v.h + "," + v.k)) ppLand.set(v.w + "," + v.h + "," + v.k, Object.keys(window.WORLD).map(c => ppPath(v, c)).join(""));
+  const ink = (c, more = "") => window.WORLD[c] ? `<path d="${ppPath(v, c)}" fill="${ppInk(c)}" fill-opacity=".8"${more}/>`
+    : pp[c] && pp[c][2] != null ? `<circle cx="${v.x(pp[c][3]).toFixed(1)}" cy="${v.y(pp[c][2]).toFixed(1)}" r="${o.labels ? 4 : 3}" fill="${ppInk(c)}"${more}/>` : "";
+  const lbl = c => { const w = window.WORLD[c]; if (!w) return ""; const x = v.x(w[1] / 10), y = v.y(w[2] / 10);
+    return x < 6 || x > v.w - 6 || y < 6 || y > v.h - 6 ? "" : `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}">${c}</text>`; };
+  return `<svg viewBox="0 0 ${v.w} ${v.h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>` +
+    `<filter id="${id}r" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="d"/>` +
+    `<feTurbulence type="fractalNoise" baseFrequency=".55" numOctaves="2" seed="9" result="s"/><feColorMatrix in="s" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -7 6" result="h"/>` +
+    `<feComposite in="d" in2="h" operator="in"/></filter>` +
+    (fresh.length ? `<filter id="${id}b" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="12" result="n"/>` +
+      `<feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter>` +
+      `<mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="${v.w}" height="${v.h}"><g class="ppSoak" filter="url(#${id}b)" fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"></g></mask>` : "") +
+    `</defs><path d="${ppLand.get(v.w + "," + v.h + "," + v.k)}" fill="#e6ddc7" stroke="#b5a98d" stroke-width=".5" stroke-linejoin="round"/>` +
+    `<g filter="url(#${id}r)" class="ppInk">${have.map(c => ink(c)).join("")}</g>` +
+    (fresh.length ? `<g mask="url(#${id}m)" class="ppInk">${fresh.map(c => ink(c, ` filter="url(#${id}r)"`)).join("")}</g>` : "") +
+    `<path d="${have.filter(c => window.WORLD[c]).map(c => ppPath(v, c)).join("")}" fill="none" stroke="rgba(60,45,30,.35)" stroke-width=".5"/>` +
+    (o.labels ? `<g class="ppLbl">${have.map(lbl).join("")}</g>` : "") + `</svg>`;
+}
+// The countries of each region (the map's, and those stamped that it lacks, as dots).
+function ppTotals(pp){
+  const t = {};
+  for (const c of new Set([...Object.keys(window.WORLD), ...Object.keys(pp)])) t[ppReg(c, pp[c])] = (t[ppReg(c, pp[c])] || 0) + 1;
+  return t;
+}
+// Up to three countries of the region not yet stamped, those nearest a stamped one first (by the map's label points).
+function ppGoals(pp, reg, have){
+  const pts = have.map(c => window.WORLD[c]).filter(Boolean);
+  if (!pts.length) return [];
+  return Object.keys(window.WORLD).filter(c => !pp[c] && window.WORLD[c][0] === reg)
+    .map(c => [c, Math.min(...pts.map(p => Math.hypot(p[1] - window.WORLD[c][1], p[2] - window.WORLD[c][2])))]).sort((a, b) => a[1] - b[1]).slice(0, 3).map(x => x[0]);
+}
+function passportHtml(g0){
+  const pp = g0 && g0.passport;
+  if (!pp) return "";                                            // relay 89 or older, or its airport list still loading
+  if (!window.WORLD) worldMap().then(w => w && renderGame());
+  ppInkAll(pp);
+  const list = ppList(pp), n = list.length;
+  const map = `<button type="button" class="ppMap" data-ppmap aria-label="${escH(T("Open the map"))}">${window.WORLD ? ppMapSvg(pp, ppView(360, 190, PP_VIEW.eu)) : ""}` +
+    `<span class="ct">${escH(T(n === 1 ? "1 country" : "{n} countries", {n: nf.format(n)}))}</span><span class="lg">${escH(T("inked in each stamp's colour"))}</span></button>`;
+  if (!n) return secPlate(T("Passport"), map + `<p class="sum">${escH(T("Scan a flight with a known route: the countries it flies from and to are stamped here."))}</p>`, "ppPlate");
+  const shelves = PP_REG.map(([reg, name]) => {
+    const have = list.filter(([c, s]) => ppReg(c, s) === reg);
+    if (!have.length) return "";
+    const goals = window.WORLD ? ppGoals(pp, reg, have.map(x => x[0])) : [];
+    return `<div class="ppShelf"><div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} stamped", {n: nf.format(have.length)}))}</em></div>` +
+      `<div class="hgRow" data-set="pp-${reg}">${have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("")}` +
+      goals.map(c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`).join("") + `</div></div>`;
+  }).join("");
+  return secPlate(T("Passport"), map + shelves, "ppPlate");
+}
+function ppWire(box){
+  const m = box.querySelector("[data-ppmap]");
+  if (m) m.onclick = ppCard;
+}
+let ppAt = "eu";
+function ppCard(){
+  const g0 = (lbData() || {}).game, pp = g0 && g0.passport;
+  if (!pp || !window.WORLD) return;
+  ctlSound.nav(); ppInkAll(pp);
+  const n = Object.keys(pp).length, tot = ppTotals(pp), all = Object.values(tot).reduce((a, b) => a + b, 0);
+  const bars = PP_REG.filter(([reg]) => tot[reg]).map(([reg, name]) => { const h = Object.entries(pp).filter(([c, s]) => ppReg(c, s) === reg).length;
+    return `<li style="--lamp:${h ? "#b3262d" : "var(--muted)"}"><i class="lamp"></i><span class="name">${escH(T(name))}</span><span class="n">${escH(T("{n} of {m}", {n: nf.format(h), m: nf.format(tot[reg])}))}</span>` +
+      `<span class="bar"><i style="width:${(h / tot[reg] * 100).toFixed(1)}%;background:#b3262d;opacity:1"></i></span></li>`; }).join("");
+  const draw = el => { el.innerHTML = ppMapSvg(pp, ppView(360, 440, PP_VIEW[ppAt]), {labels: true}); };
+  cardOpen(`<div class="cHead"><div><h3>${escH(T("Passport"))}</h3><span>${escH(T("{n} of {m} countries inked in", {n: nf.format(n), m: nf.format(all)}))}</span></div></div>` +
+    `<div class="seg gSeg" role="group"><button type="button" data-ppv="eu" aria-pressed="${ppAt === "eu"}">${escH(T("Europe & around"))}</button>` +
+    `<button type="button" data-ppv="world" aria-pressed="${ppAt === "world"}">${escH(T("World"))}</button></div>` +
+    `<div class="ppMap big"></div><ul class="ranks cats">${bars}</ul>`, box => {
+    draw(box.querySelector(".ppMap.big"));
+    for (const b of box.querySelectorAll("[data-ppv]")) b.onclick = () => {
+      if (ppAt === b.dataset.ppv) return;
+      ctlSound.click(); ppAt = b.dataset.ppv;
+      for (const x of box.querySelectorAll("[data-ppv]")) x.setAttribute("aria-pressed", String(x === b));
+      draw(box.querySelector(".ppMap.big"));
+    };
+  });
+}
+// The scan's ticket: the route, the countries new to the passport marked (relay 90: r.route, [[airport, country, new]]).
+const ppRoute = rt => rt && rt.length === 2 ? `<div class="ppRt">${rt.map(([ap, cc, nw], i) => (i ? "<i></i>" : "") +
+  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${escH(ppName(cc))}${nw ? " · " + escH(T("NEW")) : ""}</small></b>`).join("")}</div>` : "";
+/* A country new to the passport, at the scan: a card over the scan's ticket, the map round the country. The stamp
+   comes down on it (fsThud) and the ink soaks in from where it landed; or, before it does, the player rubs it in
+   with a finger ("Scratch Spain in"). Left alone, or once the finger stops, it inks the rest itself. */
+function ppNew(r){
+  const nw = (r.route || []).filter(x => x[2]), g0 = (lbData() || {}).game;
+  if (!nw.length) return;
+  if (g0 && g0.passport) for (const [ap, cc] of nw) g0.passport[cc] = g0.passport[cc] || [ppToday(), ap, null, null, "", (gRules() || {}).country || 25];
+  worldMap().then(W => {
+    if (!W || !$("gAws")) return;
+    const pp = {...((g0 && g0.passport) || {})}, ccs = nw.map(x => x[1]), c0 = ccs.find(c => W[c]) || ccs[0];
+    for (const [ap, cc] of nw) pp[cc] = pp[cc] || [ppToday(), ap];
+    ppInkAll(pp);
+    // the view: the country's largest ring, with room round it
+    const ring = ((W[c0] || [])[3] || []).reduce((a, b) => b.length > a.length ? b : a, []);
+    const xs = ring.filter((_, i) => i % 2 === 0).map(x => x / 10), ys = ring.filter((_, i) => i % 2).map(y => ppMerc(y / 10));
+    const lon = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 16, mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : ppMerc(46);
+    const lat = Math.atan(Math.sinh(mid * Math.PI / 180)) * 180 / Math.PI;
+    const k = Math.max(1, Math.min(16, 340 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 170 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
+    const v = ppView(340, 170, [lon, lat, k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    const name = ccs.map(ppName).join(" · "), count = r.countries || Object.keys(pp).length;
+    const el = document.createElement("div");
+    el.className = "gAw ppNew"; el.setAttribute("role", "status");
+    el.innerHTML = `<div class="hd"><span>${escH(T("PASSPORT · NEW STAMP"))}</span><b>+${nf.format(nw.length * ((gRules() || {}).country || 25))}</b></div>` +
+      `<div class="ppMap"><div class="sv">${ppMapSvg(pp, v, {fresh: ccs})}</div>` +
+      `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span>` +
+      `<span class="ppTip">${escH(T("Scratch {c} in", {c: ppName(c0)}))}</span></div>` +
+      `<div class="ft">${escH(ccs.length > 1 ? T("{c}: new to your passport. {n} countries now.", {c: name, n: nf.format(count)})
+        : T("{c}: country {n} in your passport.", {c: name, n: nf.format(count)}))}</div>`;
+    const box = $("gAws");
+    box.appendChild(el); gTixStack();
+    const soak = el.querySelector(".ppSoak"), mapEl = el.querySelector(".ppMap"), still = fsStill();
+    const NS = "http://www.w3.org/2000/svg", blot = document.createElementNS(NS, "circle");
+    blot.setAttribute("cx", sx.toFixed(1)); blot.setAttribute("cy", sy.toFixed(1)); blot.setAttribute("r", "0");
+    soak.appendChild(blot);
+    let raf = 0, auto = 0, done = false, line = null, scratched = false;
+    const full = Math.hypot(Math.max(sx, v.w - sx), Math.max(sy, v.h - sy)) + 30;
+    const inkIn = (ms = 1600) => {                                   // the rest soaks in from the stamp
+      if (done) return;
+      done = true; el.classList.add("inked"); clearTimeout(auto);
+      const t0 = performance.now(), r0 = +blot.getAttribute("r");
+      const step = t => { const f = Math.min(1, (t - t0) / ms); blot.setAttribute("r", (r0 + (full - r0) * (1 - Math.pow(1 - f, 3))).toFixed(1)); if (f < 1) raf = requestAnimationFrame(step); };
+      if (still) blot.setAttribute("r", full.toFixed(1)); else raf = requestAnimationFrame(step);
+    };
+    const wait = ms => { clearTimeout(auto); auto = setTimeout(() => inkIn(), ms); };
+    // the finger: each stroke inks a broad band under it; the stamp's own soak waits until it stops
+    const at = e => { const b = mapEl.getBoundingClientRect(), s = Math.max(v.w / b.width, v.h / b.height); return [v.w / 2 + (e.clientX - b.left - b.width / 2) * s, v.h / 2 + (e.clientY - b.top - b.height / 2) * s]; };
+    mapEl.addEventListener("pointerdown", e => {
+      if (done) return;
+      e.stopPropagation(); clearTimeout(auto);
+      if (!scratched) { scratched = true; el.classList.add("scr"); }
+      line = document.createElementNS(NS, "polyline");
+      line.setAttribute("fill", "none"); line.setAttribute("stroke-width", String(Math.max(18, k * 1.6)));
+      line.setAttribute("points", at(e).map(x => x.toFixed(1)).join(","));
+      soak.appendChild(line);
+      try { mapEl.setPointerCapture(e.pointerId); } catch {}
+    });
+    mapEl.addEventListener("pointermove", e => { if (line && !done) line.setAttribute("points", line.getAttribute("points") + " " + at(e).map(x => x.toFixed(1)).join(",")); });
+    const up = () => { if (line) { line = null; wait(1800); } };
+    mapEl.addEventListener("pointerup", up); mapEl.addEventListener("pointercancel", up);
+    mapEl.addEventListener("click", e => e.stopPropagation());
+    const out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); clearTimeout(auto); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350); };
+    el.onclick = () => (done ? out() : inkIn(500));
+    setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
+    wait(still ? 300 : 3200);                                        // time to put a finger on it
+    el.outT = setTimeout(function later(){ if (line || (!done && scratched)) { el.outT = setTimeout(later, 2000); return; } out(); }, TIX_MS + 4000);
+  });
+}
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
    collectible card for each type: the photo of the first one you caught (its model's when it has none), the rarity in
    its colour, the name, when and which; the types still missing lie face down. Types in no set get a shelf of their
@@ -1081,21 +1354,57 @@ function hangarLoad(){
 // as a second try; the model photo already found for them, else "".
 const hgNames = (code, name) => [...new Set([TYPES[code], name].map(n => String(n || "").trim()).filter(Boolean))];
 const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
+/* 1.103.0.1 (to-do #166): a card's picture sits in a frame of its own size from the start (.hgPh, "heli" with a helicopter
+   on the Helicopters shelf), painted in place as photos and model pictures come (hgPaint), so the shelves aren't drawn
+   again for them (that made a swipe jump back). The model pictures are asked for in a queue, two at a time (hgAsk): the
+   cards in view first, then every shelf's first HG_EAGER cards, then the rest; one not answered is asked again a minute
+   later (twice at most). Those first cards' pictures load at once, the rest as they come near; a shelf touched has all
+   its pictures fetched beside it (hgAll, hgPre), not in it. Nothing in a shelf changes while it moves, not even an
+   attribute (the browser snaps it back to its card then: hgMove, hgBusy), and the Club isn't drawn again (hgHeld). */
+const HG_EAGER = 6, hgQ = [], hgTries = new Map(), hgAll = new Set(), hgPreDone = new Set();
+let hgRun = 0, hgIO = null, hgHeld = false, hgBusy = 0, hgMove = null, hgLate = 0;
+const hgMoving = r => r === hgMove && Date.now() - hgBusy < (hgHeld ? 10000 : 800);
+function hgPre(src){ if (!src || hgPreDone.has(src)) return; hgPreDone.add(src); const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src; }
+/* 1.105 (to-do #149, Dave's pick A "metal frames", without its medal on the shelf): mastery. A type's scans climb its
+   card bronze, silver, gold (relay 88: rules.mastery, [scans, bonus] a step, paid at the scan that reaches it). On the
+   shelf only the card's frame in its metal (and a thin bar to the next step); the opened card has the three steps. */
+const MST = [[5, 25], [25, 100], [100, 250]], MST_NAME = ["", "Bronze", "Silver", "Gold"];
+const MST_TO = ["{n} of {m} scans to bronze", "{n} of {m} scans to silver", "{n} of {m} scans to gold"];
+const mstSteps = () => { const r = gRules(); return (r && r.mastery) || MST; };
+const mstOf = n => mstSteps().filter(st => (n || 0) >= st[0]).length;
+// the way to the next step: its index, the share done (0–1); null at gold
+function mstNext(n){
+  const st = mstSteps(), k = mstOf(n);
+  if (k >= st.length) return null;
+  const lo = k ? st[k - 1][0] : 0;
+  return {k, at: st[k][0], p: st[k][1], f: Math.max(0, Math.min(1, ((n || 0) - lo) / (st[k][0] - lo)))};
+}
+const mstBar = f => `<span class="mkBar"><i style="width:${Math.round(f * 100)}%"></i></span>`;
+// the opened card's part: the three steps (scans and bonus; those not reached dimmed), the bar and how far to the next
+function mstHtml(n){
+  const k = mstOf(n), nx = mstNext(n), med = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${RK_STAR}"/></svg>`;
+  return `<div class="mkMast"><h4>${escH(T("Mastery"))}${k ? `<b>${escH(T(MST_NAME[k]))}</b>` : ""}</h4><div class="mkSteps">` +
+    mstSteps().map(([at, p], i) => `<div class="mk${i + 1}${k > i ? "" : " off"}"><span class="md">${med}</span><b>${escH(T(MST_NAME[i + 1]))}</b>` +
+      `${escH(T("{n} scans · +{p}", {n: nf.format(at), p: nf.format(p)}))}</div>`).join("") + `</div>` +
+    (nx ? mstBar(nx.f) + `<div class="mkBarT"><b>${escH(T(MST_TO[nx.k], {n: nf.format(n || 0), m: nf.format(nx.at)}))}</b><span>+${nf.format(nx.p)}</span></div>`
+      : `<div class="mkBarT"><b>${escH(T("Gold: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
+}
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
-  const card = code => {
+  const card = (code, heli, eager) => {
     const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
-    const img = pic => pic ? `<img src="${escH(pic)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="hgPh" data-mp="${escH(names.join("|"))}"></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img(modelPicNow(names, code))}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
-    const pic = [t.thumb, t.photo].find(u => u && !hgBad.has(u)) || modelPicNow(names, code);
-    return `<button type="button" class="hgCard" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img(pic) +
+    const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
+      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+    const mk = mstOf(t.scans), nx = t.scans ? mstNext(t.scans) : null;
+    return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
       `<span>${escH([t.first ? T("First: {d}", {d: fmtDay(t.first)}) : "", t.reg].filter(Boolean).join(" · "))}</span>` +
       (t.game ? `<span class="hgL"><i>★</i>${escH(T("Scored {n}×", {n: nf.format(t.game)}))}${t.scans ? `<u>· ${escH(T("{n} scanned", {n: nf.format(t.scans)}))}</u>` : ""}</span>`
-        : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + `</span></button>`;
+        : `<span class="hgL no">${escH(T("Not scored yet"))}</span>`) + (nx ? mstBar(nx.f) : "") + `</span></button>`;
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
-    `<div class="hgRow" data-set="${escH(key)}">${codes.map(card).join("")}</div></div>`;
+    `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
   const shelves = (hg.sets || []).map(s => {
     const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
     return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
@@ -1105,14 +1414,71 @@ function hangarHtml(hg){
   const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
   return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
 }
-// The cards' taps, and the model photos of the cards without one of their own, asked for as they come into view.
+// The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){
   for (const b of box.querySelectorAll("[data-hg]")) b.onclick = () => hangarCard(b.dataset.hg);
-  for (const img of box.querySelectorAll(".hgCard img")) img.onerror = () => { hgBad.add(img.getAttribute("src")); hgSoon(); };
-  const ph = box.querySelectorAll(".hgPh[data-mp]");
-  if (!ph.length || typeof IntersectionObserver !== "function") return;
-  const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); modelPic(e.target.dataset.mp.split("|"), hgSoon, e.target.closest("[data-hg]").dataset.hg); } }, {rootMargin: "120px"});
-  for (const el of ph) io.observe(el);
+  const rows = [...box.querySelectorAll(".hgRow")], frames = r => [...r.querySelectorAll(".hgPh")];
+  for (const r of rows) {
+    const touch = () => {
+      hgBusy = Date.now(); hgMove = r;
+      if (hgAll.has(r.dataset.set)) return;
+      hgAll.add(r.dataset.set);
+      for (const el of frames(r).reverse()) { hgPre(hgPic(el)); hgAsk(el, true); }
+    };
+    r.addEventListener("touchstart", () => { hgHeld = true; touch(); }, {passive: true});
+    r.addEventListener("touchend", () => { hgHeld = false; hgBusy = Date.now(); }, {passive: true});
+    r.addEventListener("touchcancel", () => { hgHeld = false; }, {passive: true});
+    r.addEventListener("scroll", touch, {passive: true});
+  }
+  hgPaint(box);
+  for (const r of rows) frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
+  for (const r of rows) frames(r).slice(HG_EAGER).forEach(el => hgAsk(el));
+  if (hgIO) hgIO.disconnect();
+  if (typeof IntersectionObserver !== "function") return;
+  hgIO = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { hgIO.unobserve(e.target); hgAsk(e.target, true); } }, {rootMargin: "150px"});
+  for (const el of box.querySelectorAll(".hgPh")) if (!el.firstChild) hgIO.observe(el);
+}
+// What a frame shows now: the first one's own photo, else its model's ("" none yet).
+function hgPic(el){
+  const own = (el.dataset.own || "").split(" ").find(u => u && !hgBad.has(u));
+  const mp = modelPicNow(el.dataset.mp.split("|").filter(Boolean), el.closest("[data-hg]").dataset.hg);
+  return own || (mp && !hgBad.has(mp) ? mp : "");
+}
+function hgPaint(root){
+  for (const el of root.querySelectorAll(".hgPh")) {
+    const src = hgPic(el), old = el.firstElementChild, row = el.closest(".hgRow");
+    if (old ? old.getAttribute("src") === src : !src) continue;
+    if (hgMoving(row)) { clearTimeout(hgLate); hgLate = setTimeout(() => hgPaint($("gameBox")), 900); continue; }    // once it stands still
+    if (hgAll.has(row.dataset.set)) hgPre(src);
+    if (!src) { old.remove(); continue; }
+    const im = old || document.createElement("img");
+    im.alt = ""; im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.loading = el.dataset.e ? "eager" : "lazy";
+    im.onerror = () => { hgBad.add(src); hgPaint(el.parentNode); hgAsk(el, true); };
+    im.src = src;
+    if (!old) el.append(im);
+  }
+}
+function hgAsk(el, first){
+  if (S.demo || !el.isConnected || hgPic(el)) return;
+  const code = el.closest("[data-hg]").dataset.hg, names = el.dataset.mp.split("|").filter(Boolean), k = modelKey(names, code);
+  if (modelPics.has(k)) return;                                  // being looked for, or looked for already
+  const i = hgQ.findIndex(q => q.k === k);
+  if (i >= 0) { if (!first) return; hgQ.splice(i, 1); }
+  hgQ[first ? "unshift" : "push"]({k, names, code});
+  hgPump();
+}
+function hgPump(){
+  while (hgRun < 2 && hgQ.length && tab === "game") {
+    const q = hgQ.shift();
+    if (modelPics.has(q.k)) continue;
+    hgRun++;
+    modelPic(q.names, null, q.code);
+    modelLook(q.names, q.code).catch(() => {
+      const n = (hgTries.get(q.k) || 0) + 1;
+      hgTries.set(q.k, n);
+      if (n < 3) setTimeout(() => { if (!modelPics.has(q.k)) { hgQ.push(q); hgPump(); } }, 61000);
+    }).then(() => { hgRun--; hgPaint($("gameBox")); setTimeout(hgPump, 100); });
+  }
 }
 function hgSoon(){ clearTimeout(hgT); hgT = setTimeout(renderGame, 400); }
 function hangarCard(code, again){
@@ -1127,10 +1493,83 @@ function hangarCard(code, again){
     chip: `<span class="cChip" style="background:${TIER_COL[t.tier] || TIER_COL.uncommon};color:#fff">${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</span>`,
     // 1.96: how often seen (any screen) and scored in the game; the first one's aircraft went to the details
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
+    afterTiles: mstHtml(t.scans),                 // 1.105: mastery
     det: [["Aircraft", escH(t.reg || "")], ["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
-    btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
+    btns: `<div class="cBtns">${scBtn(code)}<button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
+    scWire(el, code, name);
   });
+}
+/* 1.108 (to-do #156, Dave's pick A, the glass cabinet, "and add the origin/destination"): the showcase. Up to three
+   catches pinned to your player card, as the hangar's cards in miniature behind a glass pane, each with its route; the
+   spots open at levels 3, 5 and 8 (the relay's showcase_json: the pins, and the spots still locked with the points to
+   go). A hangar card pins its type's best catch, which the relay picks (relay 91, showcase_catch): one Sky view scanned
+   before one the game scored before one only seen; then one with a known route; then the first. Others see the pins
+   on your card, never where you were; you see your empty and locked spots too. */
+const SC_LOCK = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>`;
+const scMine = () => gme && gme.showcase;
+const scDate = t => new Date(t).toLocaleDateString(LOC(), {day: "numeric", month: "short"}).replace(/\.$/, "");
+function scPin(x, attr){
+  const pic = [x.thumb, x.photo].find(u => u && !hgBad.has(u)) || modelPicNow(hgNames(x.code, x.name), x.code);
+  const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
+  return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
+    (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeLabel(x.code, x.name))}</b>` +
+    (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
+    `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
+}
+// The pictures: a photo that doesn't load gives way to the model's, asked for and painted in when it comes.
+function scPics(el){
+  for (const c of el.querySelectorAll(".scCab [data-scc]")) {
+    const code = c.dataset.scc, names = hgNames(code, c.dataset.scn), im = c.querySelector("img");
+    const model = () => { const u = modelPicNow(names, code), ph = c.isConnected && c.querySelector(".hgPh"); if (u && ph) ph.outerHTML = `<img src="${escH(u)}" alt="">`; };
+    const ask = () => { if (modelPic(names, model, code)) model(); };
+    if (im) im.onerror = () => { hgBad.add(im.getAttribute("src")); im.outerHTML = `<span class="hgPh"></span>`; ask(); };
+    else ask();
+  }
+}
+// The cabinet. o.mine: the empty and locked spots too (your own card); o.pick: each open spot a button (data-scp).
+function scCab(sc, o = {}){
+  const pins = (sc && sc.pins) || [], locked = o.mine ? (sc && sc.locked) || [] : [];
+  const at = i => o.pick ? ` data-scp="${i}"` : "";
+  const cells = pins.map((x, i) => x ? scPin(x, at(i)) : o.mine ? `<${o.pick ? `button type="button"${at(i)}` : "div"} class="hgCard sc emp">` +
+      `<b>${escH(T("Empty spot"))}</b><span>${escH(T("Pin one from your hangar"))}</span></${o.pick ? "button" : "div"}>` : "").join("") +
+    locked.map(l => `<div class="hgCard sc emp lk">${SC_LOCK}<b>${escH(T("Opens at level {n}", {n: l.level}))}</b><span>${escH(T("{n} to go", {n: nf.format(l.toGo)}))}</span></div>`).join("");
+  return cells ? `<div class="scCab">${cells}</div>` : "";
+}
+// The hangar card's button: put the type in (the first empty spot, else the spots to swap with) or take it out.
+function scBtn(code){
+  const sc = scMine();
+  if (!sc || !(sc.pins || []).length) return "";
+  return `<button class="cBtn" type="button" data-scb>${escH(T(sc.pins.some(x => x && x.code === code) ? "Take out of your showcase" : "Put in your showcase"))}</button>`;
+}
+function scWire(el, code, name){
+  const b = el.querySelector("[data-scb]");
+  if (!b) return;
+  const pin = async (spot, out) => {
+    let r = null;
+    try { r = await fetchJSON(`${relay()}/game/showcase`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code: out ? "" : code, spot})}, 8000); } catch {}
+    if (!r || !r.pins) { toast(T("Couldn't change your showcase.")); return; }
+    if (gme) gme.showcase = r;
+    toast(T(out ? "Back in your hangar" : "In your showcase"));
+    if (el.isConnected && cardOpenNow()) hangarCard(code, true);
+  };
+  b.onclick = () => {
+    const pins = scMine().pins, i = pins.findIndex(x => x && x.code === code);
+    if (i >= 0) return pin(i, true);
+    const free = pins.indexOf(null);
+    if (free >= 0) return pin(free);
+    ctlSound.nav();
+    let box = el.querySelector(".scPick");                   // all full: tap a spot to swap
+    if (!box) {
+      el.querySelector(".cBtns").insertAdjacentHTML("afterend", `<div class="scPick"><h4>${escH(T("Where should the {t} go?", {t: name.replace(/^(Airbus|Boeing|Embraer|Bombardier|McDonnell Douglas|De Havilland Canada) /, "")}))}</h4>` +
+        `<p>${escH(T("Tap a spot to swap: that one goes back to your hangar."))}</p>${scCab(scMine(), {mine: true, pick: true})}</div>`);
+      box = el.querySelector(".scPick");
+      scPics(box);
+      for (const s of box.querySelectorAll("[data-scp]")) s.onclick = () => pin(+s.dataset.scp);
+    }
+    box.scrollIntoView({block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  };
 }
 function recordsHtml(all, g0){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
@@ -4146,7 +4585,10 @@ function gStripRender(g, anim){
   gStripLive = !off;
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
-  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location") : gLevelText(g);
+  const sby = !off && gSbyUsed(g);                                  // 1.104: the day after a standby, the line says so in amber
+  box.classList.toggle("sby", !!sby);
+  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location")
+    : sby ? T("Standby used · streak goes on, day {n}", {n: sby}) : gLevelText(g);
   const rk = rankIns(g.level, 34, {wings: g.wings});                 // 1.102: the rank insignia
   if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
   $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
@@ -4212,6 +4654,9 @@ function gAwLine(a, f, tix){
   if (a.k === "scan") return [a.r === 2 ? T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}) : T("Sky view scan · {t} plane", {t}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
+  if (a.k === "country") return [T("New country · {c}", {c: ppName(a.n)}), a.p, "x"];     // 1.107 (relay 90): the passport
+  if (a.k === "loyalty") return [((f && f.airline) || lyName(a.n)) + " · " + T(LY_NAME[a.m] || "Silver"), a.p, "x mst ly" + (a.m || 1)];   // 1.106
+  if (a.k === "mastery") return [((f && f.type) || typeLabel(a.n)) + " · " + T(MST_NAME[a.m] || "Bronze"), a.p, "x mst mk" + (a.m || 1)];   // 1.105
   // 1.100 (relay 83, to-do #147): a bingo line, the full card, a trophy (a rank by its medal), paid with this plane
   if (a.k === "bingo") return [T("Bingo line · {l}", {l: T(BINGO_LINE[a.n] || "Line")}), a.p, "x"];
   if (a.k === "card") return [T("Full bingo card"), a.p, "x"];
@@ -4242,9 +4687,10 @@ function gPassFill(el, o){
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "";
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
-    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${x === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
-    (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
+    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") + (o.route || "") +
+    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
+    (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
+    (o.ly ? `<div class="lyFF ly${o.ly.t}"><b>${escH(o.ly.code)}</b><i>·</i><em>${escH(T(LY_NAME[o.ly.t]))}</em></div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
     (o.gold ? `<div class="gl"></div><i class="sp" style="left:222px;top:58px">✦</i><i class="sp" style="left:150px;top:12px">✦</i>` : "") +
     `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em></div></div>`;
   const out = el.out = () => {
@@ -4295,7 +4741,7 @@ function gTixShow(x){
   const n = gme && !gme.scannedToday && R ? (gme.streak || 0) + 1 : 0;
   gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
     note: n ? T("Your first scan today adds the daily streak: +{p}.", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
-    p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS});
+    p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS, ly: lyTicket(airlineOf(x).icao, (((lbData() || {}).game || {}).wallet || {})[airlineOf(x).icao])});
 }
 // A ticket pushed out by a shorter pass comes back at the bottom once there is room, while its 10 s and its plane last.
 function gTixBack(){
@@ -4344,7 +4790,10 @@ function gScanPops(r){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
   const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
-    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f, true)), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS, gold: !!r.gold};
+    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f, true)), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS, gold: !!r.gold,
+    ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null, route: ppRoute(r.route)};    // 1.107: the route, a new country marked
+  const w = r.airline && ((lbData() || {}).game || {}).wallet;
+  if (w) w[r.airline.code] = r.airline.scans;
   const box = $("gAws"), tix = box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"));
   let pass;
   if (tix) {
@@ -4352,6 +4801,7 @@ function gScanPops(r){
     if (tix !== box.lastChild) box.appendChild(tix);
     pass = gPassFill(tix, o); gTixStack();
   } else pass = gPop(o);
+  setTimeout(() => ppNew(r), fsStill() ? 0 : 1400);                 // 1.107: a country new to the passport, over the ticket
   if (!stk) return [pass];
   const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
@@ -4382,7 +4832,9 @@ function gLevelUp(g){
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const st = gStyleAt(g.level);
   box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
-    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") + `<p>${escH(T("Tap to carry on"))}</p></div>`;
+    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") +
+    (((gRules() || {}).showcase || [3, 5, 8]).includes(g.level) ? `<p>${escH(T("A new spot in your showcase"))}</p>` : "") +   // 1.108
+    `<p>${escH(T("Tap to carry on"))}</p></div>`;
   box.hidden = false;
   gJingle();
   const close = () => { box.hidden = true; };
@@ -4444,7 +4896,7 @@ function renderGame(){
   let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
     `<div class="gBar"><i style="width:${(g.need ? g.into / g.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<span class="gRule">${nf.format(g.into)} / ${nf.format(g.need)} · ${escH(next ? T("{n} more to {t}", {n: nf.format(g.need - g.into), t: T(next)}) : T("{n} more to the next level", {n: nf.format(g.need - g.into)}))}</span>` +
-    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) +
+    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) + gSbyHtml(g) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
     `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
@@ -4456,7 +4908,7 @@ function renderGame(){
       `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
   if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
   h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
-  if (g0) h += collectionHtml(g0) + recordsHtml(all, g0);
+  if (g0) h += collectionHtml(g0) + passportHtml(g0) + walletHtml(g0) + recordsHtml(all, g0);     // 1.106: the member cards; 1.107: the passport
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
   const fs = fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
@@ -4464,15 +4916,36 @@ function renderGame(){
   h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox");
   if (box.dataset.h === h) return;
+  if (Date.now() - hgBusy < (hgHeld ? 10000 : 800)) return hgSoon();    // 1.103.0.1: not while a shelf is held or still moving
   const kept = [...box.querySelectorAll(".hgRow")].map(r => [r.dataset.set, r.scrollLeft]);
   box.dataset.h = h; box.innerHTML = h;
   for (const [k, x] of kept) { const r = box.querySelector(`.hgRow[data-set="${CSS.escape(k)}"]`); if (r) r.scrollLeft = x; }
-  hgWire(box);
+  hgWire(box); lyWire(box, renderGame); ppWire(box);
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   $("gHow").onclick = gHowCard;
   trWire(box, renderGame);
   $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+}
+// 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
+// without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday
+// of the i-th, from a Monday), the standbys left on the right, and a warning while the streak hangs on today's scan.
+const sbyDay = (i, w) => new Date(2026, 9, 26 + i).toLocaleDateString(LOC(), {weekday: w});
+// The day after a standby: the streak's day the next scan pays (today's, once scanned); else 0.
+const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.week[s.today - 1] === "b" ? (g.streak || 0) + (g.scannedToday ? 0 : 1) : 0; };
+function gSbyHtml(g){
+  const s = g.standby, R = gRules();
+  if (!s || !s.week) return "";
+  const t = s.today, used = s.week.lastIndexOf("b"), risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0;
+  const from = R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
+  const right = !s.allow ? `<em class="used">${escH(T("Standby from level {n}", {n: from}))}</em>`
+    : s.left ? `<em>${escH(s.left === 1 ? T("1 standby left") : T("{n} standbys left", {n: s.left}))}</em>`
+    : risk ? `<em class="none">${escH(T("No standby left"))}</em>`
+    : `<em class="used">${escH(used >= 0 ? T("Standby used {d}", {d: sbyDay(used, "long")}) : T("No standby left"))}</em>`;
+  const cls = (c, i) => c === "s" ? (i === t ? "now" : "on") : c === "b" ? "sby" : i === t ? "todo" : i < t ? "miss" : "";
+  return `<div class="gRule gSbyH"><span>${escH(T("This week"))}</span>${right}</div>` +
+    `<div class="gWk">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
+    (risk ? `<span class="gRule">${escH(T("No scan yet today: scan before 03:00 or your streak starts again at day 1."))}</span>` : "");
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
@@ -4504,8 +4977,15 @@ function gHowCard(){
       p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
       p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
+      (R.mastery ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b} or {c} scans adds +{x}, +{y} or +{z} once, and its hangar card turns bronze, silver or gold.",
+        {a: R.mastery[0][0], b: R.mastery[1][0], c: R.mastery[2][0], x: nf.format(R.mastery[0][1]), y: nf.format(R.mastery[1][1]), z: nf.format(R.mastery[2][1])})) : "") +   // 1.105 (relay 88)
+      (R.loyalty ? p(T("Member cards:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
+        {a: R.loyalty[0][0], b: R.loyalty[1][0], c: R.loyalty[2][0], x: nf.format(R.loyalty[0][1]), y: nf.format(R.loyalty[1][1]), z: nf.format(R.loyalty[2][1])})) : "") +   // 1.106 (relay 89)
+      (R.country ? p(T("Passport:"), T("a scanned flight with a known route stamps the countries it flies from and to; a country new to your passport adds +{p}.", {p: nf.format(R.country)})) : "") +   // 1.107 (relay 90)
       `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
       `<div class="gStk">${sd}</div>` +
+      (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 03:00 and don't carry over.",
+        {a: R.standby[R.standby.length - 1][0], b: R.standby[0][0]})) : "") +              // 1.104 (relay 87)
       (R.bingo ? `<p class="gHowH">${escH(T("Bingo and trophies"))}</p>` +           // 1.100 (relay 83)
         p(T("Weekly bingo:"), T("+{l} for each line, +{c} more for the full card. A new card every Monday at 03:00, with the league.", {l: nf.format(R.bingo.line), c: nf.format(R.bingo.card)})) +
         p(T("Trophies:"), T("a new rank +{a} to +{b} by its medal (bronze to diamond), any other trophy +{s}.", {a: nf.format(R.medal[0]), b: nf.format(R.medal[R.medal.length - 1]), s: nf.format(R.single)})) : "") : ""));
@@ -4542,7 +5022,7 @@ async function gRecentCard(){
     const aw = r.aw.length ? r.aw : [{k: "first", p: r.gp}, ...(r.lock ? [{k: "lock", p: r.lock}] : [])];
     const col = TIER_COL[r.tier] || TIER_COL.uncommon, hot = r.tier && r.tier !== "common", sum = r.gp + (r.lock || 0) + (r.gs || 0) + (r.gb || 0);
     const lines = aw.map((a, i) => { const [w, p, x] = (r.rule || 1) >= 2 ? gAwLine({tier: r.tier, ...a}, f) : [gWhy(r, a), a.p, ""];
-      return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
+      return `<div class="meta${i ? " top" : ""}${x ? " " + x : ""}"><span>${escH([["new", "streak", "mastery", "loyalty"].includes(a.k) ? "" : at(a.t), w].filter(Boolean).join(" · "))}</span><span>${gPlus0(p)}</span></div>`; }).join("");
     const what = [`<img class="tico" src="${tierIcon(r.tier || "uncommon")}" alt="">${escH(f.type || NA)}`, escH(T(TIER_NAME[r.tier] || "Uncommon")), r.km != null ? escH(distText(r.km)) : ""].filter(Boolean).join("<i>·</i>");
     return `<li class="fl sp${sum ? "" : " lim"}" style="--lamp:${col}${hot && sum ? `;background:${rgba(col, .11)}` : ""}"><div class="tc"><time>${escH(at(r.aw.length ? r.aw[r.aw.length - 1].t : r.ts))}</time></div>` +
       `<div class="who"><strong>${escH(f.flight)}</strong>${f.airline ? `<span>${escH(f.airline)}</span>` : ""}</div><b class="pts">${gPlus0(sum)}</b>` +
@@ -4564,6 +5044,12 @@ async function gRecentCard(){
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
+// 1.108: the showcase on a player's card (your own: its empty and locked spots, and how to fill it)
+function scSection(p){
+  const cab = scCab(p.showcase, {mine: p.me});
+  return cab ? `<div class="scSc"><h4>${escH(T("Showcase"))}</h4>${cab}` +
+    (p.me ? `<p>${escH(T("Others see this when they tap your name. Pin a plane from your hangar."))}</p>` : "") + `</div>` : "";
+}
 async function playerCard(id){
   ctlSound.nav();
   const tok = cardLoading();
@@ -4585,10 +5071,10 @@ async function playerCard(id){
     (p.level ? `<span class="plIns">${rankIns(p.level, 46, {wings: p.wings})}</span>` : "") + `</div>` +
     `<div class="gBar"><i style="width:${(p.need ? p.into / p.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<div class="gTiles"><div><b>${nf.format(p.week || 0)}</b><span>${escH(T("This week"))}</span></div><div><b>${nf.format(p.points || 0)}</b><span>${escH(T("All time"))}</span></div>` +
-    `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + (medals ? `<div class="plMedals">${medals}</div>` : "") +
+    `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + scSection(p) + (medals ? `<div class="plMedals">${medals}</div>` : "") +
     `<ul class="ranks plain cups plLines">` +
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
-    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`);
+    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, scPics);
 }
 /* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
    numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,

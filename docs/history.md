@@ -943,6 +943,93 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.108 (to-do #156, Dave's pick of 29 Oct: A, the glass cabinet, "and add the origin/destination"; relay 91): **the
+  showcase.** `scSection(p)` in `playerCard` between the three numbers and the medals: `scCab(sc, o)`, a `.scCab` of
+  `scPin(x)` cards (the hangar's `.hgCard` smaller, `.sc`: the pin's photo, else the model's via `modelPic`, painted
+  in when it comes; the rarity, the name, the route `.scRt` "DXB → VIE" when both ends are known, airline · `fsDate`).
+  Others' cards show the pins only; your own (`p.me`) the empty spots and the locked ones (`.emp.lk`, `SC_LOCK`,
+  "Opens at level 8", "{n} to go") and a line on how to fill it. The hangar card: `scBtn(code)` ("Put in your
+  showcase" / "Take out of your showcase", from `gme.showcase`, none before level 3), `scWire`: POST
+  `/game/showcase` {code, spot} into the first empty spot, else a `.scPick` panel ("Where should the 787-9 go?")
+  whose spots (`data-scp`) swap; the answer replaces `gme.showcase` and the card is drawn again. `gLevelUp` says "A
+  new spot in your showcase" at `rules.showcase`'s levels.
+- 1.107 (to-do #150, Dave's pick of 29 Oct: round 1's C "stamp shelves" with round 2's C map "ink patchwork", and B's
+  scratch as an option; relay 90): **the passport.** The map: `test/world.js` (`window.WORLD` {CC: [region, label lon ×
+  10, label lat × 10, rings]}, Natural Earth admin-0 1:110m, public domain, 174 countries, 88.6 KB / 35 KB gzipped, made
+  by `tools/world_map.py`), a versioned asset like `signature.js` (`WORLD_JS`, `tools/assets.py`, the build's path
+  patch, `sw.js` keeps it), fetched by `worldMap()` only when the passport shows. Regions `PP_REG` (E Europe with the
+  Caucasus and Cyprus, M Middle East with Iran, F, A, N, O); a stamped country the map lacks (Malta, Singapore, …) is
+  a dot at its airport and gets its region from the airport's continent (`PP_ME` for the Middle East). Inks `PP_INK`
+  (six), `ppInkAll(pp)`: each country its own by its code (`ppHash`), else the next one no stamped neighbour within 12°
+  has, decided in stamp order so a colour never changes. `ppMapSvg(pp, view, {labels, fresh})`: Mercator (`ppView`,
+  `PP_VIEW` eu / world), the land once a view (`ppLand`), the inks under round 2's rough-edge filter, multiplied onto
+  the paper; never a mark for the player's place. `passportHtml(g0)` after the collection (under Your hangar): the
+  plate `.ppPlate`, the map `.ppMap` ("N countries", tap: `ppCard`), a shelf per region (`.ppShelf` with the hangar's
+  `.hgHead`/`.hgRow`, `data-set="pp-E"`) of stamp cards `.pCard` (`ppStamp`: `.pS` round/box/oval by the code, the
+  country by `Intl.DisplayNames`, the airport, the day "24 OCT 2026"; drawn at 1.5× and scaled down so the print
+  keeps to the type scale) newest first, then up to three face-down `.pCard.no` of the region nearest a stamped one
+  (`ppGoals`). No stamps yet: the empty map and a line. `ppCard()`: "N of M countries inked in", Europe & around /
+  World (`.seg.gSeg`, `ppAt`), the map with codes, a bar per region (the Sets list's `.ranks.cats`). At a scan:
+  `gPassFill`'s `o.route` (`ppRoute(r.route)`: "BCN ✈ VIE", a new country red with "SPAIN · NEW") on the ticket;
+  `gAwLine` "country" "New country · Spain"; 1.4 s later `ppNew(r)`: the card `.gAw.ppNew` over the ticket, the map
+  round the new country (its largest ring), the stamp landing (`ppLand`, `fsThud`), the country masked (`.ppSoak`):
+  left alone 3.2 s, a blot from the stamp grows over it (displaced into a ragged soak); a finger on it ("Scratch Spain
+  in", `.ppTip`) draws broad strokes into the mask instead, and 1.8 s after the finger stops the rest soaks in. A tap
+  inks it at once, then puts it away. `gHowCard` a Passport line.
+- 1.106 (to-do #162, Dave's pick of 29 Oct, A "printed line" with the airline trophies; relay 89): **airline loyalty,
+  the member cards.** `LY` ([scans, bonus] a tier above Member; `rules.loyalty` wins, `lySteps()`), `lyOf(n)` (-1 not a
+  member yet, 0 Member, 1–3 Silver, Gold, Platinum), `lyCode` (IATA from `AIRLINES`, else the ICAO), `lyName`, `lyCol`
+  (`LY_COL` for airlines common here, else a hue from the code). `walletHtml(g0)` after the collection in `renderGame`:
+  the plate "Member cards" (`.lyPlate`), its top "N airlines · Frequent flyer at 50" (the airlines trophy ladder's next
+  rank via `trophyLadder`), `.lyWal` with the four next-best cards' tops (`.lyCard` 150 px, each `margin-top:-122px`)
+  and the front one in full (big tier name, `.br` bar, "142 scanned · 58 to Platinum"; a non-member "Not a member yet");
+  a tap brings a card to the front (`lyFront`), "All N cards" shows every top (`lyAll`); `lyWire`. Tier classes
+  `.lyN`, `.ly0`–`.ly3` set `--lbg/--lk/--mg` (silver and gold are mastery's `--m-*`, `--m-platinum` new). A ticket's
+  `o.ly` {code, t} prints `.lyFF` "OS · GOLD" (Member a plain outlined tag; nothing when not a member) above "Scan in Sky
+  view": `gTixShow` from `g0.wallet`, `gScanPops` from the scan's `airline` {code, scans} (and writes it into the wallet).
+  `gAwLine` "loyalty" {n: ICAO, m: tier}: "Austrian · Gold" with `x mst lyN` (mastery's metal dot). Recent points
+  without a time; `gHowCard` a Member cards line.
+- 1.105 (to-do #149, Dave's pick of 28–29 Oct, A "metal frames" without the medal on the photo; relay 88): **mastery.**
+  `MST` ([scans, bonus] a step; `rules.mastery` from the relay wins, `mstSteps()`), `mstOf(n)` (0–3), `mstNext(n)` (the
+  next step's index, scans, bonus and the share done; null at gold), `mstBar(f)`, `mstHtml(n)` (the opened card's
+  `.mkMast`: the three steps `.mkSteps` with a medal each, `.off` dimmed, the bar and `MST_TO`'s "13 of 25 scans to
+  silver" or "Gold: N scans"; `infoCard`'s new `o.afterTiles` puts it under the tiles). On the shelf `hangarHtml` gives
+  a card `.mk1`–`.mk3` (its frame a masked `::after` in `--mg`, the `--m-bronze/silver/gold` gradients, 3 px, so the
+  card's layout doesn't change) and a thin `.mkBar` under the scored line until gold; no medal on the photo (Dave).
+  `gAwLine` "mastery" {n: type code, m: step}: "Airbus A321 · Silver" with class `x mst mkN` (a metal dot, a grey band
+  on the ticket; `gPassFill` gives "(no ×2)" to any "x" line now); Recent points shows it without a time, like "new". `gHowCard`: a Mastery line from `rules.mastery`.
+- 1.104 (to-do #157, Dave's pick of 28–29 Oct, B "the week's calendar"; relay 87): **the standby.** `gme.standby`
+  {week: Mon–Sun "s"/"b"/"", today: index, allow, left}. `gSbyHtml(g)` in `renderGame`'s level card, before the tiles:
+  `.gSbyH` (This week; on the right `N standby left` amber, `No standby left` red while the streak hangs on today's
+  scan, else `Standby used {weekday}` or, below level 6, `Standby from level {n}` muted) and `.gWk` (seven cells:
+  `.on` scanned, `.now` scanned today, `.todo` today unscanned, `.sby` hatched SBY, `.miss` a past day missed; letters
+  from `sbyDay(i, "narrow")`, a fixed Monday + i in the app's locale), plus the warning line when none is left.
+  `gSbyUsed(g)`: the day after a covered day, the streak day the next scan pays (today's once scanned); `gStripRender`
+  then shows "Standby used · streak goes on, day N" and `#gStrip.sby` turns it amber. `gHowCard`: a Standby line from
+  `rules.standby`.
+- 1.103.0.1 (to-dos #166 and #167, Dave's iPhone web app, 29 Oct): **the hangar's pictures and the unknown model's
+  card.** (1) Every picture that arrived (`modelPic` → `hgSoon` → `renderGame`) drew the whole Club again; the shelves
+  kept `scrollLeft`, but on a phone a redraw mid-swipe ends the finger's drag and the momentum, and the browser
+  re-snaps a shelf (`scroll-snap-type: x proximity`) whenever anything inside it changes, even an attribute. Now
+  `hangarHtml` has no pictures in it (its HTML only changes with the data): each card has a frame `.hgPh` (`data-own`
+  the first one's photos, `data-mp` the model's names, `data-e` the first `HG_EAGER` = 6 of a shelf, `.heli` on the
+  Helicopters shelf or a `SPECIAL_TYPES` helicopter, which draws a helicopter instead of the plane) that `hgPaint`
+  fills in place (`hgPic`: own photo not in `hgBad`, else `modelPicNow`). `hgPaint` leaves a shelf alone while it
+  moves (`hgMoving`: the shelf last scrolled or touched, `hgMove`, within 0.8 s, 10 s while held, `hgHeld`) and tries
+  again 0.9 s later (`hgLate`); `renderGame` waits the same way (`hgSoon`). (2) Model pictures were asked for only as
+  a card came into view, all at once, and one not answered (`modelLook` failed) was never asked again until the Club
+  was drawn anew, so whole shelves kept the plane icon. Now `hgAsk` queues them and `hgPump` runs two at a time: the
+  cards in view (IntersectionObserver `hgIO`, 150 px margin) first, then each shelf's first six, then the rest; a
+  failed one is queued again after 61 s (`hgTries`, twice at most); the queue pauses outside the Club. The first six
+  of each shelf load at once (`loading=eager`), the rest lazily; a shelf touched for the first time (`hgAll`) has its
+  pictures fetched off-screen (`hgPre`, `new Image()`, so nothing in the shelf changes). (3) In Safari the face-down
+  card's grid (`place-content:start`) sized its column to the "STILL TO FIND" text, narrowing the picture frame:
+  `.hgCard` now has one `minmax(0,1fr)` column. (4) #167: N700GR's code M700 is right (a 2025 Piper PA-46-701TP,
+  the M700 Fury); the board knew no name for it and `tierChip` showed no rarity for a code missing from `FLEET`. Now
+  `tierChip` gives such a code "uncommon", as the relay scores it; `typeCard` leaves out tiles without a value (no "/")
+  and its sub line repeats no code that is already the title; `infoCard` lays out fewer than three tiles across.
+  `TYPES` gained M700 "Piper M700 Fury" and E175 (a set lists it). Its Global photo is an older Planespotters photo of
+  the registration (`plane_photo` matches by registration; US hex codes follow the registration). No relay change.
 - 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
   school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
   `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with
@@ -1344,6 +1431,50 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 91 (1.108, to-do #156): **the showcase.** `SHOWCASE_AT` (3, 5, 8): a spot opens at each. `g["showcase"]` a
+  list of pins or None by spot. `showcase_json(g)` {pins (as many as the level opens), locked [{level, toGo}]}
+  (`level_points(lv)`, where a level starts), in `game3_json`, `/game/me` and `player_json` (others' cards). A pin is
+  a catch, not a type: `showcase_catch(spot, code)` takes the type's sighting scanned before scored (`gp`) before
+  seen, then one with both route ends, then the first, and keeps code, name, tier, reg, flight, airline, ts, route
+  [from, to] or None, photo, thumb, how; never a place. POST `/game/showcase` {code, spot} (profile_post: only the
+  asker's own spot) → `showcase_pin`: 400 without a spot, 403 for a spot the level hasn't opened, 404 for a type
+  never seen; a type pinned elsewhere moves, "" empties. `game_rules()["showcase"]`. No points; `GAME3_V`,
+  `GAME_V` unchanged. flows.py `showcase_checks` and the HTTP checks after the player card.
+- Relay 90 (1.107, to-do #150): **the passport.** The airport list (v4) keeps each airport's `iso_country` and
+  `continent` (rows [.., 7: country, 8: continent]); `_cc_ready()` is that list (None while it loads or with an older
+  copy). `route_countries(e, db)`: the countries of a sighting's `from`/`to` (IATA or ICAO via `_ap_row`), each once;
+  none without both ends. `GAME_COUNTRY` 25. `_passport_make(spot)` (from `game_lockon` and `logbook_json`) makes
+  `g["passport"]` {CC: {"d": day, "ap": airport, "p": paid}} once, from the saved days' scans, unpaid. `game_lockon`
+  stamps the scanned route's countries: one not in it pays `{"k": "country", "p": 25, "n": CC, "ap"}`; the answer has
+  `route` [[airport, CC, new]] and `countries`. `passport_json(g)` in `game3_json` ("passport", {CC: [day, airport, lat,
+  lon, continent, paid]}): the player's own logbook only (not `/game/me`, not the league's cards).
+  `game_rules()["country"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py `passport_checks`.
+- Relay 89 (1.106, to-do #162): **airline loyalty.** `LOYALTY` ((10, 25), (50, 100), (200, 250)), `loyalty_step(n)`.
+  `_scan_types` also makes `g["scanAirlines"]` {ICAO: planes scanned} (counted back once from the saved days' scans by
+  `_scan_airline`); `logbook_json` calls it too, so the wallet is right before the first scan. `_loyalty(g)`:
+  `g["loyalty"]` {ICAO: tier paid or passed}, made unpaid from the counts as they are then. `game_lockon` raises the
+  airline's count and adds `{"k": "loyalty", "p", "n": ICAO, "m": tier}` per tier newly reached (as mastery's), and
+  answers `airline` {code, scans}. `wallet_json(g)` in `game3_json` ("wallet"): every key of `g["airlines"]` (the
+  airlines the game caught live, which the airlines trophies count) with its scans, 0 for none, so the wallet's size is
+  the trophy's count. `game_rules()["loyalty"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py
+  `loyalty_checks`.
+- Relay 88 (1.105, to-do #149): **mastery.** `MASTERY` ((5, 25), (25, 100), (100, 250)), `mastery_step(n)`.
+  `_scan_types(spot)` (hangar_json's count-back of `g["scanTypes"]`, moved out) now also runs at the start of
+  `game_lockon`, so every scan counts per type from the first. `_mastery(g)`: `g["mastery"]` {TYPE: step paid or
+  passed}, made at the first scan after the update from `scanTypes` as they are then, unpaid. `game_lockon` raises the
+  type's count, then adds a `{"k": "mastery", "p", "n": TYPE, "m": step}` line for each step newly reached (an award
+  like "new": in the bonus, the day, the week, the level; not ×2 on a golden ticket). `game_rules()["mastery"]`.
+  Nothing rescored; `GAME3_V`, `GAME_V` and `GAME_RULE` unchanged. flows.py `mastery_checks`.
+- Relay 87 (1.104, to-do #157): **the standby.** `STANDBY` ((14, 2), (6, 1)), `standby_allow(level)`.
+  `game_standby(g)` (called by `game_book`) makes `g["standby"]` {since: the board day} on the first touch after the
+  update: only days from then on can be covered, so a streak that broke before stays as it was paid. `_standby(g, day)`
+  works the week out each time from `scanDays` and the days' points (nothing else kept; a restart or a rescore changes
+  nothing): from Monday to yesterday, a day without a scan whose day before was a streak day (so never Monday), not
+  before `since`, is covered while fewer than `standby_allow(level at that day's end)` are used (the level from
+  `points` less the later days' points). `_scan_streak` counts covered days like scanned ones, so the next scan pays the
+  next day's amount and a covered day pays nothing. `standby_json` in `game3_json` and `/game/me` ("standby"),
+  `game_rules()["standby"]`. A game the standby hasn't met (a player card, read only) covers nothing. GAME3_V, GAME_V
+  and GAME_RULE unchanged. flows.py `standby_checks`.
 - Relay 85 (1.103, to-do #153): **the flight school.** `SCHOOL` (scan, card, bingo, fav, uncommon), `GAME_SCHOOL` 50,
   `SCHOOL_LEVEL` 4. `game_school(g)` (called by `game_book`, so on the first touch after the update, before any points
   can change) makes `g["school"]` {since, done: {mission: ms}, aw: [awards], wings: ms}; a game at level 4 or above

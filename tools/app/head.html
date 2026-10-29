@@ -835,6 +835,26 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .plMedal i{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--m) 60%)}
 .plMedal .cup{width:14px;height:14px;fill:var(--amber);stroke:var(--amber)}
 .plLines{margin:0}
+/* 1.108 (to-do #156, Dave's pick A): the showcase, the hangar's cards in miniature behind a glass pane; a locked spot face
+   down with a lock; on a hangar card, the spots to swap with */
+.scSc,.scPick{display:grid;gap:8px}
+.scSc h4{margin:0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.scSc p,.scPick p{margin:0;font:600 var(--fs-xs)/1.3 var(--f-board);color:var(--muted)}
+.scPick{margin-top:4px;padding:12px;border-radius:12px;background:#121315;outline:1px solid var(--amber)}
+.scPick h4{margin:0;font:700 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
+.scCab{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 10px;border-radius:12px;
+  background:linear-gradient(180deg,#1b1e24,#0f1114);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -6px 0 #2a2d33,0 6px 14px rgba(0,0,0,.4);overflow:hidden}
+.scCab::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 38%,transparent 46%,transparent 62%,rgba(255,255,255,.05) 66%,transparent 70%)}
+.scCab .hgCard.sc{width:auto;cursor:default}
+.scCab button.hgCard.sc{cursor:pointer}
+.scCab .hgT{padding:6px 7px 8px}
+.scCab .hgT b{font-size:var(--fs-xs)}
+.scCab .hgT .scRt{font:700 var(--fs-tag)/1.2 var(--f-board);color:var(--ink);letter-spacing:.06em}
+.scCab .hgCard.emp{border:1px dashed rgba(255,255,255,.18);box-shadow:none;background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px);
+  place-content:center;justify-items:center;gap:4px;text-align:center;padding:10px 4px;min-height:150px;color:#6d7179}
+.scCab .hgCard.emp svg{width:22px;height:22px}
+.scCab .hgCard.emp b{font:700 var(--fs-xs)/1.2 var(--f-board);color:var(--ink)}
+.scCab .hgCard.emp span{font:600 var(--fs-tag)/1.2 var(--f-board)}
 .plLines li[style] .cup{fill:var(--lamp);stroke:var(--lamp)}
 /* 1.81: Your hangar (Dave's to-do 4, his mix of C and B): a shelf per set you swipe, a collectible card per type */
 .hgShelf{margin:14px 0 0}
@@ -854,18 +874,77 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT em{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--t,#7d838c)}
 .hgT b{font:700 var(--fs-s)/1.2 var(--f-board);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hgT>span{font:500 var(--fs-tag)/1.3 var(--f-board);color:var(--muted)}
-.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);place-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
+.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);align-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
   background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px)}
 /* 1.96: a face-down card shows its model, dimmed. 1.97 (to-do #132, pick 2): a line under the name, how often the game
    scored the type and how often it was scanned (no badge on the photo any more) */
 .hgCard.back img,.hgCard.back .hgPh{filter:grayscale(1) brightness(.5);opacity:.55;margin-bottom:4px}
 .hgCard{position:relative}
+/* 1.103.0.1 (to-do #166): the picture in its frame from the start (one column, so Safari doesn't narrow a face-down
+   card's frame to its text); a helicopter in the empty frames of helicopters */
+.hgCard{grid-template-columns:minmax(0,1fr)}
+.hgCard .hgPh>img{width:100%;height:100%;margin:0;filter:none;opacity:1;background:none}
+.hgCard .hgPh.heli{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23555b64' d='M3 4.5h18v1.4H3zM11.3 5.9h1.4V8h-1.4zM9 8h4a4 4 0 0 1 4 4v1.5a2.5 2.5 0 0 1-2.5 2.5H9a4 4 0 0 1-4-4 4 4 0 0 1 4-4zM16 10.5h5V12h-5zM20.5 7.5H22v5h-1.5zM8.3 16h1.2v3H8.3zM13.3 16h1.2v3h-1.2zM6 19h11v1.2H6z'/%3E%3C/svg%3E"),linear-gradient(160deg,#2a2d33,#16181b)}
 .hgT .hgL{display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--amber)}
 .hgT .hgL i{font-style:normal}
 .hgT .hgL u{text-decoration:none;color:var(--muted)}
 .hgT .hgL.no{color:#5d636c}
 .hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
 .hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
+/* 1.105 (to-do #149, Dave's pick A without the medal on the photo): mastery. A card's frame in its metal, a little bolder
+   than the plain card's line (3 px); a thin bar to the next step; on the opened card the three steps, on a scan's ticket
+   the step reached */
+:root{--m-bronze:linear-gradient(135deg,#7a4a22,#d39058 45%,#f3c491 55%,#9a5f2c);--m-silver:linear-gradient(135deg,#6f767f,#d5dbe2 45%,#fff 55%,#8c939c);
+  --m-gold:linear-gradient(135deg,#8c650b,#e6b93f 45%,#fff0b0 55%,#a77c12)}
+.mk1{--mg:var(--m-bronze)} .mk2{--mg:var(--m-silver)} .mk3{--mg:var(--m-gold)}
+.hgCard.mk1,.hgCard.mk2,.hgCard.mk3{border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.hgCard.mk1::after,.hgCard.mk2::after,.hgCard.mk3::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:var(--mg);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.mkBar{display:block;position:relative;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.mkBar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--amber)}
+.hgT .mkBar{margin-top:4px;height:3px}
+.mkMast{margin-top:6px;padding:10px 12px;border-radius:10px;background:#202125}
+.mkMast h4{margin:0 0 10px;display:flex;justify-content:space-between;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
+.mkMast h4 b{color:var(--ink)}
+.mkSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.mkSteps div{display:grid;justify-items:center;gap:4px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted);text-align:center}
+.mkSteps .md{width:38px;height:38px;border-radius:50%;background:var(--mg);display:grid;place-items:center;color:rgba(40,25,5,.85);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.mkSteps .md svg{width:18px;height:18px}
+.mkSteps .off .md{filter:grayscale(1) brightness(.45);opacity:.6}
+.mkSteps b{color:var(--ink);font-weight:700;font-size:var(--fs-xs)} .mkSteps .off b{color:var(--muted)}
+.mkBarT{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted)}
+.mkBarT b{color:var(--ink);font-weight:700}
+.gAw .lns div.mst{margin:2px -12px 0;padding:3px 12px;background:linear-gradient(90deg,rgba(160,165,175,.25),rgba(255,255,255,0))}
+.gAw .lns div.mst span{display:flex;align-items:center;gap:6px;color:#222;font-weight:700}
+.gAw .lns div.mst span::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:var(--mg);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.2)}
+/* 1.106 (to-do #162, Dave's pick A): airline loyalty. The club's wallet of member cards (the best in front, the others'
+   tops peeking out over it), each in its tier's metal with the airline's colour and code; on a ticket a printed line
+   "OS · GOLD" (a plain one for a member); the step-up a line in the tier's metal as mastery's */
+:root{--m-platinum:linear-gradient(135deg,#55606e,#dfe7f1 45%,#fff 55%,#7f8fa1)}
+.lyN{--lbg:#26272b;--lk:#8b8f99} .ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
+.ly2{--lbg:var(--m-gold);--lk:#3a2a05;--mg:var(--m-gold)} .ly3{--lbg:var(--m-platinum);--lk:#1f2a36;--mg:var(--m-platinum)}
+.lyWal{display:grid;margin-top:8px}
+.lyCard{position:relative;display:block;width:100%;height:150px;border:0;border-radius:12px;padding:12px 14px;box-sizing:border-box;text-align:left;
+  background:var(--lbg);color:var(--lk);overflow:hidden;font:inherit;cursor:pointer;box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.22)}
+.lyCard + .lyCard{margin-top:-122px}
+.lyCard.lyN{box-shadow:0 -2px 8px rgba(0,0,0,.35),inset 0 0 0 1px #3a3c42}
+.lyCard::before{content:"";position:absolute;right:-26px;top:-36px;width:110px;height:110px;border-radius:50%;background:var(--ac);opacity:.95}
+.lyCard.lyN::before{opacity:.35}
+.lyCard .hd{position:absolute;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lyCard .hd b{min-width:0;text-transform:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-m)/1.1 var(--f-board)}
+.lyCard .hd em{flex:none;margin-right:72px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.16em;text-transform:uppercase}
+.lyCard .hd i{position:absolute;right:0;top:-1px;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#fff}
+.lyCard .nm{position:absolute;left:14px;right:14px;bottom:42px;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.16em;text-transform:uppercase}
+.lyCard.lyN .nm{font-size:var(--fs-l);letter-spacing:.06em;text-transform:none}
+.lyCard .br{position:absolute;left:14px;right:14px;bottom:30px;height:4px;border-radius:2px;background:rgba(0,0,0,.15)}
+.lyCard .br i{display:block;height:100%;border-radius:2px;background:currentColor;opacity:.7}
+.lyCard .ft{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;gap:8px;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
+.gAw .lyFF{display:flex;align-items:center;gap:8px;margin:0 12px 10px;padding:7px 0 0;border-top:1.5px dotted #cfc8b8;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.08em;color:#333}
+.gAw .lyFF i{font-style:normal;color:#999}
+.gAw .lyFF em{font-style:normal;font-size:var(--fs-tag);padding:3px 7px;border-radius:3px;background:var(--lbg);color:var(--lk);letter-spacing:.14em;text-transform:uppercase;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.gAw .lyFF.ly0 em{background:none;box-shadow:inset 0 0 0 1px #c9c2b2;color:#888}
 /* 1.81: a medal won (Dave's to-do 5, pick B): it swings down on a ribbon, settles, and fades */
 #medalMo{position:fixed;inset:0;z-index:95;display:grid;justify-items:center;align-content:start;gap:22px;padding-top:var(--sa-top);background:rgba(8,9,10,.88);
   text-align:center;cursor:pointer;transition:opacity .6s;--m:#cf8f5a}
@@ -902,6 +981,18 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gHow:focus-visible,#cardBox .gHow:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 #cardBox .gHow{margin-top:8px;padding-top:12px;width:100%}
 #t-game .gOff{color:#e7a39d}
+/* 1.104 (to-do #157, Dave's pick B): the week's calendar in the level card: scanned days amber, today outlined (filled
+   once scanned), a day a standby covered hatched SBY, a day missed red; the standbys left on the right */
+#t-game .gSbyH{display:flex;justify-content:space-between;gap:10px}
+#t-game .gSbyH em{font-style:normal;color:var(--amber)} #t-game .gSbyH em.used{color:var(--muted)} #t-game .gSbyH em.none{color:#e7a39d}
+.gWk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.gWk i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:7px 0;border:1.5px dashed #3a3c42;border-radius:6px;color:var(--label2)}
+.gWk i.on{border:1.5px solid var(--amber);color:var(--amber);background:rgba(240,180,41,.1)}
+.gWk i.now{background:var(--amber);border:1.5px solid var(--amber);color:#17140e}
+.gWk i.todo{border:1.5px solid var(--amber);color:var(--ink);box-shadow:0 0 0 3px rgba(240,180,41,.18)}
+.gWk i.sby{border:1.5px solid var(--amber);color:var(--amber);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
+.gWk i.miss{border-color:#5a2a2a;color:#c0626a}
+#gStrip.sby .gLv small{color:var(--amber)}
 #t-game .gHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
 #t-game .gHead h3{margin:0}
 #t-game .gHead .seg{margin:0;flex:0 1 230px}
@@ -947,6 +1038,61 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .perCard .perHead .perArr{margin-left:auto}
 .hgPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
 .hgPlate .hgShelf:first-of-type{margin-top:6px}
+/* 1.107 (to-do #150, Dave's pick: the stamp shelves with the ink patchwork map): the passport. The map printed on
+   passport paper, each stamped country inked in its stamp's colour; a shelf per region of stamp cards (the stamps drawn
+   at 1.5× and set down to their card's size, so their small print keeps to the type scale); a face-down card for a
+   country nearby still to stamp */
+.ppPlate .hgRow{margin:0 -14px;padding:2px 14px 8px;scroll-padding:0 14px}
+.ppShelf{margin:14px 0 0}
+.ppMap{position:relative;display:block;width:100%;aspect-ratio:360/190;padding:0;border:0;border-radius:10px;overflow:hidden;cursor:pointer;
+  background:#f3eee2 repeating-radial-gradient(circle at 50% 120%,rgba(31,79,184,.06) 0 1px,transparent 1px 7px);box-shadow:inset 0 0 0 1px #d8cfba}
+.ppMap svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ppMap .ppInk{mix-blend-mode:multiply}
+.ppMap .ct{position:absolute;right:10px;top:8px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#7a2416}
+.ppMap .lg{position:absolute;left:10px;bottom:8px;font:600 var(--fs-tag)/1 var(--f-board);color:#8a8170}
+.ppMap.big{aspect-ratio:360/440;margin:0 0 12px;cursor:default}
+.ppMap .ppLbl text{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;fill:#f3eee2;text-anchor:middle;paint-order:stroke;stroke:rgba(40,30,20,.35);stroke-width:2px}
+.pCard{flex:none;width:112px;height:118px;border-radius:12px;display:grid;place-items:center;overflow:hidden;scroll-snap-align:start;
+  background:#f3eee2 repeating-radial-gradient(circle at 50% 120%,rgba(31,79,184,.05) 0 1px,transparent 1px 7px);box-shadow:inset 0 0 0 1px #d8cfba}
+.pCard.no{box-sizing:border-box;place-content:center;justify-items:center;gap:4px;padding:0 8px;text-align:center;background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px);
+  box-shadow:none;border:1px dashed rgba(255,255,255,.16);font:700 var(--fs-tag)/1.25 var(--f-board);letter-spacing:.06em;color:var(--muted)}
+.pCard.no b{font:700 var(--fs-m)/1 var(--f-board);letter-spacing:.1em;color:#4a4d55}
+.pS{position:relative;flex:none;display:inline-grid;place-items:center;align-content:center;gap:3px;box-sizing:border-box;padding:8px 10px;text-align:center;color:var(--ink-c);
+  border:3px solid currentColor;box-shadow:inset 0 0 0 3px transparent,inset 0 0 0 5px currentColor;opacity:.86;mix-blend-mode:multiply;font-family:var(--f-board);
+  transform:rotate(var(--r,-8deg)) scale(.66)}
+.pS.rd{width:114px;height:114px;border-radius:50%}
+.pS.rc{min-width:130px;min-height:84px;border-radius:8px}
+.pS.ov{width:140px;height:94px;border-radius:50%}
+.pS small{max-width:112px;font:700 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.08em;text-transform:uppercase;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.pS.rd small{max-width:88px}
+.pS b{font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.06em}
+.pS i{display:flex;align-items:center;gap:3px;font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.08em}
+.pS i svg{width:14px;height:14px}
+/* the scan's ticket: the route, a country new to the passport in red */
+.gAw .ppRt{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:4px 12px 6px;padding:7px 10px;border-radius:8px;background:#efe9da}
+.gAw .ppRt b{font:700 var(--fs-l)/1 var(--f-board);color:#111}
+.gAw .ppRt b small{display:block;margin-top:3px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:#777}
+.gAw .ppRt b:last-child{text-align:right}
+.gAw .ppRt b.nw,.gAw .ppRt b.nw small{color:#b3262d}
+.gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
+.gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
+/* a new country: the card over the ticket; the stamp lands (fsLand), the country soaks up its ink, or the finger rubs it in */
+.gAw.ppNew{width:340px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.ppNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
+.ppNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
+.ppNew .ppMap{aspect-ratio:340/170;border-radius:0;box-shadow:none;cursor:crosshair;touch-action:none}
+.ppNew .ppMap .sv{position:absolute;inset:0}
+.ppNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+.ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
+.ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+@keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
+.ppNew.scr .ppDrop .pS{animation:ppLift .4s ease-in forwards}
+@keyframes ppLift{to{opacity:0;transform:rotate(-12deg) scale(.82) translateY(-14px)}}
+.ppTip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:6px 10px;border-radius:12px;white-space:nowrap;pointer-events:none;
+  font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#f3eee2;background:rgba(122,36,22,.88);animation:ppTip 1.6s .9s ease-in-out infinite alternate both}
+@keyframes ppTip{from{opacity:.75}to{opacity:1}}
+.ppNew.inked .ppTip,.ppNew.scr .ppTip{opacity:0;animation:none;transition:opacity .3s}
+@media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppTip{animation:none!important}}
 .gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}
