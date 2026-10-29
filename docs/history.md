@@ -948,6 +948,26 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114 (to-do #182; Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2;
+  relay 97): **the member cards as a carousel.** `walletHtml(g0)` draws `.lyCar`: every card (`lyCardHtml`, `.lyC`
+  with `.lyIn` turning between `.lyFr` and `.lyBk`) in one row, ordered by `lyList` (by scans, or A–Z with `lySort`);
+  `lyWire` lays them out in a curve (the front one in the middle, the neighbours turned 42° and dimmed by `--dim`),
+  follows the thumb, carries a flick on and snaps (`.go`); a tap on a side card brings it in, on the front one turns it
+  over (`.flip`, kept in `lyFlipped`). The card in front is `lyAt` (kept through redraws); a light sweeps over its metal
+  (`.lySh`, `@lyShine`) when it settles. The metal card: brushed lines (`.lyBr`), the airline's logo engraved (`logo()`,
+  the board's; multiplied into light metal, screened onto dark; its code until it loads), the tier down the edge
+  (`.lyVt`), the airline's colour along the left, a hologram with the code (`.lyHo`), a ring to the next tier (`.lyRg`),
+  "Member since · Last scan" (`lyWhen`: today 15:18, yesterday, else the day). The back: the full name and home base
+  (`AIRLINE_HOME`, made by `tools/airline_home.py` from Wikidata, CC0: [name, country ISO, hub IATA]; the country named
+  by `ppName`), scans, sightings, member since, last scan, the four types scanned most (`g0.walletInfo`, relay 97).
+  From six cards `.lyIdx` finds one: a segment per tier (sized by its cards) or the letters (`lyLetter`, letters without
+  an airline dimmed), under a By tier | A–Z toggle (`.lySort`); a thumb on it brings in the card under it (in a tier,
+  along its cards; a letter, its first) and shows the names there in `#lyBub`; 2–5 cards get dots. The club isn't drawn
+  again under the thumb (`hgHeld`/`hgBusy`, the hangar's guard). Reduced motion (`lyStill`): the moves and the turn
+  happen behind a quick fade, no sweep. Platinum gets an iridescent sheen (Dave's pick B of three: `.ly3 .lyFr::before`,
+  hard-light), as plain platinum looked like silver; its index segment too. The front's line is short, in two pieces
+  that wrap between them ("Since 30 Sep · Last scan today", the time only on the back), clear of the tier on the edge
+  in all five languages at 390 px.
 - 1.113 (to-dos #178–#181, #183–#185, #188, Dave's batch of 29 Oct; no relay change): **the passport moves, Your route is
   a sheet.** #179: `tools/world_map.py` packs 13 regions from the UN subregions (`REGION`, `OWN`: Cyprus SE, the Caucasus
   EE, Iran ME; places without an airport region "") and adds 1:50m's small countries as label points without rings
@@ -1558,6 +1578,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 97 (1.114, to-do #182): **the member cards' details.** `g["scanAirlineInfo"]` {AIRLINE: {first, last, types:
+  {TYPE: scans}}} (the scans' times, ms), noted by `_scan_airline_note` at each scan (`game_lockon`) and counted back
+  once from the saved days' scans by `_scan_types` (a sighting's `scan` is its scan time). `wallet_info_json(g)` →
+  game3's `walletInfo`: {AIRLINE: {seen (its planes caught live, `g["airlines"]`'s count), since, last, types (the four
+  scanned most)}}; a member whose scans have no times (days no longer kept) gets its first sighting as `since` with
+  `seenSince: 1`. `wallet` keeps its shape ({AIRLINE: scans}) for older apps. GAME3_V and GAME_V unchanged.
 - Relay 96 (1.112, to-do #173/#174/#176): **the new ranks and the move to them.** `LEVEL_AT`, `LEVEL_AFTER`;
   `level_of(points)` by them, `level_title`, `level_points`. `game_level(g, pts=None)`: the level by the points, never
   below `ranks_kept(g)["level"]` (kept above its points: `into` 0 and `need` the points left to the next level, so the
