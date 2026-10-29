@@ -943,6 +943,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.108 (to-do #156, Dave's pick of 29 Oct: A, the glass cabinet, "and add the origin/destination"; relay 91): **the
+  showcase.** `scSection(p)` in `playerCard` between the three numbers and the medals: `scCab(sc, o)`, a `.scCab` of
+  `scPin(x)` cards (the hangar's `.hgCard` smaller, `.sc`: the pin's photo, else the model's via `modelPic`, painted
+  in when it comes; the rarity, the name, the route `.scRt` "DXB → VIE" when both ends are known, airline · `fsDate`).
+  Others' cards show the pins only; your own (`p.me`) the empty spots and the locked ones (`.emp.lk`, `SC_LOCK`,
+  "Opens at level 8", "{n} to go") and a line on how to fill it. The hangar card: `scBtn(code)` ("Put in your
+  showcase" / "Take out of your showcase", from `gme.showcase`, none before level 3), `scWire`: POST
+  `/game/showcase` {code, spot} into the first empty spot, else a `.scPick` panel ("Where should the 787-9 go?")
+  whose spots (`data-scp`) swap; the answer replaces `gme.showcase` and the card is drawn again. `gLevelUp` says "A
+  new spot in your showcase" at `rules.showcase`'s levels.
 - 1.107 (to-do #150, Dave's pick of 29 Oct: round 1's C "stamp shelves" with round 2's C map "ink patchwork", and B's
   scratch as an option; relay 90): **the passport.** The map: `test/world.js` (`window.WORLD` {CC: [region, label lon ×
   10, label lat × 10, rings]}, Natural Earth admin-0 1:110m, public domain, 174 countries, 88.6 KB / 35 KB gzipped, made
@@ -1421,6 +1431,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 91 (1.108, to-do #156): **the showcase.** `SHOWCASE_AT` (3, 5, 8): a spot opens at each. `g["showcase"]` a
+  list of pins or None by spot. `showcase_json(g)` {pins (as many as the level opens), locked [{level, toGo}]}
+  (`level_points(lv)`, where a level starts), in `game3_json`, `/game/me` and `player_json` (others' cards). A pin is
+  a catch, not a type: `showcase_catch(spot, code)` takes the type's sighting scanned before scored (`gp`) before
+  seen, then one with both route ends, then the first, and keeps code, name, tier, reg, flight, airline, ts, route
+  [from, to] or None, photo, thumb, how; never a place. POST `/game/showcase` {code, spot} (profile_post: only the
+  asker's own spot) → `showcase_pin`: 400 without a spot, 403 for a spot the level hasn't opened, 404 for a type
+  never seen; a type pinned elsewhere moves, "" empties. `game_rules()["showcase"]`. No points; `GAME3_V`,
+  `GAME_V` unchanged. flows.py `showcase_checks` and the HTTP checks after the player card.
 - Relay 90 (1.107, to-do #150): **the passport.** The airport list (v4) keeps each airport's `iso_country` and
   `continent` (rows [.., 7: country, 8: continent]); `_cc_ready()` is that list (None while it loads or with an older
   copy). `route_countries(e, db)`: the countries of a sighting's `from`/`to` (IATA or ICAO via `_ap_row`), each once;

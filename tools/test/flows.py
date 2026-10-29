@@ -1209,6 +1209,86 @@ def loyalty_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def showcase_checks(expect):
+    """Relay 91 (to-do #156): the showcase. Its spots open at levels 3, 5 and 8 (a level-up opens the next one); a pin
+    over the spots open is refused, and one of a type never seen; a hangar card pins its best catch (scanned before
+    scored before seen, then one with a route, then the first); a type pinned again moves; "" empties a spot; the pins
+    survive a restart; no points change."""
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    expect("level_points is where each level starts", [(serve.level_of(serve.level_points(lv))[0], serve.level_of(serve.level_points(lv) - 1)[0])
+                                                       for lv in range(2, 26)], [(lv, lv - 1) for lv in range(2, 26)])
+    f = Path(tempfile.mkdtemp(prefix="fb-sc-"))
+
+    def spot():
+        sp = serve.Spot(f, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def codes(r):
+        return [x and x["code"] for x in r["pins"]] if isinstance(r, dict) else r
+
+    sp, g = spot()
+    t0 = int(serve.time.time() * 1000) - 50000
+    rt = lambda a, b: {"from": {"code": a, "city": "x", "lat": 1, "lon": 2}, "to": {"code": b}}   # noqa: E731
+    with serve._data_lock:
+        for i, e in enumerate([{"typeCode": "B789", "flightIata": "OS1"},                          # seen, the first
+                               {"typeCode": "B789", "flightIata": "OS2", "gp": 15, **rt("NRT", "VIE")},   # scored, a route
+                               {"typeCode": "B789", "flightIata": "OS3", "gp": 15, "scan": t0},   # scanned, no route
+                               {"typeCode": "B789", "flightIata": "EK4", "gp": 15, "scan": t0, "airlineName": "Emirates", "reg": "A6-XYZ",
+                                "photo": "https://x/p.jpg", "lat": 48.2, "lon": 16.3, "place": "home", **rt("DXB", "VIE")},
+                               {"typeCode": "B789", "flightIata": "EK5", "gp": 15, "scan": t0 + 9, **rt("DXB", "VIE")},  # a later one
+                               {"typeCode": "A359", "flightIata": "LH6", "gp": 15},
+                               {"typeCode": "BCS3", "flightIata": "LX7"}]):
+            sp.entries.insert(0, {"id": f"s{i}", "hex": f"{i + 41000:06x}", "ts": t0 + i, "tier": "rare", **e})
+        g["points"] = 100
+    save(sp)                    # (_logbook_entries reads the days saved)
+    r = serve.showcase_json(g)
+    expect("level 1: no spot open, three locked with the points to go", (r["pins"], [(x["level"], x["toGo"]) for x in r["locked"]]),
+           ([], [(lv, serve.level_points(lv) - 100) for lv in (3, 5, 8)]))
+    expect("... a pin refused", serve.showcase_pin(sp, "B789", 0)[0], 403)
+    g["points"] = serve.level_points(3)
+    expect("level 3: one spot, empty", (codes(serve.showcase_json(g)), len(serve.showcase_json(g)["locked"])), ([None], 2))
+    st, r = serve.showcase_pin(sp, "B789", 0)
+    pin = r["pins"][0] if st == 200 else {}
+    expect("a hangar card pins its best catch: scanned, with a route, the first", (st, pin.get("flight"), pin.get("route"), pin.get("how")),
+           (200, "EK4", ["DXB", "VIE"], "scan"))
+    expect("... with its plane, airline, photo and time", (pin.get("reg"), pin.get("airline"), pin.get("photo"), pin.get("ts"), pin.get("tier")),
+           ("A6-XYZ", "Emirates", "https://x/p.jpg", t0 + 3, "rare"))
+    expect("... and never where it was seen", [k for k in ("lat", "lon", "place", "at", "liveMin") if k in pin], [])
+    expect("a pin over the spots open is refused", serve.showcase_pin(sp, "A359", 1), (403, "That spot opens at level 5"))
+    expect("a type never seen is refused", serve.showcase_pin(sp, "A388", 0)[0], 404)
+    expect("a type the game never scored: its sighting", serve.showcase_catch(sp, "BCS3")["how"], "seen")
+    expect("one without a route has none", serve.showcase_catch(sp, "A359")["route"], None)
+    g["points"] = serve.level_points(5)
+    expect("a level-up opens the next spot", codes(serve.showcase_json(g)), ["B789", None])
+    expect("... and pins into it", codes(serve.showcase_pin(sp, "A359", 1)[1]), ["B789", "A359"])
+    g["points"] = serve.level_points(8) + 5
+    expect("level 8: the third spot, nothing locked", (codes(serve.showcase_json(g)), serve.showcase_json(g)["locked"]), (["B789", "A359", None], []))
+    expect("a type pinned again moves", codes(serve.showcase_pin(sp, "B789", 2)[1]), [None, "A359", "B789"])
+    expect("a pin swaps out the one in its spot", codes(serve.showcase_pin(sp, "BCS3", 1)[1]), [None, "BCS3", "B789"])
+    expect('"" empties a spot', codes(serve.showcase_pin(sp, "", 1)[1]), [None, None, "B789"])
+    serve.showcase_pin(sp, "A359", 0)
+    expect("no points change", g["points"], serve.level_points(8) + 5)
+    expect("the app's own data has it", codes(serve.game3_json(sp.book(), serve.board_day())["showcase"]), ["A359", None, "B789"])
+    expect("the rules say where the spots open", serve.game_rules()["showcase"], [3, 5, 8])
+    save(sp)
+    sp2, g2 = spot()
+    expect("the pins survive a restart", (codes(serve.showcase_json(g2)), serve.showcase_json(g2)["pins"][2]["route"]), (["A359", None, "B789"], ["DXB", "VIE"]))
+
+
 def passport_checks(expect):
     """Relay 90 (to-do #150): the passport. A scan of a flight with a known route stamps the countries of its two
     airports (from the airport list's countries); one new to the passport pays +25 once, with the scan. Countries of
@@ -1492,6 +1572,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     passport_checks(expect)
+    showcase_checks(expect)
     school_checks(expect)
     standby_checks(expect)
     mastery_checks(expect)
@@ -1746,6 +1827,18 @@ def checks():
     pl = json.loads(b) if st == 200 else {}
     expect("a league player's card", (pl.get("name"), pl.get("level", 0) >= 1, isinstance(pl.get("trophies"), list)), ("Test", True, True))
     expect("the card shows no places", any(k in b.decode() for k in ('"lat"', '"lon"', '"at"', '"place"')), False)
+    # relay 91 (to-do #156): the showcase in the player's card and the player's own data; pins only for oneself
+    expect("the player's card sends the showcase", sorted((pl.get("showcase") or {}).keys()), ["locked", "pins"])
+    st, _, b = call("/game/me", "test-device")
+    sc = json.loads(b).get("showcase") if st == 200 else None
+    expect("... and /game/me", isinstance(sc, dict) and len(sc.get("pins", [])) + len(sc.get("locked", [])), 3)
+    own = json.loads(call("/game/me", "owner-device")[2]).get("showcase")
+    n = len((sc or {}).get("pins", []))
+    st = call("/game/showcase", "test-device", body={"code": "ZZZZ", "spot": n, "id": me_row.get("id")})[0]
+    expect("a spot not open yet is refused", st, 403 if n < 3 else 400)
+    expect("a pin is only one's own: another profile's showcase unchanged", json.loads(call("/game/me", "owner-device")[2]).get("showcase"), own)
+    expect("a pin for strangers", call("/game/showcase", body={"code": "A320", "spot": 0})[0] in (401, 403), True)
+    expect("a pin without a spot", call("/game/showcase", "test-device", body={"code": "A320"})[0], 400)
     expect("an unknown player", call("/game/player?id=000000000000", "test-device")[0], 404)
     expect("a player's card for strangers", call("/game/player?id=x")[0] in (401, 403), True)
     # relay 77 (to-do #126): the place bar learns which places are one spot; no doubles in the spot's numbers

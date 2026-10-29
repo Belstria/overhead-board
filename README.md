@@ -590,7 +590,12 @@ finger** ("Scratch Spain in"). The plate shows the map with each country inked i
 are; tap it for Europe or the whole world and a bar per region) and a shelf of stamps per region, with nearby
 countries still to stamp face down. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
-  week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  week's best plane, never where they are. Since 1.108 a card has a **showcase**: up to three of the player's best
+  catches pinned behind glass, each as its hangar card in miniature with the airline, the day and the route ("DXB → VIE").
+  The spots open at **levels 3, 5 and 8**; on your own card a locked spot says when it opens and how many points are
+  still to go. Pin from a plane's card in Your hangar (**Put in your showcase**; when every open spot is full, tap the
+  one to swap); the plane pinned is that type's best catch: a scanned one first, then one the game scored, then any,
+  one with a known route before one without, then the first. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
   showed the week's league as a **League** page in its rotation until 1.89.1. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.

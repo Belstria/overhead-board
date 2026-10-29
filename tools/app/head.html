@@ -835,6 +835,26 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .plMedal i{width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--m) 60%)}
 .plMedal .cup{width:14px;height:14px;fill:var(--amber);stroke:var(--amber)}
 .plLines{margin:0}
+/* 1.108 (to-do #156, Dave's pick A): the showcase, the hangar's cards in miniature behind a glass pane; a locked spot face
+   down with a lock; on a hangar card, the spots to swap with */
+.scSc,.scPick{display:grid;gap:8px}
+.scSc h4{margin:0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.scSc p,.scPick p{margin:0;font:600 var(--fs-xs)/1.3 var(--f-board);color:var(--muted)}
+.scPick{margin-top:4px;padding:12px;border-radius:12px;background:#121315;outline:1px solid var(--amber)}
+.scPick h4{margin:0;font:700 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
+.scCab{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 10px;border-radius:12px;
+  background:linear-gradient(180deg,#1b1e24,#0f1114);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -6px 0 #2a2d33,0 6px 14px rgba(0,0,0,.4);overflow:hidden}
+.scCab::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 38%,transparent 46%,transparent 62%,rgba(255,255,255,.05) 66%,transparent 70%)}
+.scCab .hgCard.sc{width:auto;cursor:default}
+.scCab button.hgCard.sc{cursor:pointer}
+.scCab .hgT{padding:6px 7px 8px}
+.scCab .hgT b{font-size:var(--fs-xs)}
+.scCab .hgT .scRt{font:700 var(--fs-tag)/1.2 var(--f-board);color:var(--ink);letter-spacing:.06em}
+.scCab .hgCard.emp{border:1px dashed rgba(255,255,255,.18);box-shadow:none;background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px);
+  place-content:center;justify-items:center;gap:4px;text-align:center;padding:10px 4px;min-height:150px;color:#6d7179}
+.scCab .hgCard.emp svg{width:22px;height:22px}
+.scCab .hgCard.emp b{font:700 var(--fs-xs)/1.2 var(--f-board);color:var(--ink)}
+.scCab .hgCard.emp span{font:600 var(--fs-tag)/1.2 var(--f-board)}
 .plLines li[style] .cup{fill:var(--lamp);stroke:var(--lamp)}
 /* 1.81: Your hangar (Dave's to-do 4, his mix of C and B): a shelf per set you swipe, a collectible card per type */
 .hgShelf{margin:14px 0 0}

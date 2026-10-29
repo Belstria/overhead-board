@@ -1495,9 +1495,81 @@ function hangarCard(code, again){
     tiles: [["Seen", timesText(t.count)], ["Scored", t.game ? timesText(t.game) : "–"], ["Scanned", t.scans ? timesText(t.scans) : "–"]],
     afterTiles: mstHtml(t.scans),                 // 1.105: mastery
     det: [["Aircraft", escH(t.reg || "")], ["Airline", escH(t.airline || "")], ["Flight", escH(t.flight || "")], ["Code", escH(code)]],
-    btns: `<div class="cBtns"><button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
+    btns: `<div class="cBtns">${scBtn(code)}<button class="cBtn" type="button" data-hgm>${escH(T("About this model"))}</button></div>`}), el => {
     el.querySelector("[data-hgm]").onclick = () => typeCard({typeCode: code, type: name});
+    scWire(el, code, name);
   });
+}
+/* 1.108 (to-do #156, Dave's pick A, the glass cabinet, "and add the origin/destination"): the showcase. Up to three
+   catches pinned to your player card, as the hangar's cards in miniature behind a glass pane, each with its route; the
+   spots open at levels 3, 5 and 8 (the relay's showcase_json: the pins, and the spots still locked with the points to
+   go). A hangar card pins its type's best catch, which the relay picks (relay 91, showcase_catch): one Sky view scanned
+   before one the game scored before one only seen; then one with a known route; then the first. Others see the pins
+   on your card, never where you were; you see your empty and locked spots too. */
+const SC_LOCK = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>`;
+const scMine = () => gme && gme.showcase;
+const scDate = t => new Date(t).toLocaleDateString(LOC(), {day: "numeric", month: "short"}).replace(/\.$/, "");
+function scPin(x, attr){
+  const pic = [x.thumb, x.photo].find(u => u && !hgBad.has(u)) || modelPicNow(hgNames(x.code, x.name), x.code);
+  const rt = x.route && x.route.length === 2 && x.route.every(Boolean) ? `${x.route[0]} → ${x.route[1]}` : "", tag = attr ? "button" : "div";
+  return `<${tag}${attr ? ` type="button"${attr}` : ""} class="hgCard sc" data-scc="${escH(x.code)}" data-scn="${escH(x.name || "")}" style="--t:${TIER_COL[x.tier] || TIER_COL.uncommon}">` +
+    (pic ? `<img src="${escH(pic)}" alt="">` : `<span class="hgPh"></span>`) +
+    `<span class="hgT"><em>${escH(T(TIER_NAME[x.tier] || "Uncommon"))}</em><b>${escH(typeLabel(x.code, x.name))}</b>` +
+    (rt ? `<span class="scRt">${escH(rt)}</span>` : "") +
+    `<span>${escH([x.airline || x.flight, x.ts ? scDate(x.ts) : ""].filter(Boolean).join(" · "))}</span></span></${tag}>`;
+}
+// The pictures: a photo that doesn't load gives way to the model's, asked for and painted in when it comes.
+function scPics(el){
+  for (const c of el.querySelectorAll(".scCab [data-scc]")) {
+    const code = c.dataset.scc, names = hgNames(code, c.dataset.scn), im = c.querySelector("img");
+    const model = () => { const u = modelPicNow(names, code), ph = c.isConnected && c.querySelector(".hgPh"); if (u && ph) ph.outerHTML = `<img src="${escH(u)}" alt="">`; };
+    const ask = () => { if (modelPic(names, model, code)) model(); };
+    if (im) im.onerror = () => { hgBad.add(im.getAttribute("src")); im.outerHTML = `<span class="hgPh"></span>`; ask(); };
+    else ask();
+  }
+}
+// The cabinet. o.mine: the empty and locked spots too (your own card); o.pick: each open spot a button (data-scp).
+function scCab(sc, o = {}){
+  const pins = (sc && sc.pins) || [], locked = o.mine ? (sc && sc.locked) || [] : [];
+  const at = i => o.pick ? ` data-scp="${i}"` : "";
+  const cells = pins.map((x, i) => x ? scPin(x, at(i)) : o.mine ? `<${o.pick ? `button type="button"${at(i)}` : "div"} class="hgCard sc emp">` +
+      `<b>${escH(T("Empty spot"))}</b><span>${escH(T("Pin one from your hangar"))}</span></${o.pick ? "button" : "div"}>` : "").join("") +
+    locked.map(l => `<div class="hgCard sc emp lk">${SC_LOCK}<b>${escH(T("Opens at level {n}", {n: l.level}))}</b><span>${escH(T("{n} to go", {n: nf.format(l.toGo)}))}</span></div>`).join("");
+  return cells ? `<div class="scCab">${cells}</div>` : "";
+}
+// The hangar card's button: put the type in (the first empty spot, else the spots to swap with) or take it out.
+function scBtn(code){
+  const sc = scMine();
+  if (!sc || !(sc.pins || []).length) return "";
+  return `<button class="cBtn" type="button" data-scb>${escH(T(sc.pins.some(x => x && x.code === code) ? "Take out of your showcase" : "Put in your showcase"))}</button>`;
+}
+function scWire(el, code, name){
+  const b = el.querySelector("[data-scb]");
+  if (!b) return;
+  const pin = async (spot, out) => {
+    let r = null;
+    try { r = await fetchJSON(`${relay()}/game/showcase`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({code: out ? "" : code, spot})}, 8000); } catch {}
+    if (!r || !r.pins) { toast(T("Couldn't change your showcase.")); return; }
+    if (gme) gme.showcase = r;
+    toast(T(out ? "Back in your hangar" : "In your showcase"));
+    if (el.isConnected && cardOpenNow()) hangarCard(code, true);
+  };
+  b.onclick = () => {
+    const pins = scMine().pins, i = pins.findIndex(x => x && x.code === code);
+    if (i >= 0) return pin(i, true);
+    const free = pins.indexOf(null);
+    if (free >= 0) return pin(free);
+    ctlSound.nav();
+    let box = el.querySelector(".scPick");                   // all full: tap a spot to swap
+    if (!box) {
+      el.querySelector(".cBtns").insertAdjacentHTML("afterend", `<div class="scPick"><h4>${escH(T("Where should the {t} go?", {t: name.replace(/^(Airbus|Boeing|Embraer|Bombardier|McDonnell Douglas|De Havilland Canada) /, "")}))}</h4>` +
+        `<p>${escH(T("Tap a spot to swap: that one goes back to your hangar."))}</p>${scCab(scMine(), {mine: true, pick: true})}</div>`);
+      box = el.querySelector(".scPick");
+      scPics(box);
+      for (const s of box.querySelectorAll("[data-scp]")) s.onclick = () => pin(+s.dataset.scp);
+    }
+    box.scrollIntoView({block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  };
 }
 function recordsHtml(all, g0){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
@@ -4760,7 +4832,9 @@ function gLevelUp(g){
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const st = gStyleAt(g.level);
   box.innerHTML = `<div class="lvBox"><span class="eyebrow">${escH(T("Level up"))}</span><span class="badge">${g.level}</span><h3>${escH(T(g.title))}</h3>` +
-    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") + `<p>${escH(T("Tap to carry on"))}</p></div>`;
+    (st ? `<p>${escH(T("New style unlocked: {s}", {s: T(st)}))}</p>` : "") +
+    (((gRules() || {}).showcase || [3, 5, 8]).includes(g.level) ? `<p>${escH(T("A new spot in your showcase"))}</p>` : "") +   // 1.108
+    `<p>${escH(T("Tap to carry on"))}</p></div>`;
   box.hidden = false;
   gJingle();
   const close = () => { box.hidden = true; };
@@ -4970,6 +5044,12 @@ async function gRecentCard(){
 }
 /* 1.81 (Dave's to-do 6, his pick A): a league player's card, from a tap on their row: level and bar, this week, all time
    and the streak, their medals by metal, the rarest catch and this week's best plane. Never where they are (relay 63). */
+// 1.108: the showcase on a player's card (your own: its empty and locked spots, and how to fill it)
+function scSection(p){
+  const cab = scCab(p.showcase, {mine: p.me});
+  return cab ? `<div class="scSc"><h4>${escH(T("Showcase"))}</h4>${cab}` +
+    (p.me ? `<p>${escH(T("Others see this when they tap your name. Pin a plane from your hangar."))}</p>` : "") + `</div>` : "";
+}
 async function playerCard(id){
   ctlSound.nav();
   const tok = cardLoading();
@@ -4991,10 +5071,10 @@ async function playerCard(id){
     (p.level ? `<span class="plIns">${rankIns(p.level, 46, {wings: p.wings})}</span>` : "") + `</div>` +
     `<div class="gBar"><i style="width:${(p.need ? p.into / p.need * 100 : 0).toFixed(1)}%"></i></div>` +
     `<div class="gTiles"><div><b>${nf.format(p.week || 0)}</b><span>${escH(T("This week"))}</span></div><div><b>${nf.format(p.points || 0)}</b><span>${escH(T("All time"))}</span></div>` +
-    `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + (medals ? `<div class="plMedals">${medals}</div>` : "") +
+    `<div><b>${p.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` + scSection(p) + (medals ? `<div class="plMedals">${medals}</div>` : "") +
     `<ul class="ranks plain cups plLines">` +
     (ra ? `<li class="on" style="--lamp:${TIER_COL[ra.tier] || TIER_COL.uncommon}">${CUP}<span class="name">${escH(T("Rarest catch"))} <span class="s">${escH(ra.name || TYPES[ra.code] || ra.code)}</span></span><span class="n">${escH(T(TIER_NAME[ra.tier] || ""))}</span></li>` : "") +
-    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`);
+    (b ? `<li class="on">${CUP}<span class="name">${escH(T("Best this week"))} <span class="s">${escH([b.type, b.flight].filter(Boolean).join(" · "))}</span></span><span class="n">${nf.format(b.pts || 0)}</span></li>` : "") + `</ul></div>`, scPics);
 }
 /* 1.81 (Dave's to-do 5, his picks: B's medal, A's nudge): a rank won swings down as a medal on a ribbon, the rank in Roman
    numerals, its name and what it took under it; it settles and fades after a few seconds (or a tap). Other achievements,
