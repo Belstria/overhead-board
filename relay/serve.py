@@ -1396,52 +1396,77 @@ def ranks_migrate():
                       f"{c['slots']} showcase spots kept above their new levels, {c['marked']} mastery steps marked passed (unpaid)")
 
 
-def bingo_catchup(spot, g):
-    """Relay 98 (to-do #195): once per profile (g["bingoFix"]), this week's bingo squares that a closer look filled but
-    that never paid (before relay 98 only a plane's first score judged them). Each scored plane of the week, oldest
-    first, is judged again as _game_bingo does: its lines, the card and the Bingo trophies pay on it, in its day (the
-    trophies bingo_json gave unpaid this week are won again). Earlier weeks stay. Returns the counts paid, or None
-    when made before. Call under _data_lock."""
-    if g.get("bingoFix"):
-        return None
-    g["bingoFix"] = int(time.time() * 1000)
-    spot.changed("book")
-    c, day, st = {"lines": 0, "cards": 0, "trophies": 0}, spot.day, g.get("bingoPay")
-    wk = _monday(day)
+def _bingo_owed(spot, g):
+    """Relay 98: this week's bingo that a closer look filled but that never paid (before relay 98 only a plane's first
+    score judged the squares), {"week", "lines": [indices], "card", "trophies": [ids]}; the squares, lines and card go
+    into g["bingoPay"] now (so play from here on doesn't pay them again). A Bingo or Full card trophy is owed when won
+    this week unpaid (bingo_json gave it) or not won yet."""
+    wk, st = _monday(spot.day), g.get("bingoPay")
+    owe = {"week": wk, "lines": [], "card": False, "trophies": []}
     if not isinstance(st, dict) or st.get("week") != wk:
-        return c                                # no plane scored this week: nothing done, nothing owed
-    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), day, live=True)
-    if not set(done) - set(st.get("done") or []):
-        return c
-    got, paid = g.setdefault("trophies", {}), g.get("trophyPaid") or {}
+        return owe                              # no plane scored this week: nothing done, nothing owed
+    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), spot.day, live=True)
+    add = set(done) - set(st["done"])
+    if not add:
+        return owe
+    st["done"] = sorted(set(st["done"]) | add)
+    for k in add:
+        st.setdefault("at", {})[k] = done[k] or int(time.time() * 1000)
+    for i, ln in enumerate(BINGO_LINES):
+        if i not in st["lines"] and all(card[j] in st["done"] for j in ln):
+            st["lines"].append(i)
+            owe["lines"].append(i)
+    if len(st["done"]) == 9 and not st["card"]:
+        st["card"] = owe["card"] = True
+    got, paid = g.get("trophies") or {}, g.get("trophyPaid") or {}
     start = int(datetime.datetime.combine(datetime.date.fromisoformat(wk), datetime.time(DAY_STARTS_H)).timestamp() * 1000)
-    for k in ("bingo", "fullcard"):
-        if k in got and k not in paid and got[k] >= start:
-            del got[k]
-    lines, full, tp = len(st["lines"]), st["card"], set(paid)
-    for i in range(7):
-        d = (datetime.date.fromisoformat(wk) + datetime.timedelta(days=i)).isoformat()
-        if d > day:
-            break
-        entries, hit = spot.day_entries(d), False
-        for e in reversed(entries):
-            try:
-                due = "gp" in e and any(k not in st["done"] and BINGO[k](e) for k in card)
-            except Exception:
-                due = False
-            if due:
-                _game_bingo(spot, g, d, e)
-                hit = True
-        if hit:
-            spot.day_changed(d, entries)
-    c["lines"], c["cards"] = len(st["lines"]) - lines, int(st["card"] and not full)
-    c["trophies"] = sum(1 for k in ("bingo", "fullcard") if k in g.get("trophyPaid", {}) and k not in tp)
+    for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+        if ok and k not in paid and (k not in got or got[k] >= start):
+            owe["trophies"].append(k)
+    return owe
+
+
+def bingo_catchup(spot, g, e=None):
+    """Relay 98 (to-do #195; Dave: "pay this week's once", today): what _bingo_owed finds when relay 98 first meets a
+    profile's game is kept in g["bingoFix"] and paid today as normal Bingo awards (lines, card, trophies) on today's
+    newest scored plane, or (none yet) on `e`, the next plane to score (game_note): Recent points shows them, today's
+    total, the week and the level count them. Then g["bingoFix"] is the time it paid (new games get one at start), so it
+    never pays twice. Returns what it paid {"lines", "cards", "trophies", "wait"} ("wait" 1: no plane today yet), or None
+    when made before. Call under _data_lock."""
+    fx = g.get("bingoFix")
+    if not isinstance(fx, dict):
+        if fx:
+            return None
+        fx = g["bingoFix"] = _bingo_owed(spot, g)
+        spot.changed("book")
+    c = {"lines": len(fx["lines"]), "cards": int(fx["card"]), "trophies": len(fx["trophies"]), "wait": 0}
+    host = e or next((x for x in spot.entries if "gp" in x), None)
+    if not (c["lines"] or c["cards"] or c["trophies"]):
+        g["bingoFix"] = int(time.time() * 1000)
+        return c
+    if host is None:
+        c["wait"] = 1
+        return c
+    day = spot.day
+    for i in fx["lines"]:
+        _game_pay(g, day, host, "bingo", GAME_BINGO["line"], n=i)
+    if fx["card"]:
+        _game_pay(g, day, host, "card", GAME_BINGO["card"])
+    got = g.setdefault("trophies", {})
+    for k in fx["trophies"]:
+        got[k] = host.get("ts") or int(time.time() * 1000)
+    _game_trophies(g, day, host, fx["trophies"])
+    g["bingoFix"] = int(time.time() * 1000)
+    spot.changed("book", "day")
+    if e is not None:
+        event("info", f"Bingo: a profile's catch-up paid with today's first plane: {c['lines']} lines, {c['cards']} "
+                      f"full cards, {c['trophies']} trophies")
     return c
 
 
 def bingo_migrate():
     """Relay 98: bingo_catchup for every profile, once, at start; one line in the log (counts only)."""
-    n, c = 0, {"lines": 0, "cards": 0, "trophies": 0}
+    n, c = 0, {"lines": 0, "cards": 0, "trophies": 0, "wait": 0}
     with _data_lock:
         pids = list(profiles()["profiles"])
     for pid in pids:
@@ -1449,18 +1474,19 @@ def bingo_migrate():
             sp = guest_spot(pid)
             with _data_lock:
                 g = sp.book().get("game3")
-                if not isinstance(g, dict) or g.get("v") != GAME3_V or g.get("bingoFix"):
+                if not isinstance(g, dict) or g.get("v") != GAME3_V or isinstance(g.get("bingoFix"), int):
                     continue
+                sp.ensure_day()
                 got = bingo_catchup(sp, g)
         except Exception as e:
             event("warn", f"Bingo: a profile's week couldn't be checked ({e})")
             continue
         n += 1
         for k in c:
-            c[k] += got[k]
+            c[k] += got[k] if not got["wait"] or k == "wait" else 0
     if n:
-        event("info", f"Bingo: {n} profiles checked; paid {c['lines']} lines, {c['cards']} full cards and {c['trophies']} "
-                      f"trophies this week's closer looks had filled")
+        event("info", f"Bingo: {n} profiles checked; paid today {c['lines']} lines, {c['cards']} full cards and "
+                      f"{c['trophies']} trophies this week's closer looks had filled; {c['wait']} wait for today's first plane")
 
 
 def _game_add(g, day, pts):
@@ -1527,6 +1553,8 @@ def game_note(spot, e):
         for t in won:
             event("info", f"Trophy won: {t}", echo=False)
         _game_best(g, day, e)
+        if isinstance(g.get("bingoFix"), dict):     # relay 98: the week's catch-up, waiting for today's first plane
+            bingo_catchup(spot, g, e)
         _game_bingo(spot, g, day, e)
         _game_trophies(g, day, e, won)
     else:

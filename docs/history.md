@@ -1635,11 +1635,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `_game_bingo` again whenever a scored plane's `minDist` or `maxSpeed` moves (after they are updated, so it judges the
   fresh values); its guards (`st["lines"]`, `st["card"]`, the trophies) pay each once; `st["at"]` keeps when each
   square filled. `bingo_json` shows only the squares `bingoPay` has (`done` from its `done`, times from the week or
-  `at`), so a line or the card shows once it paid, and no longer gives trophies. `bingo_catchup(spot, g)`, once per
-  profile (`g["bingoFix"]`, set at creation for new games; `bingo_migrate()` at start, one log line with counts): this
-  week's scored planes, oldest first, that fill a square `bingoPay` lacks go through `_game_bingo` in their own day
-  (award on the plane, the day, the week, the level; `day_changed` for an earlier day); a Bingo or Full card trophy
-  that `bingo_json` gave unpaid this week is taken back first so it is won again and pays. Earlier weeks stay.
+  `at`), so a line or the card shows once it paid, and no longer gives trophies. The catch-up (Dave: pay this
+  week's once, today): `bingo_migrate()` at start (one log line with counts) runs `bingo_catchup(spot, g)` once per
+  profile. `_bingo_owed` finds this week's squares done (saved entries, final values) that `bingoPay` lacks, puts them,
+  their lines and the card into `bingoPay` and returns what is owed: the lines, the card and a Bingo or Full card
+  trophy won this week unpaid (`bingo_json` gave it) or not won. `g["bingoFix"]` keeps that dict until it pays, as
+  normal Bingo awards dated today (`_game_pay`, `_game_trophies`: Recent points, today's total, the week, the level) on
+  today's newest scored plane, or, with none yet, on the next plane to score (`game_note` calls `bingo_catchup(spot, g,
+  e)` while the marker is a dict; one log line then). Then `bingoFix` is the time it paid (new games get one when made),
+  so it never pays twice. Earlier weeks stay.
   `_game_award` keeps 24 awards a plane (was 12, review L2), so a rich scan's lines add up to its total.
 - Relay 97 (1.114, to-do #182): **the member cards' details.** `g["scanAirlineInfo"]` {AIRLINE: {first, last, types:
   {TYPE: scans}}} (the scans' times, ms), noted by `_scan_airline_note` at each scan (`game_lockon`) and counted back

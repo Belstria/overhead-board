@@ -523,8 +523,8 @@ def bingo_trophy_checks(expect):
 def bingo_closer_checks(expect):
     """Relay 98 (to-do #195): a bingo square a plane fills later in its pass ("within 1 km", "below 2,500 ft") pays its
     line and the Bingo trophy once, through record() on a live place; bingo_json shows no line or trophy that hasn't
-    paid; this week's lines that relay 97 left unpaid pay once (bingo_catchup), on the plane in its day, and never again
-    after a restart. Relay 98 (review L2): a plane keeps 24 awards, so a rich scan's lines all stay."""
+    paid; this week's lines that relay 97 left unpaid pay once (bingo_catchup), today, on today's newest scored plane or
+    the first one to score, and never again after a restart. Relay 98 (review L2): a plane keeps 24 awards, so a rich scan's lines all stay."""
     import json as _j
     import tempfile
     import types
@@ -590,24 +590,44 @@ def bingo_closer_checks(expect):
         expect("relay 97's game: bingo_json shows no unpaid line and gives no trophy", (b["lines"], sorted(b["done"]), len(g["trophies"])),
                (0, ["b787"], 1))
         save(sp)
-        day[0] = "2026-11-25"                             # relay 98 starts on Wednesday
+        import shutil
+        other = Path(tempfile.mkdtemp(prefix="fb-catchup2-")) / "p"
+        shutil.copytree(folder, other)
+        day[0] = "2026-11-25"                             # relay 98 starts on Wednesday, before today's first plane
         sp, g = spot(folder)
         pts0, mon0 = g["points"], g["days"]["2026-11-23"]
         with serve._data_lock:
             got = serve.bingo_catchup(sp, g)
-        expect("the catch-up: one line and the Bingo trophy, paid once", got, {"lines": 1, "cards": 0, "trophies": 1})
-        expect("... in Monday (the plane's day), the week and the level",
-               (g["points"] - pts0, g["days"]["2026-11-23"] - mon0, g["days"].get("2026-11-25", 0), serve.game3_json(sp.book(), day[0])["week"]),
-               (150, 150, 0, g["points"]))
+        expect("the catch-up: one line and the Bingo trophy owed; no plane today yet, so it waits",
+               (got, g["points"] - pts0), ({"lines": 1, "cards": 0, "trophies": 1, "wait": 1}, 0))
         save(sp)
-        mon = _j.loads((folder / "sightings-2026-11-23.json").read_text())
-        expect("... on the plane, saved with its day", [paid(x) for x in mon], [[("bingo", 50, 2), ("trophy", 100, "bingo")]])
+        sp, g = spot(folder)                              # a restart while it waits
+        with serve._data_lock:
+            got = serve.bingo_catchup(sp, g)
+        expect("... a restart: still owed, still waiting", (got["wait"], g["points"] - pts0), (1, 0))
+        e = seen(sp, "c00003", 14, 9000)                  # today's first plane
+        expect("today's first plane: the line +50 and the Bingo trophy +100 on it, as normal Bingo awards",
+               (paid(e), e.get("gb")), ([("bingo", 50, 2), ("trophy", 100, "bingo")], 150))
+        expect("... in today's total, the week and the level, not in Monday's",
+               (g["points"] - pts0, g["days"]["2026-11-25"], g["days"]["2026-11-23"] - mon0,
+                serve.game3_json(sp.book(), day[0])["week"]), (e["gp"] + 150, e["gp"] + 150, 0, g["points"]))
+        row = next(r for r in serve.game_today(sp)["rows"] if r["hex"] == "c00003")
+        expect("... Recent points lists them", [a["k"] for a in row["aw"]], ["pass", "bingo", "trophy"])
         expect("... the card shows the line now", card_of(sp), (1, ["b787", "close", "low"]))
+        save(sp)
         before = g["points"]
         sp, g = spot(folder)                              # a restart
         with serve._data_lock:
             again = serve.bingo_catchup(sp, g)
-        expect("a restart: the catch-up never runs twice", (again, g["points"]), (None, before))
+        e2 = seen(sp, "c00004", 14, 9000)
+        expect("a restart and the next plane: the catch-up never pays twice", (again, paid(e2), g["points"] - before),
+               (None, [], e2["gp"]))
+        sp, g = spot(other)                               # the same game, a plane already scored today when relay 98 starts
+        e = seen(sp, "c00005", 14, 9000)
+        with serve._data_lock:
+            got = serve.bingo_catchup(sp, g)
+        expect("a plane already scored today: the catch-up pays on it at once",
+               (got, paid(e)), ({"lines": 1, "cards": 0, "trophies": 1, "wait": 0}, [("bingo", 50, 2), ("trophy", 100, "bingo")]))
         # review L2: 24 awards a plane
         x = {}
         for i in range(20):
