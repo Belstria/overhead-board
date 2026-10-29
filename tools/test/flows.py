@@ -19,9 +19,12 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
 - the standby (relay 87): a day without a scan with a standby left keeps the streak and pays nothing, the next scan
   pays the next day's; one a week at level 6–13, two from 14, none below; Monday renews; a game scored before keeps
   every total and its broken streak; a restart and a rescore change nothing
-- mastery (relay 88): a type's 5th, 25th and 100th scan pay +25, +100, +250 once, in the day and the level; a type
-  already past a step (counted or counted back) keeps it unpaid; a restart and a rescore pay nothing again; a game
-  scored before keeps every total
+- mastery (relay 88; relay 96: four steps): a type's 10th, 25th, 50th and 100th scan pay that many points × the type's
+  rarity once (not doubled by a golden ticket), in the day and the level; a type already past a step (counted or
+  counted back) keeps it unpaid; a restart and a rescore pay nothing again; a game scored before keeps every total
+- the move to the new ranks (relay 96, to-do #173/#174/#176): the new level totals; a profile from the old rules keeps
+  its level (a floor), styles, badges and showcase spots, once; its mastery steps paid stay paid, those passed by the
+  new numbers come unpaid; nobody's points change
 - the game's rules since relay 76 (to-do #127), on the relay's functions: the passive points (relay 80: 5, 10, 15, 25, 50; a rule-3 game starts unchanged on the new relay) and the limits per rarity, the
   scan's full points on top without a limit (relay 79), extras only with scans and promised on the passive award
   ("can"), the daily streak (a missed day, the Monday reset), rule 1's planes not priced again; over HTTP: the rules
@@ -939,8 +942,8 @@ def standby_checks(expect):
 
 
 def mastery_checks(expect):
-    """Relay 88 (to-do #149): mastery. The scan that brings a type to 5, 25 or 100 scans pays +25, +100 or +250 once
-    (an award with the scan's, in the day and the level). A type already past a step when relay 88 meets the game keeps
+    """Relay 88 (to-do #149): mastery. Relay 96 (to-do #176): the scan that brings a type to 10, 25, 50 or 100 scans pays
+    that many points × the type's rarity (1, 3, 10, 25, 50) once (an award with the scan's, in the day and the level). A type already past a step when relay 88 meets the game keeps
     the step unpaid (its frame comes from the scans); scans counted back from the saved days count the same. A restart
     and a rescore pay nothing again; a game scored before keeps every total."""
     import json as _j
@@ -994,9 +997,10 @@ def mastery_checks(expect):
             return _j.dumps([g, g3], sort_keys=True)
 
     try:
-        expect("the steps a type's scans reach", [serve.mastery_step(x) for x in (0, 4, 5, 24, 25, 99, 100, 500)], [0, 0, 1, 1, 2, 2, 3, 3])
-        expect("the rules for the app", serve.game_rules()["mastery"], [[5, 25], [25, 100], [100, 250]])
-        # a new game: the 5th, 25th and 100th A320 scan pay, each once, with the scan (its total, the day, the level)
+        expect("the steps a type's scans reach", [serve.mastery_step(x) for x in (0, 9, 10, 24, 25, 49, 50, 99, 100, 500)],
+               [0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        expect("the rules for the app", serve.game_rules()["mastery"], [[10, 10], [25, 25], [50, 50], [100, 100]])
+        # a new game: the 10th, 25th, 50th and 100th A320 scan pay (common: ×1), each once, with the scan
         f1 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
         sp, g = spot(f1)
         paid, sums = {}, []
@@ -1006,15 +1010,28 @@ def mastery_checks(expect):
             if mst(r):
                 paid[i] = mst(r)
             sums.append(r["bonus"] == sum(a["p"] for a in r["lines"]) and g["points"] - pts0 == r["bonus"] == g["days"][day] - day0)
-        expect("a new game: the 5th, 25th and 100th scan of a type pay +25, +100, +250, once",
-               paid, {5: [("A320", 1, 25)], 25: [("A320", 2, 100)], 100: [("A320", 3, 250)]})
+        expect("a new game: the 10th, 25th, 50th and 100th scan of a common type pay +10, +25, +50, +100, once",
+               paid, {10: [("A320", 1, 10)], 25: [("A320", 2, 25)], 50: [("A320", 3, 50)], 100: [("A320", 4, 100)]})
         expect("... each in the scan's bonus, the total and the day", all(sums), True)
         aw = [a for x in sp.entries for a in x.get("ga", []) if a["k"] == "mastery"]
         expect("... as awards with the plane (Recent points, the pop-ups)", sorted((a["m"], a["p"], a["n"], a["r"]) for a in aw),
-               [(1, 25, "A320", serve.GAME_RULE), (2, 100, "A320", serve.GAME_RULE), (3, 250, "A320", serve.GAME_RULE)])
-        expect("... another type counts on its own", [mst(scan(sp, "B738")) for _ in range(5)][-1], [("B738", 1, 25)])
-        expect("... the hangar's scans", {t["code"]: t["scans"] for t in serve.hangar_json(sp)["types"] if t["code"] in ("A320", "B738")},
-               {"A320": 105, "B738": 5})
+               [(1, 10, "A320", serve.GAME_RULE), (2, 25, "A320", serve.GAME_RULE), (3, 50, "A320", serve.GAME_RULE), (4, 100, "A320", serve.GAME_RULE)])
+        expect("... another type counts on its own", [mst(scan(sp, "B738")) for _ in range(10)][-1], [("B738", 1, 10)])
+        # relay 96 (to-do #176): the bonus is the step's scans × the type's rarity (the type's, whatever the plane's tier)
+        by = {}
+        for tc in ("DH8D", "E195", "A318", "B744"):
+            by[tc] = {i + 1: x[0][2] for i, x in enumerate(mst(scan(sp, tc)) for _ in range(100)) if x}
+        expect("... by rarity: uncommon ×3, rare ×10, very rare ×25, special ×50", by,
+               {"DH8D": {10: 30, 25: 75, 50: 150, 100: 300}, "E195": {10: 100, 25: 250, 50: 500, 100: 1000},
+                "A318": {10: 250, 25: 625, 50: 1250, 100: 2500}, "B744": {10: 500, 25: 1250, 50: 2500, 100: 5000}})
+        expect("... the hangar's scans, steps and the type's rarity",
+               {t["code"]: (t["scans"], t["m"], t["mt"]) for t in serve.hangar_json(sp)["types"] if t["code"] in ("A320", "B738", "B744")},
+               {"A320": (105, 4, "common"), "B738": (10, 1, "common"), "B744": (100, 4, "legendary")})
+        # a golden ticket doubles the scan, not the mastery step
+        serve.game_gold = lambda d, h: True
+        r = [scan(sp, "A321") for _ in range(10)][-1]
+        serve.game_gold = lambda d, h: False
+        expect("... a golden ticket's scan: the step not doubled", (mst(r), r["gold"]), ([("A321", 1, 10)], True))
         # a restart, then a rescore of the logbook: the same game, and the next scans pay no step again
         save(sp)
         before, total = snap(sp), g["points"]
@@ -1025,10 +1042,11 @@ def mastery_checks(expect):
         lb["gameV"], lb["trophiesV"], lb["cardsV"] = 0, 0, 0
         (f1 / "logbook.json").write_text(_j.dumps(lb))
         sp, g = spot(f1)
-        expect("a rescore from the saved days: the game's totals the same", (g["points"], g["mastery"], g["scanTypes"]["A320"]),
-               (total, {"A320": 3, "B738": 1}, 105))
+        expect("a rescore from the saved days: the game's totals the same", (g["points"], g["mastery"]["A320"], g["mastery"]["B738"], g["scanTypes"]["A320"]),
+               (total, 4, 1, 105))
         expect("... and a scan after them pays no step again", (mst(scan(sp)), mst(scan(sp, "B738"))), ([], []))
-        # a game from before relay 88: A321 at 4 scans, B744 at 30 (past bronze), DH8D at 100 (gold); no "mastery" yet
+        # a game whose "mastery" isn't made yet (relay 88's first meeting): A321 at 4 scans, B744 at 30 (past silver),
+        # DH8D at 100 (platinum); the steps the scans passed come unpaid
         f2 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
         sp, g = spot(f2)
         for tc, k in (("A321", 4), ("B744", 30), ("DH8D", 100)):
@@ -1039,29 +1057,29 @@ def mastery_checks(expect):
         save(sp)
         old = _j.loads((f2 / "logbook.json").read_text())["game3"]
         sp, g = spot(f2)
-        expect("relay 88 on a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
-        expect("... the hangar's scans (the frames) as they were", {t["code"]: t["scans"] for t in serve.hangar_json(sp)["types"]},
-               {"A321": 4, "B744": 30, "DH8D": 100})
+        expect("a game scored before: every total kept", _j.dumps(g, sort_keys=True), _j.dumps(old, sort_keys=True))
         pts0 = g["points"]
         r1, r2 = scan(sp, "B744"), scan(sp, "DH8D")
         expect("... a type past a step gets it unpaid: B744's 31st and DH8D's 101st scan pay no step",
-               (mst(r1), mst(r2), g["mastery"]), ([], [], {"B744": 2, "DH8D": 3}))
+               (mst(r1), mst(r2), g["mastery"]), ([], [], {"B744": 2, "DH8D": 4}))
         expect("... and only the plane's own points", g["points"] - pts0, r1["bonus"] + r2["bonus"])
-        expect("... A321's 5th scan pays bronze", mst(scan(sp, "A321")), [("A321", 1, 25)])
+        expect("... A321's 10th scan pays bronze", [mst(scan(sp, "A321")) for _ in range(6)][-1], [("A321", 1, 10)])
         late = [mst(scan(sp, "B744")) for _ in range(69)]
-        expect("... B744 at 100 pays gold, never silver", [(i + 32, x) for i, x in enumerate(late) if x], [(100, [("B744", 3, 250)])])
+        expect("... B744 at 50 pays gold and at 100 platinum, never silver",
+               [(i + 32, x) for i, x in enumerate(late) if x], [(50, [("B744", 3, 2500)]), (100, [("B744", 4, 5000)])])
         # scans from before relay 79 (none counted per type yet): counted back from the saved days, past steps unpaid
         f3 = Path(tempfile.mkdtemp(prefix="fb-mst-"))
         sp, g = spot(f3)
-        for _ in range(7):
+        for _ in range(12):
             scan(sp, "E195")
         with serve._data_lock:
             g.pop("mastery")
             g.pop("scanTypes")
         save(sp)
         sp, g = spot(f3)
-        expect("counted back from the days: E195's 8th scan pays nothing, its 25th silver",
-               (mst(scan(sp, "E195")), [i + 9 for i in range(17) if mst(scan(sp, "E195"))], g["scanTypes"]["E195"]), ([], [25], 25))
+        expect("counted back from the days: E195's 13th scan pays nothing, its 25th silver (rare: +250)",
+               (mst(scan(sp, "E195")), [(i + 14, mst(scan(sp, "E195"))) for i in range(12)][-1], g["scanTypes"]["E195"]),
+               ([], (25, [("E195", 2, 250)]), 25))
     finally:
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
@@ -1209,8 +1227,192 @@ def loyalty_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def ranks_checks(expect):
+    """Relay 96 (1.112, to-do #173/#174/#176): the move to the new ranks. The new totals (500 … 135,000, then 30,000 a
+    level), the same as the board's careerPts; the unlock levels the same as the board's STYLES and CAREER_MORE. A game
+    from the old rules is moved once, at start or when first met: it keeps its level as a floor (the bar at 0 until its
+    points catch up, never negative), its styles and badges, its showcase spots; its mastery steps paid or passed stay so
+    (an old bronze at 5-9 scans isn't paid again at 10), those passed by the new numbers come unpaid. A game made after
+    the move keeps nothing. No points change; one line in the log, counts only."""
+    import json as _j
+    import re
+    import tempfile
+    import types
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    sys.path.insert(0, str(root / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    day = "2026-10-28"
+    real = serve.board_day, serve.school_pass, serve.game_gold, serve.profiles, serve.guest_spot, serve.event
+    serve.board_day = lambda t=None: day
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n = [0]
+
+    def spot(folder):
+        sp = serve.Spot(folder, None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def old_game(pts, **more):
+        """A profile's folder with a game saved by relay 95 (no "ranks" yet)."""
+        f = Path(tempfile.mkdtemp(prefix="fb-rk-"))
+        sp = spot(f)
+        with serve._data_lock:
+            g = serve.game_book(sp.book())
+            g.pop("ranks")
+            g["points"], g["days"] = pts, {day: pts}
+            g.update(more)
+        save(sp)
+        return f
+
+    def lv(g):
+        return serve.game_level(g)[0]
+
+    def scan(sp, tc):
+        n[0] += 1
+        now = serve.time.time()
+        e = {"id": f"r{n[0]}", "hex": f"{n[0] + 21000:06x}", "ts": int(now * 1000) + n[0], "typeCode": tc, "callsign": "ZZZ1",
+             "tier": "common", "liveMin": 4.0, "liveSeen": now}
+        with serve._data_lock:
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+        return [(a["n"], a["m"], a["p"]) for a in serve.game_lockon(sp, e["hex"]).get("lines", []) if a["k"] == "mastery"]
+
+    try:
+        expect("the level at 0, 499, 500, 1,999, 2,000, 134,999, 135,000, 164,999, 165,000 points",
+               [serve.level_of(p)[0] for p in (0, 499, 500, 1999, 2000, 134999, 135000, 164999, 165000)], [1, 1, 2, 3, 4, 19, 20, 20, 21])
+        expect("the totals of levels 2 to 22", [serve.level_points(x) for x in range(2, 23)],
+               [500, 1000, 2000, 3000, 4000, 5500, 7500, 10000, 13000, 17000, 21000, 27000, 34000, 43000, 55000, 70000, 85000,
+                110000, 135000, 165000, 195000])
+        expect("into and need at 1,250 points", serve.level_of(1250)[2:], (250, 1000))
+        # the board's tables say the same (careerPts, STYLES' {lvl}, CAREER_MORE's showcase slots)
+        js, board = (root / "tools/app/main.js").read_text(encoding="utf-8"), (root / "test/index.html").read_text(encoding="utf-8")
+        at = [int(x) for x in re.search(r"const CAREER_AT = \[([\d,\s]+)\]", js).group(1).replace(" ", "").replace("\n", "").split(",")]
+        expect("the board's CAREER_AT is the relay's LEVEL_AT", tuple(at), serve.LEVEL_AT)
+        expect("... and 30,000 a level past 20", int(re.search(r"CAREER_AFTER = (\d+)", js).group(1)), serve.LEVEL_AFTER)
+        blk = board[board.index("const STYLES = ["):board.index("const BADGE_IDS")]
+        expect("the board's STYLES levels are the relay's STYLE_LVL", {k: int(v) for k, v in re.findall(r'\["(\w+)", "[^"]+", \{lvl: (\d+)\}\]', blk)},
+               serve.STYLE_LVL)
+        expect("the new unlock levels: styles on the even levels, badges on the odd ones",
+               sorted((v, k) for k, v in serve.STYLE_LVL.items()),
+               [(2, "heathrow"), (2, "white"), (3, "star"), (4, "solari"), (6, "brass"), (7, "prop"), (8, "frankfurt70"), (9, "heli"),
+                (10, "ice"), (12, "enamel"), (13, "jumbo"), (14, "tokyo"), (15, "jet"), (16, "sunset"), (18, "led"), (19, "concorde"),
+                (20, "goldleaf")])
+        expect("the board's showcase slots are the relay's SHOWCASE_AT",
+               tuple(int(x) for x in re.findall(r'\[(\d+), "slot"', js)), serve.SHOWCASE_AT)
+        expect("... at 5, 11, 17; standby at 6 and 14", (serve.SHOWCASE_AT, [lv_ for lv_, _ in serve.STANDBY]), ((5, 11, 17), [14, 6]))
+
+        # old level 8 (7,600 points; 8 by the new totals too) with its three showcase spots and a pin in one
+        f8 = old_game(7600, showcase=[{"code": "B789"}, None, None])
+        sp8 = spot(f8)
+        with serve._data_lock:
+            g = serve.game_book(sp8.book())
+            sc, j = serve.showcase_json(g), serve.game3_json(sp8.book(), day)
+        expect("old level 8: level 8, its three showcase spots and the pin kept", (lv(g), [x and x["code"] for x in sc["pins"]], sc["locked"]),
+               (8, ["B789", None, None], []))
+        expect("... its styles and badges by the old levels", j["styleKept"],
+               sorted(["heathrow", "white", "solari", "brass", "frankfurt70", "star", "prop"]))
+        expect("... Solari green (old 5, new 4) and Brass trim (old 7, new 6) too", {"solari", "brass"} <= set(j["styleKept"]), True)
+        expect("... and the points untouched", (g["points"], g["days"]), (7600, {day: 7600}))
+        # old level 9 (9,950 points; 8 by the new totals): the level kept, Ice blue (new level 10) kept
+        f9 = old_game(9950)
+        sp9 = spot(f9)
+        with serve._data_lock:
+            g9 = serve.game_book(sp9.book())
+            j9 = serve.game3_json(sp9.book(), day)
+        expect("old level 9 at 9,950 points: level 9 kept, the bar at 0, the points to go the new total's",
+               (j9["level"], j9["title"], j9["into"], j9["need"], j9["need"] - j9["into"]), (9, "First Officer", 0, 3050, 13000 - 9950))
+        expect("... Ice blue (new level 10) kept", "ice" in j9["styleKept"], True)
+        expect("... the standbys of level 9", j9["standby"]["allow"], 1)
+        # between an old and a higher new total: 1,950 points was level 4 (from 1,906), is 3 by the new totals (4 from 2,000)
+        f4 = old_game(1950)
+        sp4 = spot(f4)
+        with serve._data_lock:
+            g4 = serve.game_book(sp4.book())
+            steps = []
+            for p in (1950, 1990, 2000, 2600, 3000):
+                g4["points"] = p
+                steps.append(serve.game_level(g4)[0::2] + (serve.game_level(g4)[3],))
+            g4["points"] = 1950
+        expect("1,950 points: level 4 kept (3 by the new totals); the bar from 0, never negative, never a level lost",
+               steps, [(4, 0, 1050), (4, 0, 1010), (4, 0, 1000), (4, 600, 1000), (5, 0, 1000)])
+        expect("... Black on white kept (old level 4)", serve.ranks_kept(g4)["styles"], ["heathrow", "star", "white"])
+        # every reader sees the move, also before it is made: a game met read-only (the league, a player's card)
+        raw = _j.loads((old_game(9950) / "logbook.json").read_text())["game3"]
+        expect("read-only before the move: level 9, three showcase spots, Ice blue",
+               (serve.game_level(raw)[0], len(serve.showcase_json(raw)["pins"]), "ice" in serve.ranks_kept(raw)["styles"], "ranks" in raw),
+               (9, 3, True, False))
+        # once: the marker; a restart and the start's sweep change nothing
+        with serve._data_lock:
+            mark = _j.dumps(g9["ranks"])
+        save(sp9)
+        sp9 = spot(f9)
+        with serve._data_lock:
+            g9 = serve.game_book(sp9.book())
+            again = serve.game_ranks(g9)
+            g9["points"] = 13500        # later points: the floor is the kept one, not worked out again
+        expect("the move runs once: kept after a restart, not made again", (_j.dumps(g9["ranks"]), again), (mark, None))
+        expect("... and the next level by the new totals", serve.game_level(g9)[:3:2], (10, 500))
+        # a game made after the move keeps nothing: 1,950 points is level 3
+        fn = Path(tempfile.mkdtemp(prefix="fb-rk-"))
+        spn = spot(fn)
+        with serve._data_lock:
+            gn = serve.game_book(spn.book())
+            gn["points"] = 1950
+        expect("a game made after the move: 1,950 points is level 3, nothing kept",
+               (lv(gn), serve.ranks_kept(gn)["styles"], len(serve.showcase_json(gn)["pins"])), (3, [], 0))
+
+        # mastery from the old rules: A320 bronze paid at 5 (7 scans now), B744 silver (60: past the new gold), E195 gold
+        # (100: past platinum); A321 at 6 scans in a game whose "mastery" wasn't made yet (relay 88 made it at the next scan)
+        fm = old_game(500, scanTypes={"A320": 7, "B744": 60, "E195": 100}, mastery={"A320": 1, "B744": 2, "E195": 3})
+        fa = old_game(500, scanTypes={"A321": 6})
+        spm, spa = spot(fm), spot(fa)
+        with serve._data_lock:
+            gm, ga = serve.game_book(spm.book()), serve.game_book(spa.book())
+        expect("mastery moved: steps paid stay, those passed by the new numbers marked (unpaid)", (gm["mastery"], ga["mastery"]),
+               ({"A320": 1, "B744": 3, "E195": 4}, {"A321": 1}))
+        pts0 = gm["points"]
+        a320 = [scan(spm, "A320") for _ in range(18)]       # its 8th to 25th
+        expect("an old bronze at 7 scans: no pay at the 10th, silver at the 25th",
+               [(i + 8, x) for i, x in enumerate(a320) if x], [(25, [("A320", 2, 25)])])
+        expect("... B744's 61st to 100th scan pay only platinum (special: +5,000)",
+               [(i + 61, x) for i, x in enumerate(scan(spm, "B744") for _ in range(40)) if x], [(100, [("B744", 4, 5000)])])
+        expect("... E195's 101st pays nothing", scan(spm, "E195"), [])
+        expect("... A321's 7th to 10th (bronze passed at 5 under the old rules) pay nothing",
+               [scan(spa, "A321") for _ in range(4)], [[], [], [], []])
+        expect("... the points only went up by the scans", gm["points"] > pts0, True)
+
+        # the start's sweep: every profile once, one line with counts only (no names)
+        f_up, f_new = old_game(1950), Path(tempfile.mkdtemp(prefix="fb-rk-"))
+        spots = {"p1": spot(f_up), "p2": spot(old_game(9950)), "p3": spot(f_new)}
+        with serve._data_lock:
+            serve.game_book(spots["p3"].book())            # already moved
+        log = []
+        serve.profiles = lambda: {"profiles": {k: {"name": "Secret Name"} for k in spots}}
+        serve.guest_spot = lambda pid: spots[pid]
+        serve.event = lambda level, msg, **k: log.append((level, msg))
+        serve.ranks_migrate()
+        serve.ranks_migrate()
+        expect("the start's sweep: one line for the two profiles it moved, counts only, the second start nothing",
+               log, [("info", "Ranks: 2 profiles moved to the new totals; 2 kept a higher level, 1 styles and 3 showcase spots "
+                              "kept above their new levels, 0 mastery steps marked passed (unpaid)")])
+    finally:
+        serve.board_day, serve.school_pass, serve.game_gold, serve.profiles, serve.guest_spot, serve.event = real
+
+
 def showcase_checks(expect):
-    """Relay 91 (to-do #156): the showcase. Its spots open at levels 3, 5 and 8 (a level-up opens the next one); a pin
+    """Relay 91 (to-do #156): the showcase. Its spots open at levels 5, 11 and 17 (3, 5, 8 to relay 95) (a level-up opens the next one); a pin
     over the spots open is refused, and one of a type never seen; a hangar card pins its best catch (scanned before
     scored before seen, then one with a route, then the first); a type pinned again moves; "" empties a spot; the pins
     survive a restart; no points change."""
@@ -1257,10 +1459,10 @@ def showcase_checks(expect):
     save(sp)                    # (_logbook_entries reads the days saved)
     r = serve.showcase_json(g)
     expect("level 1: no spot open, three locked with the points to go", (r["pins"], [(x["level"], x["toGo"]) for x in r["locked"]]),
-           ([], [(lv, serve.level_points(lv) - 100) for lv in (3, 5, 8)]))
+           ([], [(lv, serve.level_points(lv) - 100) for lv in (5, 11, 17)]))
     expect("... a pin refused", serve.showcase_pin(sp, "B789", 0)[0], 403)
-    g["points"] = serve.level_points(3)
-    expect("level 3: one spot, empty", (codes(serve.showcase_json(g)), len(serve.showcase_json(g)["locked"])), ([None], 2))
+    g["points"] = serve.level_points(5)
+    expect("level 5: one spot, empty", (codes(serve.showcase_json(g)), len(serve.showcase_json(g)["locked"])), ([None], 2))
     st, r = serve.showcase_pin(sp, "B789", 0)
     pin = r["pins"][0] if st == 200 else {}
     expect("a hangar card pins its best catch: scanned, with a route, the first", (st, pin.get("flight"), pin.get("route"), pin.get("how")),
@@ -1268,22 +1470,22 @@ def showcase_checks(expect):
     expect("... with its plane, airline, photo and time", (pin.get("reg"), pin.get("airline"), pin.get("photo"), pin.get("ts"), pin.get("tier")),
            ("A6-XYZ", "Emirates", "https://x/p.jpg", t0 + 3, "rare"))
     expect("... and never where it was seen", [k for k in ("lat", "lon", "place", "at", "liveMin") if k in pin], [])
-    expect("a pin over the spots open is refused", serve.showcase_pin(sp, "A359", 1), (403, "That spot opens at level 5"))
+    expect("a pin over the spots open is refused", serve.showcase_pin(sp, "A359", 1), (403, "That spot opens at level 11"))
     expect("a type never seen is refused", serve.showcase_pin(sp, "A388", 0)[0], 404)
     expect("a type the game never scored: its sighting", serve.showcase_catch(sp, "BCS3")["how"], "seen")
     expect("one without a route has none", serve.showcase_catch(sp, "A359")["route"], None)
-    g["points"] = serve.level_points(5)
+    g["points"] = serve.level_points(11)
     expect("a level-up opens the next spot", codes(serve.showcase_json(g)), ["B789", None])
     expect("... and pins into it", codes(serve.showcase_pin(sp, "A359", 1)[1]), ["B789", "A359"])
-    g["points"] = serve.level_points(8) + 5
-    expect("level 8: the third spot, nothing locked", (codes(serve.showcase_json(g)), serve.showcase_json(g)["locked"]), (["B789", "A359", None], []))
+    g["points"] = serve.level_points(17) + 5
+    expect("level 17: the third spot, nothing locked", (codes(serve.showcase_json(g)), serve.showcase_json(g)["locked"]), (["B789", "A359", None], []))
     expect("a type pinned again moves", codes(serve.showcase_pin(sp, "B789", 2)[1]), [None, "A359", "B789"])
     expect("a pin swaps out the one in its spot", codes(serve.showcase_pin(sp, "BCS3", 1)[1]), [None, "BCS3", "B789"])
     expect('"" empties a spot', codes(serve.showcase_pin(sp, "", 1)[1]), [None, None, "B789"])
     serve.showcase_pin(sp, "A359", 0)
-    expect("no points change", g["points"], serve.level_points(8) + 5)
+    expect("no points change", g["points"], serve.level_points(17) + 5)
     expect("the app's own data has it", codes(serve.game3_json(sp.book(), serve.board_day())["showcase"]), ["A359", None, "B789"])
-    expect("the rules say where the spots open", serve.game_rules()["showcase"], [3, 5, 8])
+    expect("the rules say where the spots open", serve.game_rules()["showcase"], [5, 11, 17])
     save(sp)
     sp2, g2 = spot()
     expect("the pins survive a restart", (codes(serve.showcase_json(g2)), serve.showcase_json(g2)["pins"][2]["route"]), (["A359", None, "B789"], ["DXB", "VIE"]))
@@ -1572,6 +1774,7 @@ def checks():
             bad.append(f"{what}: got {got}, expected {want}")
 
     passport_checks(expect)
+    ranks_checks(expect)
     showcase_checks(expect)
     school_checks(expect)
     standby_checks(expect)

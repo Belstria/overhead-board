@@ -948,6 +948,25 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.112 (to-do #170–#176, Dave's batch of 29 Oct; relay 96): **rounder ranks, spread-out unlocks, four mastery steps.**
+  #173: `careerPts(lv)` reads `CAREER_AT` (500, 1,000, 2,000 … 135,000 for levels 2–20) and `CAREER_AFTER` (30,000 a
+  level past 20), the relay's `LEVEL_AT`/`LEVEL_AFTER`. #174: `STYLES`' `{lvl}` moved (styles on even levels: 2 Heathrow
+  yellow + Black on white, 4 Solari, 6 Brass, 8 Frankfurt 1970s, 10 Ice, 12 Enamel, 14 Tokyo, 16 Sunset, 18 LED, 20 Gold
+  leaf; badges on odd: 3 Star, 7 Propeller, 9 Helicopter, 13 Jumbo, 15 Fighter jet, 19 Concorde); `CAREER_MORE`'s
+  showcase slots 5/11/17. `styleOk(rule, g0, id, earned)`: a style in `g0.styleKept` (relay 96: unlocked by the old
+  levels) counts as earned; `earned` 1 leaves out the owner's grants (`achList`, was a call without id). #170: the
+  strip's `#gRk` before `#gTot`, `rankIns(g.level, 34)` without the wings (the level card, player cards and league keep
+  them). #171: `careerIco`'s finish class is `fin-` + id (`.cuI.fin-led` etc.): a bare `led` took the status light's
+  `.led` (absolute, 5 px) and pushed the sample over the route line. The current stop's plane (`.cuPl`) now moves in the
+  room under its unlocks (`100% - 54px + 28px × --pf`, the line solid to it): at 0 progress it covered them. #172:
+  `careerRoute` shows `careerPts(n)` only for `lv + 1`. #175: `scCab` makes your own card's empty spots buttons
+  (`data-sce`); `scEmpWire` (from `playerCard` when `p.me`) closes the card, opens the club, toasts the hint and
+  `hgShow()` scrolls to `.hgPlate` under the sticky top and tabs (`hgWant`: once the hangar loads). #176: `MST`
+  `[[10, 10], [25, 25], [50, 50], [100, 100]]` ([scans, bonus at ×1]), `MST_NAME`/`MST_TO` with Platinum; `mstMul(tier)`
+  (`rules.base` / 10); `mstOf(n, kept)` (the hangar's `t.m`, a step kept from before), `mstNext(n, kept, tier)`,
+  `mstHtml(n, tier, kept)` with `t.mt` (the type's rarity, Dave's call: the same at every step; its heading says it, "Mastery · Special ×50"); `.mk4` (`--m-platinum`), `.mkSteps` four columns; the How
+  card's Mastery line only with four steps from the relay. `run_test_relay.py --club`: the Test profile with an
+  old-rules game (9,950 points: level 9 kept; mastery up to platinum).
 - 1.111.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
   A95534) showed Planespotters' photo of the Bombardier Global that had the registration before. `psPhoto(reg, hex,
   onReady, model)` sends `model` (`psModel(ac)`: `TYPES[ac.t]` and `ac.desc`, the live type's names; not adsbdb's,
@@ -1500,6 +1519,22 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 96 (1.112, to-do #173/#174/#176): **the new ranks and the move to them.** `LEVEL_AT`, `LEVEL_AFTER`;
+  `level_of(points)` by them, `level_title`, `level_points`. `game_level(g, pts=None)`: the level by the points, never
+  below `ranks_kept(g)["level"]` (kept above its points: `into` 0 and `need` the points left to the next level, so the
+  app's `need - into` stays the points to go). Every reader uses it: `game3_json`, `league_json`, `player_json`,
+  `game_lockon`, `showcase_json` (spots: the more of the new levels' and the kept `slots`), `_standby` (the level a day
+  ended on), `game_school`/`school_wings`. `SHOWCASE_AT` (5, 11, 17); `STYLE_LVL` (the board's `STYLES` levels, for the
+  counts). The move: `game_ranks(g)` (from `game_book`, once: the marker `g["ranks"]` {v, level, styles, slots, at})
+  from the old rules, which live only there (`_old_level`, `_OLD_STYLE_LVL`, `_OLD_SHOWCASE_AT`, `_OLD_MASTERY`); before
+  it is made `ranks_kept` works it out the same way, so a read-only look sees it. Mastery: `g["mastery"]` becomes per
+  type max(the new step of its scans, the old step paid or passed; an old map not made yet is built from the scans by
+  the old steps), so passed steps come unpaid and an old bronze at 5–9 scans keeps its frame. `ranks_migrate()` at
+  start (after `merge_home`) moves every profile and logs one line of counts. `game3_json` and `/game/me` send
+  `styleKept`. `MASTERY` (10, 25, 50, 100); `game_lockon` pays `MASTERY[k - 1] × TIER_BASE[mt] // 10` with `mt =
+  tier_of({}, {"typeCode": TC})` (the type's rarity, not the plane's; the line has `tier`; not doubled by gold);
+  `mastery_step` 0–4; `game_rules()["mastery"]` `[[at, at]]`; the hangar's types have `m` (the step paid or passed) and
+  `mt`. No rescoring (`GAME3_V`, `GAME_V` unchanged). flows.py: `ranks_checks`, `mastery_checks` for the new steps.
 - Relay 95 (1.111.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
   `_ps_first`) keeps every photo of the registration with the makers its page name gives after the registration
   (`_ps_makers`: whole dash-separated words from `PS_MAKERS`, families such as Boeing with McDonnell Douglas, Bombardier

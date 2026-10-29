@@ -967,18 +967,18 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
    the step reached */
 :root{--m-bronze:linear-gradient(135deg,#7a4a22,#d39058 45%,#f3c491 55%,#9a5f2c);--m-silver:linear-gradient(135deg,#6f767f,#d5dbe2 45%,#fff 55%,#8c939c);
   --m-gold:linear-gradient(135deg,#8c650b,#e6b93f 45%,#fff0b0 55%,#a77c12)}
-.mk1{--mg:var(--m-bronze)} .mk2{--mg:var(--m-silver)} .mk3{--mg:var(--m-gold)}
-.hgCard.mk1,.hgCard.mk2,.hgCard.mk3{border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.4)}
-.hgCard.mk1::after,.hgCard.mk2::after,.hgCard.mk3::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:var(--mg);pointer-events:none;
+.mk1{--mg:var(--m-bronze)} .mk2{--mg:var(--m-silver)} .mk3{--mg:var(--m-gold)} .mk4{--mg:var(--m-platinum)}   /* 1.112: platinum (loyalty's) */
+.hgCard.mk1,.hgCard.mk2,.hgCard.mk3,.hgCard.mk4{border-color:transparent;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.hgCard.mk1::after,.hgCard.mk2::after,.hgCard.mk3::after,.hgCard.mk4::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:var(--mg);pointer-events:none;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .mkBar{display:block;position:relative;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
 .mkBar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--amber)}
 .hgT .mkBar{margin-top:4px;height:3px}
 .mkMast{margin-top:6px;padding:10px 12px;border-radius:10px;background:#202125}
 .mkMast h4{margin:0 0 10px;display:flex;justify-content:space-between;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);text-transform:uppercase}
-.mkMast h4 b{color:var(--ink)}
-.mkSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
-.mkSteps div{display:grid;justify-items:center;gap:4px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted);text-align:center}
+.mkMast h4 b{color:var(--ink)} .mkMast h4 em{font-style:normal;color:var(--muted)}
+.mkSteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.mkSteps div{display:grid;justify-items:center;align-content:start;gap:4px;font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--muted);text-align:center}
 .mkSteps .md{width:38px;height:38px;border-radius:50%;background:var(--mg);display:grid;place-items:center;color:rgba(40,25,5,.85);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
 .mkSteps .md svg{width:18px;height:18px}
@@ -1182,8 +1182,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .cuI.flap b{font:700 1em/1 var(--f-flap,"Oswald",var(--f-board));position:relative}
 .cuI.flap{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .cuI.flap::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55)}
-.cuI.brass{box-shadow:inset 0 0 0 2px #c9a24a} .cuI.enamel{background:radial-gradient(circle at 30% 25%,#3b3c40 0 12%,transparent 13%),radial-gradient(circle at 75% 70%,#34322e 0 10%,transparent 11%),#26272b!important}
-.cuI.led b{color:transparent;background:radial-gradient(circle,var(--amber) 38%,transparent 42%) 0 0/.16em .16em;-webkit-background-clip:text;background-clip:text}
+.cuI.fin-brass{box-shadow:inset 0 0 0 2px #c9a24a} .cuI.fin-enamel{background:radial-gradient(circle at 30% 25%,#3b3c40 0 12%,transparent 13%),radial-gradient(circle at 75% 70%,#34322e 0 10%,transparent 11%),#26272b!important}
+.cuI.fin-led b{color:transparent;background:radial-gradient(circle,var(--amber) 38%,transparent 42%) 0 0/.16em .16em;-webkit-background-clip:text;background-clip:text}
 .cuI.bdg,.cuI.slot,.cuI.standby{background:#26272b;color:var(--amber)} .cuI.bdg{border-radius:50%} .cuI.bdg img{width:78%;height:78%}
 .cuI.slot i{width:60%;height:66%;border:2px solid var(--amber);border-radius:3px;box-sizing:border-box;box-shadow:inset 0 -4px 0 rgba(240,180,41,.35)}
 .cuI.standby b{font:700 calc(1em * .5)/1 var(--f-board);letter-spacing:.05em}
@@ -1211,14 +1211,16 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .cuRt li::before{content:"";position:absolute;left:15.5px;top:34px;bottom:0;width:3px;background:var(--amber)}
 .cuRt li.nx::before,.cuRt li.lk::before{background:repeating-linear-gradient(#4a4d55 0 6px,transparent 6px 11px)}
 .cuRt li:last-child::before{display:none} .cuRt li:last-child{padding-bottom:4px} .cuRt li.cur{padding-bottom:58px}
-.cuRt li.cur::before{background:linear-gradient(var(--amber) 0 var(--p),transparent var(--p)),repeating-linear-gradient(#4a4d55 0 6px,transparent 6px 11px)}
+/* 1.112: the plane goes down the room under your stop's unlocks (it covered them near the start of a level), the line
+   solid down to it */
+.cuRt li.cur::before{background:linear-gradient(var(--amber) 0 calc(100% - 41px + 28px * var(--pf)),transparent 0),repeating-linear-gradient(#4a4d55 0 6px,transparent 6px 11px)}
 .cuT{display:grid;gap:5px;padding-top:5px;min-width:0}
 .cuT b{font:700 var(--fs-l)/1.1 var(--f-board)} .cuT b small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;color:var(--muted);margin-left:8px;text-transform:uppercase;font-variant-numeric:tabular-nums}
 .cuT>span{display:flex;flex-wrap:wrap;row-gap:5px}
 .cuRt .done .cuT b,.cuRt .done .cuUn{color:var(--muted)} .cuRt .lk .cuT b{color:#a3a7ae} .cuRt .lk .cuUn{color:#b9bcc2}
 .cuRt .lk .cuI,.cuRt .lk>.rkI{opacity:.55} .cuRt .cur .cuT b small{color:var(--amber)}
 .cuRt>li>.rkI{padding-top:2px;min-width:34px;justify-content:center}
-.cuPl{position:absolute;left:4px;top:calc(34px + (100% - 34px - 26px) * var(--pf));z-index:2;display:flex;align-items:center;gap:8px;animation:cuDrop 1.1s .25s cubic-bezier(.3,.8,.3,1) both}
+.cuPl{position:absolute;left:4px;top:calc(100% - 54px + 28px * var(--pf));z-index:2;display:flex;align-items:center;gap:8px;animation:cuDrop 1.1s .25s cubic-bezier(.3,.8,.3,1) both}
 .cuPl .cuP{transform:rotate(180deg)}
 .cuPl em{font:700 var(--fs-xs)/1 var(--f-board);font-style:normal;background:var(--amber);color:#17140e;border-radius:999px;padding:4px 9px;white-space:nowrap}
 @keyframes cuDrop{from{transform:translateY(-30px);opacity:0}}

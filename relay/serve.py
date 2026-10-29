@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 95
+RELAY_VERSION = 96
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1053,13 +1053,23 @@ LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
 GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
 GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
 SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
-MASTERY = ((5, 25), (25, 100), (100, 250))   # relay 88 (to-do #149): bronze, silver, gold: a type's scans for the step, its bonus
+MASTERY = (10, 25, 50, 100)  # relay 96 (to-do #176): bronze, silver, gold, platinum: a type's scans for the step; its bonus
+                             # the scans × the type's rarity (TIER_BASE // 10: 1, 3, 10, 25, 50). Relay 88: (5, 25), (25, 100), (100, 250)
 LOYALTY = ((10, 25), (50, 100), (200, 250))  # relay 89 (to-do #162): an airline's Silver, Gold, Platinum: its planes scanned, the bonus (Member at the first)
 GAME_COUNTRY = 25           # relay 90 (to-do #150): a country new to the passport at a scan (from the route's airports)
 GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
 SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
 STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
-SHOWCASE_AT = (3, 5, 8)         # relay 91 (to-do #156): the showcase's spots open at these levels (one, two, three)
+SHOWCASE_AT = (5, 11, 17)       # relay 91 (to-do #156): the showcase's spots open at these levels (one, two, three); 3, 5, 8 to relay 95
+# relay 96 (to-do #173): the lifetime points each level starts at (1 to 20), then LEVEL_AFTER more for each level past 20.
+# The board's careerPts has the same numbers. A profile keeps the level it had reached before (ranks_kept).
+LEVEL_AT = (0, 500, 1000, 2000, 3000, 4000, 5500, 7500, 10000, 13000, 17000, 21000, 27000, 34000, 43000, 55000, 70000,
+            85000, 110000, 135000)
+LEVEL_AFTER = 30000
+# relay 96 (to-do #174): the level each unlockable style and badge opens at (the board's STYLES {lvl}; only for counting
+# what the move kept)
+STYLE_LVL = {"heathrow": 2, "white": 2, "solari": 4, "brass": 6, "frankfurt70": 8, "ice": 10, "enamel": 12, "tokyo": 14,
+             "sunset": 16, "led": 18, "goldleaf": 20, "star": 3, "prop": 7, "heli": 9, "jumbo": 13, "jet": 15, "concorde": 19}
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1079,6 +1089,7 @@ def game_book(book):
     if "scanned" not in g:
         g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
         g["rule2"] = int(time.time() * 1000)
+    game_ranks(g)                           # relay 96: the move to the new ranks, once (before anything reads the level)
     game_school(g)
     game_standby(g)
     return g
@@ -1093,7 +1104,7 @@ def game_school(g):
     if not isinstance(st, dict):
         now = int(time.time() * 1000)
         st = g["school"] = {"since": now, "done": {}, "aw": []}
-        if level_of(g.get("points", 0))[0] >= SCHOOL_LEVEL:
+        if game_level(g)[0] >= SCHOOL_LEVEL:
             st.update(wings=now, pre=True)
     return st
 
@@ -1121,7 +1132,7 @@ def school_wings(g):
     """Relay 85: has this game its wings (the league's rows, a player's card: read only, so a game the school hasn't
     met yet answers as game_school will: by its level)."""
     st = g.get("school")
-    return bool(st.get("wings")) if isinstance(st, dict) else level_of(g.get("points", 0))[0] >= SCHOOL_LEVEL
+    return bool(st.get("wings")) if isinstance(st, dict) else game_level(g)[0] >= SCHOOL_LEVEL
 
 
 def school_json(g):
@@ -1146,13 +1157,9 @@ def game_standby(g):
 
 
 def level_points(level):
-    """Relay 91: the points total a level starts at (level_of's steps added up)."""
-    tot, need = 0, 500.0
-    for lv in range(1, level):
-        tot += round(need)
-        if lv + 1 < 20:
-            need *= 1.25
-    return tot
+    """Relay 91: the points total a level starts at. Relay 96: LEVEL_AT, then LEVEL_AFTER a level past 20."""
+    level = max(1, int(level))
+    return LEVEL_AT[level - 1] if level <= len(LEVEL_AT) else LEVEL_AT[-1] + LEVEL_AFTER * (level - len(LEVEL_AT))
 
 
 def showcase_json(g):
@@ -1160,7 +1167,7 @@ def showcase_json(g):
     and the spots still locked ({"level": level, "toGo": points}). A pin holds its catch (type, plane, flight, airline,
     time, route, photo), never where it was seen."""
     pts = g.get("points", 0)
-    n = sum(1 for lv in SHOWCASE_AT if level_of(pts)[0] >= lv)
+    n = max(sum(1 for lv in SHOWCASE_AT if game_level(g)[0] >= lv), ranks_kept(g)["slots"])   # relay 96: the spots kept
     pins = [x if isinstance(x, dict) else None for x in (g.get("showcase") or [])][:n]
     return {"pins": pins + [None] * (n - len(pins)),
             "locked": [{"level": lv, "toGo": max(0, level_points(lv) - pts)} for lv in SHOWCASE_AT[n:]]}
@@ -1235,12 +1242,12 @@ def _standby(g, day):
         ds = d.isoformat()
         if ds in rd:
             alive = True
-        elif alive and ds >= since and len(cov) < standby_allow(level_of(pts - sum(v for k, v in days.items() if k > ds))[0]):
+        elif alive and ds >= since and len(cov) < standby_allow(game_level(g, pts - sum(v for k, v in days.items() if k > ds))[0]):
             cov.append(ds)
         else:
             alive = False
         d += datetime.timedelta(days=1)
-    allow = standby_allow(level_of(pts)[0])
+    allow = standby_allow(game_level(g)[0])
     return cov, max(0, allow - len(cov)), allow
 
 
@@ -1275,21 +1282,117 @@ def game_rules():
     return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
             "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
             "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
-            "standby": [list(s) for s in STANDBY], "mastery": [list(m) for m in MASTERY],
+            "standby": [list(s) for s in STANDBY], "mastery": [[at, at] for at in MASTERY],   # relay 96: [scans, bonus × rarity]
             "loyalty": [list(m) for m in LOYALTY], "country": GAME_COUNTRY, "showcase": list(SHOWCASE_AT)}
 
 
 def level_of(points):
-    """The level for a points total: each level needs a quarter more than the one before (500, 625, ...), from level
-    20 on the same as level 20. Returns (level, title, points into it, points it needs)."""
+    """The level for a points total by LEVEL_AT (relay 96, to-do #173; to relay 95 each level a quarter more). Returns
+    (level, title, points into it, points it needs). The points alone: a profile's own level is game_level's."""
+    pts = max(0, int(points))
+    lv = sum(1 for at in LEVEL_AT if pts >= at)
+    if lv >= len(LEVEL_AT):
+        lv += (pts - LEVEL_AT[-1]) // LEVEL_AFTER
+    lo = level_points(lv)
+    return lv, level_title(lv), pts - lo, level_points(lv + 1) - lo
+
+
+def level_title(lv):
+    return LEVEL_TITLES[lv - 1] if lv <= 20 else f"Legend {lv - 19}"
+
+
+def game_level(g, pts=None):
+    """Relay 96: a profile's level: by its points (level_of), never below the level it kept from the old totals
+    (ranks_kept). Kept above its points, it shows no progress (0 into it) until the points pass that level's start;
+    "need" is then what is left to the next level, so need - into is always the points to go."""
+    pts = g.get("points", 0) if pts is None else pts
+    lv = level_of(pts)
+    keep = ranks_kept(g)["level"]
+    if keep <= lv[0]:
+        return lv
+    return keep, level_title(keep), 0, max(1, level_points(keep + 1) - max(0, int(pts)))
+
+
+# ---------- relay 96 (1.112, to-do #173-#176): the one-time move to the new ranks, unlocks and mastery ----------
+# Dave: anything a player already has stays theirs. Once per profile (g["ranks"] the marker), from the old rules below
+# (they live only here): the level reached by the old totals (kept as a floor: game_level), the styles and badges it
+# had unlocked by the old STYLES levels (the board counts them unlocked: "styleKept"), its showcase spots (the standbys
+# come with the kept level: their levels didn't change). Mastery: a step paid or passed stays so (an old bronze at 5-9
+# scans keeps its frame and isn't paid again at 10); steps already passed by the new numbers are marked passed, unpaid.
+# No points change. ranks_migrate moves every profile at start; game_book a game it meets later.
+_OLD_STYLE_LVL = {"heathrow": 2, "white": 4, "solari": 5, "brass": 7, "frankfurt70": 8, "ice": 9, "enamel": 11, "sunset": 12,
+                  "tokyo": 14, "led": 15, "goldleaf": 18, "star": 3, "prop": 6, "heli": 10, "jumbo": 13, "jet": 16, "concorde": 17}
+_OLD_SHOWCASE_AT = (3, 5, 8)
+_OLD_MASTERY = (5, 25, 100)
+
+
+def _old_level(points):
+    """The level by the old totals (500, then a quarter more for each level to 20, the same after)."""
     lv, need, left = 1, 500.0, max(0, int(points))
     while left >= round(need):
         left -= round(need)
         lv += 1
         if lv < 20:
             need *= 1.25
-    title = LEVEL_TITLES[lv - 1] if lv <= 20 else f"Legend {lv - 19}"
-    return lv, title, left, round(need)
+    return lv
+
+
+def ranks_kept(g):
+    """Relay 96: what the profile kept at the move ({"level", "styles", "slots"}). Before game_ranks has made it, worked
+    out the same way, so a read-only look (the league, a player's card) sees it already."""
+    r = g.get("ranks")
+    if isinstance(r, dict):
+        return r
+    lv = _old_level(g.get("points", 0))
+    return {"v": 1, "level": lv, "styles": sorted(k for k, at in _OLD_STYLE_LVL.items() if lv >= at),
+            "slots": sum(1 for at in _OLD_SHOWCASE_AT if lv >= at)}
+
+
+def game_ranks(g):
+    """Relay 96: make the move once (game_book calls it). Returns None when made before, else what it kept (counts)."""
+    if isinstance(g.get("ranks"), dict):
+        return None
+    r = g["ranks"] = {**ranks_kept(g), "at": int(time.time() * 1000)}
+    st, m, marked = g.get("scanTypes"), g.get("mastery"), 0
+    if isinstance(st, dict) or isinstance(m, dict):
+        st = st if isinstance(st, dict) else {}
+        old = m if isinstance(m, dict) else {tc: k for tc, k in ((tc, sum(1 for at in _OLD_MASTERY if n >= at))
+                                                                     for tc, n in st.items()) if k}
+        new = {}
+        for tc in set(old) | set(st):
+            k = max(mastery_step(st.get(tc, 0)), old.get(tc, 0))
+            marked += max(0, k - old.get(tc, 0))
+            if k:
+                new[tc] = k
+        g["mastery"] = new
+    lv = level_of(g.get("points", 0))[0]
+    return {"up": int(r["level"] > lv), "styles": sum(1 for k in r["styles"] if STYLE_LVL.get(k, 0) > max(lv, r["level"])),
+            "slots": max(0, r["slots"] - sum(1 for at in SHOWCASE_AT if max(lv, r["level"]) >= at)), "marked": marked}
+
+
+def ranks_migrate():
+    """Relay 96: the move for every profile, once, at start; one line in the log (counts only)."""
+    n, c = 0, {"up": 0, "styles": 0, "slots": 0, "marked": 0}
+    with _data_lock:
+        pids = list(profiles()["profiles"])
+    for pid in pids:
+        try:
+            sp = guest_spot(pid)
+            with _data_lock:
+                g = sp.book().get("game3")
+                if not isinstance(g, dict) or g.get("v") != GAME3_V or isinstance(g.get("ranks"), dict):
+                    continue
+                got = game_ranks(g)
+                sp.changed("book")
+        except Exception as e:
+            event("warn", f"Ranks: a profile couldn't be moved ({e})")
+            continue
+        n += 1
+        for k in c:
+            c[k] += got[k]
+    if n:
+        event("info", f"Ranks: {n} profiles moved to the new totals; {c['up']} kept a higher level, {c['styles']} styles and "
+                      f"{c['slots']} showcase spots kept above their new levels, {c['marked']} mastery steps marked passed (unpaid)")
 
 
 def _game_add(g, day, pts):
@@ -1619,9 +1722,10 @@ def game_lockon(spot, hx):
         if tc and st is not None:               # (none yet: _scan_types counts them back from the days first)
             TC, ms = tc.upper(), _mastery(g)    # relay 88: the mastery steps as they were before this scan
             st[TC] = st.get(TC, 0) + 1
+            mt = tier_of({}, {"typeCode": TC})  # relay 96: the step's scans × the type's rarity (not doubled when gold)
             for k in range(ms.get(TC, 0) + 1, mastery_step(st[TC]) + 1):
                 ms[TC] = k
-                lines.append({"k": "mastery", "p": MASTERY[k - 1][1], "n": TC, "m": k})
+                lines.append({"k": "mastery", "p": MASTERY[k - 1] * TIER_BASE[mt] // 10, "n": TC, "m": k, "tier": mt})
         sa = g.get("scanAirlines")
         if al and sa is not None:               # relay 89: the airline's tier, the same way
             ly = _loyalty(g)                    # (as it was before this scan)
@@ -1656,7 +1760,7 @@ def game_lockon(spot, hx):
         _game_best(g, day, e)
         school_pass(spot, g, "scan")            # relay 85: the school's "scan a plane" (its 50 aren't in the bonus)
         spot.changed("book", "day")
-        lv = level_of(g["points"])
+        lv = game_level(g)
         return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
                 "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
                 "route": route, "countries": len(pp) if isinstance(pp, dict) else None,
@@ -1668,7 +1772,7 @@ def game3_json(book, day):
     daily streak is the week's scan streak, with today's planes by rarity against their limits."""
     g = game_book(book)
     out = game_json(g, day)
-    lv, title, into, need = level_of(g.get("points", 0))
+    lv, title, into, need = game_level(g)
     wk = _monday(day)
     days = g.get("days", {})
     week = sum(v for k, v in days.items() if k >= wk)
@@ -1681,7 +1785,7 @@ def game3_json(book, day):
                limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
                trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
                standby=standby_json(g, day), wallet=wallet_json(g), passport=passport_json(g),
-               showcase=showcase_json(g))
+               showcase=showcase_json(g), styleKept=ranks_kept(g)["styles"])
     return out
 
 
@@ -1730,7 +1834,7 @@ def league_json(me=None):
                          "week": sum(v for k, v in days.items() if k >= wk),
                          "before": sum(v for k, v in days.items() if wk <= k < day),
                          "lastWeek": sum(v for k, v in days.items() if last <= k < wk), "all": g.get("points", 0),
-                         "level": level_of(g.get("points", 0))[0], "best": (g.get("best") or {}).get(wk),
+                         "level": game_level(g)[0], "best": (g.get("best") or {}).get(wk),
                          "lock": (g.get("lock") or {}).get("last"), "wings": school_wings(g)})
         _league_cache.clear()
         _league_cache[key] = rows
@@ -1775,7 +1879,7 @@ def player_json(hid, me=None):
         pts = g.get("points", 0)
         if not pts:
             return None
-        lv, title, into, need = level_of(pts)
+        lv, title, into, need = game_level(g)
         days, types = g.get("days", {}), g.get("types") or {}
         rare = lambda tc: TIERS.index(tier_of({}, {"typeCode": tc}))
         top = max(types.items(), key=lambda kv: (rare(kv[0]), -(kv[1].get("first") or 0)), default=None)
@@ -1824,8 +1928,8 @@ def _scan_types(spot):
 
 
 def mastery_step(n):
-    """Relay 88 (to-do #149): the mastery step a type's scans reach: 0 none, 1 bronze, 2 silver, 3 gold."""
-    return sum(1 for at, _ in MASTERY if n >= at)
+    """Relay 88 (to-do #149): the mastery step a type's scans reach: 0 none, 1 bronze, 2 silver, 3 gold, 4 platinum (relay 96)."""
+    return sum(1 for at in MASTERY if n >= at)
 
 
 def _mastery(g):
@@ -1930,6 +2034,7 @@ def hangar_json(spot):
         book = spot.book()
         game = {tc: (t or {}).get("count", 0) for tc, t in (game_book(book).get("types") or {}).items()}
         scans = dict(game_book(book).get("scanTypes") or {})
+        mast = dict(game_book(book).get("mastery") or {})       # relay 96: the step paid or passed (the frame it keeps)
         types = {tc: dict(t) for tc, t in (book.get("types") or {}).items()}
         for tc in game:
             types.setdefault(tc, dict(game_book(book)["types"][tc]))
@@ -1946,7 +2051,7 @@ def hangar_json(spot):
     for tc, t in types.items():
         e = first.get(tc) or {}
         out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0), "game": game.get(tc, 0),
-                    "scans": scans.get(tc, 0),
+                    "scans": scans.get(tc, 0), "m": mast.get(tc, 0), "mt": tier_of({}, {"typeCode": tc}),   # relay 96: mastery's rarity
                     "tier": e.get("tier") or tier_of({}, {"typeCode": tc}), "reg": e.get("reg") or "", "hex": e.get("hex") or "",
                     "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or "",
                     "photo": e.get("photo") or "", "thumb": e.get("photoThumb") or ""})          # relay 64: its own photo, when adsbdb has one
@@ -8680,7 +8785,7 @@ class Handler(BaseHTTPRequestHandler):
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
             keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
-                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby", "showcase")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
+                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby", "showcase", "styleKept")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
             out = {k: g.get(k) for k in keep}
             out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
             if aw is not None:
@@ -9207,6 +9312,7 @@ def main():
         _fr24_data()
         profiles()
         merge_home()
+    ranks_migrate()                           # relay 96: once per profile (its marker), before the first request
     threading.Thread(target=_airlines_worker, daemon=True).start()
     threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()

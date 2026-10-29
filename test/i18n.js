@@ -1396,12 +1396,17 @@ window.I18N_ROWS = [
   ["{n} of {m} scans to silver", "{n} von {m} Scans bis Silber", "{n} sur {m} scans jusqu'à l'argent", "{n} de {m} escaneos hasta plata", "{n} van {m} scans tot zilver"],
   ["{n} of {m} scans to gold", "{n} von {m} Scans bis Gold", "{n} sur {m} scans jusqu'à l'or", "{n} de {m} escaneos hasta oro", "{n} van {m} scans tot goud"],
   ["Mastery:", "Meisterschaft:", "Maîtrise :", "Maestría:", "Meesterschap:"],
-  ["the scan that brings a type to {a}, {b} or {c} scans adds +{x}, +{y} or +{z} once, and its hangar card turns bronze, silver or gold.",
-    "der Scan, mit dem ein Typ {a}, {b} oder {c} Scans erreicht, bringt einmal +{x}, +{y} oder +{z}, und seine Hangar-Karte wird Bronze, Silber oder Gold.",
-    "le scan qui amène un type à {a}, {b} ou {c} scans rapporte une fois +{x}, +{y} ou +{z}, et sa carte du hangar passe au bronze, à l'argent ou à l'or.",
-    "el escaneo que lleva un tipo a {a}, {b} o {c} escaneos suma +{x}, +{y} o +{z} una vez, y su carta del hangar pasa a bronce, plata u oro.",
-    "de scan die een type op {a}, {b} of {c} scans brengt, geeft eenmalig +{x}, +{y} of +{z}, en de hangarkaart wordt brons, zilver of goud."],
-  ["Gold: {n} scans", "Gold: {n} Scans", "Or : {n} scans", "Oro: {n} escaneos", "Goud: {n} scans"],
+  // 1.112 (to-do #176): four steps, the bonus × the type's rarity
+  ["{n} of {m} scans to platinum", "{n} von {m} Scans bis Platin", "{n} sur {m} scans jusqu'au platine", "{n} de {m} escaneos hasta platino", "{n} van {m} scans tot platina"],
+  ["the scan that brings a type to {a}, {b}, {c} or {d} scans adds that many points × its rarity once (×1 common to ×50 special), and its hangar card turns bronze, silver, gold or platinum.",
+    "der Scan, mit dem ein Typ {a}, {b}, {c} oder {d} Scans erreicht, bringt einmal so viele Punkte × seine Seltenheit (×1 gewöhnlich bis ×50 besonders), und seine Hangar-Karte wird Bronze, Silber, Gold oder Platin.",
+    "le scan qui amène un type à {a}, {b}, {c} ou {d} scans rapporte une fois autant de points × sa rareté (×1 commun à ×50 spécial), et sa carte du hangar passe au bronze, à l'argent, à l'or ou au platine.",
+    "el escaneo que lleva un tipo a {a}, {b}, {c} o {d} escaneos suma una vez esos puntos × su rareza (×1 común a ×50 especial), y su carta del hangar pasa a bronce, plata, oro o platino.",
+    "de scan die een type op {a}, {b}, {c} of {d} scans brengt, geeft eenmalig zoveel punten × zijn zeldzaamheid (×1 gewoon tot ×50 bijzonder), en de hangarkaart wordt brons, zilver, goud of platina."],
+  ["Platinum: {n} scans", "Platin: {n} Scans", "Platine : {n} scans", "Platino: {n} escaneos", "Platina: {n} scans"],
+  // 1.112 (to-do #175): an empty spot on your own card, to the hangar
+  ["Open a card and tap Put in your showcase", "Öffne eine Karte und tippe auf In deine Vitrine stellen", "Ouvrez une carte et touchez Mettre dans votre vitrine",
+    "Abre una carta y toca Poner en tu vitrina", "Open een kaart en tik op In je vitrine zetten"],
   // 1.106 (to-do #162): airline loyalty, the member cards
   ["Member", "Mitglied", "Membre", "Miembro", "Lid"],
   ["Platinum", "Platin", "Platine", "Platino", "Platina"],

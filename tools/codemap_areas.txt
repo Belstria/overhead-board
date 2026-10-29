@@ -406,7 +406,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
 tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @gFlp .gLv .gBar @gShine @gGlow .gChip
     .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
-    .mk1 .mk2 .mk3 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyWal .lyCard .lyFF
+    .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyWal .lyCard .lyFF
     .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppNew.inked .ppNew.scr .ppDrop @ppLand @ppLift .ppTip @ppTip .scSc .scPick .scCab
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
@@ -418,17 +418,17 @@ tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad 
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
-    MST MST_NAME MST_TO mstSteps mstOf mstNext mstBar mstHtml
+    MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyFront lyAll walletHtml lyWire
     worldLoad worldFailed worldMap PP_REG PP_ME PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath
     ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew
-    SC_LOCK scMine scDate scPics scPin scCab scBtn scWire scSection
-    CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE careerPts cuBadge careerIco cuUnl cuToGo careerMini gRoute careerRoute careerOpen
+    SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
+    CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini gRoute careerRoute careerOpen
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json
     game_json GAME3_V GAME_KM SCAN_KM GAME_RULE TIER_BASE GAME_PASSIVE GAME_LIMIT GAME_NEW GAME_STREAK GAME_BINGO GAME_MEDAL GAME_SINGLE GAME1_NEW LOCK_FRESH_S LEVEL_TITLES game_book
-    _monday _scan_streak _game_limits _next_day_ms game_rules level_of _game_add game_note _trophy_pts _game_pay _game_trophies _bingo_pay_state _game_bingo _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
+    _monday _scan_streak _game_limits _next_day_ms game_rules level_of level_title game_level LEVEL_AT LEVEL_AFTER STYLE_LVL _OLD_STYLE_LVL _OLD_SHOWCASE_AT _OLD_MASTERY _old_level ranks_kept game_ranks ranks_migrate _game_add game_note _trophy_pts _game_pay _game_trophies _bingo_pay_state _game_bingo _scan_airline _scan_can _game_award PLANE_KEYS game_today game_awards _gold_salt _gold_key game_gold GOLD_ONE_IN GOLD_FILE game_scannable _game_best game_lockon
     game3_json _league_cache _LEAGUE_SALT _league_id league_json player_json _hangar_cache hangar_json /game/me
     /game/today /game/league /game/player /game/hangar /game/lockon
     SCHOOL GAME_SCHOOL SCHOOL_LEVEL game_school school_pass school_wings school_json /game/school STANDBY game_standby standby_allow _standby standby_json

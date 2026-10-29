@@ -15,6 +15,8 @@ are not touched: the test relay runs from a temporary folder.
                                                only those); without it none is, so tests don't depend on the salt
     py tools/test/run_test_relay.py --hue      a fake Hue Bridge (fakehue.py, two ports below the relay) for the admin
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
+    py tools/test/run_test_relay.py --club     the Test profile has a game from the old rules (1.112's move at start: level 9
+                                               kept above its points, styles, three showcase spots, mastery up to platinum)
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
                                                for screenshots) instead of the fake's (relay 73)
     py tools/test/run_test_relay.py --live-facts   the cards' facts (relay 74) from the real Wikipedia and Wikidata (needs the
@@ -58,6 +60,8 @@ def main():
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
+    p.add_argument("--club", action="store_true", help="the Test profile has a game from the old rules (relay 96's move: a kept "
+                                                       "level, styles, showcase spots, mastery steps up to platinum)")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
     p.add_argument("--live-facts", action="store_true", help="the cards' facts from the real Wikipedia and Wikidata")
     p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
@@ -135,6 +139,22 @@ def main():
             "time": "11:58", "typeCode": "C130", "minDist": 5.0, "altAtMin": 5000, "looked": True}]
     (tmp / "data" / "profiles" / "test0001").mkdir(parents=True)
     (tmp / "data" / "profiles" / "test0001" / f"sightings-{day}.json").write_text(json.dumps(old), encoding="utf-8")
+    if a.club:
+        # relay 96 (1.112): a game from before the move: 9,950 points (level 9 by the old totals, 8 by the new), mastery
+        # steps by the old numbers (A320 gold at 120 scans, DH8D bronze at 7), no showcase pins; the relay moves it at start
+        v = {k: int(re.search(rf"^{k} = (\d+)", src, re.M).group(1)) for k in ("GAME_V", "TROPHIES_V", "GAME3_V")}
+        t0, today = int((now - 86400 * 20) * 1000), time.strftime("%Y-%m-%d", time.localtime(now - 3 * 3600))
+        names = {"A320": "Airbus A320", "B744": "Boeing 747-400", "DH8D": "Dash 8-400", "E195": "Embraer 195", "B789": "Boeing 787-9"}
+        scans = {"A320": 120, "B744": 60, "DH8D": 7, "E195": 30, "B789": 3}
+        types = {tc: {"count": n + 2, "first": t0 + i, "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}
+        (tmp / "data" / "profiles" / "test0001" / "logbook.json").write_text(json.dumps({
+            "since": day, "startedTs": now - 86400 * 20, "sightings": 230, "types": types, "airlines": {}, "regs": {},
+            "gameV": v["GAME_V"], "recordsV": 1, "trophiesV": v["TROPHIES_V"], "cardsV": 1, "flightsV": 1,
+            "game3": {"v": v["GAME3_V"], "since": t0, "sightings": 230, "types": types, "airlines": {}, "regs": {}, "countries": {},
+                      "categories": {}, "hours": [], "points": 9950, "days": {today: 9950}, "planes": {}, "tiers": {"common": 200},
+                      "rareDays": [], "records": {}, "trophies": {}, "bingoCards": {}, "best": {}, "lock": {"at": 0, "n": 220},
+                      "scanned": {"types": sorted(scans), "airlines": []}, "scanTypes": scans,
+                      "mastery": {"A320": 3, "B744": 2, "DH8D": 1, "E195": 2}}}), encoding="utf-8")
     # ... and Flightradar24's answer about it, still in the cache: written into the sighting at start
     (tmp / "data" / "fr24.json").write_text(json.dumps({"usage": {}, "flights": {"4ca2b8|EIN1XY": {
         "t": now - 86400 + 300, "flight": "EI661", "callsign": "EIN1XY", "from": {"code": "DUB", "city": "Dublin"},

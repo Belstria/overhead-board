@@ -732,7 +732,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=3ed26bfc0b"></script>
+<script src="i18n.js?v=138a558a2f"></script>
 <script>
 (() => {
 "use strict";
@@ -794,14 +794,16 @@ const PALETTES = {heathrow: {ink: "#ffd23a", accent: "#ffd23a"}, solari: {ink: "
   ice: {ink: "#e6f3ff", accent: "#7cc4ff"}, sunset: {ink: "#ffe8d4", accent: "#ff8f5a"}};
 const STYLES = [
   // 1.72: unlocked by level, one by one (the game's points), and First Class by winning last week's league
-  ["palette", "Colours", [["", "Board colours"], ["heathrow", "Heathrow yellow", {lvl: 2}], ["solari", "Solari green", {lvl: 5}],
-    ["ice", "Ice blue", {lvl: 9}], ["sunset", "Sunset", {lvl: 12}]]],
-  ["finish", "Flaps", [["", "Standard flaps"], ["white", "Black on white", {lvl: 4}], ["brass", "Brass trim", {lvl: 7}],
-    ["enamel", "Worn enamel", {lvl: 11}], ["led", "LED dots", {lvl: 15}]]],
-  ["badge", "Title badge", [["", "No badge"], ["star", "Star", {lvl: 3}], ["prop", "Propeller", {lvl: 6}], ["heli", "Helicopter", {lvl: 10}],
-    ["jumbo", "Jumbo", {lvl: 13}], ["jet", "Fighter jet", {lvl: 16}], ["concorde", "Concorde", {lvl: 17}]]],
+  // 1.112 (to-do #174): spread out, styles on the even levels and badges on the odd ones (relay 96's STYLE_LVL the same);
+  // one a player unlocked by the old levels stays unlocked (g0.styleKept)
+  ["palette", "Colours", [["", "Board colours"], ["heathrow", "Heathrow yellow", {lvl: 2}], ["solari", "Solari green", {lvl: 4}],
+    ["ice", "Ice blue", {lvl: 10}], ["sunset", "Sunset", {lvl: 16}]]],
+  ["finish", "Flaps", [["", "Standard flaps"], ["white", "Black on white", {lvl: 2}], ["brass", "Brass trim", {lvl: 6}],
+    ["enamel", "Worn enamel", {lvl: 12}], ["led", "LED dots", {lvl: 18}]]],
+  ["badge", "Title badge", [["", "No badge"], ["star", "Star", {lvl: 3}], ["prop", "Propeller", {lvl: 7}], ["heli", "Helicopter", {lvl: 9}],
+    ["jumbo", "Jumbo", {lvl: 13}], ["jet", "Fighter jet", {lvl: 15}], ["concorde", "Concorde", {lvl: 19}]]],
   ["theme", "Board style", [["classic", "Classic"], ["frankfurt", "Frankfurt"], ["blue", "Blue"],
-    ["frankfurt70", "Frankfurt 1970s", {lvl: 8}], ["tokyo", "Tokyo night", {lvl: 14}], ["goldleaf", "Gold leaf", {lvl: 18}],
+    ["frankfurt70", "Frankfurt 1970s", {lvl: 8}], ["tokyo", "Tokyo night", {lvl: 14}], ["goldleaf", "Gold leaf", {lvl: 20}],
     ["firstclass", "First Class", {champ: 1}]]],
   // 1.110 (to-do #159): the phone app's ticket designs, the eras of flying, each unlocked by the first medal of its metal
   // (TROPHY_MEDALS' index: 1 silver to 4 diamond), from any ladder of trophies; a golden ticket stays gold foil in all
@@ -809,8 +811,9 @@ const STYLES = [
     ["magcard", "Magnetic card", {medal: 3}], ["holo", "Hologram", {medal: 4}]]]];
 const BADGE_IDS = STYLES.find(x => x[0] === "badge")[2].map(x => x[0]).filter(Boolean);
 const styleGame = () => (typeof lbData === "function" && lbData() || {}).game || null;
-// 1.60: a style the owner granted by hand (g0.styleGrants: "all" or a list of ids) counts like an earned one; pass no id for earned only.
-const styleOk = (rule, g0, id) => !rule || !!g0 && ((id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.lvl ? (g0.level || 0) >= rule.lvl : rule.champ ? !!g0.champion : rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : rule.medal ? medalWon(g0, rule.medal) : (g0.bingoCards || 0) >= rule.cards));
+// 1.60: a style the owner granted by hand (g0.styleGrants: "all" or a list of ids) counts like an earned one; earned: 1 for
+// earned only. 1.112: one kept from the old levels (g0.styleKept, relay 96) is earned.
+const styleOk = (rule, g0, id, earned) => !rule || !!g0 && ((!earned && id != null && (g0.styleGrants === "all" || (Array.isArray(g0.styleGrants) && g0.styleGrants.includes(id)))) || (rule.lvl ? (g0.level || 0) >= rule.lvl || (Array.isArray(g0.styleKept) && g0.styleKept.includes(id)) : rule.champ ? !!g0.champion : rule.pts ? (g0.points || 0) >= rule.pts : rule.tr ? !!(g0.trophies || {})[rule.tr] : rule.medal ? medalWon(g0, rule.medal) : (g0.bingoCards || 0) >= rule.cards));
 // 1.110: a medal of this metal won (a trophy at this place in any ladder: 1 silver, 2 gold, 3 platinum, 4 diamond).
 const medalWon = (g0, m) => TROPHY_LADDERS.some(L => L[2][m] && !!((g0 && g0.trophies) || {})[L[2][m][0]]);
 // 1.61: Colours and flap finishes apply only with the Classic board; another board style keeps its own (the choice
@@ -7009,7 +7012,7 @@ function achList(g0){
   const out = [];
   if (!g0) return out;
   for (const [, , opts] of styleKinds()) for (const [id, nm, rule] of opts)       // 1.59: a style unlocked
-    if (rule && styleOk(rule, g0)) out.push({k: "style:" + id, icon: "◆", title: T("New style unlocked"), text: T("{name} · Settings → Styles", {name: T(nm)})});
+    if (rule && styleOk(rule, g0, id, 1)) out.push({k: "style:" + id, icon: "◆", title: T("New style unlocked"), text: T("{name} · Settings → Styles", {name: T(nm)})});
   for (const s of g0.sets || []) if (s.total && (s.have || []).length >= s.total)
     out.push({k: "set:" + s.name, icon: "▣", title: T("Collection complete"), text: T("{name}: all {n} seen", {name: T(s.name), n: s.total})});
   const b = g0.bingo, bp = (b && b.paid) || null, tp = g0.trophyPaid || {};       // relay 83: what each paid (the latest lines)
@@ -7804,6 +7807,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.112", date: "2026-10-29", notes: [
+    "Ranks need rounder totals and the unlocks are spread out; anything you unlocked stays yours.",
+    "Mastery has four steps now, up to platinum at 100 scans, and rarer types pay a bigger bonus.",
+    "Your route shows the points for the next rank only; an empty showcase spot on your card takes you to the hangar.",
+    "The score strip shows your rank in front of the points."]},
   {v: "1.111.0.1", date: "2026-10-29", notes: [
     "A plane no longer shows the photo of an older aircraft that had its registration."]},
   {v: "1.111", date: "2026-10-29", notes: [

@@ -565,9 +565,17 @@ The main board has everything below. New features are tried on `/test/` first; o
   Logbook), and Styles. **Career path** (1.109): the strip's line names the next stop and what it opens ("Next stop
   Logkeeper · Black on white"); Your level shows a mini route (your stop, the plane with the points still to go, the
   next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route: a stop per level down a
-  line, solid where you've been and dashed ahead, each with its rank insignia, title, the points it opens at and what
-  it unlocks (the board colours, flaps, badges and board styles; showcase slots at 3, 5 and 8; standby at 6 and 14; a
-  gold name in the league at 19; the Legend cap at 20; then a stop every 27,756 points, each a star on the cap). A
+  line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
+  also with the lifetime points it opens at (since 1.112 only the next one). Since 1.112 the levels open at rounder
+  totals: 500, 1,000, 2,000, 3,000, 4,000, 5,500, 7,500, 10,000, 13,000, 17,000, 21,000, 27,000, 34,000, 43,000,
+  55,000, 70,000, 85,000, 110,000 and 135,000 (Legend), then a stop every 30,000 points, each a star on the cap; and
+  the unlocks are spread out: a style on every even level (2 Heathrow yellow and Black on white, 4 Solari green, 6
+  Brass trim and Standby once a week, 8 Frankfurt 1970s, 10 Ice blue, 12 Worn enamel, 14 Tokyo night and Standby twice
+  a week, 16 Sunset, 18 LED dots, 20 Gold leaf and the Legend cap), a badge or a showcase spot on the odd ones (3 Star,
+  5 showcase spot 1, 7 Propeller, 9 Helicopter, 11 spot 2, 13 Jumbo, 15 Fighter jet, 17 spot 3, 19 Concorde and a gold
+  name in the league). **Anything a player had stays theirs**: a level reached under the old totals is kept (its bar
+  starts at 0 until the points catch up), and so are the styles, badges and showcase spots it had unlocked. Since
+  1.112 the strip on the Now tab shows the rank insignia in front of the points (the wings only on the club's cards). A
   level-up is an arrival there: "Arrived at Logkeeper", a luggage tag for each thing it opened, the next stop, and
   **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
@@ -586,11 +594,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
   scanned) and the model. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
   shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
-  found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery): **bronze at 5, silver
-  at 25, gold at 100**, its frame in that metal and a thin bar under it to the next step. The scan that reaches a step
-  pays **+25, +100 or +250** once (in the day, the week and the level), and its ticket says so ("Airbus A321 ·
-  Silver +100"); the opened card shows the three steps with their bonuses and how far the next is ("13 of 25 scans to
-  silver"). Scans from before count for the frames; a step already passed then pays nothing. Since 1.106 the club has
+  found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery); since 1.112 in four
+  steps, **bronze at 10, silver at 25, gold at 50, platinum at 100**, its frame in that metal and a thin bar under it to
+  the next step. The scan that reaches a step pays that many points times the type's rarity, once (in the day, the week
+  and the level; a golden ticket doesn't double it): common 10, 25, 50, 100; uncommon 30, 75, 150, 300; rare 100, 250,
+  500, 1,000; very rare 250, 625, 1,250, 2,500; special 500, 1,250, 2,500, 5,000. Its ticket says so ("Airbus A321 ·
+  Silver +25"); the opened card shows the four steps with their bonuses and how far the next is ("13 of 25 scans to
+  silver"). Scans from before count for the frames; a step already passed then pays nothing, and a frame shown before
+  1.112 stays (a bronze from 5 scans isn't paid again at 10). Since 1.106 the club has
   **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
   Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
   Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). The best card is
@@ -605,8 +616,8 @@ countries still to stamp face down. Countries of earlier scans are stamped too, 
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. Since 1.108 a card has a **showcase**: up to three of the player's best
   catches pinned behind glass, each as its hangar card in miniature with the airline, the day and the route ("DXB → VIE").
-  The spots open at **levels 3, 5 and 8**; on your own card a locked spot says when it opens and how many points are
-  still to go. Pin from a plane's card in Your hangar (**Put in your showcase**; when every open spot is full, tap the
+  The spots open at **levels 5, 11 and 17** (3, 5 and 8 before 1.112; spots opened then stay); on your own card a locked
+  spot says when it opens and how many points are still to go, and an empty one takes you to Your hangar (1.112). Pin from a plane's card in Your hangar (**Put in your showcase**; when every open spot is full, tap the
   one to swap); the plane pinned is that type's best catch: a scanned one first, then one the game scored, then any,
   one with a known route before one without, then the first. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
