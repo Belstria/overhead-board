@@ -597,9 +597,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   scanned) and the model. Since 1.112 a type shows as a full card only **once you've scanned it**; one only seen
   overhead waits greyed like one still to find, saying "Still to scan" and when it was last overhead ("Last overhead 24
   Oct"). Each shelf lists the scanned ones first (newest first), then those still to scan (last overhead first), then
-  those still to find; its count and the hangar's line ("12 scanned · 30 still to scan") count scanned types. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
+  those still to find; its count and the hangar's line ("12 scanned · 30 still to scan") count scanned types. Since 1.103.0.1 the pictures load ahead (each shelf's first cards once the shelf comes into view, the rest of a
   shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
-  found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery); since 1.112 in four
+  found shows a helicopter. Model pictures found are kept for a week (1.114.6), so the next start shows them at once. Since 1.105 a card climbs with your **scans** of its type (mastery); since 1.112 in four
   steps, **bronze at 10, silver at 25, gold at 50, platinum at 100**, its frame in that metal and a thin bar under it to
   the next step. The scan that reaches a step pays that many points times the type's rarity, once (in the day, the week
   and the level; a golden ticket doesn't double it): common 10, 25, 50, 100; uncommon 30, 75, 150, 300; rare 100, 250,
