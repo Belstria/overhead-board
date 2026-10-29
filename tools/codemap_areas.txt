@@ -407,10 +407,10 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @g
     .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyWal .lyCard .lyFF
-    .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppNew.inked .ppNew.scr .ppDrop @ppLand @ppLift .ppTip @ppTip .scSc .scPick .scCab
+    .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd css:button.ppShelf.ppNone .ppNone
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
-    .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuBack .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater
+    .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gStripSetup gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
@@ -420,10 +420,10 @@ tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad 
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyFront lyAll walletHtml lyWire
-    worldLoad worldFailed worldMap PP_REG PP_ME PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath
-    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew
+    worldLoad worldFailed worldMap PP_REG PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath PP_CONT PP_TINT ppLat
+    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo
     SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
-    CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini gRoute careerRoute careerOpen
+    CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini careerOpen careerRouteList
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V
     TROPHY_LADDER TROPHY_IDS A320_FAMILY _hour trophy_counts trophy_check trophy_pass +_backfill_flights
     _backfill_trophies LH_GROUP GULF LOW_COST _al _tc BINGO BINGO_LINES _bingo_week _backfill_cards bingo_json

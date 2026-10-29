@@ -941,13 +941,13 @@ async function catFetch(){
   lbSig = ""; renderLogbook();
 }
 document.addEventListener("click", e => {
-  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbFound [data-fp]");
+  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbLists .lbTap, #lbFound [data-fp]");
   if (!t) return;
   ctlSound.click();
   if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
-  else if (t.dataset.co != null && t.classList.contains("catRow")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
+  else if (t.dataset.co != null && t.matches(".catRow, .lbTap")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
   else if (t.dataset.cr) { const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
@@ -1034,7 +1034,8 @@ function renderLogbook(){
   lbSig = sig;
   $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
-  const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  // 1.113 (to-do #185): a type, an airline or an aircraft opens what the same row inside a category opens (tap: data-*)
+  const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
   const g0 = all.game;                               // the collection, bingo and trophies count every place
   if (v === "logbook") {
@@ -1047,9 +1048,10 @@ function renderLogbook(){
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>");
     }
-    if (types.length) html += secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0)))));
-    if (airlines.length) html += secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0)))));
-    if ((b.regsTop || []).length) html += secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name))));
+    if (types.length) html += secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
+    if (airlines.length) html += secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
+      ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
+    if ((b.regsTop || []).length) html += secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
     if (!place) html = periodHtml() + html;
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
@@ -1140,7 +1142,9 @@ function lyWire(box, redraw){
    then a shelf per region, a stamp card for each country (its name, the airport, the day, in its ink) and up to three
    nearby countries not yet stamped face down. A tap on the map opens it large (Europe & around or the World, a bar per
    region). A scan that stamps a new country shows its route on the ticket, and a card on top presses the stamp and
-   inks the country in, unless the player rubs it in with a finger first (ppNew). Never on other players' cards. */
+   inks the country in (ppNew). Never on other players' cards.
+   1.113 (to-dos #178-#181): 13 regions; the map moves (drag, pinch) and a tap on a region goes to its shelf; every
+   country still to stamp listed; "N countries" opens the large map; the ink comes by itself. */
 let worldLoad = null, worldFailed = 0;
 function worldMap(){
   if (window.WORLD) return Promise.resolve(window.WORLD);
@@ -1153,8 +1157,14 @@ function worldMap(){
   });
   return worldLoad || Promise.resolve(null);
 }
-const PP_REG = [["E", "Europe"], ["M", "Middle East"], ["F", "Africa"], ["A", "Asia"], ["N", "Americas"], ["O", "Oceania"]];
-const PP_ME = new Set("AE BH IL IQ IR JO KW LB OM PS QA SA SY TR YE".split(" "));   // a country the map lacks: by its airport's continent, these the Middle East
+// 1.113 (to-do #179): 13 regions, as tools/world_map.py packs them. A country the map doesn't know goes by its airport's
+// continent (Gibraltar by hand). On the passport's map each region's land has its own paper (Dave's pick A).
+const PP_REG = [["WE", "Western Europe"], ["NE", "Northern Europe"], ["SE", "Southern Europe"], ["EE", "Eastern Europe"],
+  ["ME", "Middle East"], ["NAF", "North Africa"], ["SSA", "Sub-Saharan Africa"], ["CSA", "Central & South Asia"], ["EA", "East Asia"],
+  ["SEA", "Southeast Asia"], ["NCA", "North & Central America"], ["SAM", "South America"], ["OC", "Oceania"]];
+const PP_CONT = {EU: "WE", AF: "SSA", AS: "EA", NA: "NCA", SA: "SAM", OC: "OC"};
+const PP_TINT = {WE: "#eadcc0", NE: "#dfe2cc", SE: "#efd6c0", EE: "#dcdccd", ME: "#ecdcb5", NAF: "#efd2bd", SSA: "#dfe3c6", CSA: "#e6d7d6",
+  EA: "#efd6c0", SEA: "#dde2c8", NCA: "#dce0d3", SAM: "#efd6c0", OC: "#e4d8d8"};
 const PP_INK = ["#1f4fb8", "#b3262d", "#333", "#1f7a3c", "#6b3fa0", "#7a2416"];
 const PP_VIEW = {eu: [16, 46, 6.2], world: [12, 24, 1.02]};       // the map's centre (lon, lat) and its scale (px a degree)
 const ppHash = cc => [...cc].reduce((h, c) => h * 31 + c.charCodeAt(0), 7);
@@ -1175,7 +1185,7 @@ function ppInkAll(pp){
   }
 }
 const ppInk = cc => ppInks[cc] || PP_INK[ppHash(cc) % PP_INK.length];
-const ppReg = (cc, s) => (window.WORLD && window.WORLD[cc] ? window.WORLD[cc][0] : PP_ME.has(cc) ? "M" : {EU: "E", AF: "F", AS: "A", NA: "N", SA: "N", OC: "O"}[s && s[4]] || "A");
+const ppReg = (cc, s) => (window.WORLD && window.WORLD[cc] && window.WORLD[cc][0]) || (cc === "GI" ? "SE" : PP_CONT[s && s[4]] || "EA");
 let ppNames = null;
 function ppName(cc){
   try { ppNames = ppNames || new Intl.DisplayNames([LANG], {type: "region"}); return ppNames.of(cc) || cc; } catch { return cc; }
@@ -1183,15 +1193,19 @@ function ppName(cc){
 const ppDate = d => { try { return new Intl.DateTimeFormat(LANG === "en" ? "en-GB" : LANG, {day: "numeric", month: "short", year: "numeric"}).format(new Date(d + "T12:00")).toUpperCase(); } catch { return d; } };
 const ppToday = () => { const d = new Date(Date.now() - 3 * 3600e3); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const ppList = pp => Object.entries(pp || {}).sort((a, b) => String(b[1][0]).localeCompare(String(a[1][0])) || ppName(a[0]).localeCompare(ppName(b[0])));
-// A stamp, as on its card: round, a box or an oval (by the country), tilted, in the country's ink.
+// A stamp, as on its card: round, a box or an oval (by the country), tilted, in the country's ink. 1.113 (to-do #181):
+// a long name gets a smaller line (.lg), and the round one's plane sits above the name, so the date keeps inside the ring.
 function ppStamp(cc, s){
-  const h = ppHash(cc), sh = ["rd", "rc", "ov"][h % 3];
-  return `<span class="pS ${sh}" style="--ink-c:${ppInk(cc)};--r:${(h >> 3) % 21 - 10}deg"><small>${escH(ppName(cc))}</small><b>${escH(s[1] || cc)}</b>` +
-    `<i>${sh === "rd" ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${RK_PLANE}" fill="currentColor"/></svg>` : ""}${escH(ppDate(s[0]))}</i></span>`;
+  const h = ppHash(cc), sh = ["rd", "rc", "ov"][h % 3], nm = ppName(cc);
+  const plane = sh === "rd" ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${RK_PLANE}" fill="currentColor"/></svg>` : "";
+  return `<span class="pS ${sh}" style="--ink-c:${ppInk(cc)};--r:${(h >> 3) % 21 - 10}deg">${plane}<small${nm.length > 14 ? ' class="lg"' : ""}>${escH(nm)}</small>` +
+    `<b>${escH(s[1] || cc)}</b><i>${escH(ppDate(s[0]))}</i></span>`;
 }
 // The map: Mercator, the countries' outer rings (whole tenths of a degree), those outside the view left out.
 const ppMerc = la => Math.log(Math.tan(Math.PI / 4 + Math.max(-80, Math.min(84, la)) * Math.PI / 360)) * 180 / Math.PI;
-const ppView = (w, h, [lon, lat, k]) => ({w, h, k: [lon, lat, k].join(), x: lo => w / 2 + (lo - lon) * k, y: la => h / 2 - (ppMerc(la) - ppMerc(lat)) * k});
+const ppLat = m => Math.atan(Math.sinh(m * Math.PI / 180)) * 180 / Math.PI;
+const ppView = (w, h, [lon, lat, k]) => ({w, h, k: [lon, lat, k].join(), x: lo => w / 2 + (lo - lon) * k, y: la => h / 2 - (ppMerc(la) - ppMerc(lat)) * k,
+  lon: x => lon + (x - w / 2) / k, lat: y => ppLat(ppMerc(lat) - (y - h / 2) / k), s: k});
 function ppPath(v, cc){
   let out = "";
   for (const r of (window.WORLD[cc] || [])[3] || []) {
@@ -1205,16 +1219,26 @@ function ppPath(v, cc){
   }
   return out;
 }
-const ppLand = new Map();                                        // the paper's land, once a view
+const ppLand = new Map();                                        // the paper's land, once a view (and region)
 let ppUid = 0;
-// o.labels: the stamped countries' codes; o.fresh: countries still to ink (masked: ppNew soaks or scratches them in).
+// o.labels: the stamped countries' codes; o.fresh: countries still to ink (masked: ppNew inks them in); o.tint: each
+// region's land its own paper; o.hi: a region picked on the map, outlined.
 function ppMapSvg(pp, v, o = {}){
-  const id = "pp" + (++ppUid), fresh = o.fresh || [], have = Object.keys(pp).filter(c => !fresh.includes(c));
-  if (!ppLand.has(v.w + "," + v.h + "," + v.k)) ppLand.set(v.w + "," + v.h + "," + v.k, Object.keys(window.WORLD).map(c => ppPath(v, c)).join(""));
-  const ink = (c, more = "") => window.WORLD[c] ? `<path d="${ppPath(v, c)}" fill="${ppInk(c)}" fill-opacity=".8"${more}/>`
-    : pp[c] && pp[c][2] != null ? `<circle cx="${v.x(pp[c][3]).toFixed(1)}" cy="${v.y(pp[c][2]).toFixed(1)}" r="${o.labels ? 4 : 3}" fill="${ppInk(c)}"${more}/>` : "";
-  const lbl = c => { const w = window.WORLD[c]; if (!w) return ""; const x = v.x(w[1] / 10), y = v.y(w[2] / 10);
+  const W = window.WORLD, id = "pp" + (++ppUid), fresh = o.fresh || [], have = Object.keys(pp).filter(c => !fresh.includes(c));
+  const lk = v.w + "," + v.h + "," + v.k + (o.tint ? "t" : "");
+  if (!ppLand.has(lk)) {
+    if (ppLand.size > 30) ppLand.clear();                        // the moving map: a new view each time it stops
+    const by = {};
+    for (const c of Object.keys(W)) { const r = o.tint ? W[c][0] : ""; by[r] = (by[r] || "") + ppPath(v, c); }
+    ppLand.set(lk, by);
+  }
+  const land = Object.entries(ppLand.get(lk)).map(([r, d]) => `<path d="${d}" fill="${PP_TINT[r] || "#e6ddc7"}" stroke="#b5a98d" stroke-width=".5" stroke-linejoin="round"/>`).join("");
+  const dot = c => W[c] ? [v.x(W[c][1] / 10), v.y(W[c][2] / 10)] : pp[c] && pp[c][2] != null ? [v.x(pp[c][3]), v.y(pp[c][2])] : null;
+  const ink = (c, more = "") => { if (W[c] && W[c][3].length) return `<path d="${ppPath(v, c)}" fill="${ppInk(c)}" fill-opacity=".8"${more}/>`;
+    const p = dot(c); return p ? `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${o.labels || v.s > 4 ? 4 : 3}" fill="${ppInk(c)}"${more}/>` : ""; };
+  const lbl = c => { const p = W[c] && dot(c); if (!p) return ""; const [x, y] = p;
     return x < 6 || x > v.w - 6 || y < 6 || y > v.h - 6 ? "" : `<text x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}">${c}</text>`; };
+  const hi = o.hi ? Object.keys(W).filter(c => W[c][0] === o.hi) : [];
   return `<svg viewBox="0 0 ${v.w} ${v.h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>` +
     `<filter id="${id}r" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>` +
     `<feDisplacementMap in="SourceGraphic" in2="n" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="d"/>` +
@@ -1223,24 +1247,38 @@ function ppMapSvg(pp, v, o = {}){
     (fresh.length ? `<filter id="${id}b" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="12" result="n"/>` +
       `<feDisplacementMap in="SourceGraphic" in2="n" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter>` +
       `<mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="${v.w}" height="${v.h}"><g class="ppSoak" filter="url(#${id}b)" fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round"></g></mask>` : "") +
-    `</defs><path d="${ppLand.get(v.w + "," + v.h + "," + v.k)}" fill="#e6ddc7" stroke="#b5a98d" stroke-width=".5" stroke-linejoin="round"/>` +
+    `</defs>${land}` +
     `<g filter="url(#${id}r)" class="ppInk">${have.map(c => ink(c)).join("")}</g>` +
     (fresh.length ? `<g mask="url(#${id}m)" class="ppInk">${fresh.map(c => ink(c, ` filter="url(#${id}r)"`)).join("")}</g>` : "") +
-    `<path d="${have.filter(c => window.WORLD[c]).map(c => ppPath(v, c)).join("")}" fill="none" stroke="rgba(60,45,30,.35)" stroke-width=".5"/>` +
+    `<path d="${have.filter(c => W[c] && W[c][3].length).map(c => ppPath(v, c)).join("")}" fill="none" stroke="rgba(60,45,30,.35)" stroke-width=".5"/>` +
+    (hi.length ? `<g class="ppHi"><path d="${hi.map(c => ppPath(v, c)).join("")}"/>${hi.filter(c => !W[c][3].length).map(c => { const p = dot(c);
+      return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3"/>`; }).join("")}</g>` : "") +
     (o.labels ? `<g class="ppLbl">${have.map(lbl).join("")}</g>` : "") + `</svg>`;
 }
-// The countries of each region (the map's, and those stamped that it lacks, as dots).
+// The countries of each region (the map's, and those stamped that it lacks); places without an airport count nowhere.
 function ppTotals(pp){
   const t = {};
-  for (const c of new Set([...Object.keys(window.WORLD), ...Object.keys(pp)])) t[ppReg(c, pp[c])] = (t[ppReg(c, pp[c])] || 0) + 1;
+  for (const c of new Set([...Object.keys(window.WORLD), ...Object.keys(pp)])) { const r = ppReg(c, pp[c]); if (r && (pp[c] || window.WORLD[c][0])) t[r] = (t[r] || 0) + 1; }
   return t;
 }
-// Up to three countries of the region not yet stamped, those nearest a stamped one first (by the map's label points).
-function ppGoals(pp, reg, have){
-  const pts = have.map(c => window.WORLD[c]).filter(Boolean);
-  if (!pts.length) return [];
-  return Object.keys(window.WORLD).filter(c => !pp[c] && window.WORLD[c][0] === reg)
-    .map(c => [c, Math.min(...pts.map(p => Math.hypot(p[1] - window.WORLD[c][1], p[2] - window.WORLD[c][2])))]).sort((a, b) => a[1] - b[1]).slice(0, 3).map(x => x[0]);
+// 1.113 (to-do #180): every country of the region not stamped yet, those nearest a stamp first (by the map's label
+// points; with none in the region, the nearest to any), else by name.
+function ppGoals(pp, reg){
+  const W = window.WORLD, pts = Object.keys(pp).map(c => W[c] ? [W[c][1], W[c][2]] : pp[c][2] != null ? [pp[c][3] * 10, pp[c][2] * 10] : null).filter(Boolean);
+  const far = c => pts.length ? Math.min(...pts.map(p => Math.hypot(p[0] - W[c][1], p[1] - W[c][2]))) : 0;
+  return Object.keys(W).filter(c => !pp[c] && W[c][0] === reg).map(c => [c, far(c)])
+    .sort((a, b) => a[1] - b[1] || ppName(a[0]).localeCompare(ppName(b[0]))).map(x => x[0]);
+}
+// A region's shelf: its stamps, then a face-down card for every country still to stamp (Dave's pick A). A region without
+// stamps is one line until it is opened (a tap on it, or on the map).
+const ppOpen = new Set();                                        // regions without stamps opened
+const ppFace = c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`;
+function ppShelf(reg, name, have, goals, tot){
+  const op = ppOpen.has(reg), cards = have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("");
+  const head = `<div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} of {m}", {n: nf.format(have.length), m: nf.format(tot)}))}</em></div>`;
+  if (!have.length && !op) return `<button type="button" class="ppShelf ppNone" id="ppR-${reg}" data-ppopen="${reg}">${head.replace("</div>", "<i>›</i></div>")}</button>`;
+  const row = cards + goals.map(ppFace).join("");
+  return `<div class="ppShelf" id="ppR-${reg}">${head}${row ? `<div class="hgRow" data-set="pp-${reg}">${row}</div>` : ""}</div>`;
 }
 function passportHtml(g0){
   const pp = g0 && g0.passport;
@@ -1248,22 +1286,133 @@ function passportHtml(g0){
   if (!window.WORLD) worldMap().then(w => w && renderGame());
   ppInkAll(pp);
   const list = ppList(pp), n = list.length;
-  const map = `<button type="button" class="ppMap" data-ppmap aria-label="${escH(T("Open the map"))}">${window.WORLD ? ppMapSvg(pp, ppView(360, 190, PP_VIEW.eu)) : ""}` +
-    `<span class="ct">${escH(T(n === 1 ? "1 country" : "{n} countries", {n: nf.format(n)}))}</span><span class="lg">${escH(T("inked in each stamp's colour"))}</span></button>`;
+  // 1.113: the map is drawn and moved by ppLive; "N countries ›" opens the large map (ppCard)
+  const map = `<div class="ppMap" data-ppmap><div class="sv"></div><button type="button" class="ct" data-ppcard>${escH(T(n === 1 ? "1 country" : "{n} countries", {n: nf.format(n)}))} ›</button>` +
+    `<span class="lg">${escH(T("inked in each stamp's colour"))}</span><button type="button" class="ppReset" aria-label="${escH(T("Back to Europe"))}" hidden>⟲</button>` +
+    `<span class="ppSay" hidden></span></div>`;
   if (!n) return secPlate(T("Passport"), map + `<p class="sum">${escH(T("Scan a flight with a known route: the countries it flies from and to are stamped here."))}</p>`, "ppPlate");
-  const shelves = PP_REG.map(([reg, name]) => {
+  if (!window.WORLD) return secPlate(T("Passport"), map, "ppPlate");
+  const tot = ppTotals(pp), got = [], none = [];
+  for (const [reg, name] of PP_REG) {
     const have = list.filter(([c, s]) => ppReg(c, s) === reg);
-    if (!have.length) return "";
-    const goals = window.WORLD ? ppGoals(pp, reg, have.map(x => x[0])) : [];
-    return `<div class="ppShelf"><div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} stamped", {n: nf.format(have.length)}))}</em></div>` +
-      `<div class="hgRow" data-set="pp-${reg}">${have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("")}` +
-      goals.map(c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`).join("") + `</div></div>`;
-  }).join("");
-  return secPlate(T("Passport"), map + shelves, "ppPlate");
+    (have.length ? got : none).push(ppShelf(reg, name, have, ppGoals(pp, reg), tot[reg] || 0));
+  }
+  return secPlate(T("Passport"), map + got.join("") + (none.length ? `<div class="ppNoneHd">${escH(T("Not stamped yet"))}</div>` + none.join("") : ""), "ppPlate");
 }
 function ppWire(box){
-  const m = box.querySelector("[data-ppmap]");
-  if (m) m.onclick = ppCard;
+  const m = box.querySelector("[data-ppmap]"), pp = ((lbData() || {}).game || {}).passport;
+  if (m && pp && window.WORLD) ppLive(m, pp);
+  const c = box.querySelector("[data-ppcard]");
+  if (c) c.onclick = ppCard;
+  for (const b of box.querySelectorAll("[data-ppopen]")) b.onclick = () => {
+    ctlSound.click(); const r = b.dataset.ppopen;
+    if (ppOpen.has(r)) ppOpen.delete(r); else ppOpen.add(r);
+    renderGame();
+  };
+}
+// 1.113 (to-do #179): the passport's map moves inside its frame: a finger drags it, two pinch it (the wheel zooms on a
+// computer). The picture follows the fingers and is drawn anew where they let go, three times the frame each way so a
+// drag finds land already there; a tap picks the region under it.
+let ppPos = null;                                                // the map's view [lon, lat, scale] while the app runs
+const ppClamp = (w, h, [lon, lat, k]) => {
+  k = Math.max(w / 360, Math.min(24, k));
+  const hx = w / 2 / k, lo = ppMerc(-56), hi = ppMerc(80), hy = h / 2 / k, m = ppMerc(lat);
+  return [hx >= 180 ? 0 : Math.max(-180 + hx, Math.min(180 - hx, lon)), ppLat(hy * 2 >= hi - lo ? (lo + hi) / 2 : Math.max(lo + hy, Math.min(hi - hy, m))), k];
+};
+// The country under a point of the map (rings by the even-odd rule; a small one's dot within 12 px).
+function ppHit(v, x, y){
+  const W = window.WORLD, X = v.lon(x) * 10, Y = v.lat(y) * 10;
+  let dot = null, dd = 12;
+  for (const [c, w] of Object.entries(W)) {
+    for (const r of w[3]) {
+      let inside = false;
+      for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2)
+        if ((r[i + 1] > Y) !== (r[j + 1] > Y) && X < (r[j] - r[i]) * (Y - r[i + 1]) / (r[j + 1] - r[i + 1]) + r[i]) inside = !inside;
+      if (inside) return c;
+    }
+    if (!w[3].length) { const d = Math.hypot(v.x(w[1] / 10) - x, v.y(w[2] / 10) - y); if (d < dd) { dd = d; dot = c; } }
+  }
+  return dot;
+}
+function ppLive(el, pp){
+  const sv = el.querySelector(".sv"), pts = new Map(), reset = el.querySelector(".ppReset");
+  let v = null, t = [0, 0, 1], base = [], moved = 0, tDown = 0, hi = "";
+  const home = () => ppClamp(el.clientWidth || 360, el.clientHeight || 190, PP_VIEW.eu);
+  const draw = () => {
+    const w = el.clientWidth || 360, h = el.clientHeight || 190;
+    ppPos = ppClamp(w, h, ppPos || PP_VIEW.eu); v = ppView(w, h, ppPos); t = [0, 0, 1];
+    sv.style.cssText = `inset:auto;left:${-w}px;top:${-h}px;width:${3 * w}px;height:${3 * h}px;transform-origin:${w}px ${h}px`;
+    sv.innerHTML = ppMapSvg(pp, ppView(3 * w, 3 * h, ppPos), {tint: true, hi});
+    if (reset) reset.hidden = ppPos.map(x => x.toFixed(2)).join() === home().map(x => x.toFixed(2)).join();
+  };
+  const commit = () => {                                         // the picture where the fingers left it, drawn anew
+    const [tx, ty, s] = t;
+    if (!tx && !ty && s === 1) return;
+    ppPos = [v.lon((v.w / 2 - tx) / s), v.lat((v.h / 2 - ty) / s), ppPos[2] * s];
+    draw();
+  };
+  const at = e => { const b = el.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  const rebase = () => { commit(); base = [...pts.values()].map(p => [...p]); };
+  const zoom = s => Math.max((v.w / 360) / ppPos[2], Math.min(24 / ppPos[2], s));
+  el.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    pts.set(e.pointerId, at(e));
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    if (pts.size === 1) { moved = 0; tDown = Date.now(); }
+    rebase(); hgBusy = Date.now();
+  });
+  el.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId) || !base.length) return;
+    pts.set(e.pointerId, at(e));
+    const p = [...pts.values()];
+    if (p.length === 1 || base.length === 1) {
+      const dx = p[0][0] - base[0][0], dy = p[0][1] - base[0][1];
+      moved = Math.max(moved, Math.hypot(dx, dy)); t = [dx, dy, 1];
+    } else {
+      const m0 = [(base[0][0] + base[1][0]) / 2, (base[0][1] + base[1][1]) / 2], m1 = [(p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2];
+      const s = zoom(Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) / Math.max(1, Math.hypot(base[0][0] - base[1][0], base[0][1] - base[1][1])));
+      moved = 99; t = [m1[0] - m0[0] * s, m1[1] - m0[1] * s, s];
+    }
+    sv.style.transform = `translate(${t[0].toFixed(1)}px,${t[1].toFixed(1)}px) scale(${t[2].toFixed(4)})`;
+    hgBusy = Date.now();
+  });
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    const tap = e.type === "pointerup" && !pts.size && moved < 8 && Date.now() - tDown < 700;
+    rebase();
+    if (tap) { const [x, y] = at(e), c = ppHit(v, x, y), r = c && window.WORLD[c][0]; ppPick(el, r || "", draw, h => { hi = h; }); }
+  };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  el.addEventListener("wheel", e => {
+    e.preventDefault();
+    const [x, y] = at(e), s = zoom(Math.exp(-e.deltaY / 400));
+    t = [x - x * s, y - y * s, s]; commit();
+  }, {passive: false});
+  if (reset) reset.onclick = () => { ctlSound.click(); ppPos = null; hi = ""; draw(); };
+  draw();
+}
+// A region tapped on the map: outlined, its name and count for a moment, then the page goes to its shelf (an empty
+// region's opens). Dave's pick A.
+function ppPick(el, reg, draw, setHi){
+  const say = el.querySelector(".ppSay");
+  clearTimeout(ppPick.t);
+  if (!reg) { setHi(""); draw(); return; }
+  ctlSound.click(); setHi(reg); draw();
+  const pp = ((lbData() || {}).game || {}).passport || {}, name = (PP_REG.find(r => r[0] === reg) || [])[1] || "";
+  const n = Object.entries(pp).filter(([c, s]) => ppReg(c, s) === reg).length, m = ppTotals(pp)[reg] || 0;
+  say.textContent = `${T(name)} · ${T("{n} of {m}", {n: nf.format(n), m: nf.format(m)})}`; say.hidden = false;
+  ppPick.t = setTimeout(() => { say.hidden = true; ppGo(reg); }, 900);
+}
+// To a region's shelf, below the sticky top and the tabs; it lights up for a moment.
+function ppGo(reg){
+  if (!document.getElementById("ppR-" + reg)) return;
+  if (!document.querySelector(`#ppR-${reg} .hgRow, #ppR-${reg} .ppTo`)) { ppOpen.add(reg); hgBusy = 0; renderGame(); }
+  const el = document.getElementById("ppR-" + reg);
+  if (!el) return;
+  const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;
+  scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: REDUCED ? "auto" : "smooth"});
+  el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 let ppAt = "eu";
 function ppCard(){
@@ -1292,8 +1441,8 @@ function ppCard(){
 const ppRoute = rt => rt && rt.length === 2 ? `<div class="ppRt">${rt.map(([ap, cc, nw], i) => (i ? "<i></i>" : "") +
   `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${escH(ppName(cc))}${nw ? " · " + escH(T("NEW")) : ""}</small></b>`).join("")}</div>` : "";
 /* A country new to the passport, at the scan: a card over the scan's ticket, the map round the country. The stamp
-   comes down on it (fsThud) and the ink soaks in from where it landed; or, before it does, the player rubs it in
-   with a finger ("Scratch Spain in"). Left alone, or once the finger stops, it inks the rest itself. */
+   comes down on it (fsThud) and the ink soaks out from it over the country by itself (1.113, to-do #178, Dave's pick
+   A: the finger's scratch went). A tap inks it at once, a second sends the card away. */
 function ppNew(r){
   const nw = (r.route || []).filter(x => x[2]), g0 = (lbData() || {}).game;
   if (!nw.length) return;
@@ -1303,59 +1452,42 @@ function ppNew(r){
     const pp = {...((g0 && g0.passport) || {})}, ccs = nw.map(x => x[1]), c0 = ccs.find(c => W[c]) || ccs[0];
     for (const [ap, cc] of nw) pp[cc] = pp[cc] || [ppToday(), ap];
     ppInkAll(pp);
-    // the view: the country's largest ring, with room round it
+    // the view: the country's largest ring, with room round it (a small one's dot: a view round it)
     const ring = ((W[c0] || [])[3] || []).reduce((a, b) => b.length > a.length ? b : a, []);
     const xs = ring.filter((_, i) => i % 2 === 0).map(x => x / 10), ys = ring.filter((_, i) => i % 2).map(y => ppMerc(y / 10));
+    if (!xs.length && W[c0]) { xs.push(W[c0][1] / 10 - 2, W[c0][1] / 10 + 2); ys.push(ppMerc(W[c0][2] / 10 - 1.5), ppMerc(W[c0][2] / 10 + 1.5)); }
     const lon = xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 16, mid = ys.length ? (Math.min(...ys) + Math.max(...ys)) / 2 : ppMerc(46);
-    const lat = Math.atan(Math.sinh(mid * Math.PI / 180)) * 180 / Math.PI;
     const k = Math.max(1, Math.min(16, 340 / (Math.max(...xs, lon + 1) - Math.min(...xs, lon - 1)) / 1.5, 170 / (Math.max(...ys, mid + 1) - Math.min(...ys, mid - 1)) / 1.5));
-    const v = ppView(340, 170, [lon, lat, k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    const v = ppView(340, 170, [lon, ppLat(mid), k]), sx = W[c0] ? v.x(W[c0][1] / 10) : v.w / 2, sy = W[c0] ? v.y(W[c0][2] / 10) : v.h / 2;
+    // the country's box on the card: the soak reaches its far corner
+    const bx = xs.length ? [v.x(Math.min(...xs)), v.x(Math.max(...xs))] : [sx - 12, sx + 12];
+    const by = ys.length ? [v.h / 2 - (Math.max(...ys) - mid) * k, v.h / 2 - (Math.min(...ys) - mid) * k] : [sy - 12, sy + 12];
     const name = ccs.map(ppName).join(" · "), count = r.countries || Object.keys(pp).length;
     const el = document.createElement("div");
     el.className = "gAw ppNew"; el.setAttribute("role", "status");
     el.innerHTML = `<div class="hd"><span>${escH(T("PASSPORT · NEW STAMP"))}</span><b>+${nf.format(nw.length * ((gRules() || {}).country || 25))}</b></div>` +
       `<div class="ppMap"><div class="sv">${ppMapSvg(pp, v, {fresh: ccs})}</div>` +
-      `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span>` +
-      `<span class="ppTip">${escH(T("Scratch {c} in", {c: ppName(c0)}))}</span></div>` +
+      `<span class="ppDrop" style="left:${sx.toFixed(0)}px;top:${sy.toFixed(0)}px">${ppStamp(c0, pp[c0])}</span></div>` +
       `<div class="ft">${escH(ccs.length > 1 ? T("{c}: new to your passport. {n} countries now.", {c: name, n: nf.format(count)})
         : T("{c}: country {n} in your passport.", {c: name, n: nf.format(count)}))}</div>`;
     const box = $("gAws");
     box.appendChild(el); gTixStack();
-    const soak = el.querySelector(".ppSoak"), mapEl = el.querySelector(".ppMap"), still = fsStill();
-    const NS = "http://www.w3.org/2000/svg", blot = document.createElementNS(NS, "circle");
-    blot.setAttribute("cx", sx.toFixed(1)); blot.setAttribute("cy", sy.toFixed(1)); blot.setAttribute("r", "0");
-    soak.appendChild(blot);
-    let raf = 0, auto = 0, done = false, line = null, scratched = false;
-    const full = Math.hypot(Math.max(sx, v.w - sx), Math.max(sy, v.h - sy)) + 30;
-    const inkIn = (ms = 1600) => {                                   // the rest soaks in from the stamp
-      if (done) return;
-      done = true; el.classList.add("inked"); clearTimeout(auto);
-      const t0 = performance.now(), r0 = +blot.getAttribute("r");
-      const step = t => { const f = Math.min(1, (t - t0) / ms); blot.setAttribute("r", (r0 + (full - r0) * (1 - Math.pow(1 - f, 3))).toFixed(1)); if (f < 1) raf = requestAnimationFrame(step); };
-      if (still) blot.setAttribute("r", full.toFixed(1)); else raf = requestAnimationFrame(step);
+    const soak = el.querySelector(".ppSoak"), still = fsStill(), NS = "http://www.w3.org/2000/svg";
+    const blot = document.createElementNS(NS, "circle"), full = Math.hypot(Math.max(sx - bx[0], bx[1] - sx), Math.max(sy - by[0], by[1] - sy)) + 24;
+    blot.setAttribute("cx", sx.toFixed(1)); blot.setAttribute("cy", sy.toFixed(1)); blot.setAttribute("r", "0"); soak.appendChild(blot);
+    let raf = 0, done = false;
+    const paint = p => blot.setAttribute("r", (full * (1 - Math.pow(1 - p, 2))).toFixed(1));   // p: the ink so far, 0 to 1
+    const finish = () => { if (done) return; done = true; cancelAnimationFrame(raf); paint(1); };
+    const inkIn = () => {
+      if (still) return finish();
+      const t0 = performance.now(), step = t => { const p = Math.min(1, (t - t0) / 1700); paint(p); if (p >= 1) finish(); else if (!done) raf = requestAnimationFrame(step); };
+      raf = requestAnimationFrame(step);
     };
-    const wait = ms => { clearTimeout(auto); auto = setTimeout(() => inkIn(), ms); };
-    // the finger: each stroke inks a broad band under it; the stamp's own soak waits until it stops
-    const at = e => { const b = mapEl.getBoundingClientRect(), s = Math.max(v.w / b.width, v.h / b.height); return [v.w / 2 + (e.clientX - b.left - b.width / 2) * s, v.h / 2 + (e.clientY - b.top - b.height / 2) * s]; };
-    mapEl.addEventListener("pointerdown", e => {
-      if (done) return;
-      e.stopPropagation(); clearTimeout(auto);
-      if (!scratched) { scratched = true; el.classList.add("scr"); }
-      line = document.createElementNS(NS, "polyline");
-      line.setAttribute("fill", "none"); line.setAttribute("stroke-width", String(Math.max(18, k * 1.6)));
-      line.setAttribute("points", at(e).map(x => x.toFixed(1)).join(","));
-      soak.appendChild(line);
-      try { mapEl.setPointerCapture(e.pointerId); } catch {}
-    });
-    mapEl.addEventListener("pointermove", e => { if (line && !done) line.setAttribute("points", line.getAttribute("points") + " " + at(e).map(x => x.toFixed(1)).join(",")); });
-    const up = () => { if (line) { line = null; wait(1800); } };
-    mapEl.addEventListener("pointerup", up); mapEl.addEventListener("pointercancel", up);
-    mapEl.addEventListener("click", e => e.stopPropagation());
-    const out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); clearTimeout(auto); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350); };
-    el.onclick = () => (done ? out() : inkIn(500));
+    const out = () => { if (!el.isConnected || el.classList.contains("out")) return; cancelAnimationFrame(raf); el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); }, 350); };
+    el.onclick = () => (done ? out() : finish());
     setTimeout(() => { fsThud(); try { navigator.vibrate && navigator.vibrate(30); } catch {} }, still ? 0 : 640);   // as the stamp lands
-    wait(still ? 300 : 3200);                                        // time to put a finger on it
-    el.outT = setTimeout(function later(){ if (line || (!done && scratched)) { el.outT = setTimeout(later, 2000); return; } out(); }, TIX_MS + 4000);
+    setTimeout(inkIn, still ? 0 : 760);
+    el.outT = setTimeout(out, TIX_MS + 4000);
   });
 }
 /* 1.81 (Dave's to-do 4, his mix of C and B): Your hangar. The Sets list as shelves you swipe, one per set, with a
@@ -2932,14 +3064,15 @@ function cardSheetClose(b){
 // The finger on a card: down from its top (when it isn't scrolled) drags it; let go past 90 px, or flicked, it goes,
 // else it springs back. 1.78.1: pulled up where it can't scroll any further (a short card, or at its end) it gives a
 // little against a spring and comes back when let go; both ways in one movement. A scrolling card keeps its scroll to
-// itself, and a finger on the dark beside it moves nothing: the page behind never scrolls.
+// itself, and a finger on the dark beside it moves nothing: the page behind never scrolls. 1.113: a card whose part
+// scrolls by itself (.cScroll, Your route) is judged by that part; on its fixed head the finger drags the card.
 { let drag = null, dragged = 0;
   document.addEventListener("touchstart", e => {
     const box = $("cardBox");
     if (!box || box.hidden) { drag = null; return; }
-    const ci = e.target.closest && e.target.closest("#cardBox .cardIn"), y = e.touches[0].clientY;
+    const ci = e.target.closest && e.target.closest("#cardBox .cardIn"), y = e.touches[0].clientY, sc = ci && (e.target.closest("#cardBox .cScroll") || ci);
     drag = !ci ? {beside: true}
-      : {ci, y0: y, on: false, top: ci.scrollTop <= 0, end: ci.scrollTop + ci.clientHeight >= ci.scrollHeight - 1, dy: 0, v: 0, lt: performance.now(), ly: y};
+      : {ci, y0: y, on: false, top: sc.scrollTop <= 0, end: sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1, dy: 0, v: 0, lt: performance.now(), ly: y};
   }, {passive: true});
   document.addEventListener("touchmove", e => {
     if (!drag) return;
@@ -4365,7 +4498,6 @@ function showTab(t){
   tab = t;
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
-  if (t !== "game") gRoute = false;                  // 1.109: the club opens at its top again, not on Your route
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
   HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
   clearInterval(tabTimer); tabTimer = null;
@@ -4546,18 +4678,19 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
     if (tab === "logbook" && dx < 0 && gameOk()) showTab("game"); else if (tab === "game" && dx > 0) showTab("logbook");
   }, {passive: true}); }
-// 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back.
+// 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back. 1.113 (to-do #183):
+// to the left too.
 { let sw = null;
   // 1.98: the points passes and the tickets too (their slide-in holds `transform`, so they move by `translate`)
   const shift = (t, x) => { if (t.classList.contains("gAw")) t.style.translate = x ? x + " 0" : ""; else t.style.transform = x ? `translateX(${x})` : ""; };
   const start = (t, x) => { sw = {t, x0: x, dx: 0}; t.style.transition = "none"; };
-  const move = x => { if (!sw) return; sw.dx = Math.max(0, x - sw.x0); shift(sw.t, sw.dx + "px"); sw.t.style.opacity = String(Math.max(.2, 1 - sw.dx / 260)); };
+  const move = x => { if (!sw) return; sw.dx = x - sw.x0; shift(sw.t, sw.dx + "px"); sw.t.style.opacity = String(Math.max(.2, 1 - Math.abs(sw.dx) / 260)); };
   const end = () => {
     if (!sw) return;
     const {t, dx} = sw; sw = null; t.style.transition = "";
-    if (dx > 8) t.swiped = true;                      // no tap after a swipe (a mouse)
-    if (dx > 60) {
-      shift(t, "120%"); t.style.opacity = "0";
+    if (Math.abs(dx) > 8) t.swiped = true;            // no tap after a swipe (a mouse)
+    if (Math.abs(dx) > 60) {
+      shift(t, dx > 0 ? "120%" : "-120%"); t.style.opacity = "0";
       if (t.classList.contains("gAw")) { clearTimeout(t.outT); gTixOut.delete(t); setTimeout(() => { t.remove(); gTixStack(); gTixBack(); }, 260); }
       else setTimeout(() => t.remove(), 260);
     } else { shift(t, ""); t.style.opacity = ""; }
@@ -4712,11 +4845,13 @@ function careerMini(g){
     (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("At the next stop"))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "") +
     `<button class="gHow" type="button" id="cuOpen">${escH(T("Your route · all {n} stops", {n: 20}))}<i>›</i></button>`;
 }
-// The route (a page of the club, from Your level): a stop per level down a line, solid where you've been and dashed
-// ahead, each with its insignia, title, the points it opens at (the next stop only, 1.112) and its unlocks; the plane between your stop and
-// the next with what is left to go. Past Legend: the stops up to your next one.
-var gRoute = false;                                     // var: showTab (earlier in the file) resets it
-function careerRoute(g){
+// The route: a stop per level down a line, solid where you've been and dashed ahead, each with its insignia, title, the
+// points it opens at (the next stop only, 1.112) and its unlocks; the plane between your stop and the next with what is
+// left to go. Past Legend: the stops up to your next one.
+// 1.113 (to-do #184, Dave's pick B, kept at its height): a sheet over the club (the info cards' cardOpen: the grip, ✕,
+// swiped down, back), no longer a page of it; opened by the level card's "Your route" row at half the screen's height,
+// scrolled to your stop. Only the route scrolls (.cScroll): the grip, the title and ✕ stay on top.
+function careerRouteList(g){
   const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0;
   const row = n => {
     const c = n < lv ? "done" : n === lv ? "cur" : n === lv + 1 ? "nx" : "lk", un = careerAt(n);
@@ -4725,14 +4860,19 @@ function careerRoute(g){
       `<span>${un.length ? cuUnl(un, 18) : `<span class="cuUn">${escH(T("The start"))}</span>`}</span></span>${rankIns(n, 30)}` +
       (c === "cur" ? `<span class="cuPl">${CU_PLANE}<em>${escH(cuToGo(g))}</em></span>` : "") + `</li>`;
   };
-  return `<button type="button" class="cuBack" id="cuBack">‹ ${escH(T("Spotters' Club"))}</button>` + secPlate(T("Your route"),
-    `<ol class="cuRt">${Array.from({length: Math.max(20, lv + 1)}, (_, i) => row(i + 1)).join("")}</ol>` +
-    `<p class="sum">${escH(T("After Legend, a stop every {n} points, each a star on the cap.", {n: nf.format(careerPts(21) - careerPts(20))}))}</p>`, "cuPlate");
+  return `<ol class="cuRt">${Array.from({length: Math.max(20, lv + 1)}, (_, i) => row(i + 1)).join("")}</ol>` +
+    `<p class="sum">${escH(T("After Legend, a stop every {n} points, each a star on the cap.", {n: nf.format(careerPts(21) - careerPts(20))}))}</p>`;
 }
 function careerOpen(){
-  ctlSound.nav(); gRoute = true; renderGame();
-  const cur = document.querySelector(".cuRt li.cur");
-  if (cur) cur.scrollIntoView({block: "center"});
+  const g = gme;
+  if (!g) return;
+  ctlSound.nav();
+  cardOpen(`<div class="cuSheet"><div class="cHead"><div><h3>${escH(T("Your route"))}</h3><span>${escH(T("Level {n}", {n: g.level}))} · ${escH(rankTitle(g.level))}</span></div></div>` +
+    `<div class="cScroll">${careerRouteList(g)}</div></div>`, ci => {
+    ci.classList.add("cuHalf");
+    requestAnimationFrame(() => { const cur = ci.querySelector(".cuRt li.cur"), sc = ci.querySelector(".cScroll");
+      if (cur) sc.scrollTop = Math.max(0, cur.getBoundingClientRect().top - sc.getBoundingClientRect().top - sc.clientHeight / 3); });
+  });
 }
 /* 1.110 (to-do #160, Dave's pick A): Settings → Styles as a gallery, a page over Settings like About (stylesCard hands
    over to it in the app; the TVs and the light version keep the 1.61 card). Tabs Board · Ticket · Badge (the league's
@@ -5167,7 +5307,7 @@ function gLevelUp(g, from){
   if (!box) { box = document.createElement("div"); box.id = "gLvUp"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
   const lv = g.level, was = Math.max(1, Math.min(lv - 1, from || lv - 1)), got = [];
   for (let n = was + 1; n <= lv; n++) got.push(...careerAt(n));
-  const tags = got.slice(0, 3).map((r, i) => `<div class="cuTag" style="--r:${i % 2 ? 1.5 : -2}deg;--d:${(1.1 + i * .25).toFixed(2)}s">${careerIco(r, 48)}` +
+  const tags = got.slice(0, 3).map((r, i) => `<div class="cuTag" style="--d:${(1.1 + i * .25).toFixed(2)}s">${careerIco(r, 48)}` +
     `<span><small>${escH(T("Lv{n} · Unlocked", {n: r[0]}))}</small><b>${escH(careerName(r))}</b><span>${escH(T(CAREER_KIND[r[1]] || ""))}</span></span></div>`).join("");
   box.innerHTML = `<div class="lvBox cuArrive"><span class="eyebrow">${escH(T("Level up"))}</span>${rankIns(lv, 48, {wings: g.wings})}` +
     `<h3>${escH(T("Arrived at {t}", {t: rankTitle(lv)}))}</h3>` +
@@ -5185,7 +5325,7 @@ function gLevelUp(g, from){
     const r = got[0], style = STYLES.some(([k]) => k === r[1]);
     close(); ctlSound.nav();
     if (style) stylesCard(r[1]);
-    else { gRoute = false; showTab("game"); window.scrollTo(0, 0); }
+    else { showTab("game"); window.scrollTo(0, 0); }
   };
   gLvT = setTimeout(close, 20000);
 }
@@ -5238,12 +5378,6 @@ function renderGame(){
   if (tab !== "game") return;
   const g = gme, all = lbData() || {}, g0 = all.game;
   if (!g) { $("gameBox").innerHTML = `<p class="sum">${escH(T("Loading …"))}</p>`; return; }
-  if (gRoute) {                                              // 1.109: Your route, a page of the club
-    const box = $("gameBox"), h = careerRoute(g);
-    if (box.dataset.h !== h) { box.dataset.h = h; box.innerHTML = h; }
-    $("cuBack").onclick = () => { ctlSound.nav(); gRoute = false; renderGame(); window.scrollTo(0, 0); };
-    return;
-  }
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)

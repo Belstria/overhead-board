@@ -948,6 +948,28 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.113 (to-dos #178–#181, #183–#185, #188, Dave's batch of 29 Oct; no relay change): **the passport moves, Your route is
+  a sheet.** #179: `tools/world_map.py` packs 13 regions from the UN subregions (`REGION`, `OWN`: Cyprus SE, the Caucasus
+  EE, Iran ME; places without an airport region "") and adds 1:50m's small countries as label points without rings
+  (236 countries); `PP_REG` [code, name], `PP_CONT` (continent fallback, Gibraltar SE), `PP_TINT` (Dave's pick A: each
+  region's paper, `ppMapSvg`'s `o.tint`, `ppLand` cached per view and tint, cleared past 30). `ppMapSvg` draws a ring-less
+  country as a dot and `o.hi` (`.ppHi`) outlines a region. `ppLive(el, pp)` (from `ppWire`): pointer drag and two-finger
+  pinch move `.sv` by CSS transform, drawn anew at the end (`commit`, `ppClamp`, `ppPos` kept while the app runs) at three
+  times the frame each way; wheel zooms; `hgBusy` holds renderGame meanwhile; a tap (< 8 px, < 700 ms) → `ppHit` (even-odd
+  rings, else a dot within 12 px) → `ppPick`: outline, `.ppSay` "Region · n of m" for 0.9 s, `ppGo(reg)` scrolls under the
+  sticky top and tabs and lights the shelf (`.ppShelf.hit`, @ppHit), opening a region without stamps. `.ppReset` ⟲ back
+  to `PP_VIEW.eu`; `[data-ppcard]` "N countries ›" opens `ppCard`. #180 (pick A): `ppGoals(pp, reg)` every unstamped
+  country of the region, nearest any stamp first; `ppShelf` adds a face-down `ppFace` card for each after the stamps;
+  regions without stamps come last under "Not stamped yet" as `button.ppShelf.ppNone` lines (`ppOpen`). #178 (pick A):
+  `ppNew` lost the finger (`.ppTip`, `.scr`); the blot soaks out from the stamp to the country's far corner (`bx`/`by`,
+  1.7 s, 760 ms after the stamp drops); a tap inks it at once. #181: `.pCard` centres by flex (the grid track grew to the
+  stamp's width and pushed it right); `.pS.rc` a fixed 136 px; the round stamp's plane above the name, `small.lg` for
+  names over 14 letters, tighter dates. #184 (pick B, kept at its height): `careerOpen` opens `careerRouteList(g)` in a
+  `cardOpen` sheet `.cardIn.cuHalf` (55dvh, a flex column), scrolled to your stop; only `.cScroll` scrolls, so the grip,
+  title and ✕ stay on top (the sheet's touch handler judges a drag by the `.cScroll` under the finger, else the card);
+  `gRoute`, `careerRoute` and `#cuBack` went. #183: the
+  notice/ticket swipe takes `dx` either way (`shift` ±120%). #185: the Logbook's type, airline and aircraft rows are `.lbTap`
+  with `data-ct`/`data-co`/`data-cr` and go through the categories' click handler. #188: `.cuTag` without `--r`.
 - 1.112.0.1 (to-do #186, #187; Dave's phone, 29 Oct): **no text selection; Sky view's heading can't turn NaN.**
   #186: a tap on a scan ticket's points selected "105" and Chrome's Touch to Search sheet opened. The app's `html` (head.html)
   and the test board's `body` have `user-select: none` and `-webkit-touch-callout: none`; `input`, `textarea` and
