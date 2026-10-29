@@ -965,7 +965,12 @@ The repository is public: no addresses, keys or personal data here either.
   `[[10, 10], [25, 25], [50, 50], [100, 100]]` ([scans, bonus at ×1]), `MST_NAME`/`MST_TO` with Platinum; `mstMul(tier)`
   (`rules.base` / 10); `mstOf(n, kept)` (the hangar's `t.m`, a step kept from before), `mstNext(n, kept, tier)`,
   `mstHtml(n, tier, kept)` with `t.mt` (the type's rarity, Dave's call: the same at every step; its heading says it, "Mastery · Special ×50"); `.mk4` (`--m-platinum`), `.mkSteps` four columns; the How
-  card's Mastery line only with four steps from the relay. `run_test_relay.py --club`: the Test profile with an
+  card's Mastery line only with four steps from the relay. #177 (Dave: "only shown once I've scanned them"):
+  `hangarHtml` draws a full card only for a type with `t.scans`; one seen but not scanned is the greyed `.hgCard.back`
+  with "still to scan" and "Last overhead {d}" (`t.last`, relay 96; `fmtDay`); each shelf orders scanned (by `first`),
+  still to scan (by `last`), still to find, and counts scanned types (Other types too, "n / seen"); the summary "{n}
+  scanned · {m} still to scan". Display only: the game's sets (`g0.sets`, the "Collection complete" notices) and the
+  Completionist trophy (`allsets`) still count the types the game scored. `run_test_relay.py --club`: the Test profile with an
   old-rules game (9,950 points: level 9 kept; mastery up to platinum).
 - 1.111.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
   A95534) showed Planespotters' photo of the Bombardier Global that had the registration before. `psPhoto(reg, hex,
@@ -1534,7 +1539,7 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
   `styleKept`. `MASTERY` (10, 25, 50, 100); `game_lockon` pays `MASTERY[k - 1] × TIER_BASE[mt] // 10` with `mt =
   tier_of({}, {"typeCode": TC})` (the type's rarity, not the plane's; the line has `tier`; not doubled by gold);
   `mastery_step` 0–4; `game_rules()["mastery"]` `[[at, at]]`; the hangar's types have `m` (the step paid or passed) and
-  `mt`. No rescoring (`GAME3_V`, `GAME_V` unchanged). flows.py: `ranks_checks`, `mastery_checks` for the new steps.
+  `mt`, and (to-do #177) `last`, the type's last sighting (its first when none). No rescoring (`GAME3_V`, `GAME_V` unchanged). flows.py: `ranks_checks`, `mastery_checks` for the new steps.
 - Relay 95 (1.111.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
   `_ps_first`) keeps every photo of the registration with the makers its page name gives after the registration
   (`_ps_makers`: whole dash-separated words from `PS_MAKERS`, families such as Boeing with McDonnell Douglas, Bombardier

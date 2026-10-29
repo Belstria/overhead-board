@@ -1419,13 +1419,19 @@ function mstHtml(n, tier, kept){
     (nx ? mstBar(nx.f) + `<div class="mkBarT"><b>${escH(T(MST_TO[nx.k], {n: nf.format(n || 0), m: nf.format(nx.at)}))}</b><span>+${nf.format(nx.p)}</span></div>`
       : `<div class="mkBarT"><b>${escH(T("Platinum: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
 }
+// 1.112 (to-do #177, Dave: "only shown once I've scanned them"): a type is a full card once Sky view scanned it; one only
+// seen overhead waits greyed as "still to scan" with when it was last overhead (relay 96's t.last); never seen: "still
+// to find". Each shelf: scanned (newest first), still to scan (last overhead first), still to find; its count is the
+// scanned ones. Display only: the game's sets and trophies count as before.
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
+  const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
-      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+      `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
+      (t && t.last ? `<small>${escH(T("Last overhead {d}", {d: fmtDay(t.last)}))}</small>` : "") + `</button>`;
     const mk = mstOf(t.scans, t.m), nx = t.scans ? mstNext(t.scans, t.m, t.mt) : null;
     return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
@@ -1435,14 +1441,18 @@ function hangarHtml(hg){
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
     `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
+  const order = codes => {
+    const by1 = (k, f) => codes.filter(f).sort((a, b) => (by.get(b)[k] || 0) - (by.get(a)[k] || 0));
+    return [...by1("first", scanned), ...by1("last", seen), ...codes.filter(c => !by.has(c))];
+  };
   const shelves = (hg.sets || []).map(s => {
-    const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
-    return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
+    const n = s.types.filter(scanned).length;
+    return shelf(s.name, T(s.name), order(s.types), `${n} / ${s.types.length}`, n >= s.types.length);
   });
   const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
-  if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
-  const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
-  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
+  if (other.length) shelves.push(shelf("_other", T("Other types"), order(other), `${other.filter(scanned).length} / ${other.length}`));
+  const all = (hg.types || []).map(t => t.code), n = all.filter(scanned).length;
+  return secPlate(T("Your hangar"), `<p class="sum">${escH(T("{n} scanned · {m} still to scan", {n: nf.format(n), m: nf.format(all.length - n)}))}</p>${shelves.join("")}`, "hgPlate");
 }
 // The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){

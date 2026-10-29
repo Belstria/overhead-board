@@ -2051,6 +2051,7 @@ def hangar_json(spot):
     for tc, t in types.items():
         e = first.get(tc) or {}
         out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0), "game": game.get(tc, 0),
+                    "last": t.get("last") or t.get("first"),   # relay 96 (to-do #177): last overhead (the hangar's "Last overhead")
                     "scans": scans.get(tc, 0), "m": mast.get(tc, 0), "mt": tier_of({}, {"typeCode": tc}),   # relay 96: mastery's rarity
                     "tier": e.get("tier") or tier_of({}, {"typeCode": tc}), "reg": e.get("reg") or "", "hex": e.get("hex") or "",
                     "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or "",

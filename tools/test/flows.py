@@ -1027,6 +1027,11 @@ def mastery_checks(expect):
         expect("... the hangar's scans, steps and the type's rarity",
                {t["code"]: (t["scans"], t["m"], t["mt"]) for t in serve.hangar_json(sp)["types"] if t["code"] in ("A320", "B738", "B744")},
                {"A320": (105, 4, "common"), "B738": (10, 1, "common"), "B744": (100, 4, "legendary")})
+        hl = {t["code"]: t["last"] for t in serve.hangar_json(sp)["types"]}
+        with serve._data_lock:
+            want = {tc: (t.get("last") or t.get("first")) for tc, t in serve.game_book(sp.book())["types"].items()}
+        expect("... and when each was last overhead (relay 96, to-do #177: the hangar's \"Last overhead\")",
+               (hl, all(isinstance(v, int) for v in hl.values())), (want, True))
         # a golden ticket doubles the scan, not the mastery step
         serve.game_gold = lambda d, h: True
         r = [scan(sp, "A321") for _ in range(10)][-1]

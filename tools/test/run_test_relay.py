@@ -146,7 +146,8 @@ def main():
         t0, today = int((now - 86400 * 20) * 1000), time.strftime("%Y-%m-%d", time.localtime(now - 3 * 3600))
         names = {"A320": "Airbus A320", "B744": "Boeing 747-400", "DH8D": "Dash 8-400", "E195": "Embraer 195", "B789": "Boeing 787-9"}
         scans = {"A320": 120, "B744": 60, "DH8D": 7, "E195": 30, "B789": 3}
-        types = {tc: {"count": n + 2, "first": t0 + i, "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}
+        types = {tc: {"count": n + 2, "first": t0 + i, "last": t0 + 86400000 * (5 + i), "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}
+        types["B77W"] = {"count": 2, "first": t0, "last": t0 + 86400000 * 12, "name": "Boeing 777-300ER"}   # seen, never scanned
         (tmp / "data" / "profiles" / "test0001" / "logbook.json").write_text(json.dumps({
             "since": day, "startedTs": now - 86400 * 20, "sightings": 230, "types": types, "airlines": {}, "regs": {},
             "gameV": v["GAME_V"], "recordsV": 1, "trophiesV": v["TROPHIES_V"], "cardsV": 1, "flightsV": 1,

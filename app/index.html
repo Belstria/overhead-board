@@ -1457,6 +1457,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT .hgL.no{color:#5d636c}
 .hgCard.back b{font:700 var(--fs-xl)/1 var(--f-board);color:#5d636c;letter-spacing:.06em}
 .hgCard.back span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:#5d636c}
+.hgCard.back small{font:500 var(--fs-xs)/1.2 var(--f-board);color:#7d838c}   /* 1.112: "Last overhead 29 Oct" under "still to scan" */
 /* 1.105 (to-do #149, Dave's pick A without the medal on the photo): mastery. A card's frame in its metal, a little bolder
    than the plain card's line (3 px); a thin bar to the next step; on the opened card the three steps, on a scan's ticket
    the step reached */
@@ -2335,7 +2336,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=138a558a2f"></script>
+<script src="../test/i18n.js?v=71508ab921"></script>
 <script>
 (() => {
 "use strict";
@@ -8275,13 +8276,19 @@ function mstHtml(n, tier, kept){
     (nx ? mstBar(nx.f) + `<div class="mkBarT"><b>${escH(T(MST_TO[nx.k], {n: nf.format(n || 0), m: nf.format(nx.at)}))}</b><span>+${nf.format(nx.p)}</span></div>`
       : `<div class="mkBarT"><b>${escH(T("Platinum: {n} scans", {n: nf.format(n || 0)}))}</b></div>`) + `</div>`;
 }
+// 1.112 (to-do #177, Dave: "only shown once I've scanned them"): a type is a full card once Sky view scanned it; one only
+// seen overhead waits greyed as "still to scan" with when it was last overhead (relay 96's t.last); never seen: "still
+// to find". Each shelf: scanned (newest first), still to scan (last overhead first), still to find; its count is the
+// scanned ones. Display only: the game's sets and trophies count as before.
 function hangarHtml(hg){
   const by = new Map((hg.types || []).map(t => [t.code, t])), inSet = new Set((hg.sets || []).flatMap(s => s.types));
+  const scanned = c => !!(by.get(c) && by.get(c).scans), seen = c => by.has(c) && !scanned(c);
   const card = (code, heli, eager) => {
-    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name);
+    const t = by.get(code), names = hgNames(code, t && t.name), name = typeLabel(code, t && t.name), full = !!(t && t.scans);
     const img = `<span class="hgPh${heli || SPECIAL_TYPES[code] === "HELICOPTER" ? " heli" : ""}" data-mp="${escH(names.join("|"))}"` +
-      `${t ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
-    if (!t) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T("still to find"))}</span></button>`;
+      `${full ? ` data-own="${escH([t.thumb, t.photo].filter(Boolean).join(" "))}"` : ""}${eager ? ' data-e="1"' : ""}></span>`;
+    if (!full) return `<button type="button" class="hgCard back" data-hg="${escH(code)}">${img}<b>${escH(code)}</b><span>${escH(T(t ? "still to scan" : "still to find"))}</span>` +
+      (t && t.last ? `<small>${escH(T("Last overhead {d}", {d: fmtDay(t.last)}))}</small>` : "") + `</button>`;
     const mk = mstOf(t.scans, t.m), nx = t.scans ? mstNext(t.scans, t.m, t.mt) : null;
     return `<button type="button" class="hgCard${mk ? " mk" + mk : ""}" data-hg="${escH(code)}" style="--t:${TIER_COL[t.tier] || TIER_COL.uncommon}">` + img +
       `<span class="hgT"><em>${escH(T(TIER_NAME[t.tier] || "Uncommon"))}</em><b>${escH(name)}</b>` +
@@ -8291,14 +8298,18 @@ function hangarHtml(hg){
   };
   const shelf = (key, name, codes, count, done) => `<div class="hgShelf"><div class="hgHead"><b>${escH(name)}</b><em${done ? ' class="done"' : ""}>${escH(count)}</em></div>` +
     `<div class="hgRow" data-set="${escH(key)}">${codes.map((c, i) => card(c, key === "Helicopters", i < HG_EAGER)).join("")}</div></div>`;
+  const order = codes => {
+    const by1 = (k, f) => codes.filter(f).sort((a, b) => (by.get(b)[k] || 0) - (by.get(a)[k] || 0));
+    return [...by1("first", scanned), ...by1("last", seen), ...codes.filter(c => !by.has(c))];
+  };
   const shelves = (hg.sets || []).map(s => {
-    const have = s.types.filter(c => by.has(c)), miss = s.types.filter(c => !by.has(c));
-    return shelf(s.name, T(s.name), have.sort((a, b) => (by.get(b).first || 0) - (by.get(a).first || 0)).concat(miss), `${have.length} / ${s.types.length}`, have.length >= s.types.length);
+    const n = s.types.filter(scanned).length;
+    return shelf(s.name, T(s.name), order(s.types), `${n} / ${s.types.length}`, n >= s.types.length);
   });
   const other = (hg.types || []).filter(t => !inSet.has(t.code)).map(t => t.code);
-  if (other.length) shelves.push(shelf("_other", T("Other types"), other, nf.format(other.length)));
-  const n = (hg.types || []).length, g = (hg.types || []).filter(t => t.game).length;
-  return secPlate(T("Your hangar"), `<p class="sum">${escH(T(n === 1 ? "1 type seen" : "{n} types seen", {n: nf.format(n)}) + " · " + T("★ {n} scored in the game", {n: nf.format(g)}))}</p>${shelves.join("")}`, "hgPlate");
+  if (other.length) shelves.push(shelf("_other", T("Other types"), order(other), `${other.filter(scanned).length} / ${other.length}`));
+  const all = (hg.types || []).map(t => t.code), n = all.filter(scanned).length;
+  return secPlate(T("Your hangar"), `<p class="sum">${escH(T("{n} scanned · {m} still to scan", {n: nf.format(n), m: nf.format(all.length - n)}))}</p>${shelves.join("")}`, "hgPlate");
 }
 // The cards' taps; the pictures painted, the model pictures asked for (those in view first), the shelves watched.
 function hgWire(box){
@@ -11259,7 +11270,8 @@ const CHANGELOG = [
     "Ranks need rounder totals and the unlocks are spread out; anything you unlocked stays yours.",
     "Mastery has four steps now, up to platinum at 100 scans, and rarer types pay a bigger bonus.",
     "Your route shows the points for the next rank only; an empty showcase spot on your card takes you to the hangar.",
-    "The score strip shows your rank in front of the points."]},
+    "The score strip shows your rank in front of the points.",
+    "Your hangar shows a plane once you've scanned it; one only seen overhead waits greyed, with when it was last overhead."]},
   {v: "1.111.0.1", date: "2026-10-29", notes: [
     "A plane no longer shows the photo of an older aircraft that had its registration."]},
   {v: "1.111", date: "2026-10-29", notes: [

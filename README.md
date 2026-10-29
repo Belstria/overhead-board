@@ -592,7 +592,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   the name, when and which; since 1.97 a line under it, "★ Scored 6× · 2 scanned" or "Not scored yet": how often
   the game scored the type within 15 km (10 km until 1.98) and how often Sky view scanned it), the missing types face down with their
   model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
-  scanned) and the model. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
+  scanned) and the model. Since 1.112 a type shows as a full card only **once you've scanned it**; one only seen
+  overhead waits greyed like one still to find, saying "Still to scan" and when it was last overhead ("Last overhead 24
+  Oct"). Each shelf lists the scanned ones first (newest first), then those still to scan (last overhead first), then
+  those still to find; its count and the hangar's line ("12 scanned · 30 still to scan") count scanned types. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
   shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
   found shows a helicopter. Since 1.105 a card climbs with your **scans** of its type (mastery); since 1.112 in four
   steps, **bronze at 10, silver at 25, gold at 50, platinum at 100**, its frame in that metal and a thin bar under it to
