@@ -11,6 +11,8 @@ are not touched: the test relay runs from a temporary folder.
     py tools/test/run_test_relay.py --fr24     the relay acts as if it had a Flightradar24 key (served by the fake); David's
                                                screens more than 30 km from the test point (Live location) also get the
                                                gap filler's take-off that only Flightradar24 hears (relay 66)
+    py tools/test/run_test_relay.py --gold     golden tickets (relay 84): every plane in the scan list is gold (--gold HEX,HEX:
+                                               only those); without it none is, so tests don't depend on the salt
     py tools/test/run_test_relay.py --hue      a fake Hue Bridge (fakehue.py, two ports below the relay) for the admin
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
@@ -54,6 +56,7 @@ def main():
     p.add_argument("--far", action="store_true", help="the landing starts 32 km out")
     p.add_argument("--ring", action="store_true", help="a plane coming within 15, then 10 km, and one passing 12 km out")
     p.add_argument("--fr24", action="store_true", help="pretend the relay has a Flightradar24 key")
+    p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
     p.add_argument("--live-facts", action="store_true", help="the cards' facts from the real Wikipedia and Wikidata")
@@ -90,6 +93,10 @@ def main():
         src = src.replace(real, fake, 1)
     src = re.sub(r"^FR24_GAP_S = [\d.]+", "FR24_GAP_S = 0.5", src, flags=re.M)
     src = re.sub(r"^SKY_REPORTS_MAX = \d+", "SKY_REPORTS_MAX = 2", src, flags=re.M)   # flows.py checks the cap
+    gold = "    return int(h[:8], 16) % GOLD_ONE_IN == 0"    # relay 84: golden tickets only as asked (--gold)
+    if gold not in src:
+        raise SystemExit("relay/serve.py's game_gold changed; update run_test_relay.py")
+    src = src.replace(gold, "    return " + ("True" if a.gold == "all" else f"str(hx or '').lower() in {a.gold.lower().split(',') if a.gold else []!r}"), 1)
     # A page that sets a test profile's cookie (only in this copy of the relay).
     hook = '        if path == "/signin":'
     if hook not in src:

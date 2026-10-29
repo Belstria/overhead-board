@@ -943,6 +943,20 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.101 (to-do #148, Dave's pick of 28–29 Oct, mockup A "gold foil", sound B "bell sparkle"): **golden tickets.** The
+  relay's scan list (`/game/me` `scan`, `game_scannable`) marks a golden plane `gold: true` (relay 84, `game_gold`);
+  `gTixShow` makes its ticket gold (`gPassFill` `o.gold`: `.pF.gold`, the foil, a sheen `.gl` with `@gSheen`, two ✦; the
+  band "GOLDEN TICKET · {k} KM", the stub "GOLDEN" with an `i.x2` "×2"; the extras' spans carry `data-nx` "(no ×2)",
+  shown by CSS). `gAwLine(a, f, tix)`: a golden scan line (`a.gold`) reads "{t} plane +{p} ×2" on a ticket and "Sky view
+  scan · {t} plane ×2 golden" in Recent points (class `gold`). `gScanPops` keeps the scan's pass gold (`r.gold`).
+  Sky view: `gGoldSet()` (the list's golden hexes, cached on `gme` like `gScanSet`); `arDraw`'s ★ chip doubles and the
+  label gets a gold gradient edge and a "GOLDEN ×2" tab. At the scan `gLockOn` plays `gGold()` instead of `gRip()` for
+  the scan's stub (the streak's still `gRip`) and `gBurst(x, y, gold)` throws 24 finer gold pieces and ten ✦
+  (`#arBurst.gold`, `#arBurst b`); with reduced motion no burst for a golden scan, `.pF .gl` still. `gGold()`: `sample
+  ("tear")` (or `gRip()`'s noise until decoded), then eight triangle bells with partials 2.76 and 5.4 climbing E6–A7 55 ms
+  apart, a held C6–C7 chord from 0.58 s (1.6 s) and three sine glints; bus gain 0.56: peak −7.3 dB (the rip), loudest
+  300 ms −25 dB (jingle −27, fanfare −26.4), rendered offline and measured as in 1.97.2. Five i18n rows.
+  `run_test_relay.py --gold` (every listed plane gold, or `--gold HEX,HEX`); without it no plane is gold.
 - 1.100 (to-do #147, Dave's pick of 28 Oct, relay 83): **bingo lines and trophies pay points.** `gAwLine` names the new
   award kinds: "bingo" (`BINGO_LINE[a.n]`: top/middle/bottom row, left/middle/right column, diagonal; #101's themed rows
   were dropped, so a line is any of the relay's eight `BINGO_LINES`), "card" (the full card) and "trophy" (`TROPHY_TIER`
@@ -1292,6 +1306,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 84 (1.101, to-do #148): **golden tickets.** `game_gold(day, hex)`: sha256 of the salt, the board's day and the
+  plane, gold when its first 32 bits are 0 mod `GOLD_ONE_IN` (20). The salt (`_gold_key()`) is made once with
+  `secrets.token_hex(16)` in `data/gold.key` (mode 600; `GOLD_FILE`) and read back at start, so a restart doesn't re-roll
+  and nobody without the file can tell which planes will be gold; it is the same for every profile all day. Nothing is
+  stored per plane: `game_scannable` adds `gold: true`, `game_lockon` asks again at the scan: its "scan" line is
+  `TIER_BASE[tier]` × 2 with `gold: 2` (`full` stays the plane's points), the answer `gold: true`; the extras, the streak
+  and the passive points are as ever. No rescoring: awards keep what they were scored with, `GAME_RULE`, `GAME3_V` and
+  `GAME_V` unchanged. flows.py `golden_checks` (rate, same plane, restart, other salt, ×2 on the base only, a plain scan,
+  a game scored before identical); the other checks run with `game_gold` off.
 - Relay 83 (1.100, to-do #147): **bingo lines and trophies pay.** `GAME_BINGO` {line: 50, card: 500} (Dave, 29 Oct: all 8 lines count, so 50 a line; a full card 8 × 50 + 500 = 900), `GAME_MEDAL`
   [50 … 250] (a ladder's rank by its place among `TROPHY_LADDER`'s ids of the same count, `_trophy_pts`), `GAME_SINGLE`
   100; all in `game_rules()`. `game_note` (a new plane) calls `_game_bingo` and `_game_trophies` after `trophy_check`; a

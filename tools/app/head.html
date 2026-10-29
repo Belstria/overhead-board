@@ -1136,7 +1136,24 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .gAw .scn i{flex:none;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#a3740a}
 .gAw.under{transform-origin:50% 100%}
 .gAw.under .pF{filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
-@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw{animation:none!important}}
+/* 1.101 (to-do #148, Dave's pick A): a golden ticket: the paper gold foil with a sheen going over it, the band keeping the
+   rarity, the stub GOLDEN with ×2; what doubles is marked, the extras say they don't. Its stub tears off throwing gold. */
+.gAw .pF.gold .main{position:relative;overflow:hidden;background:linear-gradient(115deg,#f3e2a6 0%,#fff7dc 20%,#ecd07c 42%,#fff4cc 58%,#dcb555 82%,#f4e2a4 100%)}
+.gAw .pF.gold .stub{background:linear-gradient(160deg,#fff4c4 0%,#f2cd5c 30%,#c9921a 62%,#f6d980 100%);color:#17140e;border-left-color:rgba(90,60,0,.45)}
+.gAw .pF.gold .stub small{letter-spacing:.18em}
+.gAw .pF.gold .stub i.x2{font:700 var(--fs-m)/1 var(--f-board);font-style:normal;padding:2px 7px;border-radius:999px;background:#17140e;color:#f6d27a}
+.gAw .pF.gold .who span,.gAw .pF.gold .lns div{color:#5e4a17}
+.gAw .pF.gold .lns div b{color:#17140e}
+.gAw .pF.gold .lns div.gold b{color:#8a6206}
+.gAw .pF.gold .lns span[data-nx]::after{content:" " attr(data-nx);font:600 var(--fs-tag)/1 var(--f-board);color:#8a7a52}
+.gAw .pF.gold .nt{color:#6e5a27}
+.gAw .pF.gold .scn{background:rgba(255,255,255,.35);border-top-color:rgba(140,100,20,.4)}
+.gAw .pF.gold .gl{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.75) 42%,transparent 54%);mix-blend-mode:soft-light;animation:gSheen 2.6s ease-in-out infinite}
+@keyframes gSheen{0%{transform:translateX(-110%)}60%,100%{transform:translateX(110%)}}
+.gAw .pF.gold .sp{position:absolute;color:#fff;font:700 var(--fs-s)/1 var(--f-board);font-style:normal;text-shadow:0 0 6px #fff7c0;pointer-events:none}
+#arBurst.gold i{left:-3px;top:-3px;width:6px;height:13px}
+#arBurst b{position:absolute;left:-6px;top:-6px;font:700 var(--fs-s)/1 var(--f-board);color:#fff7c0;text-shadow:0 0 6px #f0b429;animation:pfSpark 1.1s ease-out forwards}
+@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw,.pF .gl{animation:none!important}}
 </style>
 </head>
 <body>
