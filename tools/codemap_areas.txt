@@ -62,8 +62,13 @@ test/index.html: FONT COL FLAP THEMES THEMES.frankfurt70 THEMES.tokyo THEMES.gol
     grain applyTheme styleKinds styleRuleText stylesCount stylesNote STYLE_ROWS STYLE_SHORT styleVal lookKind
     styleShort stylesCellRefresh +lcdMarquee stylesCard stylesPreview #glass css:body.real .inst.styl +tile +pictogram
     .styles .stLine .stVal .stArr .stWhy .stPrev .stRows .stL .stClassic .stCnt +COCKPIT +DEFAULTS +applySettings
+    medalWon MEDAL_FIRST
 tools/app/head.html: css:html.daylight css:html.leather css:html.gilt
+    #t-styles .stPgCnt .stH4 .stH5 .stNote .stGrid .stCd .stPic .stTx .stUse .stHave .stLk .stTk .stOpen .stBig .stBar .stProg .stGo
+    .eo .e-propage .e-jetage .e-magcard .e-holo .ttl .punch .sun .hd .patch
 tools/app/main.js: applyTheme +metalTile +drawMark +DEFAULTS +applySettings
+    tixEra tixEraHtml stTab ST_TABS ST_TAB_OF ST_SECS ST_LOCK ST_MEDAL ST_TIX ST_TIER_P ST_WHAT ERA_WHAT stRuleShort stWhat stTag
+    stylesPage stylesHide stylesRender stTixHtml stOpen stProgress stFonts stThumbs stTheme stLook stylesThumb
 relay/serve.py: STYLE_GRANTS style_grants BADGES badge_manifest /admin/styles
 tools/app/make_icons.py: main
 tools/fonts.py: main

@@ -401,6 +401,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   from the relay (`fonts/`, made by `tools/fonts.py`), not from Google Fonts: opening a board tells Google nothing, and
   the TVs draw their first flaps sooner. The flight school's signature (1.103) is written in EMS Allure, a single-stroke
   script (the same licence; `test/signature.js`, made by `tools/sig_font.py`, 31 KB, fetched only when it is drawn).
+  The 1950s ticket (1.110) sets its heading and flight number in Old Standard TT Bold (the same licence, in `fonts/`
+  like the others, 24 KB; a phone loads it only when that ticket shows).
 - **Tap About seven times** (1.49) within a few seconds (the board: the About button, then the About heading; the app:
   About, then the page's title) and the Airbus "barking dog" plays: the hydraulic power transfer unit's bark.
 - **Emirates boarding music** (1.49, relay 42): opening the Emirates airline card plays the first 30 seconds of the
@@ -610,6 +612,21 @@ The main board has everything below. New features are tried on `/test/` first; o
     Class** (claret leather with a stitched seam, cream flaps with claret letters) is for last week's league winner,
     that week only. Styles picked before 1.72 stay.
   - LED dots: since 1.61 a real 5x7 dot font on dark flaps, readable on a TV.
+  - **In the app since 1.110**, Settings → Styles (Look or Badge, or Try it after a level-up) is a **gallery** on a page
+    of its own: tabs **Board · Ticket · Badge**, each a two-column grid of preview cards (the style in its own colours
+    and font, the ticket in its design) marked IN USE, ✓ YOURS or 🔒 with what unlocks it ("Level 14", "A gold medal",
+    "Last week's winner"). Board has the board styles, then Classic's colours and flaps in a section of their own
+    (they only show with Classic). A tap slides up a card with a big preview, what it is, a bar towards its unlock (the
+    points to that level, or the trophy closest to a medal of that metal) and **Use** (off while locked). The TVs keep
+    the card with rows.
+  - **Ticket designs** (1.110, the app): the eras of flying, each won with the **first medal of its metal** in any
+    trophy ladder: **Propeller age** (1950s: ruled cream card, red carbon ink, a serif heading and flight number, a
+    serial number and a conductor's punch) with the first silver, **Jet age** (1970s: warm cream, round corners, a
+    sunburst and three stripes) with the first gold, **Magnetic card** (1990s: a white boarding pass in capitals with a
+    security pattern and the brown magnetic stripe) with the first platinum, **Hologram** (pearl foil, a holographic
+    patch on the stub) with the first diamond. Every pass comes in it (a plane's ticket, the scan's, the streak's, the
+    limit's); the band and the stub keep the plane's rarity, a **golden ticket stays gold foil**. The owner can grant
+    them by hand like the other styles (relay 93).
   - **Title badges**: Star, Propeller, Helicopter, Jumbo, Fighter jet, Concorde. Since 1.61 the
     badge takes the plane's place in the yellow logo square, the browser tab's icon and the web app's home-screen icon
     (relay 53 gives the profile a manifest with that badge's icons; an installed icon changes when the phone next

@@ -30,6 +30,7 @@ html.android{--sa-top:0px!important;--sa-bottom:0px!important}
   --label2:#6d7179;
   --line:#26272b;
   --f-board:"Archivo Narrow","Roboto Condensed","Arial Narrow",sans-serif;
+  --f-era:"Old Standard TT","Century Schoolbook",Georgia,serif;   /* 1.110: only the 1950s ticket's heading and flight number */
   --k:1;
   --gut:14px;
   /* 1.69: the phone's safe areas; the Android app already keeps the page clear of its bars, so it has none (html.android) */
@@ -314,13 +315,48 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tabX:active{background:rgba(255,255,255,.12)}
 /* 1.41: About opens over Settings as a page of its own; its title and close button stay at the top while it scrolls,
    and closing it leaves Settings where it was */
-#t-about,#t-log{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+#t-about,#t-log,#t-styles{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(var(--sa-bottom) + 28px)}
-#t-about .tabHead,#t-log .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
+#t-about .tabHead,#t-log .tabHead,#t-styles .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
   background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
-#t-about .tabHead h2,#t-log .tabHead h2{margin:0}
+#t-about .tabHead h2,#t-log .tabHead h2,#t-styles .tabHead h2{margin:0}
 #t-about #aboutBox{margin-top:4px!important}
+/* 1.110 (to-do #160, Dave's pick A): Settings → Styles, a gallery page with tabs (stylesPage); an item opens as a sheet */
+#t-styles .tabHead h2{flex:1}
+.stPgCnt{font:600 var(--fs-xs)/1 var(--f-board);color:var(--muted);white-space:nowrap}
+.stH4{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stH5{margin:12px 0 6px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--label2,var(--muted))}
+.stNote{margin:-2px 0 8px;font:500 var(--fs-xs)/1.35 var(--f-board);color:var(--muted)}
+.stGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stCd{all:unset;box-sizing:border-box;position:relative;display:grid;cursor:pointer;border-radius:12px;overflow:hidden;background:#1c1d20;border:1px solid rgba(255,255,255,.08)}
+.stCd:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.stCd.on{border:2px solid var(--amber);box-shadow:0 0 0 3px rgba(240,180,41,.18)}
+.stPic{display:block;height:82px;background:linear-gradient(160deg,#2a2d33,#16181b);overflow:hidden}
+.stPic canvas{display:block;width:100%;height:100%}
+.stCd.lk .stPic{filter:grayscale(.85) brightness(.55)}
+.stTx{display:grid;gap:5px;justify-items:start;padding:7px 9px 9px}
+.stTx b{font:700 var(--fs-s)/1.15 var(--f-board);color:var(--ink)}
+.stCd.lk .stTx b{color:#8d8a82}
+.stUse{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;padding:4px 7px;border-radius:999px;background:var(--amber);color:#17140e}
+.stHave{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;color:#3fbf6f}
+.stLk,.stWhy{display:inline-flex;align-items:center;gap:4px;font:700 var(--fs-tag)/1.2 var(--f-board);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:#9a958a}
+.stLk svg,.stWhy svg,.stGo svg{flex:none;width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.4}
+.stTk{position:relative;display:block;width:100%;height:100%}
+.stTk .gAw{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--s));animation:none;pointer-events:none;cursor:default}
+.stTk .gAw .pF,.stTk .gAw .pF .stub{animation:none}
+.stTk .gAw .pF{filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
+.stOpen h3{margin:0 0 4px}
+.stOpen .stWhat{margin:0 0 10px;font:500 var(--fs-s)/1.4 var(--f-board);color:var(--muted)}
+.stBig{height:150px;margin:0 0 12px;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#2a2d33,#141518)}
+.stBig canvas{display:block;width:100%;height:100%}
+.stBig:has(canvas){height:120px}
+.stOpen .stWhy{display:flex;margin:0 0 8px;text-transform:none;letter-spacing:.02em;font-size:var(--fs-s)}
+.stBar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin:0 0 6px;overflow:hidden}
+.stBar i{display:block;height:100%;background:var(--amber)}
+.stProg{margin:0 0 12px;font:600 var(--fs-xs)/1.3 var(--f-board);color:var(--muted)}
+#cardBox .stGo{display:flex;width:100%;justify-content:center;align-items:center;gap:6px;margin-top:4px}
+#cardBox .stGo:disabled{opacity:.5;cursor:default}
 body.aboutOpen{overflow:hidden}
 body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so the page's own title and × show */
 /* 1.80: the Log page (Settings → About → Log): over About, each line its time, a lamp (amber: a warning, red: an error) and what happened */
@@ -1295,6 +1331,50 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #arBurst.gold i{left:-3px;top:-3px;width:6px;height:13px}
 #arBurst b{position:absolute;left:-6px;top:-6px;font:700 var(--fs-s)/1 var(--f-board);color:#fff7c0;text-shadow:0 0 6px #f0b429;animation:pfSpark 1.1s ease-out forwards}
 @media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw,.pF .gl{animation:none!important}}
+/* 1.110 (to-do #159, Dave's pick "eras of flying"): the ticket designs (Settings → Styles → Ticket, tixEra), each won with
+   the first medal of its metal. Each era is its paper, colours, corners and ornaments; the band and the stub keep the
+   plane's rarity; a golden ticket stays gold foil (no era class). Old Standard TT (fonts/, OFL) only for the 1950s
+   ticket's heading and flight number. The ornaments (.eo) sit under the text (isolation, z-index -1). */
+.gAw .pF[class*=" e-"] .main{position:relative;isolation:isolate}
+.gAw .pF[class*=" e-"] .stub{position:relative;overflow:hidden}
+.gAw .pF .eo{position:absolute;z-index:-1;pointer-events:none}
+.gAw .pF.e-propage .main{background:#efe4cc repeating-linear-gradient(transparent 0 19px,rgba(120,90,50,.12) 19px 20px)}
+.gAw .pF.e-propage .main::before{content:"";position:absolute;z-index:-1;left:3px;top:34px;bottom:6px;width:6px;background:radial-gradient(circle,#141416 1.6px,transparent 2px) 0 0/6px 7px repeat-y;opacity:.55}
+.gAw .pF.e-propage .band{filter:saturate(.72) sepia(.12);letter-spacing:.2em}
+.gAw .pF.e-propage .ttl{display:flex;justify-content:space-between;gap:8px;padding:6px 12px 0 14px;font:700 var(--fs-tag)/1 var(--f-era);letter-spacing:.14em;color:#6b5a3a;text-transform:uppercase;white-space:nowrap}
+.gAw .pF.e-propage .ttl span:last-child{font-family:var(--f-board);letter-spacing:.1em;color:#b0302a;opacity:.8}
+.gAw .pF.e-propage .who,.gAw .pF.e-propage .lns,.gAw .pF.e-propage .nt,.gAw .pF.e-propage .days{padding-left:14px}
+.gAw .pF.e-propage .who b{font:700 var(--fs-xl)/1 var(--f-era);color:#2a1f14}
+.gAw .pF.e-propage .who span,.gAw .pF.e-propage .nt{color:#7a6a4e}
+.gAw .pF.e-propage .lns div,.gAw .pF.e-propage .lns div b{color:#8a2b20}
+.gAw .pF.e-propage .scn{background:rgba(120,90,50,.08);border-top-color:rgba(120,90,50,.35)}
+.gAw .pF.e-propage .stub{filter:saturate(.72) sepia(.15)}
+.gAw .pF.e-propage .stub em{display:none}
+.gAw .pF.e-propage .punch{width:14px;height:14px;margin-top:4px;border-radius:50%;background:#141416;box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.35)}
+.gAw .pF.e-jetage .main{background:#fbf3df;border-radius:18px 0 0 18px;padding-bottom:12px}
+.gAw .pF.e-jetage .stub{border-radius:0 18px 18px 0;padding-bottom:18px}
+.gAw .pF.e-jetage .main::after,.gAw .pF.e-jetage .stub::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:linear-gradient(#e86a17 0 33%,#8c4a1c 33% 66%,#e2a72e 66%)}
+.gAw .pF.e-jetage .sun{right:-30px;top:20px;width:120px;height:120px;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 9px,rgba(232,106,23,.16) 9px 13px)}
+.gAw .pF.e-jetage .who b{font-size:var(--fs-2xl);letter-spacing:.02em;color:#5a2e0f}
+.gAw .pF.e-jetage .who span,.gAw .pF.e-jetage .nt{color:#9a6a3c}
+.gAw .pF.e-jetage .lns div{color:#8c4a1c} .gAw .pF.e-jetage .lns div b{color:#5a2e0f}
+.gAw .pF.e-jetage .scn{background:rgba(232,106,23,.08);border-top-color:rgba(140,74,28,.3)}
+.gAw .pF.e-magcard .main{background:#fdfdfb repeating-linear-gradient(170deg,transparent 0 5px,rgba(70,140,120,.08) 5px 6px);border-radius:6px 0 0 6px;padding-bottom:14px}
+.gAw .pF.e-magcard .stub{border-radius:0 6px 6px 0;padding-bottom:22px}
+.gAw .pF.e-magcard .hd{display:flex;justify-content:space-between;padding:6px 12px 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.2em;color:#4f8f7f}
+.gAw .pF.e-magcard .who b,.gAw .pF.e-magcard .who span,.gAw .pF.e-magcard .lns div,.gAw .pF.e-magcard .lns div b{text-transform:uppercase;letter-spacing:.06em;color:#262626}
+.gAw .pF.e-magcard .who span{color:#555}
+.gAw .pF.e-magcard .lns div,.gAw .pF.e-magcard .lns div b{font-size:var(--fs-xs);letter-spacing:.04em}
+.gAw .pF.e-magcard .lns div span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gAw .pF.e-magcard .lns{margin:2px 10px 0;padding:4px 2px 8px;border-top:1px solid #bdbdb6}
+.gAw .pF.e-magcard .main::after,.gAw .pF.e-magcard .stub::after{content:"";position:absolute;left:0;right:0;bottom:0;height:14px;background:linear-gradient(#4a3422,#2a1d12)}
+.gAw .pF.e-holo .main{background:linear-gradient(120deg,#fdf4ff,#e6f6ff 30%,#fffbe6 55%,#efe6ff 80%,#e6fff6)}
+.gAw .pF.e-holo .main::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.5;
+  background:repeating-conic-gradient(from 20deg at 70% 60%,rgba(255,150,220,.35) 0 8deg,rgba(150,220,255,.35) 8deg 16deg,rgba(255,240,150,.35) 16deg 24deg,rgba(190,150,255,.35) 24deg 32deg)}
+.gAw .pF.e-holo .stub::after{content:"";position:absolute;inset:0;mix-blend-mode:overlay;background:linear-gradient(135deg,rgba(255,120,220,.5),rgba(120,220,255,.5) 40%,rgba(255,250,150,.5) 70%,rgba(170,120,255,.5))}
+.gAw .pF.e-holo .patch{position:relative;z-index:1;width:30px;height:22px;margin-top:4px;border-radius:50%;
+  background:conic-gradient(#ffb3e0,#b3ecff,#fff2a8,#d2b3ff,#b3ffe0,#ffb3e0);box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 0 6px rgba(160,120,255,.5)}
+.gAw .pF.e-holo .scn{background:rgba(255,255,255,.45)}
 </style>
 </head>
 <body>
@@ -1520,6 +1600,10 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   <section class="wrap tab" id="t-log" hidden>
     <div class="tabHead"><h2 data-t="Log">Log</h2><button class="tabX" type="button" id="logX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="logBox"></div>
+  </section>
+  <section class="wrap tab" id="t-styles" hidden>
+    <div class="tabHead"><h2 data-t="Styles">Styles</h2><span class="stPgCnt" id="stPgCnt"></span><button class="tabX" type="button" id="stylesX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
+    <div id="stylesBox"></div>
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>

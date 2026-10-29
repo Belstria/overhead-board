@@ -12,7 +12,7 @@ const LIGHT = false;                  // the light version (tools/light/build.py
 //@L:end
 const GUEST = window.OVERHEAD_GUEST || null;
 const DEFAULTS = {place:"Vienna", lat:48.2085, lon:16.3731, radiusKm:15, home:"VIE", maxAltFt:60000, units:"metric", sound:true, soundSet:"recorded", bell:"airport", real:true, speedPct:85, quick:false, refreshS:5,
-  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
+  logos:true, overKm:1, demo:false, daylight:false, theme:"classic", palette:"", finish:"", badge:"", ticket:"", favs:"", chimes:true, ding:true, imperfect:true, airtimeMin:3, mode:"overhead", lang:"auto",
   night:true, nightFrom:"22:30", nightTo:"07:00"};
 const SKEY = (LIGHT ? "od.light.settings" : "od.app.settings") + (GUEST ? ".g." + GUEST.id : "");   // each guest's own, in a shared browser
 // The light version has no flaps: these stay fixed there, and aren't sent to the profile (the app and the board keep theirs).
@@ -2806,6 +2806,7 @@ function backStep(){
   }
   if (shown($("t-log"))) return logHide;
   if (shown($("t-about"))) return aboutHide;
+  if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
   if (row) return () => tlFold(row, true);                                 // a plane opened in place in a list: folded
   if (tab !== "now") return () => showTab("now");
@@ -3165,6 +3166,8 @@ async function logCopy(){
   setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
 }
 $("logX").onclick = () => { ctlSound.click(); logHide(); };
+$("stylesX").onclick = () => { ctlSound.click(); stylesHide(); };
+$("stylesX").setAttribute("aria-label", T("Close"));
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 function settingsExtra(){
@@ -3837,12 +3840,12 @@ function aboutHide(){
   $("t-about").hidden = true;
   document.body.classList.remove("aboutOpen");
 }
-addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-about").hidden && !cardOpenNow()) aboutHide(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && !cardOpenNow()) { if (!$("t-styles").hidden) stylesHide(); else if (!$("t-about").hidden) aboutHide(); } });
 function showTab(t){
   if (t === "about") { aboutShow(); return; }
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
   if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; t = "logbook"; }
-  aboutHide();
+  aboutHide(); stylesHide();
   if ((!TABS.some(x => x[0] === t) && !(t === "game" && gameOk())) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
@@ -4217,6 +4220,166 @@ function careerOpen(){
   const cur = document.querySelector(".cuRt li.cur");
   if (cur) cur.scrollIntoView({block: "center"});
 }
+/* 1.110 (to-do #160, Dave's pick A): Settings → Styles as a gallery, a page over Settings like About (stylesCard hands
+   over to it in the app; the TVs and the light version keep the 1.61 card). Tabs Board · Ticket · Badge (the league's
+   switch), each a two-column grid of preview cards with IN USE, ✓ YOURS or 🔒 what unlocks it; Classic's colours and flaps
+   have their own section, as they only show with the Classic board. A tap opens a card with a big preview, what it is,
+   a bar towards its unlock and Use (off while locked). The board styles are drawn in their own colours and font
+   (stLook lends them to the drawing), the tickets are gPassFill's with the era given, scaled down. */
+let stTab = "board";
+const ST_TABS = [["board", "Board"], ["ticket", "Ticket"], ["badge", "Badge"]];
+const ST_TAB_OF = {theme: "board", palette: "board", finish: "board", ticket: "ticket", badge: "badge"};
+const ST_SECS = {board: [["Board styles", ["theme"]], ["With the Classic board", ["palette", "finish"], "Colours and flaps only change with the Classic board."]],
+  ticket: [["Ticket designs", ["ticket"], "The first medal of each metal wins a design."]], badge: [["Title badges", ["badge"]]]};
+const ST_LOCK = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+const ST_MEDAL = ["", "A silver medal", "A gold medal", "A platinum medal", "A diamond medal"];
+// The sample plane on each ticket's preview: rarity, flight, airline and type, km.
+const ST_TIX = {"": ["rare", "SQ 305", "Singapore Airlines · A350", 6.2], propage: ["uncommon", "LX 1579", "Swiss · A220", 5.4],
+  jetage: ["rare", "SQ 305", "Singapore Airlines · A350", 6.2], magcard: ["common", "OS 411", "Austrian · A320", 3.1], holo: ["epic", "LH 9922", "Lufthansa · 747-8", 7.4]};
+const ST_TIER_P = {common: 10, uncommon: 30, rare: 100, epic: 250, legendary: 500};
+const ST_WHAT = {theme: "A board style: the flaps, the letters and the housing of the whole board.", palette: "Colours for the Classic board's letters and lights.",
+  finish: "A finish for the Classic board's flaps.", badge: "A title badge on the board's logo and the app's icon."};
+const ERA_WHAT = {"": "The ticket every plane comes in, as it is.", propage: "The 1950s: ruled cream card, red carbon ink, a serif heading and a conductor's punch.",
+  jetage: "The 1970s: warm cream with round corners, a sunburst and three stripes.", magcard: "The 1990s: a white boarding pass with a security pattern and the brown magnetic stripe.",
+  holo: "Pearl foil with a holographic patch."};
+const stRuleShort = r => r.lvl ? T("Level {n}", {n: r.lvl}) : r.champ ? T("Last week's winner") : r.medal ? T(ST_MEDAL[r.medal] || "") : styleRuleText(r);
+const stWhat = (k, id) => k === "ticket" ? T(ERA_WHAT[id] || "") + " " + T("Every plane's ticket and scan comes in it; a golden ticket stays gold.") : T(ST_WHAT[k] || "");
+const stTag = (on, ok, r) => on ? `<i class="stUse">${escH(T("IN USE"))}</i>` : ok ? `<i class="stHave">✓ ${escH(T("YOURS"))}</i>` : `<i class="stLk">${ST_LOCK}${escH(stRuleShort(r))}</i>`;
+function stylesPage(focusKind){
+  if (ST_TAB_OF[focusKind]) stTab = ST_TAB_OF[focusKind];
+  if (tab !== "settings") showTab("settings");
+  $("t-styles").hidden = false; $("t-styles").scrollTop = 0;
+  document.body.classList.add("aboutOpen");
+  stylesRender();
+}
+function stylesHide(){
+  if ($("t-styles").hidden) return;
+  $("t-styles").hidden = true;
+  if ($("t-about").hidden && $("t-log").hidden) document.body.classList.remove("aboutOpen");
+}
+function stylesRender(){
+  const box = $("stylesBox"), g0 = styleGame(), kinds = new Map(styleKinds().map(([k, label, o]) => [k, [label, o]]));
+  $("stPgCnt").textContent = stylesNote();
+  const card = (k, [id, nm, rule]) => {
+    const ok = styleOk(rule, g0, id), on = ok && styleVal(k) === id;
+    return `<button type="button" class="stCd${on ? " on" : ""}${ok ? "" : " lk"}" data-k="${k}" data-id="${escH(id)}"><span class="stPic">` +
+      (k === "ticket" ? stTixHtml(id, .46) : `<canvas data-th="${k}" data-id="${escH(id)}" aria-hidden="true"></canvas>`) +
+      `</span><span class="stTx"><b>${escH(T(nm))}</b>${stTag(on, ok, rule)}</span></button>`;
+  };
+  box.innerHTML = `<div class="seg gSeg" role="group">${ST_TABS.map(([t, l]) => `<button type="button" data-stt="${t}" aria-pressed="${t === stTab}">${escH(T(l))}</button>`).join("")}</div>` +
+    ST_SECS[stTab].map(([title, ks, note]) => {
+      ks = ks.filter(k => kinds.has(k));
+      return ks.length ? `<h4 class="stH4">${escH(T(title))}</h4>` + (note ? `<p class="stNote">${escH(T(note))}</p>` : "") + ks.map(k =>
+        (ks.length > 1 ? `<h5 class="stH5">${escH(T(kinds.get(k)[0]))}</h5>` : "") + `<div class="stGrid">${kinds.get(k)[1].map(it => card(k, it)).join("")}</div>`).join("") : "";
+    }).join("");
+  for (const b of box.querySelectorAll("[data-stt]")) b.onclick = () => { if (stTab === b.dataset.stt) return; ctlSound.click(); stTab = b.dataset.stt; stylesRender(); };
+  for (const c of box.querySelectorAll(".stCd")) c.onclick = () => stOpen(c.dataset.k, c.dataset.id);
+  stThumbs(box);
+}
+// A ticket's preview: the sample plane's ticket in that era (gPassFill), scaled by s.
+function stTixHtml(era, s){
+  const [tier, fl, who, km] = ST_TIX[era] || ST_TIX[""], p = ST_TIER_P[tier];
+  const el = gPassFill(document.createElement("div"), {kind: tier, band: T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[tier]) + " ★", who: [fl, who + " · " + distText(km)],
+    lines: [[T("Sky view scan · {t} plane", {t: gTierT(tier)}), p, ""]], p, stub: T("SCAN"), era, life: 1e9});
+  clearTimeout(el.outT);
+  return `<span class="stTk" style="--s:${s}">${el.outerHTML}</span>`;
+}
+// An item opened: a sheet with the big preview, what it is, how far to its unlock, and Use.
+function stOpen(k, id){
+  const g0 = styleGame(), it = ((STYLES.find(x => x[0] === k) || [])[2] || []).find(x => x[0] === id);
+  if (!it) return;
+  const [, nm, rule] = it, ok = styleOk(rule, g0, id), on = ok && styleVal(k) === id, prog = ok ? null : stProgress(rule, g0);
+  ctlSound.nav();
+  cardOpen(`<div class="stOpen"><h3>${escH(T(nm))}</h3><p class="stWhat">${escH(stWhat(k, id))}</p>` +
+    `<div class="stBig">${k === "ticket" ? stTixHtml(id, .96) : `<canvas data-th="${k}" data-id="${escH(id)}" aria-hidden="true"></canvas>`}</div>` +
+    (ok ? "" : `<p class="stWhy">${ST_LOCK}${escH(styleRuleText(rule))}</p>` + (prog ? `<div class="stBar"><i style="width:${(prog[0] * 100).toFixed(1)}%"></i></div><p class="stProg">${escH(prog[1])}</p>` : "")) +
+    ((k === "palette" || k === "finish") && !classicLook() ? `<p class="stWhy">${escH(T("Colours and flaps only change with the Classic board."))}</p>` : "") +
+    `<button class="cBtn stGo" type="button" data-use${on || !ok ? " disabled" : ""}>${on ? escH(T("In use")) : ok ? escH(T("Use")) : ST_LOCK + escH(T("Locked"))}</button></div>`, el => {
+    stThumbs(el);
+    el.querySelector("[data-use]").onclick = () => {
+      if (!ok || on) return;
+      ctlSound.click();
+      if (typeof draft !== "undefined" && draft) draft[k] = id;          // an open Settings keeps it on Save
+      applySettings({...S, [k]: id});
+      cardClose(); stylesRender(); stylesCellRefresh();
+    };
+  });
+}
+// How far to a locked item: [0..1, the words], or null (the league winner's has no bar).
+function stProgress(rule, g0){
+  if (!g0) return null;
+  if (rule.lvl) {
+    const t = careerPts(rule.lvl), a = Math.min(g0.points || 0, t);
+    return [a / t, T("{a} of {b} points to level {n}, {t}", {a: nf.format(a), b: nf.format(t), n: rule.lvl, t: rankTitle(rule.lvl)})];
+  }
+  if (!rule.medal) return null;
+  let best = null;                                       // the ladder closest to its rank of that metal
+  for (const L of TROPHY_LADDERS) {
+    const t = L[2][rule.medal], st = t && trophyLadder(g0, L);
+    if (!st || st.have == null) continue;
+    const f = Math.min(1, st.have / t[1]);
+    if (!best || f > best[0]) best = [f, t, st.have];
+  }
+  return best && [best[0], T("Closest: {name}, {a} of {b}", {name: T(best[1][2]), a: nf.format(Math.min(best[2], best[1][1])), b: nf.format(best[1][1])})];
+}
+// The previews of board styles, colours, flaps and badges (canvas[data-th]); again once the styles' fonts are in.
+let stFonts = 0;
+function stThumbs(root){
+  for (const cv of root.querySelectorAll("canvas[data-th]")) {
+    const k = cv.dataset.th, id = cv.dataset.id;
+    stylesThumb(cv, k === "badge" ? {theme: S.theme, palette: S.palette, finish: S.finish, badge: id} : {theme: k === "theme" ? id : "classic",
+      palette: k === "palette" ? id : "", finish: k === "finish" ? id : "", badge: ""}, k === "badge");
+  }
+  if (stFonts) return;
+  stFonts = 1;
+  const again = () => { stFonts = 2; for (const el of [$("t-styles"), $("cardBox")]) if (el && !el.hidden) stThumbs(el); };
+  Promise.race([Promise.all([...new Set(Object.values(THEMES).map(t => t.font))].map(f => document.fonts.load(`700 40px ${f}`))), new Promise(r => setTimeout(r, 2500))]).then(again, again);
+}
+// A look's colours and font: its board style, with a palette only on Classic.
+function stTheme(look){
+  const t = THEMES[look.theme] || THEMES.classic, P = (!look.theme || look.theme === "classic") && PALETTES[look.palette];
+  return P ? {...t, ink: P.ink, accent: P.accent} : t;
+}
+// Draws with another look for a moment: the settings, flaps, colours and font that tile() and pictogram() read, put back after.
+function stLook(look, fn){
+  const keep = {S, flap: FLAP.slice(), ink: COL.ink, amber: COL.amber, font: FONT}, Th = stTheme(look);
+  S = {...S, theme: look.theme || "classic", palette: look.palette || "", finish: look.finish || ""};
+  FLAP.splice(0, 4, ...Th.flap); COL.ink = Th.ink; COL.amber = Th.accent; FONT = Th.font;
+  try { return fn(Th); } finally { S = keep.S; FLAP.splice(0, 4, ...keep.flap); COL.ink = keep.ink; COL.amber = keep.amber; FONT = keep.font; }
+}
+// A preview: the housing's metal, three flaps (the logo square and the title word too when there is room) and a line in
+// the accent colour; a badge's: the logo square with it. The flaps go into the tile cache under a key of their own.
+function stylesThumb(cv, look, badgeOnly){
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h) return;
+  const d = Math.min(3, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+  const g = cv.getContext("2d");
+  g.setTransform(d, 0, 0, d, 0, 0);
+  stLook(look, Th => {
+    const m = Th.metal, bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, m[0]); bg.addColorStop(.5, m[1]); bg.addColorStop(1, m[2]);
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    if (badgeOnly) { const s = h * .62; pictogram(g, (w - s) / 2, (h - s) / 2, s, look.badge || ""); return; }
+    const fh = Math.min(h * .56, w / (w > 2.2 * h ? 7.5 : 3.9)), fw = fh * .66, gap = fw * .14, y = (h - fh) / 2 - h * .04, pad = h * .18, logo = w > fh * 5.2;
+    const x0 = logo ? w - pad - 3 * fw - 2 * gap : (w - 3 * fw - 2 * gap) / 2;
+    if (logo) {
+      pictogram(g, pad, y, fh, "");
+      const room = x0 - pad - fh - 2 * gap * 2, word = T("Overhead (board style)");
+      if (room > fh) {
+        g.font = `700 ${Math.round(fh * .5)}px ${Th.font}`; g.fillStyle = Th.accent; g.textBaseline = "middle"; g.textAlign = "left";
+        const sx = Math.min(1, room / Math.max(1, g.measureText(word).width));
+        g.save(); g.translate(pad + fh + gap * 2, y + fh / 2); g.scale(sx, 1); g.fillText(word, 0, 0); g.restore();
+      }
+    }
+    [..."747"].forEach((ch, i) => {
+      const f = {kind: "chars", n: 1, style: `st:${look.theme}/${look.palette}/${look.finish}/${stFonts}`, pw: Math.round(fw * d), ph: Math.round(fh * d), cw: fw, ch: fh};
+      g.fillStyle = "#060607"; rr(g, x0 + i * (fw + gap) - 2, y - 2, fw + 4, fh + 4, 3); g.fill();
+      g.drawImage(tile(f, ch), x0 + i * (fw + gap), y, fw, fh);
+    });
+    g.fillStyle = Th.accent; rr(g, x0, y + fh + h * .1, 3 * fw + 2 * gap, Math.max(2, h * .035), 1); g.fill();
+  });
+}
 // 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
 // was redrawn only with the next points, up to a minute later.
 let gStripLive = null;
@@ -4318,17 +4481,33 @@ function gPop(o){
   gTixStack();
   return el;
 }
+// 1.110 (to-do #159): the ticket design in use (Settings → Styles → Ticket; "" the plain ticket), only while it is yours.
+function tixEra(){
+  const id = S.ticket || "", it = id && STYLES.find(x => x[0] === "ticket")[2].find(x => x[0] === id);
+  return it && styleOk(it[2], styleGame(), id) ? id : "";
+}
+// An era's ornaments, after the band: the 1950s heading and serial number, the 1990s form's head, the sunburst (the
+// punch hole and the hologram's patch go on the stub).
+function tixEraHtml(era, o){
+  if (era === "propage") {
+    const n = String(1e9 + Math.abs([...String(o.tix || (o.who && o.who[0]) || o.band)].reduce((h, c) => h * 31 + c.charCodeAt(0) | 0, 7)) % 9e8);
+    return `<div class="ttl"><span>${escH(T("Passenger ticket"))}</span><span>No. ${n.slice(1, 5)} ${n.slice(5, 8)} ${n.slice(8)}</span></div>`;
+  }
+  if (era === "magcard") return `<div class="hd"><span>${escH(T("BOARDING PASS"))}</span><span>ATB 2</span></div>`;
+  return era === "jetage" ? `<i class="eo sun"></i>` : "";
+}
 // A pass's paper (1.98: also a plane's ticket, and that ticket made into the scan's at the scan): o.life ms on screen.
+// 1.110: in the ticket design in use (o.era instead, if given; the gallery's previews), a golden ticket always gold foil.
 function gPassFill(el, o){
   el.className = "gAw" + (o.tix ? " tix" : "") + (o.rip ? " rip" + (o.rip > 1 ? " rip2" : "") : "");
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
-  const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "";
-  el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
+  const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "", era = o.gold ? "" : o.era != null ? o.era : tixEra();
+  el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}${era ? " e-" + era : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
+    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
     (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${x === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
     (o.gold ? `<div class="gl"></div><i class="sp" style="left:222px;top:58px">✦</i><i class="sp" style="left:150px;top:12px">✦</i>` : "") +
-    `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em></div></div>`;
+    `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em>${era === "propage" ? `<i class="punch"></i>` : era === "holo" ? `<i class="patch"></i>` : ""}</div></div>`;
   const out = el.out = () => {
     if (!el.isConnected || el.classList.contains("out")) return;
     el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350);
