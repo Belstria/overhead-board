@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.1 (to-do #189, Dave: "Pin the grip, the X can be removed"): **the cards' grip stays, the ✕ went** (the app only;
+  the boards keep theirs, Escape and Back close them on the TVs). `#cardBox .cardIn::before` is `position: sticky` in the
+  flow (`margin: -16px auto 12px`, net no room; a sticky `top` counts from inside the card's 24 px padding, so `-16px`
+  keeps it 8 px from the edge) with a faint dark ring for photos under it; `#cardBox .cardX` `display: none!important`
+  (the later `.cardX` rules set `display`). A card closes by a swipe down, back or a tap on the dark beside it (the
+  box's click, since 1.78). Your route keeps its title above its `.cScroll`.
 - 1.114 (to-do #182; Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2;
   relay 97): **the member cards as a carousel.** `walletHtml(g0)` draws `.lyCar`: every card (`lyCardHtml`, `.lyC`
   with `.lyIn` turning between `.lyFr` and `.lyBk`) in one row, ordered by `lyList` (by scans, or A–Z with `lySort`);
