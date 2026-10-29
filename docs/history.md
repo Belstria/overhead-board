@@ -943,6 +943,29 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.103.0.1 (to-dos #166 and #167, Dave's iPhone web app, 29 Oct): **the hangar's pictures and the unknown model's
+  card.** (1) Every picture that arrived (`modelPic` → `hgSoon` → `renderGame`) drew the whole Club again; the shelves
+  kept `scrollLeft`, but on a phone a redraw mid-swipe ends the finger's drag and the momentum, and the browser
+  re-snaps a shelf (`scroll-snap-type: x proximity`) whenever anything inside it changes, even an attribute. Now
+  `hangarHtml` has no pictures in it (its HTML only changes with the data): each card has a frame `.hgPh` (`data-own`
+  the first one's photos, `data-mp` the model's names, `data-e` the first `HG_EAGER` = 6 of a shelf, `.heli` on the
+  Helicopters shelf or a `SPECIAL_TYPES` helicopter, which draws a helicopter instead of the plane) that `hgPaint`
+  fills in place (`hgPic`: own photo not in `hgBad`, else `modelPicNow`). `hgPaint` leaves a shelf alone while it
+  moves (`hgMoving`: the shelf last scrolled or touched, `hgMove`, within 0.8 s, 10 s while held, `hgHeld`) and tries
+  again 0.9 s later (`hgLate`); `renderGame` waits the same way (`hgSoon`). (2) Model pictures were asked for only as
+  a card came into view, all at once, and one not answered (`modelLook` failed) was never asked again until the Club
+  was drawn anew, so whole shelves kept the plane icon. Now `hgAsk` queues them and `hgPump` runs two at a time: the
+  cards in view (IntersectionObserver `hgIO`, 150 px margin) first, then each shelf's first six, then the rest; a
+  failed one is queued again after 61 s (`hgTries`, twice at most); the queue pauses outside the Club. The first six
+  of each shelf load at once (`loading=eager`), the rest lazily; a shelf touched for the first time (`hgAll`) has its
+  pictures fetched off-screen (`hgPre`, `new Image()`, so nothing in the shelf changes). (3) In Safari the face-down
+  card's grid (`place-content:start`) sized its column to the "STILL TO FIND" text, narrowing the picture frame:
+  `.hgCard` now has one `minmax(0,1fr)` column. (4) #167: N700GR's code M700 is right (a 2025 Piper PA-46-701TP,
+  the M700 Fury); the board knew no name for it and `tierChip` showed no rarity for a code missing from `FLEET`. Now
+  `tierChip` gives such a code "uncommon", as the relay scores it; `typeCard` leaves out tiles without a value (no "/")
+  and its sub line repeats no code that is already the title; `infoCard` lays out fewer than three tiles across.
+  `TYPES` gained M700 "Piper M700 Fury" and E175 (a set lists it). Its Global photo is an older Planespotters photo of
+  the registration (`plane_photo` matches by registration; US hex codes follow the registration). No relay change.
 - 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
   school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
   `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with

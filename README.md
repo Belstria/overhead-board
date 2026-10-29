@@ -567,7 +567,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   the name, when and which; since 1.97 a line under it, "★ Scored 6× · 2 scanned" or "Not scored yet": how often
   the game scored the type within 15 km (10 km until 1.98) and how often Sky view scanned it), the missing types face down with their
   model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
-  scanned) and the model. **Tap a name in the league**
+  scanned) and the model. Since 1.103.0.1 the pictures load ahead (each shelf's first cards at once, the rest of a
+  shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
+  found shows a helicopter. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
   week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board

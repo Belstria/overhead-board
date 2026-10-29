@@ -854,12 +854,17 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .hgT em{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--t,#7d838c)}
 .hgT b{font:700 var(--fs-s)/1.2 var(--f-board);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hgT>span{font:500 var(--fs-tag)/1.3 var(--f-board);color:var(--muted)}
-.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);place-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
+.hgCard.back{box-shadow:none;border:1px dashed rgba(255,255,255,.16);align-content:start;justify-items:center;gap:6px;text-align:center;min-height:178px;padding-bottom:10px;
   background:repeating-linear-gradient(45deg,#1b1d21 0 7px,#16181b 7px 14px)}
 /* 1.96: a face-down card shows its model, dimmed. 1.97 (to-do #132, pick 2): a line under the name, how often the game
    scored the type and how often it was scanned (no badge on the photo any more) */
 .hgCard.back img,.hgCard.back .hgPh{filter:grayscale(1) brightness(.5);opacity:.55;margin-bottom:4px}
 .hgCard{position:relative}
+/* 1.103.0.1 (to-do #166): the picture in its frame from the start (one column, so Safari doesn't narrow a face-down
+   card's frame to its text); a helicopter in the empty frames of helicopters */
+.hgCard{grid-template-columns:minmax(0,1fr)}
+.hgCard .hgPh>img{width:100%;height:100%;margin:0;filter:none;opacity:1;background:none}
+.hgCard .hgPh.heli{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23555b64' d='M3 4.5h18v1.4H3zM11.3 5.9h1.4V8h-1.4zM9 8h4a4 4 0 0 1 4 4v1.5a2.5 2.5 0 0 1-2.5 2.5H9a4 4 0 0 1-4-4 4 4 0 0 1 4-4zM16 10.5h5V12h-5zM20.5 7.5H22v5h-1.5zM8.3 16h1.2v3H8.3zM13.3 16h1.2v3h-1.2zM6 19h11v1.2H6z'/%3E%3C/svg%3E"),linear-gradient(160deg,#2a2d33,#16181b)}
 .hgT .hgL{display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font:600 var(--fs-tag)/1.2 var(--f-board);color:var(--amber)}
 .hgT .hgL i{font-style:normal}
 .hgT .hgL u{text-decoration:none;color:var(--muted)}

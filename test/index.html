@@ -2396,7 +2396,7 @@ const TYPES = {
   B739:"Boeing 737-900",B37M:"Boeing 737 MAX 7",B38M:"Boeing 737 MAX 8",B39M:"Boeing 737 MAX 9",B3XM:"Boeing 737 MAX 10",B752:"Boeing 757-200",
   B753:"Boeing 757-300",B762:"Boeing 767-200",B763:"Boeing 767-300",B764:"Boeing 767-400",B772:"Boeing 777-200",B77L:"Boeing 777-200LR",
   B773:"Boeing 777-300",B77W:"Boeing 777-300ER",B778:"Boeing 777-8",B779:"Boeing 777-9",B744:"Boeing 747-400",B748:"Boeing 747-8",
-  B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E170:"Embraer E170",E75L:"Embraer E175",E75S:"Embraer E175",E190:"Embraer E190",
+  B788:"Boeing 787-8",B789:"Boeing 787-9",B78X:"Boeing 787-10",E170:"Embraer E170",E175:"Embraer E175",E75L:"Embraer E175",E75S:"Embraer E175",E190:"Embraer E190",
   E195:"Embraer E195",E290:"Embraer E190-E2",E295:"Embraer E195-E2",E135:"Embraer ERJ-135",E145:"Embraer ERJ-145",CRJ2:"Bombardier CRJ200",
   CRJ7:"Bombardier CRJ700",CRJ9:"Bombardier CRJ900",CRJX:"Bombardier CRJ1000",DH8D:"Dash 8 Q400",DH8C:"Dash 8-300",
   AT43:"ATR 42",AT45:"ATR 42-500",AT46:"ATR 42-600",AT72:"ATR 72",AT75:"ATR 72-500",AT76:"ATR 72-600",F100:"Fokker 100",F70:"Fokker 70",
@@ -2406,7 +2406,7 @@ const TYPES = {
   C25A:"Citation CJ2",C25B:"Citation CJ3",C25C:"Citation CJ4",C56X:"Citation Excel",C68A:"Citation Latitude",C700:"Citation Longitude",
   CL35:"Challenger 350",CL60:"Challenger 650",GLF5:"Gulfstream G550",GLF6:"Gulfstream G650",GL5T:"Global 5000",GLEX:"Global Express",
   GL7T:"Global 7500",E55P:"Phenom 300",F2TH:"Falcon 2000",F900:"Falcon 900",FA7X:"Falcon 7X",FA8X:"Falcon 8X",LJ45:"Learjet 45",
-  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",B190:"Beech 1900",
+  LJ75:"Learjet 75",DA42:"Diamond DA42",DA62:"Diamond DA62",DA40:"Diamond DA40",P28A:"Piper Cherokee",TBM9:"TBM 900",M700:"Piper M700 Fury",B190:"Beech 1900",
   B741:"Boeing 747-100",B742:"Boeing 747-200",B743:"Boeing 747-300",B74S:"Boeing 747SP",B74R:"Boeing 747SR",A124:"Antonov An-124",A225:"Antonov An-225",
   AN22:"Antonov An-22",A3ST:"Airbus Beluga",A337:"Airbus BelugaXL",CONC:"Concorde",C17:"Boeing C-17",C5M:"C-5 Galaxy",K35R:"KC-135",
   EUFI:"Eurofighter",F16:"F-16",F35:"F-35",P3:"P-3 Orion",C295:"Airbus C295",E390:"Embraer C-390",EC55:"Airbus H155",EC75:"Airbus H175",
@@ -5981,10 +5981,11 @@ function planeFunFacts(g){
   if (g && g.n >= 2 && g.first) out.push([T("You first spotted it on {d}.", {d: longDate(g.first)}), T("your logbook")]);
   return out;
 }
-// A model's rarity as a chip on its photo (Rare, Very rare ...), by its type code.
+// A model's rarity as a chip on its photo (Rare, Very rare ...), by its type code; 1.103.0.1 (to-do #167): a code missing
+// from FLEET is uncommon, as the relay scores it.
 function tierChip(code){
   code = String(code || "").toUpperCase();
-  const tier = LEGENDARY.has(code) ? "legendary" : FLEET[code] != null ? fleetTier(code) : "";
+  const tier = !code ? "" : LEGENDARY.has(code) ? "legendary" : fleetTier(code);
   return tier ? `<span class="cChip" style="background:${TIER_COL[tier]};color:#fff">${escH(T(TIER_NAME[tier]))}</span>` : "";
 }
 // One info card (o: {pic: a planePic-like photo, picAttr (the photo opens something: only its credit is a link), logo,
@@ -6014,7 +6015,7 @@ function infoCard(o){
     (typeof o.band === "string" ? `<p class="cNoRoute">${escH(o.band)}</p>` :
       o.band && (o.band[0] || o.band[2]) ? `<div class="cRouteB">${end(o.band[0])}${bandMid(o.kind)}${end(o.band[2])}</div>` : "") +
     ((o.via || []).some(Boolean) ? `<div class="cVia">${o.via.filter(Boolean).map(([t, at]) => `<button class="cLink cOvA" type="button"${at}>${escH(t)} ›</button>`).join("")}</div>` : "") +
-    (o.tiles ? `<div class="cTiles">${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
+    (o.tiles && o.tiles.length ? `<div class="cTiles"${o.tiles.length < 3 ? ` style="grid-template-columns:repeat(${o.tiles.length},minmax(0,1fr))"` : ""}>${o.tiles.map(([l, v, s, a]) => `<${a ? `button type="button" class="cTile"${a}` : `div class="cTile"`}><span>${escH(T(l))}</span><b>${escH(v || NA)}</b>` +
       `${s ? `<small>${escH(s)}</small>` : ""}</${a ? "button" : "div"}>`).join("")}</div>` : "") +
     (facts[0] ? `<div class="cFun"><b>${escH(T("Fun fact"))}</b><p>${escH(facts[0][0])}</p></div>` : "") +
     (det.length ? `<div class="cDet">${det.map(([l, v, w]) => `<div${w ? ' class="w"' : ""}><span>${escH(T(l))}</span>${v}</div>`).join("")}</div>` : "") +
@@ -6665,10 +6666,10 @@ async function typeCard(x){
     const f = fx && fx.facts || {}, e = f.engines;
     const fam = fx && modelFold(fx.title) !== modelFold(t.name) ? T("{name} family", {name: familyName(fx.title)}) : "";
     return infoCard({pic: w && w.img ? {src: wikiImg(w.img, 500), kind: "wm"} : null, title: t.name,
-      sub: [p0 && p0.maker && t.code ? modelMakers(p0.maker)[0] : "", t.code].filter(Boolean).join(" · "),
+      sub: [p0 && p0.maker && t.code ? modelMakers(p0.maker)[0] : "", t.code !== t.name ? t.code : ""].filter(Boolean).join(" · "),
       chip: tierChip(t.code), kind: "model", band: [f.firstFlight ? [yearOf(f.firstFlight), T("First flight")] : null, "", f.introduced ? [yearOf(f.introduced), T("In service")] : null],
       tiles: [["Built", f.built ? nf.format(f.built) + (f.builtMore ? "+" : "") : "", f.built ? fam : ""], ["In service", n ? "≈ " + nf.format(n) : "", n ? T("this model") : ""],
-        ["Spotted", t.code ? timesText(sp ? sp.sightings : lb && lb.count) : ""]],
+        ["Spotted", t.code ? timesText(sp ? sp.sightings : lb && lb.count) : ""]].filter(x => x[1]),   // 1.103.0.1: what isn't known left out (#167)
       facts: modelFunFacts(f, sp && sp.planes),
       det: [["Code", escH(t.code)], ["Engines", e ? escH(e.name ? (e.n ? `${e.n} × ` : "") + e.name : `${e.n} × ${T(ENGINE_KIND[e.kind] || "Engine")}`) : ""],
         ["Seats", f.seats ? escH(T("up to {n}", {n: nf.format(f.seats)})) : ""], ["Wingspan", f.span ? escH(mText(f.span)) : ""],
@@ -7778,6 +7779,10 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.103.0.1", date: "2026-10-29", notes: [
+    "Your hangar loads its pictures ahead, and a shelf no longer jumps back while you swipe it.",
+    "Cards still to find show their model's picture again, and a helicopter where none is found.",
+    "A model card shows its rarity even for a type the board doesn't know, and leaves out what isn't known."]},
   {v: "1.103", date: "2026-10-29", notes: [
     "New players get a flight school: five first missions, 50 points each, and their wings at the end."]},
   {v: "1.103", date: "2026-10-29", notes: [
