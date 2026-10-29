@@ -45,7 +45,7 @@ progress from `trophyCounts`). Unlockable styles (1.59): `STYLES`, `stylesCard()
 colours and finishes only with the Classic board (`classicLook()`); badge icons `app/icon-*-<badge>.png` by `tools/app/make_icons.py`.
 Realistic look is `S.real`/`REAL()`. The game (1.72, relay 59): only "live" sightings within `GAME_KM` (15 km) score, scans only within `SCAN_KM` (10 km, relay 82), kept in
 the logbook's own `game3` part (`game_note`, `game_lockon` (the scan), `game_awards`, `level_of`, `league_json`); the app's score
-strip, Game page, pop-ups and Sky view scan are `gStrip*`/`renderGame`/`gAwards`/`gPop`/`gLockOn` in main.js, the scan tickets `gTixSync` (from `/game/me`'s `scan` list, `game_scannable`, 1.98); the rules come from the relay (`game_rules`, 1.96); the
+strip, Game page, pop-ups and Sky view scan are `gStrip*`/`renderGame`/`gAwards`/`gPop`/`gLockOn` in main.js, the scan tickets `gTixSync` (from `/game/me`'s `scan` list, `game_scannable`, 1.98; golden ones `game_gold`, relay 83, its salt in `data/gold.key`); the rules come from the relay (`game_rules`, 1.96); the
 board's League page is `renderLeague`. Styles unlock by level (`{lvl: n}`), First Class only for the champion. Fire TV and LG (`WEAK_TV`) draw at 1080p, 30 fps, shorter runs (`LITE()`); the
 Fire TV lays out at 960x540, so board CSS in the cockpit and views scales with `calc(Npx*var(--k))`.
 

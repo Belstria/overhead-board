@@ -1631,7 +1631,24 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .gAw .scn i{flex:none;font:700 var(--fs-l)/1 var(--f-board);font-style:normal;color:#a3740a}
 .gAw.under{transform-origin:50% 100%}
 .gAw.under .pF{filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
-@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw{animation:none!important}}
+/* 1.100 (to-do #148, Dave's pick A): a golden ticket: the paper gold foil with a sheen going over it, the band keeping the
+   rarity, the stub GOLDEN with ×2; what doubles is marked, the extras say they don't. Its stub tears off throwing gold. */
+.gAw .pF.gold .main{position:relative;overflow:hidden;background:linear-gradient(115deg,#f3e2a6 0%,#fff7dc 20%,#ecd07c 42%,#fff4cc 58%,#dcb555 82%,#f4e2a4 100%)}
+.gAw .pF.gold .stub{background:linear-gradient(160deg,#fff4c4 0%,#f2cd5c 30%,#c9921a 62%,#f6d980 100%);color:#17140e;border-left-color:rgba(90,60,0,.45)}
+.gAw .pF.gold .stub small{letter-spacing:.18em}
+.gAw .pF.gold .stub i.x2{font:700 var(--fs-m)/1 var(--f-board);font-style:normal;padding:2px 7px;border-radius:999px;background:#17140e;color:#f6d27a}
+.gAw .pF.gold .who span,.gAw .pF.gold .lns div{color:#5e4a17}
+.gAw .pF.gold .lns div b{color:#17140e}
+.gAw .pF.gold .lns div.gold b{color:#8a6206}
+.gAw .pF.gold .lns span[data-nx]::after{content:" " attr(data-nx);font:600 var(--fs-tag)/1 var(--f-board);color:#8a7a52}
+.gAw .pF.gold .nt{color:#6e5a27}
+.gAw .pF.gold .scn{background:rgba(255,255,255,.35);border-top-color:rgba(140,100,20,.4)}
+.gAw .pF.gold .gl{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.75) 42%,transparent 54%);mix-blend-mode:soft-light;animation:gSheen 2.6s ease-in-out infinite}
+@keyframes gSheen{0%{transform:translateX(-110%)}60%,100%{transform:translateX(110%)}}
+.gAw .pF.gold .sp{position:absolute;color:#fff;font:700 var(--fs-s)/1 var(--f-board);font-style:normal;text-shadow:0 0 6px #fff7c0;pointer-events:none}
+#arBurst.gold i{left:-3px;top:-3px;width:6px;height:13px}
+#arBurst b{position:absolute;left:-6px;top:-6px;font:700 var(--fs-s)/1 var(--f-board);color:#fff7c0;text-shadow:0 0 6px #f0b429;animation:pfSpark 1.1s ease-out forwards}
+@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw,.pF .gl{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1910,7 +1927,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=ea74b987ca"></script>
+<script src="../test/i18n.js?v=16ebf6bf98"></script>
 <script>
 (() => {
 "use strict";
@@ -8272,9 +8289,10 @@ function arLoop(){
     const game = gameOk() && S.live, gx = game ? spotted.find(x => x.hex === ac.hex && (x.lock || x.scan)) : null;
     const near = game && !gx && (gScanSet().has(ac.hex) || d / 1000 <= gScanKm());
     const closer = game && !gx && !near && (d / 1000 <= gKm() || spotted.some(x => x.hex === ac.hex && x.gp != null && x.liveMin != null && x.liveMin <= gKm()));
-    const tier = tierOf(ac, info), pts = gBase(tier);
+    // 1.100 (to-do #148): a golden ticket's plane (the relay's list): its ★ shows the doubled points, its label edged in gold
+    const gold = near && gGoldSet().has(ac.hex), tier = tierOf(ac, info), pts = gBase(tier) == null ? null : gBase(tier) * (gold ? 2 : 1);
     const chip = !game ? "" : gx ? "✓ +" + nf.format((gx.lock || 0) + (gx.gs || 0)) : near ? "★" + (pts == null ? "" : " " + nf.format(pts)) : closer ? T("CLOSER TO SCAN") : T("NO PTS");
-    shown.push({ac, d, pr, isFeat, chip, locked: !!gx, tier: near ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: game && !gx && !near, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
+    shown.push({ac, d, pr, isFeat, chip, gold, locked: !!gx, tier: near ? tier : "", el: Math.atan2(u, d) * 180 / Math.PI, far: game && !gx && !near, name: info.flightNo || String(ac.flight || "").trim() || ac.r || ac.hex.toUpperCase(),
       sub: [shortType(info.type || TYPES[String(ac.t || "").toUpperCase()] || ac.t || ""), altitudeStr(alt).toLowerCase(), (d / 1000 < 10 ? (d / 1000).toFixed(1) : Math.round(d / 1000)) + " km"].filter(Boolean).join(" · ")});
   }
   shown.sort((a, b) => a.d - b.d);
@@ -8303,6 +8321,14 @@ function arLoop(){
       const tc = TIER_COL[s.tier] && !(s.isFeat && s.tier === "legendary") ? TIER_COL[s.tier] : "";   // gold on the gold label: as before
       g.fillStyle = s.far ? "rgba(255,255,255,.2)" : tc || (s.isFeat ? "#17140e" : "#f0b429"); rr(g, cx, by + 6, wc, 15, 7.5); g.fill();
       g.fillStyle = s.far ? "#e7e2d6" : tc ? (s.tier === "legendary" ? "#17140e" : "#fff") : s.isFeat ? "#f0b429" : "#17140e"; g.font = `700 10px ${FONT}`; g.fillText(s.chip, cx + 6, by + 17);
+    }
+    if (s.gold) {                                    // 1.100: a gold edge round the label and a GOLDEN ×2 tab on it
+      const gr = g.createLinearGradient(bx, by, bx + bw, by + bh), tab = T("GOLDEN ×2");
+      gr.addColorStop(0, "#fff1b8"); gr.addColorStop(.4, "#e0aa1f"); gr.addColorStop(.7, "#b8860b"); gr.addColorStop(1, "#f6d27a");
+      g.strokeStyle = gr; g.lineWidth = 2.5; rr(g, bx, by, bw, bh, 7); g.stroke();
+      g.font = `700 9px ${FONT}`; const tw = g.measureText(tab).width + 10;
+      g.fillStyle = gr; rr(g, bx + 10, by - 9, tw, 14, 7); g.fill();
+      g.fillStyle = "#17140e"; g.fillText(tab, bx + 15, by + 1.5);
     }
     g.globalAlpha = 1;
   }
@@ -12144,6 +12170,7 @@ const gKm = () => (gme && gme.km) || 10;             // the game's circle, from 
 const gScanKm = () => (gme && gme.scanKm) || gKm();  // 1.98 (relay 82): the scan's circle, 10 km (an older relay: the one circle)
 // 1.98: the planes a scan counts for now (the relay's list), as a set (made once for each answer)
 const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set(gme.scan.map(x => x.hex))) : new Set();
+const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [];
 function gStripSetup(){
   const box = $("gStrip");
@@ -12276,10 +12303,12 @@ const TIER_UP = {common: "COMMON", uncommon: "UNCOMMON", rare: "RARE", epic: "VE
 const gPlus0 = n => n ? gPlus(n) : "0";
 const gTierT = t => T(TIER_NAME[t] || "Uncommon");
 // An award's line, as on its pass and in Recent points: [what, points, class ("x" an extra, "stk" the streak, "lim" none)].
-function gAwLine(a, f){
+function gAwLine(a, f, tix){
   const t = gTierT(a.tier), R = gRules(), lim = (R && R.limit[a.tier]) || 0;
+  if (a.k === "scan" && a.gold && tix) return [T("{t} plane {p} ×2", {t, p: gPlus(a.full || a.p / 2)}), a.p, "gold"];     // 1.100: on its ticket
   if (a.k === "pass") return [T("{t} plane", {t}) + (lim ? " · " + T("{n} of {m} today", {n: nf.format(a.n || 1), m: nf.format(lim)}) : ""), a.p, ""];
   if (a.k === "limit") return [T("{t} limit reached: {m} of {m} today", {t, m: nf.format(lim || (a.n || 1) - 1)}), 0, "lim"];
+  if (a.k === "scan" && a.gold) return [T("Sky view scan · {t} plane ×2 golden", {t}), a.p, "gold"];    // 1.100: a golden ticket's
   if (a.k === "scan") return [a.r === 2 ? T("Scan · {t} topped up to {f}", {t, f: nf.format(a.full || 0)}) : T("Sky view scan · {t} plane", {t}), a.p, ""];
   if (a.k === "new") return [T(a.w === "airline" ? "New airline · {n}" : "New type · {n}", {n: a.w === "airline" ? (f && f.airline) || a.n : (f && f.type) || a.n}), a.p, "x"];
   if (a.k === "streak") return [T("Daily streak · day {n}", {n: a.n}), a.p, "stk"];
@@ -12305,11 +12334,13 @@ function gPop(o){
 function gPassFill(el, o){
   el.className = "gAw" + (o.tix ? " tix" : "") + (o.rip ? " rip" + (o.rip > 1 ? " rip2" : "") : "");
   if (o.tix) el.dataset.tix = o.tix; else delete el.dataset.tix;
-  el.innerHTML = `<div class="pF ${o.kind || "uncommon"}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
+  const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "";
+  el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
     (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") +
-    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
+    (o.lines && o.lines.length ? `<div class="lns">${o.lines.map(([l, n, x]) => `<div class="${x}"><span${x === "x" ? nx : ""}>${escH(l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
-    `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b><em></em></div></div>`;
+    (o.gold ? `<div class="gl"></div><i class="sp" style="left:222px;top:58px">✦</i><i class="sp" style="left:150px;top:12px">✦</i>` : "") +
+    `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em></div></div>`;
   const out = el.out = () => {
     if (!el.isConnected || el.classList.contains("out")) return;
     el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350);
@@ -12352,12 +12383,12 @@ function gTixSync(list){
 }
 function gTixShow(x){
   const f = fromRelay(x), R = gRules(), can = x.can || {};
-  const lines = [gAwLine({k: "scan", r: 4, tier: x.tier, p: x.full}, f)];
+  const gold = !!x.gold, lines = [gAwLine({k: "scan", r: 4, tier: x.tier, p: x.full * (gold ? 2 : 1), full: x.full, gold}, f, true)];   // 1.100: golden, ×2
   if (can.type) lines.push(gAwLine({k: "new", w: "type", p: can.type, n: x.typeCode}, f));
   if (can.airline) lines.push(gAwLine({k: "new", w: "airline", p: can.airline, n: String(x.callsign || "").slice(0, 3)}, f));
   const n = gme && !gme.scannedToday && R ? (gme.streak || 0) + 1 : 0;
-  gPop({tix: x.hex, kind: x.tier, band: T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
-    note: n ? T("Your first scan today adds the daily streak: +{p}.", {p: nf.format(R.streak * n)}) : "", stub: T("SCAN"),
+  gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
+    note: n ? T("Your first scan today adds the daily streak: +{p}.", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
     p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS});
 }
 // A ticket pushed out by a shorter pass comes back at the bottom once there is room, while its 10 s and its plane last.
@@ -12406,7 +12437,7 @@ function gScanPops(r){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
   const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
-    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f)), stub: T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS};
+    lines: main.map(a => gAwLine({tier: r.tier, ...a}, f, true)), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, life: TIX_MS, gold: !!r.gold};
   const box = $("gAws"), tix = box && [...box.children].find(el => el.dataset.tix === String(r.hex) && !el.classList.contains("out"));
   let pass;
   if (tix) {
@@ -12466,6 +12497,26 @@ function gRip(){
   const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
   src.buffer = n; bp.type = "bandpass"; bp.frequency.value = 2400; bp.Q.value = .7; g.gain.value = .5;
   src.connect(bp).connect(g).connect(sfxOut()); src.start();
+}
+// 1.100 (to-do #148, Dave's pick B, "Bell sparkle"): a golden ticket's tear: the paper rip, then eight bells climbing a
+// pentatonic scale (E6 to A7, 55 ms apart) onto a held bright chord with three high glints. Levelled like 1.97.2: the rip
+// stays its loudest moment, the bells' loudest 300 ms a touch above the jingle's.
+function gGold(){
+  if (!(S.sound || S.chimes) || !actx || actx.state !== "running") return;
+  const t = actx.currentTime, out = actx.createGain();
+  if (!sample("tear", t, .9)) gRip();
+  out.gain.value = .56; out.connect(sfxOut());
+  const bell = (f, at, amp, dec, parts, type) => {
+    for (const [mult, a] of parts) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = mult === 1 ? type : "sine"; o.frequency.value = f * mult;
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(amp * a, at + .004); g.gain.exponentialRampToValueAtTime(amp * a * .002, at + dec / mult ** .5);
+      o.connect(g).connect(out); o.start(at); o.stop(at + dec + .05);
+    }
+  };
+  [1319, 1568, 1760, 2093, 2349, 2637, 3136, 3520].forEach((f, i) => bell(f, t + .12 + i * .055, .12 + i * .01, .5, [[1, 1], [2.76, .3], [5.4, .08]], "triangle"));
+  for (const f of [1047, 1319, 1568, 2093]) bell(f, t + .58, .07, 1.6, [[1, 1], [2, .25], [3, .08]], "triangle");
+  [4186, 3520, 4699].forEach((f, i) => bell(f, t + .66 + i * .09, .03, .3, [[1, 1]], "sine"));
 }
 // The Game page: the level, the league (this week or all time), today, then the collections, bingo and trophies.
 async function gLeagueLoad(force){
@@ -12656,12 +12707,15 @@ function medalNudge(g0){
 // tops the plane up to its full points, with the extras and the day's streak: their passes slide up from below
 // (gScanPops), with a burst in the ring, the prize jingle and a buzz.
 // The scan's fireworks: eighteen sparks round a point in Sky view (x, y in #arView), the ring by default.
-function gBurst(x, y){
+function gBurst(x, y, gold){
   let burst = $("arBurst");
   if (!burst) { burst = document.createElement("div"); burst.id = "arBurst"; $("arView").appendChild(burst); }
   burst.style.left = x == null ? "" : x + "px"; burst.style.top = y == null ? "" : y + "px";
-  const cols = ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"];
-  burst.innerHTML = Array.from({length: 18}, (_, i) => `<i style="--r:${i * 20}deg;background:${cols[i % 5]}"></i>`).join("");
+  burst.className = gold ? "gold" : "";
+  // 1.100: a golden ticket throws gold glitter: more, finer pieces in golds and white, and sparkles (✦) among them
+  const cols = gold ? ["#fff1b8", "#f0b429", "#ffffff", "#e0aa1f", "#c9921a"] : ["#f0b429", "#c7372d", "#f3f0e8", "#22a058", "#3b7ddd"], n = gold ? 24 : 18;
+  burst.innerHTML = Array.from({length: n}, (_, i) => `<i style="--r:${i * 360 / n}deg;background:${cols[i % 5]}"></i>`).join("") +
+    (gold ? Array.from({length: 10}, (_, i) => `<b style="--r:${i * 36 + 18}deg;animation-delay:${(i % 3) * .08}s">✦</b>`).join("") : "");
   clearTimeout(gBurst.t); gBurst.t = setTimeout(() => { burst.innerHTML = ""; }, 1200);
 }
 async function gLockOn(hex){
@@ -12682,17 +12736,19 @@ async function gLockOn(hex){
   // moment it comes off (its animationstart), and the burst starts at the scan's tear line. With reduced motion there is no
   // tear: the burst stays where it was, in the ring, at once, and the sounds come on the same count.
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (still) gBurst();
+  // 1.100: a golden ticket's stub tears with its own sound (gGold) and throws gold glitter (none with reduced motion).
+  const gold = !!r.gold, rip = i => gold && !i ? gGold : gRip;
+  if (still && !gold) gBurst();
   passes.forEach((pass, i) => {
     const stub = pass && pass.querySelector(".stub");
-    if (!stub || still) { setTimeout(gRip, 1050 + i * 700); return; }
+    if (!stub || still) { setTimeout(rip(i), 1050 + i * 700); return; }
     let torn = false;
     const tear = () => {
       if (torn) return;
-      torn = true; gRip();
+      torn = true; rip(i)();
       if (i || !stub.isConnected) return;
       const a = stub.getBoundingClientRect(), v = $("arView").getBoundingClientRect();
-      gBurst(a.left - v.left, a.top - v.top + a.height / 2);
+      gBurst(a.left - v.left, a.top - v.top + a.height / 2, gold);
     };
     stub.addEventListener("animationstart", tear, {once: true});
     setTimeout(tear, 1500 + i * 700);                              // no animationstart (the page hidden): the sound at least

@@ -507,7 +507,15 @@ The main board has everything below. New features are tried on `/test/` first; o
   while (the ticket comes back while its 10 s last). In Sky view the tickets sit at its bottom. **At the scan** the
   plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears, then the streak's;
   both stay 10 s. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
-  quiet); a scan brings a prize jingle and a buzz. (Until 1.96 a lock-on paid +25 % of the
+  quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.100): now and then (about one plane in 20) a
+  plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan
+  pays the plane's points **twice** (a common 10 → 20, a rare 100 → 200; the ticket reads "Rare plane +100 ×2"); the
+  extras (new type, new airline), the streak, bingo and trophies don't double (they say "(no ×2)"), nor do the passive
+  points. The relay picks them, so nobody can pick or re-roll one, and any plane can be one, even a common one; the same
+  plane is gold for everyone that day. In Sky view its label has a gold edge and a "GOLDEN ×2" tab, its ★ shows the
+  doubled points; its stub tears off throwing gold glitter, with a sound of its own (the paper rip, then bells climbing
+  to a bright chord). Recent points: "Sky view scan · Rare plane ×2 golden". With reduced motion it stays gold, without
+  the sheen or the glitter. (Until 1.96 a lock-on paid +25 % of the
   plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
   Sky view's labels (1.72.1) carry a ★ for the planes
   a scan counts for (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 30; since 1.98 only

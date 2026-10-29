@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 82
+RELAY_VERSION = 83
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1042,6 +1042,8 @@ GAME_NEW = (("type", 50), ("airline", 25))          # at the first scan of a typ
 GAME_STREAK = 25            # the day's first scan: +25 × the day of the week's streak (25 … 175)
 GAME1_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))   # rule 1's extras (Recent points of the switch day)
 LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
+GOLD_ONE_IN = 20            # relay 83 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
+GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1251,6 +1253,35 @@ def game_awards(spot, since):
     return out[-20:]
 
 
+_gold_salt = None
+
+
+def _gold_key():
+    """Relay 83: the golden tickets' salt, made once in data/ (mode 600) and kept: a restart doesn't re-roll them."""
+    global _gold_salt
+    if _gold_salt is None:
+        try:
+            _gold_salt = GOLD_FILE.read_text().strip()
+        except OSError:
+            _gold_salt = ""
+        if len(_gold_salt) < 32:
+            _gold_salt = secrets.token_hex(16)
+            try:
+                fd = os.open(GOLD_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                with os.fdopen(fd, "w") as f:
+                    f.write(_gold_salt + "\n")
+            except OSError as ex:
+                event("warn", f"golden tickets: can't keep the salt ({ex}); they re-roll at the next start")
+    return _gold_salt
+
+
+def game_gold(day, hx):
+    """Relay 83 (to-do #148): is this plane's ticket gold today? A hash of the secret salt, the board's day and the
+    plane: the same plane is gold for everyone all day, nobody can tell beforehand, and nothing re-rolls it."""
+    h = hashlib.sha256(f"{_gold_key()}|{day}|{str(hx or '').lower()}".encode()).hexdigest()
+    return int(h[:8], 16) % GOLD_ONE_IN == 0
+
+
 def game_scannable(spot):
     """Relay 82 (to-do #146): the planes a scan would count for now, newest first: scored, came within SCAN_KM, seen
     live in the last LOCK_FRESH_S, not scanned yet; each with its rarity, full points and the extras a scan would add
@@ -1261,7 +1292,8 @@ def game_scannable(spot):
         if "gp" not in e or d is None or d > SCAN_KM or e.get("lock") or e.get("scan") or now - e.get("liveSeen", 0) > LOCK_FRESH_S:
             continue
         tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
-        out.append({**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": tier, "full": TIER_BASE[tier], "can": _scan_can(g, e),
+        gold = {"gold": True} if game_gold(spot.day, e.get("hex")) else {}          # relay 83: its scan pays full twice
+        out.append({**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": tier, "full": TIER_BASE[tier], "can": _scan_can(g, e), **gold,
                     "km": d, "seen": int(e.get("liveSeen", 0) * 1000), "until": int((e.get("liveSeen", 0) + LOCK_FRESH_S) * 1000)})
     return out[:12]
 
@@ -1296,7 +1328,9 @@ def game_lockon(spot, hx):
         g, day = game_book(spot.book()), spot.day
         tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
         full = TIER_BASE[tier]
-        lines = [{"k": "scan", "p": full, "tier": tier, "full": full, "had": e["gp"]}]
+        # relay 83 (to-do #148): a golden ticket's scan pays the plane's full points twice; its extras and the streak don't
+        gold = game_gold(day, e.get("hex") or hx)
+        lines = [{"k": "scan", "p": full * (2 if gold else 1), "tier": tier, "full": full, "had": e["gp"], **({"gold": 2} if gold else {})}]
         sc, can = g["scanned"], _scan_can(g, e)
         tc, al = e.get("typeCode") or "", _scan_airline(e)
         if "type" in can:
@@ -1328,7 +1362,7 @@ def game_lockon(spot, hx):
         _game_best(g, day, e)
         spot.changed("book", "day")
         lv = level_of(g["points"])
-        return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak,
+        return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
                 "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 

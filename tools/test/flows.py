@@ -431,6 +431,120 @@ def scan_circle_checks(expect):
         serve.where_name, serve.watch_of = real
 
 
+def golden_checks(expect):
+    """Relay 83 (to-do #148): golden tickets. About one plane in 20, from a hash of a salt kept in data/ (made once, mode
+    600), the day and the plane: the same for every profile all day, kept over a restart, different with another salt.
+    A golden scan pays the plane's full points twice, the extras and the streak as ever; a plain scan is unchanged; a game
+    scored before keeps every total and award."""
+    import json as _j
+    import os as _os
+    import stat
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    real = serve.where_name, serve.watch_of, serve.GOLD_FILE, serve._gold_salt
+    serve.where_name, serve.watch_of = (lambda lat, lon: {}), (lambda hx: None)
+    lat, lon = 48.2085, 16.3731
+    tmp = Path(tempfile.mkdtemp(prefix="fb-golden-"))
+    try:
+        serve.GOLD_FILE, serve._gold_salt = tmp / "gold.key", None
+        key = serve._gold_key()
+        expect("the salt: made once in data/, 32 hex digits, only the relay's user can read it",
+               (serve.GOLD_FILE.read_text().strip() == key, len(key), stat.S_IMODE(_os.stat(serve.GOLD_FILE).st_mode)), (True, 32, 0o600))
+        hexes = [f"{i:06x}" for i in range(0x400000, 0x400000 + 20000)]
+        day = "2026-10-29"
+        golds = {h for h in hexes if serve.game_gold(day, h)}
+        expect("about one plane in 20 is gold (20,000 planes: 4.4 to 5.6 %)", 880 <= len(golds) <= 1120, True)
+        expect("... the same planes when asked again, in capitals too",
+               (golds == {h for h in hexes if serve.game_gold(day, h)}, all(serve.game_gold(day, h.upper()) for h in list(golds)[:50])), (True, True))
+        expect("... other planes the next day", len(golds & {h for h in hexes if serve.game_gold("2026-10-30", h)}) < len(golds) // 5, True)
+        serve._gold_salt = None                         # a restart: the salt comes back from data/
+        expect("a restart doesn't re-roll them", {h for h in hexes if serve.game_gold(day, h)} == golds, True)
+        serve._gold_salt = "0" * 32
+        expect("another salt picks other planes (they can't be worked out without it)",
+               len(golds & {h for h in hexes if serve.game_gold(day, h)}) < len(golds) // 5, True)
+        serve._gold_salt = None
+
+        def ac(hx, km, t="A320", cs="AUA1"):
+            return {"hex": hx, "lat": lat + km / 111.2, "lon": lon, "alt_baro": 3000, "gs": 200, "t": t, "flight": cs}
+
+        def spot(name):
+            sp = serve.Spot(tmp / name, None, lambda: 3)
+            sp.ensure_day()
+            return sp
+        a, b = spot("a"), spot("b")
+        gh = next(f"c{i:05x}" for i in range(99999) if serve.game_gold(a.day, f"c{i:05x}"))
+        nh = next(f"c{i:05x}" for i in range(99999) if not serve.game_gold(a.day, f"c{i:05x}"))
+        for sp in (a, b):
+            sp.record([ac(gh, 8, "B738", "RYR8"), ac(nh, 7, "A21N", "WZZ3")], str(lat), str(lon), key="live")
+
+        def listed(sp):
+            with serve._data_lock:
+                return {x["hex"]: x.get("gold", False) for x in serve.game_scannable(sp)}
+        expect("the scan list marks the golden plane, for every profile alike", (listed(a), listed(b)), ({gh: True, nh: False},) * 2)
+        e = a.by_hex[gh]
+        full, gp = serve.TIER_BASE[e["tier"] if e.get("tier") in serve.TIER_BASE else "uncommon"], e["gp"]
+        with serve._data_lock:
+            p0 = serve.game_book(a.book())["points"]
+        r = serve.game_lockon(a, gh)
+        expect("a golden scan: the plane's full points twice, the new type, the new airline and the streak as ever",
+               (r.get("gold"), [(x["k"], x["p"], x.get("gold")) for x in r.get("lines", [])], r.get("bonus")),
+               (True, [("scan", 2 * full, 2), ("new", 50, None), ("new", 25, None), ("streak", serve.GAME_STREAK, None)],
+                2 * full + 75 + serve.GAME_STREAK))
+        with serve._data_lock:
+            expect("... the points and the plane's scan count it once, its passive points stay",
+                   (serve.game_book(a.book())["points"] - p0, e["lock"], e["gp"], e["ga"][-4]["gold"]), (r["bonus"], 2 * full + 75, gp, 2))
+        e2 = a.by_hex[nh]
+        full2 = serve.TIER_BASE[e2["tier"] if e2.get("tier") in serve.TIER_BASE else "uncommon"]
+        r2 = serve.game_lockon(a, nh)
+        expect("a plain scan as before: the full points once, nothing golden",
+               (r2.get("gold"), [(x["k"], x["p"], x.get("gold")) for x in r2.get("lines", [])]),
+               (False, [("scan", full2, None), ("new", 50, None), ("new", 25, None)]))
+        expect("the golden plane leaves the list once scanned; the other profile's ticket stays gold", (gh in listed(a), listed(b)),
+               (False, {gh: True, nh: False}))
+
+        # a game scored before golden tickets (none gold), then relay 83 with a salt that makes its scanned plane gold
+        folder = tmp / "before"
+        folder.mkdir()
+
+        def snap(sp):
+            with serve._data_lock:
+                sp.ensure_day()
+                serve.game_book(sp.book())
+                return [_j.dumps(x, sort_keys=True) for x in (sp.book(), sp.entries, serve.game3_json(sp.book(), sp.day),
+                                                               serve.game_today(sp), serve.game_awards(sp, 0))]
+        keep = serve.game_gold
+        try:
+            serve.game_gold = lambda d, h: False
+            old = serve.Spot(folder, None, lambda: 3)
+            old.ensure_day()
+            old.record([ac("d00001", 6, "A320", "AUA2"), ac("d00002", 9, "E195", "BCY1")], str(lat), str(lon), key="live")
+            serve.game_lockon(old, "d00001")
+            with serve._data_lock:
+                pts = serve.game_book(old.book())["points"]
+                old.changed("book", "day")
+                for path, text in old.files():
+                    path.write_text(text)
+            before = snap(old)
+        finally:
+            serve.game_gold = keep
+        for i in range(20000):                          # a salt that makes both its planes gold today
+            serve._gold_salt = f"{i:032x}"
+            if serve.game_gold(old.day, "d00001") and serve.game_gold(old.day, "d00002"):
+                break
+        new = serve.Spot(folder, None, lambda: 3)
+        expect("relay 83 on it (its scanned plane gold now): logbook, sightings, game page, Recent points and awards identical",
+               [x == y for x, y in zip(snap(new), before)], [True] * 5)
+        with serve._data_lock:
+            expect("... the points the same", serve.game_book(new.book())["points"], pts)
+        expect("... its unscanned plane comes up gold, the scanned one stays scanned", listed(new), {"d00002": True})
+    finally:
+        serve.where_name, serve.watch_of, serve.GOLD_FILE, serve._gold_salt = real
+
+
 def live_hidden_checks(expect):
     """Relay 81 (to-do #140): live_stale() on its own. A live request from a hidden page (bg=1) is stale, though its fix is
     fresh; a saved place and home never are; a page that sends no flag counts as visible."""
@@ -455,6 +569,9 @@ def checks():
         if got != want:
             bad.append(f"{what}: got {got}, expected {want}")
 
+    golden_checks(expect)
+    import serve                    # relay 83: no golden tickets in the other checks (data/'s salt would make 1 in 20 gold)
+    serve.game_gold = lambda day, hx: False
     game_rule_checks(expect)
     scan_circle_checks(expect)
     screens_checks(expect)
