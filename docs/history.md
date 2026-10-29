@@ -948,6 +948,17 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
+  member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
+  done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled
+  background and a 3 px rim inside its box knocked out, which also takes Emirates' line under its mark; the mark takes
+  whichever of its colour and its background's shows on the metal; on a dark card only the parts darker than .34 print
+  light, so Turkish keeps its red bird and myAustrian its red; trimmed to what's left, cached in `LY_INK`; multiplied
+  into light metal); the code top right in holographic ink (`.lyHo`, text clipped to a rainbow, deeper on light metals,
+  sliding with the sweep: `@lyHolo`; the old hologram tile is gone); the scans bottom left (ring and lines, at most
+  112 px wide so long translations wrap clear of the tier); the tier across the bottom right (`.lyVt`, no longer down
+  the edge). Member since and the last scan are only on the back now (`.lyMs` gone); the logo shows the airline's name
+  until it loads.
 - 1.114.2 (to-dos #191, #192, #193): **three small changes.** #191: `firstLines` no longer pushes FIRST: FLIGHT (the relay
   still counts flight numbers, `seenGet("cs", …)` is just not asked any more). #192: the strip's `.gMain` is a div of three
   buttons (`#gBRk` lapel, `#gBTot` points, `#gBLv` level line and bar; `.gB`, 44 px tall, 6 px apart) and the chip: the

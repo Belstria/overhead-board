@@ -611,9 +611,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
   Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). Since 1.114 the
   cards stand in a **carousel**: swipe through them (a flick carries on), tap a side card to bring it in, and tap the
-  front one to **turn it over**. A card shows the airline's logo, your tier, a ring to the next one, since when you're a
-  member and your last scan (platinum shines in rainbow colours); its back the airline's full name and home base, your scans and sightings and the types you
-  scanned most. With six cards or more an **index** under them finds one: **By tier** or **A–Z**, slide your thumb
+  front one to **turn it over**. A card's front (since 1.114.3) has the airline's logo printed in its own
+  colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
+  rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
+  your last scan and the types you scanned most. With six cards or more an **index** under them finds one: **By tier** or **A–Z**, slide your thumb
   along it and the names there show above it while the cards follow. A plane's
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
