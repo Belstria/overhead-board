@@ -1734,7 +1734,7 @@ const modelPicNow = (names, code) => modelPics.get(modelKey(names, code)) || "";
 /* 1.103.0.1 (to-do #166): a card's picture sits in a frame of its own size from the start (.hgPh, "heli" with a helicopter
    on the Helicopters shelf), painted in place as photos and model pictures come (hgPaint), so the shelves aren't drawn
    again for them (that made a swipe jump back). The model pictures are asked for in a queue, two at a time (hgAsk): the
-   cards in view first, then their shelf's first HG_EAGER cards (1.114.6: no more, half a second apart); one not answered is asked again a minute
+   cards in view first, then their shelf's first HG_EAGER cards (1.114.4: no more, half a second apart); one not answered is asked again a minute
    later (twice at most). Those first cards' pictures load at once, the rest as they come near; a shelf touched has all
    its pictures fetched beside it (hgAll, hgPre), not in it. Nothing in a shelf changes while it moves, not even an
    attribute (the browser snaps it back to its card then: hgMove, hgBusy), and the Club isn't drawn again (hgHeld). */
@@ -1825,7 +1825,7 @@ function hgWire(box){
   }
   hgPaint(box);
   if (!rows.length) return;
-  // 1.114.6 (to-do #197): only frames that come into view are asked for, each with its shelf's first HG_EAGER (there were
+  // 1.114.4 (to-do #197): only frames that come into view are asked for, each with its shelf's first HG_EAGER (there were
   // all 100 at once, and Wikipedia answered 429)
   const eager = r => frames(r).slice(0, HG_EAGER).forEach(el => hgAsk(el));
   if (hgIO) hgIO.disconnect();
@@ -1871,7 +1871,7 @@ function hgAsk(el, first){
 }
 function hgPump(){
   while (hgRun < 2 && hgQ.length && tab === "game") {
-    const wait = hgLast + HG_GAP - Date.now();                 // 1.114.6: a gap between lookups
+    const wait = hgLast + HG_GAP - Date.now();                 // 1.114.4: a gap between lookups
     if (wait > 0) { clearTimeout(hgPumpT); hgPumpT = setTimeout(hgPump, wait); return; }
     const q = hgQ.shift();
     if (modelPics.has(q.k)) continue;
@@ -5638,7 +5638,7 @@ async function gLeagueLoad(force){
   try { gLeague = await fetchJSON(`${relay()}/game/league`, {}, 8000); } catch {}
   if (tab === "game") renderGame();
 }
-/* 1.114.6 (to-do #197): the Club page as its plates' HTML, each plate with what follows it up to the next. A redraw replaces
+/* 1.114.4 (to-do #197): the Club page as its plates' HTML, each plate with what follows it up to the next. A redraw replaces
    only the plates whose HTML changed (a new sighting redrew all 11,000 nodes, the hangar's pictures with them), so the
    others keep their pictures, place and wiring; gPlates null (a new visit) draws it whole. One plate inside another
    would split wrong: then it stays one piece. */
@@ -5682,7 +5682,7 @@ function renderGame(){
   const tops = old ? [...box.children].filter(e => e.matches("section.secPlate")) : [];
   let roots = [box];
   if (tops.length !== parts.length) box.innerHTML = h;
-  else {                                         // 1.114.6: only the plates that changed, each where it was
+  else {                                         // 1.114.4: only the plates that changed, each where it was
     roots = [];
     for (const i of changed) {
       const t = document.createElement("template");

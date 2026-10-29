@@ -948,7 +948,7 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
-- 1.114.6 (to-do #197, review findings M2 and L7): **the Club's model pictures and redraws.** (1) `hgWire` no longer
+- 1.114.4 (to-do #197, review findings M2 and L7): **the Club's model pictures and redraws.** (1) `hgWire` no longer
   queues every hangar frame (74 Wikipedia requests in 10 s with 101 cards, then 429s and blank cards): the
   IntersectionObserver asks for frames as they come into view, and the first time a shelf shows, its first `HG_EAGER`;
   `hgPump` keeps two in flight, `HG_GAP` (500 ms) apart. Without an observer each shelf's first `HG_EAGER` as before.
