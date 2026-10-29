@@ -943,6 +943,13 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.100 (to-do #147, Dave's pick of 28 Oct, relay 83): **bingo lines and trophies pay points.** `gAwLine` names the new
+  award kinds: "bingo" (`BINGO_LINE[a.n]`: top/middle/bottom row, left/middle/right column, diagonal; #101's themed rows
+  were dropped, so a line is any of the relay's eight `BINGO_LINES`), "card" (the full card) and "trophy" (`TROPHY_TIER`
+  and `TROPHY_MEDALS[a.m]` for a rank, `trophyText` for a one-off). Recent points adds the plane's `gb` to its total.
+  `achList` gives each item its `pts` (a trophy from `g0.trophyPaid`, a line when it is among the latest `bingo.paid.lines`,
+  the card from `bingo.paid.full`); `achNext` writes "+N" after the title and `achSpecial` after the medal's metal (no
+  new style). `gHowCard`: a "Bingo and trophies" part from `rules.bingo`, `rules.medal`, `rules.single`.
 - 1.99 (to-do #161, Dave's request of 28 Oct): **Sky view zooms: ×2 and ×5**, for everyone (not a game unlock).
   `#arZ2`/`#arZ5` (`.arIb` in `.arZoom`, right, under the top bar; lit with `.on`, `aria-pressed`); `arZoomSet(z)`
   (a tap on the lit one: ×1). The camera's own zoom where `track.getCapabilities().zoom` exists (`applyConstraints
@@ -1285,6 +1292,19 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 83 (1.100, to-do #147): **bingo lines and trophies pay.** `GAME_BINGO` {line: 50, card: 500} (Dave, 29 Oct: all 8 lines count, so 50 a line; a full card 8 × 50 + 500 = 900), `GAME_MEDAL`
+  [50 … 250] (a ladder's rank by its place among `TROPHY_LADDER`'s ids of the same count, `_trophy_pts`), `GAME_SINGLE`
+  100; all in `game_rules()`. `game_note` (a new plane) calls `_game_bingo` and `_game_trophies` after `trophy_check`; a
+  closer pass's `trophy_pass` wins go to `_game_trophies` too. `_game_pay` puts the points on the plane (`gb`, sent by
+  `game_today`), as an award (`_game_award`, rule 4; kept: the last 12, was 8) and into the day (`_game_add`).
+  `g["trophyPaid"]` {id: pts} (game3_json `trophyPaid`) pays each trophy once; trophy_check/trophy_pass only return
+  ones not won before, so earlier trophies never pay. `g["bingoPay"]` {week, done, lines, card, had}: made from the
+  saved days (`_bingo_week(live=True)`, without the plane at hand) when the week is new; the very first time the lines
+  and card already done go in as `had` (counted, unpaid; the Bingo/Full card trophies won then too, unpaid). Then each
+  new plane is checked against the card, a newly complete line pays once, the full card once; the Bingo and Full card
+  trophies are won there (bingo_json only catches up). `bingo_json` sends `paid` {lines, full, line, card} for the
+  week. `_rescore`, `_backfill_trophies` and `_backfill_cards` work on the logbook, not game3, so pay nothing.
+  `GAME_RULE`, `GAME3_V`, `GAME_V` unchanged. flows.py `bingo_trophy_checks`.
 - Relay 82 (1.98, to-do #145, #146): **two circles.** `GAME_KM` = 15 (the passive points; `_record`'s live radius at
   least that, `game_note`'s `liveMin`), new `SCAN_KM` = 10: `game_lockon` answers `{why: "closer", km, scanKm}` for a
   plane scored at 10–15 km (before "gone"); the gap filler's quick refresh (`rec["near"]`, FILL_FAST_S) stays at 10 km

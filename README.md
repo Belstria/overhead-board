@@ -495,7 +495,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
   day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
-  league. No more close-pass factors, taper, streak multiplier or combo. Since 1.98 the **passive points show only on the
+  league. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
+  a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
+  trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
+  card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +50",
+  "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only on the
   score strip** (its +N). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
   boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
   new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
@@ -527,7 +532,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
   each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on
-  one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days), the league's switch
+  one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
