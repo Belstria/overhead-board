@@ -14,9 +14,11 @@ two days later mockups again carried sentences and a second row of tabs. These r
 
 1. **At rest, a state shows a label and a value, nothing else.** A label is at most three words ("Standby ready",
    "1 standby left"). No sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
-2. **The label opens its own explanation when tapped** (a bottom sheet). Sentences live only in there. The (i) by a
-   title explains a whole screen, as on the Radar, never one label. "It isn't clear" is answered with a tap target,
-   never with a sentence added to the card.
+2. **The label opens its own explanation when tapped** (a bottom sheet). Sentences live only in there, and the sheet
+   is two short lines: what it does, then what you will see ("Miss a day, and your Standby is automatically consumed
+   to keep your streak going" / "That day shows SBY and pays no points. Resets on Monday 03:00"). The (i) by a title
+   explains a whole screen, as on the Radar, never one label. "It isn't clear" is answered with a tap target, never
+   with a sentence added to the card.
 3. **At most one line of help per screen, and only in an empty state.** Everything longer goes behind the (i).
    Dave's exceptions: the welcome and the tips speak unasked, one step at a time.
 4. **Every number carries its name** (a small label above or beside it); never two bare numbers side by side.
@@ -39,7 +41,9 @@ two days later mockups again carried sentences and a second row of tabs. These r
 10. **Three taps from the bottom bar to any fact at most**: a key, a tab, a row or card. A fourth level means a level
     has to go.
 11. **Panels, not pages.** Anything that opens rises as the bottom sheet with the original plate inside (screws,
-    engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so.
+    engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so. A
+    card with a detail panel opens it on a tap anywhere on the card, with no extra "All N ›" row for it; index rows
+    (a label and a one-line state) stay, they are the way into a panel of their own.
 12. **The first screenful answers the screen's question.** Now: what is over me. Today (its own key until it moves
     into the Logbook): what came. Logbook: what I have ever seen. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
@@ -71,9 +75,9 @@ two days later mockups again carried sentences and a second row of tabs. These r
 - Each notice or ticket: does a stranger know what kind of thing is named and what to do?
 - Each new element: which existing class? Repeated panels: same facts, same height? `CLAUDE.md`'s rules kept?
 
-Dave settled these on 30 Oct 2026, so earlier notes that say otherwise are superseded: panels, not pages; a star only
-for a logbook note; pills only for the statuses in rule 6; the Club's own key with five keys kept; the version rule in
-`CLAUDE.md`; sentences only inside the explanation a tap opens; the engraved plate title on every sheet.
+Dave settled these on 30 Oct 2026; earlier notes saying otherwise are superseded: panels, not pages; a star only for a
+logbook note; pills only as in rule 6; the Club's own key with five kept; `CLAUDE.md`'s version rule; sentences only
+in the sheet a tap opens; the engraved plate title on every sheet.
 
 ## 2. What stays (the identity)
 
