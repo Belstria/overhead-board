@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=a76152e01f"></script>
+<script src="i18n.js?v=8671ded62d"></script>
 <script>
 (() => {
 "use strict";
@@ -7870,6 +7870,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.118", date: "2026-10-30", notes: [
+    "The app's Radar shows the radar and the Nearest list, nothing in between: the cogwheel by the title opens the range and the map from below, the (i) by Nearest explains the colours, and the list names its columns.",
+    "Sky view counts the planes in the picture and around you. A small radar dial bottom left shows them all (a tap lists them), and the three closest outside the picture sit at the edge with their distance and an arrow the way to turn; a tap opens the plane's card.",
+    "Sky view lines its labels up by itself: when it finds the sun or a plane in the picture it asks before moving them (Apply or Not now). The AUTO button went.",
+    "Sky view's tour says one thing per step, the zoom buttons have a label and the hint is one sentence."]},
   {v: "1.117", date: "2026-10-30", notes: [
     "The app's Logbook is one screen: the search, four totals, the year as one card and a list of its parts; each part opens from below.",
     "Week, month and year show three numbers, four facts and Share first; More shows the rest.",

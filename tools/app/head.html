@@ -568,7 +568,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 #arView .arTop span{color:#d6d2c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 1.72.7: frosted glass over the sky: the title in a pill, round ⓘ ⟲ ✕ (⟲ lit gold when the labels were dragged) */
 #arView .arTop{background:none;gap:8px}
-.arTitle,.arIb,.arMoved,.arAuto{background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
+.arTitle,.arIb,.arMoved{background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
 .arTitle{margin-right:auto;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px}
 .arIb{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;
   background:rgba(11,11,12,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
@@ -577,14 +577,21 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arIb .arDot{display:none;position:absolute;right:1px;top:1px;width:11px;height:11px;border-radius:50%;background:var(--amber);border:2px solid #111}
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
-/* 1.76: AUTO, Sky view lining itself up: a pill under the title, ringed gold while it holds planes, grey when off */
-.arAuto{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:12px;top:calc(var(--sa-top) + 66px);display:flex;align-items:center;gap:7px;
-  padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);color:#e6e1d4;font:600 var(--fs-xs)/1 var(--f-board)}
-.arAuto b{color:var(--amber);letter-spacing:.08em}
-.arAuto.on{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
-.arAuto.off,.arAuto.off b{color:var(--muted)}
-.arAuto:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-#arView.tourBtns .arAuto{z-index:9;box-shadow:0 0 0 3px var(--amber)}
+/* 1.118 (Dave's pick: AUTO always on, no button): when it finds an alignment, a prompt asks (Not now / Apply), in the
+   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
+.arAsk{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 66px);z-index:6;max-width:440px;margin:0 auto;background:#16171a;border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);padding:14px 16px;display:grid;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.arAsk[hidden]{display:none}
+.arAsk b{font:700 var(--fs-l)/1.2 var(--f-board);color:var(--amber)}
+.arAsk span{font:500 var(--fs-s)/1.4 var(--f-board);color:#d6d2c6}
+.arAsk .arTourAct{justify-content:flex-end;margin-top:4px}
+.arAsk .cBtn{min-width:96px;margin:0}
+.arZoomL{text-align:center;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:block;width:88px;height:88px;border-radius:50%}
+.arMini[hidden]{display:none}
+#arView .arMini canvas{position:static;flex:none;width:88px;height:88px;border-radius:50%;cursor:pointer}
+.arMini:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:44px}
+.arAround .arInV{font-style:normal;color:var(--amber)}
 /* the first-time walkthrough (and ⓘ): the ring, the drag, the buttons */
 .arTour{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(var(--sa-bottom) + 18px)}
 .arTour[hidden]{display:none}
@@ -680,6 +687,26 @@ body.arOpen #sheet{z-index:75}
 .rvPlate .wheel.off{opacity:.45;pointer-events:none}
 .rvCredit{max-width:440px;margin:6px auto 0;text-align:right}
 .rvCredit small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted)}
+/* 1.118 (Dave's pick B + cogwheel): the title with the cogwheel and the range by it; the RADAR plate waits out of sight
+   (.setHome) and rises as a Settings-style panel; the colours sit behind the (i) by Nearest (.rlegend in the sheet) */
+.rvTop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rvTop h2{margin:4px 0 12px}
+.rvSet{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;margin:0 0 8px;padding:6px 14px 6px 10px;border-radius:999px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);font:600 var(--fs-s)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.rvSet svg{width:20px;height:20px}
+.rvSet:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#t-radar .setHome{display:none}
+#t-radar .secPlate{position:relative}
+/* the Nearest list's column labels: one row over the two number columns, lined up by a shared grid (subgrid) */
+#rvList{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;column-gap:10px}
+#rvList>li{grid-column:1/-1}
+#rvList>li.rv,#rvList>li.rvHead{display:grid;grid-template-columns:subgrid}
+#rvList>li.rvHead{padding-top:4px;padding-bottom:6px;align-items:end}
+.rvHead span{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:right;white-space:nowrap}
+.rlegend.rvCols{flex-direction:column;flex-wrap:nowrap;gap:0;margin:4px 6px 4px}
+.rvCols li{font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted);align-items:flex-start;margin:0 0 8px}
+.rvCols i{flex:none;margin-top:4px}
+.rvCols b{color:var(--ink);font-weight:700}
 .rlegend{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 0;padding:0;font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .rlegend li{display:flex;align-items:center;gap:6px}
 .rlegend i{width:10px;height:10px;border-radius:50%;background:var(--c)}
@@ -1753,12 +1780,12 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <canvas id="arCv" aria-hidden="true"></canvas>
   <div class="arTop"><div class="arTitle"><b data-t="Sky view">Sky view</b><span id="arCount"></span></div>
     <button class="arIb" type="button" id="arFlag" aria-label="Send a report to tune Sky view" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg></button><button class="arIb" type="button" id="arInfo" aria-label="How Sky view works" data-ta="How Sky view works"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><button class="arIb" type="button" id="arReset" aria-label="Line the labels up again" data-ta="Line the labels up again"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><i class="arDot"></i></button><button class="arIb" type="button" id="arClose" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <button class="arAuto" id="arAuto" type="button" aria-pressed="true"></button>
-  <div class="arZoom"><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
+  <div class="arZoom"><span class="arZoomL" data-t="Zoom">Zoom</span><button class="arIb" type="button" id="arZ2" aria-label="Zoom in two times" aria-pressed="false">×2</button><button class="arIb" type="button" id="arZ5" aria-label="Zoom in five times" aria-pressed="false">×5</button></div>
   <p class="arMoved" id="arMoved" hidden></p>
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
-  <div class="arBot"><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
+  <div class="arAsk" id="arAsk" role="alertdialog" aria-live="polite" hidden></div>
+  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
@@ -1941,20 +1968,20 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   </section>
   <section class="wrap tab cols" id="t-radar" hidden>
     <div class="lcol">
-      <h2 data-t="Radar">Radar</h2>
+      <!-- 1.118 (Dave's pick B + cogwheel): the title, and by it a cogwheel with the range that raises the RADAR plate as a panel -->
+      <div class="rvTop"><h2 data-t="Radar">Radar</h2><button class="rvSet" type="button" id="rvSet" aria-label="Radar settings" data-ta="Radar settings"><span id="rvSetKm">25 km</span></button></div>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up" data-ta="Radar: the planes around you, north up"></canvas></div>
-      <!-- 1.82.2: a tapped plane's card right under the radar (under the plate since 1.69, it opened off the screen) -->
-      <p class="sum" id="rvHint" data-t="Tap a plane on the radar for more." hidden>Tap a plane on the radar for more.</p>
-      <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch -->
-      <div class="plate rvPlate" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
+      <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch; 1.118: out of sight
+           (.setHome) until the cogwheel raises it as a panel (setOpen("radar")) -->
+      <div class="setHome"><div class="plate rvPlate" data-pid="radar" style="--cols:2"><i></i><i></i><i></i><i></i><h3 data-t="Radar">Radar</h3>
         <div class="inst rvRange"><div class="wheel" tabindex="0" id="rvWheel" role="slider" aria-label="Range" data-ta="Range"><button type="button" class="inc" id="rvZoomOut" tabindex="-1" aria-label="Zoom out">▲</button><span class="win"><b id="rvZoomKm">25</b></span><button type="button" class="dec" id="rvZoomIn" tabindex="-1" aria-label="Zoom in">▼</button></div><button class="litKey" type="button" id="rvReset" aria-label="Back to the usual range" disabled><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></button><span data-t="Range km">Range km</span></div>
         <div class="inst"><button class="toggle" type="button" id="rvMap" aria-pressed="false" aria-label="Map" data-ta="Map"><span class="up" data-t="ON">ON</span><span class="sw"><i class="bush"></i><i class="shade"></i><i class="bat"></i></span><span class="down" data-t="OFF">OFF</span></button><span data-t="Map">Map</span></div>
-      </div>
+      </div></div>
       <p class="rvCredit"><small id="rvCredit" hidden></small></p>
-      <ul class="rlegend" id="rLegend"></ul>
     </div>
     <div class="rcol">
       <section class="plate secPlate" style="--cols:1"><i></i><i></i><i></i><i></i><h3 data-t="Nearest">Nearest</h3>
+      <button class="iBtn" type="button" id="rvInfo" aria-label="What the colours mean" data-ta="What the colours mean">i</button>
       <ol class="flights" id="rvList"></ol></section>
     </div>
   </section>
