@@ -2259,7 +2259,8 @@ async function shareYear(){
   ctlSound.click();
   const y = yearData;
   picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: yearFacts(y),
-    nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`);
+    nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`,
+    T("Your year as a picture, ready to send."));
 }
 async function sharePeriod(){
   const r = reviewData();
@@ -2269,7 +2270,7 @@ async function sharePeriod(){
   const sub = r.complete === false ? `${reviewDay(r.start, yr)} – ${T("today")}` : `${reviewDay(r.start)} – ${reviewDay(r.end, yr)}`;
   picCard(await periodPicture({title: T("{p} in planes", {p: reviewTitle()}), sub, facts: reviewFacts(r).filter(x => x[1]),
     nums: [[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"], [r.newTypeCount, "new types"], r.points != null ? [r.points, "points"] : [r.airframes, "aircraft"], [r.days, "days"]]}),
-    `fallblatt-${r.span}-${r.start}.png`);
+    `fallblatt-${r.span}-${r.start}.png`, T(r.span === "month" ? "Your month as a picture, ready to send." : "Your week as a picture, ready to send."));
 }
 document.addEventListener("click", e => { if (e.target && e.target.id === "pShare") sharePeriod(); });
 document.addEventListener("click", e => { if (e.target && e.target.id === "yShare") shareYear(); });
@@ -4395,7 +4396,7 @@ function setOpen(id){
   });
   if (id === "loc") setTimeout(() => {                          // the Location tips, now that its plate shows
     const vis = s => { const e = document.querySelector(s); return e && e.getClientRects().length ? e : null; };
-    tip("setlabel", () => vis("#cockpit .lblF"), T("Give the place you're watching a name and press its Save to keep it in your saved places."));
+    tip("setlabel", () => vis("#cockpit .lblF"), T("Name the place, then press its Save to keep it."));
     tip("setlive", () => vis("#cockpit [data-live]"), T("Live location follows this phone while the app is open."));
   }, 900);
 }
@@ -5149,13 +5150,28 @@ function wSwap(from, to){
 function welcome(){
   const box = $("welcome"), note = $("wNote"), first = String(GUEST.name || "").trim().split(/\s+/)[0] || GUEST.name;
   $("wHi").textContent = T("Hi {name}!", {name: GUEST.name});
-  $("wFor").textContent = T("A board for {name}", {name: first});
+  $("wFor").textContent = T("Welcome, {name}", {name: first});
   box.hidden = false;
   try { greetFlaps(); } catch {}
   $("wPlace").placeholder = T("London"); $("wHome").placeholder = "LHR"; $("wLat").placeholder = "51.5072"; $("wLon").placeholder = "-0.1276";
   const start = {...(window.OVERHEAD_DEFAULTS || {}), ...(GUEST.settings || {})};      // 1.49.1: only the relay's city and airport, the spot is the guest's own
   for (const [id, k] of [["wPlace", "place"], ["wHome", "home"]])
     if (start[k] != null) $(id).value = start[k];
+  // 1.119: one question a screen. The steps that apply here (notifications where the browser has them, an account
+  // where passkeys work), each with a progress line: how many there are and which one this is.
+  const steps = [$("wStep1"), pushPossible() && $("wPush"), accountsOk() && passkeysHere() && $("wAcct"), $("wPick")].filter(Boolean);
+  steps.forEach((el, i) => {
+    let p = el.querySelector(".wProg");
+    if (!p) { p = document.createElement("div"); p.className = "wProg"; p.setAttribute("role", "img"); el.prepend(p); }
+    p.setAttribute("aria-label", T("Step {n} of {total}", {n: i + 1, total: steps.length}));
+    p.innerHTML = steps.map((_, j) => `<i${j === i ? ' class="on"' : ""}></i>`).join("");
+  });
+  const next = from => {
+    const to = steps[steps.indexOf(from) + 1];
+    if (to === $("wPick")) return pick();
+    wSwap(steps, to);
+    if (to === $("wAcct")) acctStep();
+  };
   // The tap that opens it also lets the browser play sound: the greeting is heard, whatever the sound setting.
   $("wOpen").onclick = () => {
     soundForced = true; audioInit();
@@ -5164,6 +5180,20 @@ function welcome(){
     setTimeout(() => { try { greetRoll(); } catch {} }, 120);
     setTimeout(() => wSwap($("wOpen"), $("wStep1")), 650);
   };
+  let sent = Promise.resolve(), skipped = false;
+  const num = v => parseFloat(String(v).replace(",", "."));
+  const typed = () => {           // the place, airport and coordinates fields: only when asked for, or when the location failed
+    $("wLoc").hidden = $("wType").hidden = true;
+    if (!$("wTyped").hidden) return;
+    $("wTyped").hidden = false; $("wTyped").classList.add("wIn");
+  };
+  const keep = (lat, lon, home, place) => {
+    S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean(home).slice(0, 3) || S.home, place: String(place || "").trim() || T("Home"), located: true};
+    saveSettings();
+    sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
+    next($("wStep1"));
+  };
+  // One tap: the phone's location and its nearest airport are kept, and the next step follows.
   $("wLoc").onclick = async () => {
     ctlSound.press(); audioInit();
     $("wLoc").disabled = true; note.textContent = T("Finding out where you are …");
@@ -5173,50 +5203,52 @@ function welcome(){
       try { a = await nearestAirport(lat, lon); } catch {}
       $("wLat").value = lat; $("wLon").value = lon;
       if (a) { $("wHome").value = a.code; if (!$("wPlace").value) $("wPlace").value = a.city || a.name || ""; }
-      note.textContent = (a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.")) + " " + T("Check it, then Continue.");
+      note.textContent = a ? T("Found you. The nearest airport is {name} ({code}).", {name: a.city || a.name, code: a.code}) : T("Found you.");
+      setTimeout(() => { note.textContent = ""; keep(lat, lon, $("wHome").value, $("wPlace").value); }, 1100);
     } catch (e) {
       note.textContent = (e.message || T("The location isn't available right now.")) + " " + T("Latitude and longitude please, e.g. 51.5072 and -0.1276.");
-    } finally { $("wLoc").disabled = false; }
+      $("wLoc").disabled = false;
+      typed();
+    }
   };
-  let sent = Promise.resolve();
-  const num = v => parseFloat(String(v).replace(",", "."));
+  $("wType").onclick = () => { ctlSound.nav(); typed(); $("wPlace").focus(); };
   $("wGo").onclick = () => {
     const lat = num($("wLat").value), lon = num($("wLon").value);
     if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { note.textContent = T("Latitude and longitude please, e.g. 51.5072 and -0.1276."); $("wLat").focus(); return; }
-    ctlSound.press();
-    S = {...S, lat: +lat.toFixed(4), lon: +lon.toFixed(4), home: clean($("wHome").value).slice(0, 3) || S.home, place: $("wPlace").value.trim() || T("Home"), located: true};
-    saveSettings();
-    sent = saveMe(JSON.parse(localStorage.getItem(SKEY) || "{}"), true);
-    if (pushPossible()) wSwap($("wStep1"), $("wPush")); else acctStep();
+    ctlSound.press(); note.textContent = "";
+    keep(lat, lon, $("wHome").value, $("wPlace").value);
   };
+  // Skipped: the other steps still come, and the board opens on Settings at the end (as "Set it later in Settings" did).
+  $("wLater").onclick = () => { ctlSound.nav(); skipped = true; note.textContent = ""; next($("wStep1")); };
   $("wPushYes").onclick = async () => {
     ctlSound.press();
     const n = $("wPushNote"); n.textContent = T("Turning on …");
     const err = await enablePush();
     if (err) { n.textContent = err; return; }
     n.textContent = T("Notifications are on.");
-    setTimeout(acctStep, 700);
+    setTimeout(() => next($("wPush")), 700);
   };
-  $("wPushNo").onclick = () => { ctlSound.nav(); acctStep(); };
+  $("wPushNo").onclick = () => { ctlSound.nav(); next($("wPush")); };
   function acctStep(){              // an account, so the logbook comes along to a new phone (https only: passkeys)
-    if (!accountsOk() || !passkeysHere()) return pick();
-    wSwap([$("wStep1"), $("wPush")], $("wAcct"));
-    $("wAcctNo").textContent = T("Not now");
-    $("wAcctNo").onclick = () => { ctlSound.nav(); pick(); };
+    $("wAcctNo").textContent = T("Skip for now");
+    $("wAcctNo").onclick = () => { ctlSound.nav(); next($("wAcct")); };
     accountBox($("wAcctBox"), a => { if (a && a.user && (a.passkeys.length || a.password)) $("wAcctNo").textContent = T("Continue"); });
   }
   function pick(){                // the phone app or the full board: a phone is offered the app, a computer the board
-    wSwap([$("wStep1"), $("wPush"), $("wAcct")], $("wPick"));
-    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600, b = $(phone ? "wApp" : "wBoard");
-    b.classList.add("go"); b.setAttribute("aria-pressed", "true");
+    const phone = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
+    const [b, o] = phone ? [$("wApp"), $("wBoard")] : [$("wBoard"), $("wApp")];
+    b.className = "cap big go"; b.setAttribute("aria-pressed", "true");
+    o.className = "wAlt"; o.setAttribute("aria-pressed", "false");
+    // the one offered first, the other under it as a plain button
+    $("wPick").querySelector(".wProg").after($("wPick").querySelector(".wQ"), b, b.nextElementSibling, o, o.nextElementSibling);
+    wSwap(steps, $("wPick"));
   }
   const go = to => { ctlSound.press(); sent.finally(() => setTimeout(to, 150)); };      // once the profile has the place
   $("wApp").onclick = () => go(() => {                   // the board loads in around the new place, its flaps turning in
     box.classList.add("wDone");
-    setTimeout(() => { box.hidden = true; box.classList.remove("wDone"); updateWhere(); run(); }, 380);
+    setTimeout(() => { box.hidden = true; box.classList.remove("wDone"); updateWhere(); run(); if (skipped) showTab("settings"); }, 380);
   });
   $("wBoard").onclick = () => go(() => { location.href = "/"; });
-  $("wLater").onclick = () => { ctlSound.nav(); box.hidden = true; run(); showTab("settings"); };
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
@@ -5238,12 +5270,19 @@ function buildTabs(){
   for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
 }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
-// The tips for a tab (1.42): what the tab is, the first time, then what can be done on it.
-const TAB_TIPS = {now: "Now: the plane over you right now, its photo, and today's planes below. Tap the board for its card.",
-  today: "Spotted today: every plane that came within your radius today, with the day's numbers.",
-  logbook: "Logbook: everything you've ever spotted: types, airlines, aircraft, the year in planes and your week and month.",
-  radar: "Radar: the planes around you right now. Tap one for its card.",
-  settings: "Settings: your place, what counts as overhead, the look and the sounds. Press Save to keep them."};
+// The tips for a tab (1.42): what the tab is, the first time, then what can be done on it. 1.119: one short sentence
+// each, pointing at one thing; the app's own words for the styles and Now's pages (the board keeps MODE_TIP, PAGE_TIPS).
+const TAB_TIPS = {now: "This is Now: the plane over you. Tap the board for its card.",
+  today: "Today: every plane that came by today.",
+  logbook: "Logbook: every plane you've ever spotted.",
+  radar: "Radar: the planes around you right now.",
+  settings: "Settings: your place, the look and the sounds."};
+const NOW_TIPS = {mode: "Switch between Overhead, the planes over you, and Airport, the take-offs and landings.",
+  spotted: "Recent flights: today's planes, newest first.",
+  aircraft: "This aircraft: the plane on top, in detail.",
+  aplists: "Coming up: the next take-offs and landings.",
+  apdep: "Take-off: the next plane to take off, and its runway.",
+  apland: "Landing: the next plane to land, and its runway."};
 // 1.49 (to-do #29): the first time on Now, a walk through the styles, the page buttons and every tab; the first time in
 // the Airport style, through its pages.
 function appTips(t){
@@ -5252,16 +5291,16 @@ function appTips(t){
   const tabBtn = x => () => $("tabRow").querySelector(`[data-tab="${x}"]`);
   tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
   if (t === "now") {
-    tip("mode", () => $("modes"), T(MODE_TIP));
+    tip("mode", () => $("modes"), T(NOW_TIPS.mode));
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
-    if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(PAGE_TIPS[k]));
-    else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(PAGE_TIPS[k]));
+    if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
+    else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));
     for (const [x] of TABS) if (x !== "now") tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
-    tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane to the right to make it a favourite, or to the left to hide it."));
-    tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open it. Its photo opens the whole card; its airline, places and type open theirs."));
+    tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane right to make it a favourite, left to hide it."));
+    tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open its card."));
   }
-  if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
-  if (t === "logbook") tip("lbplaces", () => vis($("lbIdx").querySelector('[data-lp="places"]')), T("Pick a place to see its own numbers, or All for everything."));
+  if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between this place and all your places."));
+  if (t === "logbook") tip("lbplaces", () => vis($("lbIdx").querySelector('[data-lp="places"]')), T("Pick a place for its own numbers, or All."));
   // 1.116: Settings' Location tips come when its panel opens (setOpen)
 }
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
@@ -6821,7 +6860,7 @@ function gameStart(){
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
+  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points and level: tap for the Spotters' Club.")), 4000);
 }
 function run(){
   if (booted) return;

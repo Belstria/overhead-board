@@ -90,7 +90,9 @@ def extract(text):
         # Settings (1.53.2): the shared plates (COCKPIT, cockpitFor), the controls, their wiring, Save/Cancel; main.js's
         # cockpit region says which screen (COCKPIT_FOR) and the app's own cockpitDone/cockpitMark go with it
         "E29": ex("/* Settings, once for every screen", "function plateHtml(p){") + ex("/* ---------- Settings: the sounds of the controls", "function applySettings(n){"),
-        "E33": ex("/* ---------- languages ----------", "/* ---------- airport mode ----------"),
+        # 1.119: the app's tips say "OK" (the board keeps "Got it")
+        "E33": patched(ex("/* ---------- languages ----------", "/* ---------- airport mode ----------"),
+                       ('L.querySelector(".tipOk").textContent = T("Got it");', 'L.querySelector(".tipOk").textContent = T("OK");')),
         "E32": ex("/* ---------- airport mode ----------", "/* ---------- versions and patch notes ----------"),
         "E31": ex("/* ---------- versions and patch notes", "/* ---------- settings: a cockpit panel ----------"),
         "E30": patched(ex("/* ---------- main loop ---------- */", "async function start(){"),

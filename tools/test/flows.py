@@ -46,6 +46,8 @@ their own: start tools/test/run_test_relay.py, then `py tools/test/flows.py --po
   phone, is sent again and reaches the profile; favourites show at once and go back when they can't be saved (1.64);
   the Remarks by style: Overhead white and only a delay over 30 min, Airport amber with ON TIME and the gate (1.88);
   a Planespotters photo first, credited and linked, never for the share picture, none of another aircraft (1.93)
+- the private page (relay 99): the QR code and the two ways in, nothing of the board; the invite field opens only this
+  site's /join/ link and refuses another site's, a bare //host, javascript: and another path
 """
 import gzip
 import json
@@ -2524,6 +2526,35 @@ def browser_checks(browser):
         bad.append("the share picture would get a Planespotters photo")
     if e((pic % ("44d0ab", "CH-10", "C130", "")) + ".kind") == "ps":
         bad.append("a photo of another aircraft under the same hex was shown")
+    ctx.close()
+    # The private page (relay 99): a visitor without a profile gets the QR code, the two buttons and nothing of the
+    # board; "I have an invite link" opens only this site's /join/ link and refuses anything else.
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: bad.append(f"private page error: {e}"))
+    pg.goto(BASE + "/app/")
+    pg.wait_for_selector("#qrBox svg", timeout=10000)
+    body = pg.text_content("body")
+    for want in ("This board is private", "Sign in with your account", "I have an invite link"):
+        if want not in body:
+            bad.append(f"the private page lacks {want!r}")
+    if "Vienna" in body or "48.2" in body:
+        bad.append("the private page shows the board's place")
+    if not pg.is_hidden("#inv"):
+        bad.append("the invite field shows before it is asked for")
+    pg.click("#invBtn")
+    tok = "a" * 22
+    for v in ("https://elsewhere.example/join/" + tok, "//elsewhere.example/join/" + tok, "javascript:alert(1)", BASE + "/admin", "hello"):
+        pg.fill("#invLnk", v)
+        pg.click("#inv button[type=submit]")
+        pg.wait_for_timeout(150)
+        if pg.url != BASE + "/app/" or "isn't an invite link" not in (pg.text_content("#invErr") or ""):
+            bad.append(f"the invite field didn't refuse {v[:30]!r}")
+    pg.fill("#invLnk", f"  {BASE}/join/{tok}  ")
+    with pg.expect_navigation():
+        pg.click("#inv button[type=submit]")
+    if pg.url != f"{BASE}/join/{tok}":
+        bad.append(f"the invite field didn't open this site's link: {pg.url[:60]}")
     ctx.close()
     for b_ in bad:
         print("flow:", b_)

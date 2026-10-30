@@ -497,7 +497,7 @@ tools/app/head.html: .acIn #acctBox .acHead .acAv .acWho .acctPlate .acCheck .ac
 tools/app/main.js: +GUEST +androidHandover +DEFAULTS +applySettings
 relay/serve.py: PROFILES_FILE COOKIE INVITE_DAYS _profiles +_made _hash PREVIEW_BOT profiles peek_invite new_invite
     redeem _QR_ECC _QR_BLOCKS _qr_raw_modules _rs_mul _rs_ecc qr_matrix qr_svg PAIR_ALPHA PAIR_S _pairs pair_new
-    pair_find pair_html pair_page_js ACCOUNT_RE _challenges _challenge _take_challenge _cbor _cose_to_spki
+    pair_find pair_html pair_page_js PRIVATE_CSS PRIVATE_JS PRIVATE_PAGE ACCOUNT_RE _challenges _challenge _take_challenge _cbor _cose_to_spki
     _client_data _auth_data passkey_register passkey_signin _pw_hash _pw_ok account_of account_json add_device
     signin_html SIGNIN_JS profile_for remove_device remove_profile HOME_OWNER SKIP_FILL _merge_day _rebuild_book
     _write_json merge_home _pw_fails _DUMMY_PW pw_wait pw_failed Handler.identify Handler.cookie_token Handler.refuse
@@ -622,7 +622,7 @@ changelog: start|first picture|fullscreen|wake|idle|opens
 [tips] Tips: the first-time walkthroughs and the tips for each page, on the board and in the app
 test/index.html: BOARD_TIPS boardTips TIPS_KEY tipsSeen tipQueue tipCur tipsReset MODE_TIP PAGE_TIPS tip tipBand
     tipNext #tipLayer @tipPulse
-tools/app/main.js: TAB_TIPS appTips
+tools/app/main.js: TAB_TIPS NOW_TIPS appTips
 README.md: "- **Tips** (1.42)"
 changelog: \btips?\b|walkthrough|first time
 
