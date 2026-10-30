@@ -242,11 +242,11 @@ test/index.html: radar RADAR_COL RADAR_GEO rgba radarTrack radarPos radarCentre 
     radarMapDraw MVT_LAYERS mvtRead mvtPath RADAR_MAP_LOOK radarMapTiles radarMapBuild radarBox resizeRadar startRadar
     stopRadar radarStatic altShort radarColor radarLegend radarAsked radarInfo radarName radarLabels ringLabels
     paintRadar drawRadar renderRadarList radarObj +boardTap #radarCv 'vdef("radar"'
-tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend #rLegend #radarBg
-    #radarCv #rvCredit #rvHint #rvList #rvMap #rvReset #rvWheel #rvZoomIn #rvZoomKm #rvZoomOut #scope #t-radar
+tools/app/head.html: .rv .rvLogo .rvRange .litKey .rvCard .scope .rvPlate .rvCredit .rlegend .rvTop .rvSet .rvHead .rvCols #radarBg
+    #radarCv #rvCredit #rvInfo #rvList #rvMap #rvReset #rvSet #rvSetKm #rvWheel #rvZoomIn #rvZoomKm #rvZoomOut #scope #t-radar
 tools/app/main.js: +secPlate $("radarCv").addEventListener("click") $("rvList").addEventListener("click")
     radarPlaneCard radarSelOpen RG radarSize radarStatic startRadar stopRadar drawRadar buildRadarLegend rvSig
-    renderRadarList $("rvMap").onclick $("rvReset").onclick $("rvWheel").onkeydown radarZoomTo pinch
+    renderRadarList $("rvSet").onclick RADAR_WHAT rvColours $("rvInfo").onclick $("rvMap").onclick $("rvReset").onclick $("rvWheel").onkeydown radarZoomTo pinch
 docs/architecture.md: "The radar's optional map (1.55)"
 README.md: "- **Radar** (press" "- **Radar**: the radar instrument"
 changelog: radar|map\b|nearest
@@ -440,10 +440,10 @@ tools/test/flows.py: "the game (relay 59)" "relay 71: Recent points" "relay 63: 
 changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|medal|spotters' club|lock-on
 
 [skyview] Sky view and Where to look: camera, compass and gyroscope, labels, AUTO, sun and moon, the ribbon, reports
-tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arAuto .arTour
+tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAsk .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
-    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAuto #arBtn #arBtn2 #arCal #arCard
+    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAsk #arMini #arMiniCv #arMiniT #arBtn #arBtn2 #arCal #arCard
     #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
     #lookSub #skyB #skyRow #skySub
 tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw
@@ -452,11 +452,12 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     arCalAt AR_GAP_TAU AR_GAP_MAX AR_GAP_SETTLE AR_GAP_STEADY AR_STILL_MS arAbsR arAbsT arRelQ arRelT arLastQ arRate
     arMovedAt arGapLog arHeldAt arGap0 arGapRef arGapFast arEvN arHeldWhy arSunLast arNote AR_FOV arFocal arZoom arZk arZc arZcTo arZBase arZSeq arZoomSet arZoomBtns arZoomCss arZoomStep arTurns
     arFeed AR_LAG_LOW AR_LAG_OFF AR_LAG_MAX arLags arClock arEvent arQuat arQMatrix wrap180 arYaw arOrient arRelHolds AR_REL_TILT AR_REL_YAW AR_REL_RATE arGapStep arGyroStep AR_AHEAD AR_GAP_MS arRd arRdRef arW arFrT arFrN arTim arMo arMotion arQMul arTimPush arTurnLog arTurn arFrame arResume arHold arOpen arOpening arStart arWant arOpenAt arCalCheck
-    arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arTextW arTW arLabelDraw arReportOk arR1 arReport
-    $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N arAuto
-    arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arAutoSig arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
-    arSunFind arAutoChip $("arAuto").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
-    arWeather arHeight arAimStep arScans arScanned arAimDraw arEdge shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
+    arClose WMM_EPOCH WMM_C magCache magField magDecl skyBodies arProject arUnproject arPicSig arLoop arSpotIdx arSpotMap arLabel arInfoOf arName arType arTextW arTW arLabelDraw arReportOk arR1 arReport
+    $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
+    arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
+    arSunFind AR_ASK_DEG AR_ASK_NEW AR_ASK_QUIET AR_ASK_GONE arAsk arAskGo arAskNo arGlide arAskN arAskShow arAskHide arAskApply
+    arAskNot AR_CHIP_H arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
     $("arClose").onclick $("arShut").onclick $("arReset").onclick $("lookCv").onclick lookAuto

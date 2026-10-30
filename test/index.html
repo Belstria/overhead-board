@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=e0149c2410"></script>
+<script src="i18n.js?v=466f86914b"></script>
 <script>
 (() => {
 "use strict";
@@ -7870,6 +7870,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.118", date: "2026-10-30", notes: [
+    "The app's Radar shows the radar and the Nearest list, nothing in between: the cogwheel by the title opens the range and the map from below, the (i) by Nearest explains the colours, and the list names its columns.",
+    "Sky view counts the planes in the picture and around you. A small radar bottom left shows them all (a tap lists them), and the three closest outside the picture sit at the edge with their distance and an arrow the way to turn; a tap opens the plane's card.",
+    "Sky view lines its labels up by itself: when it finds the sun or a plane in the picture it asks before moving them (Apply or Not now). The AUTO button went.",
+    "Sky view's tour says one thing per step, the zoom buttons have a label and the hint is one sentence."]},
   {v: "1.116.1", date: "2026-10-30", notes: [
     "The app's points chip shows your rank's insignia in a ring that fills towards the next level; it fills up and flashes when you reach a new one."]},
   {v: "1.116", date: "2026-10-30", notes: [

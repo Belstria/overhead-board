@@ -837,8 +837,13 @@ Five buttons along the bottom:
   is no plane on top, so it can always be opened; 1.77: in Where to look's style, saying "No planes around right now",
   its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
   open" or "Not now"), since Sky view shows the planes around you wherever you are: the camera full screen, with a label on every plane
-  within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
-  edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
+  within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber). Since 1.118 the
+  title counts the planes in the picture and around you ("1 in view · 3 around"); a **mini radar** bottom left shows
+  them all (north up, the picture's view as a gold cone, a dot for each plane within the radar's usual range, gold in
+  the picture), and a tap on it lists them (the ones in view first; a row opens the plane's card). The three closest
+  planes outside the picture sit as chips at the edge, the way to turn, with their flight, distance and an arrow (one
+  behind you under the ring; the plane on top, out of the picture, always gets one, in amber); a tap opens the plane's
+  card. The first-time tour says one thing per step, the zoom buttons are labelled **Zoom**, and the hint is one sentence. It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
   data was made (the relay may keep it a few seconds), follows a plane round its turn and up or down its climb, and
   makes heights true with the home airport's air pressure and temperature (from its METAR; with live location the airport
@@ -859,7 +864,10 @@ Five buttons along the bottom:
   edge points to it with how far to turn ("☀ SUN · 139° right"), and a **compass ribbon** above the hint shows the
   whole compass round the way you face, the picture's width in a gold frame and the sun and the moon at their bearings
   with how high they are. Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
-  Sky view closes. **AUTO** (1.76, the pill under the title; tap to switch it off) lines the labels up by itself. Since
+  Sky view closes. **AUTO** (1.76) lines the labels up by itself. Since 1.118 it is always on (no button) and asks
+  before it moves them: "Lined up with the sun · The labels sit 12° left of the planes. Move them into place?" **Apply**
+  slides them there (small corrections after that go on by themselves); **Not now** leaves them and it doesn't ask
+  again for three minutes, unless it finds a quite different alignment. A drag or Reset starts it afresh. Since
   1.86 it finds the sun anywhere in the picture, however far off the compass is (up to 45°): while the sun is up and
   nothing is lined up yet, the hint asks you to point the phone near it for a moment; gold corners then frame the sun's
   ring ("lined up · sun"). It also looks for nearby planes: where it keeps finding one close to its label it slides
@@ -923,10 +931,13 @@ Five buttons along the bottom:
   budget, today's credits and lookups and the gap filler's share; last night's backup (amber when none is reported or
   it is over 36 hours old, red when it failed); and the screens online, by profile and device. It refreshes every
   30 seconds while About is open.
-- **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
+- **Radar**: the radar instrument and the **Nearest** list, nothing in between (1.118). The **cogwheel** by the title
+  shows the range and raises the **Radar** plate (Range km, Map) from below as a panel, as Settings' sections do; the
+  **(i)** by Nearest explains the colours, one line each; the list names its **Distance** and **Height** columns.
+  The planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**
-  under the radar shows the map (as on the board).
+  (in the cogwheel's panel) shows the map under the radar (as on the board).
 - **Connection** (1.38): the small dot by the clock is green while live, amber when the data is late or a demo, red when
   there is none. Tap it for a card: connected to the relay or not, the position source and whether its data is live or
   the last good copy, when the last update came, failed attempts, planes in range, Flightradar24 on or off and the

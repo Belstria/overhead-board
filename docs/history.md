@@ -948,6 +948,31 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.118 (to-dos #211 and #205, clarity build 3 of 4, second half: Dave's picks on the Radar (B + cogwheel) and Sky view
+  (A without the AUTO button, the mini radar + edge chips)). (1) Radar: the hint line (`#rvHint`) and the legend
+  (`#rLegend`) went. `.rvTop` holds the title and `#rvSet` (the Settings tab's cog from `TAB_ICONS`, and `#rvSetKm`, the
+  range, kept by `buildRadarLegend`); it calls `setOpen("radar")`: the `.rvPlate` (now `data-pid="radar"`) waits in a
+  `.setHome` in `#t-radar` and rises in 1.116's Settings sheet (no Save: its controls act at once; `setBack` puts it
+  home). `#rvInfo` (`.iBtn`) opens `rvColours`: a card sheet with `radarLegend()` and `RADAR_WHAT`'s words, one line a
+  colour (`.rlegend.rvCols`). Nearest's label row (`.rvHead`, Distance and Height) lines up with the rows through a
+  shared grid: `#rvList` is the grid, every `li.rv` a `subgrid` (without subgrid the rows keep their own grid). (2) Sky
+  view: `arLoop` keeps the planes outside the picture within `radarBase()` km (`off`, with `az`); the plane on top
+  outside the picture (`featOff`) leads them (`outs`). `arChipsAt` lays out chips for the first three (side from the
+  edge vector; more than 120° off the view's azimuth: "behind you" under the ring at `aim.R0`), stacked at the top of
+  each side below the top bar / zoom buttons (`arChipBounds`, measured twice a second) and clear of the mini radar;
+  `arChipsDraw` draws them, and their boxes join `arHits` so `arTap` opens the card. `arEdge` went (the chips replace
+  it). The picture signature includes the chips. `arMini` (a button `#arMini` with its own canvas `#arMiniCv` in `.arBot`)
+  redraws only when its own signature (view azimuth, half field of view, dots to the pixel, counts) changes;
+  `arAroundOpen` lists `arAroundNow` in a card sheet (`.idx.arAround`; in view first) and a row sets `arSel`. The title
+  counts "N in view · M around". The mini radar hides with the hint while the card is open. AUTO: `arAuto`'s button,
+  `arAutoChip` and `od.ar.auto` went; `arAutoStep` asks (`arAskShow`, `#arAsk`) when the alignment it found is more than
+  `AR_ASK_DEG` (2°) off and isn't near the applied one (`arAskGo`); Apply (`arAskApply`) glides `arOff` there over 0.7 s
+  (`arGlide` in `arLoop`), sets `arAutoLock` and `arHold`; later finds near it glide on silently as before. Not now
+  (`arAskNot`) sets `arAskNo` for `AR_ASK_QUIET` (3 min) unless a find is more than `AR_ASK_NEW` (5°) from it; no find
+  for `AR_ASK_GONE` (15 s) hides the prompt; a drag or ⟲ clears both. The report's `auto` adds `asked`, `applied`,
+  `declined`, `asking`; the motion gate and `arFindLog` are unchanged. Tour (`AR_TOUR`) one line a step; `.arZoomL`
+  "Zoom" over ×2/×5; the hints one sentence (the game's chip legend left the hint). `arName`/`arType`/`arInfoOf` serve
+  the labels, chips and list. `sky_jitter.js` gives the same figures.
 - 1.116.1 (to-do #209, Dave's pick of 30 Oct from Fable's chip mockups: "the lapel chip's text + the lapel in the ring",
   without the outer ring): **the header chip's ring.** `#gHead` lost its pill (background and border; the tap area and
   focus outline stay): `.gTx` ("9,950 pts", then `#gOff` "· paused" in amber while live location is off; "Level 9" under
