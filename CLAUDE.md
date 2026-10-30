@@ -23,10 +23,10 @@ on a function or CSS rule in no area: add it to `tools/codemap_areas.txt`.
   when Dave says so.
 - **One test board.** `test/` is the test board, Flightradar24 features included (since 17 Oct 2026, 1.35.2;
   `test-api/index.html` only forwards to `/test/`). Without a key it falls back to the free sources by itself.
-- **Focus (21 Oct 2026):** only the phone app and the board, in English and the default board look. Translations,
-  unlockable styles, the APK and the parked light/Glass versions only when Dave asks.
+- **Focus (21 Oct 2026):** only the phone app and the board, in English and the default board look. Unlockable
+  styles, the APK and the parked light/Glass versions only when Dave asks; translations: see the text rule below.
 - **Stay simple (30 Oct 2026): read `docs/design-brief.md` before any visible change or mockup.** At rest a card shows
-  a label and a value, no sentence; the explanation sits behind a tap or the (i). Five keys in the bottom bar, one row
+  a label and a value, no sentence; the explanation opens on a tap of the label. Five keys in the bottom bar, one row
   of tabs, three taps to any fact; things open as panels, not pages. A feature wanting more room gets a row in an
   existing index, not a new tab, key or setting. A notice says what kind of thing it names and what to do. Three
   options for every design choice. Run the brief's check before sending a mockup and before opening a PR.
@@ -38,8 +38,8 @@ on a function or CSS rule in no area: add it to `tools/codemap_areas.txt`.
   short and generic (one line each, what changed for someone using it): no names, places or internals such as relay
   versions (guests read them too). Settings → About shows them. Bump `RELAY_VERSION` with every relay change.
 - **Every visible text goes through `T()`** (test board and app): `T("English text", {vars})`, `{name}` placeholders.
-  Add a row to `test/i18n.js` (English, German, French, Spanish, Dutch) for every new text; a missing row shows English.
-  Flap status words stay English inside (key for colours and drum order) and are translated when drawn. No German
+  **No new rows in `test/i18n.js`** (Dave, 30 Oct 2026: no more translations until the app is finished; a missing row
+  shows English; switching the language setting off is to-do #226). Flap status words stay English inside (key for colours and drum order) and are translated when drawn. No German
   second lines under labels; a second label word is only kept for units. Patch notes and the connection log stay English.
 - **Don't rename statuses or remarks** (OVERHEAD, INBOUND, SUPERJUMBO, ...) unless asked.
 - **No secrets or personal data in the repository; it is public.** The Flightradar24 key lives only in

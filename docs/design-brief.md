@@ -13,9 +13,10 @@ two days later mockups again carried sentences and a second row of tabs. These r
 **Text**
 
 1. **At rest, a state shows a label and a value, nothing else.** A label is at most three words ("Standby ready",
-   "1 standby left"). No sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating. [open 2]
-2. **The explanation is behind a tap on that label**: the bottom sheet, or the (i) by the title. "It isn't clear" is
-   answered with a tap target, never with a sentence added to the card. [open 1]
+   "1 standby left"). No sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
+2. **The label opens its own explanation when tapped** (a bottom sheet). Sentences live only in there. The (i) by a
+   title explains a whole screen, as on the Radar, never one label. "It isn't clear" is answered with a tap target,
+   never with a sentence added to the card.
 3. **At most one line of help per screen, and only in an empty state.** Everything longer goes behind the (i).
    Dave's exceptions: the welcome and the tips speak unasked, one step at a time.
 4. **Every number carries its name** (a small label above or beside it); never two bare numbers side by side.
@@ -25,21 +26,20 @@ two days later mockups again carried sentences and a second row of tabs. These r
 6. **Three vocabularies, three looks.** A flight's status is a pill, and only OVERHEAD, EMERGENCY and DIVERTED get one
    (TAKE-OFF and LANDED too on Airport). A logbook note is a mark at the row's end, no words: ★ new type or airline,
    ⚑ unusual, pink ♥ favourite. Game words (points, level, standby, league) live in the Club and the header chip only.
-   [open 6]
-7. **Plain words**: sentence case, one title per screen, section headings as small-caps labels; no addresses, codes or
-   internals ("from the home relay", not a host name). [open 2, 3]
+7. **Plain words, no cut-offs.** Screen titles in sentence case; every sheet carries the plate with its engraved
+   title, like the Settings and Logbook panels; section headings as small-caps labels. No addresses, codes or
+   internals ("from the home relay", not a host name).
 
 **Navigation**
 
-8. **Five keys in the bottom bar.** Never a sixth; a new area lives inside one of the five. [open 6]
-9. **One row of tabs under the header at most.** Today's exception: the Logbook key carries the Logbook | Spotters'
-   Club switch and the Club's five sub-tabs; Dave's fix (30 Oct, not built) moves Today into the Logbook so the Club
-   can take the freed key. Don't add another exception.
+8. **Five keys in the bottom bar.** Never a sixth; a new area lives inside one of the five.
+9. **One row of tabs or segments under the header at most.** Today's exception: the Logbook key carries the Logbook |
+   Spotters' Club switch and the Club's five sub-tabs. Dave's fix (30 Oct, not built): Today moves into the Logbook
+   as a Today | All time row at its top, opening on Today, and the Club takes the freed key. No other exception.
 10. **Three taps from the bottom bar to any fact at most**: a key, a tab, a row or card. A fourth level means a level
     has to go.
 11. **Panels, not pages.** Anything that opens rises as the bottom sheet with the original plate inside (screws,
     engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so.
-    [open 6]
 12. **The first screenful answers the screen's question.** Now: what is over me. Today (its own key until it moves
     into the Logbook): what came. Logbook: what I have ever seen. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
@@ -60,7 +60,7 @@ two days later mockups again carried sentences and a second row of tabs. These r
 17. **Three options for every design choice** (PNGs at phone size, an MP4 where it moves, with a recommendation), sent
     before building. Plain bug fixes need none.
 18. The process rules live in `CLAUDE.md` and are not repeated here: test first, every visible text through `T()`
-    (translations: [open 5]), don't rename statuses or remarks, versions and patch notes, removed on request, no
+    and no new translations, don't rename statuses or remarks, versions and patch notes, removed on request, no
     secrets, the focus on the phone app and the board in English and the default look.
 
 **The check** (before sending a mockup, before opening a PR)
@@ -71,18 +71,9 @@ two days later mockups again carried sentences and a second row of tabs. These r
 - Each notice or ticket: does a stranger know what kind of thing is named and what to do?
 - Each new element: which existing class? Repeated panels: same facts, same height? `CLAUDE.md`'s rules kept?
 
-**Open points (Dave decides; the main chat holds the question, 30 Oct 2026).** Until his answer the rule as written
-above stands as a draft, not a decision.
-
-1. How an explanation opens: a tap on the label itself (his standby pick) or the (i) by the title (clarity principle 3).
-2. How much wording: a short label and nothing more (less-text) or plain full sentences (clarity principle 7).
-3. Titles: one title per screen in sentence case (principle 8) or the gold-capital engraved plate title inside every
-   panel (his picks of 21 and 30 Oct).
-4. Sideways movement: "no horizontal scrolling" (the old brief) against the hangar shelves, the jump filter and the
-   member cards' carousel, which move sideways by his picks.
-5. Translations: a five-language row for every new text (CLAUDE.md, code-map) or none until he asks (Focus, 21 Oct).
-6. Older text his later picks replaced, confirmed as one group: panels not pages; a star only for a logbook note;
-   pills only for OVERHEAD, EMERGENCY, DIVERTED; the Club's own key with five keys kept; the version rule in CLAUDE.md.
+Dave settled these on 30 Oct 2026, so earlier notes that say otherwise are superseded: panels, not pages; a star only
+for a logbook note; pills only for the statuses in rule 6; the Club's own key with five keys kept; the version rule in
+`CLAUDE.md`; sentences only inside the explanation a tap opens; the engraved plate title on every sheet.
 
 ## 2. What stays (the identity)
 
@@ -95,7 +86,7 @@ above stands as a draft, not a decision.
 - The **status words and remarks** (OVERHEAD, INBOUND, SUPERJUMBO, …): words and order stay; colours and drawing may
   change (`REMARK_LOOK`). The **rarity tiers** and their colours and icons (`TIER_COL`, `drawTierIcon`): common,
   uncommon, rare, very rare, special.
-- The engraved plate titles (gold capitals) on the cockpit, the lists and the panels [open 3]; the plain checkboxes.
+- The engraved plate titles (gold capitals) on the cockpit, the lists and every sheet; the plain checkboxes.
 - **Removed on request, don't bring back**: the list in `CLAUDE.md`. The flap clock left the app's header on 30 Oct
   (Dave's pick) and doesn't return.
 
@@ -137,8 +128,10 @@ full Files table is in `docs/architecture.md`.
   per-frame gradients, canvas filters) needs a light path. Flap faces are pre-rendered and cached by `tile()`; keep
   per-frame drawing cheap.
 - **Phones**: upright and sideways (`(orientation: landscape) and (max-height: 600px)`), from a small Android phone to
-  an iPhone Pro Max, notch and home bar included (`env(safe-area-inset-*)`, `--cut-l`, `--cut-r`). No horizontal
-  scrolling of a page [open 4]. Font sizes only from the `--fs-*` tokens (`smoke.py --syntax` checks).
+  an iPhone Pro Max, notch and home bar included (`env(safe-area-inset-*)`, `--cut-l`, `--cut-r`). The page itself
+  never scrolls sideways (once an icon drawn past the edge gave the whole app a sideways scroll); elements that move
+  sideways, like the hangar's shelves and the member cards, are fine, and more may come where they fit. Font sizes
+  only from the `--fs-*` tokens (`smoke.py --syntax` checks).
 - **Fonts and libraries**: the typefaces are served from `fonts/` (no Google Fonts at run time); plain HTML, CSS and JS,
   no frameworks.
 - **Trying it**: `py tools/test/run_test_relay.py`, then `http://localhost:8096/app/`; `PHONE=390x844 py

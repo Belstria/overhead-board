@@ -55,8 +55,9 @@ class of the board, main.js and the relay, and every CSS rule of the board and `
 
 **A new visible text**
 - `T("English text", {vars})` (board, main.js), `data-t="..."` on the app's fixed markup (head.html).
-- A row in `test/i18n.js` (English, German, French, Spanish, Dutch); `py tools/app/build.py` stamps the new
-  `i18n.js?v=` into the board. A missing row shows English. Patch notes and the connection log stay English.
+- No new row in `test/i18n.js` (Dave, 30 Oct 2026: no more translations until the app is finished); a missing row
+  shows English. Patch notes and the connection log stay English.
+- Before a visible change: the rules in `docs/design-brief.md` and its check.
 
 **A new relay endpoint**
 - Its branch in `Handler.do_GET` / `do_POST` (or `profile_post`, `admin_post`, `account_post`, `pair_post`), with a
