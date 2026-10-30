@@ -456,7 +456,7 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
     arSunFind AR_ASK_DEG AR_ASK_NEW AR_ASK_QUIET AR_ASK_GONE arAsk arAskGo arAskNo arGlide arAskN arAskShow arAskHide arAskApply
-    arAskNot AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arAskNot AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
@@ -537,7 +537,7 @@ changelog: sound|chime|ding|bell|clack|fanfare|music
 [i18n] Languages: T() and the rows of test/i18n.js, the language picker, the app's data-t texts
 test/index.html: LANGS LOCALES UNIT LANG pickLang LOC T I18N_ROWS I18N +COCKPIT +DEFAULTS +applySettings
 tools/app/main.js: applyLang +DEFAULTS +applySettings
-relay/serve.py: +PUSH_TEXT +ptext
+relay/serve.py: +PUSH_TEXT +ptext PUSH_LANG_CHOICE sub_lang
 test/i18n.js: "window.I18N_ROWS"
 tools/assets.py: stamp ASSETS
 CLAUDE.md: "**Every visible text goes through `T()`**"

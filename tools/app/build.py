@@ -117,9 +117,9 @@ def assemble(head, js, E, css, out, regions=None, extra_css=""):
             raise SystemExit(f"The light version has no code for main.js's region {m.group(1)!r}")
         return regions[m.group(1)]
     js = REGION.sub(region, js)
-    m = re.search(r'<script src="i18n\.js\?v=[0-9a-f]+"></script>', board)
+    m = re.search(r'<script>window.LANG_CHOICE = .*?i18n\.js\?v=[0-9a-f]+.*?</script>', board, re.S)   # 1.119.2: the switch, then the load
     if not m:
-        raise SystemExit("The board doesn't load i18n.js (<script src=\"i18n.js?v=...\">)")
+        raise SystemExit("The board doesn't load i18n.js behind LANG_CHOICE (<script>window.LANG_CHOICE = ... i18n.js?v=...)")
     i = head.rindex("<script>\n")              # the translations before the app's own script, from the test board
     head = head[:i] + m.group(0).replace('src="', 'src="../test/') + "\n" + head[i:]
     assert "//@L:" not in js, "an unclosed //@L region in main.js"

@@ -964,6 +964,16 @@ The repository is public: no addresses, keys or personal data here either.
   (i) (`.gHeroI`). #221: the "2 more days for On a roll" notice was `medalNudge`'s `gSay` bubble, no push: now "Trophy On a
   roll: points 2 more days" (`NUDGE_DO`), `gSay` takes a tap, `trophySheet` opens that trophy (the rows came out of
   `trophiesHtml`: `trRow`, `trToGo`, `trWon`).
+- 1.119.2 (to-dos #218, #226; relay 100, below): **Sky view's top edge, and no Language setting.** #218: in `arLoop`
+  a plane in view whose label's box (`AR_LABEL_UP` = 66 px above it) would start above `arChipBounds(H).t` (under the
+  top bar) is made an edge plane (`pr.edge`, `pr.held`) and kept in `arTopOut` (14 px more to leave, no flicker on the
+  line); `arChipsAt` sets a held chip at the top edge right over the plane (the label comes in where it was), the other
+  rules (the three closest, flight and distance, the limits, a tap opens the card) are as before. The idle path's
+  signature and `sky_jitter`'s figures are unchanged. #226: `window.LANG_CHOICE = false` in the board's first script
+  (the app build copies it with the `i18n.js` load, `tools/app/build.py`): `pickLang` says `"en"`, `?lang=` is read
+  only with it, the cockpit's `lang` control and Display's language word (`main.js`) are left out, `i18n.js` isn't
+  loaded; `T()`, `LANGS`, `LOCALES`, `S.lang` and the translations are left in place. Dates and numbers: `LOC()` is
+  `en-GB` (it was for English before), `nf` `en-US`, times `en-GB`: unchanged. True again brings it all back.
 - 1.119.1 (to-dos #213–#217, #202, #203; what Dave found using 1.119): **seven fixes.** #213: `ppOpen` is a Map (region →
   unfolded); `ppShelf` always draws a heading button (`.ppHd`, `data-ppopen`, `aria-expanded`), the row only when
   unfolded; folded is `.shut`, no stamps `.ppNone` (muted count). A region with stamps starts unfolded, without as one
@@ -1841,6 +1851,10 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 100 (1.119.2, to-do #226): **notifications in English for everyone.** `PUSH_LANG_CHOICE = False` and
+  `sub_lang(sub)` (every `sub.get("lang")` of the push texts goes through it): a subscription keeps its stored `lang`,
+  but the texts and the compass words come out English until the switch is true again (with the app's `LANG_CHOICE`).
+  Web-push subscribers would otherwise keep their old language: only the Android app sends it again on each opening.
 - Relay 99 (1.119, to-do #212, clarity build 4, Dave's pick B): **the private page leads with the QR code.**
   `refuse()` builds the page from `PRIVATE_PAGE` around `pair_page_js()`: "This board is private", one small line
   ("Scan with a phone that is signed in, or type the code there"), the QR code with "Or open …/pair" and the code under

@@ -2580,7 +2580,8 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages" data-ta="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=f0d70a693b"></script>
+<script>window.LANG_CHOICE = false;   // 1.119.2 (#226): the Language setting is off, English for everyone; true brings it back (and relay 100's PUSH_LANG_CHOICE)
+if (window.LANG_CHOICE) document.write('<script src="../test/i18n.js?v=f0d70a693b"><\/script>');</script>
 <script>
 (() => {
 "use strict";
@@ -2858,7 +2859,7 @@ let meBase = {...S};                                 // the settings as last sav
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
-  if (q.get("lang")) S.lang = q.get("lang");
+  if (LANG_CHOICE && q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
@@ -2896,7 +2897,8 @@ function trimTo(s, w){
 const nf = new Intl.NumberFormat("en-US");
 function hhmm(d = new Date()){ return d.toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}); }
 /* ---------- languages ----------
-   English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). Every text a viewer
+   Off since 1.119.2 (#226): LANG_CHOICE, the first script of the page, is false, so everyone sees English: no Language setting,
+   no ?lang=, i18n.js not loaded, T() unchanged. true brings back the five languages (Settings → Language; AUTO follows the browser). Every text a viewer
    reads goes through T(english, {vars}): the English text is the key, {name} in it is filled in from vars. A text
    missing from a language shows in English. The status words on the flaps are translated as they are drawn (their
    English name stays the key for colours and the order on the drum). Patch notes and the connection log stay English. */
@@ -2905,7 +2907,7 @@ const LOCALES = {en: "en-GB", de: "de-AT", fr: "fr-FR", es: "es-ES", nl: "nl-NL"
 const UNIT = /^(m|ft|km|kt|%)$/i;           // a label's second word that is a unit, not a translation
 let LANG = "en";
 function pickLang(){
-  const want = S.lang && S.lang !== "auto" ? S.lang : String(navigator.language || "en").slice(0, 2).toLowerCase();
+  const want = !LANG_CHOICE ? "en" : S.lang && S.lang !== "auto" ? S.lang : String(navigator.language || "en").slice(0, 2).toLowerCase();   // S.lang stays stored for later
   LANG = LOCALES[want] ? want : "en";
   try { document.documentElement.lang = LANG; } catch {}
 }
@@ -10098,7 +10100,12 @@ function arLoop(){
     // 1.76.1: from the phone's height (else the airport's), so a plane below a cliff top shows below the horizon; a
     // descent isn't carried on below the airport. The earth's curve too (with the usual refraction).
     const u = Math.max(h + mv[2], Math.min(h, wx.elev)) - (arAlt != null ? arAlt : wx.elev) - d * d / (2 * 6371000) * .87;
-    const pr = arProject(e, n, u, R, W, H), isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
+    let pr = arProject(e, n, u, R, W, H);
+    // 1.119.2 (to-do #218): a plane just above the top has its label's box off the screen (or under the top bar): it keeps its
+    // chip, at the top edge, until the box fits (14 px more to go back, so it doesn't flicker on the line)
+    if (!pr.edge && pr.y - AR_LABEL_UP < arChipBounds(H).t + (arTopOut.has(ac.hex) ? 14 : 0)) { arTopOut.add(ac.hex); pr = {edge: [pr.x - W / 2, pr.y - H / 2], x: pr.x, y: pr.y, held: true}; }
+    else arTopOut.delete(ac.hex);
+    const isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
     if (pr.edge && !isFeat) { if (d <= aroundM) off.push({ac, d, pr, az, isFeat, alt}); continue; }
     shown.push({ac, d, pr, isFeat, alt, az, el: Math.atan2(u, d) * 180 / Math.PI});
   }
@@ -10551,8 +10558,12 @@ function arAskNot(){
    stops being in the picture (arProject's 40 px past the edge), with the label's height over the plane (AR_CHIP_UP).
    A plane behind you (no way through the picture) goes on the side of the shorter turn, and keeps its side while it is
    about straight behind. Chips slide along their edge to stay clear of each other and the zoom buttons; the top bar, the
-   mini radar and the small card are the limits. */
+   mini radar and the small card are the limits.
+   1.119.2 (to-do #218): a plane just above the top, whose label's box would still be off the screen or under the top bar,
+   keeps its chip (at the top edge) until the box fits. */
 const AR_CHIP_H = 30, AR_CHIP_UP = 46, AR_CHIP_GAP = 8;
+const AR_LABEL_UP = 66;                              // 1.119.2: a label's box starts this far above its plane (26 px gap, 40 px box)
+const arTopOut = new Set();                          // the planes held as chips at the top until their label's box fits
 let arBounds = {at: 0};
 const arChipTurn = new Map();                        // a plane behind you: the side it was last on
 function arChipBounds(H){                            // where the chips may go: measured twice a second, not every frame
@@ -10578,7 +10589,8 @@ function arChipsAt(g, list, view, W, H){
     const w = Math.ceil(arTW(g, fn, name) + 6 + arTW(g, fs, sub) + 38), L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
     const ts = (W / 2 + 40) / Math.abs(ux || 1e-6), tt = (H / 2 + 40) / Math.abs(uy || 1e-6), t = Math.min(ts, tt);
     const lim = (v, a, b) => Math.max(a, Math.min(b, v)), xr = [8, W - 8 - w], yr = [B.t, Math.max(B.t, B.b - h)];
-    const x0 = lim(W / 2 + ux * t - w / 2, ...xr), y0 = lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
+    const held = !!s.pr.held;                       // 1.119.2: above the top, its chip at the top edge right over the plane, where the label will come in
+    const x0 = held ? lim(s.pr.x - w / 2, ...xr) : lim(W / 2 + ux * t - w / 2, ...xr), y0 = held ? yr[0] : lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
     const free = (x, y) => !taken.some(b => x < b[0] + b[2] + gap && x + w + gap > b[0] && y < b[1] + b[3] + gap && y + h + gap > b[1]);
     // along its own edge first: the nearest place clear of what's there, touching one of them
     const ys = [y0, ...taken.flatMap(b => [b[1] - h - gap, b[1] + b[3] + gap])].filter(y => y >= yr[0] && y <= yr[1]).sort((p, q) => Math.abs(p - y0) - Math.abs(q - y0));
@@ -11378,7 +11390,7 @@ const COCKPIT = [
     {k: "ding", type: "switch", label: "New plane ding", phone: {plate: "flaps", before: "bell"}},
     {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF", for: "tv"}]},
   {id: "display", title: "Display", cols: 4, items: [
-    {k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}},
+    ...(LANG_CHOICE ? [{k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}}] : []),
     {type: "styles", label: "Styles"},                // 1.59: board style, colours, flaps and badge, with what's still locked
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]], dflt: "auto", for: "tv"},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]], for: "tv"},
@@ -12410,6 +12422,10 @@ const CHANGELOG = [
     "Level card: This week's streak now sits at the bottom.",
     "Trophy notices say which trophy and what to do; tap one to open it.",
   ]},
+  {v: "1.119.2", date: "2026-10-31", notes: [
+    "Sky view: a plane just above the picture keeps its chip at the top until its label fits.",
+    "Language: the setting is off for now, everything shows in English.",
+  ]},
   {v: "1.119.1", date: "2026-10-30", notes: [
     "Passport: every region folds and unfolds with a tap on its heading.",
     "Spotters' Club: Bingo and Trophies now sit in the League tab.",
@@ -13428,7 +13444,7 @@ function setLine(id){
     +S.airtimeMin ? T("hovering {n} min", {n: S.airtimeMin}) : T("hovering off"));
   if (id === "display") {
     let lang = "";
-    try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
+    if (LANG_CHOICE) try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
     return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
   }
   if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");

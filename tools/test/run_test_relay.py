@@ -42,6 +42,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -68,9 +69,34 @@ def main():
     p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8096), help="relay port (default 8096; the fake source one below)")
     a = p.parse_args()
+    # TERM and INT end it like Ctrl+C (children stopped, copy removed); a wrapper started with & from sh would otherwise ignore INT
+    def stop(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
+    tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
+    procs = []
+    try:
+        run(a, tmp, procs)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        signal.signal(signal.SIGINT, signal.SIG_IGN)  # a second signal must not interrupt the clean-up
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        for proc in procs:
+            if proc.poll() is None:
+                proc.terminate()
+        for proc in procs:
+            try:
+                proc.wait(5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run(a, tmp, procs):
     fake_port = a.port - 1
     FAKE = f"http://127.0.0.1:{fake_port}"
-    tmp = Path(tempfile.mkdtemp(prefix="overhead-test-"))
     src = (REPO / "relay" / "serve.py").read_text(encoding="utf-8")
     fakes = [("https://api.adsbdb.com", FAKE), ("https://fr24api.flightradar24.com/api", FAKE + "/api"),
              ("https://viennaairport.com/jart", FAKE + "/jart"),
@@ -186,27 +212,18 @@ def main():
                SLOW_NAMES="1" if a.slow_names else "", PYTHONIOENCODING="utf-8",
                FAKE_PORT=str(fake_port))
     fake = subprocess.Popen([sys.executable, str(HERE / "fakesrc.py")], env=env)
-    hue = subprocess.Popen([sys.executable, str(HERE / "fakehue.py"), str(a.port - 2)], env=env) if a.hue else None
+    procs.append(fake)
+    if a.hue:
+        procs.append(subprocess.Popen([sys.executable, str(HERE / "fakehue.py"), str(a.port - 2)], env=env))
     cmd = [sys.executable, "serve.py", "--port", str(a.port), "--lat", "48.2085", "--lon", "16.3731", "--place", "Vienna",
            "--home", "VIE", "--local-root", str(REPO), "--source", FAKE + "/ac/{lat}/{lon}/{nm}"]
     if a.fr24:
         cmd += ["--fr24-key", "goodkey"]
     relay = subprocess.Popen(cmd, cwd=tmp, stdin=subprocess.DEVNULL, env=env)  # utf-8: piped output would be cp1252
-    print(f"Test relay on http://localhost:{a.port}/ (data in {tmp}). Ctrl+C to stop.", flush=True)
-    try:
-        while fake.poll() is None and relay.poll() is None:
-            time.sleep(.5)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        for proc in (relay, fake, hue):
-            if proc and proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-        shutil.rmtree(tmp, ignore_errors=True)
+    procs.append(relay)
+    print(f"Test relay on http://localhost:{a.port}/ (data in {tmp}). Ctrl+C, kill or kill -INT to stop.", flush=True)
+    while fake.poll() is None and relay.poll() is None:
+        time.sleep(.5)
 
 
 if __name__ == "__main__":

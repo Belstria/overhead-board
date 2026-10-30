@@ -733,7 +733,8 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=f0d70a693b"></script>
+<script>window.LANG_CHOICE = false;   // 1.119.2 (#226): the Language setting is off, English for everyone; true brings it back (and relay 100's PUSH_LANG_CHOICE)
+if (window.LANG_CHOICE) document.write('<script src="i18n.js?v=f0d70a693b"><\/script>');</script>
 <script>
 (() => {
 "use strict";
@@ -1010,7 +1011,7 @@ S.sound = S.sound === true || (typeof S.sound === "string" && S.sound !== "off")
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (num("rotate") != null) S.rotateS = num("rotate");
   if (q.get("favs")) S.favs = q.get("favs");
-  if (q.get("lang")) S.lang = q.get("lang");
+  if (LANG_CHOICE && q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
   if (q.has("chimes")) S.chimes = q.get("chimes") !== "0";
   if (q.has("night")) S.night = q.get("night") !== "0";
@@ -5730,7 +5731,8 @@ function updateFooter(){
 watchVersion(v => { const b = $("btnNew"); b.textContent = T("New version · tap to update") + ` (${v})`; b.hidden = false; b.onclick = () => nvReload(); });
 
 /* ---------- languages ----------
-   English, German, French, Spanish and Dutch (Settings → Language; AUTO follows the browser). Every text a viewer
+   Off since 1.119.2 (#226): LANG_CHOICE, the first script of the page, is false, so everyone sees English: no Language setting,
+   no ?lang=, i18n.js not loaded, T() unchanged. true brings back the five languages (Settings → Language; AUTO follows the browser). Every text a viewer
    reads goes through T(english, {vars}): the English text is the key, {name} in it is filled in from vars. A text
    missing from a language shows in English. The status words on the flaps are translated as they are drawn (their
    English name stays the key for colours and the order on the drum). Patch notes and the connection log stay English. */
@@ -5739,7 +5741,7 @@ const LOCALES = {en: "en-GB", de: "de-AT", fr: "fr-FR", es: "es-ES", nl: "nl-NL"
 const UNIT = /^(m|ft|km|kt|%)$/i;           // a label's second word that is a unit, not a translation
 let LANG = "en";
 function pickLang(){
-  const want = S.lang && S.lang !== "auto" ? S.lang : String(navigator.language || "en").slice(0, 2).toLowerCase();
+  const want = !LANG_CHOICE ? "en" : S.lang && S.lang !== "auto" ? S.lang : String(navigator.language || "en").slice(0, 2).toLowerCase();   // S.lang stays stored for later
   LANG = LOCALES[want] ? want : "en";
   try { document.documentElement.lang = LANG; } catch {}
 }
@@ -7879,6 +7881,10 @@ const CHANGELOG = [
     "Level card: This week's streak now sits at the bottom.",
     "Trophy notices say which trophy and what to do; tap one to open it.",
   ]},
+  {v: "1.119.2", date: "2026-10-31", notes: [
+    "Sky view: a plane just above the picture keeps its chip at the top until its label fits.",
+    "Language: the setting is off for now, everything shows in English.",
+  ]},
   {v: "1.119.1", date: "2026-10-30", notes: [
     "Passport: every region folds and unfolds with a tap on its heading.",
     "Spotters' Club: Bingo and Trophies now sit in the League tab.",
@@ -8870,7 +8876,7 @@ const COCKPIT = [
     {k: "ding", type: "switch", label: "New plane ding", phone: {plate: "flaps", before: "bell"}},
     {k: "statsPage", type: "switch", label: "Today in numbers", upText: "EVERY 10TH", downText: "OFF", for: "tv"}]},
   {id: "display", title: "Display", cols: 4, items: [
-    {k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}},
+    ...(LANG_CHOICE ? [{k: "lang", type: "rotary", label: "Language", opts: LANGS, light: {span: 2}}] : []),
     {type: "styles", label: "Styles"},                // 1.59: board style, colours, flaps and badge, with what's still locked
     {k: "quality", type: "rotary", label: "Drawing quality", opts: [["auto", "AUTO"], ["high", "4K"], ["1440", "1440"], ["1080", "1080"]], dflt: "auto", for: "tv"},
     {k: "rotateS", type: "rotary", label: "Change pages", opts: [[0, "OFF"], [15, "15"], [20, "20"], [30, "30"], [45, "45"], [60, "60 S"]], for: "tv"},
