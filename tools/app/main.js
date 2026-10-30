@@ -245,9 +245,6 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) for (let i = 0; i < 5; i++) {  
   placeRow(["time", "flight", "city", "st"].map(id), [.4, .4, .4], 18 + i * 30, s, 1.45, UM);
 }
 RECENTP.off = APP.off = ACP.off = APDP.off = APAP.off = true;
-const CLOCK = makePanel($("clockP"), 112, 34);
-def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
-placeRow(["clock"], [], 4, 22.4, 1.25, 1);
 // Spotted today: today's numbers on flaps.
 const TODAYP = makePanel($("todayP"), 390, 52);
 def(TODAYP, "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flüge"]});
@@ -539,13 +536,27 @@ const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plai
 const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
 const noRoute = e => T(noFlightNo(e) ? "No route: private or local flight" : "Route not known");
 const tlNode = e => lampOf(remarkFor(e)) || "#55585e";
+/* 1.115 (to-do #206, Dave's pick B): one line a plane: the time, the flight, the route and the type. What the flight is
+   doing (OVERHEAD, EMERGENCY, DIVERTED) is its pill; at the row's end, always in this order, a star for a type or an
+   airline new to the logbook, a flag in its colour for an unusual plane (military, a giant, the watchlist's), a heart
+   for a favourite. Their words are on the card behind the tap. */
+function rowMarks(e){
+  const sp = specialOf(e), cat = categoryBadge(e);
+  return {status: sp === "EMERGENCY" ? sp : e.divertedTo ? "DIVERTED" : overEntry(e) ? "OVERHEAD" : "",
+    flag: sp && sp !== "EMERGENCY" && sp !== "HELICOPTER" ? sp : e.watch || (cat === "MILITARY" ? cat : ""),
+    star: e.newType ? "NEW TYPE" : e.newAirline ? "NEW AIRLINE" : "", fav: isFav(e)};
+}
+const FLAG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>';
 function rowInner(e){
-  const r = remarkFor(e), done = e.done !== false, name = rowName(e);
-  const rt = e.from || e.to ? `<span class="rt"><b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b></span>`
-    : `<span class="rt no">${done ? escH(noRoute(e)) : ""}</span>`;
-  const l2 = [e.airline || (e.owner !== name ? e.owner : ""), e.type, distText(e.minDist), altText(e.altAtMin), allPlaces && e.place ? "◉ " + placeName(e.place) : ""];
-  return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b>${rt}<span class="rk">${r ? escH(T(r)) : ""}</span></div>` +
-    `<div class="l2">${escH(l2.filter(Boolean).join(" · "))}</div>`;
+  const m = rowMarks(e), done = e.done !== false, name = rowName(e), ty = shortType(e.type) || e.typeCode || "";
+  const rt = e.from || e.to ? `<b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b>${ty ? `<span class="ty"> · ${escH(ty)}</span>` : ""}`
+    : ty ? `<span class="ty">${escH(ty)}</span>` : done ? `<span class="ty">${escH(noRoute(e))}</span>` : "";
+  const mk = (m.star ? `<i class="mNew" title="${escH(T(m.star))}">★</i>` : "") +
+    (m.flag ? `<i class="mFlag" style="color:${lampOf(m.flag) || "var(--amber)"}" title="${escH(T(m.flag))}">${FLAG_SVG}</i>` : "") +
+    (m.fav ? `<i class="mFav" title="${escH(T("FAVOURITE"))}">♥\ufe0e</i>` : "");
+  const say = [m.star, m.flag, m.fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");
+  return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b><span class="rt">${rt}</span>` +
+    `${m.status ? chip(m.status) : ""}${mk ? `<span class="mk" role="img" aria-label="${escH(say)}">${mk}</span>` : ""}</div>`;
 }
 const rowHtml = e => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}" tabindex="0">${rowInner(e)}</li>`;
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
@@ -569,32 +580,18 @@ function tlAgo(e){
   return m < 1 ? T("just now") : m < 60 ? T("{n} min ago", {n: m}) : T("{h} h {m} min ago", {h: Math.floor(m / 60), m: m % 60});
 }
 function tlCardHtml(e){
-  const r = remarkFor(e), name = rowName(e);
+  const r = remarkFor(e), name = rowName(e), m = rowMarks(e), words = [m.status, m.flag, m.star].filter(Boolean);   // 1.115: the row's pill and marks, by name
+  const chips = words.length ? words.map(chipHtml).join("") : chipHtml(r);
   const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
-    chip: chipHtml(r), band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
+    chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
   return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span></span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
 }
 const cardLi = e => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}">${tlCardHtml(e)}</li>`;
-// The groups: the quarter hour (Recent flights) or the hour (Today), the one under way marked Now. A row's time is
-// the relay's clock, so "now" is worked out on that clock from the newest row.
-const tlMin = e => { const m = /^(\d\d):(\d\d)/.exec(e.time || ""), d = new Date(e.ts || 0); return m ? +m[1] * 60 + +m[2] : d.getHours() * 60 + d.getMinutes(); };
-const tlHm = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-function tlHtml(list, span, open){
-  const top = list[0], now = top ? (tlMin(top) + Math.floor(Date.now() / 6e4) - Math.floor((top.ts || 0) / 6e4)) % 1440 : -1;
-  let html = "", last = null;
-  for (const e of list) {
-    const g = Math.floor(tlMin(e) / span);
-    if (g !== last) {
-      last = g;
-      const isNow = g === Math.floor(now / span) && Date.now() - (e.ts || 0) < span * 6e4;
-      html += `<li class="tg">${isNow ? `<b>${escH(T("Now"))}</b> · ` : ""}${tlHm(g * span)} – ${tlHm(g * span + span)}</li>`;
-    }
-    html += tlKey(e) === open ? cardLi(e) : rowHtml(e);
-  }
-  return html;
-}
+// 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
+// row has its time).
+const tlHtml = (list, open) => list.map(e => tlKey(e) === open ? cardLi(e) : rowHtml(e)).join("");
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
@@ -646,7 +643,7 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, 15, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
@@ -730,8 +727,9 @@ function svData(){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
-  svFindWire(box, () => { svSig = ""; renderToday(); });
+  box.innerHTML = `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
+  $("tdFind").innerHTML = svFindHtml();                       // 1.115: the filter beside the title
+  svFindWire($("tdFind"), () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.click();
     const k = b.dataset.t;
@@ -751,10 +749,14 @@ function todayNumbers(){
     types: st ? st.types : uniq(e => e.typeCode || clean(e.type)), over: st ? st.overhead : list.filter(overEntry).length,
     h: dayHighlights(list, st || null)};
 }
-// 1.111 (to-do #163, Dave's pick C with A's tap): under the counters, the three records side by side (the figure first,
-// the plane and time under it), the most seen as bars and the newest plane new to the logbook; from 21:00 "Your day in
-// planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
-let todayFactsSig = "";
+// 1.111 (to-do #163, Dave's pick C with A's tap): the day's plate: the counters, the three records side by side (the
+// figure first, the plane and time under it), the most seen and the newest plane new to the logbook; from 21:00 "Your
+// day in planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
+// 1.115 (to-do #206, Dave's pick B): the list is the page: four labelled numbers and a Highlights card on top; the
+// plate rises from below as a sheet (tdOpen), every fact labelled as in A (first, last and busiest hour as three, the
+// most seen airline and types apart). The plate is the same element, moved into the sheet and kept (TD_PLATE).
+const TD_PLATE = $("todayTop"), TD_FACTS = $("todayFacts");
+let todayFactsSig = "", tdSig = "";
 function renderTodayNumbers(){
   const n = todayNumbers(), h = n.h, ev = reviewTime() && !!(h.pod && h.pod.tier);
   setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
@@ -762,34 +764,54 @@ function renderTodayNumbers(){
   // a plane: a button when its row is in the list
   const jump = (e, what, inner) => h.inList(e) ? `<button type="button" class="dayJump" data-jump="${escH(tlKey(e))}" data-jl="${escH(T(what))}">${inner}</button>` : `<span class="dayJump">${inner}</span>`;
   const rec = (what, e, v) => `<div><dt>${escH(T(what))}</dt><dd>${e ? jump(e, what, `<b>${escH(v(e))}</b><small>${escH(rowName(e))} · ${escH(e.time || "")}</small>`) : "–"}</dd></div>`;
-  const max = Math.max(h.airline ? h.airline.count : 0, ...h.types.map(t => t[1]));
-  const bar = (k, c) => `<span>${escH(k)}</span><i style="width:${Math.max(6, c / max * 100).toFixed(1)}%"></i><em>${nf.format(c)}</em>`;
-  const bars = (h.airline && h.airline.count > 1 ? bar(h.airline.title, h.airline.count) + (h.types.length ? `<b class="gap"></b>` : "") : "") +
-    h.types.map(([k, c]) => bar(shortType(TYPES[k] || k), c)).join("");
+  const al = h.airline && h.airline.count > 1 ? h.airline : null, max = Math.max(0, ...h.types.map(t => t[1]));
+  const bars = h.types.map(([k, c]) => `<span>${escH(shortType(TYPES[k] || k))}</span><i style="width:${Math.max(6, c / max * 100).toFixed(1)}%"></i><em>${escH(T("×{n} today", {n: nf.format(c)}))}</em>`).join("");
   const p = h.pod, nw = h.newest, hh = x => String(x % 24).padStart(2, "0");
-  const fl = e => jump(e, e === h.first ? "First of the day" : "Last of the day", escH(rowName(e)));
-  // the translations are ours, so the time and the flights go in as HTML
-  const span = h.first && h.last && h.first !== h.last ? T("From {a} ({f}) to {b} ({l})", {a: `<b>${escH(h.first.time || "")}</b>`, f: fl(h.first), b: `<b>${escH(h.last.time || "")}</b>`, l: fl(h.last)}) +
-    (h.busy && h.busy.n > 1 ? " · " + T("busiest {h} ({n})", {h: `<b>${hh(h.busy.h)}–${hh(h.busy.h + 1)}h</b>`, n: h.busy.n}) : "") : "";
+  const span = h.first && h.last && h.first !== h.last ? `<dl class="span3">${rec("First", h.first, e => e.time || "")}${rec("Last", h.last, e => e.time || "")}` +
+    `<div><dt>${escH(T("Busiest hour"))}</dt><dd>${h.busy && h.busy.n > 1 ? `<b>${hh(h.busy.h)}–${hh(h.busy.h + 1)}</b><small>${escH(T("{n} planes", {n: h.busy.n}))}</small>` : "–"}</dd></div></dl>` : "";
   const html = (ev ? `<div class="sec"><div class="pod" style="--tc:${TIER_COL[p.tier]}">${jump(p, "Plane of the day",
       `<span class="k">${escH(T("Plane of the day"))}<span>${escH(T(TIER_NAME[p.tier] || ""))}</span></span><b>${escH(shortType(p.type) || p.typeCode || rowName(p))}</b>` +
       `<small>${escH([rowName(p), p.from || p.to ? `${(p.from && (p.from.city || p.from.code)) || "···"} → ${(p.to && (p.to.city || p.to.code)) || "···"}` : "", p.time].filter(Boolean).join(" · "))}</small>`)}</div>` +
-      (span ? `<p class="span">${span}</p>` : "") + `</div>` : "") +
+      span + `</div>` : "") +
     `<div class="sec rec">${rec("Lowest pass", h.low, e => altText(e.altAtMin))}${rec("Highest pass", h.high, e => altText(e.altAtMin))}${rec("Fastest", h.fast, e => speedStr(e.maxSpeed).toLowerCase())}</div>` +
-    `<div class="sec"><dt>${escH(T("Most seen"))}</dt>${bars ? `<div class="bars">${bars}</div>` : `<p class="new">${escH(h.typesSeen ? T("Nothing seen twice yet") : "–")}</p>`}</div>` +
+    `<div class="sec">${al ? `<dt>${escH(T("Most seen airline"))}</dt><p class="new">${escH(al.title)} <small>· ${escH(T("{n} planes today", {n: nf.format(al.count)}))}</small></p>` : ""}` +
+    `<dt>${escH(T(al ? "Most seen types" : "Most seen"))}</dt>${bars ? `<div class="bars">${bars}</div>` : `<p class="new">${escH(h.typesSeen ? T("Nothing seen twice yet") : "–")}</p>`}</div>` +
     `<div class="sec"><dt>${escH(T("New in the logbook"))}</dt><p class="new">${nw ? jump(nw, "New in the logbook", `${escH(nw.newType ? shortType(nw.type) || nw.typeCode : nw.airline || rowName(nw))} <small>· ${escH(rowName(nw))} · ${escH(nw.time || "")} · ${escH(T("first ever"))}` +
       `${h.newN > 1 ? " · " + escH(T("{n} more", {n: h.newN - 1})) : ""}</small>`) : escH(T("Nothing new yet"))}</p></div>`;
-  if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
-  const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = $("todayTop").querySelector("h3");
+  if (html !== todayFactsSig) { todayFactsSig = html; TD_FACTS.innerHTML = html; }
+  const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = TD_PLATE.querySelector("h3");
   if (h3.textContent !== title) h3.textContent = title;
+  // the page: the numbers, each with its name, and the card: the plane of the day (or the newest first) and a line of records
+  const num = (v, k) => `<div><dt>${escH(T(k))}</dt><dd>${nf.format(v || 0)}</dd></div>`;
+  const nm = e => shortType(e.type) || e.typeCode || rowName(e);
+  const head = ev ? T("Plane of the day: {t}", {t: nm(p)}) : nw ? T("New in the logbook: {t}", {t: nw.newType ? nm(nw) : nw.airline || rowName(nw)}) : "";
+  const line = [h.low ? T("lowest {a}", {a: altText(h.low.altAtMin)}) : "", h.fast ? T("fastest {s}", {s: speedStr(h.fast.maxSpeed).toLowerCase()}) : "",
+    h.newN ? T("{n} new in the logbook", {n: nf.format(h.newN)}) : ""].filter(Boolean).join(" · ");
+  const sig = [n.planes, n.over, n.airlines, n.types, head, line, LANG].join("|");
+  if (sig === tdSig) return;
+  tdSig = sig;
+  $("tdNums").innerHTML = num(n.planes, "Planes") + num(n.over, "Overhead") + num(n.airlines, "Airlines") + num(n.types, "Types");
+  const hl = $("tdHl");
+  hl.hidden = !n.planes || !(head || line);
+  hl.innerHTML = `<span><small>${escH(T("Highlights"))}</small><b>${escH(head || line)}</b>${head && line ? `<em>${escH(line)}</em>` : ""}</span><i aria-hidden="true">›</i>`;
 }
-// A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment, what it was named for after its
-// details. A filter that hides it is cleared first.
-function todayJump(k, what){
+// The Highlights card: the plate as a sheet (the app's cards: the grip, swiped down, a tap beside or back).
+function tdOpen(){
+  ctlSound.nav();
+  cardOpen(`<div class="tdIn"></div>`, ci => {
+    ci.classList.add("tdSheet");
+    ci.querySelector(".tdIn").appendChild(TD_PLATE);
+    TODAYP.cssW = 0; showPanel(TODAYP);
+  });
+}
+$("tdHl").onclick = tdOpen;
+// A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
+// without the words of what it was named for). A filter that hides it is cleared first.
+function todayJump(k){
   const row = () => $("svList").querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
   if (!row() && (svFilter !== "all" || svQuery)) {
     svFilter = "all"; svQuery = "";
-    const inp = $("svTools").querySelector("[data-q]"), x = $("svTools").querySelector("[data-qx]");
+    const inp = $("tdFind").querySelector("[data-q]"), x = $("tdFind").querySelector("[data-qx]");
     if (inp) inp.value = ""; if (x) x.hidden = true;
     svSig = ""; renderToday();
   }
@@ -797,15 +819,15 @@ function todayJump(k, what){
   if (!li) return;
   ctlSound.nav();
   for (const o of document.querySelectorAll("#svList li.jump")) o.classList.remove("jump");
-  const l2 = li.querySelector(".l2");
-  if (l2) l2.dataset.jl = what;
   li.classList.add("jump");
   li.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   clearTimeout(todayJump.t); todayJump.t = setTimeout(() => li.classList.remove("jump"), 2600);
 }
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#todayFacts button[data-jump]");
-  if (b) todayJump(b.dataset.jump, b.dataset.jl);
+  if (!b) return;
+  if (b.closest("#cardBox")) cardClose();                    // 1.115: from the Highlights sheet
+  todayJump(b.dataset.jump);
 });
 function renderToday(){
   if (tab !== "today") return;
@@ -818,7 +840,9 @@ function renderToday(){
     if (b.textContent !== text) b.textContent = text;
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
-  $("svSum").textContent = spottedSummary();
+  const note = (API_NOTE() + (S.demo ? " · " + T("sample flights (demo mode)") : "")).slice(3);   // 1.115: the numbers are above
+  if ($("svSum").textContent !== note) $("svSum").textContent = note;
+  $("svSum").hidden = !note;
   const ap = $("svPlaces");
   if (ap) {
     const seenFrom = ((lbData() || {}).places || []).filter(([k, n]) => n > 0).length;
@@ -841,7 +865,7 @@ function renderToday(){
   svSig = sig;
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
-  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, 60, tlOpenId.svList)
+  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
     : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? tlNothing() : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
 }
 function renderLists(){
@@ -4441,7 +4465,7 @@ function tlFold(li, anim){
   tlStart(320);
   const shut = li.tlNow = li.animate([{height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}, {height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}], {duration: 320, easing: TL_EASE});
   card.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: "linear", fill: "forwards"});
-  for (const c of [li.querySelector(".l1"), li.querySelector(".l2")]) if (c) c.animate([{opacity: 0}, {opacity: 1}], {duration: 200, delay: 120, easing: TL_OUT, fill: "backwards"});
+  { const c = li.querySelector(".l1"); if (c) c.animate([{opacity: 0}, {opacity: 1}], {duration: 200, delay: 120, easing: TL_OUT, fill: "backwards"}); }
   const end = () => { card.remove(); if (li.tlNow === shut) li.classList.remove("tlAnim"); tlEnd(); };
   shut.finished.then(end, end);
 }
@@ -4966,7 +4990,7 @@ function updateWhere(){
 }
 function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){
-  setChars("clock", hhmm()); rollDay(); updateFooter();
+  rollDay(); updateFooter();                              // 1.115: the flap clock went (the chip has its place)
   if (feat && !isOffline()) setWord("remarks", featRemark());
 }
 
@@ -5049,19 +5073,15 @@ const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [], gLvFrom = 0;   // 1.114.5: a level-up still to show (from that level)
 function gStripSetup(){
-  const box = $("gStrip");
+  // 1.115 (to-do #206, Dave's pick B): the strip under the header became the chip in the clock's place: the points and
+  // the level, "paused" in amber while live location is off; a tap opens the Spotters' Club. The names stayed.
+  const box = $("gHead");
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  // 1.114.2 (to-do #192): each part opens its own place: the lapel and the level line your level, the points the
-  // point history, the league number the league (each a button of thumb size, with a gap between them)
-  box.innerHTML = `<div class="gMain"><button type="button" class="gB" id="gBRk" aria-label="${escH(T("Your level"))}"><span class="gRk" id="gRk"></span></button>` +
-    `<button type="button" class="gB" id="gBTot" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span></button>` +
-    `<button type="button" class="gB gLvB" id="gBLv" aria-label="${escH(T("Your level"))}"><span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button></div>` +
-    `<button type="button" class="gChip" id="gChip" aria-label="${escH(T("League"))}"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  $("gBRk").onclick = $("gBLv").onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
-  $("gBTot").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else gGoPlate("gHero"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else gGoPlate("lgPlate"); };
+  box.setAttribute("aria-label", T("Spotters' Club"));
+  box.innerHTML = `<span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span><small id="gLvTxt"></small>`;
+  box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
 }
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
 // for a moment, as the passport's regions do.
@@ -5082,6 +5102,7 @@ function gHitDo(){
   }
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
@@ -5116,27 +5137,31 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
   document.addEventListener("pointerdown", e => { const t = e.pointerType === "mouse" && toastAt(e); if (t) start(t, e.clientX); });
   document.addEventListener("pointermove", e => { if (sw && e.pointerType === "mouse") move(e.clientX); });
   document.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
-// 1.73.2: Go live: a turning circle in the chip until the phone has found itself (or 15 s), then the strip as it is.
+// 1.73.2: Go live (Sky view, the Club): the phone finds itself (or 15 s), then the chip and the Club as they are.
 let gGoing = 0;
 function gGoLive(){
   if (gGoing) return;
   liveStart();
   const t0 = Date.now();
   gGoing = setInterval(() => {
-    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); if (gme) gStripRender(gme); }
-    else if (gme) gStripRender(gme);
+    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); gGoShow(); }
+    else gGoShow();
   }, 400);
-  if (gme) gStripRender(gme);
+  gGoShow();
 }
-// The total on flaps: a flap flips over only where the digit changed, right to left.
-// 1.73.3: always five flaps (room for 10,000 and up), blank in front
+const gGoShow = () => { if (gme) gStripRender(gme); renderGame(); };
+// The total on the header chip ("9,950 pts").
 function gTotSet(n, anim){
-  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(5, " ");
-  if (el.children.length !== t.length) el.innerHTML = [...t].map(() => "<s></s>").join("");
-  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
-    if (s.textContent === v) return;
-    if (!anim) { s.textContent = v; return; }
-    setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
+  const el = $("gTot"), to = Math.max(0, Math.round(n || 0)), from = +el.dataset.n || 0;
+  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); };
+  cancelAnimationFrame(gTotSet.raf);
+  if (!anim || REDUCED || to <= from) return put(to);
+  const t0 = performance.now(), step = t => {                // 1.115: counts up over 0.7 s
+    const k = Math.min(1, (t - t0) / 700);
+    put(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))));
+    if (k < 1) gTotSet.raf = requestAnimationFrame(step);
+  };
+  gTotSet.raf = requestAnimationFrame(step);
 }
 // 1.102 (to-do #154, Dave's pick: round 2's ladder A): the level as a rank insignia, its colour telling the group and
 // its mark the step. 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8 navy with silver chevrons, 9–11 black with
@@ -5448,46 +5473,52 @@ function stylesThumb(cv, look, badgeOnly){
     g.fillStyle = Th.accent; rr(g, x0, y + fh + h * .1, 3 * fw + 2 * gap, Math.max(2, h * .035), 1); g.fill();
   });
 }
-// 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
+// 1.78.1: the chip follows live location at once (Settings, a place picked, another device's change, the start); it
 // was redrawn only with the next points, up to a minute later.
 let gStripLive = null;
 setInterval(() => { if (gme && gStripLive != null && gStripLive !== !!S.live) { gStripRender(gme); gRefresh(true); } }, 300);
 function gStripRender(g, anim){
-  const box = $("gStrip");
+  const box = $("gHead");
   if (box.hidden || !g) return;
   const off = !S.live;
   gStripLive = !off;
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
-  const sby = !off && gSbyUsed(g);                                  // 1.104: the day after a standby, the line says so in amber
-  box.classList.toggle("sby", !!sby);
-  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location")
-    : sby ? T("Standby used · streak goes on, day {n}", {n: sby}) : gLevelText(g);
-  const rk = rankIns(g.level, 34);    // 1.102: the rank insignia; 1.112 (to-do #170): in front of the points, the wings only on the club's cards
-  if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
-  $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
-  $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
-    : escH(T("Club"));
+  const lv = escH(T("Level {n}", {n: g.level}));
+  const html = off ? `${lv} · <em>${escH(T("paused"))}</em>` : lv;
+  if ($("gLvTxt").innerHTML !== html) $("gLvTxt").innerHTML = html;
 }
-// Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
+// 1.115: the notices' bar and the game's passes and tickets share the bottom: while both show, the bar sits above them
+setInterval(() => {
+  const t = $("toasts"), a = $("gAws");
+  if (!t || !t.children.length) return;
+  const top = a && a.children.length ? a.getBoundingClientRect().top : 0, lift = top > 0 ? Math.round(innerHeight - top + 8) + "px" : "";
+  if (t.style.getPropertyValue("--toast-lift") !== lift) t.style.setProperty("--toast-lift", lift);
+}, 250);
+// 1.115 (Dave's pick B): the game's news (a place won in the league, a medal nearly there) under the chip, never in the
+// notices' bar; a tap opens the club, it goes by itself after a few seconds.
+function gSay(text, ms = 5000){
+  const box = $("gHead");
+  if (!box || box.hidden) return;
+  const cb = box.parentNode;
+  for (const o of cb.querySelectorAll(".gSay")) o.remove();
+  const b = document.createElement("div");
+  b.className = "gSay"; b.setAttribute("role", "status"); b.textContent = text;
+  b.onclick = () => { b.remove(); box.click(); };
+  cb.appendChild(b);
+  setTimeout(() => { b.classList.add("out"); setTimeout(() => b.remove(), 320); }, ms);
+}
+// Points came in: the chip turns over to +N, then back to the total, which counts up while the chip glows.
 function gGain(prev, g){
-  const box = $("gStrip"), n = g.points - prev.points;
+  const box = $("gHead"), n = g.points - prev.points;
   gAnimT.forEach(clearTimeout); gAnimT = [];           // 1.114.5: a level-up this cancels stays pending (gLvFrom)
   if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
-  $("gTok").textContent = "+" + nf.format(n);
-  const lvUp = g.level > prev.level, from = prev.need ? prev.into / prev.need * 100 : 0, to = lvUp ? 100 : g.need ? g.into / g.need * 100 : 0;
-  const bar = $("gBarI").getBoundingClientRect(), chip = $("gChip").getBoundingClientRect();
-  box.style.setProperty("--tx", Math.round(bar.left + bar.width * to / 100 - chip.left - chip.width / 2) + "px");
-  $("gBarI").style.width = from.toFixed(1) + "%"; $("gBarG").style.left = from.toFixed(1) + "%"; $("gBarG").style.width = "0";
-  box.classList.remove("flip", "fly", "gain"); void box.offsetWidth; box.classList.add("flip");
-  gAnimT.push(setTimeout(() => box.classList.add("fly"), 1550));
+  gTotSet(prev.points);
+  box.classList.remove("flip", "gain"); void box.offsetWidth; box.classList.add("flip");
+  gAnimT.push(setTimeout(() => { box.classList.add("gain"); gTotSet(g.points, true); gCoins(); }, 1900));
   gAnimT.push(setTimeout(() => {
-    box.classList.add("gain"); $("gBarG").style.width = Math.max(0, to - from).toFixed(1) + "%";
-    gTotSet(g.points, true); gCoins();
-  }, 2050));
-  gAnimT.push(setTimeout(() => {
-    box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
+    box.classList.remove("flip", "gain"); gStripRender(g);
     if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
   }, 3500));
 }
@@ -5505,7 +5536,7 @@ async function gRefresh(force){
     const viaGain = prev && g.points > prev.points && tab !== "game";
     if (viaGain) gGain(prev, g);
     else gStripRender(g);
-    if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
+    if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) gSay(T("You passed {n} in the league ▲", {n: g.below}));
     if (prev && g.level > prev.level && !viaGain) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
     if (gLvFrom && !viaGain) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }   // 1.114.5: also one a second gain cut off
     if (tab === "game") renderGame();
@@ -5818,7 +5849,9 @@ function renderGame(){
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
   let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
     careerMini(g) +                                          // 1.109: the mini route, the next stop, Your route
-    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) + gSbyHtml(g) +
+    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>` +
+      // 1.115: Go live here, where the strip's chip had it (the header chip opens this page)
+      (liveOk() ? `<button class="liveGo gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "")) + gSbyHtml(g) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
     `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
@@ -6048,7 +6081,7 @@ function medalNudge(g0){
     if (!t || done.includes(t[0]) || left <= 0 || left > Math.max(2, Math.round(t[1] * .02))) continue;
     try { localStorage.setItem(ACH_KEY + ".nudge", JSON.stringify(done.concat(t[0]).slice(-80))); } catch {}
     const u = NUDGE_UNIT[L[0]] || ["", ""];
-    toast(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), {ms: 7000});
+    gSay(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), 7000);
     return;                                                         // one at a time
   }
 }
@@ -6301,7 +6334,7 @@ function gameStart(){
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  setTimeout(() => tip("gstrip", () => $("gStrip"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
+  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
 }
 function run(){
   if (booted) return;

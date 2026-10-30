@@ -80,8 +80,8 @@ changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|L
 [header] Title and header: the place, the Overhead/Airport switch, the clock, the status dot and line, the board's footer
 test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
     .dot #modeSw #dot #pip #statusText +drawStatic
-tools/app/head.html: #top #mark .title .clockbox #clockP .dot .status #dot #modes .stOk
-tools/app/main.js: CLOCK drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusCard
+tools/app/head.html: #top #mark .title .clockbox .dot .status #dot #modes .stOk +.gHead
+tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusCard
     updateWhere liveShow tickClock
 README.md: "The footer shows the name" "- **Connection** (1.38)"
 changelog: title|header|clock|footer|status line|the dot
@@ -186,15 +186,15 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts .dayFacts #todayP
-    #todayTop .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
+    #todayTop .tdHead .tdFind .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
-    todayFactsSig renderTodayNumbers todayJump renderToday renderLists
-    tlKey plainCode noFlightNo rowName noRoute tlNode rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi tlMin tlHm
+    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick todayJump renderToday renderLists
+    tlKey plainCode noFlightNo rowName noRoute tlNode rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
-README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today**:"
+README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.115)"
     "- **The day runs from 03:00"
 docs/history.md: "Spotted today's PAGE x OF y"
 changelog: spotted today|today tab|\btoday\b|legend|filter
@@ -403,17 +403,17 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     fleetTier tierOf TROPHY_LADDERS TROPHY_SINGLES TROPHY_IDS TROPHY_TEXT TROPHY_MEDALS MEDAL_COL TROPHY_TIER
     trophyLadder GOAL_TEXT goalText bingoReset trophyText game ACH_KEY ACH_MS achQueue achTimer achList achCheck
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
-tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups #gStrip .gTot @gFlp .gLv .gBar @gShine @gGlow .gChip
-    .skyIco .gSpin @gSpin @gR1 @gR2 .gTok @gTok .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
+tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
+    .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd css:button.ppShelf.ppNone .ppNone
-    @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .gRk .rkLv .plIns
+    @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart

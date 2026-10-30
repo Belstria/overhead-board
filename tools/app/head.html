@@ -69,10 +69,11 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webk
 .title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clockbox{position:relative;flex:none}
+.clockbox{position:relative;flex:none;min-width:8px;min-height:8px}
 @media (max-width:400px){.title h1{font-size:var(--fs-2xl)}}
+@media (max-width:500px){#top:has(.gHead:not([hidden])) .title h1{font-size:var(--fs-xl)}}   /* 1.115: room for the chip */
 @media (max-width:374px){.title h1{font-size:var(--fs-xl)}}
-#clockP{width:112px}
+@media (max-width:374px){#top:has(.gHead:not([hidden])) .title h1{font-size:var(--fs-l)}}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
 .dot::after{content:"";position:absolute;inset:-16px -4px -16px -16px}   /* a bigger tap area, kept inside the screen (1.40) */
 html,body{overflow-x:clip}
@@ -222,8 +223,36 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts .span{margin:10px 0 0;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted)}
 .dayFacts .span b,.dayFacts .span .dayJump{color:var(--ink);font-weight:600}
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+/* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
+   card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
+.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
+.tdHead h2{margin:0;flex:none}
+.tdFind{flex:1;min-width:0}
+.tdFind .svFind{margin:0}
+.tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
+.tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.tdNums dt{margin:6px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:14px;
+  background:linear-gradient(90deg,rgba(240,180,41,.14),rgba(0,0,0,.35));border:1px solid rgba(240,180,41,.35);-webkit-tap-highlight-color:transparent}
+.tdHl[hidden]{display:none}
+.tdHl:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
+.tdHl:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdHl span{flex:1;min-width:0}
+.tdHl small{display:block;margin:0 0 5px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+.tdHl b{display:block;font:700 var(--fs-l)/1.15 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
+#cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
+#cardBox .tdSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
+#cardBox .tdSheet #todayTop{margin:0}
+.dayFacts .span3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}
+.dayFacts .span3>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.dayFacts .span3 dt{margin:0 0 5px}
+.dayFacts .span3 dd{margin:0}
+.dayFacts .span3 b{display:block;font:700 var(--fs-l)/1.1 var(--f-board);color:var(--ink);white-space:nowrap}
+.dayFacts .sec>dt+dt,.dayFacts .sec>p+dt{margin-top:10px}
 .tline li.fl.jump{background:rgba(240,180,41,.10);box-shadow:inset 0 0 0 1.5px var(--amber),0 0 18px rgba(240,180,41,.18);transition:background .3s,box-shadow .3s}
-.tline li.fl.jump .l2[data-jl]::after{content:"  ·  " attr(data-jl);color:var(--amber);font-weight:600;letter-spacing:.08em;font-size:var(--fs-tag);text-transform:uppercase}
 /* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
 .flights{list-style:none;margin:6px -10px 0;padding:0}
 .flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
@@ -345,6 +374,13 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
+/* 1.115 (to-do #206, Dave's pick B): the plane's photo and Where to look are one card under the board, no title over it */
+#acSec>.groove,#acTitle{display:none}
+#acSec{margin-top:16px}
+#acSec .bezel:has(+ #look:not([hidden])){border-radius:10px 10px 0 0}
+#acSec #look{margin:0;border-radius:0 0 10px 10px;border-top:0;background:linear-gradient(#1a1b1e,#111214);box-shadow:0 6px 16px rgba(0,0,0,.6)}
+#acSec #look .lookH{display:none}
+#acSec #look canvas{height:34px}
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .tabHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -442,15 +478,20 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline li.fl::after{content:"";position:absolute;left:-10px;top:19px;width:10px;height:2px;background:var(--node);opacity:.55}
 .tline li.fl:active{background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.07)),var(--box-bg)}
 .tline li.fl:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
-.tline .l1{display:grid;grid-template-columns:40px 66px minmax(0,1fr) auto;gap:8px;align-items:baseline}
-.tline .l1 time{font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
-.tline .l1 .f{font:700 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tline .l1 .rt{grid-column:auto;min-width:0;font:700 var(--fs-base)/1.1 var(--f-board);color:#e9e5da;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 1.115 (to-do #206, Dave's pick B): one line a plane; the status a pill, the marks (★ new, ⚑ unusual, ♥ favourite) at the end */
+.tline .l1{display:flex;align-items:center;gap:8px;min-height:22px}
+.tline .l1 time{flex:none;width:40px;font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+.tline .l1 .f{flex:none;min-width:58px;max-width:40%;font:700 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tline .l1 .rt{flex:1;min-width:0;font:700 var(--fs-base)/1.1 var(--f-board);color:#e9e5da;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tline .l1 .rt b{margin:0;color:inherit}
 .tline .l1 .rt i{font-style:normal;color:var(--muted);margin:0 .3em;letter-spacing:0}
-.tline .l1 .rt.no{font:500 var(--fs-xs)/1.15 var(--f-board);color:var(--label2);letter-spacing:0;white-space:normal;text-wrap:balance}     /* two even lines where it must */
-.tline .l1 .rk{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;color:var(--node);text-align:right;white-space:nowrap}
-.tline .l2{margin:3px 0 0 48px;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tline .l1 .rt .ty{font-weight:500;color:var(--muted);letter-spacing:0}
+.tline .l1 .chip{flex:none;min-width:0;height:19px;padding:0 6px;font-size:var(--fs-tag);letter-spacing:.1em}
+.tline .l1 .mk{flex:none;display:flex;align-items:center;gap:5px}
+.tline .l1 .mk i{font-style:normal;display:grid;place-items:center;width:15px;height:15px;font:700 var(--fs-m)/1 var(--f-board)}
+.tline .l1 .mNew{color:var(--amber)}
+.tline .l1 .mFlag svg{width:15px;height:15px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+.tline .l1 .mFav{color:#e0679f}
 .tline li.st{position:relative;margin:0 0 2px 22px;padding:12px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);font:500 var(--fs-m)/1.4 var(--f-board);color:var(--muted)}
 .tline li.st::before{content:"";position:absolute;left:-20px;top:17px;width:10px;height:10px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 3px #111214}
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 3px #111214,0 0 10px var(--amber)}
@@ -799,7 +840,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
   .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
-  #tabs,.tab:not(#t-now),.brandline,#gStrip,.gPts{display:none!important}
+  #tabs,.tab:not(#t-now),.brandline,#gHead,.gPts{display:none!important}
   #top{padding-top:0}
   #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
   #mark{width:28px;height:28px}
@@ -808,7 +849,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
   .title p,.title .where{margin-top:3px;font-size:var(--fs-tag)}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
   #top .pages .cap{width:104px;height:30px;margin:0;font-size:var(--fs-tag);letter-spacing:.05em}
-  #clockP{width:84px}
   #top .clockbox{margin-right:16px}          /* clear of the screen's rounded corner */
   main{padding:6px 0 0}
   #t-now.cols:not([hidden]){display:block}
@@ -839,43 +879,33 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 /*CAPS_AND_COCKPIT*/
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
-#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:0 var(--gut);position:relative;box-sizing:border-box}
-#gStrip[hidden]{display:none}
-#gStrip .gMain{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
-#gStrip .gB{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;min-height:44px;padding:0 2px}
-#gStrip .gLvB{flex:1;min-width:0}
+/* 1.115 (to-do #206, Dave's pick B): the header chip in the clock's place: the points over the level, "paused" in amber
+   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows */
+.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:40px;padding:4px 12px;border-radius:20px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(240,180,41,.45);white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.gHead[hidden]{display:none}
+.gHead:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gHead:active{background:rgba(0,0,0,.6)}
+.gHv{display:grid;perspective:200px}
+.gHv>span{grid-area:1/1;font:700 var(--fs-m)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums;backface-visibility:hidden}
+.gHv .r2{color:var(--amber);transform:rotateX(90deg)}
+.gHead small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gHead small em{font-style:normal;color:var(--amber)}
+.gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
+.gHead.gain{animation:gGlow 1.4s}
+@media (prefers-reduced-motion:reduce){.gHead *,.gHead{animation:none!important}}
+#t-game .gGoB{margin:10px 0 2px}
 .secPlate.hit h3{animation:ppHit 1.4s ease-out}
-.gTot{display:inline-flex;gap:2px;font:600 var(--fs-l)/1 var(--f-flap,"Oswald",var(--f-board))}
-.gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
-  background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.gTot s.flp{animation:gFlp .26s ease-in-out}
-@keyframes gFlp{50%{transform:scaleY(.05);filter:brightness(1.8)}}
-.gLv{flex:1;min-width:0;display:grid;gap:4px}
-.gLv small{font:600 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
 .gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
 .gBar b{width:0;background:linear-gradient(90deg,#ffe08a,#fff6d8,#ffe08a);background-size:200% 100%}
-#gStrip.gain .gBar b{transition:width .7s ease-out;animation:gShine 1s .7s linear 2}
-@keyframes gShine{from{background-position:200% 0}to{background-position:0 0}}
-#gStrip.gain{animation:gGlow 1.4s}
 @keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
-.gChip{all:unset;cursor:pointer;display:inline-grid;align-content:center;min-height:44px;perspective:200px;flex:none}
-.gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
-.gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
 .skyIco{width:18px;height:18px;flex:none}
 /* 1.73.2: Go live, while the phone finds itself: a turning circle in the chip */
 .gSpin{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;animation:gSpin .8s linear infinite}
 @keyframes gSpin{to{transform:rotate(360deg)}}
-.gChip .r2{background:var(--amber);color:#17140e;transform:rotateX(90deg)}
-#gStrip.flip .gChip .r1{animation:gR1 3.4s forwards} #gStrip.flip .gChip .r2{animation:gR2 3.4s forwards}
 @keyframes gR1{0%,6%{transform:none}11%,50%{transform:rotateX(-90deg)}56%,100%{transform:none}}
 @keyframes gR2{0%,9%{transform:rotateX(90deg)}14%,44%{transform:none}48%,100%{transform:rotateX(90deg)}}
-.gTok{position:absolute;right:calc(var(--gut) + 6px);top:50%;margin-top:-10px;padding:4px 7px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);opacity:0;pointer-events:none}
-#gStrip.fly .gTok{animation:gTok .55s cubic-bezier(.4,0,.6,1) forwards}
-@keyframes gTok{0%{opacity:1;transform:none}100%{opacity:0;transform:translate(var(--tx,-90px),2px) scale(.5)}}
-#gStrip.off .gTot s{color:var(--label2)} #gStrip.off .gLv small{color:#e7a39d} #gStrip.off .gBar i{background:#4a4b50}
-#gStrip.off .gChip .r1{background:var(--c-good);color:#06130b}
-@media (prefers-reduced-motion:reduce){#gStrip *,#gStrip{animation:none!important;transition:none!important}}
 .gPts{display:flex;align-items:center;gap:10px;margin-top:10px;background:#121315;border:1px solid #2c2416;border-radius:8px;padding:8px 10px}
 .gPts.off{border-color:#3a2020}
 .gPts b{font:600 var(--fs-xl)/1 var(--f-board);color:var(--amber);min-width:3.2em}
@@ -900,7 +930,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .rkI{flex:none;display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .rkI svg{display:block;flex:none;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5))}
 .rkGold{background:linear-gradient(#fff6d6,#f3c75a 50%,#d09a2c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none}
-#gStrip .gRk{flex:none;display:grid;place-items:center}
 #t-game .gBig .rkLv{display:flex;align-items:center;gap:8px}
 .gLeague li>span{display:flex;align-items:center;gap:8px;min-width:0} .gLeague .rkI>svg:first-child{min-width:34px}
 .plCard .cHead{display:flex;align-items:center;gap:12px} .plCard .cHead>div{flex:1;min-width:0}
@@ -1123,7 +1152,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gWk i.todo{border:1.5px solid var(--amber);color:var(--ink);box-shadow:0 0 0 3px rgba(240,180,41,.18)}
 .gWk i.sby{border:1.5px solid var(--amber);color:var(--amber);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
 .gWk i.miss{border-color:#5a2a2a;color:#c0626a}
-#gStrip.sby .gLv small{color:var(--amber)}
 #t-game .gHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
 #t-game .gHead h3{margin:0}
 #t-game .gHead .seg{margin:0;flex:0 1 230px}
@@ -1463,16 +1491,26 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .tools .seg.svFilters{flex:1 1 100%;margin:0}
 .gLeague{gap:0} .gLeague li{background:none;border-radius:0;padding:9px 4px;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03)}
 .gLeague li.me{outline:none;background:linear-gradient(90deg,rgba(240,180,41,.14),transparent 70%);box-shadow:inset 3px 0 0 var(--amber),0 1px 0 rgba(255,255,255,.03)}
-/* 1.73.2: notices (toasts) are dark pills, like the boxes, sliding in from the right under the score strip; a swipe to the
-   right sends one away (main.js) */
-#toasts,#toasts.top{left:auto;right:10px;transform:none;bottom:auto;top:calc(var(--sa-top) + 132px);width:min(92vw,440px);display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-#toasts .toast{border-radius:999px;background:var(--box-bg);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:9px 9px 9px 16px;gap:10px;
-  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
+/* 1.73.2: notices (toasts) are dark boxes; a sideways swipe sends one away (main.js). 1.115 (to-do #206, Dave's pick B):
+   a full-width bar at the bottom, above the tabs, where the thumb is: the message on the left, its one action on the
+   right, a problem in red; over an open card at the top, clear of its buttons. The game's news stays at the chip (gSay). */
+#toasts{left:10px;right:10px;transform:none;top:auto;bottom:max(var(--toast-b),var(--toast-lift,0px));width:auto;display:flex;flex-direction:column-reverse;align-items:stretch;gap:8px}
+#toasts.top{top:auto;bottom:max(var(--toast-b),var(--toast-lift,0px));flex-direction:column-reverse}   /* the board's "a card is open" (any .cardish) isn't the app's */
+body:has(#cardBox.in) #toasts{top:calc(var(--sa-top) + 10px);bottom:auto;flex-direction:column}
+#toasts .toast{border-radius:14px;background:#1d1e22;border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:10px 10px 10px 16px;gap:12px;min-height:48px;box-sizing:border-box;
+  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .32s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
 #toasts .toast.err{border-color:#5a2a2d;background:linear-gradient(#2a1517,#1d0f11)}
-#toasts .toast button{flex:none;padding:7px 12px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.06em}
+#toasts .toast button{flex:none;padding:9px 16px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-s)/1 var(--f-board);letter-spacing:.04em;text-transform:none}
 #toasts .toast.err button{background:#ff8a80;color:#17140e}   /* 1.90: the board's red text matched the red pill */
-#toasts .toast.out{transform:translateX(120%);opacity:0}
-@keyframes toastIn{from{transform:translateX(120%)}}
+#toasts .toast.out{transform:translateY(16px);opacity:0}
+body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
+@keyframes toastIn{from{transform:translateY(24px);opacity:0}}
+.gSay{position:absolute;right:0;top:calc(100% + 8px);z-index:6;width:max-content;max-width:min(72vw,300px);padding:9px 12px;border-radius:12px;background:#1d1e22;border:1px solid rgba(240,180,41,.45);
+  box-shadow:0 8px 20px rgba(0,0,0,.6);font:600 var(--fs-s)/1.3 var(--f-board);color:var(--ink);white-space:normal;cursor:pointer;animation:gSayIn .3s ease-out;transition:opacity .3s}
+.gSay::before{content:"";position:absolute;right:22px;top:-6px;width:10px;height:10px;background:#1d1e22;border:1px solid rgba(240,180,41,.45);border-width:1px 0 0 1px;transform:rotate(45deg)}
+.gSay.out{opacity:0}
+@keyframes gSayIn{from{opacity:0;transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.gSay{animation:none}}
 @media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
 /* 1.74: the Logbook's title is two tabs, Logbook and Spotters' Club (the game part); swipe sideways between them.
    1.91 (to-do #104): stuck under the header while either page scrolls, like Settings' jump bar, so the other page is
@@ -1751,9 +1789,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     <canvas id="mark" aria-hidden="true"></canvas>
     <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><svg class="sl" viewBox="0 -2 40 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h34M29 -1l8 8-8 8M37 23H3M11 15l-8 8 8 8"/></svg><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
-    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection" data-ta="Connection"></button></div>
+    <div class="clockbox"><button type="button" class="gHead" id="gHead" hidden></button><button type="button" class="dot" id="dot" aria-label="Connection" data-ta="Connection"></button></div>
   </div>
-  <div id="gStrip" hidden></div>
 </header>
 <main>
   <section class="wrap tab cols" id="t-now">
@@ -1805,13 +1842,14 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
     <div class="lcol">
-      <h2 data-t="Spotted today">Spotted today</h2>
-      <section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
+      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <dl class="tdNums" id="tdNums"></dl>
+      <button type="button" class="tdHl" id="tdHl" hidden></button>
+      <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-      <dl class="facts dayFacts" id="todayFacts"></dl></section>
+      <dl class="facts dayFacts" id="todayFacts"></dl></section></div>
     </div>
     <div class="rcol">
-      <div class="groove"></div>
       <div class="tools" id="svTools"></div>
       <p class="sum" id="svSum"></p>
       <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
