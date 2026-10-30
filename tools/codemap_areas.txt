@@ -443,7 +443,7 @@ changelog: game|point|level|league|trophy|trophies|bingo|achievement|hangar|meda
 tools/app/head.html: .look .lookH .lookRow .lookTxt .lookActs #lookCv #arView .arTitle .arIb .arMoved .arZoom .arZoomL .arAsk .arMini .arAround .arTour
     .arTourBox .arTourAct .arTourRing @arPulse .arTourDrag .arTourPlane .arTourLab .arTourFinger @arDragLab
     @arDragFinger .arShut .arFlash @arFlash .arL .arPeekL .arFullL .arGrip .arPeek .arThumb .arPeekT .arSwipe @arNudge
-    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAsk #arMini #arMiniCv #arMiniT #arBtn #arBtn2 #arCal #arCard
+    .arGhost @arSheetIn css:body.arOpen .skyRow #skyCv .liveAsk .liveGo .liveNo #arAsk #arMini #arMiniCv #arBtn #arBtn2 #arCal #arCard
     #arClose #arCount #arCv #arFlag #arHint #arInfo #arMoved #arReset #arRib #arShut #arTour #arVid #arZ2 #arZ5 #look #lookDir
     #lookSub #skyB #skyRow #skySub
 tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyLogged lookAt drawLook lookWhyDraw

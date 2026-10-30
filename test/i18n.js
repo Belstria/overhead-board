@@ -1655,8 +1655,6 @@ window.I18N_ROWS = [
   ["Drag the sky until the moon sits in its dashed ring.", "Zieh den Himmel, bis der Mond in seinem gestrichelten Ring sitzt.", "Faites glisser le ciel jusqu'à ce que la lune soit dans son anneau en pointillés.", "Arrastra el cielo hasta que la luna quede en su anillo discontinuo.", "Sleep de lucht tot de maan in haar gestippelde ring staat."],
   ["{n} in view · {m} around", "{n} im Bild · {m} ringsum", "{n} dans l'image · {m} autour", "{n} a la vista · {m} alrededor", "{n} in beeld · {m} rondom"],
   ["{n} in view", "{n} im Bild", "{n} dans l'image", "{n} a la vista", "{n} in beeld"],
-  ["{n} more around", "{n} weitere ringsum", "{n} de plus autour", "{n} más alrededor", "nog {n} rondom"],
-  ["tap for the list", "tippen für die Liste", "touchez pour la liste", "toca para la lista", "tik voor de lijst"],
   ["{d} · behind you", "{d} · hinter dir", "{d} · derrière vous", "{d} · detrás de ti", "{d} · achter je"],
   ["in view", "im Bild", "dans l'image", "a la vista", "in beeld"],
   ["Planes around", "Flugzeuge ringsum", "Avions autour", "Aviones alrededor", "Vliegtuigen rondom"],

@@ -962,7 +962,8 @@ The repository is public: no addresses, keys or personal data here either.
   each side below the top bar / zoom buttons (`arChipBounds`, measured twice a second) and clear of the mini radar;
   `arChipsDraw` draws them, and their boxes join `arHits` so `arTap` opens the card. `arEdge` went (the chips replace
   it). The picture signature includes the chips. `arMini` (a button `#arMini` with its own canvas `#arMiniCv` in `.arBot`)
-  redraws only when its own signature (view azimuth, half field of view, dots to the pixel, counts) changes;
+  redraws only when its own signature (view azimuth, half field of view, dots to the pixel, counts) changes; the dial
+  alone, 88 px (Dave on #229: no words beside it, the title has the counts; its aria-label "Planes around");
   `arAroundOpen` lists `arAroundNow` in a card sheet (`.idx.arAround`; in view first) and a row sets `arSel`. The title
   counts "N in view · M around". The mini radar hides with the hint while the card is open. AUTO: `arAuto`'s button,
   `arAutoChip` and `od.ar.auto` went; `arAutoStep` asks (`arAskShow`, `#arAsk`) when the alignment it found is more than

@@ -3397,7 +3397,8 @@ function arChipsDraw(g, chips){
   }
 }
 /* 1.118 (Dave's pick): the mini radar bottom left: north up, the picture's view as a cone, a dot for each plane within
-   the radar's usual range (amber in the picture), "N in view · M more around"; a tap lists them all (arAroundOpen).
+   the radar's usual range (amber in the picture); a tap lists them all (arAroundOpen). The counts are the title's
+   (Dave, on #229: no words beside it).
    Its own small canvas, drawn only when what it shows changes. */
 const AR_MINI = 88;
 let arMiniSig = "", arAroundNow = {inView: [], outs: []};
@@ -3423,9 +3424,6 @@ function arMini(inView, outs, view, half, rangeM){
   g.fillStyle = "#d6d2c6"; g.font = `700 9px ${FONT}`; g.textAlign = "center"; g.fillText(T("N"), c, 11); g.textAlign = "left";
   for (const [x, y, on] of dots) { g.fillStyle = on ? "#f0b429" : "#d6d2c6"; g.beginPath(); g.arc(x, y, on ? 3.5 : 3, 0, TAU); g.fill(); }
   g.fillStyle = "#f0b429"; g.beginPath(); g.arc(c, c, 2, 0, TAU); g.fill();
-  const t = $("arMiniT"), html = n + m ? `<b>${escH(T("{n} in view", {n}))}</b>` + (m ? `<small>${escH(T("{n} more around", {n: m}))}</small>` : "") +
-    `<small>${escH(T("tap for the list"))} ›</small>` : `<b>${escH(T("No planes around right now"))}</b>`;
-  if (t.dataset.h !== html) { t.dataset.h = html; t.innerHTML = html; }
 }
 // The list behind the mini radar: every plane around, the ones in the picture first, then by distance; a row opens
 // the plane's card, as a tap on its label does.

@@ -578,7 +578,7 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arIb.moved{box-shadow:0 0 0 2px var(--amber)} .arIb.moved .arDot{display:block}
 .arMoved{position:absolute;right:12px;top:calc(var(--sa-top) + 66px);margin:0;padding:7px 12px;border-radius:999px;color:#fff;font:600 var(--fs-xs)/1 var(--f-board)}
 /* 1.118 (Dave's pick: AUTO always on, no button): when it finds an alignment, a prompt asks (Not now / Apply), in the
-   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint) lists the planes around */
+   tour's card look; the zoom buttons get a small label; the mini radar bottom left (above the hint, the dial alone: 88 px to tap) lists the planes around */
 .arAsk{position:absolute;left:12px;right:12px;top:calc(var(--sa-top) + 66px);z-index:6;max-width:440px;margin:0 auto;background:#16171a;border-radius:16px;
   border:1px solid rgba(255,255,255,.14);padding:14px 16px;display:grid;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .arAsk[hidden]{display:none}
@@ -587,11 +587,9 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .arAsk .arTourAct{justify-content:flex-end;margin-top:4px}
 .arAsk .cBtn{min-width:96px;margin:0}
 .arZoomL{text-align:center;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.8)}
-.arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:flex;align-items:center;gap:12px;max-width:100%}
+.arMini{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;left:0;bottom:calc(100% + 10px);display:block;width:88px;height:88px;border-radius:50%}
 .arMini[hidden]{display:none}
 #arView .arMini canvas{position:static;flex:none;width:88px;height:88px;border-radius:50%;cursor:pointer}
-.arMini span{display:grid;gap:3px;font:500 var(--fs-s)/1.25 var(--f-board);color:#d6d2c6;text-shadow:0 1px 3px rgba(0,0,0,.85)}
-.arMini b{font:700 var(--fs-m)/1.2 var(--f-board);color:var(--c-paper)}
 .arMini:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:44px}
 .arAround .arInV{font-style:normal;color:var(--amber)}
 /* the first-time walkthrough (and ⓘ): the ring, the drag, the buttons */
@@ -1787,7 +1785,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <div class="arTour" id="arTour" hidden></div>
   <p class="arCal" id="arCal" hidden></p>
   <div class="arAsk" id="arAsk" role="alertdialog" aria-live="polite" hidden></div>
-  <div class="arBot"><button class="arMini" type="button" id="arMini"><canvas id="arMiniCv" aria-hidden="true"></canvas><span id="arMiniT"></span></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
+  <div class="arBot"><button class="arMini" type="button" id="arMini" aria-label="Planes around" data-ta="Planes around"><canvas id="arMiniCv" aria-hidden="true"></canvas></button><button class="arShut" type="button" id="arShut" aria-label="Take a picture" hidden><i></i></button><canvas class="arRib" id="arRib" aria-hidden="true"></canvas><p class="arHint" id="arHint"></p></div>
   <div class="rvCard cardish arCard" id="arCard" hidden></div>
 </div>
 <div id="splash" aria-hidden="true">
