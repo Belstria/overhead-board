@@ -5204,7 +5204,11 @@ function gStripSetup(){
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
   box.setAttribute("aria-label", T("Spotters' Club"));
-  box.innerHTML = `<span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span><small id="gLvTxt"></small>`;
+  // 1.116.1 (to-do #209, Dave's pick): no pill; the text, then the rank's insignia inside a ring filling towards the next level
+  box.innerHTML = `<span class="gTx"><span class="gL1"><span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span>` +
+    `<em id="gOff" hidden></em></span><small id="gLvTxt"></small></span><span class="gRing"><svg viewBox="0 0 48 48" aria-hidden="true">` +
+    `<circle class="gRt" cx="24" cy="24" r="21"/><circle class="gRa" id="gRa" cx="24" cy="24" r="21" pathLength="100" stroke-dasharray="0 100"/></svg>` +
+    `<span class="gLap" id="gLap"></span></span>`;
   box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
 }
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
@@ -5278,7 +5282,7 @@ const gGoShow = () => { if (gme) gStripRender(gme); renderGame(); };
 // The total on the header chip ("9,950 pts").
 function gTotSet(n, anim){
   const el = $("gTot"), to = Math.max(0, Math.round(n || 0)), from = +el.dataset.n || 0;
-  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); };
+  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); gRingSet(v); };
   cancelAnimationFrame(gTotSet.raf);
   if (!anim || REDUCED || to <= from) return put(to);
   const t0 = performance.now(), step = t => {                // 1.115: counts up over 0.7 s
@@ -5612,10 +5616,27 @@ function gStripRender(g, anim){
   const off = !S.live;
   gStripLive = !off;
   box.classList.toggle("off", off);
+  gLapSet(g.level);
   if (!anim) gTotSet(g.points);
-  const lv = escH(T("Level {n}", {n: g.level}));
-  const html = off ? `${lv} · <em>${escH(T("paused"))}</em>` : lv;
-  if ($("gLvTxt").innerHTML !== html) $("gLvTxt").innerHTML = html;
+  const lv = T("Level {n}", {n: g.level}), pz = "· " + T("paused");     // 1.116.1: "paused" after the points
+  if ($("gLvTxt").textContent !== lv) $("gLvTxt").textContent = lv;
+  if ($("gOff").textContent !== pz) $("gOff").textContent = pz;
+  $("gOff").hidden = !off;
+}
+// 1.116.1 (to-do #209): the chip's ring, how far the points are from this level's start to the next (careerPts, the
+// Club's level card's numbers). A player kept above their points (relay 96) shows an empty ring, never a negative one.
+const gRingP = (pts, lv) => { const a = careerPts(lv), b = careerPts(lv + 1); return Math.max(0, Math.min(1, ((pts || 0) - a) / (b - a))); };
+function gLapSet(lv){
+  const box = $("gHead");
+  if (+box.dataset.lv === lv) return;
+  box.dataset.lv = lv;
+  $("gLap").innerHTML = rankIns(lv, lv >= 15 ? 32 : 28);    // a cap is two thirds of a shoulder board's height
+  gRingSet(+$("gTot").dataset.n || 0);
+}
+// The ring for a total at the level the chip shows: a gain's count-up grows it (a level-up's up to the full ring)
+function gRingSet(n){
+  const p = gRingP(n, +$("gHead").dataset.lv || 1);
+  $("gRa").setAttribute("stroke-dasharray", `${(p * 100).toFixed(1)} 100`);
 }
 // 1.115: the notices' bar and the game's passes and tickets share the bottom: while both show, the bar sits above them
 setInterval(() => {
@@ -5644,11 +5665,13 @@ function gGain(prev, g){
   if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
   gTotSet(prev.points);
-  box.classList.remove("flip", "gain"); void box.offsetWidth; box.classList.add("flip");
+  box.classList.remove("flip", "gain", "lvl"); void box.offsetWidth; box.classList.add("flip");
   gAnimT.push(setTimeout(() => { box.classList.add("gain"); gTotSet(g.points, true); gCoins(); }, 1900));
+  // 1.116.1: a level-up fills the ring and the chip flashes; then the ring empties under the new insignia before the card
+  if (g.level > (+box.dataset.lv || 1)) gAnimT.push(setTimeout(() => box.classList.add("lvl"), 2600));
   gAnimT.push(setTimeout(() => {
-    box.classList.remove("flip", "gain"); gStripRender(g);
-    if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
+    box.classList.remove("flip", "gain", "lvl"); gStripRender(g);
+    if (gLvFrom) gAnimT.push(setTimeout(() => { if (!gLvFrom) return; const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }, 800));
   }, 3500));
 }
 async function gRefresh(force){

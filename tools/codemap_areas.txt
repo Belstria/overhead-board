@@ -402,7 +402,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     fleetTier tierOf TROPHY_LADDERS TROPHY_SINGLES TROPHY_IDS TROPHY_TEXT TROPHY_MEDALS MEDAL_COL TROPHY_TIER
     trophyLadder GOAL_TEXT goalText bingoReset trophyText game ACH_KEY ACH_MS achQueue achTimer achList achCheck
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
-tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
+tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gTx .gL1 .gRing .gRt .gRa .gLap .gHead.lvl @gFlash .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
@@ -412,7 +412,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cu
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
