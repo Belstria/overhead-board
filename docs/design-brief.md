@@ -1,7 +1,7 @@
 # Fallblatt: brief for a visual overhaul
 
-You are asked to give Fallblatt a visual overhaul. Read this first, then `CLAUDE.md` (how everything fits together) and
-`README.md` (what users see). Hand back your work as a branch or as changed files; it will be checked and merged from
+You are asked to give Fallblatt a visual overhaul. Read this first, then `docs/architecture.md` (how everything fits
+together) and `README.md` (what users see). Hand back your work as a branch or as changed files; it will be checked and merged from
 there.
 
 ## What Fallblatt is

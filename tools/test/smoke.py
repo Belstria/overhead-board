@@ -2,7 +2,8 @@
 check.yml), and handy before a commit.
 
     py tools/test/smoke.py --syntax    the inline scripts of the boards and the apps and their separate files (i18n.js,
-                                       sounds.js) parse, and the boards name those files' current versions (needs Node)
+                                       sounds.js) parse, and the boards name those files' current versions (needs Node);
+                                       the code map is complete (tools/codemap.py --check)
     py tools/test/smoke.py             the test relay with made-up flights, its rules and saves (flows.py), then /, /test/, /app/,
                                        and /test-api/ in a headless browser (needs Playwright); fails on any page error
     py tools/test/smoke.py --port 8296 the test relay on another port (or env PORT; default 8096), so parallel
@@ -59,6 +60,9 @@ def syntax():
         bad += 1
     import lint                                    # 1.68: no undefined names in the pages' code (ESLint)
     if not lint.check():
+        bad += 1
+    import codemap                                 # to-do #109: every function and CSS rule is in an area of the code map
+    if not codemap.check():
         bad += 1
     print("scripts parse" if not bad else f"{bad} script(s) don't parse")
     return bad == 0
@@ -147,6 +151,28 @@ def pages():
             pg.wait_for_timeout(2000)
             for o in pg.evaluate(OVERFLOW_JS):
                 errors.append(f"Fire TV Account & device: plate {o}")
+            # 1.93.0.1: and About's (its Keys and About plates ran past their edges, the last credits cut off)
+            pg.evaluate("location.hash = '#about'")
+            pg.wait_for_timeout(1500)
+            if pg.evaluate("document.querySelectorAll('#cockpit:not([hidden]) .plate').length") != 3:
+                errors.append("Fire TV About: the view didn't open with its three plates")
+            for o in pg.evaluate(OVERFLOW_JS):
+                errors.append(f"Fire TV About: plate {o}")
+            # 1.92: the Logbook's plates at that size: its buttons end above them, the remote's ring is on a plate, and
+            # a plate's card opens
+            pg.evaluate("location.hash = '#logbook'")
+            pg.wait_for_timeout(2500)
+            lb = pg.evaluate("""() => { const s = document.getElementById('stage').getBoundingClientRect(), k = s.height / 1080,
+              t = document.getElementById('viewTools').getBoundingClientRect(), a = document.activeElement;
+              return {gap: 266 * k - (t.bottom - s.top), plates: document.querySelectorAll('#lbHits button').length, ring: (a && a.dataset && a.dataset.k) || ''}; }""")
+            if lb["gap"] < 0:
+                errors.append(f"Fire TV Logbook: its buttons run {-lb['gap']:.1f} px into the plates")
+            if lb["plates"] != 7 or not lb["ring"]:
+                errors.append(f"Fire TV Logbook: {lb['plates']} plates, the remote's ring on {lb['ring'] or 'none'}")
+            pg.evaluate("document.querySelector('#lbHits [data-k=types]').click()")
+            pg.wait_for_timeout(800)
+            if not pg.evaluate("!!document.querySelector('#cardBox:not([hidden]) .lbCard')"):
+                errors.append("Fire TV Logbook: a plate's card didn't open")
             print("plates fit at 960x540 (Fire TV)" if not any(e.startswith("Fire TV") for e in errors) else "plates overflow at 960x540")
             ctx.close()
             b.close()

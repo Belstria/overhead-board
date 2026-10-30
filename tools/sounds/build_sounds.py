@@ -47,6 +47,25 @@ def whole(name, start_s=0.0, end_s=None, to=.7):
     return [audio.halve(audio.normalise(audio.trim_tail(clip, rate), to))], rate // 2
 
 
+def click(name, at_ms, length_ms, fade_ms, to=.7):
+    """A single click out of a recording with a lot of air around it (1.97.2): starts just before the click at `at_ms`
+    (no leading silence, so it sounds the moment it is played), `length_ms` long with a smooth fade-out, then the
+    quiet end dropped. The Pixabay MP3s are decoded to WAV first (see README); stereo is averaged to mono."""
+    x, rate = audio.read_mono(SRC / name)
+    clip = audio.cut(x, rate, int(rate * at_ms / 1000), pre_ms=0, length_ms=length_ms, fade_ms=fade_ms)
+    return [audio.halve(audio.normalise(audio.trim_tail(clip, rate), to))], rate // 2
+
+
+def tear(name, fade_ms, to=.7):
+    """The scan ticket's paper rip (1.97.8, Zapsplat): the leading silence dropped, so it starts the moment it is played,
+    the natural tail kept (the quiet end dropped, a short fade-out). The MP3 is decoded to a 44.1 kHz mono WAV first."""
+    x, rate = audio.read_mono(SRC / name)
+    a = next(i for i, v in enumerate(x) if abs(v) > .01)
+    clip = audio.trim_tail(x[max(0, a - int(rate * .002)):], rate)
+    clip = audio.cut(clip, rate, 0, pre_ms=0, length_ms=len(clip) * 1000 / rate, fade_ms=0)
+    return [audio.halve(audio.normalise(audio.fade_out(clip, rate, fade_ms), to))], rate // 2
+
+
 def barks(name, start_s, end_s, fade_ms, gate_at):
     """The Airbus "barking dog" (1.49): the PTU's bark-bark-bark with the cabin's hum between the barks turned down
     (a high-pass for the rumble, then a gentle gate), faded out at the end, at a quarter of the rate (11 kHz: it is all
@@ -58,31 +77,55 @@ def barks(name, start_s, end_s, fade_ms, gate_at):
     return [audio.halve(audio.halve(clip))], rate // 4
 
 
+def kept():
+    """The lines of the current sounds.js by key: a sound whose recording isn't at hand (they are not in the repository)
+    stays as it is, so one sound can be rebuilt on its own."""
+    lines = {}
+    if FILE.exists():
+        for line in FILE.read_text(encoding="utf-8").splitlines():
+            if line.startswith("  ") and ": [" in line:
+                lines[line.split(":", 1)[0].strip()] = line
+    return lines
+
+
 def main():
     sets = {
         # the flaps clack synthesised (1.19.1: chosen over the Pragotron recording, 174056 by matucha)
-        "knob": best_clicks("30827__shewbox__clicky-knob-turning.wav", 5, 40, 42, 14, hp=900),   # short and crisp: the detent, not the box
-        "switch": whole("119415__joedeshon__rocker_switch.wav"),
-        "wheel": whole("139061__joedeshon__push_button_switch_07.wav"),
-        "button": whole("eaglaxle-switching-button-2.wav", .06, .32),
-        "ding": whole("arunangshubanerjee-airbus-cabin-pa-beep.wav", .45, 2.5),    # both tones (1.46, Dave's choice)
-        "dog": barks("arunangshubanerjee-airbus-ptu-barking-dog.wav", 3.9, 7.25, 1000, .12),   # About, tapped 7 times
+        "knob": lambda: best_clicks("30827__shewbox__clicky-knob-turning.wav", 5, 40, 42, 14, hp=900),   # short and crisp: the detent, not the box
+        "switch": lambda: whole("119415__joedeshon__rocker_switch.wav"),
+        "wheel": lambda: whole("139061__joedeshon__push_button_switch_07.wav"),
+        "button": lambda: whole("eaglaxle-switching-button-2.wav", .06, .32),
+        "ding": lambda: whole("arunangshubanerjee-airbus-cabin-pa-beep.wav", .45, 2.5),    # both tones (1.46, Dave's choice)
+        # the buttons' click (Pixabay 481191, "technology click 0"): the click itself, 357 ms into the recording
+        "click": lambda: click("tech-click.wav", 357, 60, 22),
+        # navigation (Pixabay 463065, "immersivecontrol button click"): a 10 ms tick, 24 ms into the recording
+        "nav": lambda: click("nav-click.wav", 24, 40, 8),
+        # the scan ticket's tear (Zapsplat, 1.97.8): the stub comes off
+        "tear": lambda: tear("tear.wav", 40, .73),
+        "dog": lambda: barks("arunangshubanerjee-airbus-ptu-barking-dog.wav", 3.9, 7.25, 1000, .12),   # About, tapped 7 times
     }
     OUT.mkdir(exist_ok=True)
-    lines, total = [], 0
-    for key, (clips, rate) in sets.items():
+    old = kept()
+    lines = []
+    for key, make in sets.items():
+        try:
+            clips, rate = make()
+        except FileNotFoundError:
+            if key not in old:
+                raise
+            lines.append(old[key])
+            print(f"{key}: recording not at hand, kept as it is")
+            continue
         datas = []
         for i, c in enumerate(clips):
             audio.write(OUT / f"{key}-{i + 1}.wav", c, rate)
-            data = base64.b64encode(audio.wav_bytes(c, rate)).decode()
-            total += len(data)
-            datas.append(f'"{data}"')
+            datas.append('"' + base64.b64encode(audio.wav_bytes(c, rate)).decode() + '"')
         lines.append(f'  {key}: [{", ".join(datas)}],')
         print(f"{key}: {len(clips)} take(s), {', '.join(f'{len(c) * 1000 // rate} ms' for c in clips)}")
     FILE.write_text("// Fallblatt's recorded sounds (made by tools/sounds/build_sounds.py from the recordings credited in About; don't edit by\n"
                     "// hand): short WAVs in base64, loaded by the boards and the app when sound is on (1.53.1: a file of its own).\n"
                     "window.SOUND_DATA = {\n" + "\n".join(lines) + "\n};\n", encoding="utf-8", newline="\n")
-    print(f"{FILE}: {total / 1024:.0f} KB of base64")
+    print(f"{FILE}: {sum(len(l) for l in lines) / 1024:.0f} KB of base64")
     print("stamped:", ", ".join(assets.stamp()) or "nothing changed")
 
 

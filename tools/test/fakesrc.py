@@ -3,15 +3,22 @@ port). Started by run_test_relay.py.
 
 It stands in for the position source, adsbdb (routes and aircraft), Flightradar24 (key "goodkey"), Vienna Airport's
 flight lists and the airline list (relay 68: a few real rows and made-up ones; EIN6AB, an Aer Lingus flight with no
-route listed, is an airline the board's own table lacks). The planes sit around central Vienna (the boards' default location) and include the special cases:
+route listed, is an airline the board's own table lacks), and Planespotters.net's photo API (relay 73: OE-LBN by its
+registration, the A380 only by its hex, and for the military C-130's hex another aircraft's photo, which the relay must
+pass over), and Wikipedia and Wikidata for the cards' facts (relay 74: two model pages, two airlines, two airports, and
+Commons photos as a drawing). The planes sit around central Vienna (the boards' default location) and include the special cases:
 an A380, a rescue helicopter, a military plane, an emergency squawk, a diverted flight, cargo and a business jet,
 a landing, a take-off and a take-off roll at Vienna airport, a callsign with a wrong route in the database, and one far away and high.
 QUIET=1 leaves out the special planes; HOVER=1 adds a police helicopter hovering overhead; FAR=1 starts the landing 32 km out.
+RING=1 (1.98, the game's two circles) adds two planes from the south: one comes within 15 km after about 30 s (passive
+points) and within 10 km after about 55 s (its scan ticket); the other passes 12 km out from about 65 s on (passive points,
+no scan).
+SLOW_NAMES=1: OpenStreetMap's place names take 5 s, and the first lookup of each point fails (live location, 1.93.0.1).
 Away from Vienna (more than 30 km) the position source has only a turboprop at 8,000 ft near the place, while
 Flightradar24's live positions also have a take-off the free networks can't hear, passing over the place every 6 minutes
 (the relay's gap filler, relay 66).
 """
-import json, math, os, time, urllib.parse
+import collections, json, math, os, re, time, urllib.parse
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 LAT, LON = 48.2085, 16.3731
@@ -61,13 +68,246 @@ AIRCRAFT = {"440b11": {"type": "A320 271N", "icao_type": "A20N", "manufacturer":
                        "registered_owner": "Christophorus Flugrettungsverein", "registered_owner_country_name": "Austria", "url_photo": ""}}
 
 
-SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300">
+SVG_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
 <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b86b8"/><stop offset="1" stop-color="#b9cfe6"/></linearGradient></defs>
 <rect width="600" height="300" fill="url(#s)"/>
 <path d="M120 160 L470 150 Q500 150 505 160 Q500 170 470 172 L120 168 Q100 164 120 160 Z" fill="#f4f4f2"/>
 <path d="M455 152 L500 70 L530 70 L500 155 Z" fill="#c8102e"/><path d="M250 166 L330 230 L360 230 L320 166 Z" fill="#d9d9d6"/>
 <path d="M240 158 L300 120 L325 120 L300 158 Z" fill="#d9d9d6"/><rect x="140" y="162" width="340" height="3" fill="#c8102e"/>
 </svg>"""
+
+# Planespotters.net's photo API (relay 73): which lookups find a photo (id, the photo page's name), and how often each was
+# asked (/ps/asked, for flows.py's cache check). Their photos are 420 px wide at most; the stand-in is an evening sky.
+PS_PHOTOS = {"reg/OE-LBN": ("1000001", "oe-lbn-austrian-airlines-airbus-a320-214"),
+             "hex/896180": ("1000002", "a6-evb-emirates-airbus-a380-861"),
+             "hex/44D0AB": ("1000003", "oo-tek-tea-belgium-boeing-737-2q9-adv"),
+             # relay 95: photos of the aircraft that had the registration before (a list: photos in their order)
+             "reg/N700GR": [("1000004", "n700gr-goodrich-bombardier-global-5000-bd-700-1a11")],
+             "reg/N800GR": [("1000005", "n800gr-private-bombardier-global-6000-bd-700-1a10"),
+                            ("1000006", "n800gr-private-piper-pa-46-600tp-m700-fury")]}
+PS_ASKED = collections.Counter()
+NAMES_FAILED = set()        # SLOW_NAMES=1 (run_test_relay.py --slow-names): the points whose first name lookup failed
+PS_PHOTO = """<svg xmlns="http://www.w3.org/2000/svg" width="420" height="280" viewBox="0 0 420 280">
+<defs><linearGradient id="e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3c63"/><stop offset=".7" stop-color="#d9825b"/><stop offset="1" stop-color="#f2c38b"/></linearGradient></defs>
+<rect width="420" height="280" fill="url(#e)"/><rect y="236" width="420" height="44" fill="#3a3f45"/>
+<path d="M70 190 L340 182 Q362 182 366 190 Q362 198 340 199 L70 197 Q55 194 70 190 Z" fill="#eceae4"/>
+<path d="M330 184 L360 120 L382 120 L362 187 Z" fill="#c8102e"/><path d="M170 196 L230 244 L254 244 L222 196 Z" fill="#cfcfcb"/>
+</svg>"""
+
+
+# Wikipedia and Wikidata for the cards' facts (relay 74): two model pages (one with the specs template, one with an
+# airliner's specifications table), Austrian Airlines and Emirates by their ICAO codes, Vienna and Dubai airports by
+# their IATA codes; any other page is missing. How often each was asked: /wm/asked (flows.py: asked once, then kept).
+WIKI = {
+    "Airbus A320 family": ("The Airbus A320 family is a series of narrow-body airliners developed and produced by Airbus.\nIt was "
+                           "launched in March 1984.", """{{Infobox aircraft begin|name=Airbus A320 family}}{{Infobox aircraft type
+| status = In service
+| primary_user = [[American Airlines]]
+| more_users = {{ubl|[[China Eastern Airlines]]|[[EasyJet|easyJet]]}}<!-- three at most -->
+| first_flight = {{start date and age|1987|2|22|df=y}}
+| introduction = 18 April 1988 with [[Air France]]
+| produced = 1986{{ndash}}present
+| number_built = 12,900 {{as of|2026|09|lc=y}}<ref name=od>{{cite web |title=O&D}}</ref>
+| developed_into = [[Airbus A320neo family]]
+}}
+'''Airbus A320 family''' text.
+==Specifications==
+{| class="wikitable"
+!Variant
+!A320
+!A321
+|-
+!Exit limit
+|180
+|236
+|-
+!Length
+|{{cvt|37.57|m|ft}}
+|{{cvt|44.51|m|ft}}
+|-
+!Wingspan
+|colspan=2 |{{cvt|35.80|m|ftin}}{{efn|with sharklets}}
+|-
+!Engines (×2)
+|colspan=2 |[[CFM International CFM56|CFM56-5B]]<br>[[IAE V2500|IAE V2500A5]]
+|-
+!Range
+|{{cvt|3,300|nmi|km}}
+|{{cvt|3,200|nmi|km}}
+|}
+==Notes=="""),
+    "Airbus A330neo": ("The Airbus A330neo is a wide-body airliner developed by Airbus from the original Airbus A330.", """{{Infobox aircraft
+| name = Airbus A330neo
+| status = In service
+| primary_user = [[Delta Air Lines]]
+| number_built = 199 {{as of|2026|09|lc=yes}}
+| construction_date = 2015{{ndash}}present
+| introduction = 15 December 2018 with [[TAP Air Portugal]]<ref name=TAP15dec2018/>
+| first_flight = {{start date and age|2017|10|19|df=y}}
+| developed_from = [[Airbus A330]]
+}}
+==Specifications==
+{{Aircraft specs
+|crew=2
+|capacity=440 passengers and either 33 [[Unit load device|LD3s]] or 9 pallets
+|length m=63.69
+|span m=64
+|range km=13334
+|eng1 number=2
+|eng1 name=[[Rolls-Royce Trent 7000|Rolls-Royce Trent 7000-72]]
+|eng1 type=[[turbofan]] engines
+}}"""),
+    "Austrian Airlines": ("Austrian Airlines AG is the flag carrier of Austria.", """{{Infobox airline
+| callsign = AUSTRIAN
+| parent = [[Lufthansa Group]]
+| commenced = {{start date and age|1958|03|31|df=yes}}
+| hubs = {{nowrap|[[Vienna International Airport]]}}
+| alliance = [[Star Alliance]]
+| fleet size = 65
+| destinations = [[List of Austrian Airlines destinations|121]]
+| num employees = 5,659 (as of December 2022)
+}}"""),
+    "Emirates (airline)": ("Emirates is one of two flag carriers of the United Arab Emirates.", """{{Infobox airline
+| callsign = EMIRATES
+| commenced = 25 October 1985
+| fleet size = 262
+| destinations = 152
+}}"""),
+    # relay 77 (to-do #122): Wizz Air Malta flies under its group's name (the brand's card, its fleet with Malta's and
+    # the UK's); Austrian keeps its own, part of the Lufthansa Group
+    "Wizz Air": ("Wizz Air is a Hungarian ultra-low-cost airline.", """{{Infobox airline
+| callsign = WIZZ AIR
+| fleet size = 118
+| destinations = 194
+}}"""),
+    "Wizz Air Malta": ("Wizz Air Malta is a Maltese low-cost airline, a subsidiary of Wizz Air.", """{{Infobox airline
+| fleet size = 127
+}}"""),
+    "Wizz Air UK": ("Wizz Air UK is a British low-cost airline.", """{{Infobox airline
+| fleet size = 21
+}}"""),
+    "Lufthansa Group": ("The Lufthansa Group is a German airline group.", """{{Infobox company
+| founded = 1926
+}}"""),
+    "Vienna International Airport": ("Vienna International Airport is the international airport of Vienna.", ""),
+    "Dubai International Airport": ("Dubai International Airport is the primary international airport serving Dubai.", ""),
+}
+WD_ITEM = lambda v: {"mainsnak": {"datavalue": {"value": {"entity-type": "item", "id": v}}}, "rank": "normal"}           # noqa: E731
+WD_STR = lambda v: {"mainsnak": {"datavalue": {"value": v}}, "rank": "normal"}                                           # noqa: E731
+WD_TIME = lambda y, m=0, d=0, p=9: {"mainsnak": {"datavalue": {"value": {"time": f"+{y}-{m:02d}-{d:02d}T00:00:00Z", "precision": p}}}, "rank": "normal"}  # noqa: E731
+WD_QTY = lambda n, unit="1", year=None: {"mainsnak": {"datavalue": {"value": {"amount": f"+{n}", "unit": unit}}}, "rank": "normal",   # noqa: E731
+                                          **({"qualifiers": {"P585": [{"datavalue": {"value": {"time": f"+{year}-00-00T00:00:00Z", "precision": 9}}}]}} if year else {})}
+WIKIDATA = {
+    "Q781770": ("Austrian Airlines", "Austrian Airlines", {"P230": [WD_STR("AUA")], "P571": [WD_TIME(1957, 9, 30, 11)], "P113": [WD_ITEM("Q191588")],
+                                                          "P114": [WD_ITEM("Q189208")], "P159": [WD_ITEM("Q874848")], "P127": [WD_ITEM("Q9325")],
+                                                          "P749": [WD_ITEM("Q62589018")],
+                                                          "P18": [WD_STR("OE-LPM @ VIE, 2024-08-30.jpg")]}),
+    "Q190811": ("Emirates", "Emirates (airline)", {"P230": [WD_STR("UAE")], "P571": [WD_TIME(1985)], "P113": [WD_ITEM("Q193439")]}),
+    "Q11187": ("Alitalia", "Alitalia", {"P230": [WD_STR("AZA")], "P576": [WD_TIME(2021, 10, 14, 11)]}),
+    "Q335147": ("Wizz Air", "Wizz Air", {"P230": [WD_STR("WZZ")], "P571": [WD_TIME(2003, 9, 0, 10)], "P749": [WD_ITEM("Q114314826")]}),
+    "Q113637091": ("Wizz Air Malta", "Wizz Air Malta", {"P230": [WD_STR("WMT")], "P571": [WD_TIME(2022)], "P749": [WD_ITEM("Q114314826"), WD_ITEM("Q335147")]}),
+    "Q55525155": ("Wizz Air UK", "Wizz Air UK", {"P230": [WD_STR("WUK")], "P571": [WD_TIME(2017)], "P749": [WD_ITEM("Q114314826")]}),
+    "Q114314826": ("Wizz Air Holdings", "", {}), "Q62589018": ("Lufthansa Group", "Lufthansa Group", {"P571": [WD_TIME(1926, 1, 6, 11)]}),
+    "Q191588": ("Vienna International Airport", "Vienna International Airport", {
+        "P238": [WD_STR("VIE")], "P3872": [WD_QTY(29530000, year=2023), WD_QTY(31700000, year=2024)], "P2044": [WD_QTY(600, "http://www.wikidata.org/entity/Q3710")],
+        "P1619": [WD_TIME(1938)], "P529": [WD_STR("11/29"), WD_STR("16/34")], "P137": [WD_ITEM("Q699346")], "P931": [WD_ITEM("Q1741")], "P17": [WD_ITEM("Q40")],
+        "P625": [{"mainsnak": {"datavalue": {"value": {"latitude": 48.1103, "longitude": 16.5697}}}, "rank": "normal"}], "P18": [WD_STR("Flughafen Wien.jpg")]}),
+    "Q193439": ("Dubai International Airport", "Dubai International Airport", {
+        "P238": [WD_STR("DXB")], "P3872": [WD_QTY(92331506, year=2024), WD_QTY(95200000, year=2025)], "P2044": [WD_QTY(62, "http://www.wikidata.org/entity/Q3710")],
+        "P1619": [WD_TIME(1960)], "P529": [WD_STR("12L/30R"), WD_STR("12R/30L")], "P931": [WD_ITEM("Q612")], "P17": [WD_ITEM("Q878")],
+        "P625": [{"mainsnak": {"datavalue": {"value": {"latitude": 25.2528, "longitude": 55.3644}}}, "rank": "normal"}], "P18": [WD_STR("Dubai Airport.jpg")]}),
+    "Q189208": ("Star Alliance", "", {}), "Q874848": ("Schwechat", "", {}), "Q9325": ("Lufthansa Group", "", {}),
+    "Q699346": ("Flughafen Wien AG", "", {}), "Q1741": ("Vienna", "", {}), "Q612": ("Dubai", "", {}), "Q40": ("Austria", "", {}),
+    "Q878": ("United Arab Emirates", "", {}),
+}
+WM_ASKED = collections.Counter()
+
+
+def wikipedia(q):
+    """The fake Wikipedia API (formatversion 2): a page's wikitext and introduction, or missing. Relay 78's refresh asks
+    for several titles at once: their introductions come one at a time here (Wikipedia's 20), the rest after "continue"."""
+    ts = (q.get("titles") or [""])[0].split("|")
+    if len(ts) > 1:
+        WM_ASKED["batch:wiki"] += 1
+    start = int((q.get("excontinue") or ["0"])[0])
+    pages, intros = [], 0
+    WM_ASKED["batch:wiki-continued"] += bool(start)
+    for i, t in enumerate(ts):
+        WM_ASKED["wiki:" + t] += not start
+        if t not in WIKI:
+            pages.append({"title": t, "missing": True})
+            continue
+        intro, wt = WIKI[t]
+        p = {"title": t} if start else {"title": t, "revisions": [{"slots": {"main": {"content": wt}}}]}
+        if i >= start and intros < 1:
+            p["extract"], intros = intro, intros + 1
+        pages.append(p)
+    later = [i for i, t in enumerate(ts) if t in WIKI and i >= start][1:]
+    return {"query": {"pages": pages}, **({"continue": {"excontinue": str(later[0]), "continue": "||"}} if later else {})}
+
+
+def wikidata(q):
+    """The fake Wikidata API: haswbstatement searches by P230 and P238 (and by an item, as P749), and wbgetentities
+    by ids or by English page titles."""
+    if (q.get("action") or [""])[0] == "query":
+        m = re.match(r"haswbstatement:(P\d+)=(\w+)$", (q.get("srsearch") or [""])[0])
+        WM_ASKED["find:" + (m.group(2) if m else "")] += 1
+        val = lambda s: s["mainsnak"]["datavalue"]["value"]       # noqa: E731
+        hits = [k for k, (_, _, c) in WIKIDATA.items() if m and any(val(s) == m.group(2) or isinstance(val(s), dict) and val(s).get("id") == m.group(2)
+                                                                   for s in c.get(m.group(1), []))]
+        return {"query": {"search": [{"title": k} for k in hits]}}
+    ents = {}
+    if q.get("titles"):                  # (several at once in relay 78's refresh, as Wikidata takes them: not normalized)
+        ts, ids = q["titles"][0].split("|"), []
+        for n, t in enumerate(ts):
+            hit = next((k for k, (_, page, _) in WIKIDATA.items() if page and (page == t or len(ts) == 1 and page.casefold() == t.casefold())), None)
+            if hit:
+                ids.append(hit)
+            else:
+                ents[str(-1 - n)] = {"site": "enwiki", "title": t, "missing": ""}
+        q = {"ids": ["|".join(ids)], "props": q.get("props")}
+    ids = [k for k in (q.get("ids") or [""])[0].split("|") if k]
+    if len(ids) > 1:
+        WM_ASKED["batch:wd"] += 1
+        if q.get("maxlag") and not WM_ASKED["lagged"]:     # the refresh's first: Wikidata is lagging (it waits as asked, tries again)
+            WM_ASKED["lagged"] += 1
+            return "maxlag"
+    props = (q.get("props") or ["claims|sitelinks|labels"])[0].split("|")
+    for k in ids:
+        if k in WIKIDATA:
+            label, page, claims = WIKIDATA[k]
+            WM_ASKED[f"props:{k}:" + "|".join(sorted(props))] += 1
+            ents[k] = {"id": k, "labels": {"en": {"value": label}}, **({"claims": claims} if "claims" in props else {}),
+                       **({"sitelinks": {"enwiki": {"title": page}} if page else {}} if "sitelinks" in props else {})}
+        else:
+            ents[k] = {"id": k, "missing": ""}
+    return {"entities": ents}
+
+
+def sparql(q):
+    """The fake Wikidata query service (relay 78's refresh): the items with an ICAO code (and whether they stopped
+    flying), with an IATA code, and the airlines under a company."""
+    text, rows = (q.get("query") or [""])[0], []
+    WM_ASKED["sparql"] += 1
+    val = lambda s: s["mainsnak"]["datavalue"]["value"]       # noqa: E731
+    ent = lambda k: {"type": "uri", "value": "http://www.wikidata.org/entity/" + k}   # noqa: E731
+    for k, (_, _, c) in WIKIDATA.items():
+        if "P230/ps:P230" in text:
+            rows += [{"i": ent(k), "c": {"value": val(s)}, "gone": {"value": "true" if "P576" in c else "false"}} for s in c.get("P230", [])]
+        elif "P238/ps:P238" in text:
+            rows += [{"i": ent(k), "c": {"value": val(s)}} for s in c.get("P238", [])]
+        elif "P749/ps:P749" in text and "P230" in c:
+            rows += [{"i": ent(k), "p": ent(val(s)["id"])} for s in c.get("P749", [])]
+    return {"head": {"vars": []}, "results": {"bindings": rows}}
+
+
+def commons(q):
+    """The fake Commons API (relay 78's refresh): each photo's own address at the asked width (imageinfo)."""
+    WM_ASKED["commons"] += 1
+    w = (q.get("iiurlwidth") or ["0"])[0]
+    return {"query": {"pages": [{"title": t, "imageinfo": [{"url": f"http://127.0.0.1:{PORT}/commons/{urllib.parse.quote(t[5:])}",
+                                                             "thumburl": f"http://127.0.0.1:{PORT}/commons/{w}px-{urllib.parse.quote(t[5:])}"}]}
+                                for t in (q.get("titles") or [""])[0].split("|")]}}
 
 
 def away(lat, lon):
@@ -93,7 +333,8 @@ def away(lat, lon):
 # rows that the relay takes it for a whole list.
 AIRLINES_CSV = "\ufeffCode,Name,ICAO,IATA,PositioningFlightPattern,CharterFlightPattern\r\n" + "".join(
     f"{c},{n},{c},{i},,\r\n" for c, n, i in [("AUA", "Austrian Airlines", "OS"), ("EIN", "Aer Lingus", "EI"),
-                                             ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE")]) + "".join(
+                                             ("RYR", "Ryanair", "FR"), ("TST", "Testair", "TS"), ("LDM", "Lauda Europe", "OE"),
+                                             ("WZZ", "Wizz Air", "W6"), ("WMT", "Wizz Air Malta", "W4")]) + "".join(
     f"Q{a}{b},Made-up Air {a}{b},Q{a}{b},,,\r\n" for a in "ABCDEFGHIJ" for b in "ABCDEFGHIJKL")
 
 
@@ -183,6 +424,12 @@ class H(BaseHTTPRequestHandler):
         if path == "/nominatim/reverse":   # relay 63 names where sightings on the go were made: Vienna, else a made-up village
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
             lat = float((q.get("lat") or ["0"])[0])
+            if os.environ.get("SLOW_NAMES"):   # 1.93.0.1: names take 5 s, and the first lookup of each point fails
+                time.sleep(5)
+                k = f"{(q.get('lat') or [''])[0]},{(q.get('lon') or [''])[0]}"
+                if k not in NAMES_FAILED:
+                    NAMES_FAILED.add(k)
+                    return self.send(503, "text/plain", b"Busy")
             a = {"city": "Vienna", "state": "Vienna", "country": "Austria"} if 47.9 < lat < 48.5 else \
                 {"city": "Ia Municipal Unit", "village": "Testdorf", "island": "Testinsel", "country": "Testland"}
             return self.send(200, "application/json", json.dumps({"name": "", "address": a}).encode())
@@ -190,6 +437,43 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, "application/json", b"[]")
         if path.startswith("/photo/"):     # a drawn stand-in for an aircraft photo
             return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
+        if path.startswith("/ps/pub/photos/"):     # Planespotters.net: like theirs, no answer without a User-Agent naming the app and a contact
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):
+                return self.send(403, "application/json", b'{"title":"Error 1010: Access denied"}')
+            kind, _, v = path[len("/ps/pub/photos/"):].partition("/")
+            k = f"{kind}/{urllib.parse.unquote(v).upper()}"
+            PS_ASKED[k] += 1
+            ps = PS_PHOTOS.get(k) or []
+            img = lambda p, w, h, s: {"src": f"http://127.0.0.1:{PORT}/psimg/{p[0]}_{s}.svg", "size": {"width": w, "height": h}}   # noqa: E731
+            photos = [{"id": p[0], "thumbnail": img(p, 200, 133, "t"), "thumbnail_large": img(p, 420, 280, "280"),
+                       "link": f"https://www.planespotters.net/photo/{p[0]}/{p[1]}?utm_source=api", "photographer": "Test Photographer"}
+                      for p in (ps if isinstance(ps, list) else [ps])]
+            return self.send(200, "application/json", json.dumps({"photos": photos}).encode())
+        if path == "/ps/asked":
+            return self.send(200, "application/json", json.dumps(PS_ASKED).encode())
+        if path in ("/wiki/w/api.php", "/wikidata/w/api.php"):      # relay 74: the cards' facts
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):   # Wikimedia wants a name and a contact
+                return self.send(403, "text/plain", b"Please set a user-agent and respect our robot policy")
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            j = (wikipedia if path.startswith("/wiki/") else wikidata)(q)
+            if j == "maxlag":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Retry-After", "1")
+                self.end_headers()
+                return self.wfile.write(json.dumps({"error": {"code": "maxlag", "info": "Waiting for a database server: 6 seconds lagged."}}).encode())
+            return self.send(200, "application/json", json.dumps(j).encode())
+        if path in ("/sparql", "/commons-api/w/api.php"):   # relay 78: the facts database's monthly refresh
+            if not re.fullmatch(r"\S+/\S+ \(\+https?://\S+\)", self.headers.get("User-Agent") or ""):
+                return self.send(403, "text/plain", b"Please set a user-agent and respect our robot policy")
+            q = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            return self.send(200, "application/json", json.dumps((sparql if path == "/sparql" else commons)(q)).encode())
+        if path == "/wm/asked":
+            return self.send(200, "application/json", json.dumps(WM_ASKED).encode())
+        if path.startswith("/commons/"):   # a Commons photo (an airline's plane, an airport): the drawn stand-in
+            return self.send(200, "image/svg+xml", SVG_PHOTO.encode())
+        if path.startswith("/psimg/"):
+            return self.send(200, "image/svg+xml", PS_PHOTO.encode())
         if not path.startswith("/ac/"):
             self.send_response(404); self.end_headers(); return
         far = os.environ.get("FAR")      # the landing still far out: it reaches its final approach about 4 minutes later
@@ -211,6 +495,7 @@ class H(BaseHTTPRequestHandler):
             plane("4ca9f1", "RYR3EG", "B38M", 3.0, -6.0, 300, 800, 5000, 0, r="9H-QEG"),       # stale route in the database
             plane("4ca123", "EIN2AB", "A320", 30.0, 30.0, 220, 800, 36000, 0),                   # far and high
             plane("4ca2b7", "EIN6AB", "A320", -2.5, -9.0, 10, 760, 6000, 0, r="EI-DEO"),          # no route listed (relay 68)
+            plane("ae0412", "@@@@@@@@", "C130", 4.0, -7.0, 0, 450, 5000, 0, dbFlags=1),          # no callsign: the sources' "@" (relay 70)
         ]
         for i, (hx, cs, t, la, lo, tr) in enumerate(APRON):     # parked at the gates
             ac.append({"hex": hx, "flight": cs, "t": t, "lat": la, "lon": lo, "alt_baro": "ground", "gs": 0, "track": tr})
@@ -218,6 +503,9 @@ class H(BaseHTTPRequestHandler):
             ac = [a for a in ac if a.get("flight", "").strip() not in ("UAE127", "OEXEN", "BAF586", "RYR22")]
         if os.environ.get("HOVER"):
             ac.append(plane("44041d", "OEBXB", "EC35", 0.3, 0.4, 90, 25, 1500, 0, r="OE-BXB", category="A7"))  # police helicopter over an incident
+        if os.environ.get("RING"):    # 1.98: the passive circle (15 km) and the scan's (10 km)
+            ac.append(plane("4400aa", "AUA171", "A20N", 6.0, -22.0, 0, 900, 4000, 0, r="OE-LXA"))   # 15 km at ~33 s, 10 km at ~56 s
+            ac.append(plane("4400bb", "AUA173", "E195", 12.0, -26.0, 0, 900, 4500, 0, r="OE-LWB"))  # 15 km at ~68 s, never within 12
         qlat, qlon = (float(x) for x in path.split("/")[2:4])
         if abs(qlat - LAT) > .27 or abs(qlon - LON) > .4:      # a place away from Vienna: only what the free networks hear there
             ac += away(qlat, qlon)[0]

@@ -1,9 +1,11 @@
 name: Check
 
-# Every pull request: the relay compiles, the phone app and its light version are up to date with the board, the pages' scripts parse, and
-# the boards and the app load against made-up flights without a page error (tools/test/smoke.py).
+# Every pull request (and main, to keep the test browser for them): the relay compiles, the phone app is up to date with the board,
+# the pages' scripts parse, and the boards and the app load against made-up flights without a page error (tools/test/smoke.py).
 on:
   pull_request:
+  push:
+    branches: [main]    # to-do #116: main's run keeps the test browser for every pull request after it (a PR reads main's cache)
   workflow_dispatch:
 
 permissions:
@@ -21,10 +23,37 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020    # v4
         with:
           node-version: "20"
-      - name: Tools
+      # The test browser is kept between runs (to-do #116). On 26 and 27 Oct 2026 the system packages `playwright install
+      # --with-deps` pulls (fonts above all) came from azure.archive.ubuntu.com so slowly (100 KB/s) that the step hit its
+      # limit before its retry could start (to-do #110). Now: only Chromium's headless shell, all smoke.py uses, cached per
+      # Playwright version; system packages only when the runner lacks some (its image has Chrome's); and every attempt
+      # has its own time limit, so a stalled first one still leaves the second its time.
+      - name: Python packages
+        run: pip install playwright cryptography
+      - name: Playwright's version
+        id: pw
+        run: echo "version=$(python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+      - name: The test browser, kept between runs
+        id: browser
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830    # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-shell-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: The test browser (downloaded when it isn't kept)
+        if: steps.browser.outputs.cache-hit != 'true'
+        timeout-minutes: 6
         run: |
-          pip install playwright cryptography
-          python -m playwright install --with-deps chromium
+          timeout -k 10 150 python -m playwright install --only-shell chromium ||
+            { echo "The browser download failed: trying once more"; sleep 5; timeout -k 10 150 python -m playwright install --only-shell chromium; }
+      - name: The system packages the browser needs (only those the runner lacks)
+        timeout-minutes: 8
+        run: |
+          launch="from playwright.sync_api import sync_playwright as s; p = s().start(); p.chromium.launch().close(); p.stop()"
+          if python -c "$launch"; then echo "The runner has everything the browser needs"; exit 0; fi
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/80-retries
+          timeout -k 10 200 python -m playwright install-deps chromium ||
+            { echo "Installing them failed: trying once more"; sleep 5; timeout -k 10 200 python -m playwright install-deps chromium; }
+          python -c "$launch"
       - name: The relay compiles
         run: python -m py_compile relay/serve.py
       - name: The phone app is built from the board

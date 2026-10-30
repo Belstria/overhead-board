@@ -49,6 +49,7 @@ import secrets
 import shutil
 import signal
 import socket
+import sqlite3
 import struct
 import sys
 import threading
@@ -60,14 +61,14 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 68
+RELAY_VERSION = 99
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
     # Relay 68: adsb.fi first, adsb.lol in reserve. adsb.lol allows 500 requests a UTC day per address; asked first, it
     # had used them up within hours and rested until midnight, so it wasn't there when adsb.fi failed.
     {"key": "adsbfi", "name": "adsb.fi", "url": "https://opendata.adsb.fi/api/v3/lat/{lat}/lon/{lon}/dist/{nm}"},
-    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}"},
+    {"key": "adsblol", "name": "adsb.lol", "url": "https://api.adsb.lol/v2/point/{lat}/{lon}/{nm}", "allow": 500},
     {"key": "airplaneslive", "name": "airplanes.live", "url": "https://api.airplanes.live/v2/point/{lat}/{lon}/{nm}"},
     # Emergency only (relay 36): its free anonymous tier allows 1 request per 10 s and 100 a day per network, for
     # personal, non-commercial use (data CC BY 4.0, credited in the boards' About). Asked only once every source above
@@ -105,7 +106,7 @@ FR24_EDGE = 0.75            # relay 45: a sighting that stayed in the outer quar
 FILL_AWAY_KM = 30           # relay 66: Flightradar24 fills in what the free sources miss only this far from home,
 FILL_KM = 20                # ... asked about a box this far each way (the radius and a minute's flying: details come first)
 FILL_FT = 10000             # ... for planes up to this high (the free networks hear the higher ones; relay 67: from 15,000)
-FILL_EVERY_S = 30           # ... every 30 s while a screen looks on; every 15 s while a plane it added is within GAME_KM
+FILL_EVERY_S = 30           # ... every 30 s while a screen looks on; every 15 s while a plane it added is within SCAN_KM
 FILL_FAST_S = 15            #     (relay 67: from 20 and 10 s; an answer costs 6 credits for each plane in it)
 FILL_SLOW_S = 300           # ... and every 5 min once 20 answers in a row (ten minutes) had nothing the free sources lacked
 FILL_MAX = 10               # ... at most this many planes an answer (6 credits each, 1 for none)
@@ -126,7 +127,8 @@ ICAO_FOR = {"VIE": "LOWW", "BTS": "LZIB", "GRZ": "LOWG", "LNZ": "LOWL", "SZG": "
 ARGS = None
 STARTED = time.time()
 STATE = {s["key"]: {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None,
-                    "last_error": "", "last_ok": 0.0, "last_call": 0.0, "day": "", "used": 0} for s in SOURCES}
+                    "last_error": "", "last_ok": 0.0, "last_call": 0.0, "day": "", "used": 0,
+                    "askedDay": "", "asked": 0} for s in SOURCES}      # relay 69: requests this UTC day, for the owner's panel
 EVENTS = collections.deque(maxlen=200)
 _event_id = 0
 _positions = {}            # key -> (time, body, source name)
@@ -247,6 +249,10 @@ def aircraft(lat, lon, nm):
                 time.sleep(wait)
             if cap:
                 st["used"] += 1
+            utc = time.strftime("%Y-%m-%d", time.gmtime())
+            if st["askedDay"] != utc:
+                st["askedDay"], st["asked"] = utc, 0
+            st["asked"] += 1
             t0 = time.time()
             status, _, body, headers = fetch(src["url"].format(lat=lat, lon=lon, nm=min(int(nm), src.get("max_nm", 999))))
             st["last_call"] = time.time()
@@ -255,6 +261,7 @@ def aircraft(lat, lon, nm):
             ms = int((time.time() - t0) * 1000)
             count, problem = None, ""
             if 200 <= status < 300:
+                body = AT_CS.sub(b'"flight":""', body)      # relay 70: a blank callsign comes as "@@@@@@@@"
                 try:
                     data = json.loads(body)
                     planes = data.get("ac", data.get("aircraft"))
@@ -304,7 +311,7 @@ def aircraft(lat, lon, nm):
 # (friends and family, let in with a personal invite link) has a spot of its own in data/profiles/<id>/, around the
 # location they set, so their planes never end up in the home logbook and the other way round.
 _data_lock = threading.RLock()
-_dirty = set()             # relay-wide files to write: "fr24", "profiles"
+_dirty = set()             # relay-wide files to write: "fr24", "profiles", "facts" (relay 74)
 _enrich_q = queue.Queue()  # (spot, sighting id)
 _route_cache = {}
 _aircraft_cache = {}
@@ -535,7 +542,7 @@ def _record(self, planes, lat, lon, key="home", radius=None):
     one sighting, so two devices never count it twice."""
     radius = radius or self.radius()
     if key == "live":
-        radius = max(radius, GAME_KM)       # relay 59: the game's circle is the same for everyone
+        radius = max(radius, GAME_KM)       # relay 59: the game's circle is the same for everyone (relay 82: 15 km)
     now = time.time()
     try:
         lat, lon = float(lat), float(lon)
@@ -577,12 +584,15 @@ def _record(self, planes, lat, lon, key="home", radius=None):
                     self.changed("book")
                 if moved:
                     trophy_pass(self.book(), e)
+                if moved and "gp" in e:             # relay 98 (to-do #195): a closer look (1 km, 2,500 ft) or more speed
+                    _game_bingo(self, game_book(self.book()), self.day, e)     # can fill a bingo square
+                    self.changed("book")
                 em = _emergency(ac)
                 if em and em != e.get("emergency"):
                     e["emergency"], changed = em, True
                     event("warn", f"Emergency code {em} from {e.get('callsign') or hx}")
             elif d <= radius:
-                cs = str(ac.get("flight") or "").strip().upper()
+                cs = no_cs(ac.get("flight"))
                 flags = ac.get("dbFlags") or 0
                 e = {"id": f"{hx}-{int(now)}", "ts": int(now * 1000), "time": time.strftime("%H:%M"), "hex": hx,
                      "callsign": cs, "reg": ac.get("r") or "", "typeCode": str(ac.get("t") or "").upper(),
@@ -966,19 +976,21 @@ def bingo_json(spot, day):
     if cached and cached[0] == key:
         return cached[1]
     card, done = _bingo_week(spot, monday, day, live=True)
-    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
     book = game_book(spot.book())           # relay 59: the game's card, from live planes only
+    st = book.get("bingoPay") or {}
+    wk = st.get("week") == monday.isoformat()
+    at, start = st.get("at") or {}, int(datetime.datetime.combine(monday, datetime.time(DAY_STARTS_H)).timestamp() * 1000)
+    paid = set(st.get("done") or []) if wk else set()   # relay 98: the squares as the game paid them (no line unpaid)
+    done = {k: done.get(k) or at.get(k) or start for k in card if k in paid}
+    lines = sum(1 for ln in BINGO_LINES if all(card[i] in done for i in ln))
     if len(done) == 9 and monday.isoformat() not in book.setdefault("bingoCards", {}):     # relay 51: full cards
         book["bingoCards"][monday.isoformat()] = max(v or 0 for v in done.values())
         spot.changed("book")
-    got = book.setdefault("trophies", {})
-    now = int(time.time() * 1000)
-    for k, ok in (("bingo", lines >= 1), ("fullcard", len(done) == 9)):
-        if ok and k not in got:
-            got[k] = now
-            spot.changed("book")
     nxt = datetime.datetime.combine(monday + datetime.timedelta(days=7), datetime.time(DAY_STARTS_H))
     out = {"week": monday.isoformat(), "card": card, "done": done, "lines": lines, "resets": int(nxt.timestamp() * 1000)}
+    if wk:                                  # relay 83: the lines and the card that paid (the latest ones), and what
+        had = st.get("had") or {}
+        out["paid"] = {"lines": len(st.get("lines") or []) - had.get("lines", 0), "full": bool(st.get("card") and not had.get("card")), **GAME_BINGO}
     spot._bingo = (key, out)
     return out
 
@@ -988,7 +1000,8 @@ STYLE_GRANTS = [("heathrow", "Heathrow yellow"), ("solari", "Solari green"), ("i
                 ("white", "Black on white"), ("brass", "Brass trim"), ("enamel", "Worn enamel"), ("led", "LED dots"),
                 ("star", "Star"), ("prop", "Propeller"), ("heli", "Helicopter"), ("jumbo", "Jumbo"), ("jet", "Fighter jet"),
                 ("concorde", "Concorde"), ("frankfurt70", "Frankfurt 1970s"), ("tokyo", "Tokyo night"), ("goldleaf", "Gold leaf"),
-                ("firstclass", "First Class")]
+                ("firstclass", "First Class"), ("propage", "Propeller age ticket"), ("jetage", "Jet age ticket"),   # relay 93 (1.110): the app's ticket designs
+                ("magcard", "Magnetic card ticket"), ("holo", "Hologram ticket")]
 
 
 def style_grants(p):
@@ -1013,19 +1026,51 @@ def game_json(book, day):
 
 
 # ---------- the game since relay 59 (1.72): only planes spotted with live location score ----------
-# A plane scores once a day, the first time a phone following its owner (place "live") sees it within GAME_KM, the same
-# circle for everyone whatever their radius. Rarity counts most (TIER_BASE); a close pass, something new to the game,
-# the daily streak and Sky view's lock-on add a little; the day's planes taper off (full, then half, then a quarter)
-# so a day at the airport can't run away with the league. Everything of the game (points, collections, bingo, trophies,
-# records) lives in the logbook's "game3" part, a small logbook of its own that started empty; the logbook keeps every plane.
+# A plane scores once a pass, the first time a phone following its owner (place "live") sees it within GAME_KM, the
+# same circle for everyone whatever their radius; relay 82 (1.98, to-do #145): passive points within GAME_KM (15 km), the
+# scan only for a plane that came within SCAN_KM (10 km). Relay 76 (1.96, to-do #127, Dave's rules): passively a tenth of its
+# rarity's points (TIER_BASE), for up to GAME_LIMIT planes of each rarity a day; Sky view's scan tops the plane up to its
+# full points, without a limit (relay 79, rule 3: the full points on top of the tenth, also past the limit), and only scans earn the extras (a type or an airline new to the game) and the week's
+# daily streak. Relay 80 (1.97.4, to-do #136, rule 4): the passive points are no longer a tenth but GAME_PASSIVE (5, 10, 15,
+# 25, 50); only new awards, a plane's "gp" and its awards keep what they were scored with. Everything of the game (points, collections, bingo, trophies, records) lives in the logbook's "game3"
+# part, a small logbook of its own that started empty; the logbook keeps every plane. Never raise GAME3_V: that empties
+# everyone's game.
 GAME3_V = 1
-GAME_KM = 10                # relay 60: 10 km (8 in relay 59)
+GAME_KM = 15                # the passive points' circle (relay 82: 15 km; 10 in relay 60, 8 in relay 59)
+SCAN_KM = 10                # relay 82: the scan's circle (Sky view, the app's tickets; the gap filler's quick refresh)
+GAME_RULE = 4               # the rule a plane was scored by (e["gr"], each award's "r"); older awards stay as they were:
+                            # rule 1 before relay 76, rule 2 (relay 76: a scan topped up to the full points), rule 3 (relay
+                            # 78: a scan gives the full points on top), rule 4 (relay 80: the passive points of GAME_PASSIVE)
 TIER_BASE = {"common": 10, "uncommon": 30, "rare": 100, "epic": 250, "legendary": 500}
-GAME_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))
-LOCK_PCT = (0.25, 0.30, 0.40, 0.50)     # Sky view's lock-on: a share of the plane's points, more in a combo
-LOCK_MIN = 15                           # ... but never less than this
-LOCK_COMBO_S = 180                      # lock-ons this close together make a combo
-LOCK_FRESH_S = 120                      # a lock-on counts for a plane seen live this recently
+GAME_PASSIVE = {"common": 5, "uncommon": 10, "rare": 15, "epic": 25, "legendary": 50}   # a plane within GAME_KM (to 1.97.3: a tenth of TIER_BASE)
+GAME_LIMIT = {"common": 50, "uncommon": 30, "rare": 15, "epic": 5, "legendary": 3}    # passive planes a day per rarity
+GAME_NEW = (("type", 50), ("airline", 25))          # at the first scan of a type or an airline new to the game
+GAME_STREAK = 25            # the day's first scan: +25 × the day of the week's streak (25 … 175)
+GAME_BINGO = {"line": 50, "card": 500}     # relay 83 (to-do #147): a bingo line made (any of the 8), and the full card on top
+GAME_MEDAL = [50, 100, 150, 200, 250]       # relay 83: a trophy's new rank, by its medal (bronze to diamond)
+GAME_SINGLE = 100                           # relay 83: a one-off trophy
+GAME1_NEW = (("gNewType", 50), ("gNewAirline", 25), ("gNewReg", 5))   # rule 1's extras (Recent points of the switch day)
+LOCK_FRESH_S = 120          # a scan counts for a plane seen live this recently
+GOLD_ONE_IN = 20            # relay 84 (to-do #148): about one plane in 20 comes up gold, its scan worth the points twice
+GOLD_FILE = DATA_DIR / "gold.key"   # the golden tickets' secret salt, made once (never in the repository)
+SCHOOL = ("scan", "card", "bingo", "fav", "uncommon")     # relay 85 (to-do #153): the flight school's five missions, in order
+MASTERY = (10, 25, 50, 100)  # relay 96 (to-do #176): bronze, silver, gold, platinum: a type's scans for the step; its bonus
+                             # the scans × the type's rarity (TIER_BASE // 10: 1, 3, 10, 25, 50). Relay 88: (5, 25), (25, 100), (100, 250)
+LOYALTY = ((10, 25), (50, 100), (200, 250))  # relay 89 (to-do #162): an airline's Silver, Gold, Platinum: its planes scanned, the bonus (Member at the first)
+GAME_COUNTRY = 25           # relay 90 (to-do #150): a country new to the passport at a scan (from the route's airports)
+GAME_SCHOOL = 50            # relay 85: each mission, once; the wings (all five) pay nothing more
+SCHOOL_LEVEL = 4            # relay 85: a profile at this level or above when the school came gets its wings without it
+STANDBY = ((14, 2), (6, 1))     # relay 87 (to-do #157): standbys a week from these levels (each keeps the streak through a day without a scan)
+SHOWCASE_AT = (5, 11, 17)       # relay 91 (to-do #156): the showcase's spots open at these levels (one, two, three); 3, 5, 8 to relay 95
+# relay 96 (to-do #173): the lifetime points each level starts at (1 to 20), then LEVEL_AFTER more for each level past 20.
+# The board's careerPts has the same numbers. A profile keeps the level it had reached before (ranks_kept).
+LEVEL_AT = (0, 500, 1000, 2000, 3000, 4000, 5500, 7500, 10000, 13000, 17000, 21000, 27000, 34000, 43000, 55000, 70000,
+            85000, 110000, 135000)
+LEVEL_AFTER = 30000
+# relay 96 (to-do #174): the level each unlockable style and badge opens at (the board's STYLES {lvl}; only for counting
+# what the move kept)
+STYLE_LVL = {"heathrow": 2, "white": 2, "solari": 4, "brass": 6, "frankfurt70": 8, "ice": 10, "enamel": 12, "tokyo": 14,
+             "sunset": 16, "led": 18, "goldleaf": 20, "star": 3, "prop": 7, "heli": 9, "jumbo": 13, "jet": 15, "concorde": 19}
 LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper", "Tail Reader", "Contrail Chaser", "Cadet",
                 "Second Officer", "First Officer", "Senior First Officer", "Captain", "Senior Captain", "Training Captain",
                 "Check Captain", "Fleet Captain", "Chief Pilot", "Wing Commander", "Air Commodore", "Ace", "Legend"]
@@ -1034,14 +1079,68 @@ LEVEL_TITLES = ["Plane Watcher", "Window Spotter", "Fence Spotter", "Logkeeper",
 def game_book(book):
     """The game's own small logbook inside the logbook (made empty the first time: the reset of relay 59). Its keys are
     the logbook's, so trophies, records, sets and the streak work on it unchanged; its "rareDays" are the days with a
-    live plane (the streak)."""
+    live plane. Relay 76: "scanned" holds the types and airlines that earned their extra with a scan (those the game
+    knew before count as had); "scanDays" the days with a scan (the daily streak); "limits" today's planes by rarity."""
     g = book.get("game3")
     if not isinstance(g, dict) or g.get("v") != GAME3_V:
         g = book["game3"] = {"v": GAME3_V, "since": int(time.time() * 1000), "sightings": 0, "types": {}, "airlines": {},
                              "regs": {}, "countries": {}, "categories": {}, "hours": [], "points": 0, "days": {}, "planes": {},
                              "tiers": {}, "rareDays": [], "records": {}, "trophies": {}, "bingoCards": {}, "best": {},
-                             "lock": {"at": 0, "combo": 0, "n": 0}}
+                             "lock": {"at": 0, "n": 0}, "bingoFix": int(time.time() * 1000)}
+    if "scanned" not in g:
+        g["scanned"] = {"types": sorted(g.get("types") or {}), "airlines": sorted(g.get("airlines") or {})}
+        g["rule2"] = int(time.time() * 1000)
+    game_ranks(g)                           # relay 96: the move to the new ranks, once (before anything reads the level)
+    game_school(g)
+    game_standby(g)
     return g
+
+
+def game_school(g):
+    """Relay 85 (to-do #153): the flight school, {"since", "done": {mission: ms}, "aw": [its awards], "wings": ms}. Made
+    the first time the game is touched after the update (points only change through game_book, so that is the level
+    the profile had when this relay started): at SCHOOL_LEVEL or above the wings at once, without points ("pre": the
+    school is never shown); below it the school starts empty (nothing from before counts)."""
+    st = g.get("school")
+    if not isinstance(st, dict):
+        now = int(time.time() * 1000)
+        st = g["school"] = {"since": now, "done": {}, "aw": []}
+        if game_level(g)[0] >= SCHOOL_LEVEL:
+            st.update(wings=now, pre=True)
+    return st
+
+
+def school_pass(spot, g, m):
+    """Relay 85: mission m done: GAME_SCHOOL points once (into the day, the week and the level, like any award), and the
+    wings with the fifth. Its award has no plane: it is kept in the school ("aw") and sent with the planes' (game_awards,
+    game_today). Call under _data_lock. Returns the award, or None (done before, wings already, not a mission)."""
+    st = game_school(g)
+    if m not in SCHOOL or st.get("wings") or m in st["done"]:
+        return None
+    now, day = int(time.time() * 1000), spot.day
+    st["done"][m] = now
+    a = {"t": now, "k": "school", "p": GAME_SCHOOL, "r": GAME_RULE, "n": m, "day": day, "i": len(st["done"])}
+    if all(k in st["done"] for k in SCHOOL):
+        st["wings"] = a["wings"] = now
+    st["aw"].append(a)
+    _game_add(g, day, GAME_SCHOOL)
+    spot.changed("book")
+    event("info", f"Flight school: {m} ({len(st['done'])} of {len(SCHOOL)})" + (", wings" if a.get("wings") else ""), echo=False)
+    return a
+
+
+def school_wings(g):
+    """Relay 85: has this game its wings (the league's rows, a player's card: read only, so a game the school hasn't
+    met yet answers as game_school will: by its level)."""
+    st = g.get("school")
+    return bool(st.get("wings")) if isinstance(st, dict) else game_level(g)[0] >= SCHOOL_LEVEL
+
+
+def school_json(g):
+    """Relay 85: the school for the app: the missions done (when), the wings (when; 0: not yet) and "pre" (given at the
+    update, the school never shown)."""
+    st = game_school(g)
+    return {"done": dict(st["done"]), "wings": st.get("wings") or 0, "pre": bool(st.get("pre"))}
 
 
 def _monday(day):
@@ -1049,32 +1148,345 @@ def _monday(day):
     return (d - datetime.timedelta(days=d.weekday())).isoformat()
 
 
-def _streak_mult(n):
-    return 1.2 if n >= 30 else 1.15 if n >= 14 else 1.1 if n >= 7 else 1.05 if n >= 3 else 1.0
+def game_standby(g):
+    """Relay 87 (to-do #157): {"since": the board day the standby came}. Made the first time the game is touched after
+    the update: only days from then on can be covered, so a streak that broke before stays as it was paid."""
+    st = g.get("standby")
+    if not isinstance(st, dict):
+        st = g["standby"] = {"since": board_day()}
+    return st
 
 
-def game_points(e):
-    """A plane's points (without the lock-on): rarity, a light close-pass bonus, what is new to the game, the streak at
-    the time and where it came in the day."""
-    d = e.get("liveMin", GAME_KM)
-    close = 1.2 if d <= 1.5 else 1.1 if d <= 4 else 1.0
-    new = sum(v for k, v in GAME_NEW if e.get(k))
-    n = e.get("gn") or 1
-    taper = 1.0 if n <= 25 else 0.5 if n <= 50 else 0.25
-    return max(1, round((TIER_BASE.get(e.get("tier"), 30) * close + new) * (e.get("gk") or 1.0) * taper))
+def level_points(level):
+    """Relay 91: the points total a level starts at. Relay 96: LEVEL_AT, then LEVEL_AFTER a level past 20."""
+    level = max(1, int(level))
+    return LEVEL_AT[level - 1] if level <= len(LEVEL_AT) else LEVEL_AT[-1] + LEVEL_AFTER * (level - len(LEVEL_AT))
+
+
+def showcase_json(g):
+    """Relay 91 (to-do #156): the showcase: a spot for each level of SHOWCASE_AT reached, each a pinned catch or None,
+    and the spots still locked ({"level": level, "toGo": points}). A pin holds its catch (type, plane, flight, airline,
+    time, route, photo), never where it was seen."""
+    pts = g.get("points", 0)
+    n = max(sum(1 for lv in SHOWCASE_AT if game_level(g)[0] >= lv), ranks_kept(g)["slots"])   # relay 96: the spots kept
+    pins = [x if isinstance(x, dict) else None for x in (g.get("showcase") or [])][:n]
+    return {"pins": pins + [None] * (n - len(pins)),
+            "locked": [{"level": lv, "toGo": max(0, level_points(lv) - pts)} for lv in SHOWCASE_AT[n:]]}
+
+
+def showcase_catch(spot, code):
+    """Relay 91: the catch a hangar card pins: of the type's sightings, one Sky view scanned first, then one the game
+    scored, then any; of those one with a known route; then the first. None: never seen. Not under _data_lock (it
+    reads every saved day)."""
+    best = None
+    for e in _logbook_entries(spot):
+        if str(e.get("typeCode") or "").upper() != code:
+            continue
+        o, d = e.get("from"), e.get("to")
+        rt = [str(x.get("code") or "")[:4] for x in (o, d)] if isinstance(o, dict) and isinstance(d, dict) else []
+        rt = rt if rt and all(rt) else None
+        k = (2 if e.get("scan") else 1 if e.get("gp") else 0, 1 if rt else 0, -(e.get("ts") or 0))
+        if best is None or k > best[0]:
+            best = (k, e, rt)
+    if not best:
+        return None
+    _, e, rt = best
+    with _data_lock:
+        t = (spot.book().get("types") or {}).get(code) or (game_book(spot.book()).get("types") or {}).get(code) or {}
+    return {"code": code, "name": str(t.get("name") or e.get("aircraftType") or "")[:60],
+            "tier": e.get("tier") or tier_of({}, {"typeCode": code}), "reg": str(e.get("reg") or "")[:12],
+            "flight": str(e.get("flightIata") or e.get("callsign") or "")[:10], "airline": str(e.get("airlineName") or "")[:40],
+            "ts": e.get("ts"), "route": rt, "photo": e.get("photo") or "", "thumb": e.get("photoThumb") or "",
+            "how": "scan" if e.get("scan") else "game" if e.get("gp") else "seen"}
+
+
+def showcase_pin(spot, code, at):
+    """Relay 91: pin a type's best catch into spot `at` (code "": empty it), the one pinned there going back to the
+    hangar; a type already in another spot moves. Returns (status, showcase_json or a message): 403 for a spot the
+    level hasn't opened, 404 for a type never seen. Only the asking profile's own spot: nobody pins for another."""
+    shut = lambda: f"That spot opens at level {SHOWCASE_AT[min(at, len(SHOWCASE_AT) - 1)]}"   # noqa: E731
+    with _data_lock:
+        if not 0 <= at < len(showcase_json(game_book(spot.book()))["pins"]):
+            return 403, shut()
+    pin = showcase_catch(spot, code) if code else None
+    if code and not pin:
+        return 404, "Not in your hangar"
+    with _data_lock:
+        spot.ensure_day()
+        g = game_book(spot.book())
+        sc = showcase_json(g)
+        if not 0 <= at < len(sc["pins"]):
+            return 403, shut()
+        pins = [None if x and x.get("code") == code else x for x in sc["pins"]]
+        pins[at] = pin
+        g["showcase"] = pins
+        spot.changed("book")
+        return 200, showcase_json(g)
+
+
+def standby_allow(level):
+    """Relay 87: standbys a week at this level (none below 6, one from 6, two from 14)."""
+    return next((n for lv, n in STANDBY if level >= lv), 0)
+
+
+def _standby(g, day):
+    """Relay 87 (to-do #157): this week's standbys. A day over without a scan, the day before it a streak day (scanned or
+    covered; so never Monday, where the streak starts again), is covered while the week has a standby left at the level
+    the day ended on (standby_allow; its points from the days' points): a streak day that pays nothing. Worked out from
+    the scan days and the days' points each time (nothing kept, so a restart changes nothing), and only for days from the
+    update on (game_standby's "since"; a game it hasn't met: none). Returns (covered days, left now, allowed now)."""
+    wk, rd, days, pts = _monday(day), set(g.get("scanDays") or []), g.get("days") or {}, g.get("points", 0)
+    st = g.get("standby")
+    since = max(wk, st.get("since") or day) if isinstance(st, dict) else day
+    cov, alive, d = [], False, datetime.date.fromisoformat(wk)
+    while d.isoformat() < day:
+        ds = d.isoformat()
+        if ds in rd:
+            alive = True
+        elif alive and ds >= since and len(cov) < standby_allow(game_level(g, pts - sum(v for k, v in days.items() if k > ds))[0]):
+            cov.append(ds)
+        else:
+            alive = False
+        d += datetime.timedelta(days=1)
+    allow = standby_allow(game_level(g)[0])
+    return cov, max(0, allow - len(cov)), allow
+
+
+def _scan_streak(g, day):
+    """Relay 76: the daily streak: the days in a row with a Sky view scan, back from today (from yesterday while today
+    has none yet), counted from this week's Monday on (it starts again with the league). Relay 87: a day a standby
+    covered counts (_standby)."""
+    rd, wk, n = set(g.get("scanDays") or []) | set(_standby(g, day)[0]), _monday(day), 0
+    d = datetime.date.fromisoformat(day)
+    if day not in rd:
+        d -= datetime.timedelta(days=1)
+    while d.isoformat() >= wk and d.isoformat() in rd:
+        n += 1
+        d -= datetime.timedelta(days=1)
+    return n
+
+
+def _game_limits(g, day):
+    """Relay 76: today's planes by rarity that came within GAME_KM (the passive limits count them), {tier: n}."""
+    lim = g.get("limits") or {}
+    return lim.get("n", {}) if lim.get("day") == day else {}
+
+
+def _next_day_ms(day):
+    """When the game day after `day` starts (03:00), in ms."""
+    nxt = datetime.datetime.combine(datetime.date.fromisoformat(day) + datetime.timedelta(days=1), datetime.time(DAY_STARTS_H))
+    return int(nxt.timestamp() * 1000)
+
+
+def game_rules():
+    """Relay 76: the rules for the app (one source for the points it shows)."""
+    return {"base": TIER_BASE, "passive": dict(GAME_PASSIVE), "limit": GAME_LIMIT,
+            "new": dict(GAME_NEW), "streak": GAME_STREAK, "km": GAME_KM, "scanKm": SCAN_KM,
+            "bingo": dict(GAME_BINGO), "medal": GAME_MEDAL, "single": GAME_SINGLE, "school": GAME_SCHOOL,
+            "standby": [list(s) for s in STANDBY], "mastery": [[at, at] for at in MASTERY],   # relay 96: [scans, bonus × rarity]
+            "loyalty": [list(m) for m in LOYALTY], "country": GAME_COUNTRY, "showcase": list(SHOWCASE_AT)}
 
 
 def level_of(points):
-    """The level for a points total: each level needs a quarter more than the one before (500, 625, ...), from level
-    20 on the same as level 20. Returns (level, title, points into it, points it needs)."""
+    """The level for a points total by LEVEL_AT (relay 96, to-do #173; to relay 95 each level a quarter more). Returns
+    (level, title, points into it, points it needs). The points alone: a profile's own level is game_level's."""
+    pts = max(0, int(points))
+    lv = sum(1 for at in LEVEL_AT if pts >= at)
+    if lv >= len(LEVEL_AT):
+        lv += (pts - LEVEL_AT[-1]) // LEVEL_AFTER
+    lo = level_points(lv)
+    return lv, level_title(lv), pts - lo, level_points(lv + 1) - lo
+
+
+def level_title(lv):
+    return LEVEL_TITLES[lv - 1] if lv <= 20 else f"Legend {lv - 19}"
+
+
+def game_level(g, pts=None):
+    """Relay 96: a profile's level: by its points (level_of), never below the level it kept from the old totals
+    (ranks_kept). Kept above its points, it shows no progress (0 into it) until the points pass that level's start;
+    "need" is then what is left to the next level, so need - into is always the points to go."""
+    pts = g.get("points", 0) if pts is None else pts
+    lv = level_of(pts)
+    keep = ranks_kept(g)["level"]
+    if keep <= lv[0]:
+        return lv
+    return keep, level_title(keep), 0, max(1, level_points(keep + 1) - max(0, int(pts)))
+
+
+# ---------- relay 96 (1.112, to-do #173-#176): the one-time move to the new ranks, unlocks and mastery ----------
+# Dave: anything a player already has stays theirs. Once per profile (g["ranks"] the marker), from the old rules below
+# (they live only here): the level reached by the old totals (kept as a floor: game_level), the styles and badges it
+# had unlocked by the old STYLES levels (the board counts them unlocked: "styleKept"), its showcase spots (the standbys
+# come with the kept level: their levels didn't change). Mastery: a step paid or passed stays so (an old bronze at 5-9
+# scans keeps its frame and isn't paid again at 10); steps already passed by the new numbers are marked passed, unpaid.
+# No points change. ranks_migrate moves every profile at start; game_book a game it meets later.
+_OLD_STYLE_LVL = {"heathrow": 2, "white": 4, "solari": 5, "brass": 7, "frankfurt70": 8, "ice": 9, "enamel": 11, "sunset": 12,
+                  "tokyo": 14, "led": 15, "goldleaf": 18, "star": 3, "prop": 6, "heli": 10, "jumbo": 13, "jet": 16, "concorde": 17}
+_OLD_SHOWCASE_AT = (3, 5, 8)
+_OLD_MASTERY = (5, 25, 100)
+
+
+def _old_level(points):
+    """The level by the old totals (500, then a quarter more for each level to 20, the same after)."""
     lv, need, left = 1, 500.0, max(0, int(points))
     while left >= round(need):
         left -= round(need)
         lv += 1
         if lv < 20:
             need *= 1.25
-    title = LEVEL_TITLES[lv - 1] if lv <= 20 else f"Legend {lv - 19}"
-    return lv, title, left, round(need)
+    return lv
+
+
+def ranks_kept(g):
+    """Relay 96: what the profile kept at the move ({"level", "styles", "slots"}). Before game_ranks has made it, worked
+    out the same way, so a read-only look (the league, a player's card) sees it already."""
+    r = g.get("ranks")
+    if isinstance(r, dict):
+        return r
+    lv = _old_level(g.get("points", 0))
+    return {"v": 1, "level": lv, "styles": sorted(k for k, at in _OLD_STYLE_LVL.items() if lv >= at),
+            "slots": sum(1 for at in _OLD_SHOWCASE_AT if lv >= at)}
+
+
+def game_ranks(g):
+    """Relay 96: make the move once (game_book calls it). Returns None when made before, else what it kept (counts)."""
+    if isinstance(g.get("ranks"), dict):
+        return None
+    r = g["ranks"] = {**ranks_kept(g), "at": int(time.time() * 1000)}
+    st, m, marked = g.get("scanTypes"), g.get("mastery"), 0
+    if isinstance(st, dict) or isinstance(m, dict):
+        st = st if isinstance(st, dict) else {}
+        old = m if isinstance(m, dict) else {tc: k for tc, k in ((tc, sum(1 for at in _OLD_MASTERY if n >= at))
+                                                                     for tc, n in st.items()) if k}
+        new = {}
+        for tc in set(old) | set(st):
+            k = max(mastery_step(st.get(tc, 0)), old.get(tc, 0))
+            marked += max(0, k - old.get(tc, 0))
+            if k:
+                new[tc] = k
+        g["mastery"] = new
+    lv = level_of(g.get("points", 0))[0]
+    return {"up": int(r["level"] > lv), "styles": sum(1 for k in r["styles"] if STYLE_LVL.get(k, 0) > max(lv, r["level"])),
+            "slots": max(0, r["slots"] - sum(1 for at in SHOWCASE_AT if max(lv, r["level"]) >= at)), "marked": marked}
+
+
+def ranks_migrate():
+    """Relay 96: the move for every profile, once, at start; one line in the log (counts only)."""
+    n, c = 0, {"up": 0, "styles": 0, "slots": 0, "marked": 0}
+    with _data_lock:
+        pids = list(profiles()["profiles"])
+    for pid in pids:
+        try:
+            sp = guest_spot(pid)
+            with _data_lock:
+                g = sp.book().get("game3")
+                if not isinstance(g, dict) or g.get("v") != GAME3_V or isinstance(g.get("ranks"), dict):
+                    continue
+                got = game_ranks(g)
+                sp.changed("book")
+        except Exception as e:
+            event("warn", f"Ranks: a profile couldn't be moved ({e})")
+            continue
+        n += 1
+        for k in c:
+            c[k] += got[k]
+    if n:
+        event("info", f"Ranks: {n} profiles moved to the new totals; {c['up']} kept a higher level, {c['styles']} styles and "
+                      f"{c['slots']} showcase spots kept above their new levels, {c['marked']} mastery steps marked passed (unpaid)")
+
+
+def _bingo_owed(spot, g):
+    """Relay 98: this week's bingo that a closer look filled but that never paid (before relay 98 only a plane's first
+    score judged the squares), {"week", "lines": [indices], "card", "trophies": [ids]}; the squares, lines and card go
+    into g["bingoPay"] now (so play from here on doesn't pay them again). A Bingo or Full card trophy is owed when won
+    this week unpaid (bingo_json gave it) or not won yet."""
+    wk, st = _monday(spot.day), g.get("bingoPay")
+    owe = {"week": wk, "lines": [], "card": False, "trophies": []}
+    if not isinstance(st, dict) or st.get("week") != wk:
+        return owe                              # no plane scored this week: nothing done, nothing owed
+    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), spot.day, live=True)
+    add = set(done) - set(st["done"])
+    if not add:
+        return owe
+    st["done"] = sorted(set(st["done"]) | add)
+    for k in add:
+        st.setdefault("at", {})[k] = done[k] or int(time.time() * 1000)
+    for i, ln in enumerate(BINGO_LINES):
+        if i not in st["lines"] and all(card[j] in st["done"] for j in ln):
+            st["lines"].append(i)
+            owe["lines"].append(i)
+    if len(st["done"]) == 9 and not st["card"]:
+        st["card"] = owe["card"] = True
+    got, paid = g.get("trophies") or {}, g.get("trophyPaid") or {}
+    start = int(datetime.datetime.combine(datetime.date.fromisoformat(wk), datetime.time(DAY_STARTS_H)).timestamp() * 1000)
+    for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+        if ok and k not in paid and (k not in got or got[k] >= start):
+            owe["trophies"].append(k)
+    return owe
+
+
+def bingo_catchup(spot, g, e=None):
+    """Relay 98 (to-do #195; Dave: "pay this week's once", today): what _bingo_owed finds when relay 98 first meets a
+    profile's game is kept in g["bingoFix"] and paid today as normal Bingo awards (lines, card, trophies) on today's
+    newest scored plane, or (none yet) on `e`, the next plane to score (game_note): Recent points shows them, today's
+    total, the week and the level count them. Then g["bingoFix"] is the time it paid (new games get one at start), so it
+    never pays twice. Returns what it paid {"lines", "cards", "trophies", "wait"} ("wait" 1: no plane today yet), or None
+    when made before. Call under _data_lock."""
+    fx = g.get("bingoFix")
+    if not isinstance(fx, dict):
+        if fx:
+            return None
+        fx = g["bingoFix"] = _bingo_owed(spot, g)
+        spot.changed("book")
+    c = {"lines": len(fx["lines"]), "cards": int(fx["card"]), "trophies": len(fx["trophies"]), "wait": 0}
+    host = e or next((x for x in spot.entries if "gp" in x), None)
+    if not (c["lines"] or c["cards"] or c["trophies"]):
+        g["bingoFix"] = int(time.time() * 1000)
+        return c
+    if host is None:
+        c["wait"] = 1
+        return c
+    day = spot.day
+    for i in fx["lines"]:
+        _game_pay(g, day, host, "bingo", GAME_BINGO["line"], n=i)
+    if fx["card"]:
+        _game_pay(g, day, host, "card", GAME_BINGO["card"])
+    got = g.setdefault("trophies", {})
+    for k in fx["trophies"]:
+        got[k] = host.get("ts") or int(time.time() * 1000)
+    _game_trophies(g, day, host, fx["trophies"])
+    g["bingoFix"] = int(time.time() * 1000)
+    spot.changed("book", "day")
+    if e is not None:
+        event("info", f"Bingo: a profile's catch-up paid with today's first plane: {c['lines']} lines, {c['cards']} "
+                      f"full cards, {c['trophies']} trophies")
+    return c
+
+
+def bingo_migrate():
+    """Relay 98: bingo_catchup for every profile, once, at start; one line in the log (counts only)."""
+    n, c = 0, {"lines": 0, "cards": 0, "trophies": 0, "wait": 0}
+    with _data_lock:
+        pids = list(profiles()["profiles"])
+    for pid in pids:
+        try:
+            sp = guest_spot(pid)
+            with _data_lock:
+                g = sp.book().get("game3")
+                if not isinstance(g, dict) or g.get("v") != GAME3_V or isinstance(g.get("bingoFix"), int):
+                    continue
+                sp.ensure_day()
+                got = bingo_catchup(sp, g)
+        except Exception as e:
+            event("warn", f"Bingo: a profile's week couldn't be checked ({e})")
+            continue
+        n += 1
+        for k in c:
+            c[k] += got[k] if not got["wait"] or k == "wait" else 0
+    if n:
+        event("info", f"Bingo: {n} profiles checked; paid today {c['lines']} lines, {c['cards']} full cards and "
+                      f"{c['trophies']} trophies this week's closer looks had filled; {c['wait']} wait for today's first plane")
 
 
 def _game_add(g, day, pts):
@@ -1086,8 +1498,10 @@ def _game_add(g, day, pts):
 
 
 def game_note(spot, e):
-    """A live sighting came within GAME_KM or closer: score it the first time, then follow its points as it comes
-    closer (the close-pass bonus). Call under _data_lock. True when something changed."""
+    """A live sighting came within GAME_KM or closer: score it the first time (relay 76: a tenth of its points, or
+    nothing past its rarity's limit for the day). A plane already scored is never priced again (rule 1's planes neither:
+    their points stay); a closer look still counts for the records and the trophies of a pass. Call under _data_lock.
+    True when something changed."""
     d = e.get("liveMin")
     if d is None or d > GAME_KM:
         return False
@@ -1102,7 +1516,6 @@ def game_note(spot, e):
         if day not in rd:
             rd.append(day)
             del rd[:-400]
-        e["gn"], e["gk"] = n, _streak_mult(_streak(g, day))
         g["sightings"] = g.get("sightings", 0) + 1
         cats = g.setdefault("categories", {})
         cat = category_of(e)
@@ -1114,31 +1527,252 @@ def game_note(spot, e):
         m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
         if m:
             _note_first(g["airlines"], m.group(1), "", e, "gNewAirline")
+        tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
         tiers = g.setdefault("tiers", {})
-        tiers[e.get("tier") or "uncommon"] = tiers.get(e.get("tier") or "uncommon", 0) + 1
+        tiers[tier] = tiers.get(tier, 0) + 1
         hrs = set(g.get("hours", []))
         if _hour(e) not in hrs:
             g["hours"] = sorted(hrs | {_hour(e)})
-        e["gp"] = game_points(e)
+        lim = g.get("limits") or {}
+        if lim.get("day") != day:
+            lim = g["limits"] = {"day": day, "n": {}}
+        k = lim["n"][tier] = lim["n"].get(tier, 0) + 1
+        e["gr"], e["gn"], e["gt"], e["gMin"] = GAME_RULE, n, k, d
+        can = _scan_can(g, e)                   # relay 79: the extras a scan would add (the app's pass promises them)
+        if k <= GAME_LIMIT[tier]:
+            e["gp"] = GAME_PASSIVE[tier]
+            _game_award(e, "pass", e["gp"], tier=tier, n=k, **({"can": can} if can else {}))
+        else:
+            e["gp"] = 0                         # past the limit: listed, with the reason; only the first one pops up
+            _game_award(e, "limit", 0, tier=tier, n=k, first=k == GAME_LIMIT[tier] + 1, **({"can": can} if can else {}))
         _game_add(g, day, e["gp"])
+        if tier != "common" and e["gp"] > 0:    # relay 85: the school's "catch an uncommon" (or rarer, that scores)
+            school_pass(spot, g, "uncommon")
         note_records(g, e)
-        for k in trophy_check(g, e, [x for x in spot.entries if "gp" in x]):
-            event("info", f"Trophy won: {k}", echo=False)
+        won = trophy_check(g, e, [x for x in spot.entries if "gp" in x])
+        for t in won:
+            event("info", f"Trophy won: {t}", echo=False)
+        _game_best(g, day, e)
+        if isinstance(g.get("bingoFix"), dict):     # relay 98: the week's catch-up, waiting for today's first plane
+            bingo_catchup(spot, g, e)
+        _game_bingo(spot, g, day, e)
+        _game_trophies(g, day, e, won)
     else:
-        p = game_points(e)
-        if p == e["gp"]:
+        if d >= e.get("gMin", 99) - 0.05:
             return False
-        _game_add(g, day, p - e["gp"])
-        e["gp"] = p
+        e["gMin"] = d
         note_records(g, e)
-        trophy_pass(g, e)
-    _game_best(g, day, e)
+        won = []
+        trophy_pass(g, e, None, won)
+        _game_trophies(g, day, e, won)
     spot.changed("book")
     return True
 
 
+def _trophy_pts(k):
+    """Relay 83: what a trophy pays and its rank: a ladder's rank by its place in the ladder (the app's medals, bronze
+    to diamond), a one-off GAME_SINGLE (rank None)."""
+    if k in TROPHY_LADDER:
+        rungs = [x for x, (what, _) in TROPHY_LADDER.items() if what == TROPHY_LADDER[k][0]]
+        i = rungs.index(k)
+        return GAME_MEDAL[min(i, len(GAME_MEDAL) - 1)], i
+    return GAME_SINGLE, None
+
+
+def _game_pay(g, day, e, kind, pts, **more):
+    """Relay 83: points that came with a plane but aren't its own (a bingo line, a trophy): its "gb", its award, the day."""
+    e["gb"] = e.get("gb", 0) + pts
+    _game_award(e, kind, pts, **more)
+    _game_add(g, day, pts)
+
+
+def _game_trophies(g, day, e, won):
+    """Relay 83 (to-do #147): the game's trophies this plane just won pay, once each (trophy_check and trophy_pass
+    return only one not won before, so one won before relay 83 never pays): a "trophy" award on the plane, and
+    "trophyPaid" {id: points} for the app's pop-ups."""
+    paid = g.setdefault("trophyPaid", {})
+    for k in won:
+        if k not in paid:
+            pts, rank = _trophy_pts(k)
+            paid[k] = pts
+            _game_pay(g, day, e, "trophy", pts, n=k, **({"m": rank} if rank is not None else {}))
+
+
+def _bingo_pay_state(spot, g, day, e):
+    """Relay 83: this week's bingo as the game has paid it, {"week", "done": [goals], "lines": [line indices paid],
+    "card": paid}, made from the saved days when the week is new to it (without what plane e did: that comes next).
+    The very first time (the relay update) the lines and the card done before count as paid: only wins from now on pay."""
+    wk = _monday(day)
+    st = g.get("bingoPay")
+    if isinstance(st, dict) and st.get("week") == wk:
+        return st
+    first = not isinstance(st, dict)
+    card, done = _bingo_week(spot, datetime.date.fromisoformat(wk), day, live=True)
+    done = {k for k, ts in done.items() if ts != e.get("ts")}
+    st = g["bingoPay"] = {"week": wk, "done": sorted(done), "lines": [], "card": False}
+    if first:
+        st["lines"] = [i for i, ln in enumerate(BINGO_LINES) if all(card[j] in done for j in ln)]
+        st["card"] = len(done) == 9
+        st["had"] = {"lines": len(st["lines"]), "card": st["card"]}     # counted, never paid
+        got = g.setdefault("trophies", {})
+        for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+            if ok and k not in got:             # won before: kept, unpaid
+                got[k] = int(time.time() * 1000)
+    return st
+
+
+def _game_bingo(spot, g, day, e):
+    """Relay 83 (to-do #147): each bingo line this plane completed pays GAME_BINGO["line"], the full card
+    GAME_BINGO["card"] more; once a week each (g["bingoPay"]). The Bingo and Full card trophies are won here too, on
+    the plane. Relay 98: called again when a scored plane comes closer or faster (take), so "within 1 km" and "below
+    2,500 ft" pay too; st["at"] keeps when each square filled (bingo_json shows the squares as paid)."""
+    st = _bingo_pay_state(spot, g, day, e)
+    card = random.Random("fallblatt-" + st["week"]).sample(sorted(BINGO), 9)
+    done = set(st["done"])
+    had = len(done)
+    for k in card:
+        if k not in done:
+            try:
+                if BINGO[k](e):
+                    done.add(k)
+                    st.setdefault("at", {})[k] = e.get("ts") or int(time.time() * 1000)
+            except Exception:
+                pass
+    st["done"] = sorted(done)
+    if len(done) > had:                         # relay 85: the school's "fill a bingo square" (a square new to the card)
+        school_pass(spot, g, "bingo")
+    for i, ln in enumerate(BINGO_LINES):
+        if i not in st["lines"] and all(card[j] in done for j in ln):
+            st["lines"].append(i)
+            _game_pay(g, day, e, "bingo", GAME_BINGO["line"], n=i)
+    if len(done) == 9 and not st["card"]:
+        st["card"] = True
+        _game_pay(g, day, e, "card", GAME_BINGO["card"])
+    got, won, ts = g.setdefault("trophies", {}), [], e.get("ts") or int(time.time() * 1000)
+    for k, ok in (("bingo", bool(st["lines"])), ("fullcard", st["card"])):
+        if ok and k not in got:
+            got[k] = ts
+            won.append(k)
+    _game_trophies(g, day, e, won)
+
+
+def _scan_airline(e):
+    m = re.match(r"^([A-Z]{3})\d", e.get("callsign") or "")
+    return m.group(1) if m else ""
+
+
+def _scan_can(g, e):
+    """Relay 79: the extras a scan of this plane would add now, {"type": 50, "airline": 25} (a type or an airline no
+    scan has had yet)."""
+    sc, al, nw = g["scanned"], _scan_airline(e), dict(GAME_NEW)
+    return {**({"type": nw["type"]} if e.get("typeCode") and e["typeCode"] not in sc["types"] else {}),
+            **({"airline": nw["airline"]} if al and al not in sc["airlines"] else {})}
+
+
+def _game_award(e, kind, pts, **more):
+    """Relay 71: what a sighting scored and when, for the app's Recent points and (relay 76) its pop-ups. Relay 76's
+    kinds: "pass" (the passive points), "limit" (nothing: past the rarity's limit), "scan" (Sky view's scan: rule 2 its
+    top-up, rule 3 the full points on top), "new" (a type or an airline at its first scan), "streak" (the day's first
+    scan); each with its rule ("r"). Rule 1's were "first", "close", "fix" and "lock". Relay 79: "pass" and "limit" carry
+    "can", the extras a scan would add then. Relay 83: "bingo" (a line, "n" its index in BINGO_LINES), "card" (the
+    full card) and "trophy" ("n" its id, "m" a ladder's rank from 0), paid with the plane that won them (its "gb")."""
+    a = {"t": int(time.time() * 1000), "k": kind, "p": pts, "r": GAME_RULE, **more}
+    if kind in ("pass", "limit") and e.get("liveMin") is not None:
+        a["d"] = round(e["liveMin"], 1)
+    aw = e.setdefault("ga", [])
+    aw.append(a)
+    del aw[:-24]                            # relay 98: a rich scan's lines all stay (they add up to its total)
+
+
+PLANE_KEYS = ("hex", "callsign", "flightIata", "airlineIata", "airlineName", "reg", "typeCode", "desc", "aircraftType", "manufacturer")
+
+
+def game_today(spot):
+    """Relay 71: today's scored planes for the app's Recent points, newest award first: the plane, its total and its
+    awards. Sightings scored before relay 71 have no awards (only their totals); rule 1's (before relay 76) keep their
+    reasons (base, new, gk, gn)."""
+    with _data_lock:
+        spot.ensure_day()
+        g = game_book(spot.book())
+        day = spot.day
+        rows = [e for e in spot.entries if "gp" in e]
+        total, planes = g.get("days", {}).get(day, 0), g.get("planes", {}).get(day, 0)
+        lim = _game_limits(g, day)
+        out = []
+        for e in rows:
+            aw = [dict(a) for a in e.get("ga") or []]
+            # the fields the boards' fromRelay() names a plane from, so it reads as in Spotted today
+            r = {**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": e.get("tier") or "", "km": e.get("liveMin"),
+                 "gp": e["gp"], "lock": e.get("lock", 0), "gs": e.get("gs", 0), "gb": e.get("gb", 0), "rule": e.get("gr", 1), "ts": e.get("ts"), "aw": aw}
+            if r["rule"] < 2:
+                r.update(base=TIER_BASE.get(e.get("tier"), 30), new=[[k[4:].lower(), v] for k, v in GAME1_NEW if e.get(k)],
+                         gk=e.get("gk") or 1.0, gn=e.get("gn") or 1)
+            out.append(r)
+        school = [dict(a) for a in game_school(g)["aw"] if a.get("day") == day]     # relay 85: today's missions (no plane)
+    out.sort(key=lambda r: max([a["t"] for a in r["aw"]] or [r["ts"] or 0]), reverse=True)
+    return {"day": day, "today": total, "planes": planes, "rows": out, "limits": {t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS},
+            "resets": _next_day_ms(day), "school": school}
+
+
+def game_awards(spot, since):
+    """Relay 76: today's awards after `since` (ms), oldest first, with their plane: the app's pop-ups (/game/me)."""
+    out = []
+    for e in spot.entries:
+        for a in e.get("ga") or []:
+            if a.get("t", 0) > since and a.get("r", 1) >= 2:
+                out.append({**a, **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")})
+    out += [dict(a) for a in game_school(game_book(spot.book()))["aw"] if a["t"] > since]    # relay 85: no plane
+    out.sort(key=lambda a: a["t"])
+    return out[-20:]
+
+
+_gold_salt = None
+
+
+def _gold_key():
+    """Relay 84: the golden tickets' salt, made once in data/ (mode 600) and kept: a restart doesn't re-roll them."""
+    global _gold_salt
+    if _gold_salt is None:
+        try:
+            _gold_salt = GOLD_FILE.read_text().strip()
+        except OSError:
+            _gold_salt = ""
+        if len(_gold_salt) < 32:
+            _gold_salt = secrets.token_hex(16)
+            try:
+                fd = os.open(GOLD_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                with os.fdopen(fd, "w") as f:
+                    f.write(_gold_salt + "\n")
+            except OSError as ex:
+                event("warn", f"golden tickets: can't keep the salt ({ex}); they re-roll at the next start")
+    return _gold_salt
+
+
+def game_gold(day, hx):
+    """Relay 84 (to-do #148): is this plane's ticket gold today? A hash of the secret salt, the board's day and the
+    plane: the same plane is gold for everyone all day, nobody can tell beforehand, and nothing re-rolls it."""
+    h = hashlib.sha256(f"{_gold_key()}|{day}|{str(hx or '').lower()}".encode()).hexdigest()
+    return int(h[:8], 16) % GOLD_ONE_IN == 0
+
+
+def game_scannable(spot):
+    """Relay 82 (to-do #146): the planes a scan would count for now, newest first: scored, came within SCAN_KM, seen
+    live in the last LOCK_FRESH_S, not scanned yet; each with its rarity, full points and the extras a scan would add
+    ("can"). The app's tickets follow this list, so the relay stays the one judge. Call under _data_lock."""
+    now, g, out = time.time(), game_book(spot.book()), []
+    for e in spot.entries:
+        d = e.get("liveMin")
+        if "gp" not in e or d is None or d > SCAN_KM or e.get("lock") or e.get("scan") or now - e.get("liveSeen", 0) > LOCK_FRESH_S:
+            continue
+        tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
+        gold = {"gold": True} if game_gold(spot.day, e.get("hex")) else {}          # relay 84: its scan pays full twice
+        out.append({**{k: e.get(k) or "" for k in PLANE_KEYS}, "tier": tier, "full": TIER_BASE[tier], "can": _scan_can(g, e), **gold,
+                    "km": d, "seen": int(e.get("liveSeen", 0) * 1000), "until": int((e.get("liveSeen", 0) + LOCK_FRESH_S) * 1000)})
+    return out[:12]
+
+
 def _game_best(g, day, e):
-    """The week's best plane (the board's league shows it)."""
+    """The week's best plane (the board's league shows it): its points without the streak."""
     wk, total = _monday(day), e["gp"] + e.get("lock", 0)
     best = g.setdefault("best", {})
     if total > (best.get(wk) or {}).get("pts", 0):
@@ -1148,49 +1782,122 @@ def _game_best(g, day, e):
 
 
 def game_lockon(spot, hx):
-    """Sky view held a plane in its ring for 1.5 s: a bonus once per plane a day, for a plane that scored and was seen
-    live a moment ago. Lock-ons within LOCK_COMBO_S of each other build a combo (up to four)."""
+    """Sky view held a plane in its ring for 1.5 s: the scan (relay 76). Once a pass, for a plane that came within
+    SCAN_KM (relay 82; GAME_KM before) and was seen live a moment ago, without a limit: it gives the plane's full points on top of its passive tenth
+    (relay 79; relay 76 topped it up to them); a type or an airline new to the game adds its extra, and the day's first
+    scan the daily streak (+25 × the day of the week's streak). Relay 79: counts the scans per type (the hangar's). Relay 88
+    (to-do #149): the scan that brings a type to 5, 25 or 100 scans pays its mastery step once ("mastery"). Relay 89
+    (to-do #162): and an airline to 10, 50 or 200 its Silver, Gold or Platinum once ("loyalty"); "airline": its scans now."""
+    _scan_types(spot)                           # relay 88: the scans per type exist before the first scan counts
+    db = _passport_make(spot)                   # relay 90: the countries of earlier scans, stamped unpaid (once)
     now = time.time()
     with _data_lock:
         spot.ensure_day()
         e = spot.by_hex.get(str(hx or "").lower())
         if not e or "gp" not in e:
             return {"bonus": 0, "why": "far"}
+        if (99 if e.get("liveMin") is None else e["liveMin"]) > SCAN_KM:    # relay 82: it scored passively (10-15 km), too far out to scan
+            return {"bonus": 0, "why": "closer", "km": e.get("liveMin"), "scanKm": SCAN_KM}
         if now - e.get("liveSeen", 0) > LOCK_FRESH_S:
             return {"bonus": 0, "why": "gone"}
-        if e.get("lock"):
-            return {"bonus": 0, "why": "done", "had": e["lock"]}
-        g = game_book(spot.book())
-        L = g.setdefault("lock", {"at": 0, "combo": 0, "n": 0})
-        combo = min(len(LOCK_PCT), L.get("combo", 0) + 1) if now - L.get("at", 0) <= LOCK_COMBO_S else 1
-        bonus = max(LOCK_MIN, round(e["gp"] * LOCK_PCT[combo - 1]))
-        e["lock"] = bonus
-        L.update(at=now, combo=combo, n=L.get("n", 0) + 1, last={"ts": int(now * 1000), "flight": e.get("callsign") or "",
-                                                                  "type": e.get("typeCode") or "", "pts": bonus})
-        _game_add(g, spot.day, bonus)
-        _game_best(g, spot.day, e)
+        if e.get("lock") or e.get("scan"):
+            return {"bonus": 0, "why": "done", "had": e.get("lock", 0)}
+        g, day = game_book(spot.book()), spot.day
+        tier = e.get("tier") if e.get("tier") in TIER_BASE else "uncommon"
+        full = TIER_BASE[tier]
+        # relay 84 (to-do #148): a golden ticket's scan pays the plane's full points twice; its extras and the streak don't
+        gold = game_gold(day, e.get("hex") or hx)
+        lines = [{"k": "scan", "p": full * (2 if gold else 1), "tier": tier, "full": full, "had": e["gp"], **({"gold": 2} if gold else {})}]
+        sc, can = g["scanned"], _scan_can(g, e)
+        tc, al = e.get("typeCode") or "", _scan_airline(e)
+        if "type" in can:
+            sc["types"].append(tc)
+            lines.append({"k": "new", "p": can["type"], "w": "type", "n": tc})
+        if "airline" in can:
+            sc["airlines"].append(al)
+            lines.append({"k": "new", "p": can["airline"], "w": "airline", "n": al})
+        st = g.get("scanTypes")
+        if tc and st is not None:               # (none yet: _scan_types counts them back from the days first)
+            TC, ms = tc.upper(), _mastery(g)    # relay 88: the mastery steps as they were before this scan
+            st[TC] = st.get(TC, 0) + 1
+            mt = tier_of({}, {"typeCode": TC})  # relay 96: the step's scans × the type's rarity (not doubled when gold)
+            for k in range(ms.get(TC, 0) + 1, mastery_step(st[TC]) + 1):
+                ms[TC] = k
+                lines.append({"k": "mastery", "p": MASTERY[k - 1] * TIER_BASE[mt] // 10, "n": TC, "m": k, "tier": mt})
+        sa = g.get("scanAirlines")
+        if al and sa is not None:               # relay 89: the airline's tier, the same way
+            ly = _loyalty(g)                    # (as it was before this scan)
+            sa[al] = sa.get(al, 0) + 1
+            for k in range(ly.get(al, 0) + 1, loyalty_step(sa[al]) + 1):
+                ly[al] = k
+                lines.append({"k": "loyalty", "p": LOYALTY[k - 1][1], "n": al, "m": k})
+        si = g.get("scanAirlineInfo")
+        if al and si is not None:               # relay 97: the member card's first and last scan, the types
+            _scan_airline_note(si, al, int(now * 1000), tc)
+        pp, route = g.get("passport"), []
+        if db and isinstance(pp, dict):         # relay 90 (to-do #150): the route's countries; one new to the passport pays
+            for cc, ap in route_countries(e, db):
+                route.append([ap, cc, cc not in pp])
+                if cc not in pp:
+                    pp[cc] = {"d": day, "ap": ap, "p": GAME_COUNTRY}
+                    lines.append({"k": "country", "p": GAME_COUNTRY, "n": cc, "ap": ap})
+        streak = 0
+        sd = g.setdefault("scanDays", [])
+        if day not in sd:
+            streak = _scan_streak(g, day) + 1
+            sd.append(day)
+            del sd[:-60]
+            lines.append({"k": "streak", "p": GAME_STREAK * streak, "n": streak})
+        for a in lines:
+            _game_award(e, a["k"], a["p"], **{k: v for k, v in a.items() if k not in ("k", "p")})
+        bonus = sum(a["p"] for a in lines)
+        e["scan"] = int(now * 1000)
+        e["gs"] = GAME_STREAK * streak
+        e["lock"] = bonus - e["gs"]
+        L = g.setdefault("lock", {"at": 0, "n": 0})
+        L.update(at=now, n=L.get("n", 0) + 1, last={"ts": int(now * 1000), "flight": e.get("callsign") or "",
+                                                     "type": e.get("typeCode") or "", "pts": e["lock"]})
+        _game_add(g, day, bonus)
+        _game_best(g, day, e)
+        school_pass(spot, g, "scan")            # relay 85: the school's "scan a plane" (its 50 aren't in the bonus)
         spot.changed("book", "day")
-        lv = level_of(g["points"])
-        return {"bonus": bonus, "combo": combo, "pct": LOCK_PCT[combo - 1], "plane": e["gp"], "tier": e.get("tier") or "",
-                "points": g["points"], "level": lv[0], "comboUntil": int((now + LOCK_COMBO_S) * 1000)}
+        lv = game_level(g)
+        return {"bonus": bonus, "lines": lines, "tier": tier, "full": full, "had": e["gp"], "streak": streak, "gold": gold,
+                "airline": {"code": al, "scans": sa[al]} if al and sa is not None else None,
+                "route": route, "countries": len(pp) if isinstance(pp, dict) else None,
+                "points": g["points"], "level": lv[0], **{k: e.get(k) or "" for k in PLANE_KEYS}, "km": e.get("liveMin")}
 
 
 def game3_json(book, day):
-    """The game for the boards: game_json's shape on the game's own logbook, with the level and this week."""
+    """The game for the boards: game_json's shape on the game's own logbook, with the level and this week; relay 76: the
+    daily streak is the week's scan streak, with today's planes by rarity against their limits."""
     g = game_book(book)
     out = game_json(g, day)
-    lv, title, into, need = level_of(g.get("points", 0))
+    lv, title, into, need = game_level(g)
     wk = _monday(day)
     days = g.get("days", {})
     week = sum(v for k, v in days.items() if k >= wk)
     L = g.get("lock") or {}
+    lim = _game_limits(g, day)
     # relay 64: the week's best plane is weekBest; as "best" it hid game_json's best day, which the boards show
-    out.update(v=3, since=g.get("since"), km=GAME_KM, level=lv, title=title, into=into, need=need, week=week,
-               planesToday=g.get("planes", {}).get(day, 0), taper=[25, 50], lockons=L.get("n", 0),
-               combo=L.get("combo", 0) if time.time() - L.get("at", 0) <= LOCK_COMBO_S else 0,
-               comboUntil=int((L.get("at", 0) + LOCK_COMBO_S) * 1000), weekBest=(g.get("best") or {}).get(wk),
-               records=g.get("records", {}))
+    out.update(v=3, since=g.get("since"), km=GAME_KM, scanKm=SCAN_KM, level=lv, title=title, into=into, need=need, week=week,
+               planesToday=g.get("planes", {}).get(day, 0), lockons=L.get("n", 0), weekBest=(g.get("best") or {}).get(wk),
+               records=g.get("records", {}), streak=_scan_streak(g, day), scannedToday=day in (g.get("scanDays") or []),
+               limits={t: [lim.get(t, 0), GAME_LIMIT[t]] for t in TIERS}, resets=_next_day_ms(day), rules=game_rules(),
+               trophyPaid=g.get("trophyPaid") or {}, school=school_json(g), wings=bool(game_school(g).get("wings")),
+               standby=standby_json(g, day), wallet=wallet_json(g), walletInfo=wallet_info_json(g), passport=passport_json(g),
+               showcase=showcase_json(g), styleKept=ranks_kept(g)["styles"])
     return out
+
+
+def standby_json(g, day):
+    """Relay 87 (to-do #157): the club's week for the app: Monday to Sunday ("s" scanned, "b" covered by a standby, ""
+    neither), today's place in it, the standbys allowed and left now."""
+    cov, left, allow = _standby(g, day)
+    rd, wk = set(g.get("scanDays") or []), datetime.date.fromisoformat(_monday(day))
+    week = [(wk + datetime.timedelta(days=i)).isoformat() for i in range(7)]
+    return {"week": ["s" if d in rd else "b" if d in cov else "" for d in week], "today": week.index(day),
+            "allow": allow, "left": left}
 
 
 _league_cache = {}
@@ -1228,15 +1935,15 @@ def league_json(me=None):
                          "week": sum(v for k, v in days.items() if k >= wk),
                          "before": sum(v for k, v in days.items() if wk <= k < day),
                          "lastWeek": sum(v for k, v in days.items() if last <= k < wk), "all": g.get("points", 0),
-                         "level": level_of(g.get("points", 0))[0], "best": (g.get("best") or {}).get(wk),
-                         "lock": (g.get("lock") or {}).get("last")})
+                         "level": game_level(g)[0], "best": (g.get("best") or {}).get(wk),
+                         "lock": (g.get("lock") or {}).get("last"), "wings": school_wings(g)})
         _league_cache.clear()
         _league_cache[key] = rows
     champ = max((r for r in rows if r["lastWeek"] > 0), key=lambda r: r["lastWeek"], default=None)
     prev = {r["pid"]: i for i, r in enumerate(sorted((r for r in rows if r["before"] > 0), key=lambda r: -r["before"]))}
     def out(r, i, order):
         o = {"name": r["name"], "points": r[order], "all": r["all"], "level": r["level"], "rank": i + 1,
-             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me, "id": _league_id(r["pid"])}
+             "crown": bool(champ and r["pid"] == champ["pid"]), "me": r["pid"] == me, "id": _league_id(r["pid"]), "wings": r["wings"]}
         if order == "week":
             o["best"] = r["best"]
             if r["pid"] in prev and day != wk:
@@ -1273,19 +1980,20 @@ def player_json(hid, me=None):
         pts = g.get("points", 0)
         if not pts:
             return None
-        lv, title, into, need = level_of(pts)
+        lv, title, into, need = game_level(g)
         days, types = g.get("days", {}), g.get("types") or {}
         rare = lambda tc: TIERS.index(tier_of({}, {"typeCode": tc}))
         top = max(types.items(), key=lambda kv: (rare(kv[0]), -(kv[1].get("first") or 0)), default=None)
         counts = trophy_counts(g, day=day)
         out = {"id": hid, "name": (str(p.get("name") or "?").strip().split() or ["?"])[0][:14], "me": pid == me,
                "level": lv, "title": title, "into": into, "need": need, "points": pts,
-               "week": sum(v for k, v in days.items() if k >= wk), "streak": _streak(g, day),
+               "week": sum(v for k, v in days.items() if k >= wk), "streak": _scan_streak(g, day),
                "tiers": {t: (g.get("tiers") or {}).get(t, 0) for t in TIERS},
                "counts": {k: counts.get(k) for k in ("planes", "types", "airlines", "countries")},
                "trophies": sorted(k for k, v in (g.get("trophies") or {}).items() if v),
                "rarest": {"code": top[0], "name": top[1].get("name") or "", "tier": tier_of({}, {"typeCode": top[0]})} if top else None,
-               "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since")}
+               "best": (g.get("best") or {}).get(wk), "lockons": (g.get("lock") or {}).get("n", 0), "since": g.get("since"),
+               "wings": school_wings(g), "showcase": showcase_json(g)}
     lg = league_json(me)
     r = next((x for x in lg["rows"] if x["id"] == hid), None)
     out.update(rank=r["rank"] if r else None, crown=bool(r and r["crown"]))
@@ -1295,13 +2003,174 @@ def player_json(hid, me=None):
 _hangar_cache = {}
 
 
-def hangar_json(spot):
-    """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type caught on the go (the game's own logbook), each
-    with the first aircraft of it (since relay 64 with its photo and thumbnail) and its rarity, the newest first; and the
-    sets with all their types."""
+def _scan_types(spot):
+    """Relay 79: make the scans per type (g["scanTypes"]) the first time, counted back from the saved days' sightings
+    with a scan (relay 76 on, e["scan"]). Relay 88: the scan calls it too (the mastery steps need the counts). Not under
+    _data_lock (it reads every saved day). Relay 89: the scans per airline (g["scanAirlines"], the member cards') too.
+    Relay 97 (to-do #182): and each airline's first and last scan and the types scanned with it (g["scanAirlineInfo"])."""
     with _data_lock:
-        types = {tc: dict(t) for tc, t in (game_book(spot.book()).get("types") or {}).items()}
-    key = (str(spot.dir), len(types), spot.day)
+        g = game_book(spot.book())
+        need = [k for k in ("scanTypes", "scanAirlines", "scanAirlineInfo") if k not in g]
+    if need:
+        back = {"scanTypes": {}, "scanAirlines": {}, "scanAirlineInfo": {}}
+        for e in _logbook_entries(spot):
+            if not e.get("scan"):
+                continue
+            for k, c in (("scanTypes", str(e.get("typeCode") or "").upper()), ("scanAirlines", _scan_airline(e))):
+                if c:
+                    back[k][c] = back[k].get(c, 0) + 1
+            al = _scan_airline(e)
+            if al:
+                _scan_airline_note(back["scanAirlineInfo"], al, e["scan"], e.get("typeCode"))
+        with _data_lock:
+            g = game_book(spot.book())
+            for k in need:
+                if k not in g:
+                    g[k] = back[k]
+                    spot.changed("book")
+                    if k != "scanAirlineInfo":
+                        event("info", f"Club: {sum(back[k].values())} Sky view scans counted back by "
+                                      f"{'type' if k == 'scanTypes' else 'airline'}", echo=False)
+
+
+def _scan_airline_note(info, al, ts, tc):
+    """Relay 97 (to-do #182): a scan of one of the airline's planes, into {AL: {first, last, types: {TYPE: scans}}}
+    (first and last: the scans' times, ms)."""
+    r = info.setdefault(al, {"first": ts, "last": ts, "types": {}})
+    r["first"], r["last"] = min(r["first"], ts), max(r["last"], ts)
+    tc = str(tc or "").upper()
+    if tc:
+        r["types"][tc] = r["types"].get(tc, 0) + 1
+
+
+def mastery_step(n):
+    """Relay 88 (to-do #149): the mastery step a type's scans reach: 0 none, 1 bronze, 2 silver, 3 gold, 4 platinum (relay 96)."""
+    return sum(1 for at in MASTERY if n >= at)
+
+
+def _mastery(g):
+    """Relay 88: {TYPE: the step paid or passed}. Made the first time from the scans so far, unpaid: a type already
+    past a step keeps its frame (the app reads it from the scans), and only steps reached from then on pay."""
+    m = g.get("mastery")
+    if not isinstance(m, dict):
+        m = g["mastery"] = {tc: k for tc, k in ((tc, mastery_step(n)) for tc, n in (g.get("scanTypes") or {}).items()) if k}
+    return m
+
+
+def loyalty_step(n):
+    """Relay 89 (to-do #162): the tier an airline's scanned planes reach above Member: 0 none, 1 Silver, 2 Gold, 3 Platinum."""
+    return sum(1 for at, _ in LOYALTY if n >= at)
+
+
+def _loyalty(g):
+    """Relay 89: {AIRLINE: the tier paid or passed}, made the first time from the scans so far, unpaid (as _mastery)."""
+    m = g.get("loyalty")
+    if not isinstance(m, dict):
+        m = g["loyalty"] = {al: k for al, k in ((al, loyalty_step(n)) for al, n in (g.get("scanAirlines") or {}).items()) if k}
+    return m
+
+
+def wallet_json(g):
+    """Relay 89 (to-do #162): the club's member cards: every airline the game caught live (what the airline trophies
+    count, so the wallet's size is theirs), with its planes scanned (0: not a member yet)."""
+    sa = g.get("scanAirlines") or {}
+    return {al: sa.get(al, 0) for al in g.get("airlines") or {}}
+
+
+def wallet_info_json(g):
+    """Relay 97 (to-do #182): what the member cards print beside the scans, by airline: "seen" (its planes caught live),
+    and once scanned "since" and "last" (the first and the last scan, ms) and "types" (the four types scanned most,
+    [[TYPE, scans], ...]). A member whose scans have no times (days no longer kept) gets the day it was first caught
+    live as "since", with "seenSince": 1."""
+    sa, si, out = g.get("scanAirlines") or {}, g.get("scanAirlineInfo") or {}, {}
+    for al, a in (g.get("airlines") or {}).items():
+        o = out[al] = {"seen": a.get("count", 0)}
+        r = si.get(al)
+        if r:
+            o.update(since=r["first"], last=r["last"], types=[[t, k] for t, k in sorted(r["types"].items(), key=lambda t: (-t[1], t[0]))[:4]])
+        elif sa.get(al) and a.get("first"):
+            o.update(since=a["first"], seenSince=1)
+    return out
+
+
+def _cc_ready():
+    """Relay 90: the airport list with each airport's country (its v4); None while it loads or with only an older copy."""
+    db = _airports_ready()
+    return db if db and db.get("v") == 4 else None
+
+
+def _ap_row(db, code):
+    code = str(code or "").upper()
+    return (db.get("iata") or {}).get(code) or (db.get("iata") or {}).get((db.get("icao") or {}).get(code, ""))
+
+
+def route_countries(e, db):
+    """Relay 90 (to-do #150): the countries of a sighting's known route, [(country, airport code)], origin first, each
+    country once; [] without a route (both ends) or an airport the list lacks."""
+    out = []
+    if not (isinstance(e.get("from"), dict) and isinstance(e.get("to"), dict)):
+        return out
+    for k in ("from", "to"):
+        code = str(e[k].get("code") or "").upper()
+        row = _ap_row(db, code)
+        cc = row[7] if row and len(row) > 7 else ""
+        if re.fullmatch(r"[A-Z]{2}", cc) and cc not in [c for c, _ in out]:
+            out.append((cc, code))
+    return out
+
+
+def _passport_make(spot):
+    """Relay 90: the passport the first time, from the saved days' scans with a known route ({country: {"d": day,
+    "ap": airport, "p": 0}}, the first scan's), unpaid. Not under _data_lock (it reads every saved day). Returns the
+    airport list with countries (None while it loads: then no passport yet, and a scan stamps nothing)."""
+    db = _cc_ready()
+    with _data_lock:
+        if not db or isinstance(game_book(spot.book()).get("passport"), dict):
+            return db
+    pp = {}
+    for e in sorted(_logbook_entries(spot), key=lambda x: x.get("scan") or 0):
+        if e.get("scan"):
+            for cc, ap in route_countries(e, db):
+                pp.setdefault(cc, {"d": board_day(e["scan"] / 1000), "ap": ap, "p": 0})
+    with _data_lock:
+        g = game_book(spot.book())
+        if not isinstance(g.get("passport"), dict):
+            g["passport"] = pp
+            spot.changed("book")
+            event("info", f"Passport: {len(pp)} countries stamped from earlier scans", echo=False)
+    return db
+
+
+def passport_json(g):
+    """Relay 90 (to-do #150): the player's passport (their own, never on other players' cards): {country: [day, airport,
+    lat, lon, continent, paid]}; None until it is made (the airport list still loading)."""
+    pp, db = g.get("passport"), _airports or {}
+    if not isinstance(pp, dict):
+        return None
+    out = {}
+    for cc, s in pp.items():
+        row = _ap_row(db, s.get("ap")) or []
+        out[cc] = [s.get("d") or "", s.get("ap") or "", row[1] if len(row) > 2 else None, row[2] if len(row) > 2 else None,
+                   row[8] if len(row) > 8 else "", s.get("p") or 0]
+    return out
+
+
+def hangar_json(spot):
+    """Relay 63 (Dave's to-do 4): the Spotters' Club hangar: every type seen, each with the first aircraft of it (since
+    relay 64 with its photo and thumbnail) and its rarity, the newest first; and the sets with all their types. Relay 76
+    (to-do #127): from the logbook (any sighting, from any screen; it was the game's own logbook), with how often the
+    game scored it ("game", 0: never). Relay 79: and how often Sky view scanned it ("scans"), counted by game_lockon; the
+    scans before (relay 76 on, e["scan"]) are counted back from the saved days once."""
+    _scan_types(spot)
+    with _data_lock:
+        book = spot.book()
+        game = {tc: (t or {}).get("count", 0) for tc, t in (game_book(book).get("types") or {}).items()}
+        scans = dict(game_book(book).get("scanTypes") or {})
+        mast = dict(game_book(book).get("mastery") or {})       # relay 96: the step paid or passed (the frame it keeps)
+        types = {tc: dict(t) for tc, t in (book.get("types") or {}).items()}
+        for tc in game:
+            types.setdefault(tc, dict(game_book(book)["types"][tc]))
+    key = (str(spot.dir), len(types), sum(game.values()), sum(scans.values()), spot.day)
     hit = _hangar_cache.get(key)
     if hit and time.time() - hit[0] < 600:
         return hit[1]
@@ -1313,7 +2182,9 @@ def hangar_json(spot):
     out = []
     for tc, t in types.items():
         e = first.get(tc) or {}
-        out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0),
+        out.append({"code": tc, "name": t.get("name") or "", "first": t.get("first"), "count": t.get("count", 0), "game": game.get(tc, 0),
+                    "last": t.get("last") or t.get("first"),   # relay 96 (to-do #177): last overhead (the hangar's "Last overhead")
+                    "scans": scans.get(tc, 0), "m": mast.get(tc, 0), "mt": tier_of({}, {"typeCode": tc}),   # relay 96: mastery's rarity
                     "tier": e.get("tier") or tier_of({}, {"typeCode": tc}), "reg": e.get("reg") or "", "hex": e.get("hex") or "",
                     "flight": e.get("flightIata") or e.get("callsign") or "", "airline": e.get("airlineName") or "",
                     "photo": e.get("photo") or "", "thumb": e.get("photoThumb") or ""})          # relay 64: its own photo, when adsbdb has one
@@ -1545,6 +2416,69 @@ def _backfill_airlines(spot):
     b["airlinesV"] = 1
     spot.changed("book")
     return n
+
+
+AT_CS = re.compile(rb'"flight"\s*:\s*"\s*@+\s*"')
+
+
+def no_cs(v):
+    """A callsign as the sources give it, cleaned. Relay 70: they fill a blank one with "@" ("@@@@@@@@"): no callsign."""
+    v = str(v or "").strip().upper()
+    return v if v.strip("@") else ""
+
+
+def _at_cs(v):
+    return isinstance(v, str) and bool(v.strip()) and not v.strip().strip("@")
+
+
+def _scrub_at(o):
+    """Relay 70: the all-"@" callsigns saved before, anywhere in a sightings list or logbook: as a "callsign" or "flight"
+    value it becomes "", as a key (the logbook's and game's "flights") it goes. Returns how many it changed."""
+    n = 0
+    if isinstance(o, dict):
+        for k in list(o):
+            if _at_cs(k):
+                del o[k]
+                n += 1
+            elif k in ("callsign", "flight") and _at_cs(o[k]):
+                o[k] = ""
+                n += 1
+            else:
+                n += _scrub_at(o[k])
+    elif isinstance(o, list):
+        for v in o:
+            n += _scrub_at(v)
+    return n
+
+
+def _scrub_at_spot(spot):
+    """Once per profile (the logbook's "atCsV"): clean its saved days and logbook of all-"@" callsigns. Call under
+    _data_lock."""
+    n = 0
+    for f in sorted(spot.dir.glob("sightings-*.json")):
+        day = f.stem[len("sightings-"):]
+        entries = spot.day_entries(day)
+        hits = _scrub_at(entries)
+        if hits:
+            spot.day_changed(day, entries)
+            n += hits
+    b = spot.book()
+    n += _scrub_at(b)
+    b["atCsV"] = 1
+    spot.changed("book")
+    return n
+
+
+def _scrub_at_all():
+    try:
+        for sp in _all_profile_spots():
+            with _data_lock:
+                if sp.book().get("atCsV") != 1:
+                    n = _scrub_at_spot(sp)
+                    if n:
+                        event("info", f"Removed {n} blank (\"@\") callsigns from earlier sightings", echo=False)
+    except Exception as e:  # never let the clean-up break the relay
+        event("warn", f"Cleaning blank callsigns: {e}")
 
 
 def _all_profile_spots():
@@ -1883,7 +2817,7 @@ def _load_airports():
     """City names for airport codes, from the free OurAirports list (refreshed every two months)."""
     global _airports
     db = _load(AIRPORTS_FILE, None)
-    if db and db.get("v") == 3 and time.time() - db.get("fetched", 0) < 60 * 86400:
+    if db and db.get("v") == 4 and time.time() - db.get("fetched", 0) < 60 * 86400:
         _airports = db
         return
     status, _, body, _ = fetch(AIRPORTS_CSV, timeout=60)
@@ -1907,10 +2841,11 @@ def _load_airports():
                 elev = int(float(r.get("elevation_ft") or 0))
             except ValueError:
                 elev = 0
-            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev]
+            iata[code] = [city, lat, lon, ic, (r.get("name") or "").strip(), 1 if r.get("scheduled_service") == "yes" else 0, elev,
+                          (r.get("iso_country") or "").strip().upper()[:2], (r.get("continent") or "").strip().upper()[:2]]   # relay 90: the passport's
         if ic:
             icao[ic] = code
-    _airports = {"v": 3, "fetched": time.time(), "iata": iata, "icao": icao}
+    _airports = {"v": 4, "fetched": time.time(), "iata": iata, "icao": icao}
     try:
         DATA_DIR.mkdir(exist_ok=True)
         AIRPORTS_FILE.write_text(json.dumps(_airports, separators=(",", ":")), encoding="utf-8")
@@ -2437,7 +3372,7 @@ def _fill_worker():
                     rec["useless"] = 0
                 elif planes:
                     rec["useless"] += 1
-                rec["near"] = any(_dist_km(rec["lat"], rec["lon"], f["lat"], f["lon"]) < GAME_KM for f in missing)
+                rec["near"] = any(_dist_km(rec["lat"], rec["lon"], f["lat"], f["lon"]) < SCAN_KM for f in missing)   # relay 82: the scan's circle
                 rec["planes"], rec["t"] = planes, time.time()
                 for f in missing:
                     if f["hex"] not in rec["first"]:
@@ -2503,11 +3438,37 @@ def day_stats(entries, over_km, over_deg=0.0):
             "dayStarts": f"{DAY_STARTS_H:02d}:00"}
 
 
+def same_spot(spot, places, key):
+    """Relay 75 (to-do #121): the place `key` and the profile's other places at the same spot (centre within 1 km, a
+    radius no larger), so a phone on the profile's own place ("home") and a board on a saved place there ("Home") share
+    one Spotted today. A pass is recorded once whichever of them saw it (_record), so the merged list has no doubles."""
+    if not key or key == "live":
+        return {key} if key else None
+    spots = {"home": (spot.center(), spot.radius())}
+    for p in places or []:
+        if isinstance(p, dict) and p.get("k"):
+            spots.setdefault(p["k"], ((p.get("lat"), p.get("lon")), p.get("r") or 15))
+    c, r = spots.get(key, (None, 0))
+    out = {key}
+    if c is None or None in c:
+        return out
+    for k, (cc, rr) in spots.items():
+        try:
+            if _dist_km(c[0], c[1], cc[0], cc[1]) <= 1.0 and float(rr) <= float(r) + 0.5:
+                out.add(k)
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 def sightings_json(spot, api=False, over_km=3.0, everything_wanted=False, place=None, over_deg=0.0):
-    """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33)."""
+    """Today's sightings; with `place`, only those seen from that place (a screen's Spotted today, relay 33; relay 75:
+    a set of places, see same_spot)."""
+    if isinstance(place, str):
+        place = {place}
     with _data_lock:
         spot.ensure_day()
-        everything = [e for e in spot.entries if place is None or (e.get("place") or "home") == place]
+        everything = [e for e in spot.entries if place is None or (e.get("place") or "home") in place]
         day, rev = spot.day, spot.rev
     if api:
         everything = fr24_overlay(everything, spot.radius(), over_km)
@@ -2540,7 +3501,9 @@ def search_json(spot, q):
     are grouped by flight when the words name one, else by aircraft: how often, first and last seen, how close.
     Relay 61: a category word narrows it to that category (alone, it lists the category). Relay 63: where it was seen
     counts too (a saved place's name, "home", or on the go the town, the area round it or the country: "Oia",
-    "Santorini", "Greece"), and each row says where it was seen (places, the newest first)."""
+    "Santorini", "Greece"), and each row says where it was seen (places, the newest first). Relay 74 (the plane card):
+    also the closest pass's height, the sighting before the latest, the newest route, how many different flights (or
+    aircraft: nOther), the hex and the registered owner and country."""
     words = [w for w in re.sub(r"[^A-Z0-9 -]", " ", _fold(q)).split() if w][:5]
     cat = next((c for w in words for c, ws in CATEGORY_WORDS.items() if w in ws), None)
     if cat:
@@ -2578,24 +3541,38 @@ def search_json(spot, q):
                 g = groups[key] = {"by": key[0], "key": key[1], "reg": e.get("reg") or "", "flight": e.get("flightIata") or e.get("callsign") or "",
                                    "type": e.get("aircraftType") or e.get("icaoType") or e.get("typeCode") or "", "airline": e.get("airlineName") or "",
                                    "typeCode": e.get("typeCode") or "", "callsign": e.get("callsign") or "", "airlineIata": e.get("airlineIata") or "",
-                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": [], "_pl": {}}
+                                   "n": 0, "first": None, "last": None, "minDist": None, "flights": [], "regs": [], "_pl": {},
+                                   "hex": e.get("hex") or "", "prev": None, "_fl": set(), "_rt": -1}    # relay 74: for the cards
             g["n"] += 1
             t = e.get("ts") or e.get("time")
             if isinstance(t, (int, float)):
                 g["first"] = t if g["first"] is None else min(g["first"], t)
-                g["last"] = t if g["last"] is None else max(g["last"], t)
+                if g["last"] is None or t > g["last"]:              # relay 74: and the sighting before the latest
+                    g["prev"], g["last"] = g["last"], t
+                elif t < g["last"] and (g["prev"] is None or t > g["prev"]):
+                    g["prev"] = t
             md = e.get("minDist")
-            if isinstance(md, (int, float)):
-                g["minDist"] = md if g["minDist"] is None else min(g["minDist"], md)
+            if isinstance(md, (int, float)) and (g["minDist"] is None or md < g["minDist"]):
+                g["minDist"], g["altAtMin"] = md, e.get("altAtMin")
             other = ("flights", e.get("flightIata") or e.get("callsign")) if key[0] == "r" else ("regs", e.get("reg"))
+            if other[1]:
+                g["_fl"].add(other[1])
             if other[1] and other[1] not in g[other[0]] and len(g[other[0]]) < 5:
                 g[other[0]].append(other[1])
+            fr, to = e.get("from"), e.get("to")
+            if isinstance(fr, dict) and isinstance(to, dict) and fr.get("code") and to.get("code") and (t or 0) >= g["_rt"]:
+                g["_rt"], g["route"] = t or 0, {k: {"code": p.get("code"), "city": p.get("city") or ""} for k, p in (("from", fr), ("to", to))}
+            for k in ("owner", "ownerCountry"):
+                if e.get(k) and not g.get(k):
+                    g[k] = e[k]
             pk = (place, w.get("n", ""), w.get("c", ""))
             seen = t if isinstance(t, (int, float)) else 0
             if pk not in g["_pl"] or seen > g["_pl"][pk][0]:
                 g["_pl"][pk] = (seen, {"k": place, **({k: w[k] for k in ("n", "a", "c") if w.get(k)} if place == "live" else {})})
     for g in groups.values():
         g["places"] = [v for _, v in sorted(g.pop("_pl").values(), key=lambda x: -x[0])][:4]
+        g["nOther"] = len(g.pop("_fl"))                    # relay 74: how many different flights (or aircraft)
+        g.pop("_rt")
     rows = sorted(groups.values(), key=lambda g: -(g["last"] or 0))[:40]
     return {"q": q, "total": total, "rows": rows, "category": cat, "text": " ".join(words).lower()}
 
@@ -2635,6 +3612,8 @@ def category_top_json(spot, cat, places=None):
 
 
 def logbook_json(spot):
+    _scan_types(spot)                           # relay 89: the member cards' scans per airline, counted back once
+    _passport_make(spot)                        # relay 90: the passport's countries from earlier scans, once
     with _data_lock:
         b = spot.book()
         regs = b.get("regs", {})
@@ -3066,11 +4045,14 @@ def vie_status():
 # Screens coming and going are printed here and listed in the board's diagnostics; press Enter for the current list,
 # or open /screens in a browser.
 SCREEN_GONE_S = 60          # a screen that hasn't asked for anything for a minute has been closed or switched off
+SCREEN_HIDDEN_S = 15        # relay 80 (to-do #137): a screen whose latest hello said "hidden" counts as left after this long
 SCREEN_NEW_S = 6            # wait this long for a new screen's hello before announcing it with what we know
 BOARD_PATHS = ("/aircraft/", "/adsblol/", "/airplaneslive/", "/sightings", "/logbook", "/metar", "/flightinfo", "/times",
                "/status", "/hello", "/routeset", "/bye")
 _screens = {}
 _screens_gone = collections.deque(maxlen=12)
+_screens_left = {}          # relay 80: screen key -> when it was counted as left in the background; its requests are
+                            # ignored until a hello says "visible" (that is a new visit); forgotten after a day
 _screens_lock = threading.Lock()
 _hosts = {}                 # address -> network name (or None while looking it up / when there is none)
 
@@ -3153,12 +4135,18 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
     key = sid or f"{ip}|{ua}|{board or ''}"
     with _screens_lock:
         s = _screens.get(key)
+        back = False
+        if s is None and key in _screens_left:
+            if hello is None or hello.get("vis") != "visible":
+                return                      # still in the background, counted as left: its requests don't bring it back
+            del _screens_left[key]
+            back = True
         if s is None:
             if bye:
                 return
             s = {"key": key, "sid": sid, "ip": ip, "ua": ua, "device": device_of(ua), "board": board, "name": "",
                  "since": now, "first": now, "last": now, "requests": 0, "hello": None, "announced": False,
-                 "reloads": 0, "pending": "new", "bye": 0.0}
+                 "reloads": 0, "pending": "new", "bye": 0.0, "hidden_at": 0.0}
             # The same browser opening the same board while its previous page has just said goodbye or gone quiet
             # is a reload: it keeps its time on.
             for k, o in list(_screens.items()):
@@ -3167,6 +4155,8 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
                              pending="reload" if o["announced"] else "new", announced=o["announced"])
                     del _screens[k]
                     break
+            if back:                        # coming back is a new visit, listed at once and not announced again
+                s.update(pending=None, announced=True)
             _screens[key] = s
         s["last"] = now
         s["requests"] += 1
@@ -3176,6 +4166,7 @@ def screen_seen(ip, ua, referer, sid="", hello=None, bye=False):
             s["bye"] = now
         if hello is not None:
             s["hello"] = hello
+            s["hidden_at"] = (s["hidden_at"] or now) if hello.get("vis") == "hidden" else 0.0
             name = hello.get("name", "")
             if s["announced"] and name and s["name"] and name != s["name"]:
                 event("info", f"Screen renamed: {s['name']} is now {name}")
@@ -3215,29 +4206,42 @@ def screens_list():
     return live, gone
 
 
+def _screen_sweep(now):
+    """One look at the screens: announce new ones, drop those that left. Relay 80: a screen that has been hidden (by its
+    latest hello) for SCREEN_HIDDEN_S counts as left, whatever it asks for meanwhile; that is only listed (Recently
+    gone), not announced, as its coming back is not."""
+    say = []
+    with _screens_lock:
+        for k in [k for k, t in _screens_left.items() if now - t > 86400]:
+            del _screens_left[k]
+        for k, s in list(_screens.items()):
+            i = screen_info(s, now)
+            if s["pending"] and (s["hello"] or now - s["first"] > SCREEN_NEW_S) and not s["bye"]:
+                if s["pending"] == "reload":
+                    say.append(f"Screen reloaded the board: {describe(i)} (on for {fmt_for(i['on_s'])})")
+                else:
+                    say.append(f"Screen connected: {describe(i)}")
+                s["pending"] = None
+                s["announced"] = True
+            elif (s["bye"] and now - s["bye"] > 10) or now - s["last"] > SCREEN_GONE_S:
+                del _screens[k]
+                if s["announced"]:
+                    on = s["last"] - s["since"]
+                    say.append(f"Screen gone: {describe(i)}, after {fmt_for(on)}" + (" (closed)" if s["bye"] else ""))
+                    _screens_gone.appendleft({**i, "on_s": int(on), "left": int(s["last"])})
+            elif s["hidden_at"] and now - s["hidden_at"] > SCREEN_HIDDEN_S:
+                del _screens[k]
+                _screens_left[k] = now
+                if s["announced"]:
+                    _screens_gone.appendleft({**i, "on_s": int(s["hidden_at"] - s["since"]), "left": int(s["hidden_at"])})
+    for msg in say:
+        event("info", msg)
+
+
 def _screen_watch():
     while True:
         time.sleep(3)
-        now = time.time()
-        say = []
-        with _screens_lock:
-            for k, s in list(_screens.items()):
-                i = screen_info(s, now)
-                if s["pending"] and (s["hello"] or now - s["first"] > SCREEN_NEW_S) and not s["bye"]:
-                    if s["pending"] == "reload":
-                        say.append(f"Screen reloaded the board: {describe(i)} (on for {fmt_for(i['on_s'])})")
-                    else:
-                        say.append(f"Screen connected: {describe(i)}")
-                    s["pending"] = None
-                    s["announced"] = True
-                elif (s["bye"] and now - s["bye"] > 10) or now - s["last"] > SCREEN_GONE_S:
-                    del _screens[k]
-                    if s["announced"]:
-                        on = s["last"] - s["since"]
-                        say.append(f"Screen gone: {describe(i)}, after {fmt_for(on)}" + (" (closed)" if s["bye"] else ""))
-                        _screens_gone.appendleft({**i, "on_s": int(on), "left": int(s["last"])})
-        for msg in say:
-            event("info", msg)
+        _screen_sweep(time.time())
 
 
 def print_screens():
@@ -3324,6 +4328,45 @@ def status_json():
     return {"version": RELAY_VERSION, "uptime_s": int(now - STARTED), "sources": sources, "events": events, "fr24": fr24_status(),
             "health": {k: v["down"] for k, v in _health.items()},
             "vie": vie_status(), "screens": live}
+
+
+BACKUP_FILE = DATA_DIR / "backup.json"    # relay 69: written by the nightly backup on the host, read for the owner's panel
+BACKUP_LATE_S = 36 * 3600
+
+
+def relay_panel_json():
+    """Relay 69: the owner's Relay plate in the app's Settings → About: the position sources, Flightradar24, the nightly
+    backup and the screens online. Read-only, and no addresses or secrets."""
+    now = time.time()
+    utc = time.strftime("%Y-%m-%d", time.gmtime())
+    sources = []
+    for i, src in enumerate(SOURCES):
+        st = STATE[src["key"]]
+        resting = st["cooldown_until"] > now
+        state = "resting" if resting else "ok" if st["ok"] and not st["strikes"] else "failing" if st["strikes"] else "standby"
+        sources.append({"name": src["name"], "role": "emergency" if src.get("day_cap") else "first" if i == 0 else "reserve",
+                        "state": state, "until": int(st["cooldown_until"]) if resting else None,
+                        "http": st["last_status"] if state in ("resting", "failing") else None,
+                        "okAge": int(now - st["last_ok"]) if st["last_ok"] else None,
+                        "today": st["asked"] if st["askedDay"] == utc else 0, "allow": src.get("allow")})
+    fr = {"on": False}
+    if fr24_key():
+        with _data_lock:
+            u = _fr24_usage()
+            # the per-user rows start again with the month's total (_fr24_usage clears them together)
+            fill = sum(v.get("credits", 0) for k, v in (u.get("by") or {}).items() if k.endswith(" · Gap filler"))
+            fr = {"on": True, "credits": u.get("credits", 0), "budget": _fr24_budget(), "creditsToday": u.get("creditsToday", 0),
+                  "lookupsToday": u.get("lookupsToday", 0), "fill": fill}
+    b = _load(BACKUP_FILE, None)
+    backup = None
+    if isinstance(b, dict) and isinstance(b.get("t"), (int, float)):
+        num = lambda k: b[k] if isinstance(b.get(k), int) else None
+        backup = {"t": int(b["t"]), "ok": b.get("ok") is True, "bytes": num("bytes"), "kept": num("kept"),
+                  "error": str(b.get("error") or "")[:120], "late": now - b["t"] > BACKUP_LATE_S}
+    live, _ = screens_list()
+    screens = [{"who": i["name"], "device": i["device"], "kind": "app" if i["board"] == "APP" else "board",
+                "on": i["on_s"], "quiet": i["quiet_s"], "hidden": i["hidden"]} for i in live]
+    return {"version": RELAY_VERSION, "up": int(now - STARTED), "sources": sources, "fr24": fr, "backup": backup, "screens": screens}
 
 
 _board_seen = {}
@@ -3436,7 +4479,12 @@ def board_html(sub="", guest=None):
         defaults.pop("lat", None)
         defaults.pop("lon", None)
     config = json.dumps(defaults).replace("<", "\\u003c")
-    who = json.dumps({"id": gid, "name": guest["name"], "settings": guest.get("settings")}).replace("<", "\\u003c") if guest is not None else "null"
+    who = "null"
+    if guest is not None:
+        me = {"id": gid, "name": guest["name"], "settings": guest.get("settings")}
+        if str(guest["name"] or "").strip().lower() == HOME_OWNER.lower():
+            me["owner"] = True                  # relay 69: the app shows the owner the Relay plate
+        who = json.dumps(me).replace("<", "\\u003c")
     inject = (f"<script>window.OVERHEAD_RELAY=location.origin;window.OVERHEAD_RELAY_VERSION={RELAY_VERSION};"
               f"window.OVERHEAD_DEFAULTS={config};window.OVERHEAD_FR24={'true' if fr24 else 'false'};"
               f"window.OVERHEAD_GUEST={who};window.OVERHEAD_PAGE_DATE={_board_date.get(sub) or 'null'};"
@@ -3762,14 +4810,14 @@ def pair_html(body):
 
 
 def pair_page_js():
-    """The private page's part that pairs: asks for a code, shows it, waits for a phone to say yes, then reloads."""
-    return ("<div id=qrBox style='margin:22px 0 6px;display:flex;gap:22px;align-items:center;flex-wrap:wrap'></div>"
+    """The private page's part that pairs: asks for a code, shows it, waits for a phone to say yes, then reloads.
+    Relay 99: the QR code with the code under it, centred (the page's first thing)."""
+    return ("<div id=qrBox style='margin:14px 0 6px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center'></div>"
             "<p id=qrMsg class=muted></p><script>(function(){var box=document.getElementById('qrBox'),msg=document.getElementById('qrMsg'),s='';"
             "function post(u,o){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})}).then(function(r){return r.json()})}"
             "function start(){post('/pair/new').then(function(j){if(!j.code){msg.textContent=j.error||'';setTimeout(start,60000);return}s=j.secret;"
             "box.innerHTML='<div style=\"background:#fff;padding:8px;border-radius:10px;line-height:0\">'+j.svg+'</div>'+"
-            "'<div style=\"max-width:300px\"><p style=\"margin:0 0 6px\">Scan this with your phone, where you are signed in to Fallblatt, to sign in this screen.</p>'+"
-            "'<p style=\"margin:0;color:#8d887d\">Or open <b style=\"color:#e8e2d0\">'+j.host+'/pair</b> on your phone and type</p>'+"
+            "'<div><p style=\"margin:0;color:#8d887d\">Or open <b style=\"color:#e8e2d0\">'+j.host+'/pair</b> on your phone and type</p>'+"
             "'<p style=\"margin:4px 0 0;font:700 34px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#f2b134\">'+j.code+'</p></div>';"
             "setTimeout(wait,2500)}).catch(function(){setTimeout(start,15000)})}"
             "function wait(){post('/pair/wait',{secret:s}).then(function(j){if(j.ok){msg.textContent='Signed in. Opening the board…';location.reload();return}"
@@ -4068,6 +5116,42 @@ def guest_spot(pid):
         return sp
 
 
+SKY_REPORTS_MAX = 200      # relay 72: Sky view's reports kept per profile (the oldest go)
+SKY_REPORT_DROP = {"lat", "lon", "latitude", "longitude", "place", "here", "pos", "position", "image", "picture"}
+
+
+def sky_report_clean(v, depth=0):
+    """A Sky view report (relay 72) as numbers, flags and short words only: no picture, no place, nothing long."""
+    if isinstance(v, bool) or v is None:
+        return v
+    if isinstance(v, (int, float)):
+        return round(v, 3) if math.isfinite(v) else None
+    if isinstance(v, str):
+        return re.sub(r"[\x00-\x1f]", "", v)[:120]
+    if isinstance(v, list) and depth < 3:
+        return [sky_report_clean(x, depth + 1) for x in v[:240]]
+    if isinstance(v, dict) and depth < 3:
+        return {k: sky_report_clean(x, depth + 1) for k, x in list(v.items())[:40]
+                if isinstance(k, str) and re.fullmatch(r"[A-Za-z0-9_]{1,24}", k) and k.lower() not in SKY_REPORT_DROP}
+    return None
+
+
+def sky_report_save(pid, rep):
+    """Adds a report to the profile's skyreports.jsonl, keeping the newest SKY_REPORTS_MAX. Returns how many are kept."""
+    f = DATA_DIR / "profiles" / pid / "skyreports.jsonl"
+    with _data_lock:
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+        lines = (lines + [json.dumps(rep, separators=(",", ":"))])[-SKY_REPORTS_MAX:]
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        os.replace(tmp, f)
+    return len(lines)
+
+
 def fr24_limit(p):
     """A profile's Flightradar24 credits a day (relay 42): set on the admin page, else by whether it has an account."""
     v = p.get("fr24Limit")
@@ -4278,6 +5362,34 @@ button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6
 button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}button.big{margin:8px 0 14px;padding:14px 22px;font-size:18px;border-radius:10px}form{display:inline}
 .link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;user-select:all;-webkit-user-select:all;
 font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
+
+
+# The page a visitor without a profile gets (relay 99, the clarity pass's pick B): the QR code and its code first (most
+# arrive with a signed-in phone in the other hand), the two ways in as buttons, one line on what Fallblatt is. "I have an
+# invite link" opens a field for a pasted link: only a /join/ link of this same site is opened, anything else is refused
+# (no other site, nothing else on this one), and the link goes nowhere but the address bar.
+PRIVATE_CSS = ("<style>.si h1{text-align:center;margin:0 0 4px}.si .muted{text-align:center;font-size:14px;margin:0}"
+              ".siBtns{display:grid;gap:10px;margin:18px 0 14px}.siBtns a,.siBtns button{display:block;box-sizing:border-box;width:100%;margin:0;"
+              "padding:14px;border-radius:12px;text-align:center;font:700 16px/1.2 system-ui,sans-serif;text-decoration:none;cursor:pointer}"
+              ".siBtns a{color:#111;background:#f2b134}.siBtns button{background:none;color:#e8e2d0;border:1px solid #4a4c52}"
+              "#inv{display:grid;gap:8px;margin:0 0 14px}#inv[hidden]{display:none}#inv input{width:100%;box-sizing:border-box}"
+              "#invErr{min-height:1.2em;color:#e0705a;font-size:14px;margin:0}.word{justify-content:center}</style>")
+PRIVATE_JS = ("<script>(function(){var b=document.getElementById('invBtn'),f=document.getElementById('inv'),i=document.getElementById('invLnk'),"
+             "e=document.getElementById('invErr');b.onclick=function(){f.hidden=false;b.setAttribute('aria-expanded','true');i.focus()};"
+             "f.onsubmit=function(ev){ev.preventDefault();var v=i.value.trim(),m=null;"
+             "try{var u=new URL(v,location.href);if(/^https?:$/.test(u.protocol)&&u.origin===location.origin)"
+             "m=u.pathname.match(/^\\/join\\/([A-Za-z0-9_-]{16,64})\\/?$/)}catch(x){}"
+             "if(!m){e.textContent=\"That isn't an invite link for this board.\";return}"
+             "location.href='/join/'+m[1]}})();</script>")
+PRIVATE_PAGE = (
+    PRIVATE_CSS + "<div class=si><h1>This board is private</h1>"
+    "<p class=muted>Scan with a phone that is signed in, or type the code there</p>",
+    "<div class=siBtns><a href='/signin'>Sign in with your account</a>"
+    "<button type=button id=invBtn aria-expanded=false aria-controls=inv>I have an invite link</button></div>"
+    "<form id=inv hidden><input type=text id=invLnk autocomplete=off autocapitalize=off spellcheck=false "
+    "placeholder='Paste your invite link' aria-label='Your invite link'><button class=go type=submit>Open</button>"
+    "<p id=invErr role=alert></p><p class=muted>No link, or it has run out? Ask for a new one.</p></form>"
+    "<p class=muted>Fallblatt shows the planes over a home, for its friends and family.</p></div>" + PRIVATE_JS)
 
 
 def plain_page(title, body, refresh=None):
@@ -4731,6 +5843,31 @@ def screen_place(q):
     return k, (lat, lon), r
 
 
+# Relay 70: a live position counts only while the screen's fix is fresh. Boards since 1.88.0.1 send its age with each
+# position request (&fix=seconds, -1: none yet); a stale one (a saved spot from a trip, before the first fix) records no
+# sightings, scores nothing and starts no gap filler. Relay 72: a live request without it is stale too (only an old
+# copy of the app, kept in a phone's cache, leaves it out; one logged a plane 1,100 km away from a trip's spot).
+LIVE_FRESH_S = 300
+# Relay 81 (1.97.6, to-do #140): nothing counts while the app is in the background. A page that is hidden says bg=1 with
+# its position requests (since 1.87.1, for the gap filler); a live one with it is stale too, so a phone with the app
+# in its pocket (its fixes and requests go on, more slowly) records no sightings, scores nothing and fills no bingo
+# square. Only live places: a saved place or home (the TV boards) is as before, hidden or not. A page that sends no
+# flag counts as visible. The request after the page is shown again carries none and counts as usual.
+
+
+def live_stale(q, place):
+    if not place or place[0] != "live":
+        return False
+    if q.get("bg"):
+        return True
+    if "fix" not in q:
+        return True
+    try:
+        return not 0 <= float(q["fix"][0]) <= LIVE_FRESH_S
+    except ValueError:
+        return True
+
+
 def _clean_places(items):
     out, seen = [], set()
     for it in (items if isinstance(items, list) else [])[:20]:
@@ -5022,7 +6159,7 @@ def now_json(pid, st):
             continue
         x, y = (ac["lon"] - lon0) * kx, (ac["lat"] - lat0) * ky
         d = math.hypot(x, y)
-        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        tc, cs, reg = str(ac.get("t") or "").upper(), no_cs(ac.get("flight")), str(ac.get("r") or "").upper()
         m_ = re.match(r"^([A-Z]{3})\d", cs)
         if d > radius or _list_hit(hide_list, tc, cs, reg, m_.group(1) if m_ else ""):
             continue
@@ -5086,7 +6223,7 @@ def window_planes(who, centre, spot, st):
         alt = ac.get("alt_baro") if isinstance(ac.get("alt_baro"), (int, float)) else ac.get("alt_geom")
         if cpa > 5 or (isinstance(alt, (int, float)) and alt > 20000):
             continue
-        tc, cs, reg = str(ac.get("t") or "").upper(), str(ac.get("flight") or "").strip().upper(), str(ac.get("r") or "").upper()
+        tc, cs, reg = str(ac.get("t") or "").upper(), no_cs(ac.get("flight")), str(ac.get("r") or "").upper()
         m_ = re.match(r"^([A-Z]{3})\d", cs)
         al = m_.group(1) if m_ else ""
         if _list_hit(hide_list, tc, cs, reg, al):
@@ -5251,8 +6388,9 @@ def review_check(who, subs, spot, st):
 
 # A plane's photo for the boards' share picture (relay 47, to-do #51): a browser can't save a picture that has another
 # site's photo in it, so the relay passes the photo on, from the photo sites the boards use only, images only, a few MB
-# at most. The last few are kept an hour.
-PHOTO_HOSTS = ("upload.wikimedia.org", "airport-data.com", ".airport-data.com", "cdn.jetphotos.com", ".plnspttrs.net")
+# at most. The last few are kept an hour. Relay 73: never Planespotters.net's photos (their terms forbid passing them on);
+# Wikipedia's model pictures now also come from thumb.wikimedia.org.
+PHOTO_HOSTS = ("upload.wikimedia.org", "thumb.wikimedia.org", "airport-data.com", ".airport-data.com", "cdn.jetphotos.com")
 PHOTO_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
 PHOTO_MAX = 4 * 1024 * 1024
 _photos = collections.OrderedDict()        # url -> (time, content type, bytes)
@@ -5289,6 +6427,1393 @@ def photo_get(u):
         while len(_photos) > 30:
             _photos.popitem(last=False)
     return 200, ctype, body
+
+
+# A plane's own photo from Planespotters.net (relay 73, to-do #95), for This aircraft and the plane cards: asked by
+# registration (by hex only when that finds none) and kept only when the photo's page names the same registration (a
+# hex can belong to another aircraft by now: 44D0AB gave OO-TEK's photo, not the Belgian Air Force's CH-10). Their
+# terms (planespotters.net/photo/api): a User-Agent naming the app with a contact address; answers kept 24 hours at
+# most (23 here, the boards keep theirs an hour more at most); the photo itself loaded only by the screen that shows
+# it, straight from the address given, never kept or passed on (so not through /photo, nor in the share picture); every
+# address used unchanged; the photographer credited next to the photo, which links to its page.
+PS_API = "https://api.planespotters.net/pub/photos"
+PS_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
+PS_KEEP, PS_FAIL, PS_GAP, PS_WAIT, PS_REST = 23 * 3600, 600, 1.0, 4.0, 1800
+PS_IMG = ("https://",)                     # the photo's own address must be one of these
+_ps_cache = collections.OrderedDict()      # registration -> (time, [(photo, its makers)], answered)
+_ps_next = [0.0]                           # the earliest time for the next request: one a second
+_ps_rest = [0.0]                           # refused (403, 429): no requests until then
+
+
+def _ps_like(reg):
+    """A registration as the start of a photo page's name (/photo/<id>/oe-lbp-austrian-airlines-...): its letters and
+    digits in order, a dash allowed between them, then a dash or the end."""
+    chars = re.sub(r"[^a-z0-9]", "", reg.lower())
+    return re.compile("-?".join(chars) + "(-|$)") if chars else None
+
+
+# Relay 95 (to-do #168): a registration can pass to another aircraft (a US one takes its hex along), and Planespotters
+# may still show the one before: N700GR, now a Piper M700, gave a Bombardier Global's photo. A photo's page name says
+# what it shows (n700gr-goodrich-bombardier-global-5000-...), so a photo whose makers don't include the plane's is
+# skipped (the next one is taken, else the model's picture), without another request. When the photo or the plane (its
+# model's names, from the board) names no maker known here, the photo stays. Makers that merged or took over a model
+# count as one; PS_ALSO: models another maker built first (an A220's older photos say Bombardier CSeries).
+PS_MAKERS = {
+    "airbus": ("airbus", "airbus-helicopters", "eurocopter", "aerospatiale", "sud-aviation", "mbb"),
+    "boeing": ("boeing", "mcdonnell-douglas", "douglas", "mcdonnell"),
+    "bombardier": ("bombardier", "canadair", "learjet", "de-havilland", "dhc", "viking"),
+    "embraer": ("embraer",), "atr": ("atr",), "fokker": ("fokker",), "saab": ("saab",),
+    "textron": ("cessna", "beechcraft", "beech", "hawker", "raytheon", "textron"),
+    "bae": ("bae", "british-aerospace", "avro", "hawker-siddeley"), "gulfstream": ("gulfstream", "grumman"),
+    "dassault": ("dassault",), "pilatus": ("pilatus",), "daher": ("daher", "socata", "tbm"), "piper": ("piper",),
+    "cirrus": ("cirrus",), "diamond": ("diamond",), "mooney": ("mooney",), "honda": ("honda", "hondajet"),
+    "bell": ("bell",), "sikorsky": ("sikorsky",), "robinson": ("robinson",),
+    "leonardo": ("leonardo", "agustawestland", "agusta", "westland"), "lockheed": ("lockheed", "lockheed-martin"),
+    "antonov": ("antonov",), "ilyushin": ("ilyushin",), "tupolev": ("tupolev",), "sukhoi": ("sukhoi",),
+    "comac": ("comac",), "mitsubishi": ("mitsubishi",), "tecnam": ("tecnam",),
+}
+PS_ALSO = ((re.compile(r"-a-?220-|-bcs[13]-"), {"bombardier"}), (re.compile(r"-crj"), {"bombardier", "mitsubishi"}),
+           (re.compile(r"-hawker-"), {"bae"}))
+
+
+def _ps_makers(text, plane=False):
+    """The makers (PS_MAKERS' keys) that a photo's page name or a plane's model names name, as whole words."""
+    t = "-" + re.sub(r"[^a-z0-9]+", "-", str(text or "").lower()).strip("-") + "-"
+    found = {m for m, words in PS_MAKERS.items() if any(f"-{w}-" in t for w in words)}
+    return found.union(*(ms for rx, ms in PS_ALSO if rx.search(t))) if plane else found
+
+
+def _ps_list(photos, like):
+    """The board's part of the photos in an answer that show this registration, with addresses that are theirs, each
+    with the makers its page name gives after the registration."""
+    out = []
+    for p in photos or []:
+        try:
+            img, link = p["thumbnail_large"], p["link"]
+            src, size, page = img["src"], img.get("size") or {}, urllib.parse.urlsplit(link)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        name = page.path.rstrip("/").rsplit("/", 1)[-1].lower()
+        m = like.match(name) if like else None
+        if (m and page.scheme == "https" and (page.hostname or "").endswith("planespotters.net")
+                and str(src).startswith(PS_IMG)):
+            out.append(({"src": src, "w": size.get("width"), "h": size.get("height"), "link": link,
+                         "by": str(p.get("photographer") or "").strip()[:80]}, _ps_makers(name[m.end():])))
+    return out
+
+
+def _ps_pick(found, model):
+    """The first photo whose aircraft can be the plane: the same maker, or a maker one of them doesn't name."""
+    plane = _ps_makers(model, True)
+    return next((p for p, makers in found or [] if not plane or not makers or plane & makers), None)
+
+
+def _ps_ask(kind, value):
+    """Planespotters' photos for a registration or a hex (a list, maybe empty), or None when they can't be asked now
+    (refused a while ago, too many lookups waiting) or didn't answer."""
+    now = time.time()
+    with _lock:
+        if now < _ps_rest[0]:
+            return None
+        at = max(now, _ps_next[0])
+        if at - now > PS_WAIT:
+            return None
+        _ps_next[0] = at + PS_GAP
+    if at > now:
+        time.sleep(at - now)
+    status, _, body, _ = fetch(f"{PS_API}/{kind}/{urllib.parse.quote(value, safe='')}", timeout=8,
+                               headers={"User-Agent": PS_AGENT, "Accept": "application/json"})
+    if status in (403, 429):
+        with _lock:
+            _ps_rest[0] = time.time() + PS_REST
+        event("warn", f"Planespotters.net refused a photo lookup (HTTP {status}); asking again in {PS_REST // 60} minutes")
+        return None
+    try:
+        j = json.loads(body) if status == 200 else None
+    except ValueError:
+        j = None
+    if not isinstance(j, dict):
+        return None
+    return j["photos"] if isinstance(j.get("photos"), list) else [] if "error" in j else None   # "Reg input missing": none
+
+
+def plane_photo(reg, hex_="", model=""):
+    """{"photo": {src, w, h, link, by} or None} for a registration, or None when Planespotters couldn't be asked. model:
+    the plane's model names (relay 95), so that a photo of another maker's aircraft is skipped."""
+    key = re.sub(r"[^A-Z0-9-]", "", str(reg or "").upper())[:12]
+    hex_ = re.sub(r"[^0-9A-F]", "", str(hex_ or "").upper())[:6]
+    model = str(model or "")[:200]
+    like = _ps_like(key)
+    if not like:
+        return {"photo": None}
+    now = time.time()
+    with _lock:
+        hit = _ps_cache.get(key)
+        if hit and now - hit[0] < (PS_KEEP if hit[2] else PS_FAIL):
+            return {"photo": _ps_pick(hit[1], model)} if hit[2] else None
+    photos = _ps_ask("reg", key)
+    found = _ps_list(photos, like)
+    if photos is not None and not found and len(hex_) == 6:
+        photos = _ps_ask("hex", hex_)
+        found = _ps_list(photos, like)
+    answered = photos is not None
+    with _lock:
+        _ps_cache[key] = (now, found, answered)
+        _ps_cache.move_to_end(key)
+        while len(_ps_cache) > 3000:
+            _ps_cache.popitem(last=False)
+    return {"photo": _ps_pick(found, model)} if answered else None
+
+
+# ---------- the cards' facts (relay 74, to-do #113) ----------
+# The model, airline and airport cards' facts from Wikipedia and Wikidata, cleaned here once per page and kept about 30
+# days (data/facts.json), so the boards get plain values: Wikipedia's infobox and specs table need their templates,
+# references and units taken apart. A model by its Wikipedia page (the one the board's model lookup found); an airline by
+# its ICAO code through Wikidata (P230: the very company, subsidiaries too; by name, TUI and DHL found the wrong one);
+# an airport by its IATA code (P238). Wikipedia's words are CC BY-SA (the cards link the page); Wikidata's are CC0.
+# Relay 78 (1.96.2, to-do #129): the facts database. They live in data/facts.db (SQLite, read per card, not held in
+# memory; facts.json's moved in once), and once a month at night a background job (_facts_worker) refreshes every
+# airline still flying, every airport with an IATA code and the models (MODEL_TITLES, and every page a card asked for),
+# so a first tap finds its facts at once. The cards' lookups below stay the same: run in the job they ask for what they
+# need (_Need), the job fetches it for 50 cards together (50 items or pages a request) and runs them again. A key the
+# database doesn't have yet (a new type) is still looked up on its first tap.
+WM_AGENT = f"Fallblatt/{RELAY_VERSION} (+https://github.com/Belstria/overhead-board)"
+WIKI_API = "https://en.wikipedia.org/w/api.php"
+WIKIDATA_API = "https://www.wikidata.org/w/api.php"
+COMMONS_FILE = "https://commons.wikimedia.org/wiki/Special:FilePath/"
+COMMONS_API = "https://commons.wikimedia.org/w/api.php"
+SPARQL_API = "https://query.wikidata.org/sparql"
+FACTS_FILE = DATA_DIR / "facts.json"          # relay 74–77's; moved into FACTS_DB once (and left as it was)
+FACTS_DB = DATA_DIR / "facts.db"
+FACTS_KEEP, FACTS_FAIL, FACTS_GAP = 40 * 86400, 900, 0.2
+FACTS_EVERY = 28 * 86400       # the whole database is refreshed this often ...
+FACTS_NIGHT = (4 * 60 + 10, 6 * 60)   # ... between these minutes of the night (the relay's time): after the 03:40 backup
+FACTS_IMG_W = 500              # the photos' width on the cards (the refresh keeps the photo's own address at this size)
+FACTS_TEXT = 1500              # Wikipedia's introduction, at most this many characters (More info)
+_facts_busy = {}               # "kind:key" -> threading.Event while one request looks it up (the others wait for it)
+_facts_failed = {}             # "kind:key" -> when Wikimedia last couldn't be asked about it
+_wm_next = [0.0]               # the next request to Wikimedia, at most five a second
+# The board's model pages (its TYPES and MODEL_PAGES as its model lookup finds them): node tools/test/model_pics.js --relay
+MODEL_TITLES ="ATR 42|ATR 72|Aero Commander 500 family|Aero L-39 Albatros|AgustaWestland AW101|AgustaWestland AW109|AgustaWestland AW119 Koala|AgustaWestland AW139|AgustaWestland AW169|AgustaWestland AW189|Airbus A220|Airbus A300|Airbus A310|Airbus A318|Airbus A319|Airbus A320 family|Airbus A320neo family|Airbus A321|Airbus A321neo|Airbus A330|Airbus A330neo|Airbus A340|Airbus A350|Airbus A380|Airbus A400M Atlas|Airbus Beluga|Airbus BelugaXL|Airbus C295|Airbus Helicopters H160|Airbus Helicopters H175|Airship|Antonov An-12|Antonov An-124 Ruslan|Antonov An-140|Antonov An-148|Antonov An-2|Antonov An-22|Antonov An-225 Mriya|Antonov An-24|Antonov An-26|Antonov An-28|Antonov An-30|Antonov An-32|Antonov An-72|Aquila A 210|Autogyro|Aviat Husky|Aérospatiale Alouette II|Aérospatiale Alouette III|Aérospatiale Corvette|Aérospatiale Gazelle|Aérospatiale N 262|BAC One-Eleven|Beechcraft 1900|Beechcraft Baron|Beechcraft Bonanza|Beechcraft Duke|Beechcraft King Air|Beechcraft Model 18|Beechcraft Model 99|Beechcraft Premier I|Beechcraft Super King Air|Bell 206|Bell 212|Bell 407|Bell 412|Bell 429 GlobalRanger|Bell 505 Jet Ranger X|Bell UH-1 Iroquois|Beriev Be-200|Boeing 707|Boeing 717|Boeing 720|Boeing 727|Boeing 737|Boeing 737 Classic|Boeing 737 MAX|Boeing 737 Next Generation|Boeing 747|Boeing 747-400|Boeing 747-8|Boeing 747SP|Boeing 757|Boeing 767|Boeing 777|Boeing 777X|Boeing 787 Dreamliner|Boeing AH-64 Apache|Boeing B-52 Stratofortress|Boeing C-17 Globemaster III|Boeing CH-47 Chinook|Boeing Dreamlifter|Boeing E-3 Sentry|Boeing KC-135 Stratotanker|Boeing P-8 Poseidon|Boeing RC-135|Bombardier CRJ100/200|Bombardier CRJ700 series|Bombardier Challenger 300|Bombardier Challenger 600 series|Bombardier Global 7500|Bombardier Global Express|British Aerospace 125|British Aerospace 146|British Aerospace ATP|British Aerospace Jetstream|British Aerospace Jetstream 41|Britten-Norman BN-2 Islander|CASA C-212 Aviocar|CASA/IPTN CN-235|Canadair CL-415|Cessna 150|Cessna 152|Cessna 170|Cessna 172|Cessna 177 Cardinal|Cessna 180 Skywagon|Cessna 182 Skylane|Cessna 185 Skywagon|Cessna 206|Cessna 208 Caravan|Cessna 210 Centurion|Cessna 310|Cessna 340|Cessna 402|Cessna 404 Titan|Cessna 408 SkyCourier|Cessna 414|Cessna 421 Golden Eagle|Cessna 441 Conquest II|Cessna Citation Excel|Cessna Citation I|Cessna Citation II|Cessna Citation III|Cessna Citation Latitude|Cessna Citation Longitude|Cessna Citation Mustang|Cessna Citation Sovereign|Cessna Citation V|Cessna Citation X|Cessna CitationJet/M2|Cessna Skymaster|Cessna T303 Crusader|Cirrus SR20|Cirrus SR22|Cirrus Vision SF50|Comac C909|Comac C919|Concorde|Convair CV-240 family|Daher Kodiak|Dassault Falcon 10|Dassault Falcon 20|Dassault Falcon 2000|Dassault Falcon 50|Dassault Falcon 6X|Dassault Falcon 7X|Dassault Falcon 900|Dassault Rafale|De Havilland Canada DHC-5 Buffalo|De Havilland Canada DHC-6 Twin Otter|De Havilland Canada Dash 7|De Havilland Canada Dash 8|Diamond DA20 Katana|Diamond DA40 Diamond Star|Diamond DA42 Twin Star|Diamond DA50|Diamond DA62|Diamond HK36 Super Dimona|Dornier 228|Dornier 328|Douglas DC-3|Douglas DC-8|Eclipse 500|Embraer C-390 Millennium|Embraer E-Jet E2 family|Embraer E-Jet family|Embraer EMB 110 Bandeirante|Embraer EMB 120 Brasilia|Embraer ERJ family|Embraer Legacy 450/500 and Praetor 500/600|Embraer Legacy 600|Embraer Phenom 100|Embraer Phenom 300|Enstrom F-28|Eurocopter AS332 Super Puma|Eurocopter AS350 Écureuil|Eurocopter AS355 Écureuil 2|Eurocopter AS365 Dauphin|Eurocopter EC120 Colibri|Eurocopter EC130|Eurocopter EC135|Eurocopter EC145|Eurocopter EC155|Eurocopter EC725|Eurocopter Tiger|Eurofighter Typhoon|Evektor SportStar|Extra EA-300|Fairchild Dornier 328JET|Fairchild Swearingen Metroliner|Fokker 100|Fokker 50|Fokker 70|Fokker F27 Friendship|Fokker F28 Fellowship|GAF Nomad|General Dynamics F-16 Fighting Falcon|Glider (sailplane)|Grob G 109|Grob G 115|Grob G 120|Grumman G-73 Mallard|Grumman Gulfstream I|Guimbal Cabri G2|Gulfstream G100|Gulfstream G200|Gulfstream G280|Gulfstream G400/G500/G600|Gulfstream G550|Gulfstream G650/G700/G800|Gulfstream III|Gulfstream IV|Harbin Y-12|Hawker 400|Hawker 4000|Hawker 800|Hawker Siddeley HS 748|Honda HA-420 HondaJet|Hot air balloon|IAI Westwind|Ilyushin Il-114|Ilyushin Il-18|Ilyushin Il-62|Ilyushin Il-76|Ilyushin Il-86|Ilyushin Il-96|Junkers Ju 52|Kamov Ka-27|Learjet 31|Learjet 35|Learjet 40|Learjet 45|Learjet 55|Learjet 60|Learjet 70/75|Leonardo M-346|Let L-410 Turbolet|Lockheed C-130 Hercules|Lockheed C-5 Galaxy|Lockheed L-1011 TriStar|Lockheed L-188 Electra|Lockheed Martin C-130J Super Hercules|Lockheed Martin F-35 Lightning II|Lockheed P-3 Orion|MBB Bo 105|MBB/Kawasaki BK 117|MD Helicopters MD 500|MD Helicopters MD Explorer|McDonnell Douglas DC-10|McDonnell Douglas DC-9|McDonnell Douglas MD-11|McDonnell Douglas MD-80|McDonnell Douglas MD-90|Mil Mi-24|Mil Mi-8|Mitsubishi MU-2|Mooney M20|Mudry CAP 10|NAMC YS-11|NHIndustries NH90|Panavia Tornado|Partenavia P.68|Piaggio P.180 Avanti|Pilatus PC-12|Pilatus PC-21|Pilatus PC-24|Pilatus PC-6 Porter|Pilatus PC-7|Pilatus PC-9|Piper Aerostar|Piper J-3 Cub|Piper PA-18 Super Cub|Piper PA-20 Pacer|Piper PA-24 Comanche|Piper PA-28 Cherokee|Piper PA-30 Twin Comanche|Piper PA-31 Navajo|Piper PA-31T Cheyenne|Piper PA-32 Cherokee Six|Piper PA-32R|Piper PA-34 Seneca|Piper PA-38 Tomahawk|Piper PA-42 Cheyenne|Piper PA-44 Seminole|Piper PA-46|Reims-Cessna F406 Caravan II|Robin DR400|Robinson R22|Robinson R44|Robinson R66|SOCATA TB family|SOCATA TBM|Saab 105|Saab 2000|Saab 340|Schweizer S300|Short 330|Short 360|Short Belfast|Short SC.7 Skyvan|Sikorsky S-76|Sikorsky S-92|Sikorsky UH-60 Black Hawk|Tupolev Tu-134|Tupolev Tu-154|Tupolev Tu-204|Ultralight aviation|Yakovlev SJ-100|Yakovlev Yak-40|Yakovlev Yak-42".split("|")
+_MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+
+
+def _wm_get(url, params):
+    """A Wikimedia API answer (JSON), or None."""
+    with _lock:
+        at = max(time.time(), _wm_next[0])
+        _wm_next[0] = at + FACTS_GAP
+    if at > time.time():
+        time.sleep(at - time.time())
+    status, _, body, _ = fetch(url + "?" + urllib.parse.urlencode({"format": "json", "formatversion": "2", **params}), timeout=12,
+                               headers={"User-Agent": WM_AGENT, "Accept": "application/json"})
+    if status != 200:
+        return None
+    try:
+        return json.loads(body)
+    except ValueError:
+        return None
+
+
+class _Need(Exception):
+    """In the monthly refresh: a card's lookup needs something not fetched yet (in _wm_batch.need)."""
+
+
+class _Stop(Exception):
+    """The monthly refresh stops for tonight: the night is over, or Wikimedia doesn't answer."""
+
+
+_wm_batch = threading.local()  # the refresh's own thread: .on, .since, .stop_at, .need, .stats and what it fetched
+
+
+def _batch():
+    """The monthly refresh's state when this thread is the refresh, else None (a card asked: the lookups ask alone)."""
+    return _wm_batch if getattr(_wm_batch, "on", False) else None
+
+
+def _need(what):
+    _wm_batch.need.update(what)
+    raise _Need()
+
+
+def _wm_batch_get(url, params, timeout=60):
+    """One request of the refresh: Wikimedia's answer (JSON). One at a time, waiting as Retry-After and maxlag ask, and
+    again after an error (five times, longer each time); _Stop when it still doesn't answer or the night is over."""
+    b, sparql = _wm_batch, url == SPARQL_API
+    params = {"format": "json", **({} if sparql else {"formatversion": "2", "maxlag": "5"}), **params}
+    status = None
+    for i in range(6):
+        with _lock:
+            at = max(time.time(), _wm_next[0])
+            _wm_next[0] = at + FACTS_GAP
+        if at > time.time():
+            time.sleep(at - time.time())
+        if time.time() > b.stop_at:
+            raise _Stop("the night is over")
+        status, _, body, hdrs = fetch(url + "?" + urllib.parse.urlencode(params), timeout=timeout, headers={
+            "User-Agent": WM_AGENT, "Accept": "application/sparql-results+json" if sparql else "application/json"})
+        b.stats["requests"] += 1
+        b.stats["bytes"] += len(body or b"")
+        try:
+            j = json.loads(body) if status == 200 else None
+        except ValueError:
+            j = None
+        err = (j.get("error") or {}) if isinstance(j, dict) else {}
+        if isinstance(j, dict) and not err:
+            return j
+        if err and err.get("code") not in ("maxlag", "ratelimited", "internal_api_error_DBQueryTimeoutError"):
+            event("warn", f"Card facts refresh: Wikimedia said {err.get('code')} ({str(err.get('info'))[:120]})", echo=False)
+            return {}                                   # (those cards get what the others had; not the whole night stopped)
+        wait = _num(str((hdrs or {}).get("Retry-After") or "")) if status in (429, 503) or err else None
+        time.sleep(min(600, max(1, wait) if wait else 15 * 3 ** i))
+    raise _Stop(f"Wikimedia didn't answer ({status})")
+
+
+def _wm_pages(url, titles, params):
+    """Pages by title in one request (and its continuations: extracts come 20 at a time, long pages later): {asked
+    title: page or None}, through normalized titles and redirects."""
+    pages, alias, cont = {}, {}, {"continue": ""}
+    while cont:
+        j = _wm_batch_get(url, {"action": "query", "titles": "|".join(titles), "redirects": "1", **params, **cont})
+        q, cont = j.get("query") or {}, j.get("continue")
+        for x in (q.get("normalized") or []) + (q.get("redirects") or []):
+            alias[x.get("from")] = x.get("to")
+        for p in q.get("pages") or []:
+            have = pages.setdefault(p.get("title"), {})
+            have.update({k: v for k, v in p.items() if not have.get(k)})
+    out = {}
+    for t in titles:
+        f = t
+        for _ in range(4):
+            f = alias.get(f, f)
+        out[t] = pages.get(f)
+    return out
+
+
+def _wt_templates(text, prefixes):
+    """The bodies (without the braces) of the templates in wikitext whose name starts with one of `prefixes`."""
+    out, low = [], text.lower()
+    for pre in prefixes:
+        i = 0
+        while True:
+            i = low.find("{{" + pre, i)
+            if i < 0:
+                break
+            depth, j = 0, i
+            while j < len(text):
+                two = text[j:j + 2]
+                if two == "{{":
+                    depth, j = depth + 1, j + 2
+                elif two == "}}":
+                    depth, j = depth - 1, j + 2
+                    if depth == 0:
+                        break
+                else:
+                    j += 1
+            out.append(text[i + 2:j - 2])
+            i = j
+    return out
+
+
+def _wt_split(body):
+    """A template's parts at its own "|" (not those inside a nested template or link)."""
+    parts, cur, depth, i = [], [], 0, 0
+    while i < len(body):
+        two = body[i:i + 2]
+        if two in ("{{", "[["):
+            depth += 1
+            cur.append(two)
+            i += 2
+        elif two in ("}}", "]]"):
+            depth -= 1
+            cur.append(two)
+            i += 2
+        elif body[i] == "|" and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+            i += 1
+        else:
+            cur.append(body[i])
+            i += 1
+    parts.append("".join(cur))
+    return parts
+
+
+def _wt_strip(v):
+    v = re.sub(r"<!--.*?-->", "", v, flags=re.S)
+    v = re.sub(r"<ref[^>/]*/>", "", v, flags=re.I)
+    return re.sub(r"<ref[^>]*>.*?</ref>", "", v, flags=re.S | re.I)
+
+
+def _wt_params(body):
+    """A template's named parameters, keys in lower case with spaces (first_flight and "first flight" alike)."""
+    out = {}
+    for p in _wt_split(_wt_strip(body))[1:]:
+        k, eq, v = p.partition("=")
+        if eq:
+            out[re.sub(r"[\s_]+", " ", k).strip().lower()] = v.strip()
+    return out
+
+
+def _wt_tpl(inner):
+    """What a template shows, as far as the cards care (innermost templates first)."""
+    parts = [p.strip() for p in _wt_split(inner)]
+    name, args = parts[0].lower().replace("_", " ").strip(), parts[1:]
+    pos = [a for a in args if not re.match(r"^[\w ]+=", a)]
+    if re.match(r"^(start date|start-date|end date|birth date|dts|date)\b", name):
+        n = [a for a in pos if re.fullmatch(r"\d{1,4}", a)]
+        if n:
+            return "-".join([n[0]] + [f"{int(x):02d}" for x in n[1:3]])
+        return pos[0] if pos else ""
+    if name.startswith("as of"):
+        n = [a for a in pos if re.fullmatch(r"\d{1,4}", a)]
+        return f" (as of {'-'.join([n[0]] + [f'{int(x):02d}' for x in n[1:2]])})" if n else ""
+    if name in ("ubl", "unbulleted list", "plainlist", "plain list", "flatlist", "flat list", "hlist", "bulleted list", "ublist", "collapsible list", "unbulleted"):
+        return "\n".join(re.sub(r"^\s*\*\s*", "", x) for a in pos for x in a.split("\n") if x.strip())
+    if name in ("ndash", "snd", "spaced ndash", "–", "spnd", "nbsp", "sndash", "en dash"):
+        return "–" if "nbsp" not in name else " "
+    if name in ("mdash", "spaced mdash"):
+        return "—"
+    if name in ("convert", "cvt") and len(pos) >= 2:
+        return f"{pos[0]} {pos[1]}" if pos[1] not in ("-", "–", "to", "and") or len(pos) < 4 else f"{pos[0]}–{pos[2]} {pos[3]}"
+    if name.startswith("#expr:"):                                     # a sum the page works out: 1945-226-709-86
+        e = parts[0].split(":", 1)[1].replace(" ", "")
+        if re.fullmatch(r"\d+(?:\.\d+)?(?:[+-]\d+(?:\.\d+)?){0,9}", e):
+            v = sum(float(n) * (-1 if s == "-" else 1) for s, n in re.findall(r"([+-]?)(\d+(?:\.\d+)?)", e))
+            return str(int(v) if v.is_integer() else round(v, 2))
+        return ""
+    if name in ("nowrap", "nobr", "small", "sic", "big", "nobold", "noitalic", "nts", "ntsh", "val", "formatnum", "abbr", "flagcountry", "flag",
+                "flagicon", "lang", "lang-fr", "transl", "nowrap begin") and pos:
+        return pos[1] if name == "lang" and len(pos) > 1 else pos[0] if name != "flagicon" else ""
+    if name.startswith(("efn", "sfn", "refn", "cn", "citation needed", "r|", "rp", "cite", "notetag", "#tag", "update", "when", "clarify", "dubious",
+                        "better source", "verify", "fact", "by whom", "which", "failed verification", "inflation", "ref", "nbsp")) or name in ("r",):
+        return ""
+    return pos[0] if len(pos) == 1 else ""
+
+
+def _wt_text(v):
+    """Wikitext as plain text: no references, notes or markup; links as their words; line breaks kept as "\n"."""
+    v = _wt_strip(v or "")
+    v = re.sub(r"<br\s*/?>", "\n", v, flags=re.I)
+    for _ in range(8):
+        w = re.sub(r"\{\{([^{}]*)\}\}", lambda m: _wt_tpl(m.group(1)), v)
+        if w == v:
+            break
+        v = w
+    v = re.sub(r"\[\[(?:File|Image):[^\]]*\]\]", "", v, flags=re.I)
+    v = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", v)
+    v = re.sub(r"\[https?://\S+\s+([^\]]*)\]", r"\1", v)
+    v = re.sub(r"\[https?://\S+\]", "", v)
+    v = re.sub(r"'{2,}", "", v)
+    v = re.sub(r"<[^>]+>", "", v)
+    v = html.unescape(v).replace(" ", " ")
+    v = re.sub(r"[ \t]+", " ", v)
+    return "\n".join(x.strip(" ,;") for x in v.split("\n") if x.strip(" ,;")).strip()
+
+
+def _wt_link(v):
+    """The page the first link in a value leads to ("" for none)."""
+    m = re.search(r"\[\[([^\]|#]+)", _wt_strip(v or ""))
+    return m.group(1).strip() if m and not re.match(r"(?i)(file|image|category):", m.group(1)) else ""
+
+
+def _num(s):
+    """The first number in a text (4,442; 199; 1.5 million as 1500000), or None. An "as of" note doesn't count."""
+    s = re.sub(r"\(as of[^)]*\)", "", str(s or ""), flags=re.I)
+    s = re.sub(r"(?i)^\s*(as of|in|by)\s+[^,]*\d{4}\s*,\s*", "", s)
+    m = re.search(r"(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(million|billion)?", s)
+    if not m:
+        return None
+    n = float(m.group(1).replace(",", "") + (m.group(2) or ""))
+    n *= {"million": 1e6, "billion": 1e9}.get((m.group(3) or "").lower(), 1)
+    return int(n) if n == int(n) else n
+
+
+def _date(s):
+    """A text's first date as "YYYY-MM-DD", "YYYY-MM" or "YYYY" (1850-2099), or ""."""
+    s = str(s or "")
+    m = re.search(r"\b(1[89]\d\d|20\d\d)-(\d\d)(?:-(\d\d))?\b", s)
+    if m:
+        return "-".join(x for x in m.groups() if x)
+    mo = "|".join(_MONTHS)
+    m = re.search(rf"(?i)\b(\d{{1,2}})\s+({mo})\s+(1[89]\d\d|20\d\d)\b", s) or re.search(rf"(?i)\b({mo})\s+(\d{{1,2}}),?\s+(1[89]\d\d|20\d\d)\b", s)
+    if m:
+        g = m.groups()
+        d, mon = (g[0], g[1]) if g[0].isdigit() else (g[1], g[0])
+        return f"{g[2]}-{_MONTHS.index(mon.lower()) + 1:02d}-{int(d):02d}"
+    m = re.search(rf"(?i)\b({mo})\s+(1[89]\d\d|20\d\d)\b", s)
+    if m:
+        return f"{m.group(2)}-{_MONTHS.index(m.group(1).lower()) + 1:02d}"
+    m = re.search(r"\b(1[89]\d\d|20\d\d)\b", s)
+    return m.group(1) if m else ""
+
+
+def _wiki_page(title):
+    """An English Wikipedia page: (title, wikitext, its introduction as plain text), or None; False when not answered."""
+    b = _batch()
+    if b:
+        if not b.pages.get(title, (False,))[0]:
+            _need([("page", title)])
+        p = b.pages[title][1]
+    else:
+        j = _wm_get(WIKI_API, {"action": "query", "prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main",
+                               "exintro": "1", "explaintext": "1", "ppprop": "disambiguation", "redirects": "1", "titles": title})
+        if j is None:
+            return False
+        p = ((j.get("query") or {}).get("pages") or [{}])[0]
+    if p.get("missing") or p.get("invalid") or "disambiguation" in (p.get("pageprops") or {}):
+        return None
+    try:
+        wt = p["revisions"][0]["slots"]["main"]["content"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    return p.get("title") or title, wt, _intro(p.get("extract") or "")
+
+
+def _intro(text):
+    """Wikipedia's introduction for More info: whole paragraphs up to FACTS_TEXT characters (at least the first)."""
+    paras, out = [p.strip() for p in text.split("\n") if p.strip()], []
+    for p in paras:
+        if out and sum(len(x) + 1 for x in out) + len(p) > FACTS_TEXT:
+            break
+        out.append(p)
+    t = "\n".join(out)
+    return t if len(t) <= FACTS_TEXT + 400 else t[:FACTS_TEXT].rsplit(" ", 1)[0] + " …"
+
+
+def _wiki_extract(title):
+    """A page's introduction for More info (an airport's, without its wikitext), or None: not answered."""
+    b = _batch()
+    if b:
+        if title not in b.pages:
+            _need([("extract", title)])
+        p = b.pages[title][1]
+    else:
+        j = _wm_get(WIKI_API, {"action": "query", "prop": "extracts", "exintro": "1", "explaintext": "1", "redirects": "1", "titles": title})
+        if j is None:
+            return None
+        p = ((j.get("query") or {}).get("pages") or [{}])[0]
+    return _intro(p.get("extract") or "")
+
+
+def _wiki_url(title):
+    return "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"), safe="()_,'-")
+
+
+def _infobox(wt, prefixes):
+    """The named parameters of the page's infobox templates (several, as "Infobox aircraft begin" and "... type"),
+    from its introduction only (later infoboxes are about something else)."""
+    head = re.split(r"\n==[^=]", wt, maxsplit=1)[0]
+    out = {}
+    for b in _wt_templates(head, prefixes):
+        for k, v in _wt_params(b).items():
+            out.setdefault(k, v)
+    return out
+
+
+def _spec_rows(wt):
+    """The first table of the page's Specifications section, as (label, first value) in wikitext: airliners give their
+    numbers there (one column per variant; the first is the page's main one) instead of the specs template."""
+    m = re.search(r"\n==\s*(?:technical )?specifications?\b[^=\n]*==\s*\n", wt, flags=re.I)
+    if not m:
+        return []
+    sec = re.split(r"\n==[^=]", wt[m.end():], maxsplit=1)[0]
+    t = sec.find("{|")
+    if t < 0:
+        return []
+    rows = []
+    for row in re.split(r"\n\|-[^\n]*", sec[t:].split("\n|}", 1)[0]):
+        label, vals = "", []
+        for ln in row.split("\n"):
+            if ln.startswith("!") and not label:
+                cells = ln[1:].split("!!")
+                label = re.sub(r'^\s*[\w-]+\s*=\s*"?[^|"\[\]{}]*"?\s*\|(?!\|)', "", cells[0])
+                vals += [c for c in cells[1:] if c.strip()]
+                if "||" in label:
+                    label, *more = label.split("||")
+                    vals += more
+            elif ln.startswith("|") and not ln.startswith(("|}", "|+", "|-")):
+                vals += ln[1:].split("||")
+        if label and vals:
+            v = re.sub(r'^\s*(?:[\w-]+\s*=\s*"?[^|"\[\]{}]*"?\s*)+\|(?!\|)', "", vals[0])
+            rows.append((_wt_text(label).lower(), v))
+    return rows
+
+
+_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen "
+                                     "seventeen eighteen nineteen twenty".split())}
+
+
+def _qty(text, units):
+    """The first "<number> <unit>" of these units in a text: (number, unit), or (None, "")."""
+    m = re.search(r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(" + "|".join(units) + r")\b", text or "")
+    return (float(m.group(1).replace(",", "")), m.group(2)) if m else (None, "")
+
+
+def _seats(text):
+    """The most passengers a capacity text names ("three passengers", "396 (two classes) or 365 ... passengers")."""
+    t = re.sub(r"(?i)\b(" + "|".join(_WORDS) + r")\b", lambda m: str(_WORDS[m.group(1).lower()]), text or "")
+    out = []
+    for part in re.split(r"(?<!\d),|,(?!\d{3})|[;\n]", t):
+        if not re.search(r"(?i)passeng|seat|pax|people|persons|occupants|troops", part):
+            continue
+        part = re.sub(r"(?i)(\d{1,3}(,\d{3})+|\d+)(?:\.\d+)?\s*(?:lb|kg|m3|m2|cu ?ft|ft|in(?!\s+[a-z])|cm|t|l|us gal|ld3s?)\b", "", part)
+        part = re.sub(r"(?i)\b\d+\s*-?\s*class(es)?\b|\b\d+\s*(?:crew|pilots?)\b", "", part)
+        out += [int(x.replace(",", "")) for x in re.findall(r"\b(\d{1,3}(?:,\d{3})?)\b", part)]
+    out = [n for n in out if 1 <= n <= 900]
+    return max(out) if out else None
+
+
+def _first(*vals):
+    return next((v for v in vals if v), "")
+
+
+def _list(v, n=3):
+    """A value's items (a list template, lines or commas), as text."""
+    t = _wt_text(v)
+    items = [x.strip() for x in re.split(r"\n|•|·|;", t) if x.strip()]
+    if len(items) == 1 and t.count(",") >= 1 and not re.search(r"\d,\d", t):
+        items = [x.strip() for x in t.split(",") if x.strip()]
+    return items[:n]
+
+
+def model_facts(title):
+    """A model's facts from its Wikipedia page (the infobox and the first specs table), or None; False: not answered."""
+    pg = _wiki_page(title)
+    if not pg:
+        return pg
+    title, wt, text = pg
+    ib = _infobox(wt, ("infobox aircraft", "infobox_aircraft", "infobox military aircraft", "infobox helicopter", "infobox weapon"))
+    specs = next((_wt_params(b) for b in _wt_templates(wt, ("aircraft specs", "aircraft specifications", "aerospecs"))), {})
+    f = {}
+    for k, keys in (("firstFlight", ("first flight",)), ("introduced", ("introduction", "introduced", "introduced date", "entered service"))):
+        d = _date(_wt_text(_first(*(ib.get(x) for x in keys))))
+        if d:
+            f[k] = d
+    st = _wt_text(ib.get("status", "")).split("\n")[0]
+    if st and len(st) < 60:
+        f["status"] = st
+    users = _list(ib.get("primary user", ""), 1) + _list(ib.get("more users", ""), 3)
+    users = [re.sub(r"\s*\((?:historical|former|retired|formerly)\)\s*$", "", u, flags=re.I) for u in users]
+    users = [u for u in users if 2 < len(u) < 60 and not re.search(r"(?i)see |list of|various|private|civil(ian)? (operators|users)", u)]
+    if users:
+        f["mainUser"] = users[0]
+        if users[1:]:
+            f["moreUsers"] = users[1:4]
+    built = re.sub(r"\(\s*\(as of", "(as of", _wt_text(_first(ib.get("number built"), ib.get("built")))).replace("))", ")")
+    n = _num(built)
+    if n and n >= 1:
+        f["built"] = int(n)
+        if re.search(r"(?i)^\s*(over|more than|at least)|\+", built):
+            f["builtMore"] = True                                        # "44,000+": at least
+        m = re.search(r"\(as of (\d{4}(?:-\d\d)?)\)", built)
+        asof = m.group(1) if m else _date(re.split(r"(?i)as of|at end of|by end of|in\b", built, maxsplit=1)[1]) if re.search(r"(?i)as of|at end of|by end of", built) else ""
+        if asof:
+            f["builtAsOf"] = asof
+    prod = _wt_text(_first(ib.get("produced"), ib.get("construction date"), ib.get("production"), ib.get("manufactured")))
+    ys = re.findall(r"\b(1[89]\d\d|20\d\d)\b", prod)
+    if ys:
+        f["producedFrom"] = int(ys[0])
+        if re.search(r"(?i)present|today|ongoing|current", prod):
+            f["producedTo"] = "present"
+        elif len(ys) > 1:
+            f["producedTo"] = int(ys[-1])
+    dev = _first(ib.get("developed from"), ib.get("developed_from"))
+    if dev:
+        dt, dl = _list(dev, 1), _wt_link(dev)
+        if dt:
+            f["developedFrom"] = {"name": dt[0], "page": dl or dt[0]}
+    rows = [] if specs else _spec_rows(wt)                       # no specs template: the table (airliners)
+    row = lambda rx, no=r"$^": next((v for k, v in rows if re.search(rx, k) and not re.search(no, k)), "")   # noqa: E731
+    seats = _seats(_wt_text(specs.get("capacity", "")))
+    if not specs:
+        seats = max([n for k, v in rows if re.search(r"seat|passeng|pax|capacity|exit limit|class", k) and not re.search(r"cargo|fuel|crew|freight|volume|payload|baggage", k)
+                     for n in [_num(_wt_text(v))] if n and 1 <= n <= 900], default=None)
+    if seats:
+        f["seats"] = int(seats)
+    for k, base, rx in (("length", "length", r"^(overall )?length"), ("span", "span", r"wingspan|^span|^wing$|^wings$"), ("height", "height", r"^(overall )?height"),
+                        ("rotor", "main rotor diameter", r"rotor diameter")):
+        v = _num(_wt_text(specs.get(base + " m", "")))
+        if not v and _num(_wt_text(specs.get(base + " ft", ""))):
+            v = _num(_wt_text(specs.get(base + " ft"))) * 0.3048 + (_num(_wt_text(specs.get(base + " in", ""))) or 0) * 0.0254
+        if not v and rows:
+            q, u = _qty(_wt_text(row(rx, r"cabin|fuselage|wheel|area|sweep loading")), ("m", "ft"))
+            v = q * 0.3048 if q and u == "ft" else q
+        if v and 1 < v < 150:
+            f[k] = round(v, 2)
+    rng = _num(_wt_text(specs.get("range km", "")))
+    if not rng and _num(_wt_text(specs.get("range nmi", ""))):
+        rng = _num(_wt_text(specs.get("range nmi"))) * 1.852
+    if not rng and _num(_wt_text(specs.get("range miles", ""))):
+        rng = _num(_wt_text(specs.get("range miles"))) * 1.609344
+    if not rng and rows:
+        q, u = _qty(_wt_text(row(r"range", r"ferry|combat")), ("km", "nmi", "mi", "miles"))
+        rng = q and q * {"km": 1, "nmi": 1.852}.get(u, 1.609344)
+    if rng and 50 < rng < 25000:
+        f["range"] = int(round(rng))
+    spd = _num(_wt_text(_first(specs.get("max speed kmh"), specs.get("cruise speed kmh"))))
+    if not spd and _num(_wt_text(_first(specs.get("max speed kts"), specs.get("cruise speed kts")))):
+        spd = _num(_wt_text(_first(specs.get("max speed kts"), specs.get("cruise speed kts")))) * 1.852
+    if spd and 50 < spd < 4000:
+        f["speed"] = int(round(spd))
+    en, name, kind = _num(_wt_text(specs.get("eng1 number", ""))), _wt_text(specs.get("eng1 name", "")), _wt_text(specs.get("eng1 type", "")).lower()
+    if not specs and rows:
+        lab = next((k for k, v in rows if re.search(r"^engines?\b|powerplant|^engine \(", k)), "")
+        name = re.split(r",|\(", _wt_text(row(r"^engines?\b|powerplant|^engine \(")).split("\n")[0])[0].strip()
+        m = re.search(r"[×x]\s*(\d)", lab) or re.match(r"(\d)\s*[×x]\s*", name)
+        en = int(m.group(1)) if m else None
+        name = re.sub(r"\s+(or|and|/)$", "", re.sub(r"^\d\s*[×x]\s*", "", name)).strip()
+        if name and not en:
+            f["engines"] = {"name": name[:60]}
+    kind = next((k for k in ("turbofan", "turboprop", "turboshaft", "turbojet", "piston", "electric") if k in kind), "")
+    if en and 1 <= en <= 10 and (name or kind):
+        f["engines"] = {"n": int(en), **({"name": name.split("\n")[0][:60]} if name else {}), **({"kind": kind} if kind else {})}
+    return {"kind": "model", "title": title, "url": _wiki_url(title), "text": text, "facts": f}
+
+
+def _wd_find(prop, value):
+    """The Wikidata items with this identifier (an airline's ICAO code, an airport's IATA code): their ids, or None."""
+    b = _batch()
+    if b and prop in b.find:                     # the refresh has the whole list from Wikidata's query service
+        return list(b.find[prop].get(value, []))
+    j = _wm_get(WIKIDATA_API, {"action": "query", "list": "search", "srlimit": "10", "srsearch": f"haswbstatement:{prop}={value}"})
+    if j is None:
+        return None
+    return [h["title"] for h in (j.get("query") or {}).get("search") or [] if re.fullmatch(r"Q\d+", h.get("title", ""))]
+
+
+def _wd_items(ids, props="claims|sitelinks|labels"):
+    if not ids:
+        return {}
+    b = _batch()
+    if b:
+        want = set(props.split("|"))
+        miss = [q for q in ids[:50] if not want <= b.ents.get(q, (set(), None))[0]]
+        if miss:
+            _need(("ent", props, q) for q in miss)
+        return {q: b.ents[q][1] for q in ids[:50] if b.ents[q][1] is not None}
+    j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(ids[:50]), "props": props, "languages": "en", "sitefilter": "enwiki"})
+    return (j or {}).get("entities") or {}
+
+
+def _wd_claims(e, p, current=True):
+    """An item's statements of one property, the preferred first, without those that ended (current)."""
+    cs = [c for c in (e.get("claims") or {}).get(p, []) if c.get("rank") != "deprecated"]
+    if current:
+        cs = [c for c in cs if "P582" not in (c.get("qualifiers") or {})] or cs
+    return sorted(cs, key=lambda c: c.get("rank") != "preferred")
+
+
+def _wd_val(c):
+    return ((c.get("mainsnak") or {}).get("datavalue") or {}).get("value")
+
+
+def _wd_time(v):
+    """A Wikidata time as "YYYY-MM-DD", "YYYY-MM" or "YYYY", as precise as it is."""
+    m = re.match(r"\+?(\d{4})-(\d\d)-(\d\d)", (v or {}).get("time", "")) if isinstance(v, dict) else None
+    if not m:
+        return ""
+    p = v.get("precision", 9)
+    return m.group(1) if p <= 9 or m.group(2) == "00" else f"{m.group(1)}-{m.group(2)}" if p == 10 or m.group(3) == "00" else "-".join(m.groups())
+
+
+def _wd_label(e):
+    return ((e or {}).get("labels") or {}).get("en", {}).get("value", "")
+
+
+def _wd_pick(ids, items):
+    """Of several items with the same code, the one still going (no dissolution date) with an English page and the most statements."""
+    return max(ids, key=lambda q: ("P576" not in (items.get(q, {}).get("claims") or {}), "enwiki" in (items.get(q, {}).get("sitelinks") or {}),
+                                   len(items.get(q, {}).get("claims") or {})), default=None)
+
+
+def _commons(name, w=640):
+    b = _batch() if name else None
+    if b:                                        # the refresh: the photo's own address at the cards' size (no redirects)
+        if name not in b.imgs:
+            _need([("img", name)])
+        if b.imgs[name]:
+            return b.imgs[name]
+    return COMMONS_FILE + urllib.parse.quote(name.replace(" ", "_")) + f"?width={w}" if name else ""
+
+
+def _wd_title(title):
+    """The Wikidata item of an English Wikipedia page: (id, item), (None, {}) when there is none; None: not answered."""
+    b = _batch()
+    if b:
+        if title not in b.titles:
+            _need([("title", title)])
+        return b.titles[title]
+    j = _wm_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": title, "props": "claims|sitelinks|labels",
+                               "languages": "en", "sitefilter": "enwiki", "normalize": "1"})
+    if j is None:
+        return None
+    return next(((q, e) for q, e in (j.get("entities") or {}).items() if re.fullmatch(r"Q\d+", q)), (None, {}))
+
+
+# relay 77 (to-do #122): an airline flying under its group's name (Wizz Air Malta, easyJet Europe, Eurowings Europe,
+# Lufthansa CityLine) shows the brand's card, "Flown by" the company; one with its own name (Austrian, Lauda Europe)
+# keeps its own, "Part of" its group. The brand: a parent (P749 parent organization, P127 owned by) whose name without
+# a company word ("Wizz Air Holdings" → "Wizz Air") begins the company's name; the brand's card is the airline of that
+# name (an ICAO code and an English page: Wizz Air, the Hungarian airline whose page tells the whole group's fleet).
+CORP_TAIL = re.compile(r"(?:\s+(?:holdings?|group|plc|ag|se|sa|s\.a\.|ltd\.?|limited|gmbh|inc\.?|n\.v\.|company|corporation))+$", re.I)
+
+
+def _airline_parents(e):
+    """An airline's parents (current P749, then P127), each once: {id: item}, in that order, each marked "_part" when
+    it is a parent organization or owns at least half (a group, not a shareholder as BlackRock); None: not answered."""
+    ids, part = [], set()
+    for p in ("P749", "P127"):
+        for c in _wd_claims(e, p)[:4]:
+            v, share = _wd_val(c), ((c.get("qualifiers") or {}).get("P1107") or [{}])[0].get("datavalue", {}).get("value", {}).get("amount")
+            if isinstance(v, dict) and re.fullmatch(r"Q\d+", v.get("id", "")):
+                if v["id"] not in ids:
+                    ids.append(v["id"])
+                if p == "P749" or (_num(share) or 0) >= 0.5:
+                    part.add(v["id"])
+    if not ids:
+        return {}
+    items = _wd_items(ids)
+    if not items:
+        return None
+    is_person = lambda x: any((_wd_val(c) or {}).get("id") == "Q5" for c in _wd_claims(x, "P31", False))   # noqa: E731  (an owner, not a group)
+    return {q: {**items[q], "_part": q in part} for q in ids if q in items and not is_person(items[q])}
+
+
+def _airline_brand(q, e, parents):
+    """The brand an airline flies under, when it is a part of it with the brand's name: (id, name), None when it has
+    its own; False: not answered."""
+    name = _wd_label(e).casefold()
+    is_airline = lambda x: "P230" in (x.get("claims") or {}) and "enwiki" in (x.get("sitelinks") or {}) and "P576" not in (x.get("claims") or {})  # noqa: E731
+    for pq, pe in parents.items():
+        brand = CORP_TAIL.sub("", _wd_label(pe)).strip()
+        if len(brand) < 3 or not name.startswith(brand.casefold() + " "):
+            continue
+        if pq != q and is_airline(pe) and _wd_label(pe).casefold() == brand.casefold():
+            return pq, _wd_label(pe)
+        hit = _wd_title(brand)                                   # Wizz Air Holdings → the page "Wizz Air"
+        if hit is None:
+            return False
+        bq, be = hit
+        if bq and bq != q and is_airline(be):
+            return bq, _wd_label(be) or brand
+        if pq != q and is_airline(pe):
+            return pq, _wd_label(pe)
+    return None
+
+
+def airline_facts(icao):
+    """The facts for an airline's card by its ICAO code: its brand's (with flownBy: {name, icao}) when it flies under
+    its group's name, else its own. None: none there; False: not answered."""
+    ids = _wd_find("P230", icao)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    q = _wd_pick(ids, items)
+    if not q or "P576" in (items[q].get("claims") or {}):          # only a dissolved one (AZA, Alitalia's): not today's flights
+        return None
+    parents = _airline_parents(items[q])
+    if parents is None:
+        return False
+    brand = _airline_brand(q, items[q], parents)
+    if brand is False:
+        return False
+    v = facts_json("org", brand[0] if brand else q)
+    if v is None:
+        return False
+    if v.get("none"):
+        return None
+    return {**v, "flownBy": {"name": _wd_label(items[q]) or icao, "icao": icao}} if brand else v
+
+
+def airline_own_facts(icao):
+    """An airline's own facts by its ICAO code (also when it flies under its group's name): "Flown by" opens these."""
+    ids = _wd_find("P230", icao)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    q = _wd_pick(ids, items)
+    if not q or "P576" in (items[q].get("claims") or {}):
+        return None
+    return _airline_item_facts(q, items[q])
+
+
+def org_facts(q):
+    """An airline's or an airline group's facts by its Wikidata id (an airline's card, its brand's, or the group "Part
+    of" opens). A brand's fleet is the whole brand's: when its page counts only its own company (Wizz Air's 118, its
+    page pointing to Wizz Air Malta's and Wizz Air UK's), the companies with its name (under it or its holding without a
+    page) are added (fleetAll: true); a page counting them already (easyJet's 356) has the larger number and stays."""
+    items = _wd_items([q])
+    if not items:
+        return False
+    e = items.get(q)
+    if not e or "missing" in e:
+        return None
+    parents = _airline_parents(e)
+    if parents is None:
+        return False
+    v = _airline_item_facts(q, e, parents)
+    f = (v or {}).get("facts") or {}
+    if not v or not f.get("fleet") or "P230" not in (e.get("claims") or {}):
+        return v
+    brand = CORP_TAIL.sub("", _wd_label(e)).strip().casefold()
+    kids = []
+    for h in [q] + [pq for pq, pe in parents.items() if "enwiki" not in (pe.get("sitelinks") or {})][:2]:
+        ids = _wd_find("P749", h)
+        if ids is None:
+            return False
+        kids += [k for k in ids if k != q and k not in kids]
+    ki = _wd_items(kids[:20]) if kids else {}
+    kids = [k for k, ke in ki.items() if "P230" in (ke.get("claims") or {}) and "P576" not in (ke.get("claims") or {})
+            and "enwiki" in (ke.get("sitelinks") or {}) and _wd_label(ke).casefold().startswith(brand + " ")][:8]
+    fleets, need = [], False
+    for k in kids:
+        try:
+            kv = _airline_item_facts(k, ki[k], {})
+        except _Need:                          # the refresh: what all the companies need, asked for together
+            need = True
+            continue
+        if kv is False:
+            return False
+        if kv and (kv.get("facts") or {}).get("fleet") and kv.get("text") != v.get("text"):    # not a page leading back to the brand's (KLM Asia)
+            fleets.append(kv["facts"]["fleet"])
+    if need:
+        raise _Need()
+    if sum(fleets) > f["fleet"]:
+        f["fleet"], f["fleetAll"] = f["fleet"] + sum(fleets), True
+    return v
+
+
+def _airline_item_facts(q, e, parents=None):
+    """One airline's (or group's) facts: Wikidata (the company, hubs, alliance, owners, photo, group) and its Wikipedia
+    page's infobox (fleet, destinations, founded, first flight, employees). None: none there; False: not answered."""
+    if parents is None:
+        parents = _airline_parents(e)
+        if parents is None:
+            return False
+    title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
+    pg = _wiki_page(title) if title else None
+    if pg is False:
+        return False
+    ib, text = (_infobox(pg[1], ("infobox airline", "infobox company")), pg[2]) if pg else ({}, "")
+    refs = {}
+    for p in ("P113", "P114", "P159", "P127", "P749"):
+        for c in _wd_claims(e, p)[:4]:
+            v = _wd_val(c)
+            if isinstance(v, dict) and v.get("id"):
+                refs[v["id"]] = None
+    b = _batch()
+    if b:                                    # the refresh: their names only, a hub's code from the airports' list (their statements are large)
+        more = _wd_items(list(refs), "labels") if refs else {}
+    else:
+        more = _wd_items(list(refs), "labels|claims") if refs else {}
+    lab = lambda c: _wd_label(more.get((_wd_val(c) or {}).get("id")))           # noqa: E731
+    f = {}
+    founded = _first(_wd_time(_wd_val(next(iter(_wd_claims(e, "P571", False)), {}))), _date(_wt_text(ib.get("founded", ""))))
+    if founded:
+        f["founded"] = founded
+    com = _date(_wt_text(ib.get("commenced", "")))
+    if com:
+        f["commenced"] = com
+    hubs = []
+    for c in _wd_claims(e, "P113")[:4]:
+        h = more.get((_wd_val(c) or {}).get("id")) or {}
+        code = b.iata.get((_wd_val(c) or {}).get("id"), "") if b else next((str(_wd_val(x) or "") for x in _wd_claims(h, "P238")), "")
+        if _wd_label(h):
+            hubs.append({"name": _wd_label(h), **({"code": code} if re.fullmatch(r"[A-Z]{3}", code) else {})})
+    if not hubs:
+        hubs = [{"name": x} for x in _list(ib.get("hubs", ""), 3) if len(x) < 60]
+    if hubs:
+        f["hubs"] = hubs
+    al = next((lab(c) for c in _wd_claims(e, "P114")), "") or _first(*_list(ib.get("alliance", ""), 1))
+    if re.fullmatch(r"(?i)star alliance|skyteam|oneworld|vanilla alliance|u-fly alliance|value alliance", al or ""):   # not "TUI Travel"
+        f["alliance"] = al
+    hq = next((lab(c) for c in _wd_claims(e, "P159")), "") or _first(*_list(ib.get("headquarters", ""), 1))
+    if hq and len(hq) < 60:
+        f["headquarters"] = hq
+    owners = []
+    for c in _wd_claims(e, "P127")[:3]:
+        share = ((c.get("qualifiers") or {}).get("P1107") or [{}])[0].get("datavalue", {}).get("value", {}).get("amount")
+        if lab(c):
+            owners.append({"name": lab(c), **({"share": round(float(share) * 100)} if share else {})})
+    if not owners:
+        p = next((lab(c) for c in _wd_claims(e, "P749")), "") or _first(*_list(_first(ib.get("parent"), ib.get("owner")), 1))
+        if p and len(p) < 60:
+            owners = [{"name": p}]
+    if owners:
+        f["owners"] = owners
+    for k, key in (("fleet", "fleet size"), ("destinations", "destinations")):
+        n = _num(_wt_text(ib.get(key, "")))
+        if n and 1 <= n <= 5000:
+            f[k] = int(n)
+    emp = _wt_text(_first(ib.get("num employees"), ib.get("employees")))
+    n = _num(emp)
+    if n and n >= 5:
+        f["employees"] = int(n)
+    else:
+        c = next(iter(_wd_claims(e, "P1128", False)), None)
+        if c and _num((_wd_val(c) or {}).get("amount")):
+            f["employees"] = int(_num((_wd_val(c) or {}).get("amount")))
+    cs = _wt_text(ib.get("callsign", "")).split("\n")[0]
+    if cs and len(cs) < 30:
+        f["callsign"] = cs.upper()
+    img = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P18")), "")
+    out = {"kind": "airline", "title": title or _wd_label(e), "name": _wd_label(e), "qid": q, "text": text, "facts": f}
+    code = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P230")), "")
+    if re.fullmatch(r"[A-Z]{3}", code):
+        out["icao"] = code
+    # its group, for "Part of": the first parent with an English page (not a holding without one, as Wizz Air's), else
+    # the page's infobox parent (Lauda Europe's Ryanair Holdings is only there)
+    g = next(((pq, pe) for pq, pe in parents.items() if pq != q and pe.get("_part") and "enwiki" in (pe.get("sitelinks") or {}) and _wd_label(pe)), None)
+    if not g:
+        m = re.search(r"\[\[([^\]|#]+)", _first(ib.get("parent"), ib.get("parent company"), ib.get("owner")) or "")
+        hit = _wd_title(m.group(1).strip()) if m else None
+        if hit and hit[0] and hit[0] != q and _wd_label(hit[1]):
+            g = hit
+    if g:
+        out["group"] = {"name": _wd_label(g[1]), "qid": g[0]}
+    if title:
+        out["url"] = _wiki_url(title)
+    if img:
+        out["img"] = _commons(img)
+    return out
+
+
+def airport_facts(iata):
+    """An airport's facts by its IATA code from Wikidata (passengers a year, elevation, opened, runways, operator,
+    photo) with its Wikipedia page's introduction. None: none there; False: not answered."""
+    ids = _wd_find("P238", iata)
+    if ids is None:
+        return False
+    items = _wd_items(ids)
+    ids = [q for q in ids if any(str(_wd_val(c) or "").upper() == iata for c in _wd_claims(items.get(q, {}), "P238", False))] or ids
+    q = _wd_pick(ids, items)
+    if not q:
+        return None
+    e = items[q]
+    title = ((e.get("sitelinks") or {}).get("enwiki") or {}).get("title", "")
+    f, text = {}, ""
+    if title:
+        text = _wiki_extract(title)
+        if text is None:
+            return False
+    pax = []
+    for c in _wd_claims(e, "P3872", False):
+        v, qy = _wd_val(c) or {}, (((c.get("qualifiers") or {}).get("P585") or [{}])[0].get("datavalue") or {}).get("value")
+        n, y = _num(v.get("amount")), _wd_time(qy)[:4]
+        if n and y:
+            pax.append((y, c.get("rank") == "preferred", n))
+    if pax:
+        y, _, n = max(pax)
+        f["passengers"], f["passengersYear"] = int(n), int(y)
+    c = next(iter(_wd_claims(e, "P2044", False)), None)
+    if c:
+        v = _wd_val(c) or {}
+        n = _num(v.get("amount"))
+        if n is not None:
+            f["elevation"] = int(round(n * 0.3048 if str(v.get("unit", "")).endswith("/Q3710") else n))
+    op = _first(_wd_time(_wd_val(next(iter(_wd_claims(e, "P1619", False)), {}))), _wd_time(_wd_val(next(iter(_wd_claims(e, "P571", False)), {}))))
+    if op:
+        f["opened"] = op
+    rw = [str(_wd_val(c) or "") for c in _wd_claims(e, "P529", False)]
+    if rw:
+        f["runways"] = len(rw)
+    refs = {(_wd_val(c) or {}).get("id"): 0 for p in ("P137", "P931", "P17") for c in _wd_claims(e, p)[:2] if isinstance(_wd_val(c), dict)}
+    more = _wd_items([r for r in refs if r], "labels") if any(refs) else {}
+    for k, p in (("operator", "P137"), ("serves", "P931"), ("country", "P17")):     # its operator, city and country
+        v = next((_wd_label(more.get((_wd_val(c) or {}).get("id"))) for c in _wd_claims(e, p)), "")
+        if v:
+            f[k] = v
+    co = _wd_val(next(iter(_wd_claims(e, "P625", False)), {})) or {}
+    if isinstance(co, dict) and co.get("latitude") is not None:
+        f["lat"], f["lon"] = round(co["latitude"], 4), round(co["longitude"], 4)
+    img = next((str(_wd_val(c) or "") for c in _wd_claims(e, "P18")), "")
+    out = {"kind": "airport", "title": title or _wd_label(e), "name": _wd_label(e), "qid": q, "text": text, "facts": f}
+    if title:
+        out["url"] = _wiki_url(title)
+    if img:
+        out["img"] = _commons(img)
+    return out
+
+
+FACTS_KINDS = {"model": model_facts, "airline": airline_facts, "airline-own": airline_own_facts, "org": org_facts, "airport": airport_facts}
+FACTS_VER = {"airline": "2"}   # relay 77: an airline's card is its brand's now (to-do #122): relay 74's kept answers are asked again
+_FACTS_PREFIX = {f"{kind}{FACTS_VER.get(kind, '')}": kind for kind in FACTS_KINDS}    # a key's beginning -> its kind
+
+
+_fdb = None                    # the facts database's connection (relay 78), shared by the threads under _fdb_lock
+_fdb_lock = threading.Lock()
+
+
+def _facts_db():
+    """The facts database, opened the first time; relay 74–77's facts.json moves in once (and stays as it was)."""
+    global _fdb
+    moved = 0
+    with _fdb_lock:
+        if _fdb is None:
+            FACTS_DB.parent.mkdir(parents=True, exist_ok=True)
+            db = sqlite3.connect(str(FACTS_DB), check_same_thread=False)
+            db.execute("PRAGMA journal_mode=WAL")
+            db.execute("PRAGMA synchronous=NORMAL")
+            db.execute("CREATE TABLE IF NOT EXISTS facts (k TEXT PRIMARY KEY, t REAL NOT NULL, v TEXT)")
+            db.execute("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)")
+            if not db.execute("SELECT 1 FROM meta WHERE k = 'moved'").fetchone():
+                raw, now = _load(FACTS_FILE, {}), set(_FACTS_PREFIX)
+                rows = [(k, float(v["t"]), json.dumps(v.get("v"), separators=(",", ":"))) for k, v in (raw if isinstance(raw, dict) else {}).items()
+                        if isinstance(v, dict) and isinstance(v.get("t"), (int, float)) and k.split(":", 1)[0] in now]   # not relay 74's airlines
+                with db:
+                    db.executemany("INSERT OR IGNORE INTO facts VALUES (?, ?, ?)", rows)
+                    db.execute("INSERT INTO meta VALUES ('moved', ?)", (json.dumps({"at": time.time(), "entries": len(rows)}),))
+                moved = len(rows)
+            _fdb = db
+    if moved:
+        event("info", f"Moved {moved} cards' facts into {FACTS_DB.name}", echo=False)
+    return _fdb
+
+
+def _facts_get(k):
+    """A kept answer: {"t": when, "v": the facts or None (nothing there)}, or None."""
+    db = _facts_db()
+    with _fdb_lock:
+        r = db.execute("SELECT t, v FROM facts WHERE k = ?", (k,)).fetchone()
+    return {"t": r[0], "v": json.loads(r[1]) if r[1] else None} if r else None
+
+
+def _facts_put(k, v):
+    db = _facts_db()
+    with _fdb_lock, db:
+        db.execute("INSERT OR REPLACE INTO facts VALUES (?, ?, ?)", (k, time.time(), json.dumps(v, separators=(",", ":"))))
+
+
+def _facts_meta(k, v=...):
+    """The database's notes (the refresh going on, its last one): one read, or set (None removes it)."""
+    db = _facts_db()
+    with _fdb_lock:
+        if v is ...:
+            r = db.execute("SELECT v FROM meta WHERE k = ?", (k,)).fetchone()
+            return json.loads(r[0]) if r else None
+        with db:
+            if v is None:
+                db.execute("DELETE FROM meta WHERE k = ?", (k,))
+            else:
+                db.execute("INSERT OR REPLACE INTO meta VALUES (?, ?)", (k, json.dumps(v)))
+
+
+def _facts_keys(since=None):
+    """The kept keys by kind ({kind: [key, ...]}), all or those refreshed since then."""
+    db, out = _facts_db(), {}
+    with _fdb_lock:
+        rows = db.execute("SELECT k FROM facts" + (" WHERE t >= ?" if since else ""), (since,) if since else ()).fetchall()
+    for (k,) in rows:
+        pre, _, key = k.partition(":")
+        if pre in _FACTS_PREFIX:
+            out.setdefault(_FACTS_PREFIX[pre], []).append(key)
+    return out
+
+
+def facts_json(kind, key):
+    """The facts for one card: {kind, title, name, url, text, img, facts}, or {kind, none: true} when there are none;
+    None when Wikipedia or Wikidata can't be asked now (and nothing older is kept). One lookup per page a month: a
+    second screen asking meanwhile waits for the first one's answer. The monthly refresh asks again what it hasn't
+    refreshed yet."""
+    k, hit, b = f"{kind}{FACTS_VER.get(kind, '')}:{key}", None, _batch()
+    for _ in range(2):
+        hit = _facts_get(k)
+        with _data_lock:
+            if hit and time.time() - hit["t"] < FACTS_KEEP and (not b or hit["t"] >= b.since):
+                return hit["v"] or {"kind": kind, "none": True}
+            if time.time() - _facts_failed.get(k, 0) < FACTS_FAIL:
+                return (hit["v"] or {"kind": kind, "none": True}) if hit else None
+            busy, mine = _facts_busy.get(k), False
+            if not busy:
+                busy, mine = _facts_busy.setdefault(k, threading.Event()), True
+        if mine:
+            break
+        busy.wait(40)
+    else:
+        return None
+    v = _Need
+    try:
+        v = FACTS_KINDS[kind](key)
+    except _Need:                              # the refresh: fetched with other cards' needs first, then asked again
+        raise
+    except Exception as e:                     # a page this code doesn't understand must never break the relay
+        event("warn", f"Couldn't read the facts for {k}: {e!r}", echo=False)
+        v = None
+    finally:
+        try:
+            if v is not False and v is not _Need:
+                _facts_put(k, v)
+        finally:
+            with _data_lock:
+                _facts_busy.pop(k, None)
+                if v is False:
+                    _facts_failed[k] = time.time()
+            busy.set()
+    if v is False:
+        return (hit["v"] or {"kind": kind, "none": True}) if hit else None    # the old answer while it can't be asked
+    return v or {"kind": kind, "none": True}
+
+
+# ---------- the facts database's monthly refresh (relay 78, to-do #129) ----------
+_facts_running = threading.Lock()   # held while a refresh runs
+_facts_progress = {}           # what the refresh going on is doing (the owner's /facts?status=1)
+
+
+def _facts_lists():
+    """What the refresh covers, from Wikidata's query service (three requests): the items by airline ICAO code (P230),
+    airport IATA code (P238) and the airlines under each company (P749, a brand's whole fleet), as _wd_find finds them
+    ({prop: {value: [ids]}}); the ICAO codes of the airlines still flying (an item without a dissolution date, P576)
+    and the IATA codes; each airport's code by its id."""
+    def ask(q):
+        rows = (_wm_batch_get(SPARQL_API, {"query": q}, timeout=120).get("results") or {}).get("bindings") or []
+        return [{k: str((v or {}).get("value", "")).rsplit("/", 1)[-1] for k, v in r.items()} for r in rows]
+
+    find, flying = {"P230": {}, "P238": {}, "P749": {}}, set()
+
+    def add(prop, value, q):
+        if re.fullmatch(r"Q\d+", q) and q not in find[prop].setdefault(value, []):
+            find[prop][value].append(q)
+    for r in ask("SELECT ?i ?c ?gone WHERE { ?i p:P230/ps:P230 ?c . BIND(EXISTS { ?i p:P576 [] } AS ?gone) }"):
+        c = r.get("c", "").strip().upper()
+        if re.fullmatch(r"[A-Z]{3}", c):
+            add("P230", c, r.get("i", ""))
+            if r.get("gone") != "true":
+                flying.add(c)
+    iata = {}                                    # an airport's code (its current one first): an airline's hubs
+    for r in ask("SELECT ?i ?c ?best WHERE { ?i p:P238/ps:P238 ?c . BIND(EXISTS { ?i wdt:P238 ?c } AS ?best) }"):
+        c = r.get("c", "").strip().upper()
+        if re.fullmatch(r"[A-Z]{3}", c):
+            add("P238", c, r.get("i", ""))
+            if r.get("best") == "true" or r.get("i") not in iata:
+                iata[r.get("i")] = c
+    for r in ask("SELECT ?i ?p WHERE { ?i p:P749/ps:P749 ?p . ?i p:P230 [] }"):   # (only those with an ICAO code count)
+        add("P749", r.get("p", ""), r.get("i", ""))
+    for m in find.values():
+        for ids in m.values():
+            ids.sort(key=lambda q: int(q[1:]))
+    return find, sorted(flying), sorted(find["P238"]), iata
+
+
+def _facts_fetch(b):
+    """Fetch what the refresh's cards asked for (_Need), together: 50 items, pages or photos a request (introductions
+    alone, 20)."""
+    need, b.need, groups = b.need, set(), collections.defaultdict(list)
+    for n in sorted(need):
+        if n[0] == "ent":                      # an item asked for again with more: all of it
+            groups[("ent", "|".join(sorted(set(n[1].split("|")) | b.ents.get(n[2], (set(), None))[0])))].append(n[2])
+        else:
+            groups[(n[0], "")].append(n[1])
+    for (kind, props), keys in sorted(groups.items(), key=lambda g: ["ent", "title", "page", "extract", "img"].index(g[0][0])):
+        keys = list(dict.fromkeys(keys))
+        if kind == "ent":
+            for i in range(0, len(keys), 50):
+                c = keys[i:i + 50]
+                es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(c), "props": props, "languages": "en",
+                                                  "sitefilter": "enwiki"}).get("entities") or {}
+                for q in c:
+                    b.ents[q] = (set(props.split("|")), es.get(q))
+        elif kind == "title":
+            for i in range(0, len(keys), 50):
+                c = [t for t in keys[i:i + 50] if "|" not in t]
+                es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": "|".join(c), "props": "claims|sitelinks|labels",
+                                                  "languages": "en", "sitefilter": "enwiki"}).get("entities") or {} if c else {}
+                by = {((e.get("sitelinks") or {}).get("enwiki") or {}).get("title"): (q, e) for q, e in es.items() if re.fullmatch(r"Q\d+", q)}
+                for t in keys[i:i + 50]:
+                    hit = by.get(t)
+                    if not hit and t in c:     # not under this very title (another spelling, a redirect): asked alone, normalized
+                        es = _wm_batch_get(WIKIDATA_API, {"action": "wbgetentities", "sites": "enwiki", "titles": t, "props": "claims|sitelinks|labels",
+                                                          "languages": "en", "sitefilter": "enwiki", "normalize": "1"}).get("entities") or {}
+                        hit = next(((q, e) for q, e in es.items() if re.fullmatch(r"Q\d+", q)), None)
+                    b.titles[t] = hit or (None, {})
+                    if hit:
+                        b.ents[hit[0]] = ({"claims", "sitelinks", "labels"}, hit[1])
+        elif kind in ("page", "extract"):      # (a page asked for whole has its introduction too)
+            full = kind == "page"
+            keys = [t for t in keys if not (t in b.pages and (b.pages[t][0] or not full))]
+            for t in [t for t in keys if "|" in t or not t.strip()]:
+                b.pages[t] = (True, {"title": t, "invalid": True})
+            keys = [t for t in keys if not (t in b.pages and b.pages[t][1].get("invalid"))]
+            n, params = (50, {"prop": "revisions|extracts|pageprops", "rvprop": "content", "rvslots": "main", "ppprop": "disambiguation",
+                              **({"rvsection": "0"} if b.lead else {})}) if full else (20, {"prop": "extracts"})
+            for i in range(0, len(keys), n):
+                c = keys[i:i + n]
+                got = _wm_pages(WIKI_API, c, {**params, "exintro": "1", "explaintext": "1", "exlimit": "max"})
+                for t in c:
+                    b.pages[t] = (full, got.get(t) or {"title": t, "missing": True})
+        elif kind == "img":                    # the photo's own address at the cards' size, from Commons
+            for i in range(0, len(keys), 50):
+                c = [x for x in keys[i:i + 50] if "|" not in x]
+                got = _wm_pages(COMMONS_API, ["File:" + x for x in c], {"prop": "imageinfo", "iiprop": "url", "iiurlwidth": str(FACTS_IMG_W)}) if c else {}
+                for x in keys[i:i + 50]:
+                    b.imgs[x] = ((((got.get("File:" + x) or {}).get("imageinfo") or [{}])[0]).get("thumburl") or "").split("?utm_")[0]   # (without Commons' tracking)
+
+
+def _facts_chunk(b, keys):
+    """Refresh some cards together: run their lookups, fetch what they ask for for all of them at once, run them
+    again (a brand's card needs its company, then its group, then the group's page ...). How many are left over."""
+    for _ in range(20):
+        left = []
+        for kind, key in keys:
+            try:
+                facts_json(kind, key)
+            except _Need:
+                left.append((kind, key))
+        if not left:
+            return 0
+        keys = left
+        _facts_fetch(b)
+    b.need.clear()
+    event("warn", f"Card facts refresh: still asking after 20 rounds: {', '.join(f'{k}:{v}' for k, v in keys[:5])}", echo=False)
+    return len(keys)
+
+
+def facts_refresh(stop_at):
+    """One night's part of the monthly refresh: the models (MODEL_TITLES), every airline still flying, the groups and
+    companies their cards open, every airport with an IATA code, and every other key a card asked for, 50 at a time;
+    what isn't done by `stop_at` goes on next time (the keys refreshed since the run began are skipped). True when
+    the whole run is done."""
+    if not _facts_running.acquire(blocking=False):
+        return False
+    b, t0, why = _wm_batch, time.time(), ""
+    run = _facts_meta("run") or {"since": t0, "requests": 0, "bytes": 0, "seconds": 0, "nights": 0, "left": 0}
+    b.on, b.since, b.stop_at, b.need, b.stats = True, run["since"], stop_at, set(), {"requests": 0, "bytes": 0}
+    b.ents, b.pages, b.titles, b.imgs, b.find, b.iata, b.lead = {}, {}, {}, {}, {}, {}, False
+    _facts_progress.clear()
+    _facts_progress.update(stage="lists", started=t0, stats=b.stats)
+    try:
+        b.find, airlines, airports, b.iata = _facts_lists()
+        known = _facts_keys()
+        for kind in ("model", "airline", "org", "airline-own", "airport"):
+            keys = {"model": MODEL_TITLES, "airline": airlines, "airport": airports}.get(kind, [])
+            if kind in ("org", "airline-own"):         # what the airline cards open: their group (Part of), their company (Flown by)
+                for v in _facts_opens():
+                    keys.append(((v.get("group") or {}).get("qid") if kind == "org" else (v.get("flownBy") or {}).get("icao")) or "")
+            keys = list(dict.fromkeys(k for k in keys + known.get(kind, []) if k))
+            b.lead = kind != "model"            # an airline's or group's page: only its first section (the infobox; a model's specs are further down)
+            _facts_progress.update(stage=kind, of=len(keys), done=0)
+            n = 100 if kind == "airport" else 50         # (an airport needs fewer and smaller things: more go together)
+            for i in range(0, len(keys), n):
+                run["left"] += _facts_chunk(b, [(kind, k) for k in keys[i:i + n]])
+                _facts_progress["done"] = min(len(keys), i + n)
+                b.pages, b.imgs, b.titles = {}, {}, {}     # kept for the next cards: only names (a country, a city, an alliance)
+                b.ents = {q: x for q, x in b.ents.items() if x[0] == {"labels"}} if len(b.ents) < 20000 else {}
+    except _Stop as e:
+        why = str(e)
+    finally:
+        b.on = False
+        b.ents, b.pages, b.titles, b.imgs, b.find, b.iata = {}, {}, {}, {}, {}, {}
+        run["requests"] += b.stats["requests"]
+        run["bytes"] += b.stats["bytes"]
+        run["seconds"] += round(time.time() - t0)
+        run["nights"] += 1
+        _facts_progress.clear()
+        try:
+            _facts_meta("run", run)                     # (also when something unforeseen stopped it)
+        finally:
+            _facts_running.release()
+    if why:
+        event("info", f"Card facts: the refresh goes on next night ({why})", echo=False)
+        return False
+    counts = facts_status()["entries"]
+    _facts_meta("done", {"at": time.time(), "since": run["since"], "requests": run["requests"], "mb": round(run["bytes"] / 1e6, 1),
+                         "minutes": round(run["seconds"] / 60, 1), "nights": run["nights"], "left": run["left"], "entries": counts})
+    _facts_meta("run", None)
+    event("info", f"Card facts refreshed ({', '.join(f'{n} {k}' for k, n in counts.items())}): {run['requests']} requests, "
+                  f"{run['bytes'] / 1e6:.0f} MB, {run['seconds'] / 60:.0f} min", echo=False)
+    return True
+
+
+def _facts_opens():
+    """The airline cards refreshed in this run (what they open: their group, their company)."""
+    db = _facts_db()
+    with _fdb_lock:
+        rows = db.execute("SELECT v FROM facts WHERE k LIKE ? AND t >= ?", (f"airline{FACTS_VER.get('airline', '')}:%", _wm_batch.since)).fetchall()
+    return [v for v in (json.loads(r[0]) for r in rows if r[0]) if isinstance(v, dict)]
+
+
+def facts_status():
+    """The facts database for the owner: entries per kind, its size (with its journal), the refresh going on and the last one."""
+    db = _facts_db()
+    with _fdb_lock:
+        rows = db.execute("SELECT substr(k, 1, instr(k, ':') - 1), count(*) FROM facts GROUP BY 1").fetchall()
+    return {"entries": {_FACTS_PREFIX[p]: n for p, n in rows if p in _FACTS_PREFIX},
+            "bytes": sum(f.stat().st_size for f in FACTS_DB.parent.glob(FACTS_DB.name + "*")),
+            "running": {k: v for k, v in _facts_progress.items()} if _facts_running.locked() else None,
+            "run": _facts_meta("run"), "last": _facts_meta("done")}
+
+
+def _facts_worker():
+    """Moves facts.json into the database, then refreshes it once a month at night (FACTS_NIGHT, the relay's time),
+    going on the next night with what one night didn't finish (or when Wikimedia didn't answer)."""
+    try:
+        _facts_db()
+    except (OSError, sqlite3.Error) as e:
+        event("warn", f"Card facts database: {e}")
+        return
+    while True:
+        time.sleep(300)
+        try:
+            lt = time.localtime()
+            m = lt.tm_hour * 60 + lt.tm_min
+            if not FACTS_NIGHT[0] <= m < FACTS_NIGHT[1]:
+                continue
+            if not _facts_meta("run") and time.time() - (_facts_meta("done") or {}).get("at", 0) < FACTS_EVERY:
+                continue
+            end = time.time() + (FACTS_NIGHT[1] - m) * 60
+            facts_refresh(end)
+            time.sleep(max(0, end - time.time()))    # done, or stopped: not again tonight
+        except Exception as e:  # never let the refresh break the relay
+            event("warn", f"Card facts refresh: {e!r}")
+
+
+# What a profile spotted of one airline, model or airport (relay 74, the cards' Spotted): its planes (different
+# airframes, by registration, else by hex) and sightings over every saved day. The logbook's registrations don't keep
+# their airline, so the days are read: a past day once (its summary kept in memory, as _place_days), today's fresh.
+_spotted_days = {}           # (spot folder, day) -> {"al": {icao: [n, first, last, {airframes}]}, "ty": {...}, "ap": {...}}
+
+
+def _spotted_summary(entries):
+    out = {"al": {}, "ty": {}, "ap": {}}
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        ts, plane = e.get("ts") or 0, str(e.get("reg") or e.get("hex") or "").upper()
+        m = re.match(r"^([A-Z]{3})\d", str(e.get("callsign") or ""))
+        keys = [("al", m.group(1) if m else ""), ("ty", str(e.get("typeCode") or "").upper())]
+        keys += [("ap", str((e.get(k) or {}).get("code") or "").upper()) for k in ("from", "to") if isinstance(e.get(k), dict)]
+        for part, key in dict.fromkeys(keys):
+            if not key:
+                continue
+            s = out[part].setdefault(key, [0, ts, ts, set()])
+            s[0] += 1
+            s[1], s[2] = min(s[1], ts), max(s[2], ts)
+            if plane:
+                s[3].add(plane)
+    return out
+
+
+def spotted_json(spot, part, key):
+    """{"sightings", "planes", "first", "last"} of one airline ("al", ICAO code), model ("ty", type code) or airport
+    ("ap", IATA code: flights to or from it) over the profile's whole logbook."""
+    with _data_lock:
+        spot.ensure_day()
+        days = sorted(f.stem[len("sightings-"):] for f in spot.dir.glob("sightings-*.json"))
+        today, entries = spot.day, list(spot.entries)
+    n, first, last, planes = 0, None, None, set()
+    for day in days:
+        if day == today:
+            summ = _spotted_summary(entries)
+        else:
+            summ = _spotted_days.get((str(spot.dir), day))
+            if summ is None:
+                summ = _spotted_days[(str(spot.dir), day)] = _spotted_summary(_load(spot.dir / f"sightings-{day}.json", []))
+        s = summ[part].get(key)
+        if s:
+            n += s[0]
+            first, last = s[1] if first is None else min(first, s[1]), s[2] if last is None else max(last, s[2])
+            planes |= s[3]
+    return {"sightings": n, "planes": len(planes), "first": first, "last": last}
 
 
 # Hue light pulse (relay 47, to-do #46; a test feature, the owner's only). When a special or favourite plane is about to
@@ -5900,11 +8425,7 @@ class Handler(BaseHTTPRequestHandler):
         if not allow("stranger:" + self.client_ip(), 1, 20):
             return self.reply(429, "text/plain", b"Too many requests")
         if PAGE.match(path):
-            return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", (
-                "<h1>This board is private</h1><p>Fallblatt shows the planes flying over your home on a split-flap board, for friends and family. "
-                "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
-                "<p><a href='/signin'>Sign in with your account</a></p>" + pair_page_js() +
-                "<p class=muted>Already in, but on a new device without an account? Ask for a new link.</p>")))
+            return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", PRIVATE_PAGE[0] + pair_page_js() + PRIVATE_PAGE[1]))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
 
     def secure(self):
@@ -6268,10 +8789,47 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(429, "text/plain", b"Too many requests")
             status, ctype, body = photo_get((self.query().get("u") or [""])[0])
             return self.reply(status, ctype, body)
+        if path == "/planephoto":           # relay 73: a plane's own photo from Planespotters.net
+            if not allow("pphoto:" + self.guest[0], 2, 30):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = self.query()
+            r = plane_photo((q.get("reg") or [""])[0], (q.get("hex") or [""])[0], (q.get("model") or [""])[0])
+            if r is None:
+                return self.reply(503, "text/plain", b"Planespotters.net can't be asked right now", {"Retry-After": "120"})
+            return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "no-store"})
+        if path == "/facts" and {"status", "refresh"} & set(self.query()):   # relay 78: the owner's look at the facts database
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
+            if "refresh" in self.query() and not _facts_running.locked():      # the monthly refresh now (three hours at most)
+                threading.Thread(target=facts_refresh, args=(time.time() + 3 * 3600,), daemon=True).start()
+                time.sleep(0.2)
+            return self.reply(200, "application/json", json.dumps(facts_status()).encode(), {"Cache-Control": "no-store"})
+        if path == "/facts":                # relay 74: a model's, airline's or airport's facts for its card
+            if not allow("facts:" + self.guest[0], 2, 20):
+                return self.reply(429, "text/plain", b"Too many requests")
+            q = self.query()
+            model = re.sub(r"[\x00-\x1f<>\[\]{}|#]", "", (q.get("model") or [""])[0]).strip()[:120]
+            airline = re.sub(r"[^A-Z]", "", (q.get("airline") or [""])[0].upper())
+            airport = re.sub(r"[^A-Z]", "", (q.get("airport") or [""])[0].upper())
+            org = (q.get("org") or [""])[0].strip().upper()           # relay 77: a brand or group by its Wikidata id
+            org = org if re.fullmatch(r"Q\d{1,12}", org) else ""
+            own = (q.get("own") or [""])[0] == "1"                     # an airline's own facts, not its brand's ("Flown by")
+            kind, key = (("model", model) if model else ("airline-own" if own else "airline", airline) if len(airline) == 3 else
+                         ("airport", airport) if len(airport) == 3 else ("org", org) if org else ("", ""))
+            if not kind:
+                return self.reply(400, "text/plain", b"model=..., airline=... (ICAO), airport=... (IATA) or org=... (Wikidata) is required")
+            r = facts_json(kind, key)
+            if r is None:
+                return self.reply(503, "text/plain", b"Wikipedia can't be asked right now", {"Retry-After": "300"})
+            return self.reply(200, "application/json", json.dumps(r).encode(), {"Cache-Control": "private, max-age=3600"})
+        if path == "/relayinfo":           # relay 69: the owner's Relay plate (also away from home, through the tunnel)
+            if not self.owner_ok():
+                return self.reply(403, "text/plain", b"Only for the owner")
+            return self.reply(200, "application/json", json.dumps(relay_panel_json()).encode(), {"Cache-Control": "no-store"})
         if path == "/me":
             p = self.guest[1]
             return self.reply(200, "application/json", json.dumps({"name": p["name"], "settings": p.get("settings"), "fr24": bool(p.get("fr24"))}).encode())
-        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/search", "/now", "/airlines"):
+        if re.fullmatch(r"/[a-z0-9-]{1,40}", path) and path not in ("/health", "/status", "/sightings", "/logbook", "/metar", "/flightinfo", "/times", "/hello", "/screens", "/airport", "/admin", "/me", "/seen", "/sky", "/watch", "/year", "/review", "/account", "/signin", "/lists", "/places", "/pageversion", "/photo", "/planephoto", "/search", "/now", "/airlines", "/relayinfo", "/facts"):
             self.send_response(301)  # /test → /test/
             self.send_header("Location", path + "/")
             self.end_headers()
@@ -6321,13 +8879,14 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 deg = 0.0
             api = (q.get("api") or [""])[0] == "1" and bool(self.guest[1].get("fr24"))
-            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place_key((q.get("place") or [""])[0]), deg)
+            place = same_spot(self.spot, places_of(self.guest[0]) if self.guest else [], place_key((q.get("place") or [""])[0]))
+            data = sightings_json(self.spot, api, over, (q.get("all") or [""])[0] == "1", place, deg)
             if api:
                 data["fr24"] = fr24_on()
             return self.reply(200, "application/json", json.dumps(data).encode())
         if path == "/flightinfo":
             q = urllib.parse.parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
-            cs = (q.get("cs") or [""])[0].strip().upper()[:8]
+            cs = no_cs((q.get("cs") or [""])[0])[:8]
             hx = (q.get("hex") or [""])[0].strip().lower()[:6]
             # Relay 41: what is already in the cache costs nothing, so it is handed out even past a guest's daily share
             # or the budget; "off" (the board stops asking for a while) only without a key or for guests without it.
@@ -6371,15 +8930,28 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(400, "text/plain", b"Out of range")
             return self.reply(200, "application/json", json.dumps(airports_near(lat, lon)).encode())
         if path == "/game/me":            # relay 59: the score strip, often (small: no collections, no trophies)
+            try:
+                since = int((self.query().get("since") or ["0"])[0])
+            except ValueError:
+                since = 0
             with _data_lock:
-                g = game3_json(self.spot.book(), self.spot.day or board_day())
+                self.spot.ensure_day()
+                g = game3_json(self.spot.book(), self.spot.day)
+                aw = game_awards(self.spot, since) if since > 0 else None
+                scan = game_scannable(self.spot)
             lg = league_json(self.guest[0])
             me = next((r for r in lg["rows"] if r["me"]), None)
-            keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "combo", "comboUntil", "km", "lockons")
+            keep = ("points", "today", "level", "title", "into", "need", "week", "planesToday", "streak", "scannedToday", "km",
+                    "scanKm", "lockons", "limits", "resets", "rules", "school", "wings", "standby", "showcase", "styleKept")   # relay 76: the limits, the rules; no more combo; 85: the school; 87: the standby
             out = {k: g.get(k) for k in keep}
+            out["scan"] = scan                  # relay 82: the planes a scan counts for now (the app's tickets)
+            if aw is not None:
+                out["aw"] = aw                  # relay 76: the awards since ?since= (the app's pop-ups)
             out.update(rank=(me or {}).get("rank"), was=(me or {}).get("was"), champion=lg["championMe"],
                        below=(lg["rows"][me["rank"]]["name"] if me and me["rank"] < len(lg["rows"]) else None), players=len(lg["rows"]))
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/today":         # relay 71: Recent points, today's scored planes and their awards
+            return self.reply(200, "application/json", json.dumps(game_today(self.spot)).encode())
         if path == "/game/league":        # relay 59: the league, for the app's Game page and the board's League page
             return self.reply(200, "application/json", json.dumps(league_json(self.guest[0] if self.guest else None)).encode())
         if path == "/game/player":        # relay 63: a league player's card
@@ -6389,6 +8961,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(body).encode()) if body else self.reply(404, "text/plain", b"No such player")
         if path == "/game/hangar":        # relay 63: the Spotters' Club hangar
             return self.reply(200, "application/json", json.dumps(hangar_json(self.spot)).encode())
+        if path == "/logbook/spotted":    # relay 74: one airline's, model's or airport's Spotted (the cards)
+            q = self.query()
+            part, key = next(((p, re.sub(r"[^A-Z0-9]", "", (q.get(n) or [""])[0].upper())[:4]) for n, p in (("airline", "al"), ("type", "ty"), ("airport", "ap"))
+                              if q.get(n)), ("", ""))
+            if not key:
+                return self.reply(400, "text/plain", b"airline=..., type=... or airport=... is required")
+            if not allow("spotted:" + (self.guest[0] if self.guest else self.client_ip()), 2, 10):
+                return self.reply(429, "text/plain", b"Too many requests")
+            return self.reply(200, "application/json", json.dumps(spotted_json(self.spot, part, key)).encode())
         if path == "/logbook/category":   # relay 61: one category's top ten (types, aircraft, operators)
             q = self.query()
             cat = (q.get("c") or [""])[0]
@@ -6400,8 +8981,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, "application/json", json.dumps(category_top_json(self.spot, cat, places)).encode())
         if path == "/logbook":
             raw = [place_key(k) for k in (self.query().get("place") or [""])[:6]]
-            place = (raw[0] if len(raw) == 1 else tuple(raw)) if all(raw) else None   # relay 40: place=a&place=b, merged
+            # relay 40: place=a&place=b, merged; relay 77 (to-do #126): with the profile's places at the same spot
+            # (same_spot: "Home" and "home"), each sighting once (one place each)
+            mine = places_of(self.guest[0]) if self.guest else []
+            keys = sorted(set().union(*(same_spot(self.spot, mine, k) for k in raw))) if all(raw) else []
+            place = (keys[0] if len(keys) == 1 else tuple(keys)) if keys else None
             body = place_logbook_json(self.spot, place) if place else logbook_json(self.spot)
+            if not place:     # relay 77: each place's others at the same spot, so the place bar shows one place for one spot
+                ks = {k for k, _ in body.get("places", [])} | {p["k"] for p in mine if isinstance(p, dict) and p.get("k")}
+                body["spots"] = {k: sorted(o) for k in sorted(ks) for o in [same_spot(self.spot, mine, k) or set()] if len(o) > 1}
             if not place and self.guest and isinstance(body.get("game"), dict):
                 body["game"]["styleGrants"] = style_grants(self.guest[1])      # relay 52
                 lg = league_json(self.guest[0])                                 # relay 59: the crown and the Champion style
@@ -6478,17 +9066,20 @@ class Handler(BaseHTTPRequestHandler):
             status, body, source, freshness = aircraft(lat, lon, nm)
             extra = {"X-Relay-Source": source, "X-Relay-Data": freshness}
             if status == 200:
-                seen = body
+                seen, q = body, self.query()
+                place = screen_place(q)
+                stale = live_stale(q, place)
                 try:                    # relay 66: away from home, Flightradar24 adds the low planes the free sources miss
-                    rec = None if self.query().get("bg") else fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
+                    rec = None if q.get("bg") or stale else fill_want(lat, lon, *self.guest, f"{self.guest[1].get('name')} · Gap filler")
                     if rec:
                         body, seen, n = fill_merge(body, rec, float(lat), float(lon), int(nm) * 1.852)
                         extra["X-Relay-Fill"] = str(n)
                 except Exception as e:  # never let the paid extra break the live board
                     event("warn", f"Flightradar24 gap filler: {e}", echo=False)
                 try:
-                    with _data_lock:
-                        self.spot.take(seen, lat, lon, nm, screen_place(self.query()))
+                    if not stale:
+                        with _data_lock:
+                            self.spot.take(seen, lat, lon, nm, place)
                 except Exception as e:  # never let history problems break the live board
                     event("warn", f"Couldn't record sightings: {e}")
             return self.reply(status, "application/json", body, {**extra, "X-Sightings-Rev": str(self.spot.rev)})
@@ -6663,8 +9254,44 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(400, "text/plain", b"hex missing")
             out = game_lockon(self.spot, hx)
             if out.get("bonus"):
-                event("info", f"Sky view lock-on for {self.guest[1].get('name')}: +{out['bonus']} (combo {out['combo']})")
+                event("info", f"Sky view scan for {self.guest[1].get('name')}: +{out['bonus']}")
             return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/school":          # relay 85 (to-do #153): the app opened a plane's card (the school's mission)
+            if not self.same_origin() or not allow("school:" + self.guest[0], 1, 4):
+                return self.reply(429, "text/plain", b"Not now")
+            if self.json_body().get("m") != "card":     # the others the relay sees itself
+                return self.reply(400, "text/plain", b"mission missing")
+            with _data_lock:
+                self.spot.ensure_day()
+                g = game_book(self.spot.book())
+                a = school_pass(self.spot, g, "card")
+                out = {"paid": a["p"] if a else 0, "school": school_json(g), "points": g.get("points", 0)}
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/game/showcase":        # relay 91 (to-do #156): pin a hangar card's catch to a spot (only your own)
+            if not self.same_origin() or not allow("showcase:" + self.guest[0], 1, 5):
+                return self.reply(429, "text/plain", b"Not now")
+            j = self.json_body()
+            code, at = re.sub(r"[^A-Z0-9]", "", str(j.get("code") or "").upper())[:4], j.get("spot")
+            if not isinstance(at, int) or isinstance(at, bool) or not 0 <= at < len(SHOWCASE_AT):
+                return self.reply(400, "text/plain", b"spot missing")
+            st, out = showcase_pin(self.spot, code, at)
+            if st != 200:
+                return self.reply(st, "text/plain", out.encode())
+            return self.reply(200, "application/json", json.dumps(out).encode())
+        if path == "/skyreport":            # relay 72: Sky view's sensor readings, for tuning the compass (the owner's)
+            if not self.same_origin():
+                return self.reply(403, "text/plain", b"Only from this site")
+            if not self.guest or not self.owner_ok():   # (strangers never get here; owner_ok lets the relay's own computer in)
+                return self.reply(403, "text/plain", b"Only for the owner")
+            if not allow("skyrep:" + self.guest[0], 1 / 10, 3):
+                return self.reply(429, "text/plain", b"Not now")
+            j = sky_report_clean(self.json_body())
+            if not j:
+                return self.reply(400, "text/plain", b"Nothing to keep")
+            j["at"] = int(time.time())
+            n = sky_report_save(self.guest[0], j)
+            event("info", f"Sky view report from {self.guest[1].get('name')} ({n} kept)")
+            return self.reply(200, "application/json", json.dumps({"ok": True, "kept": n}).encode())
         if path == "/lists":                # favourites and hidden planes, from the phone app
             if not self.same_origin():
                 return self.reply(403, "text/plain", b"Only from this site")
@@ -6677,6 +9304,9 @@ class Handler(BaseHTTPRequestHandler):
                     if op not in ("add", "remove") or which not in ("fav", "hide"):
                         continue
                     item = _clean_list([o.get("item")])
+                    if op == "add" and which == "fav" and item and self.spot:    # relay 85: the school's "add a favourite"
+                        self.spot.ensure_day()
+                        school_pass(self.spot, game_book(self.spot.book()), "fav")
                     keep = [i for i in L.get(which, []) if not item or (i.get("k"), i.get("v")) != (item[0].get("k"), item[0].get("v"))]
                     L[which] = _clean_list(keep[-199:] + item if op == "add" else keep)
                 for k in ("fav", "hide"):
@@ -6824,7 +9454,7 @@ def main():
         SOURCES[:] = [{"key": "custom", "name": re.sub(r"^https?://([^/]+).*$", r"\1", ARGS.source), "url": ARGS.source}]
         STATE.clear()
         STATE["custom"] = {"ok": 0, "fail": 0, "strikes": 0, "cooldown_until": 0.0, "last_status": None, "last_error": "", "last_ok": 0.0,
-                           "last_call": 0.0, "day": "", "used": 0}   # relay 35: without it, relay 34 failed every request to a --source
+                           "last_call": 0.0, "day": "", "used": 0, "askedDay": "", "asked": 0}   # relay 35: without it, relay 34 failed every request to a --source
     threading.Thread(target=_saver, daemon=True).start()
     threading.Thread(target=_enricher, daemon=True).start()
     threading.Thread(target=_fr24_worker, daemon=True).start()
@@ -6839,8 +9469,12 @@ def main():
         _fr24_data()
         profiles()
         merge_home()
+    ranks_migrate()                           # relay 96: once per profile (its marker), before the first request
+    bingo_migrate()                           # relay 98: this week's unpaid bingo, once per profile (its marker)
     threading.Thread(target=_airlines_worker, daemon=True).start()
+    threading.Thread(target=_scrub_at_all, daemon=True).start()
     threading.Thread(target=_fr24_keep_cached, daemon=True).start()
+    threading.Thread(target=_facts_worker, daemon=True).start()
 
     server = ThreadingHTTPServer((ARGS.bind, ARGS.port), Handler)
     print(f"Fallblatt relay {RELAY_VERSION} running. Open the board at:")

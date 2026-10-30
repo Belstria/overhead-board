@@ -114,7 +114,7 @@ py serve.py --fr24-key YOUR_KEY --save
   they had flown over. While a screen of the owner's profile watches a place more than 30 km from the relay's home,
   the relay also asks Flightradar24's live positions for the planes below 10,000 ft within 20 km, and adds the ones
   the free sources don't have: on the board, the radar, in Sky view and in Spotted today, with their type and
-  registration looked up first. It asks every 30 seconds, every 15 while such a plane is within 10 km, and every
+  registration looked up first. It asks every 30 seconds, every 15 while such a plane is within 10 km (the scan's circle), and every
   5 minutes where ten minutes of answers brought nothing new; only while a screen is looked at (not from the
   background), once for all the profile's screens, never at home or for other profiles. An answer costs 6 credits for
   each plane in it (1 when there is none): a plane passing close costs in the order of 100 credits, a quiet hour with
@@ -139,11 +139,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   them, so flights to and from Vienna get an arrival or departure time. On the test API board Flightradar24 adds the
   take-off time for any flight. When there is no arrival time but the destination is
   known, the board estimates one from the distance still to fly and the plane's speed, plus a few minutes to land.
-  **Delay and gate** (1.52, relay 46): a flight to or from Vienna shows in the Remarks DELAY 25 MIN or ON TIME (within
-  four minutes; planned against expected or actual time, from Vienna Airport) and, when leaving Vienna, GATE F07 (the
-  pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no gate in its lists.
-  Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and **Seen here**, how
-  often this airframe was seen from here before: FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
+  **Delay and gate** (1.52, relay 46): in the Airport style a flight to or from Vienna shows in the Remarks DELAY 25 MIN
+  or ON TIME (within four minutes; planned against expected or actual time, from Vienna Airport) and, when leaving
+  Vienna, GATE F07 (the pier letter until the gate is given out). "/" where the airport doesn't say. Arrivals have no
+  gate in its lists. In the Overhead style (1.88) the Remarks are white, not amber, and only say DELAY 45 MIN when a
+  flight is more than 30 minutes late: no ON TIME and no gate.
+  Next to them (1.27, relay 28): **To go**, the distance still to fly to the destination, and how often this airframe
+  was spotted from here before (a remark since 1.34): FIRST TIME EVER, SEEN 4 TIMES, or BACK AFTER 7 MONTHS when it had
   been away for two months or more. The phone app shows both under This aircraft.
 - **ABOVE CLOUD** (1.27, relay 28; a remark since 1.49): the relay reads the home airport's weather report (METAR) every
   ten minutes; a plane above the cloud base (the lowest broken or overcast layer) that is worth going to the window for
@@ -172,28 +174,66 @@ The main board has everything below. New features are tried on `/test/` first; o
   `#spotted`, `#logbook`, `#radar` or `#settings` to the address to open one at start.
 - **The aircraft photo** sits on a small screen set into the board, in a housing with screws and a power light; the
   screen is off while the page falls into place and warms up after it lands.
+- **Whose photo** (1.93, relay 73): the plane's own photo from **Planespotters.net** comes first, looked up by its
+  registration through the relay (and only kept when the photo shows that registration and, since 1.111.0.1, not an
+  aircraft of another maker that had it before); then its own photo from
+  airport-data.com (through adsbdb); then its model's picture. Each says where it comes from on the photo, in small
+  capitals: "© photographer · Planespotters.net ↗", "Photo · airport-data.com" or "Model only · Wikimedia Commons".
+  A Planespotters photo is a link to its page there (their terms): click or tap the photo, in the app, on the board and
+  in the cards. On a TV, Up or Down on the remote puts the yellow ring on the credit and OK opens the photo's page (in a
+  new tab where the TV's browser has tabs; Back comes back where it doesn't); opening it, or Up or Down again, takes the
+  ring away. The page doesn't turn while the credit has the ring. The runway screen of Take-off and Landing and Sky view's small card
+  have no room for the credit, so they show the next photo.
 - **Special aircraft**: A380s, 747s, Belugas, Antonovs, military and government aircraft, helicopters and
   emergency squawks (7500, 7600, 7700) get their own remark. The status flap alternates between the plane's
   status and that remark.
-- **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often seen here,
+- **Cards** (1.34): tap (or click) an airline's logo or name for a card about the airline (codes, how often spotted,
   today's planes, its country and radio callsign, a few words from Wikipedia (1.50: also found under a shorter name or
   by Wikipedia's search), its logo once loaded, Favourite / Hide), a place (From, To) for its airport (name, codes,
   distance from you, runways, today's flights there, Wikipedia), and a plane for its card (photo, route, details,
-  Remarks). In the phone app and on the full board alike. What opens a card is marked: in the app's lists the airline,
-  the places and the aircraft type each sit in a thin grey outline (1.40; before, a dotted underline), and on the board
-  a thin dotted line runs under those flaps (1.38).
+  Remarks). In the phone app and on the full board alike.
+- **Info cards like Sky view's** (1.94): every card of a model, an airline, a plane and an airport looks like Sky view's
+  card: a big photo with its credit at the top and the name, a line under it and a chip (rarity, codes, status) on it;
+  a band (first flight → in service, founded → main base, the plane's route, your airport → there) with a gold chip in
+  its middle saying what the card is (Model, Airline, Airport with a small picture; a flight's a plane in a gold disc,
+  1.96.1; your airport's distance to there is the Flight distance fact since);
+  three boxes (a model: Built, In service, Spotted; an airline: Fleet, Destinations, Spotted; a plane: Spotted,
+  Closest, Flights; an airport: Passengers, Runways, Opened); one **Fun fact**; more facts in two columns (a model's
+  engines, seats, wingspan, length, range, main user, years built and the model it was developed from, which opens its
+  own card; an airline's headquarters, owner, employees, alliance and how many of its planes you've spotted; an
+  airport's elevation, operator and flights to or from it you've spotted); Wikipedia's words in three lines with a
+  small Wikipedia link to the page. **More info** opens the card further where it is: the rest of Wikipedia's words and
+  **Did you know**, two or three more facts, each with its source in small type. The facts come from Wikipedia and
+  Wikidata through the home relay (version 74; with an older relay a card shows what it has, in the same layout), the
+  fun facts are worked out from them and your logbook (one of 199 built and you've seen 2; wings longer than an
+  Olympic pool; the farthest of 40 cities its range reaches from here; flying for 70 years; back after 4 months), and
+  "Spotted" says how often you spotted it: Once, or so many times. An airline flying under its group's name (Wizz Air
+  Malta, easyJet Europe, Eurowings Europe) shows the brand's card, with the whole brand's fleet, and **Flown by Wizz
+  Air Malta ›** under the band opens the company's own card; an airline with its own name (Austrian, Lauda Europe)
+  keeps its card and **Part of Lufthansa Group ›** opens the group's (1.96.1, relay 77). On a TV the cards stay pop-ups: the remote's ring
+  reaches every button, More info too (OK opens it, Back closes the card). What opens a card is marked: in the app's lists
+  a tap opens the plane's own card right in the list (1.95; before, the airline, the places and the type sat in thin grey
+  outlines), where the airline, the places and the Aircraft box open theirs, and on the board a thin dotted line runs
+  under those flaps (1.38).
   On the board a plane on the radar opens its card and the airline field the airline, and the **⋮** (three dots, 1.55; a + before) at the end of a row
   of Recent flights or Spotted today opens the favourite/hide sheet (a tap elsewhere on the row no longer does); a
   **double tap** goes full screen (one tap used to). Settings → Traffic → **Favourites & hidden** opens the manager on the board too.
 - **Model card** (1.35): tap an aircraft type (the Aircraft field, a row's type, the plane card's Aircraft) for the
-  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've seen
-  it and today's count, with Favourite / Hide for the type. In the app, Settings → Account → Change password opens a
+  model: its picture and a few words from Wikipedia, about how many are in service, how rare it is, how often you've
+  spotted it and today's count, with Favourite / Hide for the type (1.94: in Sky view's style, with its numbers). In the app, Settings → Account → Change password opens a
   window with the new password twice.
 - **Remarks** (top half, last row; 1.34, was Seen here): the interesting things about the plane in turn: how often it
   was seen here, another airline's colours (Flightradar24), who flies it when it's on the watchlist, and "ONLY ~40 IN
   SERVICE" for rare types.
 - **Model photos** (1.34): a plane with no photo of its own shows its model's picture from Wikipedia (Wikimedia
-  Commons), credited as such.
+  Commons), credited as such ("Model only · Wikimedia Commons" since 1.93). Since 1.93.1.1 nearly every type has one:
+  the model is found by its type code first (a table made from Wikipedia's list of type designators, with the common
+  light aircraft and helicopters added), then by its names as Wikipedia spells them ("BEECH 200 Super King Air" is the
+  Beechcraft Super King Air), and only then by Wikipedia's search. A page found from part of a name must agree with the
+  rest of it, so a type gets no picture rather than another model's; a page whose own picture isn't the aircraft (a
+  logo, another model) shows Wikidata's picture of it instead. A balloon, glider, autogyro, airship or ultralight
+  without a better name (codes BALL, GLID, GYRO, SHIP, ULAC) shows a picture of its kind. A card that opened before
+  its model's picture was found takes it when it comes.
 - **Favourites and hidden planes** (1.31, relay 31): in the phone app, **swipe a row right** to make it a favourite or
   **left** to hide it (1.41: the row slides and shows ★ Favourite or Hide ⊘ in grey, turning yellow or red once letting
   go will do it; that half of the sheet opens; the + ring on the app's rows is gone since 1.42, the boards keep their
@@ -226,32 +266,45 @@ The main board has everything below. New features are tried on `/test/` first; o
   or airport (name or code), aircraft type, registration or remark (OVERFLIGHT, JUMBO, NEW AIRLINE ..., in English or the
   board's language; 1.55); words separated by commas must all match ("Austrian, VIE"
   is Austrian's flights from or to Vienna). × clears it; it is per device and empty again after a reload.
-- **Logbook** (press **L**): totals, the most seen model, the categories, and the top aircraft types, airlines and
-  individual aircraft, with the newest ones, all on flaps. How many were passenger, cargo, business jet, private and light, helicopter,
-  military or other flights (sorted by the relay from the free data, so the numbers are the same on every board;
-  relay 10 or newer, which also counts the days already saved). The first sighting of a new type or airline is
-  marked NEW TYPE or NEW AIRLINE on the board.
-- **The Logbook's buttons** (1.55): one row at the top right, always in the same order (Logbook, Collection, Records,
-  Week & month), the view on show lit; under it what that view offers: the place buttons and CSV under Logbook, Week /
-  Month and ◀ ▶ under Week & month. The place buttons are your saved places and On the go; planes seen from a removed
-  place, or from the unnamed spot before you saved places, count under All (that spot joins a saved place called Home).
-- **Records & trophies** (from the Logbook's buttons, 1.27, relay 28): the logbook's lifetime records: the closest,
+- **Logbook** (press **L**; on one screen since 1.92): seven plates like Settings', the numbers on flaps: **Totals**
+  (sightings, individual aircraft, types, airlines and the most seen model), the **week, month or year in planes**,
+  **Categories**, **Records**, and the top seven **aircraft types**, **airlines** and **aircraft**. How many were
+  passenger, cargo, business jet, private and light, helicopter, military or other flights is sorted by the relay from
+  the free data, so the numbers are the same on every board (relay 10 or newer, which also counts the days already
+  saved). Click a plate, or press OK on the remote, for its whole list as a card: every type, airline or most seen
+  aircraft (a row opens the model's or the airline's card, or the aircraft's sightings, and Back comes back to the
+  list), every fact of the period, each category's top ten types, aircraft and operators (relay 61), the records with
+  their plane and day. On a remote (or with the arrow keys) the arrows move a yellow ring from plate to plate and up to
+  the buttons; Back (or Esc) closes a card, then the Logbook. The first sighting of a new type or airline is marked
+  NEW TYPE or NEW AIRLINE on the board.
+- **The game stays in the phone app** (1.89.1): the TV boards (and the board on a computer) show only the planes:
+  no League page, points, levels, streak, Collection, bingo, trophies or achievement pop-ups. Settings → Styles there
+  offers the styles the profile already has, without how to unlock more. The relay keeps scoring for the app.
+- **The Logbook's buttons** (1.55; the Logbook, Records and Week & month views until 1.92): at the top right, All and
+  a button for each of your saved places and On the go (planes seen from a removed place, or from the unnamed spot
+  before you saved places, count under All; that spot joins a saved place called Home), the CSV, and on a computer a
+  **search** through the whole logbook, as in the app (Enter shows what it found; relay 55). Under them **Week** ·
+  **Month** · **Year** and ◀ ▶ for the period plate.
+- **Records** (a plate of the Logbook; 1.27, relay 28): the logbook's lifetime records: the closest,
   lowest and fastest pass ever and the route from farthest away. The relay keeps them as planes come in and counts
   them once from the saved days of an older logbook. The phone app shows them in its Logbook.
-- **Week & month** (from the Logbook's buttons, 1.52, relay 46): the week (Monday to Sunday) or month in review, like
-  Today in numbers: planes, types, airlines, aircraft, new types, rare planes and points; the busiest day, the rarest
-  plane, the most seen airline and aircraft, the farthest route, the lowest, closest and fastest pass, and the new types.
-  **Week** / **Month** switch, ◀ ▶ go to earlier ones. A finished week or month is compared with the one before.
-  Under them (1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
+- **Week, month and year** (the Logbook's period plate; 1.52, relay 46; the year relay 29): the week
+  (Monday to Sunday), month or year in review, like Today in numbers: planes, types, airlines, aircraft, new types and
+  rare planes (a year: countries and days; and points, in the app); on the plate the busiest day, the most seen aircraft
+  and the rarest plane, in its card also the most seen airline, the farthest route, the lowest, closest and fastest
+  pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
+  compared with the one before. They count every place.
+  In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
   A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
-  it says when, and how long until then), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
+  it says when, and how long until then; a square fills when a scored plane does it, also later in its pass, when it
+  comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
   10,000"): planes (100 to 100,000), aircraft types, airlines, different aircraft, countries the aircraft are registered
-  in, points, special planes, planes in one day, the same aircraft again, days running with something rare. The others
+  in, points, special planes, planes in one day, the same aircraft again, days running with points. The others
   are one-offs: Odd couple (a 747 and a helicopter on the same day), Night owl, Bullseye, Stratosphere, Whale watcher
   (a Beluga), Heavy lifter (an Antonov), Completionist (every collection) ... An older logbook wins its trophies once
   from its saved days, on the day they were earned (relay 50 does this again for the new ones, keeping the old).
-- **Achievements** (1.38; boards and phone app): when a collection is complete, a bingo line is made or a trophy is won,
+- **Achievements** (1.38; the phone app, and the boards until 1.89.1): when a collection is complete, a bingo line is made or a trophy is won,
   a card pops up with a little confetti and the bell (if chimes are on), and closes by itself after 10 seconds (or tap
   ×). Each one shows once on each screen; a screen opening the board for the first time doesn't celebrate everything
   won before.
@@ -259,8 +312,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   once a day, about 17,000 aircraft worth a look, and a plane on it says what it is in its status and the lists:
   POLICE, AMBULANCE, RESCUE, FIREFIGHTER, GOVERNMENT, ROYAL, HISTORIC, CELEBRITY, VIP, SKYDIVING, AEROBATIC, SURVEY or
   UNUSUAL (air forces stay MILITARY). The list is © its contributors, under the ODbL 1.0 / DbCL 1.0.
-- **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes, and its last
-  row shows the rarest plane of the day and the day's points.
+- **Day in review** (1.28): from 21:00 until the day ends, Today in numbers is called Your day in planes and shows
+  the Plane of the day, the rarest plane seen (the day's points only until 1.89.1). On the board it takes the most
+  seen's place; on the phone (1.111) it opens the plate, with the day's span under it: the first and the last plane and
+  the busiest hour.
 - **Radar** (press **R**): a plan view of everything around you in an instrument set into the board, with trails,
   the spotting radius and the airport's runways, and the planes within the spotting radius on flaps beside it. In the
   Airport style (1.33) it is centred on the home airport, with the spotting radius around the airport and the logo
@@ -290,10 +345,23 @@ The main board has everything below. New features are tried on `/test/` first; o
   painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
-  tick, push buttons a thock) when the flap sound or the chimes are on.
+  tick, push buttons a thock) when the flap sound or the chimes are on. **In the phone app** (since 1.116) Settings is a
+  list of its sections in two groups (The board; You and this phone), each with its state in one line ("Vienna · 15 km
+  around", "all heights · hovering 3 min"). A tap raises that section's plate from below, every control as before, with
+  its own **Save**; a change shows "Not saved yet" beside it. Closing it (a swipe down, a tap beside or back) with
+  changes asks first: **Save** or **Discard**. A card opened from a panel (an address's hits, Saved places) or the
+  Styles page goes back to the panel when it closes. About opens its page. **Favourites & hidden** there shows the two
+  lists with their count and an **Add** each; a tap on one shows its entries (× removes one); what they do is behind
+  the (i). (1.88 to 1.115: a jump bar and one long page with a Save bar.)
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
-  who made it. In the app, **Log** (1.80; also in the connection card, the dot by the clock) opens the app's log on a
-  page of its own: All, Problems, Sky view or Network, and **Copy the log** to paste it into a message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
+  who made it. On the boards (1.93.0.1) the patch notes take the left half (▲ ▼ scroll them), the keys (two to a row)
+  and who made it the right half, so every credit fits on every screen. In the app (1.117) About is the version and the
+  connection, then a list: **What's new** (the patch notes), **Legend**, **Data sources & privacy** (who you're signed
+  in as, too), **Credits**, **Log**, **Relay** (the owner only) and **Add to your home screen** (not in the Android
+  app); each rises from below as a panel. **Log** (1.80; also in the connection card, the dot top right) shows the
+  app's log: since 1.117 a panel that starts with a verdict ("No problems since the app started", or how many and when
+  the last one came), **All · Problems**, the lines as they were, and **Copy the log** at the bottom to paste it into a
+  message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
 - **Languages** (Settings → Display → Language, or `?lang=de`): English, German, French,
@@ -324,16 +392,17 @@ The main board has everything below. New features are tried on `/test/` first; o
   Now), not in Settings, the radar or the lists; the chimes for special planes and favourites still sound everywhere.
   Achievements have their own short festive flourish (1.45).
 - **Today in numbers** on the board (1.82) is laid out like the phone's: planes, airlines, types and overhead across
-  the top, then the lowest and highest pass, the fastest, the most seen airline, the most seen types (the day's top
-  three) and what's new in the logbook; no busiest hour or first of the day. The Records & trophies page shows each
+  the top. Since 1.111 the lowest and highest pass and the fastest sit side by side under them, the figure on flaps and
+  the plane (flight, type, time) engraved under it; then the most seen (the airline and the top types, "AUSTRIAN 8 -
+  A320 6") and the newest plane new to the logbook. The Records & trophies page shows each
   rank's medal as on the phone: the cup in its metal (filled once won) and a tag after the name.
 - **Today in numbers** (1.43) comes round only after every tenth round of the board's pages (about every 20 minutes
   with 30-second pages); Settings → Traffic → **Today in numbers** OFF keeps it out of the rotation (it still opens when
   picked).
-- **Model photos** (1.43) carry an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT" on the board, in the app and in cards.
+- **Model photos** (1.43) carried an amber tag "MODEL PHOTO · NOT THIS AIRCRAFT"; since 1.93 only their credit line
+  says so ("Model only").
 - **Remarks: what's new** (1.43, relay 38): instead of a general "first time ever", the Remarks flap names it: **FIRST:
-  TYPE** (the model), **PLANE** (this aircraft), **AIRLINE** or **FLIGHT** (this flight number; the relay counts
-  flight numbers since relay 38 and learned the old ones from the saved days). Nothing during a new logbook's first day.
+  TYPE** (the model), **PLANE** (this aircraft) or **AIRLINE** (1.114.2: no FIRST: FLIGHT any more). Nothing during a new logbook's first day.
 - **Tips** (1.42): the first time you open each page (and for the less obvious things: swiping a row, tapping an
   airline, place or type, the place switches, Place name's Save, live location) a short tip rings the thing it explains
   and gently fades the rest; tap anywhere to close it. Each shows once per device; Settings → Device (the board: the
@@ -346,7 +415,10 @@ The main board has everything below. New features are tried on `/test/` first; o
   plane-departure and plane-arrival, MIT licence, © Paweł Kuna), on the flaps, in the app's chips and on the page buttons.
 - **Typefaces** (1.64): Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License, `fonts/OFL.txt`) come
   from the relay (`fonts/`, made by `tools/fonts.py`), not from Google Fonts: opening a board tells Google nothing, and
-  the TVs draw their first flaps sooner.
+  the TVs draw their first flaps sooner. The flight school's signature (1.103) is written in EMS Allure, a single-stroke
+  script (the same licence; `test/signature.js`, made by `tools/sig_font.py`, 31 KB, fetched only when it is drawn).
+  The 1950s ticket (1.110) sets its heading and flight number in Old Standard TT Bold (the same licence, in `fonts/`
+  like the others, 24 KB; a phone loads it only when that ticket shows).
 - **Tap About seven times** (1.49) within a few seconds (the board: the About button, then the About heading; the app:
   About, then the page's title) and the Airbus "barking dog" plays: the hydraulic power transfer unit's bark.
 - **Emirates boarding music** (1.49, relay 42): opening the Emirates airline card plays the first 30 seconds of the
@@ -357,13 +429,24 @@ The main board has everything below. New features are tried on `/test/` first; o
   chips above the Logbook pick **All** or one place (with its count); a place shows its own numbers, top types, airlines
   and aircraft and its records (the collection, bingo, trophies and the year card count every place, so they show
   under All). Since 1.47 (relay 40) only places you still have get a chip: a removed place, or a spot without a name,
-  counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip.
-- **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together.
+  counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip. Since 1.89 the
+  app picks in a bar instead of chips: **All**, **On the go** and **Saved places**, which opens a list of your saved
+  places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). Since
+  1.117 the app picks in the Logbook's **Saved places** row, a panel with All, On the go and the saved places. Since
+  1.96.1 (relay 77) places at the same spot (a centre within 1 km, a radius no larger: "Home" and the profile's "home")
+  are one place, each sighting counted once. "Counting
+  since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
+- **Today, This place | All places** (1.42): a two-way switch; the counters and the list switch together. This place
+  includes your saved places at the same spot (1.95.0.1, relay 75): a phone on your own place and a board on a saved
+  place there named Home share one list, each plane once.
 - **Cards** (1.78, app) slide up from the bottom like Sky view's card, with a grip on top: drag one down (or flick it), or
   tap beside it, and it slides away; one opened over another glides to its new size. Pulled up where it can't scroll
-  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open.
-- **Cards** (1.42) open as a short loading window and appear complete once the words, the airport and the pictures are
-  in (at most a few seconds), instead of filling in piece by piece.
+  further (1.78.1) a card gives a little and springs back; the page behind never scrolls while one is open. Since 1.114.1
+  the grip stays at the top while a card scrolls, and cards have no ✕: a swipe down, back or a tap beside closes them.
+- **Cards** (1.42) open as a short loading window and appear complete once the words and the airport are in (at most
+  a few seconds), instead of filling in piece by piece. Since 1.97.3 the photos don't hold a card back: it opens at
+  once, its photo window keeps its size and shows the loading spinner, and the photo fades in when it has loaded (a
+  photo already in the browser shows at once; with reduced motion and on the TVs it just appears).
 - **Settings → Account** (1.41; more compact in 1.42): who this device is signed in as, plainly at the top (initial, name, account), then
   the passkeys and the password, and **Sign out of this device** at the foot (it was under Device; since 1.46 a small
   red **Sign out** next to the name; since 1.56 Passkey and Password as a checklist: an empty circle or a green tick,
@@ -381,8 +464,25 @@ The main board has everything below. New features are tried on `/test/` first; o
     the https address, or the Android app) makes the board watch where the phone is while the app is open, names the
     town or village (relay 62: the village itself, not the area round it, e.g. Oia rather than "Ia Municipal Unit")
     and picks the nearest airport as it moves; its planes count as "On the go", the title shows ◉, and Place name
-    reads "On the go". Turning it off goes back to the place before. The TVs can't follow (browsers only share their
-    location with https pages).
+    reads "On the go". Until the phone has found where it is (and if it hasn't for five minutes), the line under the
+    title says FINDING YOU … and its planes don't count or score; since 1.90 the board stays empty until this page has
+    found the phone once (the saved spot may be far away): no plane on top, no last known board, no rows in the lists,
+    just "Finding where you are …"; after a minute without a position a note says live
+    location isn't working on this device, with a button to Settings. Since 1.93.0.1 a town's name only shows within
+    2 km of where it was found (the airport within 15 km): until the new name comes, the title says ON THE GO and City
+    reads "On the go", and neither an old name nor an old airport goes to the profile; a lookup the relay didn't answer
+    is made again on a later position, a minute on. Since 1.93.1 live location asks the browser for the precise
+    position (Chrome on Android otherwise shares only an approximate one, a new one at most every 15 minutes) and takes
+    no position more than two minutes old: a browser hands over the last one it kept, which can be days old and far
+    away, say from a trip, so FINDING YOU … stays until a fresh one comes, and the Log (Settings → About → Log) says
+    how old, how exact and how far away each refused one was. When only an old approximate position came, the note
+    after a minute says to allow precise location for the site in the browser's site settings (in Chrome: ⋮ →
+    Settings → Site settings → Location: "Allowed • Precise"). **Use current location** waits for a fresh position too.
+    Turning live location off asks (1.93.1): **Stay here** watches the last position live location found, with its
+    town and airport and no place name, **Back to …** goes back to the place before; closing the card (×, Back, beside
+    it) keeps live location on. Without a fresh position it goes straight back to the place before. Picking a saved
+    place or setting a location while live just goes there. The TVs can't follow (browsers only share their location
+    with https pages).
   - **Saved places** opens the list: tap one to watch it (Settings follow at once), **Update** moves it to where the
     board is watching now, **×** deletes it. All names are alike, Home too, and nothing is saved by itself.
   - **Find an address**: type an address or a place and pick it from the list (OpenStreetMap's Nominatim, through the
@@ -399,39 +499,167 @@ The main board has everything below. New features are tried on `/test/` first; o
   longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
   location with https pages or a page opened on the relay's own computer (`http://localhost:8080`), so it doesn't work
   on the TVs; in the Android app it asks for the phone's location.
+- **Only with the app on screen** (1.97.6, relay 81): nothing counts while the app is in the background. A page that is
+  hidden says so with its position requests and the relay records no sightings, scores nothing and fills no bingo square,
+  medal or level from them; it all resumes the moment the app is on screen again (it looks at once, so a plane overhead
+  then counts). Home and saved places (the TV boards) and push notifications are unchanged.
 - **The game** (1.72, relay 59): only planes spotted **with live location** on a phone score, the first time they
-  come within **10 km** (8 km until 1.72.1; the same for everyone, whatever the radius); a board at home doesn't score. Everyone started
-  again from zero. A plane's points: rarity first (common 10, uncommon 30, rare 100, very rare 250, special 500), a
-  close pass ×1.1 (within 4 km) or ×1.2 (within 1.5 km), something new to the game (type +50, airline +25, aircraft
-  +5), a daily streak (3 days ×1.05 up to 30 days ×1.2); planes 26–50 of a day count half, after that a quarter.
-  **Sky view lock-on**: a plane held in the ring for 1.5 s pays +25 % of its points once (at least 15), and lock-ons
-  within 3 minutes make a combo (+30, +40, +50 %): a boarding pass in the plane's rarity colour pops up and its stub
-  with the points tears off, with a prize jingle and a buzz. Sky view's labels (1.72.1) carry a ★ for the planes
-  within reach of points (since 1.80 in the plane's rarity colour, with its points: ★ 30), ✓ and the bonus once
-  locked on, and a dimmed NO PTS beyond 10 km; a lock-on (1.72.2)
+  come within **15 km** since 1.98 (relay 82; 10 km from 1.72.1, 8 km before; the same for everyone, whatever the radius), and
+  only planes that came within **10 km** can be scanned; a board at home doesn't score. Everyone started
+  again from zero. **Points since 1.96** (relay 76, to-do #127; earlier points stay as they were): each rarity has
+  its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 15 km gives
+  a fixed amount (**5, 10, 15, 25, 50** since 1.97.4, relay 80, rule 4; a tenth of them, 1, 3, 10, 25, 50, before, and those
+  awards stay as they were), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
+  rare 15, very rare 5, special 3 planes; the day runs from 03:00); past the limit a plane scores nothing. A **Sky view
+  scan** (a plane held in the ring for 1.5 s that came within 10 km, seen live in the last 2 minutes, once a pass, no limit)
+  gives the plane's **full points on top** since 1.97 (relay 79; a common gives 1 + 10 = 11, one past the limit 0 +
+  10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
+  the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
+  day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
+  league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
+  level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
+  and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
+  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the club says
+  "Standby used" the day after, and warns in the club when none is left and today has no scan yet. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
+  a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
+  trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
+  card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +50",
+  "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only at the
+  top** (the chip's +N since 1.115; the score strip's before). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
+  boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
+  new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
+  ("Your first scan today adds the daily streak: +25"; not in the total) and **Scan in Sky view**: a tap anywhere on the
+  ticket opens Sky view with that plane picked out, its ring on it and its chip pointing to it (in Sky view the tap
+  only picks it out). A ticket stays **10 seconds**, or until it is swiped away sideways or its plane is scanned (a plane
+  that flies out of the circle leaves its ticket up for at least 6 seconds), and
+  doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to three on screen,
+  **newest on top** with the older ones peeking out under it; a fourth puts the oldest away, a shorter pass only for a
+  while (the ticket comes back while its 10 s last). In Sky view the tickets sit at its bottom. **At the scan** the
+  plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears, then the streak's;
+  both stay 10 s. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
+  quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
+  plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan
+  pays the plane's points **twice** (a common 10 → 20, a rare 100 → 200; the ticket reads "Rare plane +100 ×2"); the
+  extras (new type, new airline), the streak, bingo and trophies don't double (they say "(no ×2)"), nor do the passive
+  points. The relay picks them, so nobody can pick or re-roll one, and any plane can be one, even a common one; the same
+  plane is gold for everyone that day. In Sky view its label has a gold edge and a "GOLDEN ×2" tab, its ★ shows the
+  doubled points; its stub tears off throwing gold glitter, with a sound of its own (the paper rip, then bells climbing
+  to a bright chord). Recent points: "Sky view scan · Rare plane ×2 golden". With reduced motion it stays gold, without
+  the sheen or the glitter. **Flight school** (1.103, relay 85): a new player gets five first missions that teach the
+  app: scan a plane, open a plane's card, fill a bingo square (a square new to the week's card), add a favourite and
+  catch an uncommon (or rarer) plane that scores. Each pays **+50 once** (in the day, the week's league and the level);
+  all five earn the **wings** (nothing more paid; the rank shows a wings pin). The Spotters' Club shows a cream training
+  record: a line per mission with its stamp box (a red "FLIGHT SCHOOL · PASSED · 29 OCT · +50" stamp once done, a hint
+  for the next one only); Now shows a small bar "CHECKLIST 2/5 · NEXT UP · SCAN A PLANE" with five marks until the
+  wings. A mission done slides its line in at the top and a big stamp comes down on it with a thud; the fifth then signs
+  the record's WINGS line with your first name, written stroke by stroke as with a pen, and "Cleared for take-off"
+  comes with the wings; the signed record moves to the end of the club. Recent points lists the missions in a Flight
+  school row. With reduced motion the stamps and the signature appear without moving. A player already at level 4 when
+  relay 85 came got the wings at once, without points, and never sees the school; below that the school started then
+  (nothing from before counts). (Until 1.96 a lock-on paid +25 % of the
+  plane's points, more in a combo, a close pass ×1.1 or ×1.2, a streak up to ×1.2, and planes 26–50 counted half.)
+  Sky view's labels (1.72.1) carry a ★ for the planes
+  a scan counts for (since 1.80 in the plane's rarity colour; since 1.96 with what a scan gives: ★ 30; since 1.98 only
+  within 10 km), ✓ and what the scan gave once scanned, a dimmed CLOSER TO SCAN for planes 10–15 km out (they scored
+  their passive points) and a dimmed NO PTS beyond 15 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
-  and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
-  the total on flaps, the level bar and the league place on every tab (grey with Go live when live location is off);
-  when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
-  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the strip for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
+  and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points over your level ("9,950 pts" over
+  "Level 9"), with **paused** in amber after the points while live location is off; since 1.116.1 it sits straight on the header
+  with your rank insignia beside it inside a **ring** that fills towards the next level (the same numbers as the Club's level
+  card; empty for a level kept above your points), dimmed while paused. When points come in it turns over to +N, then the
+  total counts up while the ring grows and glows; a level-up fills the ring and flashes it, then the ring starts again
+  under the new insignia and the level-up card follows. A tap opens the **Spotters' Club** (while points are paused its level card says
+  "Points need live location · Go live"). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
+  chip, never in the notices' bar. Your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
+  navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a
+  pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
+  it for each Legend after that) is on the chip, Your level and a player's card. (Until 1.115 a score strip under the header
+  showed the points on flaps, the level bar and the league place.) **Recent points** (1.89, relay 71; on the Club's page): today's
+  total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
+  add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
+  **Spotters' Club** (1.74: next to the Logbook, as a title tab; since 1.116 in the app with **tabs** under the title that
+  show one part at a time: **Level**, League (with this week's Bingo, the Records and the Trophies under the league), Hangar, Passport and Cards.
+  Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
+  done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10") and links "All 20
+  levels"; the rarity counters are in How points work): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
-  out), today with the taper, how points work, the collections, records, bingo and trophies (no longer in the
-  Logbook), and Styles. Since 1.79 the top is one card (the level; today's points, your place this week and the
-  streak as three numbers; **How points work** opens a card with the rules and today's taper), the league's switch
+  out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
+  Logbook), and Styles. **Career path** (1.109): Your level shows a mini route (your stop, the plane with the points still to go, the
+  next stop) with what the next stop opens, and **All 20 levels** (Your route · all 20 stops until 1.116) opens the route (since 1.113 a panel over the
+  club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, back or a tap beside closes
+  it): a stop per level down a
+  line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
+  also with the lifetime points it opens at (since 1.112 only the next one). Since 1.112 the levels open at rounder
+  totals: 500, 1,000, 2,000, 3,000, 4,000, 5,500, 7,500, 10,000, 13,000, 17,000, 21,000, 27,000, 34,000, 43,000,
+  55,000, 70,000, 85,000, 110,000 and 135,000 (Legend), then a stop every 30,000 points, each a star on the cap; and
+  the unlocks are spread out: a style on every even level (2 Heathrow yellow and Black on white, 4 Solari green, 6
+  Brass trim and Standby once a week, 8 Frankfurt 1970s, 10 Ice blue, 12 Worn enamel, 14 Tokyo night and Standby twice
+  a week, 16 Sunset, 18 LED dots, 20 Gold leaf and the Legend cap), a badge or a showcase spot on the odd ones (3 Star,
+  5 showcase spot 1, 7 Propeller, 9 Helicopter, 11 spot 2, 13 Jumbo, 15 Fighter jet, 17 spot 3, 19 Concorde and a gold
+  name in the league). **Anything a player had stays theirs**: a level reached under the old totals is kept (its bar
+  starts at 0 until the points catch up), and so are the styles, badges and showcase spots it had unlocked. A
+  level-up is an arrival there: "Arrived at Logkeeper", a luggage tag for each thing it opened, the next stop, and
+  **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
+  and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
+  each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on
+  one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
   cup and beside its dots, and a won one with more ranks names the next. Since 1.81 (app) a new rank swings down as
-  its medal on a ribbon, with its rank in Roman numerals, and a notice from the right says when the next rank is close
+  its medal on a ribbon, with its rank in Roman numerals, and a bubble under the points chip says when the next rank is close
   ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
-  per set you swipe sideways, with a collectible card for each type caught on the go (the photo of the first one you
-  saw, or of its model; the rarity in its colour, the name, when and which), the missing types face down, and the
-  types in no set on a shelf of their own; tap a card for its details and the model. **Tap a name in the league**
+  per set you swipe sideways, with a collectible card for each type seen (since 1.96 any sighting, on any screen; until
+  then only those caught on the go) (the photo of the first one you saw, or of its model; the rarity in its colour,
+  the name, when and which; since 1.97 a line under it, "★ Scored 6× · 2 scanned" or "Not scored yet": how often
+  the game scored the type within 15 km (10 km until 1.98) and how often Sky view scanned it), the missing types face down with their
+  model's picture dimmed, and the types in no set on a shelf of their own; tap a card for its details (seen, scored,
+  scanned) and the model. Since 1.112 a type shows as a full card only **once you've scanned it**; one only seen
+  overhead waits greyed like one still to find, saying "Still to scan" and when it was last overhead ("Last overhead 24
+  Oct"). Each shelf lists the scanned ones first (newest first), then those still to scan (last overhead first), then
+  those still to find; its count and the hangar's line ("12 scanned · 30 still to scan") count scanned types. Since 1.103.0.1 the pictures load ahead (each shelf's first cards once the shelf comes into view, the rest of a
+  shelf as soon as you touch it), a shelf no longer jumps back while you swipe it, and a helicopter with no picture
+  found shows a helicopter. Model pictures found are kept for a week (1.114.4), so the next start shows them at once. Since 1.105 a card climbs with your **scans** of its type (mastery); since 1.112 in four
+  steps, **bronze at 10, silver at 25, gold at 50, platinum at 100**, its frame in that metal and a thin bar under it to
+  the next step. The scan that reaches a step pays that many points times the type's rarity, once (in the day, the week
+  and the level; a golden ticket doesn't double it): common 10, 25, 50, 100; uncommon 30, 75, 150, 300; rare 100, 250,
+  500, 1,000; very rare 250, 625, 1,250, 2,500; special 500, 1,250, 2,500, 5,000. Its ticket says so ("Airbus A321 ·
+  Silver +25"); the opened card shows the four steps with their bonuses and how far the next is ("13 of 25 scans to
+  silver"). Scans from before count for the frames; a step already passed then pays nothing, and a frame shown before
+  1.112 stays (a bronze from 5 scans isn't paid again at 10). Since 1.106 the club has
+  **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
+  Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
+  Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). Since 1.114 the
+  cards stand in a **carousel**: swipe through them (a flick carries through the cards, showing each, and settles on one), tap a side card to bring it in, and tap the
+  front one to **turn it over**. A card's front (since 1.114.3) has the airline's logo printed in its own
+  colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
+  rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
+  your last scan and the types you scanned most. With six cards or more an **index** under them finds one: **By tier** or **A–Z**, slide your thumb
+  along it and the names there show above it while the cards follow. A plane's
+  ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
+has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
+to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new
+country marked). A card then shows the stamp coming down and the country inking itself in, the ink spreading out from
+the stamp (since 1.113; the finger's scratch went). The plate shows the map with each country inked in its stamp's colour
+(never where you are). Since 1.113 the map **moves**: drag it, pinch it (the wheel on a computer), ⟲ takes it back to
+Europe; each region's land is printed in its own paper shade, and a **tap on a region** outlines it, names it with its
+count ("Southeast Asia · 2 of 11") and takes you to its stamps. **N countries ›** opens the large map (Europe & around
+or the World, a bar per region). Below, a shelf of stamps per region (13 since 1.113: Western, Northern, Southern and
+Eastern Europe, the Middle East, North Africa, Sub-Saharan Africa, Central & South Asia, East Asia, Southeast Asia,
+North & Central America, South America and Oceania; small countries such as Malta or Singapore count too) with **every
+country still to stamp** face down after your stamps, nearest first; regions without a stamp yet are a line each under
+"Not stamped yet" that opens with a tap. Countries of earlier scans are stamped too, without points. **Tap a name in the league**
   (1.81) for that player's card: level, this week, all time, the streak, medals by metal, the rarest catch and the
-  week's best plane, never where they are. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
+  week's best plane, never where they are. Since 1.108 a card has a **showcase**: up to three of the player's best
+  catches pinned behind glass, each as its hangar card in miniature with the airline, the day and the route ("DXB → VIE").
+  The spots open at **levels 5, 11 and 17** (3, 5 and 8 before 1.112; spots opened then stay); on your own card a locked
+  spot says when it opens and how many points are still to go, and an empty one takes you to Your hangar (1.112). Pin from a plane's card in Your hangar (**Put in your showcase**; when every open spot is full, tap the
+  one to swap); the plane pinned is that type's best catch: a scanned one first, then one the game scored, then any,
+  one with a known route before one without, then the first. **Levels** (20 titles, Plane Watcher to Legend) unlock the styles one by one; a level up
   shows full screen. Last week's winner wears the crown and may use the **First Class** style that week. The board
-  shows the week's league as a **League** page in its rotation. Collections, bingo, trophies and records count live
+  showed the week's league as a **League** page in its rotation until 1.89.1. Collections, bingo, trophies and records count live
   planes only; the logbook keeps every plane.
 - **Rarity and the Collection** (1.21, relay 24; by fleet size since 1.25, relay 26): every plane gets a tier, shown in
   colour with an icon on the flap after its type, from how many of its type fly today: common (grey: 1,000 or more),
@@ -463,6 +691,21 @@ The main board has everything below. New features are tried on `/test/` first; o
     Class** (claret leather with a stitched seam, cream flaps with claret letters) is for last week's league winner,
     that week only. Styles picked before 1.72 stay.
   - LED dots: since 1.61 a real 5x7 dot font on dark flaps, readable on a TV.
+  - **In the app since 1.110**, Settings → Styles (Look or Badge, or Try it after a level-up) is a **gallery** on a page
+    of its own: tabs **Board · Ticket · Badge**, each a two-column grid of preview cards (the style in its own colours
+    and font, the ticket in its design) marked IN USE, ✓ YOURS or 🔒 with what unlocks it ("Level 14", "A gold medal",
+    "Last week's winner"). Board has the board styles, then Classic's colours and flaps in a section of their own
+    (they only show with Classic). A tap slides up a card with a big preview, what it is, a bar towards its unlock (the
+    points to that level, or the trophy closest to a medal of that metal) and **Use** (off while locked). The TVs keep
+    the card with rows.
+  - **Ticket designs** (1.110, the app): the eras of flying, each won with the **first medal of its metal** in any
+    trophy ladder: **Propeller age** (1950s: ruled cream card, red carbon ink, a serif heading and flight number, a
+    serial number and a conductor's punch) with the first silver, **Jet age** (1970s: warm cream, round corners, a
+    sunburst and three stripes) with the first gold, **Magnetic card** (1990s: a white boarding pass in capitals with a
+    security pattern and the brown magnetic stripe) with the first platinum, **Hologram** (pearl foil, a holographic
+    patch on the stub) with the first diamond. Every pass comes in it (a plane's ticket, the scan's, the streak's, the
+    limit's); the band and the stub keep the plane's rarity, a **golden ticket stays gold foil**. The owner can grant
+    them by hand like the other styles (relay 93).
   - **Title badges**: Star, Propeller, Helicopter, Jumbo, Fighter jet, Concorde. Since 1.61 the
     badge takes the plane's place in the yellow logo square, the browser tab's icon and the web app's home-screen icon
     (relay 53 gives the profile a manifest with that badge's icons; an installed icon changes when the phone next
@@ -472,7 +715,10 @@ The main board has everything below. New features are tried on `/test/` first; o
     Classic, Frankfurt and Blue. Not in the light version.
   A new unlock pops up like an achievement.
 - **Sounds** (1.17): the Settings controls play short recordings of the real things: a rotary switch, a rocker
-  switch, a thumbwheel and a push button; the flaps keep their synthesised clack (credited in About; see
+  switch, a thumbwheel and a push button (1.97.2: the big push buttons, the rail and the bottom bar keep their thock; small
+  buttons, chips and × have a crisp click, and opening a card, a row or a tab a light tick; since 1.97.4 the Logbook's Saved places button, the Sky view buttons and the title's Overhead / Airport switch
+  have the crisp click too; 1.97.8: a scan's ticket tears with a recorded paper rip, and the daily streak's ticket tears
+  off after it, the fireworks bursting from the first tear); the flaps keep their synthesised clack (credited in About; see
   [tools/sounds/](tools/sounds/README.md)). (The Sounds switch for the older synthesised ones was removed in 1.33.)
 - **Realistic look** (Settings → Display, on by default): flaps printed on two cards, a fine grain on the plastic,
   light from above, a turning flap catching the light, glass over the board, brushed metal plates and metal knob caps.
@@ -495,7 +741,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   every picture made to share (a plane, the year, week and month, Sky view's snapshot) says **Spotted by** and your first
   name. The
   photo comes through the relay (relay 47) so the picture can be saved; with an older relay a model photo from
-  Wikimedia still works, an aircraft's own photo is left out.
+  Wikimedia still works, an aircraft's own photo is left out. Since 1.93 a Planespotters.net photo is never in it
+  (their photos may not be passed on): the picture takes the plane's airport-data.com photo or its model's, with its
+  credit.
 - **Screens**: the relay lists every screen using it by device (relay 12 or newer, see below); boards also tell it how
   big they are drawn and at what quality.
 - **Drawing quality** (Settings, or `?quality=`): Automatic draws as sharp as the screen allows, up to 4K, except on
@@ -520,6 +768,13 @@ itself: every time it opens it offers a newer build when GitHub has one (Update 
 updates looks at once; Android asks once to allow installs from Fallblatt, then confirms each update. Chrome can't install `/app/` itself as an
 app, because it installs web apps only from https addresses and the relay is plain http.
 
+In the Android app (1.97.5) the back gesture or button closes what is open first, one layer at a time: a pop-up, a first-time
+tip, a card, then Sky view's card or Sky view itself (back to the board), About or the Log, a plane opened in a list, and then
+any tab other than Now (back to Now). On Now with nothing open it leaves the app, which stays in the background; the
+welcome does the same. Back makes no sound. The web app (1.97.7, in a browser or added to the home screen, an iPhone too) does the
+same with the browser's back: it closes the same layers one by one, and on Now with nothing open back leaves the page as usual
+(closing an installed web app). The tab stays in the address (`#logbook`), and switching tabs does not add steps to back.
+
 **On an iPhone**, open `http://<computer-name>:8080/app/` in Safari, then Share → Add to Home Screen. Opened from the
 home screen it has no browser bars, so on its side the board gets the whole height.
 
@@ -538,19 +793,46 @@ Five buttons along the bottom:
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
-  latest planes spotted. In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
+  latest planes spotted. The photo and **Where to look** (which way and how high, Sky view) are one card under the board
+  (1.115). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
+  colour of its remark, each plane in its own box (1.103.1), since 1.115 **one line a plane**: time, flight, route and
+  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
+  (OVERHEAD, EMERGENCY, DIVERTED) is a coloured pill; at the end of the row, always in this order, a **★** for a type or
+  airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a
+  police or rescue plane, a special one) and a pink **♥** for a favourite; their words are on the card. A plane without a
+  flight number shows its registration (or its owner); without a route the row shows its type. **Tap a plane** and its card opens right
+  there: the row grows downwards into the card, the rows below slide down and the card's content fades in (since
+  1.97.1; just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
+  plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃, the bar it sits in or another plane folds it back.
+  In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today**: today's numbers on flaps, the day's highlights (lowest and highest pass, fastest, most seen airline, the
-  most seen aircraft types since 1.78.2, what's new in the logbook; since 1.87.2.1 "most seen" only counts what came at
-  least twice, else "No airline twice yet"), and every plane spotted today, with the same filters and legend as the board, and the same filter box.
+- **Today** (1.115): the title with the filter box beside it, four numbers with their names (planes, overhead, airlines,
+  types) and a **Highlights** card: the Plane of the day from 21:00 (before then the newest plane new to the logbook) and a
+  line of records. A tap raises the day's plate from below (swipe it down, tap beside it or Back to close it): today's
+  numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
+  highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
+  bars (counting only what came at least twice) and the newest plane new to the logbook. Tap a plane named there and the
+  panel goes, the list scrolls to it and lights its row for a moment (a filter that hides it is cleared). Then the filters
+  and every plane spotted today, one line a plane as in Recent flights; a tap opens a plane's card in place.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,
   Most seen aircraft), Spotted today (Today in numbers), the Spotters' Club (Your level, League, Your catch, Your
   hangar, Records, This week's bingo, Trophies) and the radar's Nearest list sits on a plate of its own, like Settings':
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
-  Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen and newest aircraft.
+  Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
+  **Since 1.117 the Logbook is one screen**: the search, four totals (sightings, aircraft, types, airlines), the period
+  as one card ("2026 in planes · 15 planes · 9 types · 2 countries"), then a list: **Categories**, **Aircraft types**,
+  **Airlines**, **Most seen aircraft**, **Saved places** (All, On the go and your saved places; the row names the one
+  picked) and **Download as CSV**, each with its state in one line. A row (or the card) raises its plate from below as
+  a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·
+  Year and ◀ ▶, three numbers, four facts and **Share**; **More** unfolds the dates, the other numbers and facts, the
+  new types and the CSV. The search results are as before. The footnote says since when it counts and the most seen model.
+  Since 1.91 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
+  whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
+  open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its
+  card, as the rows inside a category do, and one of **Most seen aircraft** searches the logbook for it.
   The search (1.65) finds places too since 1.81 (relay 63): a town, an island, a country or a saved place, and each
   result has a line with a pin naming where it was seen, newest first (the aircraft's card says Seen from). Sightings
   on the go from before relay 63 only know their country (their place was guessed from the day's planes).
@@ -569,35 +851,67 @@ Five buttons along the bottom:
   is no plane on top, so it can always be opened; 1.77: in Where to look's style, saying "No planes around right now",
   its tape a compass). It comes with live location (1.77): with live location off, a card asks first ("Go live and
   open" or "Not now"), since Sky view shows the planes around you wherever you are: the camera full screen, with a label on every plane
-  within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber, and an arrow at the
-  edge when it is out of the picture). It works from the phone's own location (or the place in Settings), the compass
+  within 60 km that is in the picture (flight, type, height, distance; the plane on top in amber). Since 1.118 the
+  title counts the planes in the picture and around you ("1 in view · 3 around"); a **mini radar** bottom left shows
+  them all (north up, the picture's view as a gold cone, a dot for each plane within the radar's usual range, gold in
+  the picture), and a tap on it lists them (the ones in view first; a row opens the plane's card). The three closest
+  planes outside the picture sit as chips on the edge where the way to them leaves the picture, with their flight, distance
+  and an arrow: turn towards one and it slides along the edge, and the plane's label comes in where the chip was (a plane
+  behind you sits on the side of the shorter turn; the plane on top, out of the picture, always gets one, in amber); a tap opens the plane's
+  card. The first-time tour says one thing per step, the zoom buttons are labelled **Zoom**, and the hint is one sentence. It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
   data was made (the relay may keep it a few seconds), follows a plane round its turn and up or down its climb, and
   makes heights true with the home airport's air pressure and temperature (from its METAR; with live location the airport
   nearest you), looking from the phone's own height above the sea (its GPS, 1.76.1: on a hill or a cliff top planes
   below you show below the horizon); the ring has marks on all four sides; it works upright or
   sideways and keeps steady pointed straight up. Since 1.86 the phone's gyroscope moves the labels, so they stay on the
-  sky as you tilt and turn; the compass only says where north is, and only while you hold the phone still (compasses
-  swing about while the phone moves). Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
+  sky as you tilt and turn; the compass only says where north is. Since 1.90 north only glides towards the compass
+  slowly (over several seconds, even slower while the phone turns or the compass is unsure), so labels stay put while
+  you hold the phone still, also indoors where compasses swing; when the compass settles steadily somewhere else (it
+  often comes right a few seconds after Sky view opens), north glides there within a few seconds. Since 1.95.0.2 the
+  labels are placed on every frame from where the phone points at that moment (its last reading carried on at its
+  turning speed), so they move smoothly while you turn the phone even when the browser hands the readings over late.
+  Since 1.76 the compass's magnetic north is turned into true north (NOAA's World
   Magnetic Model; about 5° here). Phone compasses are often a few degrees off, sometimes far more: drag the picture to
   line the labels up with the planes (kept on the phone; **Reset** undoes it). The sun and the moon (1.76) sit in dashed
   rings where they really are: drag until the real one is in its ring, and every label lines up too (on the screen;
-  don't look into the sun). Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
-  Sky view closes. **AUTO** (1.76, the pill under the title; tap to switch it off) lines the labels up by itself. Since
+  don't look into the sun). Since 1.90, when the sun or the moon is up but out of the picture, a dashed arrow at the
+  edge points to it with how far to turn ("☀ SUN · 139° right"), and a **compass ribbon** above the hint shows the
+  whole compass round the way you face, the picture's width in a gold frame and the sun and the moon at their bearings
+  with how high they are. Once lined up (a drag or AUTO), north stays put and the compass is left out until Reset or
+  Sky view closes. **AUTO** (1.76) lines the labels up by itself. Since 1.118 it is always on (no button) and asks
+  before it moves them: "Lined up with the sun · The labels sit 12° left of the planes. Move them into place?" **Apply**
+  slides them there (small corrections after that go on by themselves); **Not now** leaves them and it doesn't ask
+  again for three minutes, unless it finds a quite different alignment. A drag or Reset starts it afresh. Since
   1.86 it finds the sun anywhere in the picture, however far off the compass is (up to 45°): while the sun is up and
   nothing is lined up yet, the hint asks you to point the phone near it for a moment; gold corners then frame the sun's
   ring ("lined up · sun"). It also looks for nearby planes: where it keeps finding one close to its label it slides
   the labels onto it (gold corners mark the plane; "lined up · 1 plane"). It skips planes too far to see, labels close
-  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds.
+  together and the sun's glare, and ignores cloud edges and contrails; a drag takes over for a few seconds. Since
+  1.114.6.1 it only counts what it finds while the phone is steady (the camera's picture is a little late, so a find
+  made while turning is a few degrees off), and the labels hold still while you keep the phone still, even when the
+  gyroscope's readings pause.
   Since 1.66 a ring sits in the middle: keep a plane in it for a second and a half and its card opens (the ring fills
-  meanwhile; it opens again only after the ring was empty). When the heading jumps about while the phone is held still,
+  meanwhile; it opens again only after the ring was empty; 1.114.6: a plane you have scanned doesn't lock on again,
+  its ✓ says so, though the shutter still comes for it). When the heading jumps about while the phone is held still (1.90: only on phones without a gyroscope reading),
   the compass swings against the gyroscope (1.86), or the iPhone says its compass is poor, a note asks for a figure of
-  eight or a drag (not once the labels are lined up).
+  eight or a drag (not once the labels are lined up). **Report** (1.90, the flag in the top bar, the owner's phones
+  only): sends the relay what Sky view knows about the compass (the sensors' readings, north as in use, what AUTO found
+  and how fast the phone was turning then, how far off the sun's ring was and how far the phone's clock is off; no
+  picture and no place), to tune Sky view from real phones; the hint says what
+  was sent.
+  **×2 and ×5** (1.99, the round buttons on the right under the top bar): zoom in for a closer look; the one on is lit
+  gold, a second tap goes back to ×1, and so does leaving Sky view. Where the phone's browser offers it (Chrome on most
+  Android phones) the camera zooms itself (sharper); elsewhere (iPhones, other browsers) the picture is enlarged. The
+  labels, rings and arrows stay on the sky, a drag moves them as far as the finger, and the ring catches as much sky as
+  at ×1 (so it is drawn bigger).
   The phone asks for the camera and the motion sensors the first time. Tap a plane or its label (1.63) for its card:
   photo, route, details, Favourite and Hide, as on the radar; tap it again or × to close. **Snapshot** (1.80): once a
-  plane in the picture has been scanned (✓), a round shutter appears above the hint: it keeps the sky as on the
+  plane in the picture is locked on (1.90: once the ring has filled on it in this Sky view), a round shutter appears above the hint (or above the plane's small card): it keeps the sky as on the
   screen, labels and all, with a band under it (Fallblatt, "Sky over" the place, the date, time and how many planes),
-  to share or save.
+  to share or save. Since 1.114.6 Sky view draws only when the picture changes (with the phone still and nothing
+  moving it rests, saving battery), and the board underneath doesn't flip or clatter while Sky view is open; it shows
+  the latest values when you close it.
 - **The opening** (app): the logo, FALLBLATT flipping in letter by letter like split flaps (1.77), and the plane taking
   off as the board shows through. With sound on it plays the board's clack for each letter and a whoosh for the
   take-off, where the phone lets a page play sound before the first tap (the Android app; never on an iPhone); not in
@@ -610,8 +924,9 @@ Five buttons along the bottom:
   seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew. Since relay 63
   it also finds where a plane was seen: a saved place's name, or on the go the town, the area round it or the country
   ("Oia", "Santorini", "Greece"; the relay names the phone's place, to about a kilometre, in the background).
-- **Notices** (1.65): saving answers with a short notice above the tabs (at the top while a card is open): Favourite and
-  Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
+- **Notices** (1.65): saving answers with a notice: since 1.115 a full-width bar at the bottom, above the tabs (at the
+  top while a card is open, above a ticket or pass while one shows), the message on the left and its one action on the
+  right, red for a problem: Favourite and Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
   again (1.64); Settings say **Not synced yet** meanwhile.
 - **Home-screen widgets** (1.67, Android app, relay 56): long-press the home screen → Widgets → Fallblatt. **Plane
   overhead** (4×2) shows the flight on split flaps, its status, airline and type, route, distance, direction and
@@ -623,14 +938,27 @@ Five buttons along the bottom:
   more as **Look up now**, with where to look and how high. Settings → Notifications → **Count down to the plane**.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
-- **Radar**: the radar instrument and the planes within the spotting radius. Tap a plane on the radar (or its row)
+- **Settings as a list** (1.116; it replaced 1.88's jump bar): each section is a row with its state, and a tap raises
+  its plate from below (see Settings above).
+- **Relay** (1.88, relay 69): only the relay's owner sees this plate at the top of Settings → About: each position
+  source with its role (first, in reserve, emergencies only) and state (working, resting until a time with the error
+  code, standby, failing), adsb.lol's requests today of its daily 500; Flightradar24's credits this month of the
+  budget, today's credits and lookups and the gap filler's share; last night's backup (amber when none is reported or
+  it is over 36 hours old, red when it failed); and the screens online, by profile and device. It refreshes every
+  30 seconds while About is open.
+- **Radar**: the radar instrument and the **Nearest** list, nothing in between (1.118). The **cogwheel** by the title
+  shows the range and raises the **Radar** plate (Range km, Map) from below as a panel, as Settings' sections do; the
+  **(i)** beside the cogwheel explains the colours, one line each; the list names its **Distance** and **Height** columns.
+  The planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**
-  under the radar shows the map (as on the board).
+  (in the cogwheel's panel) shows the map under the radar (as on the board).
 - **Connection** (1.38): the small dot by the clock is green while live, amber when the data is late or a demo, red when
   there is none. Tap it for a card: connected to the relay or not, the position source and whether its data is live or
   the last good copy, when the last update came, failed attempts, planes in range, Flightradar24 on or off and the
-  relay's version.
+  relay's version. Since 1.117 the card starts with one verdict ("All good: live positions from the home relay · updated
+  just now · 14 planes within 46 km", or what's wrong); **Details and the log** unfolds the facts in the card (failed
+  attempts only when there are some), a **Log** button (the Log takes the card's place) and the relay's version.
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
@@ -656,6 +984,10 @@ the remote).
 - Click the board, or press **F**, for fullscreen.
 - Press **S** for settings.
 - Press **A** for About: patch notes, the keys and who made it.
+- In the Logbook the arrow keys move a ring from plate to plate (and up to the buttons); Enter opens the plate's list,
+  Esc closes it.
+- On This aircraft, the up or down arrow puts the ring on a Planespotters.net photo's credit and Enter opens the photo's
+  page (1.93).
 - Press **D**, or use **Diagnostics** in the corner, for the connection log: which source the data
   comes from, recent failures, the closest plane and why it was or wasn't added to Spotted today.
   **Copy log** puts everything on the clipboard. Add `?debug` to the address to open it at start.
@@ -679,6 +1011,12 @@ the remote).
   own arrivals and departures lists, read by the relay at most every three minutes while a board is open.
 - Airline logos: the public airline logo service from Aviasales. When an airline has no logo there, its
   code is shown instead; flights without an airline (private, military, unlisted) get a plain aircraft mark.
+- The cards' facts (1.94, relay 74): [Wikipedia](https://en.wikipedia.org) (its words are
+  [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/): each card links the page) and
+  [Wikidata](https://www.wikidata.org) (CC0), read by the relay's `/facts` once per page and kept about 30 days: a
+  model by the Wikipedia page the board found for it (its infobox and specifications), an airline by its ICAO code, an
+  airport by its IATA code. Photos for airlines and airports from Wikimedia Commons. `/logbook/spotted` counts, over
+  your whole logbook, the sightings and different aircraft of an airline or a model and the flights to or from an airport.
 
 The position services don't let browsers on other websites read their data, and they turn away
 requests from cloud servers. So the live data has to come through a small relay running on a computer
@@ -735,6 +1073,14 @@ its airline's name and code from it, in Spotted today, the logbook, search and t
 relay for airlines the board's own table lacks (AER LINGUS instead of NO AIRLINE LISTED). Older sightings got their
 names once, on the first start of relay 68.
 
+The cards' facts (relay 78): the relay keeps the facts of every airline still flying, every airport with an IATA
+code and the board's aircraft models in `data/facts.db` (SQLite, read card by card, about 15 MB), so a card opens at
+once. Once a month, between 04:10 and 06:00, it refreshes them from Wikipedia, Wikidata and Commons in the
+background (in batches, one request at a time; about 40 minutes and 400 MB). What one night doesn't finish goes on
+the next. Anything it doesn't have yet (a rare model) is looked up on the card's first tap and kept. On its first
+start relay 78 moves the facts relay 74–77 kept in `data/facts.json` into the database (the file stays as it was).
+The owner can see the database at `/facts?status=1` and start a refresh with `/facts?refresh=1`.
+
 Positions come from adsb.fi, adsb.lol and airplanes.live, tried in that order (since relay 68 adsb.lol is kept in
 reserve for when adsb.fi fails, so its 500 requests a day last). A source that answers
 "too many requests" or "forbidden" is rested for a while and the next one is used; if all of them fail,
@@ -751,12 +1097,14 @@ each with a profile of their own: their own location, settings, Spotted today an
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it shows "A board for …"
 with an **Open Fallblatt** button, which sets up that phone or computer (it works once, on the first device that presses
 it, within two weeks; for another device press **New link**). Chat apps such as WhatsApp fetch the link for its preview;
-since relay 27 that no longer uses it up, and devices that were only a preview are dropped from the list. They get a short welcome: its flaps show Fallblatt until a tap opens it (browsers only play sound after a
-tap), then turn to their name letter by letter, with sound, within about two seconds. The board stays hidden until the welcome is done, then loads in with its flaps turning. They then type in their place, airport and coordinates
-(the fields show an example), or let **Use my location**
-fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
-(which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
-settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
+since relay 27 that no longer uses it up, and devices that were only a preview are dropped from the list. They get a short welcome: its flaps show Fallblatt until **Open the board** is tapped (browsers only play sound after a
+tap), then turn to their name letter by letter, with sound, within about two seconds. The board stays hidden until the welcome is done, then loads in with its flaps turning.
+Then one question a screen (1.119), a line of dashes showing how many there are: **Where are you?** (**Use my
+location** takes the phone's place and its nearest airport in one tap; **Type a place** opens the place, airport and
+coordinates fields), **Get notifications?** (where the browser supports them), **Keep your logbook?** (an account,
+where passkeys work) and **How do you want to watch?**: the **phone app** (which they can add to their home screen from
+the browser) or the **full board** (for a computer or TV). **Skip for now** goes on to the next question; a skipped place
+is set later in Settings, which opens at the end. Their settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser keeps its profile.
 
 **Every screen is a profile's (relay 42, 1.49).** There is no "Home" any more: a screen at home without a profile
@@ -813,7 +1161,8 @@ there. The relay keeps only each passkey's public key and a salted scrypt hash o
 rate-limited. Passkeys need the https address.
 
 **Sign in a TV with your phone** (1.46, relay 39): a TV (or any screen) that opens the public address without being
-signed in shows the "private" page with a **QR code** and a six-letter code. Scan it with a phone that is signed in
+signed in shows the "private" page with a **QR code** and a six-letter code first, then **Sign in with your account**
+and **I have an invite link** (1.119: paste the link there to open it; only an invite link for this board opens). Scan the QR code with a phone that is signed in
 (or type the code at `<public address>/pair`), confirm "Sign in the screen as …", and the TV opens the board by
 itself within a few seconds, as a device of that profile. A phone that isn't signed in is asked to sign in first; a
 phone has to be signed in itself (since relay 42 there is no Home to sign in as). Codes last ten minutes (the screen shows a new one by itself) and are
@@ -859,7 +1208,10 @@ as they connect, reload the board and go away, with what it knows about each: th
 TV, Fire TV, LG TV, a PC or phone and its browser), its address and network name, which board it shows, how big it is
 drawn and how long it has been on. Press **Enter** in the relay's window for the current list, or open
 `http://<computer-name>:8080/screens`; the board's diagnostics panel lists them too. The boards and the phone app send their
-name, size and drawing quality; a screen that hasn't asked for anything for a minute counts as gone.
+name, size and drawing quality; a screen that hasn't asked for anything for a minute counts as gone. Since relay 80 an
+app in the background (its latest hello says hidden) counts as left after 15 seconds, whatever it asks for meanwhile: it goes
+to "Recently gone" (left at the time it went to the background) without a log line, and when it comes back (a hello saying
+visible) it is a new visit that isn't announced again.
 
 **Shared history (relay version 5).** The relay records every plane that comes within its spotting radius
 itself, so every screen shows the same Spotted today list and nothing is lost when a browser is closed. It
@@ -877,12 +1229,14 @@ copy of this repository, `--source URL` to read positions from your own receiver
 
 ## Working on the board
 
-`CLAUDE.md` has the working rules and how the pieces fit together. To try a change without touching the real relay,
-`py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
+`CLAUDE.md` has the working rules, `docs/architecture.md` how the pieces fit together. To try a change without touching the
+real relay, `py tools/test/run_test_relay.py` runs a test relay with made-up flights at `http://localhost:8096/` (with a signed-in
 test profile: open `http://localhost:8096/test-signin` once in a browser; the made-up flights play out in the first few
 minutes after it starts; `--port 8296` runs it on other ports, so test relays of several checkouts don't answer for
 each other, and `smoke.py` takes `--port` too);
 `tools/test/shoot.py` takes screenshots of it, and `py tools/test/smoke.py` loads every page against it and fails on
 a page error (`--syntax` checks that the scripts parse, with Node). GitHub Actions runs both, the relay's compile check
 and an up-to-date check of the app on every pull request (`.github/workflows/check.yml`). The phone app is built from the test board's code with
-`py tools/app/build.py`, so it gets new features together with that board.
+`py tools/app/build.py`, so it gets new features together with that board. `py tools/codemap.py` shows where each
+part of the code lives, area by area, in every file (`docs/code-map.md`); `smoke.py --syntax` also checks that every
+function and CSS rule is on that map.

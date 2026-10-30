@@ -1,7 +1,7 @@
 # Fallblatt: version-by-version details
 
-Moved out of `CLAUDE.md` (which holds the rules and the current architecture in short) so that every session
-doesn't have to read it with every step. Read the part for the area you are touching: it says what each version
+Moved out of `CLAUDE.md` (which holds the rules; `docs/architecture.md` the current architecture in short) so that
+every session doesn't have to read it with every step. Read the part for the area you are touching: it says what each version
 added and names the functions and fields involved. Text from before 1.49 / relay 42 is history: **"Home" as a
 profile or identity no longer exists** (every screen is a profile's device since relay 42; `at_home()` only opens the
 admin paths), the Flightradar24 budget is not 27,000 but 54,000 a month until 2027-01-08 and 27,000 after, and the
@@ -10,6 +10,348 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## How the board works (index.html and the test board)
 
+- 1.96.1 (to-do #124, Dave's picks: chip C2, the model from the front): **the band's middle says what the card is**.
+  `bandMid(kind)` replaces "— ✈ —" (and the place card's "— 1,702 km —"): a solid gold chip (`.cKind`) with a filled
+  icon (`BAND_ICONS`: the model an airliner from the front, the airline a tail fin, the place a control tower) and the
+  word (Model, Airline, Airport); a flight (`planeCard`'s route, Sky view's `skyBody`) only a gold disc with Tabler's
+  plane (`.cKind.only`), simpler than the ✈ glyph, whose engines blurred on small screens. `infoCard` takes `kind`;
+  the band's middle text is gone: the place card's distance from your airport is the **Flight distance** fact ("4,224
+  km from VIE"), next to Distance (from the screen). It stays an `<i>`, so the app's timeline still fades it in.
+  Mockups: two rounds (A line, B flat, C chip; C1–C3, model icons M1–M3) in `.mockups/` (`js/band.js`).
+- 1.96.1 (to-do #122, Dave's pick "brand if same name"; relay 77): **an airline's card is its brand's**. A Wizz Air
+  flight's card showed Wizz Air Malta's facts (the operating company, found by its ICAO code). `/facts?airline=` now
+  answers with the brand's facts and `flownBy: {name, icao}` when the company flies under its group's name;
+  `airlineCard` titles the card with the brand (`me`: its ICAO, IATA from `AIRLINES`, its logo and adsbdb's country and
+  callsign; Spotted and Today add the company's and the brand's), and `infoCard`'s new `via` lines under the band
+  (`.cVia`, `button.cLink.cOvA` as the plane card's airline) say "Flown by Wizz Air Malta ›" (`data-al-own`:
+  `airlineCard({own: true})` → `factsGet("airline-own")`) and "Part of Lufthansa Group ›" (`data-al-org`:
+  `airlineCard({qid, name})` → `factsGet("org")`, a card without codes: no logo, Spotted "/", no favourite buttons).
+  The Fleet box says "Whole brand" when the relay added the brand's companies (`fleetAll`). `brandsOk()`: relay 77.
+- 1.96.1 (to-do #126, Dave: "Yes, merge them"; relay 77): **the Logbook's places at one spot are one place**.
+  `/logbook?place=` takes `same_spot`'s set (as `/sightings` since relay 75), and the whole logbook sends `spots`
+  ({key: its keys at the same spot}). `lbChips` (the board's chips and the app's place bar) gives each spot one place:
+  the place taking the most others gets them (with the old rule's "home" for a place called Home), the others show no
+  chip. A sighting has one place, so the merged numbers have no doubles.
+- 1.95 (to-do #115 and #117): for the app's cards in its lists (shared code): `picHtml(p, cls, over, attrs)` with
+  `attrs` (the photo opens something itself) makes only the credit the Planespotters link (`a.cCr`, clickable again:
+  `.cardish a.cCr`), and `picFailed` knows that one too; `infoCard` takes `picAttr`, a band given as text (a line,
+  `.cNoRoute`, saying why there is no route) and a tile's fourth item (attributes: the box is a `button.cTile`); the
+  1.94 rules for the photo, title, band, boxes and focus also apply to `.cardish .cInfo` (the app's card in a list);
+  `planeBody(o)` takes a sighting's own `o.info` (its route) and `o.remark`. **`AIRLINES` (to-do #117)**: Hainan flies
+  as CHH (HNA is the Hellenic Navy, adsbdb), Lauda Europe's own code is LDA/LW (Wikidata; Laudamotion's LDM was
+  dissolved in 2020; in the relay's sightings Lauda Europe's planes fly Ryanair's flights as RYR), ITA flies as ITY
+  (Alitalia's AZA is gone). Checked: every other code in the table finds a company still flying on Wikidata, so the
+  relay's `airline_facts` needs no exception. The favourites' list of airlines no longer offers the wrong codes.
+- 1.94 (to-do #113 and #114, Dave's mockup A with his More info; relay 74): **the info cards in Sky view's card
+  style**, with more facts for spotters. Shared (cards block, so the app too): `infoCard(o)` draws every one: the photo
+  (`picHtml(pic, " cSkyPic", over)`, its credit at the top-left, clear of the round ×: `.cardIn.info`, set by `cardOpen`
+  when the html starts with `.cInfo`), the title, sub (a button with `subAttr`) and chip on it (`.cOv`; `.cOvPlain`
+  without a photo); the band (`.cRouteB`, ends as buttons when they lead somewhere); three boxes (`.cTiles`); the first
+  of `facts` as Fun fact (`.cFun`); the facts in two columns (`.cDet`); Wikipedia's first paragraph in three lines
+  (`.cWiki.clamp`) with the small "Wikipedia ↗" link to the page (`.cSrc`: its words are CC BY-SA); More info
+  (`.cMoreB`, `data-info-more`: the app's list rows already use `data-more`) and, hidden, the rest of the paragraphs
+  (`.cMoreT`) and Did you know (`.cMoreX`, `.cKnow`: facts 2 to 4, each with its source); the buttons. `cardMore` opens
+  it where it is (the clamp off, the parts shown, the button hidden; a ring that was on it goes to the Wikipedia link),
+  lets the app's sheet grow (`cardSheetGrow`) and scrolls the card to the words, smoothly unless `REDUCED` or `LITE()`.
+  The cards: `typeCard` (photo, name, maker · code, rarity `tierChip`; first flight → in service; Built with "{name}
+  family" when the page is a family's (`familyName`), In service ≈ `FLEET`, Spotted; Code, Engines, Seats, Wingspan,
+  Length, Range, Main user, Built (years), Developed from › (a model card by its page: `typeCard({page, type})`),
+  Planes spotted, Today), `airlineCard` (its plane from Commons with the logo; founded → main base (a place card);
+  Fleet, Destinations, Spotted; Radio callsign, Headquarters, Hubs (two or more), Owner (with shares), Employees,
+  Alliance, Planes spotted "m of n", Today; the late logo now joins: the shown card's token, not the loading one),
+  `placeCard` (Wikidata's photo, not the logo the summary gave DXB; city · country, codes as the chip; your airport →
+  there with the distance between them; Passengers (and year), Runways, Opened; Codes, Elevation, Operator, Distance
+  (from here), Spotted (flights to or from it), Today) and the plane card (`planeBody` outside Sky view: the flight,
+  airline and status on the photo, the route as the band, `planeTiles` from `planeLog`: Spotted, Closest (at its
+  height), Flights; the live numbers stay `data-dyn` spans among the facts for the radar's updates, with Registered;
+  `planeCard` waits up to 1.5 s more for the row). Data: `factsGet(kind, key)` (relay 74 `/facts`, kept per page),
+  `spottedGet(part, key)` (`/logbook/spotted`, two minutes), `planeLog(reg, onReady)` (the logbook search, relay 55;
+  undefined while asking, null never spotted, false can't ask; five minutes), `airportGet(code)` (`/airport`, relay 18).
+  Older relays: the same layout with what there is (the summary's words, `airlineWiki`, `wikiFind`). Fun facts, only
+  from real data, in order: `modelFunFacts` (first flew N years ago today; one of N built, you've seen K; wingspan
+  against a football pitch 105 m, an Olympic pool 50 m or a tennis court 23.77 m; range: the farthest of
+  `RANGE_CITIES` (40) under 90 % of it, from the screen's place; first flew N years ago; still being built),
+  `airlineFunFacts` (flying for N years from its first flight, or founded; you've spotted M of its N planes; its main
+  base's distance), `placeFunFacts` (passengers against your airport's, both Wikidata's; opened N years ago),
+  `planeFunFacts` (back after N months, two months or more; first spotted). #114: "Seen here" (since a date) is
+  Spotted: Once or N times (`timesText`; "Not yet"). `wikiHtml` went (More info took its link). TV: the cards stay
+  pop-ups; the Logbook's ring (`lbKey`) reaches every button and link of them (More info too: OK opens it, Back
+  closes); `.cInfo` buttons and links have the amber ring (`:focus-visible`), toggles a box-shadow ring so their
+  "on" outline stays; sizes are `calc(Npx*var(--ck,1))` in the app's type scale.
+- 1.93.1.1 (to-do #112: Dave's BE20 "BEECH 200 Super King Air" and C210 "CESSNA 201 Centurion" had no picture):
+  **model pictures for nearly every type, never another model's**. Measured over Dave's 122 logbook types with their
+  names as the sources gave them (`tools/test/model_pics.js`): before, 87 had a picture for every name, two of them
+  wrong (BALL got "Ball turret": the code itself was searched; E35L's "EMBRAER EMB-135 Legacy" the Embraer company
+  page); now 121, none wrong (checked by eye on a contact sheet and against the pictures' file names); the miss is PULS
+  ("Aero Pulsar XP-II"; Wikipedia's page is "Aero Designs Pulsar"). Every code in MODEL_PAGES and TYPES: 428 of 428.
+  Shared (cards block, so the app too): `modelPage(names, code)` checks in one action-API request (`wikiPages`, `WIKI_API`:
+  up to 50 titles with their redirects, disambiguation flag, short description, intro extract (20 pages at most),
+  picture and Wikidata id) the code's page (`MODEL_PAGES`) and the names' spellings (`modelTitles`, `modelSplit`: the
+  maker as Wikipedia writes it (title case, `MODEL_MAKERS`: BEECH → Beechcraft, TEXTRON → Cessna, AGUSTA →
+  AgustaWestland ...), `numForms` ("PA-28R-201T" ... "PA-28"), the words without the number, the number without the
+  words, the model without its maker ("Learjet 45"), another name's maker ("Cessna" + "Citation CJ2"), "Cessna NNN" from
+  a C+3-digit code); Wikipedia's search (generator=search, two names at most) only when none fits. The code's page and
+  whole names are taken as they come; a title made from part of a name must not contradict the rest (`modelClash`:
+  numbers by their start, `numCore` a320 / pa28 / 737, the code's digits count as the model's; words: the page has its
+  own while the name has others) nor be a family's page without a number ("Cessna Citation" leads to the family's,
+  which shows a CJ3); a search hit (`modelHit`) needs the maker and the number (all words when there is none). Every
+  page must be about an aircraft (`modelOk`: `MODEL_LIKE` on description and extract, `MODEL_NOT` (company, airline,
+  list ...) on the description without brackets: the YS-11's names its maker's Corporation). The first fitting page
+  wins; without a picture of the aircraft (none: the Cessna 150's, for now; a file named "logo": the BAe 146's;
+  `MODEL_OTHER`: the Citation Latitude's is a Citation XLS) `wikidataPic` takes its Wikidata picture (P18) as a 500 px
+  Commons thumbnail (imageinfo). The code is never a name (`modelPage` drops a name equal to it). `MODEL_PAGES` comes
+  from `tools/model_pages.py`: the list's link per code, its mistakes fixed (PAY2 is the PA-31T, C130 the military
+  Hercules, AC90 linked the company, H25B shows the Hawker 800), common light aircraft, helicopters and military types
+  added (codes checked against ICAO Doc 8643), every title checked; a code whose TYPES name leads to a page is left out;
+  BALL, GLID, GYRO, SHIP and ULAC are kinds ("*"), tried after the names. One request per model as a rule, three at
+  most (Wikidata), 9 s each; Wikimedia allows a browser 200 a minute, a script without a proper User-Agent 10 (the
+  tools send one). `modelLook` keeps each lookup by `modelKey(names, code)` (main.js's `modelPicNow(names, code)` too);
+  one that failed is asked again a minute later. `modelPic(names, onReady, code)` calls every caller waiting
+  (`modelAsk`), not only the first. Late pictures: `cardWhenReady` returns the opened card's number (`cardTok`);
+  `typeCard` redraws when `modelWiki` answers after its 4.5 s, while that card is open; `planeCard` keeps `planeTok`
+  and `planeAgain` redraws only that card (one opened from it stays), and a photo found while the card waited for its
+  pictures goes in at once; `planeLate` is the one callback (`psPhoto` keeps it once too).
+- 1.93.1 (to-do #111, the second try at #108: a phone's Chrome kept showing a village far away where it had been days
+  before, and the relay ran the gap filler around it): **live location takes no old position**. The cause, from Chromium's source (155, the
+  Android stable then): with `kApproximateGeolocationPermission` (on by default on Android since May 2026) a page that
+  asks without `enableHighAccuracy` is an approximate client (`GeolocationImpl`: hint and precise permission);
+  `GeolocationProviderImpl` keeps the last approximate position across page loads (`low_accuracy_result_` isn't
+  cleared when the last page stops) and hands it at once to every new watcher, whatever its age, with its own
+  timestamp; a new approximate one is passed on at most every 15 minutes (`kApproximateGeolocationUpdateInterval`).
+  `liveRun` asked without high accuracy, and `liveFix` set `liveAt = Date.now()` for whatever came: that old position
+  counted as a fresh fix at every page load and at every `liveStart`. Seen that way in the test relay: the old point in
+  the title and `fix=0` around it, so the gap filler started. Now (places block, E33): `liveRun` asks with
+  `enableHighAccuracy: true` (watch and the minute's re-ask; Chrome stops watching while the page is hidden), and a
+  position older than `LIVE_OLD_MS` (2 min) by `geoPos(p).age` is no fix: logged once a minute at most (`liveOldSaid`)
+  with `geoNote()` (age, ±accuracy, km from `S.lat/S.lon`), its accuracy kept in `liveOldAcc` (0 after `liveHalt`).
+  FINDING YOU … and `fix=-1` stay until a fresh one. `liveFix` logs each run's first position. The one-minute note says
+  to allow precise location in the browser's site settings when the last old one was approximate (±1,500 m or more).
+  `hereNow` (Settings' Here, the welcome) waits on a `watchPosition` for a fresh position (20 s) instead of taking
+  `getCurrentPosition`'s first answer; Sky view's watch (main.js) skips old ones too. With an Approximate-only site
+  permission, a page reopened within Chrome's 15 minutes waits for the next one (up to ~13 min); Dave and the main chat
+  chose that over taking approximate positions up to 15 min old.
+- 1.93.1 (Dave: "Ask each time"): **turning live location off asks where to watch**. Settings → Location's Live button
+  (`wireLocation`) calls `liveAsk()` first: with a fresh fix (`liveAt`, not `liveStale()`) and a `S.livePrev` it opens a
+  card (`cardOpen`, `.pickList.lvAsk` with two `.cBtn`s): **Stay here** (`liveStay()`: the last live point, its name from
+  `S.liveNamed` and airport from `S.liveAir` when `liveNameOk()`/`liveAirOk()`, else "Here" and the old airport until
+  `geoReverse`/`nearestAirport` answer; no `placeKey`, so the profile's own place) or **Back to {label or name}**
+  (`liveStop()`, unchanged). Without a fresh fix or a place before, `liveAsk()` returns false and the button calls
+  `liveStop()` as before. Closing the card keeps live location on. The remote: the first option has focus, the arrows
+  move between the two (the Logbook cards' focus ring, `#cardBox .lvAsk .cBtn:focus`), OK picks, Back closes (the
+  cards' capture listener). `usePlace`, `locatedAt` and the start-up `liveOk()` check still turn it off without asking.
+  `settingsSync` now copies `live` and `livePrev` into Settings' draft, so its Save no longer turns live location back
+  on (or off) after the switch was used with Settings open.
+- 1.93.0.1 (to-do #108, a phone back from a trip showed the trip's village as it opened): **live location never shows an
+  old town**. Shared (places block, E33): the town's name and the airport are kept with the point they were found for,
+  `S.liveNamed` `[lat, lon, name]` ("" where Nominatim has none) and `S.liveAir` `[lat, lon, code]`, saved on the device
+  only (`meSend` drops both keys); `liveNameOk()` (a name, within 2 km of `S.lat`/`S.lon`) and `liveAirOk()` (15 km)
+  are true when not live. `placeNow()` is the name to show, "" while live and waiting or not `liveNameOk()`: the board's
+  title and the app's `updateWhere` say ON THE GO then (the app without the radius, as with FINDING YOU …, so it fits
+  390 px), the radar's close-up subtitle On the go, a Sky view picture "Sky view", `placeOfS` (Saved places' Update)
+  no name, and Settings' City field is empty and disabled with the placeholder On the go (`itemHtml`, `settingsSync`,
+  which also copies both keys into Settings' draft, so its Save doesn't bring back older ones).
+  `meSend` leaves out `place` while `!liveNameOk()` and `home` while `!liveAirOk()`, so the relay's profile never gets
+  an old one. `liveFix`: `liveShow()` at the first fix (FINDING YOU … used to stay until the lookups ended: the 2 s
+  check could miss the change) and when the name turns old; `geoReverse` returns null when the relay didn't answer;
+  the name and the airport are asked side by side (`Promise.all`) when the fix is past 2 / 15 km from their point and
+  the last unanswered lookup is `LIVE_RETRY_MS` (a minute) back (`liveNameAsk`/`liveAirAsk`: its time, Infinity while
+  one is on its way, 0 after an answer); a point is marked only after an answer. A result for an older `liveRunAt` is
+  dropped. `liveStart` deletes both (a place set by hand isn't named for the phone's point). `tools/test/fakesrc.py`
+  `SLOW_NAMES=1` (`run_test_relay.py --slow-names`): names take 5 s and the first lookup of each point fails.
+- 1.93.0.1 (to-do #107): **About on the boards in two halves**. In Settings' third column (630 board px) the About
+  plate ran 73 px past its edge on every screen (92 at 1366x768, where text wraps differently) and Keys 5, cutting off
+  the radar map's and the World Magnetic Model's credits. `aboutOpen` sets `#cockpit.about` (`cockpitOpen` and
+  `accountOpen` clear it): two equal columns, rows `auto minmax(0,1fr)`; Patch notes (`.plate.notes`, both rows, ▲ ▼
+  as before) on the left, Keys as tall as it needs over the About plate on the right. `dl.keys` has four tracks (two
+  keys a row) and `KEYS` the photo link's row again (↑ ↓ "This aircraft: the photo's link (OK opens it)", 1.93 left it
+  out for room). About has 111 px to spare in English, 77 or more in the other languages, at every size tried (Fire TV,
+  1080p, 1280x720 to 1920x1200). smoke.py opens About at the Fire TV's size too and fails on an overflowing plate.
+- 1.93 (to-do #95, Dave's mockup A and wording B; relay 73): **the plane's own photo from Planespotters.net**. Shared
+  (cards block, so the app has it too): `psPhoto(reg, hex, onReady)` asks the relay's `/planephoto` once per
+  registration (`psPhotos`: `{at, photo, cbs}`, photo `undefined` while asking and `null` for none, kept `PS_KEEP_MS`,
+  an hour; not answered: asked again after two minutes; `psOk()`: relay 73+, not in demo mode). `planePic(ac, info, d,
+  onReady, noPs)` gives `{src, kind: "ps" | "own" | "model" | "", by, link}` in the order Planespotters → adsbdb
+  (`d.photo`) → `modelPic`; while Planespotters is being asked there is no photo yet, so a screen doesn't change twice.
+  `picCreditParts`/`picCredit`/`picCreditHtml`: "© name · Planespotters.net ↗", "Photo · airport-data.com", "Model only
+  · Wikimedia Commons" (the first part, `.crBy`, gives way on a narrow screen; `.crSrc` stays whole). `picHtml(p, cls,
+  over)` is a card's photo: `.cPicW` with the credit `.cCr` on it, a Planespotters photo inside `a.cPicA` to its page
+  (target _blank); `picFailed` puts a Planespotters photo that doesn't load in `psBad`, and the next one shows. The amber
+  "MODEL PHOTO · NOT THIS AIRCRAFT" tag is gone everywhere (`modelTag`, `.cTag`, the app's `.mtag`, `isModelPic`).
+  Board: `featPic()` (`rwyFeat()`: the runway screen of the Landing and Take-off pages has no room for the credit and
+  link, so no Planespotters there), `featPhoto()` its src. `paintScreen` no longer draws a credit: `#photoLink` (`.pLink`,
+  an `<a>` over the whole screen in `#photoFrame`; `#photoCr` the credit, in `FONT`) is set by `photoLinkSet(p)` from
+  `placePhoto`, with an href only for Planespotters (without one it is plain text and takes no clicks). The remote
+  (Dave, 26 Oct: no QR code, the credit is the link): `photoKey(e)`, from the board's keydown, puts the ring (the Logbook
+  plates' amber one, on `:focus` for the older TV browsers) on the credit with Up or Down and takes it off again; OK is
+  the link's own, and its click takes the ring off (a mouse click left the focus there); the rotation's 1 s tick holds
+  the page while the credit has the ring. The share picture
+  (`shareCanvas`): `x.pic` is `planePic` without Planespotters (their terms), its credit in the same small caps;
+  `shareImg` also loads `thumb.wikimedia.org` directly (Wikipedia's thumbnails come from there now). `planeCard` waits
+  for a photo (up to 2.5 s) whatever adsbdb has.
+- 1.92 (to-do #103, Dave's mockup C without Newest aircraft): **the Logbook on one screen**. The Records and Week &
+  month views went into it (`VIEW_NAMES`/`VIEW_FIELDS` lose `records` and `review`, with `renderRecords`,
+  `renderReview`, `reviewFetch` and the `rc*`/`rw*` flaps; `LB_VIEWS` stays for the app). `LB_BOX`: seven plates, four
+  above (266 to 620, Settings' first row: totals, period, cats, records) and three below to the rail (types, airlines,
+  regs, a third of the width each). `lbPlates` draws them from `drawStatic` before `slots` (`plateDraw`: Settings'
+  `.plate` on the canvas, its gradient, shadow, screws, `body.real` brushing and the engraved title between two lines).
+  Their flaps: `lvSight`, `lvRegs`, `lvTypes`, `lvAirlines`, `lvModel`; `lp0-5` (the period's numbers, `LB_NUMS` for
+  a year or a week/month) and `lf0-2` (busiest day, most seen aircraft, rarest: `reviewFacts`, which reads `/year`'s
+  answer too); `lvl_*`/`lvn_*`; `lrc0-3` (`LB_RECS`); seven rows of `lt*`/`la*` (names 19 flaps, `lbModel` drops the
+  maker only when it doesn't fit) and `lr*`. `lbStatic` engraves the rest: the labels (`lbLabels`, `lbLabel` squeezes
+  one to end before the next field), the model's count, the categories' names, each record's date and plane;
+  `renderLogbookBoard` draws it again when `lbStaticSig` changes. The period: `lbPer` ("year" at first), `lbYearBack` or
+  the shared `review.back`; `lbYearFetch` (relay 29, kept in `lbYears`, 5 min) and `fetchReview`; `lbFetch` every
+  30 s while the view is open; `lbPerSet` from the buttons and the card; `demoYear()` in demo mode. `/year` and
+  `/review` count every place, so with a place picked (`lbPick`) the plate's title adds "· All places".
+  `#viewTools` (`lbToolsHtml`, `lbToolsWire`, `lbToolsSync`, which lights buttons without building them again): the
+  search (`HAS_KEYS`, relay 55; Enter runs `lbSearch`), All and the places, the CSV; then Week · Month · Year and ◀ ▶.
+- 1.92: **the Logbook's cards** (`lbCard(k)`, `lbCardHtml`, `lbCardWire`): Totals (and Logbook for: the places as
+  buttons), the period (Week · Month · Year, ◀ ▶, the numbers, every fact, the new types; "Counted over every place."
+  with a place picked), Categories (each a button that opens its top ten, Types · Aircraft · Operators, from
+  `/logbook/category`, relay 61: `lbCatFetch`, `lbCatData`), Records (with plane and day, and the period's), and the
+  three lists in full (`lbRow`). A type's row opens `typeCard`, an airline's `airlineCard`, an aircraft's its sightings
+  (`lbSearch`, which `lbFoundHtml` lists like the app's search); `lbBackTo` (`lbCardBack()`) brings back the list on
+  Back. `lbCardAgain` draws an open card again where it was (scroll, and the button that had the ring, by `data-lk`);
+  `lbCardWait` marks a card still loading, which new data fills in. Chosen buttons in these cards are `.cBtn.go` (gold),
+  so the remote's ring (an amber outline) stays clear.
+- 1.92: **the Logbook with a remote**: `#lbHits` holds a transparent button per plate (pointer-events none, so a
+  click still reaches `boardTap`, which opens the plate under it via `lbBoxAt`; `.hov` and `#fx.lbHov` show the mouse
+  what is clickable). `lbKey`, called by the board's keydown in the Logbook, moves the focus with `lbNear` (the nearest
+  past the edge in that direction, off to the side counting three times) among the plates and `#viewTools`'s buttons,
+  or among an open card's buttons and rows, only to what is in sight (else the card scrolls). OK is the focused
+  button's own click (`lbCard` then focuses the card). Backspace, Samsung's 10009 or LG's 461 with no card open leave
+  the view, as Esc does. A capture keydown before cardOpen's own puts the ring back on its plate when a card closes, or
+  runs `lbBackTo`. On a TV (no `HAS_KEYS`) `lbHitsShow` puts the ring on the last plate as the view opens. The board's
+  first-run tip takes the first key, as everywhere.
+- 1.92 (to-do #106): Spotted today's PAGE x OF y is drawn at the end of the line under the title (`W - M`, 248), under
+  ◀ ▶; it stood at a fixed place left of the filter box, and with the place button the box covered it.
+- 1.90 (to-do #92, Dave's picks "A + the compass from B", relay 72): **Sky view's sun and moon pointers, compass ribbon
+  and report**. `arBodyEdge()`: a body above the horizon whose ring is out of the picture gets a dashed arrow at the
+  edge (the shape of `arEdge`'s) with "☀ SUN" and how far to turn (left/right when beyond half the picture's width,
+  else up/down), from `arUnproject` of the picture's middle. `arRibbon()` draws `#arRib` (a canvas in `.arBot` above
+  the hint, hidden with the hint while a card is open): 360° centred on the way the picture faces, ticks every 15°,
+  `AR_RIB` letters (N red, through `T()`), the picture's width bracketed, ☀/☾ at their azimuths with "{n}° up"; it
+  redraws only when its signature changes. The flag `#arFlag` (`arReportOk()`: relay 72+, `GUEST.owner`) posts
+  `arReport()` to `/skyreport`: app version, OS, event counts per kind (`arEvN`: abs/rel/ios, to see whether a phone
+  sends the gyroscope's reading at all), `arGap`, declination, `arOff`, held (`arHeldWhy`), unsure, turn rate, facing,
+  the quaternion, `arGapLog` (every 4th) and `arRaw`, AUTO's lock and finds, the sun and moon and `arSunLast` (the sun's
+  ring offset from AUTO's last sun find), screen and video size, focal length. `arNote` keeps the hint's answer for 8 s.
+  The relay (`sky_report_clean`: numbers, flags, short strings, 3 levels, place-like keys dropped; `sky_report_save`)
+  keeps them in `data/profiles/<id>/skyreports.jsonl`, the newest `SKY_REPORTS_MAX` (200), owner only, same origin,
+  1 per 10 s (burst 3).
+- 1.90 (to-do #93): **steadier labels**: a complementary filter in `arGapStep`. North (`arGap`) follows the compass
+  always, not only when still, but slowly: `AR_GAP_TAU` 6 s, ×3 while turning (`arMovedAt` within `AR_STILL_MS`), ×4
+  while unsure (iOS accuracy poor, or `arCalAt` within 4 s), at most `AR_GAP_MAX` 1°/s (a quarter unsure); the first
+  `AR_GAP_SETTLE` 1.5 s after the first reading settle with τ 0.4 s. A steady difference is no swing: while still,
+  when the compass's last `AR_GAP_STEADY` 1.5 s agree among themselves (sd < 2.5°) but differ from north in use by over
+  4°, `arGapFast` glides there with τ 1.5 s, all the way (within 1°) unless the phone moves or the compass wavers (a
+  compass that comes right after Sky view opens, north carried over wrongly). `arGapLog` now keeps the compass against
+  the gyroscope from the first reading (`arGapRef`; cleared when the gyroscope's zero jumps), not against north in use,
+  so the 12° swing check sees only the compass. `arCalCheck(…, gyro)`: with the gyroscope's reading the 1.66 check
+  (heading swinging while the tilt holds) is left out, as a smooth pan looked just like it ("Compass unsure" while
+  turning). Held (AUTO or a drag) is as in 1.86.
+  `tools/test/sky_jitter.js` runs main.js's own sensor code on a made-up Android stream (60 Hz, gyroscope drifting
+  .02°/s; outdoors compass ±1.5°, indoors ±3° plus ±8° swings with time and heading; a compass 25° off for its first
+  4 s; the gyroscope's zero jumping 40°) and prints the label movement while still and how long north takes to come
+  right. 1.89 → 1.90: indoors the most a label wandered in a still spell 6.4° (75 px) → 0.7° (9 px), frame to frame
+  0.031° → 0.005°; outdoors 1.45° → 0.21°; the 25°-off start right (within 2°) after 9.3 s → 9.4 s; the zero jump
+  unseen in both. North's average error indoors rose 3.9° → 5.9° (it follows the swinging compass less; that
+  compass's own error is about 4.5° there).
+- 1.95.0.2 (to-do #125, Dave's pick B): **labels placed every frame, not every reading**. Dave's screen recording
+  (Android, Chrome, indoors): while the camera picture moved smoothly, the labels stood still in 63 of 109 frames for
+  60-420 ms, then jumped 40-105 px; they reached the screen about 17 times a second. Chrome hands
+  `deviceorientation` over on the page's own thread (`DeviceSensorEventPump`, a 60 Hz timer; Android's game rotation
+  vector, 0.1° steps, nothing while no angle changes by 0.1°), so a busy page gets readings late and bunched, and
+  `arTurn` applied each nearly in full (τ 0.03 s while turning) when it came. A headless Chrome slowed 4× handed over
+  20 readings a second at 29 frames. The Generic Sensor API reads the same sensor, at the same 60 Hz cap, on the same
+  thread: no help by itself. Now `arTurn` keeps the newest reading (`arRd`) and the turning speed from one reading to
+  the next (`arW`, rad/s about east, north and up; a jump over 0.5 rad or 8 rad/s clears it); `arFrame`, called at the
+  top of `arLoop`, turns the reading on by `arW` for as long as it is old, up to `AR_AHEAD` 0.15 s (older still, back
+  to the reading by 0.3 s), and glides `arQ` there (τ 0.03-0.2 s, by distance and speed as before). Chrome sends no
+  reading after a stop, so `arMotion` (`devicemotion`, sent every poll, still or not) gives the gyroscope's speed
+  (`arMo`, only how fast): under 2°/s (fresh within 100 ms) nothing is run on; without it only 0.05 s ahead. The
+  hidden Where-to-look card no longer redraws behind Sky view (`lookSoon` skips while `arOn`; `arClose` redraws it).
+  The report (v 2) adds `timing` (the last 120 gaps between readings and between frames, readings a frame, the turn)
+  and `events.motion`. `sky_jitter.js` replays a turn with the readings at the recording's gaps (`GAPS`, 79 gaps,
+  3.6 s) and with one every frame, with `devicemotion` every poll: 1.95.0.1 → 1.95.0.2 with the recording's gaps:
+  uneven 8.7 → 0.6 px from frame to frame (worst 77 → 14), still while the sky moves 63% → 1% of frames, behind
+  16.1 → 8.4 px, after a dead stop run on 0.2 → 0.4 px; a reading every frame: uneven 0.7 → 0.3 px, behind 11.7 →
+  7.9 px; without `devicemotion` uneven 1.8 px, run on 9 px. The still numbers are unchanged. The labels moved 0.86×
+  as far as the picture in that recording: a possible field of view error (`AR_FOV`), not separable indoors from the
+  hand's parallax; left as it is.
+- 1.90 (to-do #94): **the picture button only once locked on**: `arShotAt` is set while `arLocked` (the plane the ring
+  last filled on in this Sky view, set in `arAimDraw`; a tapped plane doesn't count) is in the picture, no longer for
+  any plane the game had locked on earlier today (`s.locked`); it still stays 5 s after the plane leaves the picture.
+  While the small card is open the shutter sits above it (`--ar-lift` on `.arBot`, the card's height; it was behind it).
+- 1.90: **no planes before live location's first fix** (a phone whose Chrome never got a fix at home showed a trip's
+  planes 1,100 km away): `liveWaiting()` (live and no `liveAt` yet) empties the list in `poll()` (with its `now`);
+  the title line says only "◉ FINDING YOU …" (app `updateWhere`; board `drawStatic` without the place); after a minute
+  from `liveRun` (`liveRunAt`) a red toast once says live location isn't working on this device, its Settings button
+  `switchView("settings")` on the board, `showTab("settings")` in the app. Relay 72: `live_stale()` treats a live
+  request without `fix` as stale too (only an old cached app leaves it out). The app's red toast button was red on red.
+  Nothing from before stays while finding: `liveBlank()` (from `liveRun`: going live, or the page opening live) drops
+  the plane on top, `recent` (the planes' last positions, which the 30 s missing grace kept on), `lastList` (the 2 s
+  look-again re-ran the old place's update) and the snapshot, resets `emptyStreak`/`lastCount` (an empty sky isn't taken
+  for a source's glitch), then `process([])` and each page's `liveShow()`, which now redraws the lists too. `snapLoad`
+  shows no last known board in live mode and `snapSave` saves none while finding. `dayList()` (board and app) and the
+  board's `recentShown()` are empty and Today in numbers leaves out the relay's numbers while `liveWaiting()`; the
+  status flap is blank (not NO TRAFFIC); the Now list, Spotted today and the Where to look card say "Finding where you
+  are … the planes show once live location has found you."
+
+- 1.89.1 (to-do #102, Dave: "the big main boards should just be about the overhead/airport stuff"): **no game on the
+  board** (test/index.html, so the TVs and the PC); the app keeps all of it. Board-only code removed: the `league` page
+  (`LEAGUE_ROWS` fields, `leagueLoad`/`renderLeague`, `/game/league` fetch, rail key, icon and tip; `ROTATION_OVERHEAD`
+  back to four steps), the Collection view (`cv*`/`cs*` fields, `renderCollection`, `collectionStatic`; `LB_VIEWS` is
+  shared, so `buildViewTools` filters "collection" out), the Records view's bingo and trophies (`recordsStatic`,
+  `drawTrophy`; the view is "Records", four flaps), Today in numbers' points (header line and the evening's Points today
+  row: in review time `stNew` keeps New in the logbook), the Week & month Points flap (`rw_points`; `renderReview` skips
+  REVIEW_NUMS without a field) and the achievement pop-ups (`fetchLogbook` calls only `stylesCellRefresh`). Shared code
+  checks `COCKPIT_FOR === "tv"`: `logbookSummary` leaves out points and streak, `stylesNote` is empty, `stylesCard`
+  offers only unlocked choices (`styleOk`) with no hints or count, and the Styles hint is `HINTS.stylesTv`. The rarity
+  tier flap stays (it is about the plane).
+- 1.89 (to-do #90, Dave's mockup picks): **the app's Logbook places**: the chips went; `#lbPlaces` is a `.seg
+  lbPlaceSeg` bar (the Week · Month · Year style) with All, On the go (the "live" chip of `lbChips()`) and Saved places
+  (each part only when it has sightings; no bar with only All). Saved places opens `lbPlaceSheet()` (a card sheet:
+  lamp rows with counts, the one picked lit, "Places are saved in Settings → Places."); once one is picked the third
+  part shows its name with ⌄. `lbPick(id)` sets `lbPlace` and fetches its numbers. `logbookSummary()` (Counting since
+  … · N points) moved from `#lbSum` to a footnote at the bottom of the Logbook (`.sum.lbFoot`), under a place's own
+  "N planes seen from X since …" line; `renderGame` puts the same footnote under the Spotters' Club. The board's
+  logbook view is unchanged.
+- 1.89 (to-do #91, relay 71): **Recent points**: the strip's points (`.gMain`) open `gRecentCard()` (relay 71, else the
+  club as before): today's total and planes, each scored plane newest first (`.fl` rows in `.rpList`: newest award's
+  time, flight, airline, tier icon, type, rarity, distance, total) with its awards under it, explained by `gWhy()`:
+  the first score (rarity +base, New type/airline/aircraft +n; close pass, streak and taper multipliers only when they
+  apply), "Close pass · within 4 km" top-ups, "Sky view lock-on · +25%" (the combo's real share), a lowered score as
+  "Points corrected". The relay keeps `ga` on each sighting (`_game_award`: `t` ms, `k` first/close/fix/lock, `p`
+  points, `d` km or `pct`/`c` for a lock-on; last 8) from `game_note()` and `game_lockon()`; `/game/today`
+  (`game_today()`, the profile's own, like `/game/me`) hands today's scored planes (with the fields `fromRelay()` names them from, so they read as in Spotted today) with `base`, `new`, `gk`, `gn` and
+  `aw`. Planes scored before relay 71 have no `aw` and show their first score and lock-on without times.
+
+- 1.88.0.1 (to-do #88): **a live position counts only while it is fresh**. On 26 Oct a phone's Chrome loaded in live mode
+  with S.lat/S.lon still saved from a trip and asked around there as "live" before (or without) its first fix: far planes
+  became live sightings with points, and the relay ran the gap filler for them. Now `liveAt` (set by `liveFix`, 0 after
+  `liveHalt`, so never a saved fix) and `liveStale()` (live and no fix for `LIVE_FRESH_MS`, 5 min: the Android app asks
+  every minute, browsers get a `getCurrentPosition` after 2 min without a fix as a lying-still phone may not report;
+  at motorway speed 5 min is about the game's circle). `placeQs()` adds `&fix=<age s>` (-1: none yet) to live
+  position requests. While stale the line under the title (board `drawStatic`, app `updateWhere`) starts "FINDING YOUR
+  POSITION …"; a 2 s check calls `liveShow()` (each page its own) when that changes. Planes around the old spot still show.
+- 1.88.0.1 (to-do #89): **"@" callsigns**: the sources fill a blank callsign with "@@@@@@@@". `noAt()`/`noAtList()`
+  clean the position lists in `getAircraft` and the relay's sightings in `fromRelay`, so such planes show their
+  registration, then hex.
+- 1.88 (Dave, 26 Oct): **Remarks by style**: `seenLook()` (called at the top of `renderFeatured`, shared with the app)
+  sets `fields.seen.style` to amber in the Airport style and plain (white) in the Overhead style, and redraws its
+  cells when that changes (the tile cache keys on the style). `vieLines(info)` in the Overhead style returns only
+  "DELAY n MIN" for a delay over 30 minutes (no ON TIME, no "DELAY /", no GATE); the Airport style is unchanged. The
+  plane card's Remarks follow (they use `remarkLines`). Checked by flows.py's browser checks.
+- 1.88: **model pictures** (Dave's Black Hawk, H60, had none: Wikipedia's "Black Hawk" is a disambiguation page, which
+  `wikiPage` drops). `modelWiki(names)` (now async, `MODEL_LIKE`) tries `modelTitles` as before; when nothing fits it
+  asks Wikipedia's search ("<name> aircraft", cached in `modelSearches`) for each name and tries the results whose
+  title holds the name (or the other way round). The callers also pass the source's description (`ac.desc`,
+  `fromRelay`'s new `desc`, `typeCard`'s `x.desc`), e.g. "SIKORSKY UH-60 Black Hawk". Checked against Wikipedia on
+  26 Oct: Black Hawk → Sikorsky UH-60 Black Hawk, Hercules → Lockheed C-130 Hercules, now with pictures; Super Puma,
+  A320, 737-800, A320neo, E195, 787-9, Cessna 172, A350-900, R44 and ATR 72-600 find the same pages as before.
+  A "NEW AIRLINE" seen on BLACK71's Status was the word drum passing it (NEW TYPE → NEW AIRLINE → ... on the turn back
+  to the mode word every 6 s), not a mark: the relay only marks `^[A-Z]{3}\d` callsigns.
 - 1.73.3: `gTotSet` pads to five flaps, blank (no leading zeros).
 - 1.87.2.1 (Dave's small fixes, 25 Oct): **radar names** come from `radarInfo(o)`/`radarName(o)` (next to
   `radarLabels`, shared with the app): the cached details or `baseInfo(o.ac)`, so the scope says OS 411 like Nearest
@@ -49,7 +391,12 @@ The repository is public: no addresses, keys or personal data here either.
   client gone before its answer; ~24 tracebacks in 3 days, from `profile_post`), one line under `--verbose`.
   Test: fakesrc.py serves `/airlines.csv` (5 real rows, 120 made-up) and EIN6AB (no route; the board's table has no
   EIN); run_test_relay.py starts the Test profile with yesterday's EIN1XY (no name) and AUA9 (named), and EIN1XY's
-  answer in `fr24.json`; flows.py checks the names, the backfill, the CSV and the written answers.
+  answer in `fr24.json`; flows.py checks the names, the backfill, the CSV and the written answers. (29 Oct 2026, test
+  only: the check also asks `/flightinfo` for LDM5AB and DLH1234, as a board does for the plane it shows. The list's
+  lookups skip planes in the radius's outer quarter (relay 45), and only the place that recorded a pass first (the live
+  phone or, since relay 75, the saved place "Home" in earlier checks) brings its `minDist` closer, so on a fast machine
+  they started 14 km out and were never looked up; CI's slower runners got there later. The New guest check after it
+  waits for its route lookup.)
 - 1.87.1 (the gap filler on the real Flightradar24, the first evening: it filled in RYR4328 landing at 4,400 ft, but two
   short looks cost 112 credits, not the 5–8 the old estimate implied): relay 67 trims it. **One record per profile**
   (`fill_want` finds it by `pid` and moves it to each asking screen; more than `FILL_KM` away it starts afresh, asking
@@ -601,6 +948,779 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.119.1 (to-dos #213–#217, #202, #203; what Dave found using 1.119): **seven fixes.** #213: `ppOpen` is a Map (region →
+  unfolded); `ppShelf` always draws a heading button (`.ppHd`, `data-ppopen`, `aria-expanded`), the row only when
+  unfolded; folded is `.shut`, no stamps `.ppNone` (muted count). A region with stamps starts unfolded, without as one
+  line; `ppGo` unfolds. #214: `G_SUBS` is Level, League, Hangar, Passport, Cards; the League tab draws the league, then
+  `recordsHtml(all, g0, "bingo")`, then `"trophies"` (records and trophies). Level's rows keep `data-gsub="bingo"` and
+  `"trophies"`; `G_PARTS` sends them to `gGoPlate("bgPlate" / "trPlate")`. #215: `arChipsAt(g, list, view, W, H)`: a ray from
+  the middle along `pr.edge` to the rectangle 40 px outside the picture (where `arProject` stops giving a plane its
+  label), raised by `AR_CHIP_UP` (the label's height over its plane) and limited to the room (`arChipBounds`: `t`, `b`,
+  `keep`, the zoom buttons). So at the moment a label takes over, chip and label are at the same place. A chip slides
+  along its edge to the nearest place clear of the others and `keep`. Behind you (`pr.x == null`): the sign of `dx` is
+  the shorter turn (`arChipTurn` holds it while `|dx| <= .06`, so it doesn't flip), and `|dx|` is at least .7,
+  so it stays on the side and its height follows the plane's. The arrow turns to the direction (5° steps, `c.a`); chips' places are whole pixels, in the
+  picture's signature. Idle path and `sky_jitter` unchanged. Not changed: a plane just above the picture still has neither
+  (its label's box stands above it, off the screen, until the plane is about 150 px in). #216: `#rvInfo` moved to `.rvTop`, before `#rvSet`;
+  a 28-px circle (`.rvTop .iBtn`). #217: `#cardBox h3{margin:0}` beat `.plate>h3`; the sheets' rule now gives the same
+  margins. #202: `TIX_MIN` 6 s: `gPassFill`'s `out` waits for `el.minUntil` on a ticket (the plane leaving, `gTixSync`), goes after
+  the finger if held (`until = 0`, so `release`'s 1.5 s); `gPop` doesn't push out a ticket younger than that (four can
+  stand for a moment); a swipe removes it directly as before. #203: `.lyCar`, `.lyIdx` (and `.ppMap`, same fault) don't start the page's
+  Logbook · Club swipe; `glide(to, cv)` in `lyWire` draws frame by frame, an ease-out to the target (at most 1.1 s) from the finger's speed,
+  capped at a card per `LY_FAST` 62 ms; the target is `LY_TAU` 320 ms of that speed away (at most about 5 cards a flick); a finger catches it; reduced motion keeps the fade.
+- 1.119 (to-do #212, clarity build 4 of 4, Dave's picks: welcome B, tips A, share picture A; the sign-in page B is
+  relay 99, below): **one question a screen.** (1) The welcome (`welcome`, head.html `#welcome`): the first card says
+  "Welcome, {name}" and "Open the board". The steps are today's, one screen each (`.wStep`), as many as apply here
+  (`steps`): Where are you? (`#wStep1`, always), Get notifications? (`#wPush`, `pushPossible()`), Keep your logbook?
+  (`#wAcct`, `accountsOk() && passkeysHere()`), How do you want to watch? (`#wPick`, always): two to four. Each gets a
+  progress line (`.wProg`, a dash per step, the current amber, "Step {n} of {total}" for screen readers), the question
+  as the heading (`.wQ`) and at most one line (`.wLine`). Where are you?: one line on what Fallblatt is, "Use my
+  location" (on a fix the place and the nearest airport are kept at once, `keep`, and the next step follows after the
+  "Found you" note), "Type a place" (`.wAlt`, the plain second button; `typed()` shows `#wTyped`, the four fields and
+  Continue, also when the location fails) and "Skip for now" (`#wLater`: the next steps still come; `skipped` opens
+  Settings at the end, as "Set it later in Settings" did). Notifications and the account: "Skip for now" instead of "Not
+  now"; the account box's own paragraph is hidden in the welcome (the step's line says it). The pick: the one offered
+  (the app on a phone, the board on a computer) first as the big button, the other as `.wAlt` (`pick` moves them).
+  `next(from)` goes on from a step. (2) Tips: `TAB_TIPS` one short sentence each; `NOW_TIPS` holds the app's own words
+  for the styles switch and Now's page buttons (the board keeps `MODE_TIP`, `PAGE_TIPS`); the swipe, open, places,
+  Location and points-chip tips shortened. The app's tip button says "OK": build.py patches E33 (`tipNext`), the board
+  keeps "Got it". Settings' "Show the tips again" is unchanged. (3) The share picture: `picCard(blob, fname, what)`
+  puts `what` as a `.note.shWhat` line between the picture and the buttons ("Your week as a picture, ready to send.";
+  month, year, "This plane …" from `shareCard`; Sky view's snapshot passes none). Share and Save picture already sat
+  side by side (`.cBtns`); Share still only where the browser or the Android app can share.
+- 1.118 (to-dos #211 and #205, clarity build 3 of 4, second half: Dave's picks on the Radar (B + cogwheel) and Sky view
+  (A without the AUTO button, the mini radar + edge chips)). (1) Radar: the hint line (`#rvHint`) and the legend
+  (`#rLegend`) went. `.rvTop` holds the title and `#rvSet` (the Settings tab's cog from `TAB_ICONS`, and `#rvSetKm`, the
+  range, kept by `buildRadarLegend`); it calls `setOpen("radar")`: the `.rvPlate` (now `data-pid="radar"`) waits in a
+  `.setHome` in `#t-radar` and rises in 1.116's Settings sheet (no Save: its controls act at once; `setBack` puts it
+  home). `#rvInfo` (`.iBtn`) opens `rvColours`: a plate in the card sheet (as 1.117's About panels, `.aboutSheet`) with
+  `radarLegend()` and `RADAR_WHAT`'s words, one line a colour (`.rlegend.rvCols`). Nearest's label row (`.rvHead`, Distance and Height) lines up with the rows through a
+  shared grid: `#rvList` is the grid, every `li.rv` a `subgrid` (without subgrid the rows keep their own grid). (2) Sky
+  view: `arLoop` keeps the planes outside the picture within `radarBase()` km (`off`, with `az`); the plane on top
+  outside the picture (`featOff`) leads them (`outs`). `arChipsAt` lays out chips for the first three (side from the
+  edge vector; more than 120° off the view's azimuth: "behind you" under the ring at `aim.R0`), stacked at the top of
+  each side below the top bar / zoom buttons (`arChipBounds`, measured twice a second) and clear of the mini radar;
+  `arChipsDraw` draws them, and their boxes join `arHits` so `arTap` opens the card. `arEdge` went (the chips replace
+  it). The picture signature includes the chips. `arMini` (a button `#arMini` with its own canvas `#arMiniCv` in `.arBot`)
+  redraws only when its own signature (view azimuth, half field of view, dots to the pixel, counts) changes; the dial
+  alone, 88 px (Dave on #229: no words beside it, the title has the counts; its aria-label "Planes around");
+  `arAroundOpen` lists `arAroundNow` in a card sheet (`.idx.arAround`; in view first) and a row sets `arSel`. The title
+  counts "N in view · M around". The mini radar hides with the hint while the card is open. AUTO: `arAuto`'s button,
+  `arAutoChip` and `od.ar.auto` went; `arAutoStep` asks (`arAskShow`, `#arAsk`) when the alignment it found is more than
+  `AR_ASK_DEG` (2°) off and isn't near the applied one (`arAskGo`); Apply (`arAskApply`) glides `arOff` there over 0.7 s
+  (`arGlide` in `arLoop`), sets `arAutoLock` and `arHold`; later finds near it glide on silently as before. Not now
+  (`arAskNot`) sets `arAskNo` for `AR_ASK_QUIET` (3 min) unless a find is more than `AR_ASK_NEW` (5°) from it; no find
+  for `AR_ASK_GONE` (15 s) hides the prompt; a drag or ⟲ clears both. The report's `auto` adds `asked`, `applied`,
+  `declined`, `asking`; the motion gate and `arFindLog` are unchanged. Tour (`AR_TOUR`) one line a step; `.arZoomL`
+  "Zoom" over ×2/×5; the hints one sentence (the game's chip legend left the hint). `arName`/`arType`/`arInfoOf` serve
+  the labels, chips and list. `sky_jitter.js` gives the same figures.
+- 1.117 (to-do #210, clarity build 3a of 4, Dave's pick B on the Logbook, Week & month, About, the Log and the connection
+  card): **index pages and verdicts.** (1) The Logbook (`renderLogbook`): the flap Totals plate (`LBP`, `#lbTop`,
+  `#lbModel`) and the place bar (`#lbPlaces`, `lbPlaceSheet`) went. `#lbNums` (Today's `.tdNums`): Sightings, Aircraft,
+  Types, Airlines; `#lbYear` (Today's `.tdHl` card): the period on show (`lbYearCard`: its title, three numbers, the
+  busiest day); `#lbIdx` (`.idx` rows, `data-lp`): Categories (the top three), Aircraft types and Airlines ("{n} · top:"),
+  Most seen aircraft, the places (All, On the go and the saved ones; the row names the one picked) and Download as CSV
+  (a link, whole logbook only). A row or the card opens `lbPanels[k]` (the plates as before, drawn in `renderLogbook`)
+  with `lbPanelOpen`: `cardOpen` with `.tdSheet.lbSheet`; `lbPanelSync` redraws an open panel when the numbers or a
+  category's top ten change (`cardSheetGrow`). The rows' click handler now listens in `.lbSheet`; a place picked closes
+  the panel (`data-pk` → `lbPick`); an aircraft row closes it and searches. The footnote: `logbookSummary(true)` (no
+  points; the chip has them) and "most seen model". (2) Week & month (`periodHtml`): three numbers (`REVIEW_NUMS` 0–2,
+  or the year's planes, types, airlines), the first four facts and Share; `.perMore` ("More: …", `perMore`, `data-pmore`)
+  unfolds in place the period's dates (`reviewSummary`), the other numbers, the other facts, the new types and the CSV
+  (now for week and month too). (3) About (`aboutOpen`): the About plate with the version and the connection, then
+  `#aboutIdx` (`aboutIdx`, `ABOUT_ROWS`, `aboutLine`): What's new, Legend, Data sources & privacy, Credits, Log, Relay
+  (the owner, once `/relayinfo` answered: `relayLast`), Add to your home screen (not in the Android app). `aboutPanel`
+  raises `aboutPlate(k)` as a `.tdSheet.aboutSheet` (the legend's and relay plate's `#aboutBox` CSS has
+  a `#cardBox .aboutSheet` twin); `aboutHtml(part)` (test) splits the board's About text into "credits" and
+  "sources". (4) The Log (`logShow`) is a panel, no longer the `#t-log` page: a `.verdict` (no problems since the app
+  started, or how many warnings and errors and the last one's time), `LOG_FILTERS` All · Problems, the lines as before,
+  Copy and the count at the bottom; `logRender` stops (`DIAG.page`) once the panel has gone. (5) The connection card
+  (`statusCard`): `statusVerdict()` from the dot's state (live: All good, live positions from the home relay, updated,
+  planes within; else the status line), then "Details and the log" (`stMore`) unfolds the facts (Failed attempts only
+  when there are some), Log (the Log panel takes the card's place) and the relay's version in small print.
+- 1.116.1 (to-do #209, Dave's pick of 30 Oct from Fable's chip mockups: "the lapel chip's text + the lapel in the ring",
+  without the outer ring): **the header chip's ring.** `#gHead` lost its pill (background and border; the tap area and
+  focus outline stay): `.gTx` ("9,950 pts", then `#gOff` "· paused" in amber while live location is off; "Level 9" under
+  it, no rank name) and `.gRing`, an SVG ring (`.gRt` the track, `.gRa` the arc, `pathLength` 100, starting at the top)
+  around `#gLap`, `rankIns(lv, 28)` (a cap 32). `gRingP(pts, lv)`: the share from `careerPts(lv)` to `careerPts(lv + 1)`,
+  0–1 (a level kept above the points by relay 96 gives 0). `gLapSet(lv)` redraws the insignia only when the level changes
+  (`dataset.lv`); `gTotSet`'s `put` calls `gRingSet(v)`, so the count-up grows the ring at the level the chip shows. A gain:
+  the +N turn as before, then `.gain` glows the arc (`gGlow`, now a drop shadow); a level-up (`g.level` above the shown
+  level) fills the ring, `.lvl` flashes it at 2.6 s (`gFlash`), the 3.5 s render empties it (the arc's transition) under
+  the new insignia, and `gLevelUp` follows 0.8 s later (still through `gLvFrom`). `.off` dims the ring to half.
+- 1.116 (to-do #208, clarity build 2 of 4, Dave's pick B on the Club, Settings and Favourites & hidden):
+  **the Club's sub-tabs, Settings as a list of panels.** (1) The Club: `#gSub` (the segmented bar that scrolls sideways,
+  1.88's `.seg.jumpSeg`), stuck under the Logbook · Spotters' Club titles (`--lbH`, measured in `gSubBar`), shows one
+  part at a time: `G_SUBS` Level, League, Hangar, Passport, Cards, Bingo, Trophies; a part the relay doesn't send has no
+  tab (`gSubHas`). `renderGame` draws only `gSub`'s plates (Records go with Trophies: `recordsHtml(all, g0, part)`, the
+  Logbook still gets all). Level: the flight school (as before), the level card, then `gIndexHtml`: a line of state for
+  each other part (`.idx` rows, `data-gsub`). `gSubGo(k)` draws the tab whole and goes to the top; another tab than the
+  Club starts it at Level (`showTab`); `gGoPlate` picks the plate's tab first; the empty showcase spot goes to Hangar.
+  `gUnder()` is the sticky height for `hgShow`, `ppGo` and `gHitDo`. A's words in the card (`careerMini`): "Next unlock
+  · level N" over the unlock, "All 20 levels"; while points are paused one line "Points need live location · Go live"
+  (`.gOff .gGoB`, a link; the green `.liveGo` button went). The five rarity counters went (`gLimHtml(g, true)`: the
+  notes of a rarity at its limit only; How points work has the counters). (2) Settings: `#setList` (`setListRender`):
+  two groups of `.idx` rows (The board: Location, Traffic, Display, Flaps & sound, Night, Favourites & hidden; You and
+  this phone: Account, Notifications, Device, About), each with an icon (`SET_ICO`) and its state (`setLine`;
+  Notifications from `pushLine`, set by `renderPush`). The plates live out of sight in `.setHome` (`#cockpit`,
+  `#favBox`, `#setExtra`) and `setOpen` moves the element into a `cardOpen` sheet (`.setSheet`, as 1.115's `tdSheet`):
+  for a cockpit plate the whole `#cockpit` (its other plates hidden by `.on`), so `cockpitShow`, `settingsSync` and
+  every id keep working; `setBack` puts it home when the sheet has gone. About opens its page. A cockpit panel has its
+  own Save (`.setSave`, `[data-setsave]`: `cockpitSave`, "Saved" for a moment) and "Not saved yet" (`cockpitMark`).
+  `cardSheetClose` asks first while `cockpitUnsaved()`: `setAsk` (Save your changes? Changed: the controls' names;
+  Discard = `cockpitCancel`); asked again (back, a tap beside) the question goes. A card opened from a panel (the
+  address's hits, Saved places, a password) lays the panel aside in `#setHold` (`cardSheetPre`, `setHeld`) and its
+  close brings it back (`setRestore`); the Styles page does the same (`stylesPage`, `stylesHide`). The jump bar
+  (`jump*`), the Save bar (`.savebar`, `buildSaveBar`) and the intro line (`#setSum`) went. (3) Favourites & hidden
+  (`renderFavBox`, `favRows`; the TV keeps `favManager`): two rows with their count and an Add each; a row opens its
+  list in place (chips with ×), Add the field for that list (Enter adds); what they do behind the (i) (`.iBtn`).
+- 1.115 (to-do #206, clarity build 1 of 4 from Fable's design pass, Dave's pick B on Now and Today, plus Notices B):
+  **the header chip, the one-line rows, Now's one card, Today's summary, the notices' bar.** (1) The flap clock
+  (`CLOCK`, `#clockP`) and the score strip (`#gStrip`) left the app's header; the TVs keep their clock. In the clock's
+  place `#gHead` (`.gHead`, in `.clockbox` beside the dot): "9,950 pts" over "Level 9", with "· paused" in amber while
+  live location is off; a tap goes to the Club's level plate (`gGoPlate("gHero")`). The functions kept their names
+  (`gStripSetup`, `gStripRender`, `gGain`, `gTotSet`): a gain turns the chip over to +N (`.r1`/`.r2`, the strip's
+  `gR1`/`gR2` turn), then the total counts up (rAF, 0.7 s) while it glows, then the level-up (`gLvFrom`, as before).
+  The bar, the flying token, the league chip and the Standby line went with the strip (the Club shows them). Go live
+  moved to a `.liveGo.gGoB` button under the Club's "Points only come with live location" (`gGoShow` redraws both).
+  The game's two notices (a place won in the league, a medal nearly there: `medalNudge`) became `gSay`: a bubble under
+  the chip, never the bar. The title shrinks to `--fs-xl` beside the chip (`:has`). (2) Rows (`rowInner`, both lists):
+  one line, `time · flight · route · type` (no route: the type; nothing: why), then `rowMarks(e)`: the status pill
+  (`chip()`, small) for EMERGENCY, DIVERTED or OVERHEAD only, then the end marks in a fixed order ★ (newType or
+  newAirline; newReg doesn't count), ⚑ (`FLAG_SVG` in the word's lamp colour: `specialOf` but EMERGENCY and HELICOPTER,
+  the watchlist's word, FR24's military category; the giants too), ♥ (pink, `isFav`). ARRIVING/DEPARTING/OVERFLIGHT,
+  CARGO/BIZJET/PRIVATE/HELICOPTER and the pink FAVOURITE pill left the row (Dave, 30 Oct). The words are on the card
+  behind the tap (`tlCardHtml`: the pill's, the flag's and the star's chips, else the remark). The quarter-hour and hour
+  headings went (`tlHtml(list, open)`; `tlMin`, `tlHm` gone); the second line `.l2` went, so `todayJump` lights the row
+  without the words. (3) Now: `#acTitle` and its groove hidden; `#look` hangs under `#bezel` as one card (`:has(+ #look)`
+  squares the bezel's foot), its heading hidden, its tape kept (the compass tap) at 34 px. (4) Today: `.tdHead` (the
+  title and the filter `#tdFind`, moved out of `#svTools`), `#tdNums` (planes, overhead, airlines, types, labelled),
+  `#tdHl` (Highlights: the plane of the day after 21:00, else the newest first, and a line of records), the chips, the
+  list. `#svSum` only keeps the sources' note. The plate `#todayTop` lives hidden (`TD_PLATE`) and `tdOpen` moves the
+  element itself into a `cardOpen` sheet (`.tdSheet`; the app's cards have the grip and no ✕), so its flaps
+  (`TODAYP`, `showPanel`) and facts keep updating. A's labels in it: First, Last and Busiest hour as three facts
+  (`.span3`) instead of the sentence; Most seen airline apart from Most seen types (`×N today`). A plane button in the
+  sheet closes it, then jumps. (5) Notices B (`#toasts` in head.html): a full-width bar above the tabs
+  (`--toast-b`), message left, one action right, red for a problem; over an open sheet at the top
+  (`body:has(#cardBox.in)`: the board's `.top` also fires on any `.cardish`, which the app's list cards are, so the app
+  ignores it). While passes or tickets (`#gAws`) show, a 250 ms check lifts the bar above them (`--toast-lift`).
+- 1.114.6.1 (to-do #200, the three safe fixes of Fable's Sky view deep dive): **the labels hold still, the planes' age
+  survives a wrong clock, AUTO only when steady.** (1) Chrome sends no gyroscope reading while no angle changes by 0.1°;
+  after 400 ms `arOrient`'s compass branch drove `arTurn` with the raw compass (±2.4° wobble, 10 px jumps, north not
+  refined). Now, once a gyroscope reading has come, the compass's reading during such a pause feeds `arGapStep` against
+  the last gyroscope orientation and turns the labels by that orientation with north added (`qz(arGap)·arRelQ`), unless
+  `arRelHolds` sees the phone moved: the compass's tilt more than `AR_REL_TILT` (3°) off the gyroscope's last one, the
+  devicemotion rate over `AR_REL_RATE` (5°/s), or the compass's heading more than `AR_REL_YAW` (25°) off north in use;
+  then the gyroscope stopped for good and the compass turns the labels as before. iPhone and compass-only phones are
+  unchanged. Harness (main.js's own code): held still with the gyroscope paused, sd 0.72° → 0.05°, range 4.8° (76 px) →
+  0.2° (3 px), frame step 9.9 → 0.005 px; north during a 15° compass swing worst 2.8° → 0.9° (as with every reading).
+  (2) `arFeed` dated the positions by `list.now` when the phone's clock was up to 120 s ahead; now the lag (`recvAt −
+  list.now`) of the last 12 updates is kept (`arLags`): once there are 4, a smallest lag over `AR_LAG_OFF` (3.5 s) or
+  under 0 means the clock is off and `arClock` takes it down to `AR_LAG_LOW` (1.5 s); what's left is capped at
+  `AR_LAG_MAX` (6 s, as `ageOf`). The log says once when the offset reaches 2 s. Synthetic polls (source 0.5–2.1 s,
+  share 0–4 s, 300 runs): a right clock mean error 0.01 s (0.6 % of updates over 1 s); a clock 3/10/60 s fast or 3 s slow
+  went from its full offset (10 s: 2.3 km, 13° at 10 km) to 0.7 s mean (first 30 s 1.5 s). (3) `arAutoStep` takes finds
+  only while `arTurnNow` (the turn over the last ⅓ s of `arTurnLog`, the readings `arTurn` got, so tremor doesn't count)
+  is under `AR_AUTO_RATE` (4°/s), or without a gyroscope. Every find goes to `arFindLog` (60, with the turn and its yaw
+  part, counted or not) via `arFindNote`; the report (v 3) adds `findLog` ([kind, ms, h, p, °/s, yaw °/s (+ left),
+  counted]), `clock` (s) and `autoRate`, so the camera's delay can be fitted from Dave's phone. Harness (the sun found in
+  a picture 100 ms late): after a 10/20/30°/s pan the labels were 2.7/3.6/4.4° off, gliding back; now 0.2°.
+- 1.114.6 (to-do #196 M1, M3, M5, L3, L6, the idle path (M4 dropped: Dave doesn't mind labels behind the bars); #198 L4, L5; Fable's review of 1.114.2): **Sky view
+  faster.** `arLoop` now works in two steps. First where everything goes: all planes projected (`shown`: ac, d, pr,
+  isFeat, alt, el), sorted, then for the 14 drawn only `arLabel(s, game, sm)` builds name, sub, chip, gold, tier, far
+  (Spotted today by hex from `arSpotMap()`, rebuilt when `spotted` is a new array or its length changes); widths from
+  `arTW` (a cache cleared on open and on `document.fonts` loadingdone); each box placed as before (pushed up past the others); `arBodiesAt` gives
+  the sun and moon (and refreshes `arBody`); `arAimStep` runs the ring's logic. Then the picture is drawn
+  (`arBodiesDraw(g, bodies, …)`, `arLabelDraw`, `arEdge`, brackets, `arAimDraw(g, aim)`) only when `arPicSig` changes:
+  W/H/px, the focal length, `LANG`, `R` and the heading/pitch offsets scaled by the focal length to a quarter pixel,
+  the screen angle, sun/moon az/el (0.01°), the ring (R0, fill to 0.5 %), AUTO's brackets and per drawn label its
+  words, flags and box/position to a quarter pixel. A canvas resize, opening and a font arriving reset it. M1: `#arCount`
+  and `#arReset.moved` are written only when they change (the write forced two layouts a frame: 120 layouts/s → <1).
+  M3: `arOpen` returns the open under way
+  (`arOpening`, the body is `arStart`); `arGoLive` keeps one wait (`arGoing`). M5 (Dave: silent in Sky view):
+  `flapsHold(on)` (engine2 region): on open every cell mid-turn lands on its target, `flapsHeld` makes `drawCell` draw
+  nothing and the app's `retarget` (build.py's E5 patch) take a new value at once, so there's no turning and no `clack`;
+  on close `refreshPanels()`. L3: `arScans` (hexes the relay answered with points or `done`) and `arSpotMap()`'s
+  `gx`: `arScanned(hex)`; such a plane in the ring sets `arAim.done` and `arLocked` at once (the shutter) without
+  filling, sound, card or `gLockOn`. L4: Where to look's turn texts are whole keys (five rows). L5: `arSnapping`.
+  `tools/test/sky_jitter.js` finds the sensor code up to `function arOpen(`.
+- 1.114.5 (to-do #198, review L1, L2, L4, L5): `gLvFrom` keeps a level-up that a second `gGain` within 3.5 s
+  cancelled (it cleared the timer that called `gLevelUp`); the next `gGain`'s end or `gRefresh` shows it. The fixed
+  aria-labels in `head.html` that nothing re-set (#arInfo, #arReset, #arClose, #dot, #radarCv, #rvWheel, #rvMap,
+  #logX, #tabs) carry `data-ta` with their English, put through `T()` at start and in `applyLang`. `relayBusy` and
+  `pushBusy`: About opened twice in one fetch starts one `relayLoad` chain; the push button subscribes once at a time.
+- 1.114.4 (to-do #197, review findings M2 and L7): **the Club's model pictures and redraws.** (1) `hgWire` no longer
+  queues every hangar frame (74 Wikipedia requests in 10 s with 101 cards, then 429s and blank cards): the
+  IntersectionObserver asks for frames as they come into view, and the first time a shelf shows, its first `HG_EAGER`;
+  `hgPump` keeps two in flight, `HG_GAP` (500 ms) apart. Without an observer each shelf's first `HG_EAGER` as before.
+  (2) The model pictures found are kept in localStorage `od.modelPics` (`modelKept`: key → [address, time], a week;
+  `modelSave` writes 2 s later), loaded into `modelPics` at start (board and app); `hgPaint`'s image error calls
+  `modelForget` (dropped, looked up again; `modelBad` keeps it from being stored again). Failed lookups and models
+  without a picture aren't kept. (3) `renderGame` splits its HTML into plates (`gPlateSplit`: at each
+  `<section class="plate secPlate`, a plate with what follows it; one piece if sections nest) and keeps them in
+  `gPlates`; a redraw replaces only the plates whose HTML changed (a `<template>` each, in place) and wires only those
+  (`hgWire`, `lyWire`, `ppWire` take the new plate; `hgWire` leaves the observer alone without shelves); a different
+  number of plates or `gPlates = null` (`showTab`, Loading) draws it whole. Measured (seed `--club`, 4× CPU): a new catch
+  redrew in ~200 ms, now ~33 ms (only Your catch); the carousel, the passport map and the hangar's pictures stay the same
+  nodes; the first visit's whole draw is unchanged (~200 ms).
+- 1.114.3 (Dave's "final look 2" of 29 Oct, after mockup rounds on the hologram, the logos and the layout): **the
+  member card's new front.** Four things on it: the logo top left, 48 px high, printed in ink (`lyInk(src, key, dark,
+  done)`, replacing 1.114.1.1's `lyFill` plates: read once per logo and card brightness on a canvas; a filled
+  background and a 3 px rim inside its box knocked out, which also takes Emirates' line under its mark; the mark takes
+  whichever of its colour and its background's shows on the metal; on a dark card only the parts darker than .34 print
+  light, so Turkish keeps its red bird and myAustrian its red; trimmed to what's left, cached in `LY_INK`; multiplied
+  into light metal); the code top right in holographic ink (`.lyHo`, text clipped to a rainbow, deeper on light metals,
+  sliding with the sweep: `@lyHolo`; the old hologram tile is gone); the scans bottom left (ring and lines, at most
+  112 px wide so long translations wrap clear of the tier); the tier across the bottom right (`.lyVt`, no longer down
+  the edge). Member since and the last scan are only on the back now (`.lyMs` gone); the logo shows the airline's name
+  until it loads.
+- 1.114.2 (to-dos #191, #192, #193): **three small changes.** #191: `firstLines` no longer pushes FIRST: FLIGHT (the relay
+  still counts flight numbers, `seenGet("cs", …)` is just not asked any more). #192: the strip's `.gMain` is a div of three
+  buttons (`#gBRk` lapel, `#gBTot` points, `#gBLv` level line and bar; `.gB`, 44 px tall, 6 px apart) and the chip: the
+  lapel and level line call `gGoPlate("gHero")`, the points `gRecentCard` (without the relay's history: the same),
+  the chip `gGoPlate("lgPlate")` (Go live while live is off, as before). `gGoPlate` switches to the Club's tab and scrolls
+  to the plate, which gets `.hit` (its heading flashes amber, as the passport's `ppGo`). #193: a finger on a pass or a
+  toast holds its timer: `hold()`/`release()` on `gPassFill`'s element and on `toast`'s, called from the swipe handler's
+  `start` and `end` (not after a swipe away); on release the rest of the time runs, or 1.5 s if it was up.
+- 1.114.1.1 (to-do #190): **filled logos on the member cards.** A logo with a background of its own (SAS, Emirates,
+  airBaltic, TUI fly among `AIRLINES`) blended into the metal as a pale or grey block. `lyFill(src, code, done)` looks at
+  each logo once (a 90×36 copy on a canvas, `crossOrigin` "anonymous": img.wway.io and pics.avs.io send
+  `Access-Control-Allow-Origin: *`; the board's own `logo()` is untouched): when the opaque part fills over 90% of its
+  bounding box, the margins around that box; cached in `LY_FILL`. `lyWire` then shows it in its colours (`.lyLg.fill`),
+  cut to a rounded plate (`clip-path: inset(... round 6px)`) with a drop shadow, on every tier; the rest stay engraved.
+  A logo that can't be read stays engraved.
+- 1.114.1 (to-do #189, Dave: "Pin the grip, the X can be removed"): **the cards' grip stays, the ✕ went** (the app only;
+  the boards keep theirs, Escape and Back close them on the TVs). `#cardBox .cardIn::before` is `position: sticky` in the
+  flow (`margin: -16px auto 12px`, net no room; a sticky `top` counts from inside the card's 24 px padding, so `-16px`
+  keeps it 8 px from the edge) with a faint dark ring for photos under it; `#cardBox .cardX` `display: none!important`
+  (the later `.cardX` rules set `display`). A card closes by a swipe down, back or a tap on the dark beside it (the
+  box's click, since 1.78). Your route keeps its title above its `.cScroll`.
+- 1.114 (to-do #182; Dave's picks of 29 Oct: round 1's A, the carousel; round 2's card 3, the metal card, and index 2;
+  relay 97): **the member cards as a carousel.** `walletHtml(g0)` draws `.lyCar`: every card (`lyCardHtml`, `.lyC`
+  with `.lyIn` turning between `.lyFr` and `.lyBk`) in one row, ordered by `lyList` (by scans, or A–Z with `lySort`);
+  `lyWire` lays them out in a curve (the front one in the middle, the neighbours turned 42° and dimmed by `--dim`),
+  follows the thumb, carries a flick on and snaps (`.go`); a tap on a side card brings it in, on the front one turns it
+  over (`.flip`, kept in `lyFlipped`). The card in front is `lyAt` (kept through redraws); a light sweeps over its metal
+  (`.lySh`, `@lyShine`) when it settles. The metal card: brushed lines (`.lyBr`), the airline's logo engraved (`logo()`,
+  the board's; multiplied into light metal, screened onto dark; its code until it loads), the tier down the edge
+  (`.lyVt`), the airline's colour along the left, a hologram with the code (`.lyHo`), a ring to the next tier (`.lyRg`),
+  "Member since · Last scan" (`lyWhen`: today 15:18, yesterday, else the day). The back: the full name and home base
+  (`AIRLINE_HOME`, made by `tools/airline_home.py` from Wikidata, CC0: [name, country ISO, hub IATA]; the country named
+  by `ppName`), scans, sightings, member since, last scan, the four types scanned most (`g0.walletInfo`, relay 97).
+  From six cards `.lyIdx` finds one: a segment per tier (sized by its cards) or the letters (`lyLetter`, letters without
+  an airline dimmed), under a By tier | A–Z toggle (`.lySort`); a thumb on it brings in the card under it (in a tier,
+  along its cards; a letter, its first) and shows the names there in `#lyBub`; 2–5 cards get dots. The club isn't drawn
+  again under the thumb (`hgHeld`/`hgBusy`, the hangar's guard). Reduced motion (`lyStill`): the moves and the turn
+  happen behind a quick fade, no sweep. Platinum gets an iridescent sheen (Dave's pick B of three: `.ly3 .lyFr::before`,
+  hard-light), as plain platinum looked like silver; its index segment too. The front's line is short, in two pieces
+  that wrap between them ("Since 30 Sep · Last scan today", the time only on the back), clear of the tier on the edge
+  in all five languages at 390 px.
+- 1.113 (to-dos #178–#181, #183–#185, #188, Dave's batch of 29 Oct; no relay change): **the passport moves, Your route is
+  a sheet.** #179: `tools/world_map.py` packs 13 regions from the UN subregions (`REGION`, `OWN`: Cyprus SE, the Caucasus
+  EE, Iran ME; places without an airport region "") and adds 1:50m's small countries as label points without rings
+  (236 countries); `PP_REG` [code, name], `PP_CONT` (continent fallback, Gibraltar SE), `PP_TINT` (Dave's pick A: each
+  region's paper, `ppMapSvg`'s `o.tint`, `ppLand` cached per view and tint, cleared past 30). `ppMapSvg` draws a ring-less
+  country as a dot and `o.hi` (`.ppHi`) outlines a region. `ppLive(el, pp)` (from `ppWire`): pointer drag and two-finger
+  pinch move `.sv` by CSS transform, drawn anew at the end (`commit`, `ppClamp`, `ppPos` kept while the app runs) at three
+  times the frame each way; wheel zooms; `hgBusy` holds renderGame meanwhile; a tap (< 8 px, < 700 ms) → `ppHit` (even-odd
+  rings, else a dot within 12 px) → `ppPick`: outline, `.ppSay` "Region · n of m" for 0.9 s, `ppGo(reg)` scrolls under the
+  sticky top and tabs and lights the shelf (`.ppShelf.hit`, @ppHit), opening a region without stamps. `.ppReset` ⟲ back
+  to `PP_VIEW.eu`; `[data-ppcard]` "N countries ›" opens `ppCard`. #180 (pick A): `ppGoals(pp, reg)` every unstamped
+  country of the region, nearest any stamp first; `ppShelf` adds a face-down `ppFace` card for each after the stamps;
+  regions without stamps come last under "Not stamped yet" as `button.ppShelf.ppNone` lines (`ppOpen`). #178 (pick A):
+  `ppNew` lost the finger (`.ppTip`, `.scr`); the blot soaks out from the stamp to the country's far corner (`bx`/`by`,
+  1.7 s, 760 ms after the stamp drops); a tap inks it at once. #181: `.pCard` centres by flex (the grid track grew to the
+  stamp's width and pushed it right); `.pS.rc` a fixed 136 px; the round stamp's plane above the name, `small.lg` for
+  names over 14 letters, tighter dates. #184 (pick B, kept at its height): `careerOpen` opens `careerRouteList(g)` in a
+  `cardOpen` sheet `.cardIn.cuHalf` (55dvh, a flex column), scrolled to your stop; only `.cScroll` scrolls, so the grip,
+  title and ✕ stay on top (the sheet's touch handler judges a drag by the `.cScroll` under the finger, else the card);
+  `gRoute`, `careerRoute` and `#cuBack` went. #183: the
+  notice/ticket swipe takes `dx` either way (`shift` ±120%). #185: the Logbook's type, airline and aircraft rows are `.lbTap`
+  with `data-ct`/`data-co`/`data-cr` and go through the categories' click handler. #188: `.cuTag` without `--r`.
+- 1.112.0.1 (to-do #186, #187; Dave's phone, 29 Oct): **no text selection; Sky view's heading can't turn NaN.**
+  #186: a tap on a scan ticket's points selected "105" and Chrome's Touch to Search sheet opened. The app's `html` (head.html)
+  and the test board's `body` have `user-select: none` and `-webkit-touch-callout: none`; `input`, `textarea` and
+  `[contenteditable]` keep selection (iOS can't type otherwise); the log keeps its Copy button. #187: Sky view lost every
+  label and the ribbon's letters for good. `arFrame` carried the newest reading on by `arW` with `sin(h) / |arW|`, and
+  `arW` is exactly nought after Sky view's first reading and after any jump (`arTurn`), e.g. when readings resume after a
+  pause (the search sheet took the page's focus). With `devicemotion` saying the phone turns, that was 0/0: `arQ` became
+  NaN and every frame glides on from it, so projections (labels) and `arRibbon`'s letters were drawn at NaN; only the
+  ribbon's picture-width window, which doesn't use the heading, stayed. Now the run-on needs a speed; nothing non-finite
+  gets into `arQ`, `arGap` or `arTurn` (`arOrient` drops NaN angles); a pause over `AR_GAP_MS` (300 ms) starts the speed
+  afresh; `arResume` (window `focus`) does the same and redraws the ribbon, keeping the last good heading.
+  `tools/test/sky_jitter.js` gained the paused/NaN cases (exit 1 if the heading is lost).
+- 1.112 (to-do #170–#176, Dave's batch of 29 Oct; relay 96): **rounder ranks, spread-out unlocks, four mastery steps.**
+  #173: `careerPts(lv)` reads `CAREER_AT` (500, 1,000, 2,000 … 135,000 for levels 2–20) and `CAREER_AFTER` (30,000 a
+  level past 20), the relay's `LEVEL_AT`/`LEVEL_AFTER`. #174: `STYLES`' `{lvl}` moved (styles on even levels: 2 Heathrow
+  yellow + Black on white, 4 Solari, 6 Brass, 8 Frankfurt 1970s, 10 Ice, 12 Enamel, 14 Tokyo, 16 Sunset, 18 LED, 20 Gold
+  leaf; badges on odd: 3 Star, 7 Propeller, 9 Helicopter, 13 Jumbo, 15 Fighter jet, 19 Concorde); `CAREER_MORE`'s
+  showcase slots 5/11/17. `styleOk(rule, g0, id, earned)`: a style in `g0.styleKept` (relay 96: unlocked by the old
+  levels) counts as earned; `earned` 1 leaves out the owner's grants (`achList`, was a call without id). #170: the
+  strip's `#gRk` before `#gTot`, `rankIns(g.level, 34)` without the wings (the level card, player cards and league keep
+  them). #171: `careerIco`'s finish class is `fin-` + id (`.cuI.fin-led` etc.): a bare `led` took the status light's
+  `.led` (absolute, 5 px) and pushed the sample over the route line. The current stop's plane (`.cuPl`) now moves in the
+  room under its unlocks (`100% - 54px + 28px × --pf`, the line solid to it): at 0 progress it covered them. #172:
+  `careerRoute` shows `careerPts(n)` only for `lv + 1`. #175: `scCab` makes your own card's empty spots buttons
+  (`data-sce`); `scEmpWire` (from `playerCard` when `p.me`) closes the card, opens the club, toasts the hint and
+  `hgShow()` scrolls to `.hgPlate` under the sticky top and tabs (`hgWant`: once the hangar loads). #176: `MST`
+  `[[10, 10], [25, 25], [50, 50], [100, 100]]` ([scans, bonus at ×1]), `MST_NAME`/`MST_TO` with Platinum; `mstMul(tier)`
+  (`rules.base` / 10); `mstOf(n, kept)` (the hangar's `t.m`, a step kept from before), `mstNext(n, kept, tier)`,
+  `mstHtml(n, tier, kept)` with `t.mt` (the type's rarity, Dave's call: the same at every step; its heading says it, "Mastery · Special ×50"); `.mk4` (`--m-platinum`), `.mkSteps` four columns; the How
+  card's Mastery line only with four steps from the relay. #177 (Dave: "only shown once I've scanned them"):
+  `hangarHtml` draws a full card only for a type with `t.scans`; one seen but not scanned is the greyed `.hgCard.back`
+  with "still to scan" and "Last overhead {d}" (`t.last`, relay 96; `fmtDay`); each shelf orders scanned (by `first`),
+  still to scan (by `last`), still to find, and counts scanned types (Other types too, "n / seen"); the summary "{n}
+  scanned · {m} still to scan". Display only: the game's sets (`g0.sets`, the "Collection complete" notices) and the
+  Completionist trophy (`allsets`) still count the types the game scored. `run_test_relay.py --club`: the Test profile with an
+  old-rules game (9,950 points: level 9 kept; mastery up to platinum).
+- 1.111.0.1 (to-do #168; relay 95): **a registration's older aircraft's photo is skipped.** N700GR (a Piper M700, Mode S
+  A95534) showed Planespotters' photo of the Bombardier Global that had the registration before. `psPhoto(reg, hex,
+  onReady, model)` sends `model` (`psModel(ac)`: `TYPES[ac.t]` and `ac.desc`, the live type's names; not adsbdb's,
+  whose record can be the older aircraft's too); `tlAhead` sends the row's. The relay compares makers (below); the
+  card then takes adsbdb's photo or the model's picture as for a plane without one.
+- 1.111 (to-do #163, Dave's pick of 29 Oct: C of round 2, "with A's tap to jump"; no relay change): **Today in numbers,
+  tidier.** `dayHighlights(list, st)` (test/index.html, in the app's E27 with `reviewTime`, now a function, and
+  `TIER_ORDER`) gathers what both screens show: the three records as the list's own entries (the relay's `day_stats`
+  records found by hex and ts, else `fromRelay` of what it sent), the most seen airline (`name` for flaps, `title` as
+  written) and types (twice or more), the newest plane new to the logbook, the Plane of the day (the highest tier) and
+  the day's span (first, last, busiest hour by the rows' `time`). App: `renderTodayNumbers` fills `.dayFacts` (head.html):
+  sections between thin rules; from 21:00 (`reviewTime`) the h3 reads Your day in planes and a `.pod` box edged in
+  `TIER_COL` opens it, the span under it; the records in three columns (figure, then `rowName` · time); the bars (width
+  against the largest count); New in the logbook with "first ever" and "{n} more". Every plane named there that is in
+  the list is a `button.dayJump[data-jump=tlKey]`; `todayJump` clears a filter (`svFilter`, `svQuery` and its box) that
+  hides the row, scrolls it to the middle and gives it `.jump` for 2.6 s (gold ring, the reason after its details from
+  `.l2[data-jl]`). Board: `stLow`/`stHigh`/`stFast` are 9 flaps of the figure, one per third of the width; `statsSubs`
+  (flight · type · time) are engraved under them by `statsEngrave` from `drawStatic`, redrawn when they change;
+  `stTop` is Most seen (`mostSeenFlaps`) or, in the evening with a tiered plane, Plane of the day; `stNew` names the
+  newest new plane; `stFirst`, `topTypesFlaps` and the app's `topTypes` are gone. Checked on a made-up day (the
+  mockups' day.js) by day, in the evening, a quiet day, the test relay's own sightings, a tap with a filter on, and the
+  board at 1280x720 and 960x540.
+- 1.110 (to-dos #159 and #160, Dave's picks of 29 Oct: "Era's look good" and styles A; relay 93): **ticket designs,
+  the eras of flying, and Styles as a gallery.** `STYLES` has a `ticket` kind ("" plain, `propage`, `jetage`, `magcard`,
+  `holo`; not `prop`/`jet`, the badges' ids) with the rule `{medal: m}` (`TROPHY_MEDALS`' index, 1 silver to 4 diamond):
+  `styleOk` → `medalWon(g0, m)`, a trophy at that place in any of `TROPHY_LADDERS` (so diamond only comes from the
+  planes ladder); `styleRuleText` → `MEDAL_FIRST`. `styleKinds()` offers `ticket` only where `COCKPIT_FOR` is "phone";
+  `settingsChanged` sends `S.ticket` with the styles there only (a TV's save would reset it otherwise). Not in `CAREER`
+  (no level). The ticket: `tixEra()` (`S.ticket` while `styleOk`), `gPassFill` puts `e-<era>` on `.pF` (not on a gold
+  one; `o.era` overrides, for the previews) and `tixEraHtml` the ornaments after the band (the 1950s `.ttl` heading and a
+  serial number made from the hex, the 1990s `.hd` form head, the 1970s `.eo.sun`), the stub the 1950s `.punch` or the
+  hologram's `.patch`. CSS `.gAw .pF.e-*` (head.html, after the golden ticket): paper, corners, stripes as `::after` with
+  padding under them, ornaments under the text (`.main` isolation, `.eo` z-index -1). `--f-era`: Old Standard TT Bold
+  (OFL; `fonts/old-standard-tt-latin-*.woff2` 24 KB and latin-ext 28 KB, `fonts/fonts.css`, `fonts/OFL.txt`; added to
+  `tools/fonts.py`'s list, fetched once by hand the same way so the other files stay) only for `.ttl` and the flight
+  number. The gallery: `stylesCard` hands over to `stylesPage(kind)` in the app (`ST_TAB_OF` picks the tab; the TVs and
+  light keep the 1.61 card, its remote keys untouched); `#t-styles` is a page over Settings like About/Log (`stylesHide`
+  from `backStep`, Escape, `showTab`, `#stylesX`). `stylesRender`: `.seg.gSeg` tabs (`stTab`), `ST_SECS` sections, `.stCd`
+  cards (`stTag`: IN USE / ✓ YOURS / 🔒 `stRuleShort`). Previews: tickets `stTixHtml(era, scale)` (`ST_TIX` sample
+  planes, `gPassFill` with `o.era`, the timer cleared), the rest `stylesThumb(cv, look, badgeOnly)` drawn inside
+  `stLook(look, fn)`, which lends `S`, `FLAP`, `COL.ink/amber` and `FONT` from `stTheme(look)` and puts them back (the
+  flaps cached under `f.style` "st:theme/palette/finish/fontsReady"); `stThumbs` again once every theme's font loaded.
+  `stOpen(k, id)`: a `cardOpen` sheet, `stWhat` (`ST_WHAT`, `ERA_WHAT`), `stProgress` (level: `careerPts`; medal: the
+  ladder closest to that tier, "Closest: {name}, {a} of {b}"), Use → `applySettings` (and `draft`), as the old card.
+  Relay 93: the eras in `STYLE_GRANTS`, so the admin page can grant them.
+- 1.109 (to-do #152, Dave's pick of 29 Oct, round 2's B "route map"; no relay change): **the career path.** `CAREER`
+  is the one table of unlocks, `[level, kind, id, name]` sorted by level: the styles built from `STYLES`' `{lvl: n}`
+  rules (the code decides), then `CAREER_MORE` (showcase slots 3/5/8, standby 6/14, `ace` 19, `cap` 20), where a new
+  feature adds its row (an icon in `careerIco`, a label in `CAREER_KIND`; Try it opens the club for a kind that isn't a
+  style). `careerAt(lv)` (past 20: a `star` row), `careerName`, `careerPts(lv)` (the relay's `level_of` thresholds:
+  500 × 1.25ⁿ up to 20, then 27,756 a level). `careerIco(r, sz)`: an "A" flap per colour/finish/board style, the badge's
+  `badgeGlyph` drawn once to a data URL (`cuBadge`), the cap via `rankIns(20, …)`. The strip's `gLevelText` is now "Next
+  stop {t} · {u}"; `careerMini(g)` replaces Your level's bar and its line (`.cuMini`, `.cuStop`, `#cuOpen`);
+  `careerRoute(g)` is the club's page while `gRoute` is set (`careerOpen`; `#cuBack`; showTab clears it, a `var` because
+  showTab is earlier in the file), the plane `.cuPl` placed by `--pf` in the current stop's `li`. `gLevelUp(g, from)`
+  (callers pass the previous level): `.cuArrive` with `.cuArr`, a `.cuTag` per unlock of the levels passed (up to 3),
+  Try it (`stylesCard(kind)` or the club) and Later; closes after 20 s (`gLvT`). `gStyleAt` and `#gLvUp .badge` went.
+  Reduced motion: `.cuPl`, `.cuArr`, `.cuTag` without animation.
+- 1.108 (to-do #156, Dave's pick of 29 Oct: A, the glass cabinet, "and add the origin/destination"; relay 91): **the
+  showcase.** `scSection(p)` in `playerCard` between the three numbers and the medals: `scCab(sc, o)`, a `.scCab` of
+  `scPin(x)` cards (the hangar's `.hgCard` smaller, `.sc`: the pin's photo, else the model's via `modelPic`, painted
+  in when it comes; the rarity, the name, the route `.scRt` "DXB → VIE" when both ends are known, airline · `fsDate`).
+  Others' cards show the pins only; your own (`p.me`) the empty spots and the locked ones (`.emp.lk`, `SC_LOCK`,
+  "Opens at level 8", "{n} to go") and a line on how to fill it. The hangar card: `scBtn(code)` ("Put in your
+  showcase" / "Take out of your showcase", from `gme.showcase`, none before level 3), `scWire`: POST
+  `/game/showcase` {code, spot} into the first empty spot, else a `.scPick` panel ("Where should the 787-9 go?")
+  whose spots (`data-scp`) swap; the answer replaces `gme.showcase` and the card is drawn again. `gLevelUp` says "A
+  new spot in your showcase" at `rules.showcase`'s levels.
+- 1.107 (to-do #150, Dave's pick of 29 Oct: round 1's C "stamp shelves" with round 2's C map "ink patchwork", and B's
+  scratch as an option; relay 90): **the passport.** The map: `test/world.js` (`window.WORLD` {CC: [region, label lon ×
+  10, label lat × 10, rings]}, Natural Earth admin-0 1:110m, public domain, 174 countries, 88.6 KB / 35 KB gzipped, made
+  by `tools/world_map.py`), a versioned asset like `signature.js` (`WORLD_JS`, `tools/assets.py`, the build's path
+  patch, `sw.js` keeps it), fetched by `worldMap()` only when the passport shows. Regions `PP_REG` (E Europe with the
+  Caucasus and Cyprus, M Middle East with Iran, F, A, N, O); a stamped country the map lacks (Malta, Singapore, …) is
+  a dot at its airport and gets its region from the airport's continent (`PP_ME` for the Middle East). Inks `PP_INK`
+  (six), `ppInkAll(pp)`: each country its own by its code (`ppHash`), else the next one no stamped neighbour within 12°
+  has, decided in stamp order so a colour never changes. `ppMapSvg(pp, view, {labels, fresh})`: Mercator (`ppView`,
+  `PP_VIEW` eu / world), the land once a view (`ppLand`), the inks under round 2's rough-edge filter, multiplied onto
+  the paper; never a mark for the player's place. `passportHtml(g0)` after the collection (under Your hangar): the
+  plate `.ppPlate`, the map `.ppMap` ("N countries", tap: `ppCard`), a shelf per region (`.ppShelf` with the hangar's
+  `.hgHead`/`.hgRow`, `data-set="pp-E"`) of stamp cards `.pCard` (`ppStamp`: `.pS` round/box/oval by the code, the
+  country by `Intl.DisplayNames`, the airport, the day "24 OCT 2026"; drawn at 1.5× and scaled down so the print
+  keeps to the type scale) newest first, then up to three face-down `.pCard.no` of the region nearest a stamped one
+  (`ppGoals`). No stamps yet: the empty map and a line. `ppCard()`: "N of M countries inked in", Europe & around /
+  World (`.seg.gSeg`, `ppAt`), the map with codes, a bar per region (the Sets list's `.ranks.cats`). At a scan:
+  `gPassFill`'s `o.route` (`ppRoute(r.route)`: "BCN ✈ VIE", a new country red with "SPAIN · NEW") on the ticket;
+  `gAwLine` "country" "New country · Spain"; 1.4 s later `ppNew(r)`: the card `.gAw.ppNew` over the ticket, the map
+  round the new country (its largest ring), the stamp landing (`ppLand`, `fsThud`), the country masked (`.ppSoak`):
+  left alone 3.2 s, a blot from the stamp grows over it (displaced into a ragged soak); a finger on it ("Scratch Spain
+  in", `.ppTip`) draws broad strokes into the mask instead, and 1.8 s after the finger stops the rest soaks in. A tap
+  inks it at once, then puts it away. `gHowCard` a Passport line.
+- 1.106 (to-do #162, Dave's pick of 29 Oct, A "printed line" with the airline trophies; relay 89): **airline loyalty,
+  the member cards.** `LY` ([scans, bonus] a tier above Member; `rules.loyalty` wins, `lySteps()`), `lyOf(n)` (-1 not a
+  member yet, 0 Member, 1–3 Silver, Gold, Platinum), `lyCode` (IATA from `AIRLINES`, else the ICAO), `lyName`, `lyCol`
+  (`LY_COL` for airlines common here, else a hue from the code). `walletHtml(g0)` after the collection in `renderGame`:
+  the plate "Member cards" (`.lyPlate`), its top "N airlines · Frequent flyer at 50" (the airlines trophy ladder's next
+  rank via `trophyLadder`), `.lyWal` with the four next-best cards' tops (`.lyCard` 150 px, each `margin-top:-122px`)
+  and the front one in full (big tier name, `.br` bar, "142 scanned · 58 to Platinum"; a non-member "Not a member yet");
+  a tap brings a card to the front (`lyFront`), "All N cards" shows every top (`lyAll`); `lyWire`. Tier classes
+  `.lyN`, `.ly0`–`.ly3` set `--lbg/--lk/--mg` (silver and gold are mastery's `--m-*`, `--m-platinum` new). A ticket's
+  `o.ly` {code, t} prints `.lyFF` "OS · GOLD" (Member a plain outlined tag; nothing when not a member) above "Scan in Sky
+  view": `gTixShow` from `g0.wallet`, `gScanPops` from the scan's `airline` {code, scans} (and writes it into the wallet).
+  `gAwLine` "loyalty" {n: ICAO, m: tier}: "Austrian · Gold" with `x mst lyN` (mastery's metal dot). Recent points
+  without a time; `gHowCard` a Member cards line.
+- 1.105 (to-do #149, Dave's pick of 28–29 Oct, A "metal frames" without the medal on the photo; relay 88): **mastery.**
+  `MST` ([scans, bonus] a step; `rules.mastery` from the relay wins, `mstSteps()`), `mstOf(n)` (0–3), `mstNext(n)` (the
+  next step's index, scans, bonus and the share done; null at gold), `mstBar(f)`, `mstHtml(n)` (the opened card's
+  `.mkMast`: the three steps `.mkSteps` with a medal each, `.off` dimmed, the bar and `MST_TO`'s "13 of 25 scans to
+  silver" or "Gold: N scans"; `infoCard`'s new `o.afterTiles` puts it under the tiles). On the shelf `hangarHtml` gives
+  a card `.mk1`–`.mk3` (its frame a masked `::after` in `--mg`, the `--m-bronze/silver/gold` gradients, 3 px, so the
+  card's layout doesn't change) and a thin `.mkBar` under the scored line until gold; no medal on the photo (Dave).
+  `gAwLine` "mastery" {n: type code, m: step}: "Airbus A321 · Silver" with class `x mst mkN` (a metal dot, a grey band
+  on the ticket; `gPassFill` gives "(no ×2)" to any "x" line now); Recent points shows it without a time, like "new". `gHowCard`: a Mastery line from `rules.mastery`.
+- 1.104 (to-do #157, Dave's pick of 28–29 Oct, B "the week's calendar"; relay 87): **the standby.** `gme.standby`
+  {week: Mon–Sun "s"/"b"/"", today: index, allow, left}. `gSbyHtml(g)` in `renderGame`'s level card, before the tiles:
+  `.gSbyH` (This week; on the right `N standby left` amber, `No standby left` red while the streak hangs on today's
+  scan, else `Standby used {weekday}` or, below level 6, `Standby from level {n}` muted) and `.gWk` (seven cells:
+  `.on` scanned, `.now` scanned today, `.todo` today unscanned, `.sby` hatched SBY, `.miss` a past day missed; letters
+  from `sbyDay(i, "narrow")`, a fixed Monday + i in the app's locale), plus the warning line when none is left.
+  `gSbyUsed(g)`: the day after a covered day, the streak day the next scan pays (today's once scanned); `gStripRender`
+  then shows "Standby used · streak goes on, day N" and `#gStrip.sby` turns it amber. `gHowCard`: a Standby line from
+  `rules.standby`.
+- 1.103.1 (to-do #164, Dave's pick A of 29 Oct): **each plane in the timeline sits in its own box.** Recent flights and
+  Today (the shared `.tline` code): `.tline li.fl` is the page's box (`--box-bg`, `--box-bd`, 12 px corners, as the
+  rail's `li.st` notes), 22 px in from the rail with 8 px between boxes; the node sits on the rail beside it, with a
+  short stub (`::after`, node colour) to the box. Rail, groups, node colours and the two lines are unchanged. An opened
+  card (`li.fl.open`) drops the row's box (the gold `.tlCard` is the box), and `.tlWas` (the row fading while it opens)
+  carries the box look; `.tlGone` now starts at the li's own left edge.
+- 1.103.0.1 (to-dos #166 and #167, Dave's iPhone web app, 29 Oct): **the hangar's pictures and the unknown model's
+  card.** (1) Every picture that arrived (`modelPic` → `hgSoon` → `renderGame`) drew the whole Club again; the shelves
+  kept `scrollLeft`, but on a phone a redraw mid-swipe ends the finger's drag and the momentum, and the browser
+  re-snaps a shelf (`scroll-snap-type: x proximity`) whenever anything inside it changes, even an attribute. Now
+  `hangarHtml` has no pictures in it (its HTML only changes with the data): each card has a frame `.hgPh` (`data-own`
+  the first one's photos, `data-mp` the model's names, `data-e` the first `HG_EAGER` = 6 of a shelf, `.heli` on the
+  Helicopters shelf or a `SPECIAL_TYPES` helicopter, which draws a helicopter instead of the plane) that `hgPaint`
+  fills in place (`hgPic`: own photo not in `hgBad`, else `modelPicNow`). `hgPaint` leaves a shelf alone while it
+  moves (`hgMoving`: the shelf last scrolled or touched, `hgMove`, within 0.8 s, 10 s while held, `hgHeld`) and tries
+  again 0.9 s later (`hgLate`); `renderGame` waits the same way (`hgSoon`). (2) Model pictures were asked for only as
+  a card came into view, all at once, and one not answered (`modelLook` failed) was never asked again until the Club
+  was drawn anew, so whole shelves kept the plane icon. Now `hgAsk` queues them and `hgPump` runs two at a time: the
+  cards in view (IntersectionObserver `hgIO`, 150 px margin) first, then each shelf's first six, then the rest; a
+  failed one is queued again after 61 s (`hgTries`, twice at most); the queue pauses outside the Club. The first six
+  of each shelf load at once (`loading=eager`), the rest lazily; a shelf touched for the first time (`hgAll`) has its
+  pictures fetched off-screen (`hgPre`, `new Image()`, so nothing in the shelf changes). (3) In Safari the face-down
+  card's grid (`place-content:start`) sized its column to the "STILL TO FIND" text, narrowing the picture frame:
+  `.hgCard` now has one `minmax(0,1fr)` column. (4) #167: N700GR's code M700 is right (a 2025 Piper PA-46-701TP,
+  the M700 Fury); the board knew no name for it and `tierChip` showed no rarity for a code missing from `FLEET`. Now
+  `tierChip` gives such a code "uncommon", as the relay scores it; `typeCard` leaves out tiles without a value (no "/")
+  and its sub line repeats no code that is already the title; `infoCard` lays out fewer than three tiles across.
+  `TYPES` gained M700 "Piper M700 Fury" and E175 (a set lists it). Its Global photo is an older Planespotters photo of
+  the registration (`plane_photo` matches by registration; US hex codes follow the registration). No relay change.
+- 1.103 (to-do #153, Dave's pick of 29 Oct, round 2's C "training record with stamp boxes"; relay 85): **the flight
+  school.** `SCHOOL` [id, title, hint]; `fsState()` (gme.school unless `pre`), `fsNext`, `fsPts` (rules.school).
+  `fsRecord(s, o)`: the cream `.fsRec` (header "Training record · pre-flight" n / 5, a `.r` per mission, `.on` with
+  `fsBox(t)` (the small red stamp: Flight school, Passed, its date `fsDate` · +50), `.nx` the next one hatched with its
+  hint, the `.sg` WINGS line, `o.sig` its signature). `renderGame` puts it first (`.fsPlate`) until the wings, then at
+  the end with the signature. `fsBar()` (from `gRefresh`): `#fsBar` before `#hero` on Now, "Checklist n/5 · Next up ·
+  …" and five `u` marks, a tap opens the club; hidden with the wings. `gAwards` passes each fresh "school" award (live
+  location or not) to `fsStamp` → `fsShow`: one at a time, waiting while Sky view or `#gLvUp` is open; `#fsStamp`
+  slides in (`@fsSlip`) with the mission's line, its `.fsBox.big` lands at 0.35 s (`@fsLand`, from ×2.6 and −26°, an
+  ink halo `@fsInk`), `fsThud()` (a 150→48 Hz sine and a band-passed click, button sounds on) and a 30 ms buzz at the
+  hit; gone after 3.8 s or a tap; the fifth (`a.wings`) then opens `fsWings(a)`: `#gLvUp.fsW` with the record (no hint),
+  the WINGS line signed by `sigWrite` (the profile's first name, `fsName()`; "Pilot" without one), then `.signed`:
+  `fsWingsSvg` (`@fsWingIn`), "Cleared for take-off" (`@fsCleared`), the note and Take off; `gJingle` and a buzz;
+  `gLevelUp` waits while it is open. The signature: `sigFont()` loads `SIG_JS` (`test/signature.js`, `SIG_FONT`, EMS
+  Allure (OFL, a single-stroke script derived from Allura; `tools/sig_font.py` keeps U+0020–7E and U+00C0–FF, 31 KB, 9 KB
+  gzipped; `fonts/OFL.txt`), stamped by `tools/assets.py`, cached by sw.js, `../test/` in the app (build.py)), only
+  when a signature is drawn. `sigSvg(name, F)`: a `<path>` per stroke (a letter's `M` pieces), flipped and set at its
+  advance; a letter it lacks: its base letter, else none (`fsSigHtml` falls back to the `cursive` text, `.fsSigT`, wiped
+  in from the left). `sigWrite(el, done)`: each stroke's dash offset runs along its length (1.5–3.4 s in all, a pen lift
+  of 110 ms between strokes, `u − sin(2πu)/2π·0.35` easing), a nib (`circle.nib`) at the tip and gliding across the
+  lifts; `.pre` keeps it unseen until the pen starts. Reduced motion: the stamp lands without moving, the signature is
+  there at once. `schoolMission("card")` (from `planeCard`, the shared code; lint OPTIONAL) posts `/game/school` once.
+  Recent points: a "Flight school" row (`j.school`) in time order with the planes; `gAwLine` names "school" awards.
+  Twenty-four i18n rows (title-case keys, `text-transform`; the flap status "PASSED" stays the flap's).
+- 1.102 (to-do #154, Dave's pick of 29 Oct: round 2's ladder A, the original cap): **rank insignia.** `rankIns(lv, h,
+  {wings, label})` draws a level as an SVG (`RK_LADDER`: shoulder board `[cloth, mark, n]` or `["cap", step]`; `rkCap`;
+  past 20 a gold star per Legend above the cap, at most five drawn). The gradients live once in the page (`rkDefs`,
+  `#rkDefs`, ids `rkMS`/`rkMG`/`rkCsky`…), so the markup is the same each time (renderGame compares its HTML). A board
+  is h px tall, a cap two thirds of that. Shown in the strip (`#gRk`, 34 px, redrawn only when it changed), Your level
+  (`.rkLv`, 40), each league row (30, from the relay's `level`, `role="img"` "Rank: {t}") and the player card
+  (`.plIns`, 46). `.rkGold`: a name in gold from level 19 (league rows, player card). The flight school's wings (#153)
+  show as a pin (`.rkW`, `rkWings`) beside it when `g.wings` / `r.wings` / `p.wings` is truthy. No relay change.
+- 1.101.0.1 (Dave's screen recording of 29 Oct, an iPhone web app): **Now stays Now.** Since 1.97.7 a tap on Now from
+  another tab bounced back to the tab the back guard was first pushed on (usually Today): showTab("now") replaced the
+  guard's URL, `guardSync` then dropped the guard with `history.back()`, and the entry below still had that tab's
+  hash, so after the popstate (ours, ignored) `hashchange` ran `showTab` for it. The popstate handler now puts the URL
+  right (`replaceState` with `tabHash()`) for our own back too, as it already did for the user's. Not in the Android
+  app (no guard there).
+- 1.101 (to-do #148, Dave's pick of 28–29 Oct, mockup A "gold foil", sound B "bell sparkle"): **golden tickets.** The
+  relay's scan list (`/game/me` `scan`, `game_scannable`) marks a golden plane `gold: true` (relay 84, `game_gold`);
+  `gTixShow` makes its ticket gold (`gPassFill` `o.gold`: `.pF.gold`, the foil, a sheen `.gl` with `@gSheen`, two ✦; the
+  band "GOLDEN TICKET · {k} KM", the stub "GOLDEN" with an `i.x2` "×2"; the extras' spans carry `data-nx` "(no ×2)",
+  shown by CSS). `gAwLine(a, f, tix)`: a golden scan line (`a.gold`) reads "{t} plane +{p} ×2" on a ticket and "Sky view
+  scan · {t} plane ×2 golden" in Recent points (class `gold`). `gScanPops` keeps the scan's pass gold (`r.gold`).
+  Sky view: `gGoldSet()` (the list's golden hexes, cached on `gme` like `gScanSet`); `arDraw`'s ★ chip doubles and the
+  label gets a gold gradient edge and a "GOLDEN ×2" tab. At the scan `gLockOn` plays `gGold()` instead of `gRip()` for
+  the scan's stub (the streak's still `gRip`) and `gBurst(x, y, gold)` throws 24 finer gold pieces and ten ✦
+  (`#arBurst.gold`, `#arBurst b`); with reduced motion no burst for a golden scan, `.pF .gl` still. `gGold()`: `sample
+  ("tear")` (or `gRip()`'s noise until decoded), then eight triangle bells with partials 2.76 and 5.4 climbing E6–A7 55 ms
+  apart, a held C6–C7 chord from 0.58 s (1.6 s) and three sine glints; bus gain 0.56: peak −7.3 dB (the rip), loudest
+  300 ms −25 dB (jingle −27, fanfare −26.4), rendered offline and measured as in 1.97.2. Five i18n rows.
+  `run_test_relay.py --gold` (every listed plane gold, or `--gold HEX,HEX`); without it no plane is gold.
+- 1.100 (to-do #147, Dave's pick of 28 Oct, relay 83): **bingo lines and trophies pay points.** `gAwLine` names the new
+  award kinds: "bingo" (`BINGO_LINE[a.n]`: top/middle/bottom row, left/middle/right column, diagonal; #101's themed rows
+  were dropped, so a line is any of the relay's eight `BINGO_LINES`), "card" (the full card) and "trophy" (`TROPHY_TIER`
+  and `TROPHY_MEDALS[a.m]` for a rank, `trophyText` for a one-off). Recent points adds the plane's `gb` to its total.
+  `achList` gives each item its `pts` (a trophy from `g0.trophyPaid`, a line when it is among the latest `bingo.paid.lines`,
+  the card from `bingo.paid.full`); `achNext` writes "+N" after the title and `achSpecial` after the medal's metal (no
+  new style). `gHowCard`: a "Bingo and trophies" part from `rules.bingo`, `rules.medal`, `rules.single`.
+- 1.99 (to-do #161, Dave's request of 28 Oct): **Sky view zooms: ×2 and ×5**, for everyone (not a game unlock).
+  `#arZ2`/`#arZ5` (`.arIb` in `.arZoom`, right, under the top bar; lit with `.on`, `aria-pressed`); `arZoomSet(z)`
+  (a tap on the lit one: ×1). The camera's own zoom where `track.getCapabilities().zoom` exists (`applyConstraints
+  ({advanced: [{zoom}]})` from the zoom it had, `arZBase`, up to its max), the rest a CSS `scale()` of `#arVid`
+  (object-fit: cover kept). `arZk` the camera's part (read back from `getSettings()`), `arZc` the enlargement, easing to
+  `arZcTo` in `arZoomStep` (each frame of `arLoop`; at once with `REDUCED` or a camera zoom). `arFocal` × `arZk·arZc`,
+  so `arProject`/`arUnproject`, the labels, sun and moon rings, edge arrows, the ribbon's frame and the drag follow;
+  `arFind`, `arSunFind` and `arSnap` take screen px per video px × `arZc`. The ring (`arAimDraw`) catches
+  `AR_AIM_R`·zoom px (the same angle as at ×1), drawn no wider than the screen. AUTO keeps running (its search radius
+  and tolerances are angles) but drops its finds and waits 0.8 s on a change. `arFrame`'s held-still smoothing ×
+  √zoom (sky_jitter at ×5: still frame to frame 0.003° instead of 0.005°; 0.35 s instead of 0.16 s to settle after a
+  stop). `arClose` resets to ×1 (`arZSeq` drops a late camera answer). The report sends `zoom` and `camZoom`.
+- 1.98 (to-do #145, #146, Dave's requests of 28 Oct, relay 82): **passive points within 15 km, scans within 10 km, and a
+  scan ticket.** `gKm()` is the passive circle (relay `km`, 15), `gScanKm()` the scan's (`scanKm`, 10; an older relay
+  without it: `gKm()`), `gScanSet()` the hexes of `/game/me`'s `scan` list (cached on `gme`). `gAwards()` no longer pops
+  the passive passes (the `.mini` one and the several-planes one): they show only as the strip's +N (`gGain`); the first
+  plane past a limit keeps its grey pass, without 1.97's scan line (`gScanOffer`, `gScanLine` and the `.scn` chips are
+  gone). The ticket: `gRefresh()` calls `gTixSync(g.scan)`; a hex not in `gTixSeen` (localStorage `od.tix`, hex → time,
+  kept 2 h, so a reload doesn't show it again) gets `gTixShow()`: `gPop({tix: hex, ..., sky, life: TIX_MS})` with
+  `gAwLine()`'s lines (the scan's full points, `can.type`, `can.airline`), the streak as a note while `!gme.scannedToday`
+  (not in the stub's total) and a `<button class="scn">` "Scan in Sky view"; a tap anywhere on it runs `arOpenAt()` and
+  leaves the ticket up (the nav sound only when Sky view is already open: `arOpen()` sounds by itself). A ticket whose
+  plane leaves the list is folded away. `gPop()` is split: `gAwsBox()` (the box in `#arView` while Sky view is open, else
+  the body; `arOpen()`/`arClose()` move it) and `gPassFill(el, o)` (paper, click, `el.out()`, `el.until`, `el.outT`;
+  `o.life`, default 6.5 s). A ticket pushed out by a non-ticket pass goes into `gTixOut` and `gTixBack()` (after any
+  pass leaves) puts it back at the bottom while its 10 s and its plane last; a fourth ticket pushes the oldest out for
+  good. `gTixStack()`: a ticket with a ticket above it gets `.under`, `margin-top: -its height` (with the 12 px gap it
+  peeks out 12 px below the next) and `scale` 0.95/0.90 (the `scale` property, as the slide-in holds `transform`),
+  `z-index` by order. `gScanPops(r)`: the plane's ticket on screen (`data-tix`) is filled again as the scan's pass
+  (moved on top, 10 s from the scan, `.rip`), else a new one; the streak's pass also 10 s. The notices' swipe
+  (1.73.2) takes `#gAws .gAw` too (by the `translate` property; also from its button), clears its timer and calls
+  `gTixBack()`; `el.swiped` stops the tap after a swipe. Sky view's chip: ★ when the plane is in the list or within
+  `gScanKm()` now, CLOSER TO SCAN (dimmed) within `gKm()` now or scored within it, NO PTS beyond; `gLockOn()` shows
+  "Too far to scan …" for the relay's `why: "closer"`. Texts: `arOpen`'s hint, `renderGame`, `gRecentCard`, `gHowCard`.
+  `run_test_relay.py --ring` (`RING=1` in fakesrc.py): AUA171 within 15 km at ~33 s and 10 km at ~56 s, AUA173 passing
+  12 km out from ~68 s.
+- 1.97.8 (to-do #142, #143, #144, Dave's requests of 28 Oct): **the scan ticket's real tear sound, fireworks from the ticket, the streak's
+  ticket tears too.** `sounds.js` gets `tear` (Zapsplat "raffle rip short", built by `build_sounds.py`'s `tear()`: the MP3
+  decoded to 44.1 kHz mono WAV in `sounds-src/tear.wav`, leading silence dropped so it starts at once, the natural tail
+  kept with a 40 ms fade, 170 ms, peak 0.55 like the buttons' clicks); `gRip()` plays it with `sample("tear")` and keeps
+  its noise burst until the recording is decoded. `gRip` has no other caller. About credits "Ticket tear: Zapsplat
+  (zapsplat.com)". `gLockOn()` no longer plays the sound on a 1.05 s timer: each pass's stub (`gScanPops()` now returns
+  the scan's pass and the streak's, `gPop()` returns its element) calls `gRip()` on its own `animationstart` (the
+  moment `pfTear` begins; a 1.5 s timer as a fallback), and the first one starts the burst with `gBurst(x, y)` at the
+  stub's tear line (its left edge, mid-height, in `#arView` coordinates; `#arBurst` is raised above the passes, z-index
+  56). The streak's pass has `rip: 2` (`.gAw.rip.rip2`: `pfTear` 1.75 s after it appears, 0.7 s after the scan's) and
+  tears with the sound only, one burst per scan. Look and length of the burst are as in 1.96. With reduced motion
+  (the app has no `LITE()` mode) nothing tears: the burst is where it was (in the ring, at once) and the sounds come at 1.05 s
+  and 1.75 s.
+- 1.97.7 (to-do #141, Dave's request of 27 Oct): **back in the web app closes what's open.** `fallblattBack()` was split:
+  `backStep()` returns the closing for the top layer (or null; same order as 1.97.5) and `backQuiet(step)` runs it with
+  the controls' sounds silenced; the Android handler is unchanged in behaviour. In a browser or installed web app (not
+  `ANDROID`) the page keeps ONE guard history entry (`history.state.fbGuard`, same URL) while `backStep()` finds something
+  (an open layer, or a tab other than Now). `guardSync()` (every 200 ms, and after each back) pushes it when needed and,
+  when nothing needs it any more (closed with ×, a tap, a timer), takes it away with `history.back()`; that popstate is
+  ignored (`guardSelf`), so the next back is never a dead one. `popstate` onto the entry below the guard runs `backStep`
+  (a stale guard with nothing open passes through with another `history.back()`), then sets the URL right with
+  `replaceState` (`tabHash()`) and re-syncs: still something open pushes the guard again. `showTab` still only
+  replaces the entry it is on, so three tab switches are still one back; the entry below keeps the hash it had, so
+  `hashchange` only calls `showTab` when the hash differs from the tab. Now with nothing open pushes nothing: back leaves
+  as the browser does. A reload on the guard keeps it (`guardOn` from `history.state`). Chrome skips entries added before
+  any tap on the page (history manipulation intervention): a layer that opens without one is left by back.
+- 1.97.6 (to-do #140, Dave's report of 27 Oct, relay 81): **nothing counts while the app is in the background.** "I often
+  come back to the app and I suddenly have a bingo or am level up": with the app in the pocket its position requests go on
+  (more slowly) and a live fix counts as fresh for 5 minutes, so the relay went on recording sightings, filling bingo squares
+  and giving points. The board needed no new flag: `getAircraft` already says `bg=1` when `document.hidden` (1.87.1, for the
+  gap filler); relay 81 reads it as stale too (`live_stale`). New in the board: a `visibilitychange` handler polls at once
+  when the page is shown again (before, the next timer tick, up to a minute after a throttled background), so a plane
+  overhead at that moment counts as usual. The How points work card adds "Nothing counts while the app is in the
+  background." Closed paths and the ones left open, see the relay entry.
+- 1.97.5 (to-do #139, Dave's request of 27 Oct): **back in the Android app closes what's open.** `MainActivity.goBack()`
+  (an `OnBackInvokedCallback` from Android 13, `onBackPressed` before; the manifest sets `enableOnBackInvokedCallback`)
+  asks the page `window.fallblattBack ? fallblattBack() : false` through `evaluateJavascript`. Only the answer `"true"`
+  means the page handled it; anything else (false, no page loaded, no answer within 300 ms) is `moveTaskToBack(true)`, so
+  the app stays warm. `fallblattBack()` (tools/app/main.js, next to `androidHandover`; only set when `ANDROID`) closes
+  the top layer through the existing close paths: the level-up and medal pop-ups (a tap), a tip (a tap on its layer), the
+  card (`cardClose`), Sky view's tour (skipped), its card (`arCardDismiss`), Sky view (`arClose`), the Log or About page,
+  a list row opened in place (`tlFold`), then `showTab("now")`. The welcome answers false. The closings run with every
+  `ctlSound` method silenced for the call (back is the system's gesture), then restored. Browsers are unchanged (the page
+  uses no history); a history version would push one state per layer and close on `popstate`.
+- 1.97.4 (to-do #138, Dave's request of 27 Oct): the Logbook's Saved places button (`lbPlaceSheet(true)`), the Sky view buttons
+  (`arTry` -> `arOpen(true)`, also the "Sky view needs live location" card) and the title's Overhead/Airport switch
+  (`setMode`, board and app) play `ctlSound.click()` instead of `nav()`; the sheet, `arOpen` and the card opened from
+  elsewhere keep `nav()`.
+- 1.97.4 (to-do #136, Dave's request of 27 Oct; relay 80): **planes overhead give 5, 10, 15, 25, 50.** The app only
+  shows the relay's numbers (`rules.passive` in `gHowCard`), so the change is the How points work text ("the points in
+  the first column") and its i18n rows; the patch note and README say the new amounts.
+- 1.97.3 (to-do #135, Dave's request of 27 Oct): **cards open at once; their photo window shows a spinner and the
+  photo fades in.** What made a card wait: `cardWhenReady` ran `imgsReady` (every `<img>` of the card, up to 3 s), the
+  plane card's `planeCard` waited up to 2.5 s for its photo's lookup (`/<img/.test(planeBody(o).html)`), and the in-place
+  card's `tlTap` waited up to 1.2 s for the lookup and 0.6 s for the decode (`tlPicWait`, `imgReady`): all three are gone
+  (the words, details and logbook row are still waited for). The photo window is `.cPicW`: `planePic` returns `asking`
+  while Planespotters or the model's picture is being looked for (new `modelAsking`), and `picHtml` then draws an empty
+  window with a 1x1 blank picture (`PIC_BLANK`, `data-blank`) so every size rule (210 px on info cards, 170 px in the
+  lists, `.arFullL`'s 32vh) still applies; a late answer goes through `planeLate`/`tlLate` as before. A MutationObserver
+  (`picDone` for the `load` and `error` events) puts `.pLd` on the window of a `img.cPic` that isn't `complete` yet, so
+  every card path gets it (info cards, `foundCard`, `hangarCard`, the radar's card, the lists, Sky view's `arCardRender`).
+  `.pLd`: the loading card's spinner (`cSpin`, shown after 150 ms so a quick photo shows none), the photo at opacity 0
+  (3:2 until it is there), then 350 ms of `cubic-bezier(.2,.9,.25,1)`; none with reduced motion or `body.lite`. A photo
+  that fails loses `.pLd` and shows what it showed before. Measured with the photos slowed to 3 s: plane card 3.5 s → 0.3 s,
+  model card 3.4 s → 0.4 s, Recent flights' card 1.0 s → 0.1 s.
+- 1.97.2 (to-do #128): **two more click sounds.** `ctlSound` has `click()` (recording `click`, played at gain .9: Pixabay's
+  "technology click 0", cut to the click itself, 357 ms into the file, 60 ms with a 22 ms fade-out) and `nav()` (recording
+  `nav`, gain .6: "immersivecontrol button click", a 10 ms tick) next to `press()` (today's recording `button`, gain .8,
+  unchanged). `click()` is for small buttons: card buttons, chips and filters, small key-caps (zoom, period arrows, scroll),
+  checkboxes, ×, a pick inside a card; `nav()` for what opens, folds or switches something: a plane/airline/type/place/player
+  card, a row in Recent flights or Today, a tab inside a view (Logbook | Spotters' Club, This week / All time, the jump
+  bar), text links, tip bubbles, the title's Overhead/Airport switch, the Sky view's open and close. `press()` stays on the
+  big key-caps, the rail, the bottom bar and the U:A ones (Settings' Here/Live/Save in the place field/Search, Add in the
+  favourites manager, Sign out, Remove a passkey). Switches, rotary and wheel keep their own sounds. Without the
+  recordings (not yet decoded, or the file missing) each has a short synthesised stand-in. `build_sounds.py` now keeps the
+  lines of the recordings it doesn't have at hand, so `click` and `nav` were added from `sounds-src/tech-click.wav` and
+  `nav-click.wav` (the MP3s decoded in Chromium; see tools/sounds/README.md) without the others.
+
+- 1.97.1.1 (to-do #130 and #134, bug fixes): **the scan's stub tears again; the Logbook's place bar shows when the
+  places come late.** #134: 1.96 (4c84b45) had removed the centre pass (`#arPass`) and with it the stub's tear, and
+  turned the animation off for every pass in `#gAws` (`.gAw .pF .stub{animation:none}`). `gPop({rip: true})` (only the
+  scan's pass, `gScanPops`) adds `.gAw.rip`, whose stub runs `pfTear` again (1.05 s after the pass appears), and
+  `gRip()` (the paper sound, 1.95's code) plays with it from `gLockOn`. The streak's pass and the passive ones keep
+  their stubs; a scan with no points (`!r.bonus`) shows no pass, as before. #130: the chips of `lbChips()` need
+  `places.list`, read by `placesLoad()` 1.5 s after the start; if the Logbook was drawn before, its bar stayed hidden
+  (`renderLogbook` draws the bar before its `lbSig` check, but nothing called it). `placesLoad` now calls `placesHooks`
+  when the list changed; the app registers `renderLogbook` (only on the Logbook tab), whose `lbSig` keeps the rest
+  from redrawing.
+- 1.97.1 (to-do #131, Dave's request of 27 Oct): **the in-place card opens as a plain vertical growth, and its top bar
+  folds it**. `tlOpen(L, li, e)` no longer takes the finger's place: no `clip-path` circle on the photo and no gliding
+  texts (`textAt` and `tlGlide`, `.tlGhost` are gone). The row grows from its height to the card's (`li.animate`, the
+  rows below follow; `TL_MS` 480 ms, `TL_EASE` Sky view's cubic-bezier(.2,.9,.25,1)), `.tlWas` (the row's copy) fades
+  out in the first fifth, `.tlBg` fades in, and the `.tlK` bar and `.cInfo` fade in from 20 % to 70 % of the time; with
+  less motion it just opens. The click handler folds on `[data-fold], .tlK` (the whole top bar: time · "N min ago" and
+  the ⌃; `.tlK{cursor:pointer}`); the photo, airline, places and tiles open theirs as before.
+
+- 1.97 (to-dos #132 and #133, Dave's rule of 27 Oct and his picks B and 2; relay 79): **a scan gives the full points on
+  top; the pass leads to it; the hangar says "Scored"**. `gAwLine()` names a rule-3 scan "Sky view scan · {t} plane"
+  (rule 2's keep "topped up to"); Sky view's ★ shows `gBase(tier)` (no longer less the passive tenth); How points work
+  says "on top" and its Scanned column "+10". The passive pass (one plane) and the first limit pass get `scan:
+  gScanOffer(a)` while the award is under 120 s old (LOCK_FRESH_S) with live location: the plane's full points, the
+  award's `can` extras (relay 79) and the streak (`rules.streak × (streak + 1)` while `!gme.scannedToday`); `gPop()`
+  draws it with `gScanLine()` (`.gAw .scn`, perforated, chips as `em`), keeps the pass 8 s, and a tap calls
+  `arOpenAt(hex, flight)`: `arOpen()` if needed, then `arWant = arSel = hex` (its card and ring), an `arNote` hint;
+  `arLoop()` treats `arWant` as the featured plane (gold label, the edge arrow), and `arAimDraw()` doesn't count the
+  wanted plane as already selected, so holding it in the ring still scans it (then `arWant` clears; `arClose()` too).
+  Several planes on one pass get no scan line. The hangar (`hangarHtml`): no `.hgG` badge; a `.hgL` line under the name,
+  "★ Scored 6× · 2 scanned" (`t.game`, `t.scans`) or "Not scored yet"; the summary "125 types seen · ★ 22 scored in the
+  game"; `hangarCard()`'s tiles Seen / Scored / Scanned (the First tile went; the line under the name has it).
+- 1.96 (to-do #127, Dave's rules and mockup pick B): **simpler points, every award as it happens**. The rules come from
+  the relay (`gme.rules`, `gRules()`/`gBase()`; `G_BASE` went): Sky view's ★ shows what a scan gives (full points less
+  the passive tenth), ✓ what it gave (`lock` + `gs`). `gRefresh()` asks `/game/me?since=gAwAt` and `gAwards()` shows the
+  new awards as passes (`gPop()`, `#gAws` with `.gAw` and Sky view's `.pF` boarding pass; bottom of the screen or of
+  `#arView`, newest on top, up to three, a tap puts one away): the passive tenths on a small one (`.mini`, several at
+  once coalesced), the first plane past a limit (`first`; kind `no`, grey). `gLockOn()` (the scan) shows `gScanPops()`:
+  the top-up with its extras, then the streak's pass with the week's days (`.days`); the centre pass that tore its
+  stub (`#arPass`, `gRip`) went, the burst and jingle stay. `gAwLine()` words an award for both the passes and
+  **Recent points** (rule 2 rows; rule 1 rows keep `gWhy`), in the order they came; a plane with nothing in grey
+  (`.fl.lim`). **Game page**: This week is the week's points with your place (`This week · #n`), `gLimHtml()` adds the
+  five counters (`.gLim`) and a `.gNote` per rarity at its limit with `resets`. **How points work** (`gHowCard`) is
+  the table (`.gHowTbl`: within 10 km, scanned, today / max), the rules in plain words and the streak's seven days
+  (`.gStk`); the taper bar went. **Hangar**: types from the logbook (relay 76), `t.game` gives the ★ badge (`.hgG`)
+  and the card's "In the game" tile (Seen, In the game, First; the aircraft went to the details); face-down cards get
+  their model's picture, dimmed (`hgWire` already asks for it). Also: the board's `SPECIAL_TYPES` has all the relay's
+  military types; the streak trophies read "Points N days running"; the Collection's summary no longer quotes the
+  old 1/3/10/25/50.
+- 1.95 (to-do #115, Dave's pick 1b with option 1): **Recent flights and Today as a timeline, a plane's card opening in
+  place**. Both lists are `ol.flights.tline` (head.html): a rail (`.tline::before`), group headings (`li.tg`: the quarter
+  hour on Now, the hour on Today, the one under way "Now · …"; `tlHtml(list, span, open)` works "now" out on the relay's
+  clock from the newest row, `tlMin`/`tlHm`) and slim rows from the shared `rowHtml(e)` = `li.fl` with `rowInner(e)`:
+  `.l1` time · name · route codes · remark word (`.rk` in the node's colour), `.l2` airline (or owner) · type · closest
+  · height (· place with All places). The node (`li.fl::before`) is `--node: tlNode(e)` (`lampOf(remarkFor(e))`, grey
+  without a remark). `noFlightNo(e)`: a plane whose flight is its registration or hex (or none) goes by `rowName(e)`
+  (its registration, else its owner) and without a route says "No route: private or local flight", one with a flight
+  number "Route not known" (`noRoute`, quiet, balanced over two lines where it must). `rowSig` takes the owner, callsign,
+  cities and place too. The pills (`.fl .tap`, the old `+` `.flAdd`) are gone, with their CSS. Recent flights' heading
+  (`.tlHead`, `#recentN`) counts the last hour ("None in the last hour"); `#recentFoot`/`#recentAll` "All N planes
+  today ›" (the relay's count when the 400 newest aren't the whole day) goes to Today. Empty and live location's wait:
+  `tlState` boxes on the rail (`li.st`, `.find` with the amber node: `tlNothing`, `tlFinding`; Today's Loading and no
+  match too). On its side nothing changes: `#t-now .tlHead/.tlFoot` hide with `#recent`, the flaps (`NOW_ROWS`) as before.
+  **The card in place**: a tap on a row (`tlTap`, the document's capture click on `[data-more]`; Enter or Space on a
+  focused row) waits for the photo (`tlPicWait`: Planespotters' answer or the model's lookup, 1.2 s at most; then
+  `imgReady` decodes it, 0.6 s at most) and `tlOpen` turns the row into `cardLi(e)`: `.tlCard.cardish` (the gold-edged
+  highlight box `.tlBg`; `.tlK` time · `tlAgo` and ⌃, the 1.91 `DD` chevron turned up, `data-fold`) around
+  `infoCard` (`tlPic` photo at 170 px with `picAttr` `data-full`, title `rowName`, airline `data-al`, `chipHtml` remark,
+  `routeEnd` band or the no-route line, Aircraft (`data-ty`, a button) · Closest · Height). The click handler sends
+  `data-al`/`data-pl`/`data-ty` to `airlineCard`/`placeCard`/`typeCard`, `data-full` (the photo, not its credit link) to
+  `planeCard(sightPlane(x))`, `data-fold` to `tlFold`. One card per list (`tlOpenId`); another row folds the open one.
+  The motion (Web Animations, Sky view's easing `TL_EASE`, 480 ms; none with `REDUCED`): the li's height and margins
+  grow (`.tlAnim` clips), the row's copy (`.tlWas`) fades in the first 22 %, `.tlBg` in 35 %, the flight and the two
+  codes glide as copies in the card's font (`tlGlide`, `.tlGhost` inside the li, so they move with it; `textAt` measures
+  the letters) while both ends stay hidden, the photo grows as a `clip-path` circle from the finger, the rest
+  (`.tlK`, airline, chip, credit, cities, arrow, boxes) rises in over the second half; at the end `tlScroll` brings a
+  card under the tab bar into view. `tlFold` shrinks it back in 320 ms (the card `.tlGone` fading over the row);
+  `li.tlNow` says which of an opening and a folding still owns the row. While anything moves (`tlStart`/`tlEnd`,
+  `tlBusy`) `renderRecent`/`renderToday` put off their redraw (`tlAgain`, `tlDone`); `tlFill` keeps the open card's
+  element when `tlCardSig` (its row, units, photo) is unchanged, and its "min ago" is updated in place. A late photo
+  (`tlLate`) redraws an open card. `tlAhead` asks for the Now rows' Planespotters photos ahead, one at a time 1.5 s
+  apart (the relay asks Planespotters once a second for every screen and refuses a reg for 10 minutes when its queue
+  is over 4 s: asking for all eight at once lost three). The swipe (`swipeRow`) only takes closed rows; its click guard
+  stays. The first-run tip "taps" became "open". Today: `tlHtml(rows, 60, …)`, its filters, search and places as before.
+- 1.94 (to-do #113): the Logbook's aircraft card (`foundCard`, now async: a loading card while Planespotters' or the
+  model's photo comes, at most 2.5 s, a later photo joins) and the hangar's (`hangarCard`: Caught, First, Aircraft) in
+  the board's `infoCard`; the search row brings the last route as the band, `planeTiles` and `planeFunFacts` (relay 74
+  adds the closest pass's height, the sighting before the latest, the hex, owner and country). `cardSheetGrow(ci, h0)`:
+  a card growing while open (More info) goes from its old height to the new one (as `cardSheetPost`); `lint.py`'s
+  OPTIONAL has it. The info cards' CSS is the board's (`#cardBox .cInfo …`, copied by the build); `.cDet span[data-dyn]`
+  undoes head.html's `.cDet span` label look for the live numbers.
+- 1.93.1.1 (to-do #112): `planeAgain` redraws any plane card `planeCard` opened (Now, the airport lists, the radar)
+  while it shows (`planeTok === cardTok`), not only the radar's, and a plane on the radar with where it is now; the
+  hangar asks for model pictures with the type's code (`hgWire`, `modelPicNow(names, code)`), and `hangarCard(code,
+  again)` asks for its model's picture and redraws with it (`again`: no click sound).
+- 1.93 (to-do #95): Now's screen takes `planePic` in `renderAircraftInfo` (none from Planespotters on the runway
+  screen: `rwyE()`, which `paintRwy` uses too), with `#photoLink` (`a.plink` over the whole screen, an href for
+  Planespotters) and `#photoCr` (`picCreditHtml`); `.screen .mtag` is gone. Sky view: the whole card's photo is
+  `picHtml`'s (the credit at the top, `.arFullL .cSkyPic .cCr`, clear of `.cOv`); the small card's thumbnail
+  (`arPeekHtml`) has no room for a credit or a link, so it takes `planePic(..., true)` (adsbdb's or the model's).
+- 1.91 (to-do #104): **the Logbook and Spotters' Club tabs stay at the top**: `.lbTabs` is sticky at `top: var(--topH)`
+  under the header, with `#setJump`'s metal and shadow (negative margins and padding to the screen's edges; the line
+  under the tabs is an `::after`, in from the edges as before). On `#t-logbook` the tabs are now a child of the section,
+  no longer of `.lcol`: sticky only holds within its parent, and `.lcol` ends above the lists. A switch (`showTab`)
+  still scrolls to the top, so the other page starts under the tabs.
+- 1.91 (to-do #105, Dave's pick C at 14 px): **the dropdown arrow**: `DD` (next to `PIN`), a chevron in `currentColor`
+  inside a grey ring (#4a4c52), `.dd`, 14 px. The place bar's Saved places part is the name in `.ddL` (it keeps the
+  ellipsis) and `DD` (always whole), with `aria-haspopup="dialog"`; Categories' `.chev` holds `DD`, and `.catTap.open`
+  turns it up and makes the ring amber (they were "⌄" and "⌃"). The Favourites & hidden list picker (`favManager`'s
+  `<select>`) draws the same as a background picture, `appearance: none`, in the board's `#cardBox .favAdd select,
+  .cardish .favAdd select` rule (scaled by `--ck` on the TVs), which the app build copies with the Settings CSS.
+- 1.91 (to-do #103, the app's part): the app's Logbook lost Newest aircraft in 1.75.1; `renderLogbook`'s signature no
+  longer carries `regsRecent`.
+- 1.88 (Dave's picks 11 A and 13 A, 26 Oct): **Settings jump bar**: `#setJump` (sticky at `top: var(--topH)`, which a
+  ResizeObserver on `#top` keeps at the header's height, score strip included) holds `.seg.jumpSeg`, added to the
+  shared segmented-filter rules (flex:none buttons, so it scrolls sideways). `jumpBuild()` (after `showTab("settings")`
+  and `renderFavBox`) lists the visible plates by `data-pid` (`plateHtml` adds it; the favourites plate is "favs"),
+  named from `PLATES`/`VIEW_PLATES` (`jumpName`, Favourites & hidden as Favourites). `jumpGo(id)` scrolls the plate to
+  just under the header and the bar; `jumpSpy()` (window scroll, rAF) lights the last plate whose top passed that line,
+  the last plate at the page end; a tapped name stays lit (`jumpHold`) until a touch, wheel or key (a plate near the end
+  can't reach the top). `jumpLight` centres the lit name in the bar. **Relay plate**: `#relayPlate` at the top of
+  `aboutOpen()`, hidden until `relayLoad()` gets `/relayinfo` (relay 69+, only when `GUEST.owner`; every 30 s while
+  About is open); `relayPlate(d)` draws `.ranks.cats` lamp rows with 6-px bars under the Legend's amber `.lgbox h3`
+  headings. Backup: amber when missing or `late`, red when not ok.
+
 `app/index.html` is generated: `py tools/app/build.py` copies the flap engine, reference tables, network, tracking,
 times, specials, logbook, radar and Settings control code out of `test/index.html` by marker strings and wraps them in the phone layout
 from `tools/app/head.html` and `tools/app/main.js`. Never hand-edit `app/index.html`. Change `main.js`/`head.html`
@@ -704,6 +1824,325 @@ and keeps the screen on while it is open (`FLAG_KEEP_SCREEN_ON`, since 1.13.3.1;
 it, and never replace it, or phones refuse the update. Bump nothing by hand: the APK is named after the newest patch-notes entry plus the build number.
 
 ## The relay
+
+- Relay 99 (1.119, to-do #212, clarity build 4, Dave's pick B): **the private page leads with the QR code.**
+  `refuse()` builds the page from `PRIVATE_PAGE` around `pair_page_js()`: "This board is private", one small line
+  ("Scan with a phone that is signed in, or type the code there"), the QR code with "Or open …/pair" and the code under
+  it (`pair_page_js` now stacks and centres them, its own explanation gone), then two buttons, "Sign in with your
+  account" (`/signin`) and "I have an invite link", and one line on what Fallblatt is. The invite button opens a field
+  (`#inv`, `PRIVATE_JS`): the pasted text, trimmed, is opened only when it is an http(s) link of this same origin (or a
+  bare path) to `/join/<token>`; anything else (another site, `//host`, `javascript:`, another path) shows "That isn't an
+  invite link for this board." The token only goes to the address bar; nothing is logged. Still nothing about the
+  board or anyone's data for a visitor without a profile. flows.py checks the page and the field.
+- Relay 98 (1.114.5, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
+  a plane's first score (~15 km out, `game_note`), so "within 1 km" (`close`) and "below 2,500 ft" (`low`), and partly
+  `fast`, never paid while `bingo_json` showed them done and even gave the Bingo trophy, unpaid. Now `take` calls
+  `_game_bingo` again whenever a scored plane's `minDist` or `maxSpeed` moves (after they are updated, so it judges the
+  fresh values); its guards (`st["lines"]`, `st["card"]`, the trophies) pay each once; `st["at"]` keeps when each
+  square filled. `bingo_json` shows only the squares `bingoPay` has (`done` from its `done`, times from the week or
+  `at`), so a line or the card shows once it paid, and no longer gives trophies. The catch-up (Dave: pay this
+  week's once, today): `bingo_migrate()` at start (one log line with counts) runs `bingo_catchup(spot, g)` once per
+  profile. `_bingo_owed` finds this week's squares done (saved entries, final values) that `bingoPay` lacks, puts them,
+  their lines and the card into `bingoPay` and returns what is owed: the lines, the card and a Bingo or Full card
+  trophy won this week unpaid (`bingo_json` gave it) or not won. `g["bingoFix"]` keeps that dict until it pays, as
+  normal Bingo awards dated today (`_game_pay`, `_game_trophies`: Recent points, today's total, the week, the level) on
+  today's newest scored plane, or, with none yet, on the next plane to score (`game_note` calls `bingo_catchup(spot, g,
+  e)` while the marker is a dict; one log line then). Then `bingoFix` is the time it paid (new games get one when made),
+  so it never pays twice. Earlier weeks stay.
+  `_game_award` keeps 24 awards a plane (was 12, review L2), so a rich scan's lines add up to its total.
+- Relay 97 (1.114, to-do #182): **the member cards' details.** `g["scanAirlineInfo"]` {AIRLINE: {first, last, types:
+  {TYPE: scans}}} (the scans' times, ms), noted by `_scan_airline_note` at each scan (`game_lockon`) and counted back
+  once from the saved days' scans by `_scan_types` (a sighting's `scan` is its scan time). `wallet_info_json(g)` →
+  game3's `walletInfo`: {AIRLINE: {seen (its planes caught live, `g["airlines"]`'s count), since, last, types (the four
+  scanned most)}}; a member whose scans have no times (days no longer kept) gets its first sighting as `since` with
+  `seenSince: 1`. `wallet` keeps its shape ({AIRLINE: scans}) for older apps. GAME3_V and GAME_V unchanged.
+- Relay 96 (1.112, to-do #173/#174/#176): **the new ranks and the move to them.** `LEVEL_AT`, `LEVEL_AFTER`;
+  `level_of(points)` by them, `level_title`, `level_points`. `game_level(g, pts=None)`: the level by the points, never
+  below `ranks_kept(g)["level"]` (kept above its points: `into` 0 and `need` the points left to the next level, so the
+  app's `need - into` stays the points to go). Every reader uses it: `game3_json`, `league_json`, `player_json`,
+  `game_lockon`, `showcase_json` (spots: the more of the new levels' and the kept `slots`), `_standby` (the level a day
+  ended on), `game_school`/`school_wings`. `SHOWCASE_AT` (5, 11, 17); `STYLE_LVL` (the board's `STYLES` levels, for the
+  counts). The move: `game_ranks(g)` (from `game_book`, once: the marker `g["ranks"]` {v, level, styles, slots, at})
+  from the old rules, which live only there (`_old_level`, `_OLD_STYLE_LVL`, `_OLD_SHOWCASE_AT`, `_OLD_MASTERY`); before
+  it is made `ranks_kept` works it out the same way, so a read-only look sees it. Mastery: `g["mastery"]` becomes per
+  type max(the new step of its scans, the old step paid or passed; an old map not made yet is built from the scans by
+  the old steps), so passed steps come unpaid and an old bronze at 5–9 scans keeps its frame. `ranks_migrate()` at
+  start (after `merge_home`) moves every profile and logs one line of counts. `game3_json` and `/game/me` send
+  `styleKept`. `MASTERY` (10, 25, 50, 100); `game_lockon` pays `MASTERY[k - 1] × TIER_BASE[mt] // 10` with `mt =
+  tier_of({}, {"typeCode": TC})` (the type's rarity, not the plane's; the line has `tier`; not doubled by gold);
+  `mastery_step` 0–4; `game_rules()["mastery"]` `[[at, at]]`; the hangar's types have `m` (the step paid or passed) and
+  `mt`, and (to-do #177) `last`, the type's last sighting (its first when none). No rescoring (`GAME3_V`, `GAME_V` unchanged). flows.py: `ranks_checks`, `mastery_checks` for the new steps.
+- Relay 95 (1.111.0.1, to-do #168): `/planephoto?…&model=` → `plane_photo(reg, hex, model)`. `_ps_list` (was
+  `_ps_first`) keeps every photo of the registration with the makers its page name gives after the registration
+  (`_ps_makers`: whole dash-separated words from `PS_MAKERS`, families such as Boeing with McDonnell Douglas, Bombardier
+  with Canadair, Learjet and de Havilland Canada); `_ps_cache` holds that list, and `_ps_pick` chooses per request the
+  first photo whose makers meet the plane's (from `model`; `PS_ALSO` adds Bombardier for an A220 and a CRJ, Mitsubishi
+  for a CRJ, BAe for a Hawker) or where either side names no known maker (older boards send no model: kept as before).
+  No extra request: Planespotters' answer already has the page name. Flows: fakesrc's N700GR (a Bombardier photo:
+  skipped for a Piper, kept for an unknown maker or no model) and N800GR (Bombardier, then Piper: the second is taken).
+- Relay 93 (1.110, to-do #159): `STYLE_GRANTS` lists the app's ticket designs (`propage`, `jetage`, `magcard`, `holo`), so
+  the owner can grant them on the admin page like the other styles.
+- Relay 91 (1.108, to-do #156): **the showcase.** `SHOWCASE_AT` (3, 5, 8): a spot opens at each. `g["showcase"]` a
+  list of pins or None by spot. `showcase_json(g)` {pins (as many as the level opens), locked [{level, toGo}]}
+  (`level_points(lv)`, where a level starts), in `game3_json`, `/game/me` and `player_json` (others' cards). A pin is
+  a catch, not a type: `showcase_catch(spot, code)` takes the type's sighting scanned before scored (`gp`) before
+  seen, then one with both route ends, then the first, and keeps code, name, tier, reg, flight, airline, ts, route
+  [from, to] or None, photo, thumb, how; never a place. POST `/game/showcase` {code, spot} (profile_post: only the
+  asker's own spot) → `showcase_pin`: 400 without a spot, 403 for a spot the level hasn't opened, 404 for a type
+  never seen; a type pinned elsewhere moves, "" empties. `game_rules()["showcase"]`. No points; `GAME3_V`,
+  `GAME_V` unchanged. flows.py `showcase_checks` and the HTTP checks after the player card.
+- Relay 90 (1.107, to-do #150): **the passport.** The airport list (v4) keeps each airport's `iso_country` and
+  `continent` (rows [.., 7: country, 8: continent]); `_cc_ready()` is that list (None while it loads or with an older
+  copy). `route_countries(e, db)`: the countries of a sighting's `from`/`to` (IATA or ICAO via `_ap_row`), each once;
+  none without both ends. `GAME_COUNTRY` 25. `_passport_make(spot)` (from `game_lockon` and `logbook_json`) makes
+  `g["passport"]` {CC: {"d": day, "ap": airport, "p": paid}} once, from the saved days' scans, unpaid. `game_lockon`
+  stamps the scanned route's countries: one not in it pays `{"k": "country", "p": 25, "n": CC, "ap"}`; the answer has
+  `route` [[airport, CC, new]] and `countries`. `passport_json(g)` in `game3_json` ("passport", {CC: [day, airport, lat,
+  lon, continent, paid]}): the player's own logbook only (not `/game/me`, not the league's cards).
+  `game_rules()["country"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py `passport_checks`.
+- Relay 89 (1.106, to-do #162): **airline loyalty.** `LOYALTY` ((10, 25), (50, 100), (200, 250)), `loyalty_step(n)`.
+  `_scan_types` also makes `g["scanAirlines"]` {ICAO: planes scanned} (counted back once from the saved days' scans by
+  `_scan_airline`); `logbook_json` calls it too, so the wallet is right before the first scan. `_loyalty(g)`:
+  `g["loyalty"]` {ICAO: tier paid or passed}, made unpaid from the counts as they are then. `game_lockon` raises the
+  airline's count and adds `{"k": "loyalty", "p", "n": ICAO, "m": tier}` per tier newly reached (as mastery's), and
+  answers `airline` {code, scans}. `wallet_json(g)` in `game3_json` ("wallet"): every key of `g["airlines"]` (the
+  airlines the game caught live, which the airlines trophies count) with its scans, 0 for none, so the wallet's size is
+  the trophy's count. `game_rules()["loyalty"]`. Nothing rescored; `GAME3_V`, `GAME_V`, `GAME_RULE` unchanged. flows.py
+  `loyalty_checks`.
+- Relay 88 (1.105, to-do #149): **mastery.** `MASTERY` ((5, 25), (25, 100), (100, 250)), `mastery_step(n)`.
+  `_scan_types(spot)` (hangar_json's count-back of `g["scanTypes"]`, moved out) now also runs at the start of
+  `game_lockon`, so every scan counts per type from the first. `_mastery(g)`: `g["mastery"]` {TYPE: step paid or
+  passed}, made at the first scan after the update from `scanTypes` as they are then, unpaid. `game_lockon` raises the
+  type's count, then adds a `{"k": "mastery", "p", "n": TYPE, "m": step}` line for each step newly reached (an award
+  like "new": in the bonus, the day, the week, the level; not ×2 on a golden ticket). `game_rules()["mastery"]`.
+  Nothing rescored; `GAME3_V`, `GAME_V` and `GAME_RULE` unchanged. flows.py `mastery_checks`.
+- Relay 87 (1.104, to-do #157): **the standby.** `STANDBY` ((14, 2), (6, 1)), `standby_allow(level)`.
+  `game_standby(g)` (called by `game_book`) makes `g["standby"]` {since: the board day} on the first touch after the
+  update: only days from then on can be covered, so a streak that broke before stays as it was paid. `_standby(g, day)`
+  works the week out each time from `scanDays` and the days' points (nothing else kept; a restart or a rescore changes
+  nothing): from Monday to yesterday, a day without a scan whose day before was a streak day (so never Monday), not
+  before `since`, is covered while fewer than `standby_allow(level at that day's end)` are used (the level from
+  `points` less the later days' points). `_scan_streak` counts covered days like scanned ones, so the next scan pays the
+  next day's amount and a covered day pays nothing. `standby_json` in `game3_json` and `/game/me` ("standby"),
+  `game_rules()["standby"]`. A game the standby hasn't met (a player card, read only) covers nothing. GAME3_V, GAME_V
+  and GAME_RULE unchanged. flows.py `standby_checks`.
+- Relay 85 (1.103, to-do #153): **the flight school.** `SCHOOL` (scan, card, bingo, fav, uncommon), `GAME_SCHOOL` 50,
+  `SCHOOL_LEVEL` 4. `game_school(g)` (called by `game_book`, so on the first touch after the update, before any points
+  can change) makes `g["school"]` {since, done: {mission: ms}, aw: [awards], wings: ms}; a game at level 4 or above
+  then gets `wings` at once and `pre: true` (no points, the app never shows the school). `school_pass(spot, g, m)` pays
+  a mission once: an award {k: "school", p: 50, n: mission, i: its count, day, r: GAME_RULE, wings on the fifth} kept
+  in the school (it has no plane), `_game_add` (day, week, level); the fifth sets `wings` (nothing more paid); None
+  after the wings, for a mission done or an unknown one. Detected: `game_lockon` (after a scan that pays; its 50 aren't
+  in the scan's `bonus`), `game_note` (a non-common plane whose passive points are > 0), `_game_bingo` (a square new to
+  the week's card), `/lists` (an "add" to "fav"; not a whole-list save), `POST /game/school {m: "card"}` (the app's
+  plane card; other missions 400; same origin, `allow` 1/s). Out: `game_awards` adds the school's awards after `since`
+  (no plane keys), `game_today` sends `school` (today's), `game3_json` `school` (`school_json`: done, wings, pre) and
+  `wings`, `/game/me` keeps both; `/game/league` rows and `/game/player` `wings` via `school_wings(g)` (read only: the
+  school's, else by the level, as `game_school` will decide); `game_rules()` `school`. Nothing rescored: `GAME_RULE`,
+  `GAME3_V`, `GAME_V` unchanged; `_rescore` and the backfills work on the logbook. flows.py `school_checks` (each +50
+  once, the wings, a game from relay 84 kept exactly, level 4 → wings without points, level 3 → the school, a
+  restart, planes coming closer and a rescore pay nothing; the other in-process checks run with `school_pass` off) and
+  HTTP checks (the card once, other missions 400, another site, a stranger, the awards, `wings` in the three answers).
+- Relay 84 (1.101, to-do #148): **golden tickets.** `game_gold(day, hex)`: sha256 of the salt, the board's day and the
+  plane, gold when its first 32 bits are 0 mod `GOLD_ONE_IN` (20). The salt (`_gold_key()`) is made once with
+  `secrets.token_hex(16)` in `data/gold.key` (mode 600; `GOLD_FILE`) and read back at start, so a restart doesn't re-roll
+  and nobody without the file can tell which planes will be gold; it is the same for every profile all day. Nothing is
+  stored per plane: `game_scannable` adds `gold: true`, `game_lockon` asks again at the scan: its "scan" line is
+  `TIER_BASE[tier]` × 2 with `gold: 2` (`full` stays the plane's points), the answer `gold: true`; the extras, the streak
+  and the passive points are as ever. No rescoring: awards keep what they were scored with, `GAME_RULE`, `GAME3_V` and
+  `GAME_V` unchanged. flows.py `golden_checks` (rate, same plane, restart, other salt, ×2 on the base only, a plain scan,
+  a game scored before identical); the other checks run with `game_gold` off.
+- Relay 83 (1.100, to-do #147): **bingo lines and trophies pay.** `GAME_BINGO` {line: 50, card: 500} (Dave, 29 Oct: all 8 lines count, so 50 a line; a full card 8 × 50 + 500 = 900), `GAME_MEDAL`
+  [50 … 250] (a ladder's rank by its place among `TROPHY_LADDER`'s ids of the same count, `_trophy_pts`), `GAME_SINGLE`
+  100; all in `game_rules()`. `game_note` (a new plane) calls `_game_bingo` and `_game_trophies` after `trophy_check`; a
+  closer pass's `trophy_pass` wins go to `_game_trophies` too. `_game_pay` puts the points on the plane (`gb`, sent by
+  `game_today`), as an award (`_game_award`, rule 4; kept: the last 12, was 8) and into the day (`_game_add`).
+  `g["trophyPaid"]` {id: pts} (game3_json `trophyPaid`) pays each trophy once; trophy_check/trophy_pass only return
+  ones not won before, so earlier trophies never pay. `g["bingoPay"]` {week, done, lines, card, had}: made from the
+  saved days (`_bingo_week(live=True)`, without the plane at hand) when the week is new; the very first time the lines
+  and card already done go in as `had` (counted, unpaid; the Bingo/Full card trophies won then too, unpaid). Then each
+  new plane is checked against the card, a newly complete line pays once, the full card once; the Bingo and Full card
+  trophies are won there (bingo_json only catches up). `bingo_json` sends `paid` {lines, full, line, card} for the
+  week. `_rescore`, `_backfill_trophies` and `_backfill_cards` work on the logbook, not game3, so pay nothing.
+  `GAME_RULE`, `GAME3_V`, `GAME_V` unchanged. flows.py `bingo_trophy_checks`.
+- Relay 82 (1.98, to-do #145, #146): **two circles.** `GAME_KM` = 15 (the passive points; `_record`'s live radius at
+  least that, `game_note`'s `liveMin`), new `SCAN_KM` = 10: `game_lockon` answers `{why: "closer", km, scanKm}` for a
+  plane scored at 10–15 km (before "gone"); the gap filler's quick refresh (`rec["near"]`, FILL_FAST_S) stays at 10 km
+  (`SCAN_KM`), so its credits don't grow. `game_rules()` and `game3_json` give `km` and `scanKm`. `game_scannable(spot)`:
+  today's scored sightings with `liveMin` ≤ 10, `liveSeen` within `LOCK_FRESH_S`, no `lock`/`scan`, newest first (up to
+  12), each with its `PLANE_KEYS`, `tier`, `full`, `can` (`_scan_can`), `km`, `seen` and `until` (ms); `/game/me` sends it
+  as `scan` (and `scanKm`). Amounts, limits, `GAME_RULE` (4), `GAME3_V`, `GAME_V` unchanged: no award is priced
+  differently. flows.py `scan_circle_checks` (through `Spot.record` on a live place) and a relay-81 game loaded by relay 82.
+- Relay 81 (1.97.6, to-do #140): **a hidden page's live request is stale.** `live_stale(q, place)` is also true for a "live"
+  place when the request has `bg` (`bg=1`, sent by `getAircraft` while `document.hidden`; since 1.87.1 for the gap filler).
+  So `Spot.take` (sightings, and with them every point, bingo square, medal, level, league week and Recent points award:
+  they are all computed from the recorded sightings), the gap filler and the live lock-on window (`liveSeen`) get nothing
+  from it. Saved places and home are unchanged (TV boards, a board at home, hidden or not); a page without the flag
+  counts as visible. **Other paths:** `/sightings`, `/logbook`, `/game/*` and `/now` (the widget) only read; `syncSightings`
+  fetches and records nothing itself (the app keeps no local log with a relay); `/game/lockon` (a scan) needs Sky view on
+  screen and is left as it was; push notifications are sent by the relay's own watch, not by a request, and are unchanged.
+  Not used as a second signal: `/hello`'s `vis` (relay 80's Screens list), as a lost "visible" hello would silence a phone
+  for good; each request carries its own state. Test: flows.py `live_hidden_checks` and the hidden live request in
+  `checks`.
+- Relay 80 (to-do #137, admin only): **a screen hidden for 15 s counts as left.** `screen_seen()` keeps `hidden_at` (set by
+  a hello with vis=hidden, cleared by one saying anything else); `_screen_sweep(now)` (the body of `_screen_watch`, one pass)
+  drops a screen hidden for `SCREEN_HIDDEN_S` = 15 whatever its `last` says, puts its key in `_screens_left` and its
+  entry in `_screens_gone` (left = when it went hidden) without a log line. Requests, hellos and a bye of a key in
+  `_screens_left` are ignored; a hello with vis=visible makes a new screen (since = now) that is `announced` at once, so
+  no "Screen connected" line: coming back from the background isn't announced (nor is leaving it). Entries of
+  `_screens_left` are forgotten after a day. The 60 s rule and the bye are unchanged. Test: flows.py `screens_checks`.
+- Relay 80 (1.97.4, to-do #136, Dave's request of 27 Oct): **`GAME_RULE` 4: the passive points are `GAME_PASSIVE`**
+  (a dict now: common 5, uncommon 10, rare 15, very rare 25, special 50; they were `TIER_BASE // 10` = 1, 3, 10, 25, 50).
+  `game_note()` stores them in the plane's `gp` once and the award's "r" says 4; nothing is priced again (a plane that
+  has a `gp` is skipped, `GAME_V` and `GAME3_V` stay), so saved days, points, the league and the logbook stay as they were.
+  `game_rules()["passive"]` sends the new table to the app. The scan (full `TIER_BASE` on top), the limits and the
+  extras are unchanged. Test: flows.py `game_rules`, "rule 3 game untouched by rule 4".
+
+- Relay 79 (1.97, Dave's rule of 27 Oct, to-dos #132 and #133): **`GAME_RULE` 3: a scan gives the full points on
+  top**. `game_lockon()`'s "scan" line is `TIER_BASE[tier]` (rule 2: `full - gp`), so a common gives 1 + 10 = 11 and a
+  plane past its limit 0 + 10; nothing is re-priced (rule-2 awards keep their "r": 2; `game_today()` checks rule 1 as
+  `rule < 2`, `game_awards()` sends `r >= 2`). `_scan_can(g, e)`: the extras a scan would add now (a type or an airline
+  not in `g["scanned"]`), used by the scan itself and sent as `can` on the "pass" and "limit" awards. **Scans per type**:
+  `g["scanTypes"][TC]`, counted by `game_lockon()` once the dict exists; `hangar_json()` creates it the first time by
+  counting the sightings with `e["scan"]` (set by every scan since relay 76, kept in the saved days) over
+  `_logbook_entries()`, and sends `scans` per type (also in its cache key). Rule-1 lock-ons (before relay 76) aren't
+  counted as scans.
+- Relay 78 (1.96.2, to-do #129): **the facts database**. A first tap on a card took 3–5 s (four Wikimedia lookups in
+  a row). The facts now live in `data/facts.db` (SQLite, `facts(k, t, v)` and `meta(k, v)`: read per card by
+  `_facts_get`, written by `_facts_put`, never held in memory; `_facts_db` opens it and moves relay 74–77's
+  `facts.json` in once, without relay 74's airline keys, leaving the file as it was). Same keys as before
+  (`FACTS_VER`, `_FACTS_PREFIX`); kept `FACTS_KEEP` = 40 days. **The monthly refresh** (`_facts_worker`, every
+  `FACTS_EVERY` = 28 days, in `FACTS_NIGHT` 04:10–06:00 relay time, after the 03:40 backup; what a night doesn't
+  finish goes on the next one, the run's start in `meta` "run": keys refreshed since then are skipped): `facts_refresh`
+  takes the lists from Wikidata's query service (`_facts_lists`, `SPARQL_API`: every item by ICAO code with whether
+  it stopped flying, by IATA code with each airport's current code, the airlines under each company), then the models
+  (`MODEL_TITLES`: the board's TYPES and MODEL_PAGES as its model lookup finds them, written by
+  `node tools/test/model_pics.js --relay`), every airline still flying, the groups and companies their cards open
+  (`_facts_opens`), every airport and every other key a card asked for, 50 at a time (airports 100). The card code
+  stays the one a tap runs: in the refresh's thread (`_wm_batch`, `_batch()`), `_wd_find` answers from the lists,
+  `_wd_items`, `_wiki_page`, `_wiki_extract`, `_wd_title` and `_commons` answer from what was fetched or raise `_Need`
+  (what is missing in `_wm_batch.need`); `_facts_chunk` runs the chunk's cards, `_facts_fetch` fetches all their needs
+  together (`wbgetentities` 50 ids or titles, Wikipedia 50 pages with `_wm_pages` following `continue` (introductions
+  come 20 at a time) and redirects, Commons `imageinfo` 50 files) and runs the cards again, up to 20 rounds; a brand's
+  fleet sum asks for all its companies together. Differences from a tap, to keep it small: an airline's or group's page
+  is only its first section (the infobox; a model's whole page), the hubs, headquarters and owners are names only (a
+  hub's code from the airports' list), and a photo is Commons' own 500 px address (`FACTS_IMG_W`), no redirect.
+  `_wm_batch_get`: one request at a time with `maxlag=5`, waits as Retry-After asks, tries again after an error
+  (15 s, 45 s, …, five times), then `_Stop` (the night ends, the run goes on the next night); an API error other than
+  lag stops only that request. The owner's `/facts?status=1` (entries per kind, size, the run going on and the last
+  one) and `/facts?refresh=1` (a refresh now, three hours at most). flows.py: the move from facts.json, the first-tap
+  lookup, the refresh against the fakes (the query service, several titles a request, continued introductions, a
+  maxlag, Commons' `imageinfo`) with every card the same as on its first tap but the photo, then nothing asked again.
+- Relay 77 (1.96.1, to-do #122): **an airline's brand**. `airline_facts(icao)` finds the company (P230), its parents
+  (`_airline_parents`: current P749 parent organization, then P127 owned by; people dropped; `_part` when P749 or at
+  least half owned) and `_airline_brand`: a parent whose name without a company word (`CORP_TAIL`: Holdings, Group,
+  plc, …) begins the company's name, and the airline of that name (an ICAO code, an English page, not dissolved: the
+  parent itself, else `_wd_title(brand)`, the item of the English page of that name). Then the card is
+  `facts_json("org", brand)` plus `flownBy`, else `facts_json("org", own)`. `org_facts(q)` → `_airline_item_facts`
+  (the old body, also "infobox company") with `icao` and `group` (the first `_part` parent with an English page, else
+  the infobox's parent link: Lauda Europe → Ryanair). A brand's fleet is the whole brand's: the companies with its
+  name under it or under its holding without a page (`_wd_find("P749", …)`) are added when together they outnumber
+  the brand's own page (Wizz Air's page counts only the Hungarian company: 118 + Malta 127 + UK 21 + Abu Dhabi 12;
+  easyJet's 356 already counts its group's), `fleetAll: true`; a company whose page leads back to the brand's (same
+  text: KLM Asia) is left out. `/facts?airline=X&own=1` (`airline-own`) is the company's own card, `/facts?org=Q…`
+  any airline or group by its Wikidata id. `FACTS_VER`: airline answers are kept under `airline2:` so relay 74's
+  subsidiary answers aren't served again. Examples (Wikidata, Oct 2026): Wizz Air Malta, Wizz Air UK → Wizz Air
+  (Q335147, the Hungarian airline; Wizz Air Holdings has no page); easyJet Europe → easyJet (Q191551, easyJet plc);
+  Eurowings Europe → Eurowings; Lufthansa CityLine → Lufthansa; KLM Cityhopper → KLM; Austrian, Swiss, Brussels →
+  their own, part of the Lufthansa Group; Lauda Europe, Malta Air → their own, part of Ryanair; TUI fly → its own.
+- Relay 77 (1.96.1, to-do #126): **`/logbook?place=` takes the places at the same spot together** (`same_spot` for
+  each asked key, merged as relay 40's tuple), and `/logbook` sends `spots` for the place bar. flows.py checks it after
+  the league (a plain `/logbook` asks the league, which would then miss the live player).
+- Relay 76 (1.96, to-do #127): **the simpler points**. `game_note()` scores a plane once a pass: `TIER_BASE //
+  GAME_PASSIVE` while `game3.limits` (today's planes by rarity) is within `GAME_LIMIT`, else 0 with a `limit` award
+  (`first` on the first one over); it no longer prices a plane again (rule 1's `game_points()`, close-pass top-ups and
+  "fix" went), a closer look only feeds the records and `trophy_pass` (`gMin`). Each plane gets `gr` = `GAME_RULE`
+  (2), each award `r`; rule 1's planes keep their points and Recent points their reasons (`GAME1_NEW`, `base`, `gk`,
+  `gn`). `game_lockon()` is the scan: once a pass (`scan`), no limit, `scan` award = full − `gp`, `new` awards for a
+  type or airline not in `game3.scanned` (seeded with what the game knew when relay 76 first opened the book, so
+  nobody is paid twice), and at the day's first scan a `streak` award of `GAME_STREAK` × `_scan_streak()` + 1
+  (`scanDays`, counted back from today but not before Monday). `e.lock` = top-up + extras, `e.gs` the streak (not in
+  the week's best plane). `game3_json` sends `streak` (the scan streak), `scannedToday`, `limits`, `resets`, `rules`
+  (`game_rules()`); `/game/me` passes them on and `?since=` adds `aw` (`game_awards()`: today's rule-2 awards after
+  it, with the plane's fields). `/game/today` adds `gs`, `rule`, `limits`. The combo (`LOCK_PCT`, `LOCK_MIN`,
+  `LOCK_COMBO_S`), the taper and `_streak_mult` went. `hangar_json` lists the logbook's types (any sighting) with
+  `game` = how often the game caught each. `player_json`'s streak is the scan streak. flows.py drives the rules
+  straight on the relay's functions (`game_rule_checks`).
+- Relay 75 (1.95.0.1, to-do #121): **`/sightings?place=` takes the places at the same spot together.** A phone on the
+  profile's own place ("home") showed an empty Recent flights while a board on a saved place there ("Home", same
+  centre) had recorded the whole day under its key: `sightings_json` matched the key exactly. `same_spot(spot, places,
+  key)` now gives the asked key plus the profile's places ("home" included: `spot.center()`, `spot.radius()`) whose
+  centre is within 1 km and whose radius is no larger; "live" stays alone. `sightings_json(place=)` takes that set.
+  No doubles: `_record` already keeps a pass seen from two places as one sighting (`by_hex`, `SAME_PASS_S`), so the
+  merged list and its day numbers count each pass once (flows.py checks both). The logbook's place views (`/logbook?place=`)
+  still kept places apart until relay 77.
+- Relay 74 (1.94, to-do #113): **`/facts?model=<Wikipedia page>|airline=<ICAO>|airport=<IATA>`** (profiles only,
+  `allow("facts:"…, 2, 20)`, `Cache-Control: private, max-age=3600`; 503 with Retry-After 300 when Wikimedia can't be
+  asked and nothing older is kept) → `facts_json(kind, key)`: one lookup per page (`_facts_busy`: a second screen waits
+  for the first), kept `FACTS_KEEP` (30 days) in `data/facts.json` (`_facts_cache`, `_dirty` "facts", the saver; 4,000
+  at most), a failure `FACTS_FAIL` (15 min, the old answer meanwhile). `_wm_get` asks Wikimedia with `WM_AGENT` (a name
+  and a contact, as they ask) at most five a second. `model_facts(title)`: one request (`_wiki_page`: wikitext,
+  introduction and disambiguation flag) → the infobox (`_infobox`: every "Infobox aircraft…" template of the
+  introduction; `_wt_templates`, `_wt_split`, `_wt_params`, `_wt_text` (refs, comments, notes and markup off; dates,
+  "as of", lists, convert, `#expr` sums (+ and − only) as text; links as their words), `_wt_link`, `_num`, `_date`):
+  first flight, introduction, status, main and more users, number built (with "as of" and "+"), production years,
+  developed from (name and page); the specs template's capacity (`_seats`: the most passengers, words as numbers,
+  units and classes off), length, span, height, rotor, range (km, nmi, mi), speed and engines, or without it the
+  Specifications table's first column (`_spec_rows`, `_qty`: airliners). `airline_facts(icao)`: Wikidata by P230
+  (`_wd_find`: haswbstatement search; `_wd_pick`: the one still going, with an English page, most statements; a
+  dissolved one only (AZA) gives none) → inception, hubs (P113 with their IATA codes), alliance (P114, the three
+  alliances only: TUI fly's P114 is TUI Travel), headquarters, owners (P127 with P1107 shares, current only), employees,
+  photo (P18 → `_commons`, Special:FilePath 640 px) and the English page's infobox (fleet size, destinations, founded,
+  commenced, num employees, callsign, hubs/alliance/parent as fallbacks). `airport_facts(iata)`: Wikidata by P238 →
+  passengers (P3872, the latest year), elevation (P2044, feet to metres), opened (P1619, else P571), runways (P529),
+  operator, city and country (labels), position, photo, and the page's introduction. **`/logbook/spotted?airline=|type=|
+  airport=`** (`allow("spotted:"…, 2, 10)`) → `spotted_json(spot, part, key)`: sightings, planes (different airframes,
+  by registration, else hex), first, last over every saved day (`_spotted_summary` per day, kept in `_spotted_days`
+  like `_place_days`; today's fresh); an airport counts flights with it as `from` or `to`. `search_json`'s rows add
+  `hex`, `prev` (the sighting before the latest), `altAtMin` (the closest pass's height), `route` (the newest one's
+  from/to), `nOther` (how many different flights or aircraft), `owner`, `ownerCountry`. Coverage (27 Oct, real
+  Wikipedia/Wikidata): Dave's 122 logbook types (the pages the board's lookup found, 121 of 122): first flight 97 %,
+  in service 71 %, built 97 %, production years 95 %, main user 59 %, developed from 53 %, seats 83 %, length 93 %,
+  wingspan 89 %, range 89 %, engines 79 %; the app's 85 AIRLINES codes: page 96 % (none for AZA and LDM, whose
+  companies no longer fly, and HNA, which isn't Hainan's code), photo 95 %, founded 96 %, first flight 66 %, hubs 92 %,
+  alliance 44 %, headquarters 95 %, owners 82 %, fleet 95 %, destinations 91 %, employees 69 %; 50 common airports:
+  passengers 98 %, elevation, opened and runways 100 %, photo 98 %, operator 70 %. Tests: fakes in
+  fakesrc.py (`WIKI`, `WIKIDATA`, `/wiki/w/api.php`, `/wikidata/w/api.php`, `/commons/`, `/wm/asked`), checks in flows.py,
+  `run_test_relay.py --live-facts` for the real ones.
+- Relay 73 (1.93, to-do #95): `/planephoto?reg=&hex=` (profiles only, `allow("pphoto:"…, 2, 30)`, `Cache-Control:
+  no-store`; 503 with Retry-After 120 when Planespotters.net can't be asked) → `plane_photo(reg, hex)`: `_ps_ask("reg")`,
+  then by hex only when that has no photo. `_ps_first` keeps the first photo whose page name (`/photo/<id>/<reg>-…`)
+  starts with the registration (`_ps_like`: its letters and digits in order, a dash allowed between them, then a dash or
+  the end), with their own https addresses, and gives src (`thumbnail_large`, the biggest they give: 420x280 or so), w,
+  h, link (unchanged, `?utm_source=api` and all) and by. `_ps_cache` (3,000 registrations, memory only): answers for
+  `PS_KEEP` (23 h: their limit is 24 h and the boards keep theirs an hour), failures `PS_FAIL` (10 min). `_ps_ask` makes
+  one request a second (`PS_GAP`; a lookup that would wait more than `PS_WAIT`, 4 s, isn't made), sends `PS_AGENT`
+  ("Fallblatt/<relay version> (+https://github.com/Belstria/overhead-board)": they refuse library defaults), and after a
+  403 or 429 asks nothing for `PS_REST` (30 min, one warning). `PHOTO_HOSTS` loses `.plnspttrs.net` (their photos must
+  not be passed on) and gains `thumb.wikimedia.org`. Their terms (planespotters.net/photo/api, 26 Oct 2026): the
+  photographer named next to the photo, the photo a plain link to its page (on a screen nobody can tap, a QR code or
+  NFC; Dave chose the credit as a link the remote reaches), images loaded only by the screen showing them and never
+  kept or passed on, every address unchanged, answers kept 24 h at most. Test relay: fakesrc's `/ps/pub/photos/…`
+  (OE-LBN by registration, the A380 by hex, the C-130's hex with OO-TEK's photo; a User-Agent without a contact is
+  refused; `/ps/asked` counts the lookups), `PS_IMG` allows 127.0.0.1, `PS_GAP` 0.1 s; `--live-photos` asks the real
+  Planespotters.net (for screenshots). The fake photos have a size now: an SVG without one has naturalWidth 0, so the
+  board never showed them.
+- Relay 70 (1.88.0.1): `live_stale(q, place)`: a "live" position request with `fix` older than `LIVE_FRESH_S` (300),
+  negative or not a number skips `fill_want` and `Spot.take` (no sightings, points, liveSeen for lock-ons, gap filler);
+  without `fix` (older boards) nothing changes. `no_cs()` treats an all-"@" callsign as none (`_record`, the
+  approach/hide checks, `/flightinfo`), `AT_CS` blanks `"flight":"@@@…"` in the sources' answers before they are cached,
+  and `_scrub_at_all()` (a thread at start, once per profile: logbook `atCsV`) blanks such "callsign"/"flight" values
+  and drops such keys (the logbook's and game's "flights") in every saved day and the logbook.
+- Relay 69 (1.88): `/relayinfo` (`relay_panel_json()`): `owner_ok()` only, also through the tunnel (not in
+  `ADMIN_PATHS`); 403 for other profiles, strangers refused as usual. Sources in `SOURCES` order with role (first,
+  reserve, emergency for `day_cap` sources), state (ok, resting with `until` and `http`, failing, standby) and
+  requests this UTC day (`STATE` `asked`/`askedDay`, counted before each fetch; adsb.lol's `allow: 500`). Flightradar24:
+  month credits/budget, today's credits and lookups, and the gap filler's credits (the `usage.by` rows ending
+  " · Gap filler"; they are cleared with the month total in `_fr24_usage`, so no month counter is needed). Backup from
+  `data/backup.json` (`BACKUP_FILE`, written by the host's nightly job: t, ok, bytes, kept, error; `late` past 36 h).
+  Screens from `screens_list()` without ip, host or user agent. The page's `OVERHEAD_GUEST` gets `owner: true` for the
+  `HOME_OWNER` profile, so other guests don't ask. Fixed with it: `--source` (the test relay) built a `STATE` entry
+  without the new keys.
 
 - Since 12 Oct 2026 it runs on Dave's homelab: a Debian LXC container on Proxmox (`overhead-relay`, always on), as the
   systemd service `overhead-relay` (`relay/overhead-relay.service`) in `/opt/overhead-relay`, which also holds
