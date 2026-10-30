@@ -884,12 +884,12 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tabX:active{background:rgba(255,255,255,.12)}
 /* 1.41: About opens over Settings as a page of its own; its title and close button stay at the top while it scrolls,
    and closing it leaves Settings where it was */
-#t-about,#t-log,#t-styles{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+#t-about,#t-styles{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(var(--sa-bottom) + 28px)}
-#t-about .tabHead,#t-log .tabHead,#t-styles .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
+#t-about .tabHead,#t-styles .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
   background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
-#t-about .tabHead h2,#t-log .tabHead h2,#t-styles .tabHead h2{margin:0}
+#t-about .tabHead h2,#t-styles .tabHead h2{margin:0}
 #t-about #aboutBox{margin-top:4px!important}
 /* 1.110 (to-do #160, Dave's pick A): Settings → Styles, a gallery page with tabs (stylesPage); an item opens as a sheet */
 #t-styles .tabHead h2{flex:1}
@@ -928,9 +928,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #cardBox .stGo:disabled{opacity:.5;cursor:default}
 body.aboutOpen{overflow:hidden}
 body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so the page's own title and × show */
-/* 1.80: the Log page (Settings → About → Log): over About, each line its time, a lamp (amber: a warning, red: an error) and what happened */
-#t-log #logBox{margin-top:4px}
-.logBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+/* 1.80: the Log (Settings → About → Log; 1.117 a panel): each line its time, a lamp (amber: a warning, red: an error) and what happened */
+.logBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 4px}
 .logBar span{font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .logList{list-style:none;margin:0;padding:0;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--ink)}
 .logList li{display:grid;grid-template-columns:auto 8px minmax(0,1fr);gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
@@ -1193,14 +1192,14 @@ body.arOpen #sheet{z-index:75}
 .chip .apic svg{width:100%;height:100%;fill:currentColor}
 .chip:has(.apic){display:inline-flex;align-items:center;justify-content:center}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
-#aboutBox .plate{--pt:14px;--px:16px;padding:var(--pt) var(--px) 16px;gap:10px}
-#aboutBox .lgbox{grid-column:1/-1}
-#aboutBox .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
-#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
-#aboutBox ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
-#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 var(--fs-m)/1.3 var(--f-board);color:rgba(232,227,214,.84)}
-#aboutBox ul.legend .chip{min-width:0;width:118px}
-#aboutBox .lgbox p.sum{margin:12px 0 0}
+#aboutBox .plate,#cardBox .aboutSheet .plate{--pt:14px;--px:16px;padding:var(--pt) var(--px) 16px;gap:10px}
+#aboutBox .lgbox,#cardBox .aboutSheet .lgbox{grid-column:1/-1}
+#aboutBox .lgbox h3,#cardBox .aboutSheet .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
+#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after,#cardBox .aboutSheet .lgbox h3::before,#cardBox .aboutSheet .lgbox h3::after{display:none}
+#aboutBox ul.legend,#cardBox .aboutSheet ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
+#aboutBox ul.legend li,#cardBox .aboutSheet ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 var(--fs-m)/1.3 var(--f-board);color:rgba(232,227,214,.84)}
+#aboutBox ul.legend .chip,#cardBox .aboutSheet ul.legend .chip{min-width:0;width:118px}
+#aboutBox .lgbox p.sum,#cardBox .aboutSheet .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:var(--c-gold);margin-top:6px}
 #toasts{--toast-b:calc(84px + var(--sa-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
 /* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
@@ -1226,7 +1225,7 @@ html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
-#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbTop,#t-logbook.finding .rcol{display:none!important}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbNums,#t-logbook.finding #lbYear,#t-logbook.finding #lbIdx,#t-logbook.finding .rcol{display:none!important}
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
@@ -1257,13 +1256,30 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .idxH{margin:18px 0 6px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .idx{margin:0;padding:0;list-style:none;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);overflow:hidden}
 .idx li+li{border-top:1px solid rgba(255,255,255,.06)}
-.idx button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
-.idx button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.idx button,.idx a{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
+.idx button:focus-visible,.idx a:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.idx [aria-expanded] i{transition:transform .2s}
+.idx [aria-expanded=true] i{transform:rotate(-90deg)}
 .idx b{flex:1 0 auto;font:700 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
 .idx small{flex:0 1 auto;min-width:0;text-align:right;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted)}
 .idx i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
 .idx .sIco{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(240,180,41,.14);color:var(--amber)}
 .idx .sIco svg{width:17px;height:17px}
+/* 1.117 (to-do #210, Dave's pick B): the Logbook and About as an index (.idx) under their summary; the period's More,
+   the connection card's Details and the log unfold in place under a one-row .idx; the connection and the Log open
+   with a verdict (.verdict: a lamp, a word, one line) */
+#lbIdx,#aboutIdx{margin:0 0 12px}
+#lbIdx[hidden]{display:none}
+.perMore{margin:12px 0 0}
+.perMoreIn{margin:12px 0 0}
+.verdict{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(34,160,88,.45);background:rgba(34,160,88,.12)}
+.verdict>i{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--c-good);box-shadow:0 0 8px var(--c-good)}
+.verdict b{display:block;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.verdict span{display:block;margin-top:3px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
+.verdict[data-ok=meh]{border-color:rgba(240,180,41,.45);background:rgba(240,180,41,.1)}
+.verdict[data-ok=meh]>i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.verdict[data-ok=bad]{border-color:rgba(199,55,45,.55);background:rgba(199,55,45,.14)}
+.verdict[data-ok=bad]>i{background:var(--c-bad);box-shadow:0 0 8px var(--c-bad)}
 .gIdx{margin:0 0 12px}
 /* 1.116: Favourites & hidden: two rows with their count and Add; the list opens in place; what they do behind the (i) */
 .favPlate{position:relative}
@@ -1290,8 +1306,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* 1.88: the owner's Relay plate in About: lamp rows, 6-px bars, the Legend's amber headings */
-#aboutBox .relayP .owner{margin:0;color:var(--muted);font-size:var(--fs-s)}
-#aboutBox .relayP .lgbox h3:first-child{margin-top:4px}
+#aboutBox .relayP .owner,#cardBox .relayP .owner{margin:0;color:var(--muted);font-size:var(--fs-s)}
+#aboutBox .relayP .lgbox h3:first-child,#cardBox .relayP .lgbox h3:first-child{margin-top:4px}
 .relayP .ranks li{font-size:var(--fs-m)}
 /* ---------- a phone on its side: only Now, full screen, laid out like the board ----------
    The plane's flaps across the top and one page under them (Recent flights or Take-offs & landings, This aircraft),
@@ -1307,14 +1323,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .apPick .cap{flex:1;height:40px;margin:0;font-size:var(--fs-xs)}
 #t-now.ap .apPick{display:flex}
 .title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.lbPlaceSeg,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
-.seg.svPlaces[hidden],.seg.lbViews[hidden],.seg.lbPlaceSeg[hidden]{display:none}
-.seg.lbPlaceSeg{margin:10px 0 0}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.lbPlaceSeg button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.lbPlaceSeg button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -2089,8 +2104,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .cats li.catTap .chev .dd{margin-left:2px}
 .cats li.catTap.open .dd{transform:rotate(180deg)}
 .cats li.catTap.open .dd circle{stroke:rgba(240,180,41,.55)}
-#lbPlaces button[data-p=saved]{display:flex;align-items:center;justify-content:center;gap:5px}
-#lbPlaces .ddL{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
 .cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
 .cats li.catSub::before{content:none}
@@ -2413,10 +2426,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
-      <div class="seg lbPlaceSeg" id="lbPlaces" role="group" hidden></div>
-      <section class="plate secPlate" style="--cols:1" id="lbTop"><i></i><i></i><i></i><i></i><h3 data-t="Totals">Totals</h3>
-      <div class="panel" id="lbP" role="img" aria-label="Logbook totals"></div>
-      <p class="model" id="lbModel"></p></section>
+      <dl class="tdNums" id="lbNums"></dl>
+      <button type="button" class="tdHl" id="lbYear" hidden></button>
+      <ul class="idx" id="lbIdx" hidden></ul>
     </div>
     <div class="rcol">
       <div id="lbLists"></div>
@@ -2449,10 +2461,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <section class="wrap tab" id="t-about" hidden>
     <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
-  </section>
-  <section class="wrap tab" id="t-log" hidden>
-    <div class="tabHead"><h2 data-t="Log">Log</h2><button class="tabX" type="button" id="logX" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
-    <div id="logBox"></div>
   </section>
   <section class="wrap tab" id="t-styles" hidden>
     <div class="tabHead"><h2 data-t="Styles">Styles</h2><span class="stPgCnt" id="stPgCnt"></span><button class="tabX" type="button" id="stylesX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
@@ -2506,7 +2514,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages" data-ta="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=e0149c2410"></script>
+<script src="../test/i18n.js?v=a76152e01f"></script>
 <script>
 (() => {
 "use strict";
@@ -4870,14 +4878,6 @@ def(TODAYP, "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"ri
 def(TODAYP, "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 def(TODAYP, "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead",""]});
 placeRow(["stPlanes", "stAirlines", "stTypes", "stOver"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
-// Logbook totals.
-const LBP = makePanel($("lbP"), 390, 108);
-def(LBP, "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Sightings","Sichtungen"]});
-def(LBP, "lvRegs",     {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Individual aircraft",""]});
-def(LBP, "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Aircraft types","Typen"]});
-def(LBP, "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines",""]});
-placeRow(["lvSight", "lvRegs"], [1.5], 18, 22, 1.3, UM);
-placeRow(["lvTypes", "lvAirlines"], [4.5], 69, 22, 1.3, UM);
 /* ---------- tiles: each flap face pre-rendered once ---------- */
 // 1.59: the flap finish picked in Styles (the light version has no flaps); 1.61: only with the Classic board
 const FINISH = () => classicLook() && S.finish || "";
@@ -7080,7 +7080,7 @@ function lbChips(){
 const lbPlaceName = id => (lbChips().find(c => c.id === id) || {}).name || placeName(id);
 const lbPlaceUrl = id => `${relay()}/logbook?` + id.split("\n").map(k => "place=" + encodeURIComponent(k)).join("&");
 let lbCache = null, lbError = "";
-function logbookSummary(){
+function logbookSummary(noPts){                    // 1.117: the app's Logbook leaves the points to the chip
   if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
   const b = lbData();
   if (!b) return lbError ? T("Couldn't read the logbook from the relay: {e}", {e: lbError}) : T("Reading the logbook from the relay…");
@@ -7089,7 +7089,7 @@ function logbookSummary(){
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
-    (b.game && COCKPIT_FOR !== "tv" ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
+    (b.game && COCKPIT_FOR !== "tv" && !noPts ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 /* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
    or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
@@ -8062,14 +8062,16 @@ async function catFetch(){
   lbSig = ""; renderLogbook();
 }
 document.addEventListener("click", e => {
-  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbLists .lbTap, #lbFound [data-fp]");
+  // 1.117: the lists' rows in their panels (.lbSheet)
+  const t = e.target && e.target.closest && e.target.closest(".lbSheet [data-cat], .lbSheet [data-cv], .lbSheet .catRow, .lbSheet .lbTap, .lbSheet [data-pk], #lbFound [data-fp]");
   if (!t) return;
   ctlSound.click();
-  if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
+  if (t.dataset.pk != null) { cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
+  if (t.dataset.cat){ lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
   else if (t.dataset.co != null && t.matches(".catRow, .lbTap")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
-  else if (t.dataset.cr) { const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.cr) { if (t.closest("#cardBox")) cardClose(); const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
 });
@@ -8110,6 +8112,26 @@ async function foundCard(k, g){
   for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
   shown = await cardWhenReady(tok, html(), wire);
 }
+/* 1.117 (to-do #210, Dave's pick B): the Logbook on one screen: the search, four labelled totals, the period as one card
+   (Today's Highlights card), then an index of its lists, each with its state in one line. A row raises its plate as the
+   app's sheet (cardOpen, as Today's Highlights: the grip, swiped down, a tap beside or back); the plates are drawn here
+   (lbPanels) and a panel on show follows new numbers in place (lbPanelSync). The search results stay as they were. */
+let lbPanels = {}, lbPanel = "", lbPanelTok = 0;
+const lbPanelOn = () => !!lbPanel && cardTok === lbPanelTok && cardOpenNow();
+function lbPanelOpen(k){
+  if (!lbPanels[k]) return;
+  ctlSound.nav();
+  lbPanel = k;
+  lbPanelTok = cardOpen(`<div class="lbIn">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+}
+function lbPanelSync(){
+  const el = lbPanelOn() && document.querySelector("#cardBox .lbIn");
+  if (!el) return;
+  const html = lbPanels[lbPanel] || "", ci = el.closest(".cardIn"), h0 = ci.offsetHeight;
+  if (el.dataset.h === html) return;
+  el.dataset.h = html; el.innerHTML = html;
+  cardSheetGrow(ci, h0);
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
   lbFindSetup();
@@ -8119,81 +8141,108 @@ function renderLogbook(){
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
-  // 1.89 (to-do #90, Dave's pick): All · On the go · Saved places, a bar like Week · Month · Year; the saved places are
-  // picked in a sheet, and the third part then names the one picked. Counting since and a place's own line are the
-  // footnote at the bottom.
-  const bar = $("lbPlaces"), live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live");
-  const cur = saved.find(c => c.id === lbPlace);
-  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", cur ? cur.name : T("Saved places")]] : [])];
-  bar.hidden = want.length < 2;
-  const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (!bar.hidden && bar.dataset.sig !== csig) {
-    bar.dataset.sig = csig;
-    bar.innerHTML = want.map(([k, name]) => k === "saved" ? `<button type="button" data-p="saved" aria-pressed="${!!cur}" aria-haspopup="dialog"><span class="ddL">${escH(name)}</span>${DD}</button>`
-      : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
-    for (const btn of bar.children) btn.onclick = () => {
-      if (btn.dataset.p === "saved") return lbPlaceSheet(true);
-      if (btn.dataset.p !== lbPlace) { ctlSound.click(); lbPick(btn.dataset.p); }
-    };
-  }
+  // 1.89 (to-do #90): All · On the go · the saved places; 1.117: a row of the index, its panel the list to pick from.
+  // Counting since and a place's own line are the footnote at the bottom.
+  const live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live"), cur = pl.find(c => c.id === lbPlace);
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("How rare a type is depends on how many fly today. Every type you see fills its place in the collections; points come in the Spotters' Club.")
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
-  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
-    logbookSummary()].filter(Boolean).map(escH).join("<br>");
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
-  $("lbTop").hidden = v !== "logbook";
-  setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
-  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
-  setChars("lvTypes", has ? nf.format(types.length) : "", 120);
-  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const model = types[0] && types[0][1].count > 1 ? T("most seen model {t} ({n} times)", {t: typeLabel(types[0][0], types[0][1].name), n: nf.format(types[0][1].count || 0)}) : "";
+  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
+    [logbookSummary(true), model].filter(Boolean).join(" · ")].filter(Boolean).map(escH).join("<br>");
+  for (const id of ["lbNums", "lbIdx"]) $(id).hidden = v !== "logbook";
+  $("lbYear").hidden = v !== "logbook" || !!place;
+  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.regsCount, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, pl, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, perMore, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
+  const num = (n, k) => `<div><dt>${escH(T(k))}</dt><dd>${has ? nf.format(n || 0) : "–"}</dd></div>`;
+  $("lbNums").innerHTML = num(b.sightings, "Sightings") + num(b.regsCount, "Aircraft") + num(types.length, "Types") + num(airlines.length, "Airlines");
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   // 1.113 (to-do #185): a type, an airline or an aircraft opens what the same row inside a category opens (tap: data-*)
   const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  const P = {}, rows = [];
+  const row = (k, name, state) => rows.push(`<li><button type="button" data-lp="${k}"><b>${escH(name)}</b><small>${escH(state)}</small><i aria-hidden="true">›</i></button></li>`);
   let html = "";
   const g0 = all.game;                               // the collection, bingo and trophies count every place
   if (v === "logbook") {
     if (b.categories) {
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      html += secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+      P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
         const open = lbCat === k && catOk() && n;
         return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>");
+      const top = LB_CATS.filter(([k]) => b.categories[k]).sort((x, y) => b.categories[y[0]] - b.categories[x[0]]).slice(0, 3);
+      if (top.length) row("cats", T("Categories"), top.map(([k, en]) => `${T(en)} ${nf.format(b.categories[k])}`).join(" · "));   // none yet: folded away
     }
-    if (types.length) html += secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
-    if (airlines.length) html += secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
-      ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
-    if ((b.regsTop || []).length) html += secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
-    if (!place) html = periodHtml() + html;
+    if (types.length) {
+      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
+      row("types", T("Aircraft types"), T("{n} · top: {t}", {n: nf.format(types.length), t: typeLabel(types[0][0], types[0][1].name)}));
+    }
+    if (airlines.length) {
+      P.airlines = secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
+        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
+      row("airlines", T("Airlines"), T("{n} · top: {t}", {n: nf.format(airlines.length), t: (AIRLINES[airlines[0][0]] || [])[1] || airlines[0][1].name || airlines[0][0]}));
+    }
+    if ((b.regsTop || []).length) {
+      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
+      row("regs", T("Most seen aircraft"), b.regsTop[0].reg);
+    }
+    if (pl.length) {
+      const name = saved.length ? T("Saved places") : live.name;
+      const opt = (k, n, cnt) => `<li class="catTap" data-pk="${escH(k)}" style="--lamp:${k === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(n)}</span><span class="n">${cnt != null ? nf.format(cnt) : ""}</span></li>`;
+      P.places = secPlate(name, `<ul class="ranks cats">` + opt("", T("All"), all.sightings) + pl.map(c => opt(c.id, c.name, c.n)).join("") + `</ul>` +
+        (saved.length ? `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>` : ""));
+      row("places", name, cur ? cur.name : T("All"));
+    }
+    if (!place && relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29)      // the whole logbook, as the year's card
+      rows.push(`<li><a href="${escH(relay())}/logbook.csv" download data-lp="csv"><b>${escH(T("Download as CSV"))}</b><small>${escH(T("every sighting"))}</small><i aria-hidden="true">›</i></a></li>`);
+    if (!place) { P.year = periodHtml(); lbYearCard(); }
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
-  $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
-  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.click();
+  lbPanels = P;
+  $("lbIdx").innerHTML = rows.join("");
+  $("lbIdx").hidden = v !== "logbook" || !rows.length;
+  $("lbLists").innerHTML = (html || v === "logbook" ? html : `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
+  lbPanelSync();
 }
+// The period's card above the index: its title, three numbers and what its panel holds.
+function lbYearCard(){
+  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
+  const three = list => list.map(([n, k]) => `${nf.format(n || 0)} ${T(n === 1 ? PIC_ONE[k] || k : k)}`).join(" · ");
+  let title, line, busy = "";
+  if (per === "year") {
+    const y = yearData && yearData.year === yr ? yearData : null;
+    title = T("{y} in planes", {y: yr});
+    line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.countries, "countries"]]);
+    if (y && y.busiest) busy = fmtDay(Date.parse(y.busiest.day));
+  } else {
+    const r = reviewData();
+    title = T("{p} in planes", {p: reviewTitle()});
+    line = r && r.planes ? three([[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"]]) : reviewSummary(r);
+    if (r && r.busiest) busy = reviewDay(r.busiest.day);
+  }
+  const sub = [T("Week, month and year"), busy ? T("busiest day {d}", {d: busy}) : "", T("Share")].filter(Boolean).join(" · ");
+  $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b><em>${escH(sub)}</em></span><i aria-hidden="true">›</i>`;
+}
+$("lbYear").onclick = () => lbPanelOpen("year");
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("#lbIdx [data-lp]");
+  if (!b) return;
+  if (b.dataset.lp === "csv") return ctlSound.click();
+  lbPanelOpen(b.dataset.lp);
+});
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
 async function lbPick(id){
   lbPlace = id; lbSig = ""; renderLogbook();
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
-}
-// 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
-function lbPlaceSheet(button){
-  button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the bar's button clicks like a button
-  const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
-  cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
-    `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
-    `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
-    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.click(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -9205,33 +9254,46 @@ function yearFacts(y){
 }
 // 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
 // ◀ ▶ for earlier and later (week and month from /review, relay 46; the year from /year, with Share and the CSV).
-let lbPeriod = "year", yearBack = 0;
+let lbPeriod = "year", yearBack = 0, perMore = false;
+// 1.117 (to-do #210, Dave's pick B): the period's panel: Week · Month · Year, three big numbers, four facts and Share;
+// More unfolds the rest in place (the dates, the finer numbers, the other facts, the new types and the CSV).
 function periodHtml(){
   const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
   const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
     .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${per === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
   const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
     `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}>▶</button></span>`;
-  const nums = list => `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>`;
-  const facts = list => `<dl class="yFacts">` + list.filter(x => x[1]).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>`;
+  const nums = list => list.length ? `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>` : "";
+  const facts = list => list.length ? `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>` : "";
+  const share = id => `<div class="yActs"><button class="cBtn" type="button" id="${id}">${escH(T("Share"))}</button></div>`;
+  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
+  const more = (label, inner) => `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(perMore ? T("Less") : label)}</b><i aria-hidden="true">›</i></button></li></ul>` +
+    (perMore ? `<div class="perMoreIn">${inner}</div>` : "");
   let title, body;
   if (per === "year") {
-    const y = yearData && yearData.year === yr ? yearData : null;
+    const y = yearData && yearData.year === yr ? yearData : null, f = y ? yearFacts(y) : [];
     title = T("{y} in planes", {y: yr});
     body = !y ? `<p class="sum">${escH(T("Loading …"))}</p>` : !y.planes ? `<p class="sum">${escH(T("No planes that year."))}</p>`
-      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(yearFacts(y)) +
-        `<div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
-        `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
-        `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>`;
+      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]) + facts(f.slice(0, 4)) + share("yShare") +
+        more(T("More: airframes, countries, days, CSV"), nums([[y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(f.slice(4)) + csv);
   } else {
-    const r = reviewData();
+    const r = reviewData(), f = r ? reviewFacts(r).filter(x => x[1]) : [], nt = r ? reviewNewTypes(r) : "";
     title = T("{p} in planes", {p: reviewTitle()});
-    body = `<p class="sum">${escH(reviewSummary(r))}</p>` + (r && r.planes ? nums(REVIEW_NUMS.map(([k, l]) => [r[k], l])) +
-      facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) +
-      `<div class="yActs"><button class="cBtn" type="button" id="pShare">${escH(T("Share"))}</button></div>` : "");
+    body = !(r && r.planes) ? `<p class="sum">${escH(reviewSummary(r))}</p>`
+      : nums(REVIEW_NUMS.slice(0, 3).map(([k, l]) => [r[k], l])) + facts(f.slice(0, 4)) + share("pShare") +
+        more(T("More: dates, aircraft, new types, CSV"), `<p class="sum">${escH(reviewSummary(r))}</p>` + nums(REVIEW_NUMS.slice(3).map(([k, l]) => [r[k], l])) +
+          facts(f.slice(4).concat(nt ? [[T("New types"), nt]] : [])) + csv);
   }
   return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
+  if (!b) return;
+  ctlSound.click();
+  if (b.id === "yCsv") return;
+  perMore = !perMore; lbSig = ""; renderLogbook();
+});
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
@@ -10956,7 +11018,6 @@ function backStep(){
     if (shown($("arCard")) && !$("arCard").classList.contains("out")) return arCardDismiss;
     return arClose;                                                        // Sky view: back to the board
   }
-  if (shown($("t-log"))) return logHide;
   if (shown($("t-about"))) return aboutHide;
   if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
@@ -12069,6 +12130,11 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.117", date: "2026-10-30", notes: [
+    "The app's Logbook is one screen: the search, four totals, the year as one card and a list of its parts; each part opens from below.",
+    "Week, month and year show three numbers, four facts and Share first; More shows the rest.",
+    "About starts with the version and the connection, then What's new, the legend, data sources, credits and the log, each opening from below.",
+    "The connection card and the log start with one line saying whether all is well; the details are a tap away."]},
   {v: "1.116.1", date: "2026-10-30", notes: [
     "The app's points chip shows your rank's insignia in a ring that fills towards the next level; it fills up and flashes when you reach a new one."]},
   {v: "1.116", date: "2026-10-30", notes: [
@@ -12912,16 +12978,18 @@ function changelogHtml(){
   return `<ol class="vers">` + CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
     `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("") + `</ol>`;
 }
-// Who made it and where the data comes from: the About plate on the board and the About page in the app.
-function aboutHtml(){
-  return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
-    `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
-    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>` +
-    `<p>${escH(T("Ticket tear: Zapsplat (zapsplat.com)"))}</p>` +
-    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>` +
-    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
-    `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`;
+// Who made it and where the data comes from: the About plate on the board and the About page in the app (1.117: the
+// app's Credits panel takes `part` "credits", its Data sources & privacy panel "sources"; none: all of it).
+function aboutHtml(part){
+  const at = {credits: [0, 5], sources: [5, 8]}[part] || [0, 8];
+  return [`<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>`,
+    `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>`,
+    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>`,
+    `<p>${escH(T("Ticket tear: Zapsplat (zapsplat.com)"))}</p>`,
+    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>`,
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>`,
+    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`,
+    `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`].slice(...at).join("");
 }
 // The position sources' terms ask for a credit with a link to their home pages (AvioADSB's also to its licence).
 const SITE_LINKS = {"adsb.lol": "https://adsb.lol", "adsb.fi": "https://adsb.fi", "airplanes.live": "https://airplanes.live",
@@ -13145,29 +13213,61 @@ function setRestore(b){
   cardSheetHtml = "";
   return true;
 }
-/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). 1.117 (to-do
+   #210, Dave's pick B): the version and the connection on top, then an index (What's new first); each row raises its
+   plate as the app's sheet, as the Logbook's do (What's new: the Patch notes, scrolling under the grip; the Log its
+   panel). The owner's Relay plate is a row of its own. */
+const ABOUT_ROWS = [["new", "What's new"], ["legend", "Legend"], ["sources", "Data sources & privacy"], ["credits", "Credits"], ["log", "Log"], ["relay", "Relay"], ["home", "Add to your home screen"]];
+let relayLast = null;
+function aboutLine(k){
+  if (k === "new") return T("{v} and before", {v: VERSION});
+  if (k === "legend") return T("the colours and words");
+  if (k === "sources") return T("adsb.lol, adsb.fi and more");
+  if (k === "credits") return T("sounds, pictograms, typefaces");
+  if (k === "log") return T(DIAG.log.length === 1 ? "1 line" : "{n} lines", {n: DIAG.log.length});
+  if (k === "relay") return T("only you see this");
+  if (k === "home") return T("Android, iPhone");
+  return "";
+}
+function aboutPlate(k){
+  const plate = (title, body, attrs = "") => `<div class="plate${k === "relay" ? " relayP" : ""}" style="--cols:1"${attrs}><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</div>`;
+  if (k === "new") return plate(T("Patch notes"), `<div class="log">${changelogHtml()}</div>`);
+  if (k === "legend") return plate(T("Legend"), `<div class="lgbox">${legendHtml()}</div>`);
+  if (k === "sources") return plate(T("Data sources & privacy"), (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
+    `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>` : "") + aboutHtml("sources"));
+  if (k === "credits") return plate(T("Credits"), aboutHtml("credits"));
+  if (k === "relay") return plate(T("Relay"), `<p class="owner" id="relaySub"></p><div class="lgbox" id="relayBox"></div>`, ' id="relayPlate"');
+  if (k === "home") return plate(T("Add to your home screen"), GUEST ? `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>`
+    : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+      `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`);
+  return "";
+}
+function aboutPanel(k){
+  if (k === "log") return logShow();
+  ctlSound.nav();
+  cardOpen(`<div class="lbIn">${aboutPlate(k)}</div>`, ci => ci.classList.add("tdSheet", "aboutSheet"));
+  if (k === "relay" && relayLast) relayPlate(relayLast);
+}
+function aboutIdx(){
+  const box = $("aboutIdx");
+  if (!box) return;
+  const rows = ABOUT_ROWS.filter(([k]) => k === "relay" ? !!relayLast && !!(GUEST && GUEST.owner) : k === "home" ? !ANDROID : true);
+  box.innerHTML = rows.map(([k, l]) => `<li><button type="button" data-ab="${k}"><b>${escH(T(l))}</b><small>${escH(aboutLine(k))}</small><i aria-hidden="true">›</i></button></li>`).join("");
+  for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => aboutPanel(b.dataset.ab);
+}
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
-    `<div class="plate relayP" style="--cols:1" id="relayPlate" hidden>${screws}<h3>${T("Relay")}</h3><p class="owner" id="relaySub"></p><div class="lgbox" id="relayBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    `<p class="cBtns"><button class="cBtn" type="button" id="aboutLog">${escH(T("Log"))}</button></p>` +
-    (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
-        `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
-        `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>`
-    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>`
-      : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
-        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`)) +
-    aboutHtml() + `</div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
+    (ANDROID && !GUEST ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>` : "") + `</div>` +
+    `<ul class="idx" id="aboutIdx"></ul>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
+  aboutIdx();
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
-  $("aboutLog").onclick = () => { ctlSound.click(); logShow(); };
   renderAbout();
   relayLoad();
 }
-/* 1.88 (Dave's pick 13 A): the owner's Relay plate at the top of About: the position sources, Flightradar24, the
+/* 1.88 (Dave's pick 13 A): the owner's Relay plate in About (1.117: a row raising it as a panel): the position sources, Flightradar24, the
    nightly backup and the screens online, from the relay's /relayinfo (69+), which answers only the owner. */
 let relayTimer = 0, relayBusy = false;
 async function relayLoad(){
@@ -13176,11 +13276,15 @@ async function relayLoad(){
   relayBusy = true;                                   // 1.114.5: About opened twice in one fetch starts one chain
   const d = await fetch(`${relay()}/relayinfo`).then(r => r.ok ? r.json() : null).catch(() => null);
   relayBusy = false;
-  if (!d || !$("relayPlate")) return;
+  if (!d) return;
   relayPlate(d);
   relayTimer = setTimeout(relayLoad, 30000);
 }
 function relayPlate(d){
+  const first = !relayLast;                          // 1.117: About's Relay row shows once there are numbers
+  relayLast = d;
+  if (first) aboutIdx();
+  if (!$("relayPlate")) return;                     // its panel isn't open
   const G = "var(--c-good)", A = "var(--amber)", R = "var(--c-bad)", N = "var(--label2)";
   const row = (lamp, name, n, sub = "", pct = null) => `<li style="--lamp:${lamp}"><i class="lamp"></i><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span>` +
     (pct != null ? `<span class="bar"><i style="width:${Math.min(100, Math.max(0, pct)).toFixed(1)}%;opacity:1"></i></span>` : "") + `</li>`;
@@ -13215,39 +13319,43 @@ function relayPlate(d){
   $("relaySub").textContent = T("Only you see this · relay {v} · up {t}", {v: d.version, t: span(d.up)});
   $("relayBox").innerHTML = `<h3>${escH(T("Position sources"))}</h3>${list(sources)}<h3>Flightradar24</h3>${list(fr24)}` +
     `<h3>${escH(T("Nightly backup"))}</h3>${list(backup)}<h3>${escH(T("Screens online · {n}", {n: d.screens.length}))}</h3>${list(screens)}`;
-  $("relayPlate").hidden = false;
 }
-/* 1.80 (Dave's to-do 13, his pick B): the log as a page of its own, Settings → About → Log (or Log in the connection
-   card), filtered to problems, Sky view or the network, with Copy so it can be pasted into a message. */
-const LOG_FILTERS = [["all", "All"], ["bad", "Problems"], ["sky", "Sky view"], ["net", "Network"]];
+/* 1.80 (Dave's to-do 13, his pick B): the log, Settings → About → Log (or Log in the connection card), filtered to
+   problems, with Copy so it can be pasted into a message. 1.117 (to-do #210, Dave's pick B): a panel like the others
+   (the app's sheet, on its plate), a verdict first, the filters cut to All · Problems, Copy at the bottom; the lines
+   themselves as they were. */
+const LOG_FILTERS = [["all", "All"], ["bad", "Problems"]];
 let logFilter = "all", logRaf = 0;
-const logHits = e => logFilter === "all" || (logFilter === "bad" ? e.level === "warn" || e.level === "error" : e.kind === logFilter);
+const logBad = e => e.level === "warn" || e.level === "error";
+const logHits = e => logFilter === "all" || logBad(e);
 const logTime = t => new Date(t).toLocaleTimeString("en-GB");
 function logShow(){
-  const box = $("logBox");
-  box.innerHTML = `<div class="seg logSeg" role="group">` + LOG_FILTERS.map(([k, l]) => `<button type="button" data-lf="${k}" aria-pressed="${logFilter === k}">${escH(T(l))}</button>`).join("") + `</div>` +
-    `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div>` +
-    `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
-  for (const b of box.querySelectorAll("[data-lf]")) b.onclick = () => {
-    ctlSound.click(); logFilter = b.dataset.lf;
-    for (const x of box.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
-    logRender();
-  };
-  $("logCopy").onclick = logCopy;
-  $("t-log").hidden = false; $("t-log").scrollTop = 0; DIAG.page = true;
-  document.body.classList.add("aboutOpen");
+  ctlSound.nav();
+  const body = `<div data-logv></div><div class="seg logSeg" role="group">` + LOG_FILTERS.map(([k, l]) => `<button type="button" data-lf="${k}" aria-pressed="${logFilter === k}">${escH(T(l))}</button>`).join("") + `</div>` +
+    `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p>` +
+    `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
+  cardOpen(`<div class="lbIn">${secPlate(T("Log"), body)}</div>`, ci => {
+    ci.classList.add("tdSheet", "logSheet");
+    for (const b of ci.querySelectorAll("[data-lf]")) b.onclick = () => {
+      ctlSound.click(); logFilter = b.dataset.lf;
+      for (const x of ci.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
+      logRender();
+    };
+    ci.querySelector("#logCopy").onclick = logCopy;
+  });
+  DIAG.page = true;
   logRender();
-}
-function logHide(){
-  if ($("t-log").hidden) return;
-  $("t-log").hidden = true; DIAG.page = false;
-  if ($("t-about").hidden) document.body.classList.remove("aboutOpen");
 }
 function logSoon(){ if (!logRaf) logRaf = requestAnimationFrame(() => { logRaf = 0; logRender(); }); }
 function logRender(){
   const list = $("logList");
-  if (!list || $("t-log").hidden) return;
-  const lines = DIAG.log.filter(logHits);
+  if (!list || !cardOpenNow()) { DIAG.page = false; return; }          // the panel has gone
+  const lines = DIAG.log.filter(logHits), bad = DIAG.log.filter(logBad);
+  const v = list.closest(".cardIn").querySelector("[data-logv]"), last = bad[bad.length - 1];
+  const vh = `<div class="verdict" data-ok="${bad.length ? bad.some(e => e.level === "error") ? "bad" : "meh" : "good"}"><i></i><div><b>${escH(!bad.length ? T("No problems since the app started")
+    : T(bad.length === 1 ? "1 problem since the app started" : "{n} problems since the app started", {n: bad.length}))}</b>` +
+    (last ? `<span>${escH(T("the last at {t}", {t: logTime(last.t)}))}</span>` : "") + `</div></div>`;
+  if (v.innerHTML !== vh) v.innerHTML = vh;
   list.innerHTML = lines.map(e => `<li data-l="${escH(e.level)}"><time>${logTime(e.t)}</time><i></i><span>${escH(e.msg)}</span></li>`).join("");
   $("logNone").hidden = !!lines.length;
   $("logNone").textContent = T(logFilter === "bad" ? "No problems logged." : "Nothing logged yet.");
@@ -13265,12 +13373,10 @@ async function logCopy(){
   try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
   if (!ok) { const ta = $("logText"); ta.value = text; ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch {} }
   btn.textContent = T(ok ? "Copied" : "Couldn't copy");
-  setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
+  setTimeout(() => { if (btn.isConnected) btn.textContent = T("Copy the log"); }, 2000);
 }
-$("logX").onclick = () => { ctlSound.click(); logHide(); };
 $("stylesX").onclick = () => { ctlSound.click(); stylesHide(); };
 $("stylesX").setAttribute("aria-label", T("Close"));
-addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 // 1.116: kept on the page out of sight (#setExtra), each raised as a panel from its row; not drawn again while one shows.
 function settingsExtra(){
@@ -13928,7 +14034,7 @@ function appTips(t){
     tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open it. Its photo opens the whole card; its airline, places and type open theirs."));
   }
   if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
-  if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
+  if (t === "logbook") tip("lbplaces", () => vis($("lbIdx").querySelector('[data-lp="places"]')), T("Pick a place to see its own numbers, or All for everything."));
   // 1.116: Settings' Location tips come when its panel opens (setOpen)
 }
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
@@ -13955,7 +14061,7 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
-  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now"; TODAYP.off = t !== "today";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
@@ -13996,9 +14102,20 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
 }
-// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
+// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,
+// Dave's pick B): a verdict first, from the dot's state; the facts unfold in place under "Details and the log".
+function statusVerdict(){
+  const st = $("dot").dataset.state || "";
+  const word = {live: "All good", warn: "Not quite live", off: "No flight data", demo: "Demo mode"}[st] || "Connecting…";
+  const line = st !== "live" ? statusLine() : [T("Live positions from the home relay"),
+    Date.now() - lastOk < 3000 ? T("updated just now") : T("updated {n} s ago", {n: Math.round((Date.now() - lastOk) / 1000)}),
+    T("{n} planes within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM})].join(" · ");
+  return `<div class="verdict" data-ok="${st === "live" ? "good" : st === "off" ? "bad" : "meh"}"><i></i><div><b>${escH(T(word))}</b><span>${escH(line)}</span></div></div>`;
+}
+let stMore = false;
 function statusCard(){
   ctlSound.nav();
+  stMore = false;
   const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
   const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
   const draw = () => {
@@ -14007,15 +14124,26 @@ function statusCard(){
       : isOffline() ? ok("bad", T("No answer for over a minute · retrying")) : lastOk ? ok("good", T("Connected")) : ok("meh", T("Connecting…"));
     const srcRow = !feedName ? escH(T("None yet")) : ok(stale ? "meh" : "good", stale ? T("{src} · last good copy, {n} s old", {src: feedName, n: lastFreshness.split(" ")[1] || "?"}) : T("{src} · live", {src: feedName}));
     const fr = !USE_API ? T("Not used") : apiOn() ? T("On") : window.OVERHEAD_FR24 === true ? T("On, not answering · free sources for now") : T("Off · free sources");
-    return factsHtml([["Relay", relayRow], ["Position source", srcRow],
+    const more = `<ul class="idx"><li><button type="button" data-stmore aria-expanded="${stMore}"><b>${escH(T(stMore ? "Hide details" : "Details and the log"))}</b><i aria-hidden="true">›</i></button></li></ul>`;
+    return statusVerdict() + more + (!stMore ? "" : factsHtml([["Relay", relayRow], ["Position source", srcRow],
       ["Last update", escH(lastOk ? ago(lastOk) : T("None yet"))],
-      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : escH(T("None"))],
+      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : ""],      // none: no line
       ["In range", escH(T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}))],
-      ["Flightradar24", escH(fr)], ["Relay version", rv ? escH(String(rv)) : ""]]);
+      ["Flightradar24", escH(fr)]]) +
+      `<div class="cBtns"><button class="cBtn" type="button" data-stlog>${escH(T("Log"))}</button></div>` +
+      (rv ? `<p class="sum">${escH(T("Relay version {v}", {v: rv}))}</p>` : ""));
   };
-  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>` +
-    `<div class="cBtns"><button class="cBtn" type="button" id="stLog">${escH(T("Log"))}</button></div>`);
-  $("stLog").onclick = () => { ctlSound.click(); cardClose(); logShow(); };
+  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>`, ci => {
+    ci.addEventListener("click", e => {
+      const b = e.target.closest("[data-stmore], [data-stlog]");
+      if (!b) return;
+      ctlSound.click();
+      if (b.dataset.stlog != null) return logShow();          // the Log takes the card's place
+      const h0 = ci.offsetHeight;
+      stMore = !stMore; ci.querySelector("[data-st]").innerHTML = draw();
+      cardSheetGrow(ci, h0);
+    });
+  });
   const tick = setInterval(() => {
     const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
     if (!el) return clearInterval(tick);
@@ -14448,7 +14576,7 @@ function stylesPage(focusKind){
 function stylesHide(){
   if ($("t-styles").hidden) return;
   $("t-styles").hidden = true;
-  if ($("t-about").hidden && $("t-log").hidden) document.body.classList.remove("aboutOpen");
+  if ($("t-about").hidden) document.body.classList.remove("aboutOpen");
   if (setHeld && !cardOpenNow()) setRestore($("cardBox"));   // 1.116: back to the Display panel
 }
 function stylesRender(){

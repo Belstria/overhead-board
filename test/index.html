@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=e0149c2410"></script>
+<script src="i18n.js?v=a76152e01f"></script>
 <script>
 (() => {
 "use strict";
@@ -5069,7 +5069,7 @@ async function fetchLogbook(){
 // The logbook is read now and then even with its view closed: the tiers need it.
 setTimeout(() => fetchLogbook(), 4000);
 setInterval(() => { if (view !== "logbook") fetchLogbook(); }, 5 * 60000);
-function logbookSummary(){
+function logbookSummary(noPts){                    // 1.117: the app's Logbook leaves the points to the chip
   if (!S.demo && !relayV5()) return T("The logbook is kept by the home relay (version 5 or newer), so every screen shares it and nothing is lost on a restart.");
   const b = lbData();
   if (!b) return lbError ? T("Couldn't read the logbook from the relay: {e}", {e: lbError}) : T("Reading the logbook from the relay…");
@@ -5078,7 +5078,7 @@ function logbookSummary(){
   return `${b.sample ? T("Sample logbook (demo mode)") + " · " : ""}${T("Counting since {d}", {d: since})}` +
     (learning ? " · " + T("first sightings are marked NEW from {d} {t}", {d: fmtDay(b.learningUntil), t: hhmm(new Date(b.learningUntil))}) : "") +
     (b.categories ? "" : " · " + T("categories are counted from relay version 10 on")) +
-    (b.game && COCKPIT_FOR !== "tv" ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
+    (b.game && COCKPIT_FOR !== "tv" && !noPts ? " · " + T("{n} points", {n: nf.format(b.game.points)}) + (b.game.streak > 1 ? " · " + T("{n}-day streak", {n: b.game.streak}) : "") : "");
 }
 /* Week and month in review (1.52, to-do #44, relay 46): like Today in numbers, over a calendar week (Monday to Sunday)
    or month, `back` periods ago, from the relay's /review. Shared with the phone app. */
@@ -7870,6 +7870,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.117", date: "2026-10-30", notes: [
+    "The app's Logbook is one screen: the search, four totals, the year as one card and a list of its parts; each part opens from below.",
+    "Week, month and year show three numbers, four facts and Share first; More shows the rest.",
+    "About starts with the version and the connection, then What's new, the legend, data sources, credits and the log, each opening from below.",
+    "The connection card and the log start with one line saying whether all is well; the details are a tap away."]},
   {v: "1.116.1", date: "2026-10-30", notes: [
     "The app's points chip shows your rank's insignia in a ring that fills towards the next level; it fills up and flashes when you reach a new one."]},
   {v: "1.116", date: "2026-10-30", notes: [
@@ -8713,16 +8718,18 @@ function changelogHtml(){
   return `<ol class="vers">` + CHANGELOG.map(e => `<li${e.v === VERSION ? ' class="now"' : ""}><h4><b>${escH(e.v)}</b><time>${escH(fmtVerDate(e.date))}</time></h4>` +
     `<ul>${e.notes.map(n => `<li>${escH(n)}</li>`).join("")}</ul></li>`).join("") + `</ol>`;
 }
-// Who made it and where the data comes from: the About plate on the board and the About page in the app.
-function aboutHtml(){
-  return `<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>` +
-    `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>` +
-    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>` +
-    `<p>${escH(T("Ticket tear: Zapsplat (zapsplat.com)"))}</p>` +
-    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>` +
-    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>` +
-    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>` +
-    `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`;
+// Who made it and where the data comes from: the About plate on the board and the About page in the app (1.117: the
+// app's Credits panel takes `part` "credits", its Data sources & privacy panel "sources"; none: all of it).
+function aboutHtml(part){
+  const at = {credits: [0, 5], sources: [5, 8]}[part] || [0, 8];
+  return [`<p><b>Fallblatt</b> ${escH(T("shows the plane flying over you right now on a split-flap board, like the ones in airport halls, with what passed today, a lifetime logbook and a radar. In Airport style it follows the planes taking off and landing at an airport."))}</p>`,
+    `<p>${escH(T("Made by Belstria, with Claude Code. Source and guide:"))} github.com/Belstria/overhead-board</p>`,
+    `<p>${escH(T("Sounds: switch and push button by joedeshon (CC BY 4.0) and knob by shewbox (CC BY 3.0), from freesound.org; button by EAGLAXLE, cabin chime and the Airbus “barking dog” by arunangshubanerjee (Pixabay Content License). Pictograms for take-off and landing: Tabler Icons (MIT)."))} ${escH(T("Button and navigation clicks: Pixabay (Pixabay Content License)."))}</p>`,
+    `<p>${escH(T("Ticket tear: Zapsplat (zapsplat.com)"))}</p>`,
+    `<p>${escH(T("Typefaces: Archivo Narrow, Oswald and Barlow Condensed (SIL Open Font License), served by the board itself."))}</p>`,
+    `<p>${siteLinks(escH(T("Positions from adsb.lol, adsb.fi and airplanes.live through the relay at home, with AvioADSB (CC BY 4.0) as a backup; routes and aircraft from adsbdb and adsb.lol, flight numbers from Flightradar24, times from Vienna Airport, airports from OurAirports, airline names from Virtual Radar Server, the watchlist from plane-alert-db (ODbL), photos from Planespotters.net and airport-data.com, logos from Aviasales.")))}</p>`,
+    `<p>${escH(T("Radar map: OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors."))}</p>`,
+    `<p>${escH(T("True north in Sky view: the World Magnetic Model (WMM2025) of NOAA's National Centers for Environmental Information."))}</p>`].slice(...at).join("");
 }
 // The position sources' terms ask for a credit with a link to their home pages (AvioADSB's also to its licence).
 const SITE_LINKS = {"adsb.lol": "https://adsb.lol", "adsb.fi": "https://adsb.fi", "airplanes.live": "https://airplanes.live",
