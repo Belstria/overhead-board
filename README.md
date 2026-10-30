@@ -364,9 +364,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
-- **Languages** (Settings → Display → Language, or `?lang=de`): English, German, French,
-  Spanish and Dutch. AUTO follows the browser's language. Everything on the board follows it, the status words on the
-  flaps too; the patch notes and the connection log stay in English.
+- **Languages** (off since 1.119.2: everything is in English, whatever the device's language, with no Language setting
+  in Settings and no `?lang=`; dates and numbers are English too): the translations (English, German, French, Spanish and
+  Dutch; Settings → Display → Language, or `?lang=de`; AUTO followed the browser's language, the status words on the flaps
+  too) are kept for when the app is finished: one switch brings them back, `LANG_CHOICE` at the top of the board's page
+  (and `PUSH_LANG_CHOICE` in the relay for the notifications). Patch notes and the connection log are always English.
 - **Airport style** (tap **Airport** in the title, or `?mode=airport`): for watching from the
   airport. The board follows the planes taking off from the home airport (rolling for take-off, climbing away) and the
   ones coming in to land (approach, final, landed). The top half shows the plane taking off or landing right now; a plane

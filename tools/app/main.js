@@ -59,7 +59,7 @@ let meBase = {...S};                                 // the settings as last sav
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
-  if (q.get("lang")) S.lang = q.get("lang");
+  if (LANG_CHOICE && q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
@@ -2919,7 +2919,12 @@ function arLoop(){
     // 1.76.1: from the phone's height (else the airport's), so a plane below a cliff top shows below the horizon; a
     // descent isn't carried on below the airport. The earth's curve too (with the usual refraction).
     const u = Math.max(h + mv[2], Math.min(h, wx.elev)) - (arAlt != null ? arAlt : wx.elev) - d * d / (2 * 6371000) * .87;
-    const pr = arProject(e, n, u, R, W, H), isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
+    let pr = arProject(e, n, u, R, W, H);
+    // 1.119.2 (to-do #218): a plane just above the top has its label's box off the screen (or under the top bar): it keeps its
+    // chip, at the top edge, until the box fits (14 px more to go back, so it doesn't flicker on the line)
+    if (!pr.edge && pr.y - AR_LABEL_UP < arChipBounds(H).t + (arTopOut.has(ac.hex) ? 14 : 0)) { arTopOut.add(ac.hex); pr = {edge: [pr.x - W / 2, pr.y - H / 2], x: pr.x, y: pr.y, held: true}; }
+    else arTopOut.delete(ac.hex);
+    const isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
     if (pr.edge && !isFeat) { if (d <= aroundM) off.push({ac, d, pr, az, isFeat, alt}); continue; }
     shown.push({ac, d, pr, isFeat, alt, az, el: Math.atan2(u, d) * 180 / Math.PI});
   }
@@ -3372,8 +3377,12 @@ function arAskNot(){
    stops being in the picture (arProject's 40 px past the edge), with the label's height over the plane (AR_CHIP_UP).
    A plane behind you (no way through the picture) goes on the side of the shorter turn, and keeps its side while it is
    about straight behind. Chips slide along their edge to stay clear of each other and the zoom buttons; the top bar, the
-   mini radar and the small card are the limits. */
+   mini radar and the small card are the limits.
+   1.119.2 (to-do #218): a plane just above the top, whose label's box would still be off the screen or under the top bar,
+   keeps its chip (at the top edge) until the box fits. */
 const AR_CHIP_H = 30, AR_CHIP_UP = 46, AR_CHIP_GAP = 8;
+const AR_LABEL_UP = 66;                              // 1.119.2: a label's box starts this far above its plane (26 px gap, 40 px box)
+const arTopOut = new Set();                          // the planes held as chips at the top until their label's box fits
 let arBounds = {at: 0};
 const arChipTurn = new Map();                        // a plane behind you: the side it was last on
 function arChipBounds(H){                            // where the chips may go: measured twice a second, not every frame
@@ -3399,7 +3408,8 @@ function arChipsAt(g, list, view, W, H){
     const w = Math.ceil(arTW(g, fn, name) + 6 + arTW(g, fs, sub) + 38), L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
     const ts = (W / 2 + 40) / Math.abs(ux || 1e-6), tt = (H / 2 + 40) / Math.abs(uy || 1e-6), t = Math.min(ts, tt);
     const lim = (v, a, b) => Math.max(a, Math.min(b, v)), xr = [8, W - 8 - w], yr = [B.t, Math.max(B.t, B.b - h)];
-    const x0 = lim(W / 2 + ux * t - w / 2, ...xr), y0 = lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
+    const held = !!s.pr.held;                       // 1.119.2: above the top, its chip at the top edge right over the plane, where the label will come in
+    const x0 = held ? lim(s.pr.x - w / 2, ...xr) : lim(W / 2 + ux * t - w / 2, ...xr), y0 = held ? yr[0] : lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
     const free = (x, y) => !taken.some(b => x < b[0] + b[2] + gap && x + w + gap > b[0] && y < b[1] + b[3] + gap && y + h + gap > b[1]);
     // along its own edge first: the nearest place clear of what's there, touching one of them
     const ys = [y0, ...taken.flatMap(b => [b[1] - h - gap, b[1] + b[3] + gap])].filter(y => y >= yr[0] && y <= yr[1]).sort((p, q) => Math.abs(p - y0) - Math.abs(q - y0));
@@ -4382,7 +4392,7 @@ function setLine(id){
     +S.airtimeMin ? T("hovering {n} min", {n: S.airtimeMin}) : T("hovering off"));
   if (id === "display") {
     let lang = "";
-    try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
+    if (LANG_CHOICE) try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
     return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
   }
   if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
