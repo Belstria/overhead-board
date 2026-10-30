@@ -558,14 +558,17 @@ The main board has everything below. New features are tried on `/test/` first; o
   their passive points) and a dimmed NO PTS beyond 15 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
-  and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points and level ("9,950 pts ·
-  Level 9"), with **paused** in amber while live location is off; when points come in it turns over to +N, then the total
-  counts up while it glows, and a level-up follows. A tap opens the **Spotters' Club** (while points are paused its level card says
+  and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points over your level ("9,950 pts" over
+  "Level 9"), with **paused** in amber after the points while live location is off; since 1.116.1 it sits straight on the header
+  with your rank insignia beside it inside a **ring** that fills towards the next level (the same numbers as the Club's level
+  card; empty for a level kept above your points), dimmed while paused. When points come in it turns over to +N, then the
+  total counts up while the ring grows and glows; a level-up fills the ring and flashes it, then the ring starts again
+  under the new insignia and the level-up card follows. A tap opens the **Spotters' Club** (while points are paused its level card says
   "Points need live location · Go live"). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
   chip, never in the notices' bar. Your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
   navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a
   pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
-  it for each Legend after that) is on Your level and a player's card. (Until 1.115 a score strip under the header
+  it for each Legend after that) is on the chip, Your level and a player's card. (Until 1.115 a score strip under the header
   showed the points on flaps, the level bar and the league place.) **Recent points** (1.89, relay 71; on the Club's page): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The

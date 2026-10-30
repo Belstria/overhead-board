@@ -948,6 +948,16 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.116.1 (to-do #209, Dave's pick of 30 Oct from Fable's chip mockups: "the lapel chip's text + the lapel in the ring",
+  without the outer ring): **the header chip's ring.** `#gHead` lost its pill (background and border; the tap area and
+  focus outline stay): `.gTx` ("9,950 pts", then `#gOff` "· paused" in amber while live location is off; "Level 9" under
+  it, no rank name) and `.gRing`, an SVG ring (`.gRt` the track, `.gRa` the arc, `pathLength` 100, starting at the top)
+  around `#gLap`, `rankIns(lv, 28)` (a cap 32). `gRingP(pts, lv)`: the share from `careerPts(lv)` to `careerPts(lv + 1)`,
+  0–1 (a level kept above the points by relay 96 gives 0). `gLapSet(lv)` redraws the insignia only when the level changes
+  (`dataset.lv`); `gTotSet`'s `put` calls `gRingSet(v)`, so the count-up grows the ring at the level the chip shows. A gain:
+  the +N turn as before, then `.gain` glows the arc (`gGlow`, now a drop shadow); a level-up (`g.level` above the shown
+  level) fills the ring, `.lvl` flashes it at 2.6 s (`gFlash`), the 3.5 s render empties it (the arc's transition) under
+  the new insignia, and `gLevelUp` follows 0.8 s later (still through `gLvFrom`). `.off` dims the ring to half.
 - 1.116 (to-do #208, clarity build 2 of 4, Dave's pick B on the Club, Settings and Favourites & hidden):
   **the Club's sub-tabs, Settings as a list of panels.** (1) The Club: `#gSub` (the segmented bar that scrolls sideways,
   1.88's `.seg.jumpSeg`), stuck under the Logbook · Spotters' Club titles (`--lbH`, measured in `gSubBar`), shows one

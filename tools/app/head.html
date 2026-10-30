@@ -920,25 +920,40 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
 /* 1.115 (to-do #206, Dave's pick B): the header chip in the clock's place: the points over the level, "paused" in amber
-   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows */
-.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:40px;padding:4px 12px;border-radius:20px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(240,180,41,.45);white-space:nowrap;-webkit-tap-highlight-color:transparent}
+   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows.
+   1.116.1 (to-do #209, Dave's pick): no pill, the text straight on the header (the tap target as big as before) and the
+   rank's insignia in a ring filling towards the next level; a gain grows the ring as it counts and the ring glows; a
+   level-up fills it and flashes (.lvl) before the new insignia. Paused: the ring and the insignia dimmed */
+.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;gap:8px;min-height:44px;padding:2px 0 2px 6px;border-radius:22px;
+  white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .gHead[hidden]{display:none}
 .gHead:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.gHead:active{background:rgba(0,0,0,.6)}
-.gHv{display:grid;perspective:200px}
+.gHead:active{opacity:.7}
+.gTx{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.gL1{display:flex;align-items:baseline;gap:4px}
+.gL1 em{font:600 var(--fs-xs)/1 var(--f-board);font-style:normal;color:var(--amber)}
+.gL1 em[hidden]{display:none}
+.gHv{display:grid;perspective:200px;justify-items:end}
 .gHv>span{grid-area:1/1;font:700 var(--fs-m)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums;backface-visibility:hidden}
 .gHv .r2{color:var(--amber);transform:rotateX(90deg)}
 .gHead small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.gHead small em{font-style:normal;color:var(--amber)}
+.gRing{position:relative;flex:none;width:40px;height:40px;display:grid;place-items:center;transition:opacity .3s}
+.gRing>svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.gRt{fill:rgba(0,0,0,.35);stroke:rgba(255,255,255,.12);stroke-width:3}
+.gRa{fill:none;stroke:var(--amber);stroke-width:3;stroke-linecap:round;transition:stroke-dasharray .45s ease-out}
+.gLap{position:relative;display:grid;place-items:center;transition:opacity .3s}
+.gLap .rkI{display:flex}
+.gHead.off .gRing{opacity:.5}
 .gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
-.gHead.gain{animation:gGlow 1.4s}
+.gHead.gain .gRa{animation:gGlow 1.4s}
+.gHead.lvl .gRing{animation:gFlash .9s ease-out}
 @media (prefers-reduced-motion:reduce){.gHead *,.gHead{animation:none!important}}
 .secPlate.hit h3{animation:ppHit 1.4s ease-out}
 .gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
 .gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
 .gBar b{width:0;background:linear-gradient(90deg,#ffe08a,#fff6d8,#ffe08a);background-size:200% 100%}
-@keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
+@keyframes gGlow{30%{filter:drop-shadow(0 0 4px var(--amber)) drop-shadow(0 0 9px rgba(240,180,41,.6))}}
+@keyframes gFlash{0%{filter:none}25%{filter:brightness(1.9) drop-shadow(0 0 10px var(--amber))}100%{filter:none}}
 .skyIco{width:18px;height:18px;flex:none}
 /* 1.73.2: Go live, while the phone finds itself: a turning circle in the chip */
 .gSpin{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;animation:gSpin .8s linear infinite}

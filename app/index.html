@@ -1415,25 +1415,40 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
 /* 1.115 (to-do #206, Dave's pick B): the header chip in the clock's place: the points over the level, "paused" in amber
-   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows */
-.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:40px;padding:4px 12px;border-radius:20px;
-  background:rgba(0,0,0,.4);border:1px solid rgba(240,180,41,.45);white-space:nowrap;-webkit-tap-highlight-color:transparent}
+   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows.
+   1.116.1 (to-do #209, Dave's pick): no pill, the text straight on the header (the tap target as big as before) and the
+   rank's insignia in a ring filling towards the next level; a gain grows the ring as it counts and the ring glows; a
+   level-up fills it and flashes (.lvl) before the new insignia. Paused: the ring and the insignia dimmed */
+.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;gap:8px;min-height:44px;padding:2px 0 2px 6px;border-radius:22px;
+  white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .gHead[hidden]{display:none}
 .gHead:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.gHead:active{background:rgba(0,0,0,.6)}
-.gHv{display:grid;perspective:200px}
+.gHead:active{opacity:.7}
+.gTx{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.gL1{display:flex;align-items:baseline;gap:4px}
+.gL1 em{font:600 var(--fs-xs)/1 var(--f-board);font-style:normal;color:var(--amber)}
+.gL1 em[hidden]{display:none}
+.gHv{display:grid;perspective:200px;justify-items:end}
 .gHv>span{grid-area:1/1;font:700 var(--fs-m)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums;backface-visibility:hidden}
 .gHv .r2{color:var(--amber);transform:rotateX(90deg)}
 .gHead small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.gHead small em{font-style:normal;color:var(--amber)}
+.gRing{position:relative;flex:none;width:40px;height:40px;display:grid;place-items:center;transition:opacity .3s}
+.gRing>svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.gRt{fill:rgba(0,0,0,.35);stroke:rgba(255,255,255,.12);stroke-width:3}
+.gRa{fill:none;stroke:var(--amber);stroke-width:3;stroke-linecap:round;transition:stroke-dasharray .45s ease-out}
+.gLap{position:relative;display:grid;place-items:center;transition:opacity .3s}
+.gLap .rkI{display:flex}
+.gHead.off .gRing{opacity:.5}
 .gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
-.gHead.gain{animation:gGlow 1.4s}
+.gHead.gain .gRa{animation:gGlow 1.4s}
+.gHead.lvl .gRing{animation:gFlash .9s ease-out}
 @media (prefers-reduced-motion:reduce){.gHead *,.gHead{animation:none!important}}
 .secPlate.hit h3{animation:ppHit 1.4s ease-out}
 .gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
 .gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
 .gBar b{width:0;background:linear-gradient(90deg,#ffe08a,#fff6d8,#ffe08a);background-size:200% 100%}
-@keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
+@keyframes gGlow{30%{filter:drop-shadow(0 0 4px var(--amber)) drop-shadow(0 0 9px rgba(240,180,41,.6))}}
+@keyframes gFlash{0%{filter:none}25%{filter:brightness(1.9) drop-shadow(0 0 10px var(--amber))}100%{filter:none}}
 .skyIco{width:18px;height:18px;flex:none}
 /* 1.73.2: Go live, while the phone finds itself: a turning circle in the chip */
 .gSpin{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;animation:gSpin .8s linear infinite}
@@ -12054,6 +12069,8 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.116.1", date: "2026-10-30", notes: [
+    "The app's points chip shows your rank's insignia in a ring that fills towards the next level; it fills up and flashes when you reach a new one."]},
   {v: "1.116", date: "2026-10-30", notes: [
     "The Spotters' Club in the app has tabs: Level, League, Hangar, Passport, Cards, Bingo and Trophies, one at a time. Level shows your level card and one line for each of the others.",
     "The level card names the next unlock and says in one line when points need live location, with Go live in it.",
@@ -14155,7 +14172,11 @@ function gStripSetup(){
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
   box.setAttribute("aria-label", T("Spotters' Club"));
-  box.innerHTML = `<span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span><small id="gLvTxt"></small>`;
+  // 1.116.1 (to-do #209, Dave's pick): no pill; the text, then the rank's insignia inside a ring filling towards the next level
+  box.innerHTML = `<span class="gTx"><span class="gL1"><span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span>` +
+    `<em id="gOff" hidden></em></span><small id="gLvTxt"></small></span><span class="gRing"><svg viewBox="0 0 48 48" aria-hidden="true">` +
+    `<circle class="gRt" cx="24" cy="24" r="21"/><circle class="gRa" id="gRa" cx="24" cy="24" r="21" pathLength="100" stroke-dasharray="0 100"/></svg>` +
+    `<span class="gLap" id="gLap"></span></span>`;
   box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
 }
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
@@ -14229,7 +14250,7 @@ const gGoShow = () => { if (gme) gStripRender(gme); renderGame(); };
 // The total on the header chip ("9,950 pts").
 function gTotSet(n, anim){
   const el = $("gTot"), to = Math.max(0, Math.round(n || 0)), from = +el.dataset.n || 0;
-  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); };
+  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); gRingSet(v); };
   cancelAnimationFrame(gTotSet.raf);
   if (!anim || REDUCED || to <= from) return put(to);
   const t0 = performance.now(), step = t => {                // 1.115: counts up over 0.7 s
@@ -14563,10 +14584,27 @@ function gStripRender(g, anim){
   const off = !S.live;
   gStripLive = !off;
   box.classList.toggle("off", off);
+  gLapSet(g.level);
   if (!anim) gTotSet(g.points);
-  const lv = escH(T("Level {n}", {n: g.level}));
-  const html = off ? `${lv} · <em>${escH(T("paused"))}</em>` : lv;
-  if ($("gLvTxt").innerHTML !== html) $("gLvTxt").innerHTML = html;
+  const lv = T("Level {n}", {n: g.level}), pz = "· " + T("paused");     // 1.116.1: "paused" after the points
+  if ($("gLvTxt").textContent !== lv) $("gLvTxt").textContent = lv;
+  if ($("gOff").textContent !== pz) $("gOff").textContent = pz;
+  $("gOff").hidden = !off;
+}
+// 1.116.1 (to-do #209): the chip's ring, how far the points are from this level's start to the next (careerPts, the
+// Club's level card's numbers). A player kept above their points (relay 96) shows an empty ring, never a negative one.
+const gRingP = (pts, lv) => { const a = careerPts(lv), b = careerPts(lv + 1); return Math.max(0, Math.min(1, ((pts || 0) - a) / (b - a))); };
+function gLapSet(lv){
+  const box = $("gHead");
+  if (+box.dataset.lv === lv) return;
+  box.dataset.lv = lv;
+  $("gLap").innerHTML = rankIns(lv, lv >= 15 ? 32 : 28);    // a cap is two thirds of a shoulder board's height
+  gRingSet(+$("gTot").dataset.n || 0);
+}
+// The ring for a total at the level the chip shows: a gain's count-up grows it (a level-up's up to the full ring)
+function gRingSet(n){
+  const p = gRingP(n, +$("gHead").dataset.lv || 1);
+  $("gRa").setAttribute("stroke-dasharray", `${(p * 100).toFixed(1)} 100`);
 }
 // 1.115: the notices' bar and the game's passes and tickets share the bottom: while both show, the bar sits above them
 setInterval(() => {
@@ -14595,11 +14633,13 @@ function gGain(prev, g){
   if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
   gTotSet(prev.points);
-  box.classList.remove("flip", "gain"); void box.offsetWidth; box.classList.add("flip");
+  box.classList.remove("flip", "gain", "lvl"); void box.offsetWidth; box.classList.add("flip");
   gAnimT.push(setTimeout(() => { box.classList.add("gain"); gTotSet(g.points, true); gCoins(); }, 1900));
+  // 1.116.1: a level-up fills the ring and the chip flashes; then the ring empties under the new insignia before the card
+  if (g.level > (+box.dataset.lv || 1)) gAnimT.push(setTimeout(() => box.classList.add("lvl"), 2600));
   gAnimT.push(setTimeout(() => {
-    box.classList.remove("flip", "gain"); gStripRender(g);
-    if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
+    box.classList.remove("flip", "gain", "lvl"); gStripRender(g);
+    if (gLvFrom) gAnimT.push(setTimeout(() => { if (!gLvFrom) return; const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }, 800));
   }, 3500));
 }
 async function gRefresh(force){
