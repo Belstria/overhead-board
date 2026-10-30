@@ -13,12 +13,13 @@ two days later mockups again carried sentences and a second row of tabs. These r
 **Text**
 
 1. **At rest, a state shows a label and a value, nothing else.** A label is at most three words ("Standby ready",
-   "1 standby left"). No sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
+   "Standby used Saturday"); a warning may add what to do on the same line ("No standby left: scan by 03:00"). No
+   sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
 2. **The label opens its own explanation when tapped** (a bottom sheet). Sentences live only in there, and the sheet
    is two short lines: what it does, then what you will see ("Miss a day, and your Standby is automatically consumed
    to keep your streak going" / "That day shows SBY and pays no points. Resets on Monday 03:00"). The (i) by a title
-   explains a whole screen, as on the Radar, never one label. "It isn't clear" is answered with a tap target, never
-   with a sentence added to the card.
+   explains a whole screen or panel (the Radar, How points work on the Level plate), never one label. "It isn't
+   clear" is answered with a tap target, never with a sentence added to the card.
 3. **At most one line of help per screen, and only in an empty state.** Everything longer goes behind the (i).
    Dave's exceptions: the welcome and the tips speak unasked, one step at a time.
 4. **Every number carries its name** (a small label above or beside it); never two bare numbers side by side.
@@ -27,7 +28,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
    has never opened the Club understands it.
 6. **Three vocabularies, three looks.** A flight's status is a pill, and only OVERHEAD, EMERGENCY and DIVERTED get one
    (TAKE-OFF and LANDED too on Airport). A logbook note is a mark at the row's end, no words: ★ new type or airline,
-   ⚑ unusual, pink ♥ favourite. Game words (points, level, standby, league) live in the Club and the header chip only.
+   ⚑ unusual, pink ♥ favourite. Game words (points, level, standby, league) stay off a flight's row; they live in the
+   Club, the header chip, and the tickets and notices about them.
 7. **Plain words, no cut-offs.** Screen titles in sentence case; every sheet carries the plate with its engraved
    title, like the Settings and Logbook panels; section headings as small-caps labels. No addresses, codes or
    internals ("from the home relay", not a host name).
@@ -47,8 +49,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
 12. **The first screenful answers the screen's question.** Now: what is over me. Today (its own key until it moves
     into the Logbook): what came. Logbook: what I have ever seen. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
-13. **Empty things fold away.** A category with 0 is hidden or folded with a count; a list stops at five rows, "All N ›"
-    opens the rest.
+13. **Empty things fold away.** A category with 0 is hidden or folded with a count. A list inside a card or panel stops
+    at five rows and "All N ›" opens the rest; the list a screen exists to show (Today, the league, search) runs on.
 14. **A feature that wants more room gets none by default.** It gets a row in an existing index (label and a one-line
     state) that opens a panel, or a line in an existing panel. A new page, tab, key, row or setting must name the one
     question of its screen that nothing answers today, and must replace or absorb something; a new setting also needs
