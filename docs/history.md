@@ -948,6 +948,32 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.116 (to-do #208, clarity build 2 of 4, Dave's pick B on the Club, Settings and Favourites & hidden):
+  **the Club's sub-tabs, Settings as a list of panels.** (1) The Club: `#gSub` (the segmented bar that scrolls sideways,
+  1.88's `.seg.jumpSeg`), stuck under the Logbook · Spotters' Club titles (`--lbH`, measured in `gSubBar`), shows one
+  part at a time: `G_SUBS` Level, League, Hangar, Passport, Cards, Bingo, Trophies; a part the relay doesn't send has no
+  tab (`gSubHas`). `renderGame` draws only `gSub`'s plates (Records go with Trophies: `recordsHtml(all, g0, part)`, the
+  Logbook still gets all). Level: the flight school (as before), the level card, then `gIndexHtml`: a line of state for
+  each other part (`.idx` rows, `data-gsub`). `gSubGo(k)` draws the tab whole and goes to the top; another tab than the
+  Club starts it at Level (`showTab`); `gGoPlate` picks the plate's tab first; the empty showcase spot goes to Hangar.
+  `gUnder()` is the sticky height for `hgShow`, `ppGo` and `gHitDo`. A's words in the card (`careerMini`): "Next unlock
+  · level N" over the unlock, "All 20 levels"; while points are paused one line "Points need live location · Go live"
+  (`.gOff .gGoB`, a link; the green `.liveGo` button went). The five rarity counters went (`gLimHtml(g, true)`: the
+  notes of a rarity at its limit only; How points work has the counters). (2) Settings: `#setList` (`setListRender`):
+  two groups of `.idx` rows (The board: Location, Traffic, Display, Flaps & sound, Night, Favourites & hidden; You and
+  this phone: Account, Notifications, Device, About), each with an icon (`SET_ICO`) and its state (`setLine`;
+  Notifications from `pushLine`, set by `renderPush`). The plates live out of sight in `.setHome` (`#cockpit`,
+  `#favBox`, `#setExtra`) and `setOpen` moves the element into a `cardOpen` sheet (`.setSheet`, as 1.115's `tdSheet`):
+  for a cockpit plate the whole `#cockpit` (its other plates hidden by `.on`), so `cockpitShow`, `settingsSync` and
+  every id keep working; `setBack` puts it home when the sheet has gone. About opens its page. A cockpit panel has its
+  own Save (`.setSave`, `[data-setsave]`: `cockpitSave`, "Saved" for a moment) and "Not saved yet" (`cockpitMark`).
+  `cardSheetClose` asks first while `cockpitUnsaved()`: `setAsk` (Save your changes? Changed: the controls' names;
+  Discard = `cockpitCancel`); asked again (back, a tap beside) the question goes. A card opened from a panel (the
+  address's hits, Saved places, a password) lays the panel aside in `#setHold` (`cardSheetPre`, `setHeld`) and its
+  close brings it back (`setRestore`); the Styles page does the same (`stylesPage`, `stylesHide`). The jump bar
+  (`jump*`), the Save bar (`.savebar`, `buildSaveBar`) and the intro line (`#setSum`) went. (3) Favourites & hidden
+  (`renderFavBox`, `favRows`; the TV keeps `favManager`): two rows with their count and an Add each; a row opens its
+  list in place (chips with ×), Add the field for that list (Enter adds); what they do behind the (i) (`.iBtn`).
 - 1.115 (to-do #206, clarity build 1 of 4 from Fable's design pass, Dave's pick B on Now and Today, plus Notices B):
   **the header chip, the one-line rows, Now's one card, Today's summary, the notices' bar.** (1) The flap clock
   (`CLOCK`, `#clockP`) and the score strip (`#gStrip`) left the app's header; the TVs keep their clock. In the clock's

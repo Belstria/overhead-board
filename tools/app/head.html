@@ -244,7 +244,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
 #cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
-#cardBox .tdSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
+#cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
 #cardBox .tdSheet #todayTop{margin:0}
 .dayFacts .span3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}
 .dayFacts .span3>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
@@ -742,17 +742,57 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #aboutBox .acts .cap,#cockpit .about .acts .cap{margin:0}
 .about p{text-align:left}
 .about a{color:var(--amber)}
-.savebar{display:none;position:sticky;bottom:calc(80px + var(--sa-bottom));z-index:3;justify-content:center;gap:22px;margin:16px -6px 0;padding:12px;
-  border-radius:10px;background:rgba(11,11,12,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);--k:.9}
-.savebar .cap{margin:0}
-#t-settings.dirty .savebar{display:flex;justify-content:center}
-/* 1.88: the jump bar, stuck under the header while Settings scrolls; the names scroll sideways */
-#setJump{position:sticky;top:var(--topH,0px);z-index:4;margin:12px calc(-1 * var(--gut)) 0;padding:6px var(--gut);
+/* 1.116 (Dave's pick B): Settings is a list of its sections (.idx rows, as the Club's index); the plates wait out of
+   sight (.setHome) and rise as the sheet (.setSheet) with Save and "Not saved yet" along its bottom; closing with
+   changes asks first (.setAsk) */
+#t-settings .setHome{display:none}
+#cockpit>.plate:not(.on){display:none}
+#cardBox .cardIn.setSheet{padding:22px 8px 0}
+#cardBox .setSheet .plate{margin:0 0 12px}
+.setSave{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:0 -8px;padding:10px 12px calc(12px + var(--sa-bottom,0px));background:var(--sheet-bg)}
+.setSave small{margin-right:auto;font:600 var(--fs-s)/1.3 var(--f-board);color:var(--amber)}
+.setSave .cBtn,.setAsk .cBtn{min-width:96px;margin:0}
+.setAsk{position:sticky;top:0;z-index:7;margin:0 0 -100px;padding:16px;border-radius:14px;background:var(--sheet-bg);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.7)}
+.setAsk b{display:block;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.setAsk span{display:block;margin:4px 0 12px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
+.setAsk div{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.setAsk .setNo{all:unset;cursor:pointer;padding:10px 12px;font:700 var(--fs-s)/1 var(--f-board);color:#ff8a80}
+.setAsk .setNo:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.idxH{margin:18px 0 6px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.idx{margin:0;padding:0;list-style:none;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);overflow:hidden}
+.idx li+li{border-top:1px solid rgba(255,255,255,.06)}
+.idx button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
+.idx button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.idx b{flex:1 0 auto;font:700 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
+.idx small{flex:0 1 auto;min-width:0;text-align:right;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted)}
+.idx i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
+.idx .sIco{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(240,180,41,.14);color:var(--amber)}
+.idx .sIco svg{width:17px;height:17px}
+.gIdx{margin:0 0 12px}
+/* 1.116: Favourites & hidden: two rows with their count and Add; the list opens in place; what they do behind the (i) */
+.favPlate{position:relative}
+.iBtn{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;top:6px;right:30px;z-index:2;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  border:1.5px solid rgba(214,208,194,.5);font:700 var(--fs-xs)/1 var(--f-board);color:rgba(214,208,194,.8)}
+.iBtn[aria-expanded=true]{color:var(--amber);border-color:var(--amber)}
+.iBtn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.favRow{display:flex;align-items:center;gap:12px;min-height:56px;padding:4px 2px}
+.favRow+.favRow,.chips+.favRow,.favAdd+.note+.favRow{border-top:1px solid rgba(255,255,255,.06)}
+.favRowT{all:unset;box-sizing:border-box;flex:1;min-width:0;cursor:pointer}
+.favRowT:disabled{cursor:default}
+.favRowT b{display:block;font:700 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
+.favRowT small{display:block;margin-top:3px;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted)}
+.favRowT:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.favRow .cBtn{margin:0;flex:none}
+.favPlate .favInfo{margin:2px 0 8px}
+/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the Logbook · Spotters' Club titles; the names scroll sideways
+   (the segmented style of 1.88's jump bar) */
+#gSub{position:sticky;top:calc(var(--topH,0px) + var(--lbH,41px));z-index:4;margin:-12px calc(-1 * var(--gut)) 12px;padding:6px var(--gut);
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-#setJump[hidden]{display:none}
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
-#setJump .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
+#gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
+#t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
+#t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* 1.88: the owner's Relay plate in About: lamp rows, 6-px bars, the Legend's amber headings */
 #aboutBox .relayP .owner{margin:0;color:var(--muted);font-size:var(--fs-s)}
 #aboutBox .relayP .lgbox h3:first-child{margin-top:4px}
@@ -894,7 +934,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
 .gHead.gain{animation:gGlow 1.4s}
 @media (prefers-reduced-motion:reduce){.gHead *,.gHead{animation:none!important}}
-#t-game .gGoB{margin:10px 0 2px}
 .secPlate.hit h3{animation:ppHit 1.4s ease-out}
 .gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
 .gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
@@ -1894,6 +1933,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   </section>
   <section class="wrap tab" id="t-game" hidden>
     <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" aria-current="page" data-t="Spotters' Club">Spotters' Club</button></div>
+    <div id="gSub"><div class="seg jumpSeg" role="group" id="gSubSeg"></div></div>
     <div id="gameBox"></div>
   </section>
   <section class="wrap tab" id="t-about" hidden>
@@ -1910,13 +1950,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   </section>
   <section class="wrap tab" id="t-settings" hidden>
     <h2 data-t="Settings">Settings</h2>
-    <p class="sum" id="setSum" data-t="Turn the knobs and flip the switches, then press Save.">Turn the knobs and flip the switches, then press Save.</p>
     <p class="sum syncNote" data-syncnote hidden></p>
-    <div id="setJump" hidden><div class="seg jumpSeg" role="group" id="setJumpSeg"></div></div>
-    <div id="cockpit" style="margin-top:14px"></div>
-    <div id="favBox" hidden></div>
-    <div id="setExtra"></div>
-    <div class="savebar"><button class="cap big" type="button" id="cancelBtn" data-t="Cancel">Cancel</button><button class="cap big go" type="button" id="saveBtn" aria-pressed="false" data-t="Save">Save</button></div>
+    <div id="setList"></div>
+    <div class="setHome"><div id="cockpit"></div><div id="favBox"></div><div id="setExtra"></div></div>
   </section>
   <p class="brandline">Fallblatt</p>
 </main>

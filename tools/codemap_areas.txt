@@ -260,15 +260,14 @@ test/index.html: DEFAULTS GUEST SKEY loadSettings overRule saveSettings S meBase
     +accountOpen +ctlNoise +ctlReady +ctlBurst +ctlRing +ctlSound +hereNow +nearestAirport +nearbyAirports +putDraft
     +locatedAt +wireLocation +settingsSync +wireSearch applySettings #cockpit .plate .inst #hintTip .lcd .rotary
     .toggle .wheels .wheel @rollUp @rollDown .ctlCap .ctlTop .ctlBot +stylesCard +favCounts +accountBox
-tools/app/head.html: #cockpit .syncNote .savebar #t-settings.dirty #setJump .seg.jumpSeg #cancelBtn #saveBtn #setExtra
-    #setJumpSeg #setSum #t-settings
+tools/app/head.html: #cockpit .syncNote #t-settings .setSave .setAsk .idxH .idx #setExtra #setList
 tools/app/main.js: GUEST DEFAULTS SKEY LIGHT_FIXED loadSettings overRule saveMe located saveSettings S meBase
-    COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark buildSaveBar settingsExtra jumpPlates
-    jumpName jumpOn jumpHold jumpBuild jumpLine jumpGo jumpSpy jumpLight topSize jumpRaf addEventListener("scroll")
+    COCKPIT_FOR plateHtml cockpitOpen savedTimer cockpitDone cockpitMark SET_ICO setPid setHome setHeld setAsking
+    pushLine setCap setLine setListRender setOpen setBack setAsk setRestore settingsExtra topSize
     applySettings +renderPush +renderFavBox +renderAbout +showTab
 relay/serve.py: /me +Handler.profile_post
 docs/architecture.md: "are one `COCKPIT` for board, app and light"
-README.md: "- **Settings** (press" "- **Settings** also holds" "- **Jump bar**" "- **Settings**: the cockpit plates"
+README.md: "- **Settings** (press" "- **Settings** also holds" "- **Settings as a list**" "- **Settings**: the cockpit plates"
 tools/test/cockpit_list.py: DUMP VIEW
 tools/test/flows.py: "settings round trip, and a save from another site"
 tools/test/plates.py: OVERFLOW_JS FIRE_TV
@@ -379,10 +378,10 @@ test/index.html: plusOn plusBtn plusOpen plusBox userLists listsLoad favCache fa
     listChoices sameItem inList listFlip togBtn cardToggle listSheet favManager favCard favCounts parseListEntry
     listsMigrate listsChanged css:textarea.fav .cap.favCap .inst.favs +listHints .favAdd .chips .shRow .shH .shImg
     +COCKPIT +DEFAULTS +applySettings
-tools/app/head.html: .fl.swiping #sheet .shH .shRow #favBox .chips .favAdd
+tools/app/head.html: .fl.swiping #sheet .shH .shRow #favBox .chips .favAdd .favPlate .iBtn .favRow .favRowT
 tools/app/main.js: SWIPE_AT swipe swipeEnded swipeRow document.addEventListener("touchstart")
     document.addEventListener("touchmove") swipeDone document.addEventListener("touchend")
-    document.addEventListener("touchcancel") listsChanged renderFavBox #favBox +DEFAULTS +applySettings
+    document.addEventListener("touchcancel") listsChanged renderFavBox favRows #favBox +DEFAULTS +applySettings
 relay/serve.py: LIST_KINDS _clean_list lists_of _list_hit /lists +_fav_tokens
 README.md: "- **Favourites and hidden planes**"
 tools/test/flows.py: "favourites, one change at a time"
@@ -403,7 +402,7 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     fleetTier tierOf TROPHY_LADDERS TROPHY_SINGLES TROPHY_IDS TROPHY_TEXT TROPHY_MEDALS MEDAL_COL TROPHY_TIER
     trophyLadder GOAL_TEXT goalText bingoReset trophyText game ACH_KEY ACH_MS achQueue achTimer achList achCheck
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
-tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
+tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
@@ -414,14 +413,14 @@ tools/app/head.html: .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gHe
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
-    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
+    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyAt lySort lyFlipped LY_RING LY_INK lyInk lyStill lyLetter lyWhen lyList lyCardHtml walletHtml lyWire
     worldLoad worldFailed worldMap PP_REG PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath PP_CONT PP_TINT ppLat
-    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo
+    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo gUnder
     SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
     CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini careerOpen careerRouteList
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V

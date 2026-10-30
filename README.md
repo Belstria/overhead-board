@@ -345,7 +345,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   painted plates with screws; nothing changes until **Save**, and Cancel leaves everything as it was. On the test
   board and in the phone app, every control sits in its own cell with its name engraved above it, the flip switches
   are aircraft toggles, and the controls make their sound (knobs and switches a small click, thumbwheels a ratchet
-  tick, push buttons a thock) when the flap sound or the chimes are on.
+  tick, push buttons a thock) when the flap sound or the chimes are on. **In the phone app** (since 1.116) Settings is a
+  list of its sections in two groups (The board; You and this phone), each with its state in one line ("Vienna · 15 km
+  around", "all heights · hovering 3 min"). A tap raises that section's plate from below, every control as before, with
+  its own **Save**; a change shows "Not saved yet" beside it. Closing it (a swipe down, a tap beside or back) with
+  changes asks first: **Save** or **Discard**. A card opened from a panel (an address's hits, Saved places) or the
+  Styles page goes back to the panel when it closes. About opens its page. **Favourites & hidden** there shows the two
+  lists with their count and an **Add** each; a tap on one shows its entries (× removes one); what they do is behind
+  the (i). (1.88 to 1.115: a jump bar and one long page with a Save bar.)
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
   who made it. On the boards (1.93.0.1) the patch notes take the left half (▲ ▼ scroll them), the keys (two to a row)
   and who made it the right half, so every credit fits on every screen. In the app, **Log** (1.80; also in the connection card, the dot top right) opens the app's log on a
@@ -553,8 +560,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
   and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points and level ("9,950 pts ·
   Level 9"), with **paused** in amber while live location is off; when points come in it turns over to +N, then the total
-  counts up while it glows, and a level-up follows. A tap opens the **Spotters' Club** (while points are paused its Go live
-  button is there). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
+  counts up while it glows, and a level-up follows. A tap opens the **Spotters' Club** (while points are paused its level card says
+  "Points need live location · Go live"). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
   chip, never in the notices' bar. Your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
   navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a
   pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
@@ -562,11 +569,15 @@ The main board has everything below. New features are tried on `/test/` first; o
   showed the points on flaps, the level bar and the league place.) **Recent points** (1.89, relay 71; on the Club's page): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
-  **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
+  **Spotters' Club** (1.74: next to the Logbook, as a title tab; since 1.116 in the app with **tabs** under the title that
+  show one part at a time: **Level**, League, Hangar, Passport, Cards, Bingo and Trophies, the records with the trophies.
+  Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
+  done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10") and links "All 20
+  levels"; the rarity counters are in How points work): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. **Career path** (1.109): Your level shows a mini route (your stop, the plane with the points still to go, the
-  next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route (since 1.113 a panel over the
+  next stop) with what the next stop opens, and **All 20 levels** (Your route · all 20 stops until 1.116) opens the route (since 1.113 a panel over the
   club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, back or a tap beside closes
   it): a stop per level down a
   line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
@@ -901,9 +912,8 @@ Five buttons along the bottom:
   more as **Look up now**, with where to look and how high. Settings → Notifications → **Count down to the plane**.
 - **Settings** also holds (1.34) Account, Notifications and this device (Full board, Sign out, Change relay); About keeps
   the version, the legend and the patch notes. The app doesn't zoom on a double tap.
-- **Jump bar** (1.88): under the header, Settings has a bar with the names of its parts (Location, Traffic, Display,
-  Flaps & sound, Night, Favourites, Account, Notifications, Device, About). It stays at the top while Settings scrolls
-  and scrolls sideways; tap a name to go to that part. The part on screen is lit.
+- **Settings as a list** (1.116; it replaced 1.88's jump bar): each section is a row with its state, and a tap raises
+  its plate from below (see Settings above).
 - **Relay** (1.88, relay 69): only the relay's owner sees this plate at the top of Settings → About: each position
   source with its role (first, in reserve, emergencies only) and state (working, resting until a time with the error
   code, standby, failing), adsb.lol's requests today of its daily 500; Flightradar24's credits this month of the

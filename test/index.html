@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=06c2356d98"></script>
+<script src="i18n.js?v=e0149c2410"></script>
 <script>
 (() => {
 "use strict";
@@ -7870,6 +7870,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.116", date: "2026-10-30", notes: [
+    "The Spotters' Club in the app has tabs: Level, League, Hangar, Passport, Cards, Bingo and Trophies, one at a time. Level shows your level card and one line for each of the others.",
+    "The level card names the next unlock and says in one line when points need live location, with Go live in it.",
+    "Settings in the app is a list of its sections, each with its state in one line. A tap opens the section from below with its own Save; closing it with changes asks whether to save them.",
+    "Favourites & hidden shows each list with its count and an Add button; what they do is behind the (i)."]},
   {v: "1.115", date: "2026-10-30", notes: [
     "In the app, a chip top right shows your points and level (\"paused\" while live location is off) in place of the clock and the points strip; a tap opens the Spotters' Club.",
     "Recent flights and Today show one line a plane: time, flight, route and type. A star marks a new type or airline, a flag an unusual plane, a heart a favourite; a status such as OVERHEAD or EMERGENCY stays a coloured pill.",
