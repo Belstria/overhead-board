@@ -152,6 +152,7 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #acctBox .note,#wAcctBox .note{min-height:1.2em;color:var(--muted);font-size:var(--fs-s)}
 #welcome #wAcctBox input{text-align:left;font-size:var(--fs-base);margin:8px 0}
 #welcome #wAcctBox{text-align:left;max-height:52vh;overflow:auto}
+#welcome #wAcctBox > p:first-child:not([class]){display:none}   /* 1.119: the step's own line says what an account is for */
 #pushBox .note{min-height:1.2em;color:var(--muted);font-size:var(--fs-s)}
 .brandline{margin:34px 0 0;text-align:center;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.32em;text-transform:uppercase;color:var(--muted);opacity:.55}
 .status{margin-top:20px;font-size:var(--fs-xs)}
@@ -893,6 +894,19 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #welcome .wIn{animation:wIn .5s .1s cubic-bezier(.22,.8,.24,1) both}
 @keyframes wIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #welcome #wOpen.wGone{opacity:0;transform:scale(.96);transition:opacity .3s,transform .3s}
+/* 1.119: one question a screen, a progress line over it (how many steps, which one this is) */
+#welcome .wProg{display:flex;justify-content:center;gap:6px;margin:0 0 14px}
+#welcome .wProg i{width:22px;height:4px;border-radius:2px;background:rgba(255,255,255,.18)}
+#welcome .wProg i.on{background:var(--amber)}
+#welcome .wQ{margin:4px 0 8px;font:700 var(--fs-2xl)/1.15 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+#welcome .wLine{margin:0 0 18px}
+#welcome .wAlt{all:unset;box-sizing:border-box;display:block;cursor:pointer;width:100%;margin:12px 0 0;min-height:48px;padding:0 12px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.2);text-align:center;font:700 var(--fs-base)/48px var(--f-board);color:var(--ink)}
+#welcome .wAlt:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#welcome #wTyped .cap{margin-top:4px}
+#welcome .wStep .note:empty{min-height:0;margin:0}
+#welcome .wStep .note{margin:12px 0 0}
+#welcome .wStep .wlater{display:inline-block;margin-top:18px;opacity:.8;font-size:var(--fs-s)}
 /* the opening: the logo, the name, and the logo's plane taking off into the board (shown when the page loads afresh) */
 #splash{position:fixed;inset:0;z-index:60;display:grid;place-content:center;justify-items:center;gap:24px;background:var(--housing);
   transition:opacity .2s}
@@ -2011,34 +2025,39 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <div class="wmark" aria-hidden="true"><svg viewBox="0 0 100 100"><g transform="translate(50 50) rotate(45) scale(.847) translate(-50 -50)"><rect x="45.5" y="8" width="9" height="82" rx="4.5"/><path d="M50 34 92 56 92 63 50 52 8 63 8 56Z"/><path d="M50 76 67 86 67 91 50 87 33 91 33 86Z"/></g></svg></div>
   <div class="panel" id="wHello" aria-hidden="true"></div>
   <h2 id="wHi" class="vh"></h2>
-  <button type="button" id="wOpen"><span id="wFor"></span><b data-t="Tap to open">Tap to open</b></button>
-  <div id="wStep1" hidden>
-    <p data-t="Where should it watch the sky? Use your location, or type it in.">Where should it watch the sky? Use your location, or type it in.</p>
+  <button type="button" id="wOpen"><span id="wFor"></span><b data-t="Open the board">Open the board</b></button>
+  <div id="wStep1" class="wStep" hidden>
+    <h3 class="wQ" data-t="Where are you?">Where are you?</h3>
+    <p class="wLine" data-t="Fallblatt shows the planes flying over you.">Fallblatt shows the planes flying over you.</p>
     <button class="cap big go" type="button" id="wLoc" data-t="Use my location">Use my location</button>
-    <p class="note" id="wNote" aria-live="polite"></p>
-    <div class="wgrid">
-      <label class="wlab"><span data-t="Place name">Place name</span><input id="wPlace" maxlength="30" autocomplete="off"></label>
-      <label class="wlab"><span data-t="Home airport">Home airport</span><input id="wHome" maxlength="3" autocomplete="off" autocapitalize="characters"></label>
-      <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off"></label>
-      <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off"></label>
+    <button class="wAlt" type="button" id="wType" data-t="Type a place">Type a place</button>
+    <div id="wTyped" hidden>
+      <div class="wgrid">
+        <label class="wlab"><span data-t="Place name">Place name</span><input id="wPlace" maxlength="30" autocomplete="off"></label>
+        <label class="wlab"><span data-t="Home airport">Home airport</span><input id="wHome" maxlength="3" autocomplete="off" autocapitalize="characters"></label>
+        <label class="wlab"><span data-t="Latitude">Latitude</span><input id="wLat" inputmode="decimal" autocomplete="off"></label>
+        <label class="wlab"><span data-t="Longitude">Longitude</span><input id="wLon" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <button class="cap big go" type="button" id="wGo" data-t="Continue">Continue</button>
     </div>
-    <button class="cap big go" type="button" id="wGo" data-t="Continue">Continue</button>
-    <button class="wlater" type="button" id="wLater" data-t="Set it later in Settings">Set it later in Settings</button>
+    <p class="note" id="wNote" aria-live="polite"></p>
+    <button class="wlater" type="button" id="wLater" data-t="Skip for now">Skip for now</button>
   </div>
-  <div id="wPush" hidden>
-    <p><b data-t="Get notifications?">Get notifications?</b></p>
-    <p data-t="A summary of your day at 22:30, and a nudge when something special is about to pass over.">A summary of your day at 22:30, and a nudge when something special is about to pass over.</p>
+  <div id="wPush" class="wStep" hidden>
+    <h3 class="wQ" data-t="Get notifications?">Get notifications?</h3>
+    <p class="wLine" data-t="Your day at 22:30, and a nudge when something special passes over.">Your day at 22:30, and a nudge when something special passes over.</p>
     <button class="cap big go" type="button" id="wPushYes" data-t="Yes, turn them on">Yes, turn them on</button>
     <p class="note" id="wPushNote" aria-live="polite"></p>
-    <button class="wlater" type="button" id="wPushNo" data-t="Not now">Not now</button>
+    <button class="wlater" type="button" id="wPushNo" data-t="Skip for now">Skip for now</button>
   </div>
-  <div id="wAcct" hidden>
-    <p><b data-t="Keep your logbook if you change phones?">Keep your logbook if you change phones?</b></p>
+  <div id="wAcct" class="wStep" hidden>
+    <h3 class="wQ" data-t="Keep your logbook?">Keep your logbook?</h3>
+    <p class="wLine" data-t="An account brings it along to a new phone.">An account brings it along to a new phone.</p>
     <div id="wAcctBox" class="acctBox"></div>
-    <button class="wlater" type="button" id="wAcctNo" data-t="Not now">Not now</button>
+    <button class="wlater" type="button" id="wAcctNo" data-t="Skip for now">Skip for now</button>
   </div>
-  <div id="wPick" hidden>
-    <p data-t="How do you want to watch?">How do you want to watch?</p>
+  <div id="wPick" class="wStep" hidden>
+    <h3 class="wQ" data-t="How do you want to watch?">How do you want to watch?</h3>
     <button class="cap big" type="button" id="wApp" aria-pressed="false" data-t="Phone app">Phone app</button>
     <p class="sub" data-t="On this phone; you can add it to your home screen.">On this phone; you can add it to your home screen.</p>
     <button class="cap big" type="button" id="wBoard" aria-pressed="false" data-t="Full board">Full board</button>

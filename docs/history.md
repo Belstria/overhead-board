@@ -948,6 +948,26 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.119 (to-do #212, clarity build 4 of 4, Dave's picks: welcome B, tips A, share picture A; the sign-in page B is
+  relay 99, below): **one question a screen.** (1) The welcome (`welcome`, head.html `#welcome`): the first card says
+  "Welcome, {name}" and "Open the board". The steps are today's, one screen each (`.wStep`), as many as apply here
+  (`steps`): Where are you? (`#wStep1`, always), Get notifications? (`#wPush`, `pushPossible()`), Keep your logbook?
+  (`#wAcct`, `accountsOk() && passkeysHere()`), How do you want to watch? (`#wPick`, always): two to four. Each gets a
+  progress line (`.wProg`, a dash per step, the current amber, "Step {n} of {total}" for screen readers), the question
+  as the heading (`.wQ`) and at most one line (`.wLine`). Where are you?: one line on what Fallblatt is, "Use my
+  location" (on a fix the place and the nearest airport are kept at once, `keep`, and the next step follows after the
+  "Found you" note), "Type a place" (`.wAlt`, the plain second button; `typed()` shows `#wTyped`, the four fields and
+  Continue, also when the location fails) and "Skip for now" (`#wLater`: the next steps still come; `skipped` opens
+  Settings at the end, as "Set it later in Settings" did). Notifications and the account: "Skip for now" instead of "Not
+  now"; the account box's own paragraph is hidden in the welcome (the step's line says it). The pick: the one offered
+  (the app on a phone, the board on a computer) first as the big button, the other as `.wAlt` (`pick` moves them).
+  `next(from)` goes on from a step. (2) Tips: `TAB_TIPS` one short sentence each; `NOW_TIPS` holds the app's own words
+  for the styles switch and Now's page buttons (the board keeps `MODE_TIP`, `PAGE_TIPS`); the swipe, open, places,
+  Location and points-chip tips shortened. The app's tip button says "OK": build.py patches E33 (`tipNext`), the board
+  keeps "Got it". Settings' "Show the tips again" is unchanged. (3) The share picture: `picCard(blob, fname, what)`
+  puts `what` as a `.note.shWhat` line between the picture and the buttons ("Your week as a picture, ready to send.";
+  month, year, "This plane …" from `shareCard`; Sky view's snapshot passes none). Share and Save picture already sat
+  side by side (`.cBtns`); Share still only where the browser or the Android app can share.
 - 1.118 (to-dos #211 and #205, clarity build 3 of 4, second half: Dave's picks on the Radar (B + cogwheel) and Sky view
   (A without the AUTO button, the mini radar + edge chips)). (1) Radar: the hint line (`#rvHint`) and the legend
   (`#rLegend`) went. `.rvTop` holds the title and `#rvSet` (the Settings tab's cog from `TAB_ICONS`, and `#rvSetKm`, the
@@ -1785,6 +1805,15 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 99 (1.119, to-do #212, clarity build 4, Dave's pick B): **the private page leads with the QR code.**
+  `refuse()` builds the page from `PRIVATE_PAGE` around `pair_page_js()`: "This board is private", one small line
+  ("Scan with a phone that is signed in, or type the code there"), the QR code with "Or open …/pair" and the code under
+  it (`pair_page_js` now stacks and centres them, its own explanation gone), then two buttons, "Sign in with your
+  account" (`/signin`) and "I have an invite link", and one line on what Fallblatt is. The invite button opens a field
+  (`#inv`, `PRIVATE_JS`): the pasted text, trimmed, is opened only when it is an http(s) link of this same origin (or a
+  bare path) to `/join/<token>`; anything else (another site, `//host`, `javascript:`, another path) shows "That isn't an
+  invite link for this board." The token only goes to the address bar; nothing is logged. Still nothing about the
+  board or anyone's data for a visitor without a profile. flows.py checks the page and the field.
 - Relay 98 (1.114.5, to-do #195, review H1): **the bingo squares a closer look fills pay.** `_game_bingo` ran only at
   a plane's first score (~15 km out, `game_note`), so "within 1 km" (`close`) and "below 2,500 ft" (`low`), and partly
   `fast`, never paid while `bingo_json` showed them done and even gave the Bingo trophy, unpaid. Now `take` calls

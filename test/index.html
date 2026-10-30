@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=8671ded62d"></script>
+<script src="i18n.js?v=f0d70a693b"></script>
 <script>
 (() => {
 "use strict";
@@ -6873,17 +6873,18 @@ async function shareCard(x){
   try { blob = await new Promise(r => shareCanvas(x).then(cv => cv.toBlob(r, "image/png"), () => r(null))); } catch { blob = null; }
   if (tok !== cardTok) return;
   if (!blob) { cardOpen(`<p class="note">${escH(T("Couldn't make the picture."))}</p>`); return; }
-  picCard(blob, `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`);
+  picCard(blob, `fallblatt-${String(x.flight || "").replace(/[^A-Za-z0-9]+/g, "").toLowerCase() || "plane"}.png`, T("This plane as a picture, ready to send."));
 }
 // A picture made to share, in a card with Share (the share sheet, or the Android app's) and Save picture: a sighting's
-// card; since 1.80 also the phone's year, week and month and Sky view's snapshot.
-function picCard(blob, fname){
+// card; since 1.80 also the phone's year, week and month and Sky view's snapshot. 1.119: `what`, a line under the
+// picture saying what it is; Share and Save picture side by side under that (Share only where it can share).
+function picCard(blob, fname, what){
   const file = typeof File === "function" ? new File([blob], fname, {type: "image/png"}) : null;
   const andr = !!window.OverheadAndroid && typeof window.OverheadAndroid.shareImage === "function";
   const canShare = andr || !!(file && navigator.share && navigator.canShare && navigator.canShare({files: [file]}));
   const canSave = !window.OverheadAndroid;            // the Android app's WebView can't download a picture
   const url = URL.createObjectURL(blob);
-  cardOpen(`<img class="cPic shImg" src="${url}" alt="">` +
+  cardOpen(`<img class="cPic shImg" src="${url}" alt="">` + (what ? `<p class="note shWhat">${escH(what)}</p>` : "") +
     `<div class="cBtns">${canShare ? `<button class="cBtn go" type="button" data-sh>⇪ ${escH(T("Share"))}</button>` : ""}` +
     (canSave ? `<button class="cBtn" type="button" data-sv>${escH(T("Save picture"))}</button>` : "") + `</div>` +
     `<p class="note">${canShare || canSave ? "" : escH(T("Press and hold the picture to save it."))}</p>`, el => {
@@ -7870,6 +7871,11 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.119", date: "2026-10-30", notes: [
+    "The app's welcome asks one thing a screen, with a line showing how many steps there are; Use my location is one tap, typing a place is the other choice.",
+    "The tips are one short sentence each, closed with OK.",
+    "The page for a screen that isn't signed in starts with the QR code, then Sign in and I have an invite link as two buttons.",
+    "A share picture says what it is, with Share and Save picture side by side."]},
   {v: "1.118", date: "2026-10-30", notes: [
     "The app's Radar shows the radar and the Nearest list, nothing in between: the cogwheel by the title opens the range and the map from below, the (i) by Nearest explains the colours, and the list names its columns.",
     "Sky view counts the planes in the picture and around you. A small radar dial bottom left shows them all (a tap lists them), and the three closest outside the picture sit at the edge with their distance and an arrow the way to turn; a tap opens the plane's card.",

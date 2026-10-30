@@ -1095,12 +1095,14 @@ each with a profile of their own: their own location, settings, Spotted today an
 `http://<relay>:8080/admin` at home, type a name and press **Make a link**, and send them the link. Opening it shows "A board for …"
 with an **Open Fallblatt** button, which sets up that phone or computer (it works once, on the first device that presses
 it, within two weeks; for another device press **New link**). Chat apps such as WhatsApp fetch the link for its preview;
-since relay 27 that no longer uses it up, and devices that were only a preview are dropped from the list. They get a short welcome: its flaps show Fallblatt until a tap opens it (browsers only play sound after a
-tap), then turn to their name letter by letter, with sound, within about two seconds. The board stays hidden until the welcome is done, then loads in with its flaps turning. They then type in their place, airport and coordinates
-(the fields show an example), or let **Use my location**
-fill them in to check, are asked about notifications (where the browser supports them), and choose the **phone app**
-(which they can add to their home screen from the browser) or the **full board** (for a computer or TV); their
-settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
+since relay 27 that no longer uses it up, and devices that were only a preview are dropped from the list. They get a short welcome: its flaps show Fallblatt until **Open the board** is tapped (browsers only play sound after a
+tap), then turn to their name letter by letter, with sound, within about two seconds. The board stays hidden until the welcome is done, then loads in with its flaps turning.
+Then one question a screen (1.119), a line of dashes showing how many there are: **Where are you?** (**Use my
+location** takes the phone's place and its nearest airport in one tap; **Type a place** opens the place, airport and
+coordinates fields), **Get notifications?** (where the browser supports them), **Keep your logbook?** (an account,
+where passkeys work) and **How do you want to watch?**: the **phone app** (which they can add to their home screen from
+the browser) or the **full board** (for a computer or TV). **Skip for now** goes on to the next question; a skipped place
+is set later in Settings, which opens at the end. Their settings follow them between the two and to other devices. Settings → Account → **Sign out** forgets a device again
 (the profile stays). Testing links yourself? Use a private/incognito window, so your own browser keeps its profile.
 
 **Every screen is a profile's (relay 42, 1.49).** There is no "Home" any more: a screen at home without a profile
@@ -1157,7 +1159,8 @@ there. The relay keeps only each passkey's public key and a salted scrypt hash o
 rate-limited. Passkeys need the https address.
 
 **Sign in a TV with your phone** (1.46, relay 39): a TV (or any screen) that opens the public address without being
-signed in shows the "private" page with a **QR code** and a six-letter code. Scan it with a phone that is signed in
+signed in shows the "private" page with a **QR code** and a six-letter code first, then **Sign in with your account**
+and **I have an invite link** (1.119: paste the link there to open it; only an invite link for this board opens). Scan the QR code with a phone that is signed in
 (or type the code at `<public address>/pair`), confirm "Sign in the screen as …", and the TV opens the board by
 itself within a few seconds, as a device of that profile. A phone that isn't signed in is asked to sign in first; a
 phone has to be signed in itself (since relay 42 there is no Home to sign in as). Codes last ten minutes (the screen shows a new one by itself) and are

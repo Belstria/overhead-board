@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 98
+RELAY_VERSION = 99
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -4810,14 +4810,14 @@ def pair_html(body):
 
 
 def pair_page_js():
-    """The private page's part that pairs: asks for a code, shows it, waits for a phone to say yes, then reloads."""
-    return ("<div id=qrBox style='margin:22px 0 6px;display:flex;gap:22px;align-items:center;flex-wrap:wrap'></div>"
+    """The private page's part that pairs: asks for a code, shows it, waits for a phone to say yes, then reloads.
+    Relay 99: the QR code with the code under it, centred (the page's first thing)."""
+    return ("<div id=qrBox style='margin:14px 0 6px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center'></div>"
             "<p id=qrMsg class=muted></p><script>(function(){var box=document.getElementById('qrBox'),msg=document.getElementById('qrMsg'),s='';"
             "function post(u,o){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o||{})}).then(function(r){return r.json()})}"
             "function start(){post('/pair/new').then(function(j){if(!j.code){msg.textContent=j.error||'';setTimeout(start,60000);return}s=j.secret;"
             "box.innerHTML='<div style=\"background:#fff;padding:8px;border-radius:10px;line-height:0\">'+j.svg+'</div>'+"
-            "'<div style=\"max-width:300px\"><p style=\"margin:0 0 6px\">Scan this with your phone, where you are signed in to Fallblatt, to sign in this screen.</p>'+"
-            "'<p style=\"margin:0;color:#8d887d\">Or open <b style=\"color:#e8e2d0\">'+j.host+'/pair</b> on your phone and type</p>'+"
+            "'<div><p style=\"margin:0;color:#8d887d\">Or open <b style=\"color:#e8e2d0\">'+j.host+'/pair</b> on your phone and type</p>'+"
             "'<p style=\"margin:4px 0 0;font:700 34px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#f2b134\">'+j.code+'</p></div>';"
             "setTimeout(wait,2500)}).catch(function(){setTimeout(start,15000)})}"
             "function wait(){post('/pair/wait',{secret:s}).then(function(j){if(j.ok){msg.textContent='Signed in. Opening the board…';location.reload();return}"
@@ -5362,6 +5362,34 @@ button{background:#2a2c31;color:#e8e2d0;border:1px solid #3a3c42;border-radius:6
 button.go{background:#f2b134;color:#111;border-color:#f2b134;font-weight:700}button.big{margin:8px 0 14px;padding:14px 22px;font-size:18px;border-radius:10px}form{display:inline}
 .link{display:block;margin:10px 0;padding:12px;border-radius:8px;background:#16171a;border:1px solid #f2b134;word-break:break-all;user-select:all;-webkit-user-select:all;
 font:14px/1.4 ui-monospace,Consolas,monospace;color:#f2b134}.muted{color:#8d887b;font-size:13px}"""
+
+
+# The page a visitor without a profile gets (relay 99, the clarity pass's pick B): the QR code and its code first (most
+# arrive with a signed-in phone in the other hand), the two ways in as buttons, one line on what Fallblatt is. "I have an
+# invite link" opens a field for a pasted link: only a /join/ link of this same site is opened, anything else is refused
+# (no other site, nothing else on this one), and the link goes nowhere but the address bar.
+PRIVATE_CSS = ("<style>.si h1{text-align:center;margin:0 0 4px}.si .muted{text-align:center;font-size:14px;margin:0}"
+              ".siBtns{display:grid;gap:10px;margin:18px 0 14px}.siBtns a,.siBtns button{display:block;box-sizing:border-box;width:100%;margin:0;"
+              "padding:14px;border-radius:12px;text-align:center;font:700 16px/1.2 system-ui,sans-serif;text-decoration:none;cursor:pointer}"
+              ".siBtns a{color:#111;background:#f2b134}.siBtns button{background:none;color:#e8e2d0;border:1px solid #4a4c52}"
+              "#inv{display:grid;gap:8px;margin:0 0 14px}#inv[hidden]{display:none}#inv input{width:100%;box-sizing:border-box}"
+              "#invErr{min-height:1.2em;color:#e0705a;font-size:14px;margin:0}.word{justify-content:center}</style>")
+PRIVATE_JS = ("<script>(function(){var b=document.getElementById('invBtn'),f=document.getElementById('inv'),i=document.getElementById('invLnk'),"
+             "e=document.getElementById('invErr');b.onclick=function(){f.hidden=false;b.setAttribute('aria-expanded','true');i.focus()};"
+             "f.onsubmit=function(ev){ev.preventDefault();var v=i.value.trim(),m=null;"
+             "try{var u=new URL(v,location.href);if(/^https?:$/.test(u.protocol)&&u.origin===location.origin)"
+             "m=u.pathname.match(/^\\/join\\/([A-Za-z0-9_-]{16,64})\\/?$/)}catch(x){}"
+             "if(!m){e.textContent=\"That isn't an invite link for this board.\";return}"
+             "location.href='/join/'+m[1]}})();</script>")
+PRIVATE_PAGE = (
+    PRIVATE_CSS + "<div class=si><h1>This board is private</h1>"
+    "<p class=muted>Scan with a phone that is signed in, or type the code there</p>",
+    "<div class=siBtns><a href='/signin'>Sign in with your account</a>"
+    "<button type=button id=invBtn aria-expanded=false aria-controls=inv>I have an invite link</button></div>"
+    "<form id=inv hidden><input type=text id=invLnk autocomplete=off autocapitalize=off spellcheck=false "
+    "placeholder='Paste your invite link' aria-label='Your invite link'><button class=go type=submit>Open</button>"
+    "<p id=invErr role=alert></p><p class=muted>No link, or it has run out? Ask for a new one.</p></form>"
+    "<p class=muted>Fallblatt shows the planes over a home, for its friends and family.</p></div>" + PRIVATE_JS)
 
 
 def plain_page(title, body, refresh=None):
@@ -8397,11 +8425,7 @@ class Handler(BaseHTTPRequestHandler):
         if not allow("stranger:" + self.client_ip(), 1, 20):
             return self.reply(429, "text/plain", b"Too many requests")
         if PAGE.match(path):
-            return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", (
-                "<h1>This board is private</h1><p>Fallblatt shows the planes flying over your home on a split-flap board, for friends and family. "
-                "Open the personal invite link you were sent to get in; it sets up this phone or computer.</p>"
-                "<p><a href='/signin'>Sign in with your account</a></p>" + pair_page_js() +
-                "<p class=muted>Already in, but on a new device without an account? Ask for a new link.</p>")))
+            return self.reply(403, "text/html; charset=utf-8", plain_page("Fallblatt", PRIVATE_PAGE[0] + pair_page_js() + PRIVATE_PAGE[1]))
         return self.reply(401, "application/json", b'{"error":"not signed in"}')
 
     def secure(self):
