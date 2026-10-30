@@ -1663,10 +1663,11 @@ function ppGo(reg){
   if (!document.querySelector(`#ppR-${reg} .hgRow, #ppR-${reg} .ppTo`)) { ppOpen.add(reg); hgBusy = 0; renderGame(); }
   const el = document.getElementById("ppR-" + reg);
   if (!el) return;
-  const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;
-  scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: REDUCED ? "auto" : "smooth"});
+  scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - gUnder()), behavior: REDUCED ? "auto" : "smooth"});
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
+// The Club's sticky top: the header, the Logbook · Spotters' Club titles and (1.116) the sub-tabs.
+const gUnder = () => $("top").offsetHeight + [...document.querySelectorAll("#t-game .lbTabs, #gSub")].reduce((a, e) => a + e.offsetHeight, 0) + 10;
 let ppAt = "eu";
 function ppCard(){
   const g0 = (lbData() || {}).game, pp = g0 && g0.passport;
@@ -1981,12 +1982,12 @@ function hgShow(){
   const el = document.querySelector("#t-game .hgPlate");
   if (!el) { hgWant = Date.now(); return; }
   hgWant = 0;
-  const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;   // below the sticky top and tabs
+  const under = gUnder();                                        // below the sticky top and tabs
   scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
 }
 function scEmpWire(el){
   for (const b of el.querySelectorAll("[data-sce]")) b.onclick = () => {
-    ctlSound.nav(); cardClose(); showTab("game");
+    ctlSound.nav(); cardClose(); gSubGo("hangar");
     toast(T("Open a card and tap Put in your showcase"));
     requestAnimationFrame(hgShow);
   };
@@ -2025,25 +2026,26 @@ function scWire(el, code, name){
     box.scrollIntoView({block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   };
 }
-function recordsHtml(all, g0){
+// 1.116: part "bingo" or "trophies" (the records with them): one sub-tab of the Spotters' Club; none: all (the Logbook).
+function recordsHtml(all, g0, part){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
   let html = "";
   const r = all.records;
-  if (r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28; the game's since relay 59)
+  if (part !== "bingo" && r && (r.closest || r.lowest || r.fastest || r.farthest)) {           // lifetime records (relay 28; the game's since relay 59)
     const who = x => x.callsign || x.reg || x.type || "", p = r.farthest && r.farthest.place;
     const rows = [["Closest ever", r.closest, x => `${x.v < 10 ? x.v.toFixed(2) : Math.round(x.v)} km`], ["Lowest ever", r.lowest, x => altitudeStr(x.v).toLowerCase()],
       ["Fastest ever", r.fastest, x => speedStr(x.v).toLowerCase()], ["Farthest route", r.farthest, x => `${p ? p.code || p.city : ""} · ${nf.format(x.v)} km`]].filter(x => x[1]);
     html += secPlate(T("Records"), rank(rows.map(([en, x, val]) => li(T(en), val(x), [who(x), x.ts ? fmtDay(x.ts) : ""].filter(Boolean).join(" · "))), true));
   }
   const bg = g0 && g0.bingo;
-  if (bg && bg.card) {                                 // the weekly bingo (relay 29)
+  if (part !== "trophies" && bg && bg.card) {         // the weekly bingo (relay 29)
     const nd = Object.keys(bg.done || {}).length;
     const cells = bg.card.map(k => { const d = (bg.done || {})[k];
       return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
     html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`);
   }
-  if (g0) html += trophiesHtml(g0);
+  if (g0 && part !== "bingo") html += trophiesHtml(g0);
   return html;
 }
 // Each tier's icon as on its flap after the aircraft type: the white sign on the tier's colour (drawn once, as a picture).
@@ -3436,7 +3438,14 @@ $("arInfo").onclick = () => { ctlSound.nav(); arTour(0); };
 let cardSheetHtml = "";
 function cardSheetPre(box, html){
   const ci = box.querySelector(".cardIn"), open = !box.hidden && box.classList.contains("in") && !box.classList.contains("closing");
-  return {open, h: open && ci ? ci.offsetHeight : 0, same: open && html === cardSheetHtml, html};
+  const pre = {open, h: open && ci ? ci.offsetHeight : 0, same: open && html === cardSheetHtml, html};
+  if (ci && ci.classList.contains("setSheet") && ci.querySelector(".setIn > *")) {   // 1.116: a Settings panel under it:
+    if (open && setPid) { const ask = ci.querySelector(".setAsk"); if (ask) { ask.remove(); setAsking = false; }   // laid aside,
+      let hold = $("setHold"); if (!hold) { hold = document.createElement("div"); hold.id = "setHold"; hold.hidden = true; document.body.appendChild(hold); }
+      hold.appendChild(ci); setHeld = ci; }
+    else setBack();                                        // or (still closing) its plate home
+  }
+  return pre;
 }
 function cardSheetPost(box, pre){
   const ci = box.querySelector(".cardIn");
@@ -3460,11 +3469,14 @@ function cardSheetGrow(ci, h0){
 }
 function cardSheetClose(b){
   if (b.hidden || !b.classList.contains("in")) return false;
-  const ci = b.querySelector(".cardIn");
+  const ci = b.querySelector(".cardIn"), set = !!ci && ci.classList.contains("setSheet");
   if (ci) ci.style.transform = "";                   // from where the finger left it
+  // 1.116: a card over a Settings panel gives the panel back; a panel with changes asks first (Save or Discard)
+  if (!set && setHeld && $("t-styles").hidden) { setRestore(b); return true; }
+  if (set && draft && PLATES.some(p => p.id === setPid) && (cockpitUnsaved() || setAsking)) { b.classList.remove("drag"); setAsk(ci); return true; }
   b.classList.remove("in", "drag"); b.classList.add("closing"); cardSheetHtml = "";
   clearTimeout(cardSheetClose.t);
-  cardSheetClose.t = setTimeout(() => { if (b.classList.contains("closing")) { b.hidden = true; b.classList.remove("closing"); } }, 270);
+  cardSheetClose.t = setTimeout(() => { if (b.classList.contains("closing")) { b.hidden = true; b.classList.remove("closing"); if (set) setBack(); } }, 270);
   return true;
 }
 // The finger on a card: down from its top (when it isn't scrolled) drags it; let go past 90 px, or flicked, it goes,
@@ -4075,6 +4087,7 @@ function cockpitOpen(){
   draft = cockpitDraft();
   const box = $("cockpit");
   box.innerHTML = PLATES.map(plateHtml).join("");
+  for (const p of box.children) p.classList.toggle("on", p.dataset.pid === setPid);   // 1.116: the open panel's plate
   $("aboutX").onclick = () => { ctlSound.click(); aboutHide(); };
   $("t-about").querySelector(".tabHead h2").onclick = () => aboutTap();       // 1.49: seven taps on About
   $("aboutX").setAttribute("aria-label", T("Close"));
@@ -4082,24 +4095,133 @@ function cockpitOpen(){
   cockpitShow();
   renderAbout();
   syncShow();
+  setListRender();
 }
-// The phone: Save and Cancel stay in Settings, with the controls back as saved; Save says Saved for a moment. The bar
-// lights up while there is something to save.
+// The phone: Save stays in the panel, with the controls back as saved; Save says Saved for a moment (1.116: the
+// panel's own Save; "Not saved yet" beside it while there is something to save).
 let savedTimer = 0;
 function cockpitDone(saved){
   cockpitOpen();
-  if (!saved) return;
-  const b = $("saveBtn");
+  const b = document.querySelector("#cardBox [data-setsave]");
+  if (!saved || !b) return;
   b.textContent = T("Saved"); clearTimeout(savedTimer);
   savedTimer = setTimeout(() => { b.textContent = T("Save"); }, 1600);
 }
 function cockpitMark(dirty){
-  $("saveBtn").setAttribute("aria-pressed", String(dirty));
-  $("t-settings").classList.toggle("dirty", dirty);
+  const n = document.querySelector("#cardBox [data-setdirty]");
+  if (n) n.hidden = !dirty;
 }
-function buildSaveBar(){
-  $("saveBtn").onclick = () => { ctlSound.press(); cockpitSave(); };
-  $("cancelBtn").onclick = () => { ctlSound.press(); cockpitCancel(); };
+/* 1.116 (to-do #208, Dave's pick B): Settings is a list of its sections, each with its state in one line. A tap raises
+   the section's plate as the app's sheet (cardOpen: the grip, swiped down, a tap beside or back). The plate is the same
+   element, moved into the sheet and home again when it has gone (setBack), so its controls, ids and handlers stay as
+   they were: the cockpit's plates move as their box (#cockpit, its other plates hidden), the others one by one.
+   A cockpit section has its own Save; closing it with changes asks first, Save or Discard (setAsk, from
+   cardSheetClose). A card opened from a panel (an address's hits, the saved places, a password) lays the panel aside
+   (setHeld, in #setHold) and brings it back when it closes; so does the Styles page. */
+const SET_ICO = {
+  loc: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M20 12h2M2 12h2"/>',
+  traffic: '<path d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2-7h-4l-2 2h-3l2-4-2-4h3l2 2h4l-2-7h3z"/>',
+  display: '<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8 0 1.06-.47 2.08-1.32 2.83-.84.75-1.99 1.17-3.18 1.17H14a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r=".6"/><circle cx="12" cy="7.5" r=".6"/><circle cx="16.5" cy="10.5" r=".6"/>',
+  flaps: '<path d="M15 8a5 5 0 0 1 0 8M17.7 5a9 9 0 0 1 0 14M6 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2l3.5-4.5a.8.8 0 0 1 1.5.5v14a.8.8 0 0 1-1.5.5L6 15"/>',
+  night: '<path d="M12 3h.39a7.5 7.5 0 0 0 7.92 12.45A9 9 0 1 1 12 3z"/>',
+  favs: '<path d="M12 17.75l-6.17 3.25 1.18-6.88-5-4.87 6.9-1L12 2l3.09 6.25 6.9 1-5 4.87 1.18 6.88z"/>',
+  account: '<circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  push: '<path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6M9 17v1a3 3 0 0 0 6 0v-1"/>',
+  device: '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M11 4h2M12 17v.01"/>',
+  about: '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/>'};
+let setPid = "", setHome = null, setHeld = null, setAsking = false, pushLine = "";
+const setCap = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+// Each section's state in one line (plain words; the row wraps rather than cutting it off).
+function setLine(id){
+  const both = (a, b) => [a, b].filter(Boolean).join(" · ");
+  if (id === "loc") return S.live ? T("Live · {n} km around", {n: S.radiusKm}) : both(S.place, T("{n} km around", {n: S.radiusKm}));
+  if (id === "traffic") return both(+S.maxAltFt >= 60000 ? T("all heights") : T("below {h}", {h: altitudeStr(+S.maxAltFt).toLowerCase()}),
+    +S.airtimeMin ? T("hovering {n} min", {n: S.airtimeMin}) : T("hovering off"));
+  if (id === "display") {
+    let lang = "";
+    try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
+    return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
+  }
+  if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
+  if (id === "night") return S.night ? T("quiet {a} – {b}", {a: S.nightFrom || "", b: S.nightTo || ""}) : T("off");
+  if (id === "favs") { const f = userLists.fav.length, h = userLists.hide.length;
+    return f || h ? [f ? T(f === 1 ? "1 favourite" : "{n} favourites", {n: f}) : "", h ? T("{n} hidden", {n: h}) : ""].filter(Boolean).join(" · ") : T("none yet"); }
+  if (id === "account") return GUEST ? String(GUEST.name || "").trim() || T("Guest") : T("Not signed in");
+  if (id === "push") return pushLine;
+  if (id === "about") return both(VERSION, T("what's new"));
+  return "";
+}
+function setListRender(){
+  const box = $("setList");
+  if (!box || tab !== "settings") return;
+  const row = id => { const p = PLATES.find(x => x.id === id) || VIEW_PLATES.find(x => x.id === id);
+    if (id === "favs" ? !listsOk() : !p) return "";
+    return `<li><button type="button" data-set="${id}"><span class="sIco" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SET_ICO[id] || ""}</svg></span>` +
+      `<b>${escH(id === "favs" ? T("Favourites & hidden") : T(p.title))}</b><small>${escH(setLine(id))}</small><i aria-hidden="true">›</i></button></li>`; };
+  const html = `<p class="idxH">${escH(T("The board"))}</p><ul class="idx">${["loc", "traffic", "display", "flaps", "night", "favs"].map(row).join("")}</ul>` +
+    `<p class="idxH">${escH(T("You and this phone"))}</p><ul class="idx">${["account", "push", "device", "about"].map(row).join("")}</ul>`;
+  if (box.dataset.h === html) return;
+  box.dataset.h = html; box.innerHTML = html;
+  for (const b of box.querySelectorAll("[data-set]")) b.onclick = () => setOpen(b.dataset.set);
+}
+function setOpen(id){
+  if (id === "about") { ctlSound.press(); aboutTap(); aboutShow(); return; }
+  const ck = PLATES.some(p => p.id === id), el = ck ? $("cockpit") : document.querySelector(`#t-settings .plate[data-pid="${id}"]`);
+  if (!el) return;
+  if (setPid) setBack();
+  ctlSound.nav();
+  setPid = id; setHome = [el.parentNode, el.nextSibling]; setAsking = false;
+  if (ck) for (const p of el.children) p.classList.toggle("on", p.dataset.pid === id);
+  cardOpen(`<div class="setIn"></div>` + (ck ? `<div class="setSave"><small data-setdirty hidden>${escH(T("Not saved yet"))}</small>` +
+    `<button class="cBtn" type="button" data-setsave>${escH(T("Save"))}</button></div>` : ""), ci => {
+    ci.classList.add("setSheet");
+    ci.querySelector(".setIn").appendChild(el);
+    const sv = ci.querySelector("[data-setsave]");
+    if (sv) sv.onclick = () => { ctlSound.press(); cockpitSave(); };
+    cockpitMark(cockpitUnsaved());
+  });
+  if (id === "loc") setTimeout(() => {                          // the Location tips, now that its plate shows
+    const vis = s => { const e = document.querySelector(s); return e && e.getClientRects().length ? e : null; };
+    tip("setlabel", () => vis("#cockpit .lblF"), T("Give the place you're watching a name and press its Save to keep it in your saved places."));
+    tip("setlive", () => vis("#cockpit [data-live]"), T("Live location follows this phone while the app is open."));
+  }, 900);
+}
+// The plate home again, once its sheet has gone (or another card took the sheet's place).
+function setBack(){
+  if (!setPid) return;
+  const ck = PLATES.some(p => p.id === setPid), el = ck ? $("cockpit") : document.querySelector(`.plate[data-pid="${setPid}"]`);
+  const [home, next] = setHome || [];
+  if (el && home) home.insertBefore(el, next && next.parentNode === home ? next : null);
+  if (ck && el) for (const p of el.children) p.classList.remove("on");
+  setPid = ""; setHome = null; setHeld = null; setAsking = false;
+  const hold = $("setHold"); if (hold) hold.replaceChildren();
+  setListRender();
+}
+// Closing with changes: Save or Discard first, on top of the panel. Asked again (back, a tap beside): the question goes.
+function setAsk(ci){
+  const was = ci.querySelector(".setAsk");
+  if (was) { was.remove(); setAsking = false; return; }
+  setAsking = true;
+  const keys = ITEMS.filter(it => String(draft[it.k] ?? "") !== String((it.dflt != null ? S[it.k] || it.dflt : S[it.k]) ?? "")).map(it => T(it.label));
+  const ask = document.createElement("div");
+  ask.className = "setAsk"; ask.setAttribute("role", "alertdialog");
+  ask.innerHTML = `<b>${escH(T("Save your changes?"))}</b><span>${escH(T("Changed: {list}.", {list: [...new Set(keys)].join(", ")}))}</span>` +
+    `<div><button class="setNo" type="button">${escH(T("Discard"))}</button><button class="cBtn" type="button">${escH(T("Save"))}</button></div>`;
+  ci.prepend(ask);
+  ci.scrollTo({top: 0, behavior: REDUCED ? "auto" : "smooth"});
+  ask.querySelector(".setNo").onclick = () => { ctlSound.click(); ask.remove(); setAsking = false; cockpitCancel(); cardClose(); };
+  ask.querySelector(".cBtn").onclick = () => { ctlSound.press(); ask.remove(); setAsking = false; cockpitSave(); cardClose(); };
+}
+// A Settings panel laid aside (a card over it, or the Styles page) comes back.
+function setRestore(b){
+  if (!setHeld || !b) return false;
+  const ci = setHeld; setHeld = null;
+  b.replaceChildren(ci);
+  b.classList.remove("closing", "drag"); ci.style.transform = "";
+  if (b.hidden) { b.hidden = false; b.classList.remove("in"); void b.offsetWidth; }
+  b.classList.add("in");
+  cardSheetHtml = "";
+  return true;
 }
 /* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
 function aboutOpen(){
@@ -4228,65 +4350,16 @@ $("stylesX").onclick = () => { ctlSound.click(); stylesHide(); };
 $("stylesX").setAttribute("aria-label", T("Close"));
 addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
+// 1.116: kept on the page out of sight (#setExtra), each raised as a panel from its row; not drawn again while one shows.
 function settingsExtra(){
   const box = $("setExtra");
-  if (!box) return;
+  if (!box || (setPid && VIEW_PLATES.some(p => p.id === setPid))) return;
   box.innerHTML = VIEW_PLATES.map(plateHtml).join("");
   wireViews(box);
 }
-/* 1.88 (Dave's pick 11 A): Settings' plates by name in a bar under the header, the app's segmented style. It scrolls
-   sideways; a name scrolls to its plate; the plate on screen is lit while Settings scrolls, its name kept in view.
-   The names are the cockpit's (per target, translated); Favourites & hidden is Favourites there. */
-const jumpPlates = () => [...document.querySelectorAll("#cockpit > .plate, #favBox:not([hidden]) > .plate, #setExtra > .plate")].filter(p => p.getClientRects().length);
-const jumpName = id => id === "favs" ? T("Favourites") : T((PLATES.find(p => p.id === id) || VIEW_PLATES.find(p => p.id === id) || {title: id}).title);
-let jumpOn = "", jumpHold = null;
-function jumpBuild(){
-  const bar = $("setJump"), seg = $("setJumpSeg");
-  if (!bar || tab !== "settings") return;
-  const ids = jumpPlates().map(p => p.dataset.pid);
-  if (seg.dataset.ids !== ids.join() + LANG) {
-    seg.dataset.ids = ids.join() + LANG;
-    seg.innerHTML = ids.map(id => `<button type="button" data-jump="${id}" aria-pressed="false">${escH(jumpName(id))}</button>`).join("");
-    for (const b of seg.children) b.onclick = () => { ctlSound.nav(); jumpGo(b.dataset.jump); };
-    seg.setAttribute("aria-label", T("Jump to"));
-    jumpOn = "";
-  }
-  bar.hidden = ids.length < 2;
-  jumpSpy();
-}
-// A plate's top just under the header and the bar (the bar is stuck there once Settings has scrolled).
-const jumpLine = () => $("top").offsetHeight + $("setJump").offsetHeight + 10;
-function jumpGo(id){
-  const p = document.querySelector(`#t-settings .plate[data-pid="${id}"]`);
-  if (!p) return;
-  jumpHold = id;
-  jumpLight(id);
-  scrollTo({top: Math.max(0, p.getBoundingClientRect().top + scrollY - jumpLine()), behavior: "smooth"});
-}
-function jumpSpy(){
-  if (tab !== "settings" || $("setJump").hidden) return;
-  if (jumpHold) return jumpLight(jumpHold);       // the name tapped stays lit (a plate near the end can't reach the top)
-  const plates = jumpPlates(), line = jumpLine() + 14;
-  if (!plates.length) return;
-  let on = plates[0];
-  for (const p of plates) if (p.getBoundingClientRect().top <= line) on = p;
-  if (scrollY > 0 && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) on = plates[plates.length - 1];   // the end: About
-  jumpLight(on.dataset.pid);
-}
-function jumpLight(id){
-  if (id === jumpOn) return;
-  jumpOn = id;
-  const seg = $("setJumpSeg");
-  let lit = null;
-  for (const b of seg.children) { const on = b.dataset.jump === id; b.setAttribute("aria-pressed", String(on)); if (on) lit = b; }
-  if (lit) seg.scrollTo({left: lit.offsetLeft - (seg.clientWidth - lit.offsetWidth) / 2, behavior: "smooth"});
-}
-// The bar sticks under the header, whose height changes with the score strip and the text size.
+// The header's height, for what sticks under it (the Logbook's and the Club's titles, the Club's sub-tabs).
 const topSize = () => document.documentElement.style.setProperty("--topH", $("top").offsetHeight + "px");
 if (window.ResizeObserver) new ResizeObserver(topSize).observe($("top")); else topSize();
-let jumpRaf = 0;
-addEventListener("scroll", () => { if (tab === "settings" && !jumpRaf) jumpRaf = requestAnimationFrame(() => { jumpRaf = 0; jumpSpy(); }); }, {passive: true});
-for (const e of ["touchstart", "wheel", "keydown"]) addEventListener(e, () => { jumpHold = null; }, {passive: true, capture: true});   // until Settings is scrolled by hand
 //@L:taps
 $("hero").addEventListener("click", e => {
   if (!feat || !feat.o) return;
@@ -4532,11 +4605,64 @@ function planeAgain(){
 function renderFavBox(){
   const box = $("favBox");
   if (!box) return;
-  if (!listsOk()) { box.hidden = true; return; }
-  box.hidden = false;
-  box.innerHTML = `<div class="plate cardish" data-pid="favs" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3><div data-fm></div></div>`;
-  favManager(box.querySelector("[data-fm]"));
-  jumpBuild();
+  if (!listsOk()) { box.innerHTML = ""; setListRender(); return; }
+  let p = document.querySelector('.plate[data-pid="favs"]');
+  if (!p || p.dataset.lang !== LANG) {
+    if (p && setPid === "favs") p.remove();
+    // 1.116 (Dave's pick B): two rows with their count and an Add each; what the lists do behind the (i)
+    box.innerHTML = `<div class="plate cardish favPlate" data-pid="favs" data-lang="${LANG}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${T("Favourites & hidden")}</h3>` +
+      `<button class="iBtn" type="button" data-finfo aria-expanded="false" aria-label="${escH(T("What favourites and hidden planes do"))}">i</button><div data-fm></div>` +
+      `<datalist id="favDl">${Object.entries(AIRLINES).map(([c, a]) => `<option value="${escH(a[1])} (${c})">`).join("")}` +
+      `${Object.entries(TYPES).map(([c, n]) => `<option value="${escH(n)} (${c})">`).join("")}</datalist></div>`;
+    p = box.firstChild;
+    if (setPid === "favs") { const ci = document.querySelector("#cardBox .setSheet .setIn") || ($("setHold") && $("setHold").querySelector(".setIn")); if (ci) { ci.appendChild(p); setHome = [box, null]; } }
+    const ib = p.querySelector("[data-finfo]");
+    ib.onclick = () => { ctlSound.click(); const fm = p.querySelector("[data-fm]"); fm.dataset.info = fm.dataset.info ? "" : "1"; ib.setAttribute("aria-expanded", String(!!fm.dataset.info)); favRows(fm); };
+  }
+  favRows(p.querySelector("[data-fm]"));
+  setListRender();
+}
+// The two rows: a tap on one opens its list in place (each entry with its ×), Add opens the field for that list.
+function favRows(el){
+  const open = el.dataset.open || "", adding = el.dataset.add || "";
+  const KINDS = [["fav", "★", "Favourites", "they light up and chime"], ["hide", "⊘", "Hidden", "they stay off the board"]];
+  el.innerHTML = (el.dataset.info ? `<p class="note favInfo">${escH(T("Favourites light up and get a chime and a notification. Hidden planes stay off the board, the lists and the notifications (they are still in the logbook)."))}</p>` : "") +
+    KINDS.map(([w, sym, name, what]) => { const list = userLists[w], n = list.length;
+      return `<div class="favRow"><button type="button" class="favRowT" data-fopen="${w}" aria-expanded="${open === w && n > 0}"${n ? "" : " disabled"}><b>${sym} ${escH(T(name))}</b>` +
+        `<small>${escH(n ? T(n === 1 ? "1 entry" : "{n} entries", {n}) : T("none yet"))} · ${escH(T(what))}</small></button>` +
+        `<button class="cBtn" type="button" data-fadd="${w}" aria-expanded="${adding === w}">${escH(T("Add"))}</button></div>` +
+        (adding === w ? `<div class="favAdd"><input data-fi list="favDl" autocomplete="off" placeholder="${escH(T("Code or name, e.g. Austrian, A380, OE-LBN"))}">` +
+          `<button class="cBtn" type="button" data-fa="${w}">${escH(T("Add"))}</button></div><p class="note" data-fn></p>` : "") +
+        (open === w && n ? `<ul class="chips">${list.map((i, k) => `<li><small>${escH(T(KIND_NAME[i.k] || ""))}</small>${escH(i.n || i.v)}` +
+          `<button type="button" data-rm="${w}:${k}" aria-label="${escH(T("Remove"))}">×</button></li>`).join("")}</ul>` : ""); }).join("");
+  const again = () => favRows(el);
+  for (const b of el.querySelectorAll("[data-fopen]")) b.onclick = () => { ctlSound.click(); el.dataset.open = el.dataset.open === b.dataset.fopen ? "" : b.dataset.fopen; again(); };
+  for (const b of el.querySelectorAll("[data-fadd]")) b.onclick = () => {
+    ctlSound.click(); el.dataset.add = el.dataset.add === b.dataset.fadd ? "" : b.dataset.fadd; again();
+    const f = el.querySelector("[data-fi]"); if (f) f.focus();
+  };
+  for (const b of el.querySelectorAll("[data-rm]")) b.onclick = () => {
+    const [w, n] = b.dataset.rm.split(":"), item = userLists[w][+n]; ctlSound.click();
+    if (!item) return;
+    const p = listOps([{op: "remove", list: w, item}]);
+    again();
+    p.catch(() => { again(); toast(T(SAVE_FAILED), {err: true}); });
+  };
+  const fa = el.querySelector("[data-fa]"), fi = el.querySelector("[data-fi]");
+  if (fa) {
+    const add = () => {
+      ctlSound.press();
+      const w = fa.dataset.fa, c = parseListEntry(fi.value);
+      if (!c) { el.querySelector("[data-fn]").textContent = T("Code or name, e.g. Austrian, A380, OE-LBN"); return; }
+      el.dataset.add = ""; el.dataset.open = w;
+      if (inList(userLists[w], c)) return again();
+      const p = listOps([{op: "add", list: w, item: c}]);
+      again();
+      p.catch(() => { again(); toast(T(SAVE_FAILED), {err: true}); });
+    };
+    fa.onclick = add;
+    fi.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+  }
 }
 
 /* ---------- notifications (relay 25): the evening summary and "worth going to the window" ----------
@@ -4613,17 +4739,18 @@ let pushBusy = false;
 async function renderPush(){
   const box = $("pushBox");
   if (!box) return;
-  const say = t => `<p>${escH(t)}</p>`;
-  if ((window.OVERHEAD_RELAY_VERSION || 0) < 25) { box.innerHTML = say(T("The relay doesn't offer notifications yet.")); return; }
+  const say = t => `<p>${escH(t)}</p>`, line = t => { pushLine = T(t); setListRender(); };   // 1.116: Settings' row says it
+  if ((window.OVERHEAD_RELAY_VERSION || 0) < 25) { box.innerHTML = say(T("The relay doesn't offer notifications yet.")); line("not offered yet"); return; }
   const native = NATIVE_PUSH();
-  if (!native && !window.isSecureContext) { box.innerHTML = say(T("Notifications only work through the https address (the one in your invite link), not at home on the Wi-Fi address.")); return; }
+  if (!native && !window.isSecureContext) { box.innerHTML = say(T("Notifications only work through the https address (the one in your invite link), not at home on the Wi-Fi address.")); line("only through the https address"); return; }
   if (!native && (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window))) {
-    box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); return;
+    box.innerHTML = say(T("This browser can't show notifications. On an iPhone, add Fallblatt to the home screen first and open it from there.")); line("not in this browser"); return;
   }
-  if (!native && Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); return; }
+  if (!native && Notification.permission === "denied") { box.innerHTML = say(T("Notifications are blocked for this site in the browser's settings.")); line("blocked in the browser"); return; }
   let prefs = {summary: true, review: true, window: true, countdown: true, ...PUSH_KIND_DEFAULTS};
   try { prefs = {...prefs, ...JSON.parse(localStorage.getItem(PUSH_PREFS) || "{}")}; } catch {}
   const sub = await pushSub().catch(() => null);
+  line(sub ? "on" : "off");
   const sw = (k, label) => `<label class="pushOpt"><input type="checkbox" data-p="${k}"${prefs[k] ? " checked" : ""}> ${escH(T(label))}</label>`;
   box.innerHTML = say(T("A summary of your day at 22:30, and a nudge when something special is about to pass over.")) +
     (sub ? say(T("Notifications are on for this device.")) : "") + sw("summary", "Evening summary") +
@@ -4884,10 +5011,7 @@ function appTips(t){
   }
   if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
   if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
-  if (t === "settings") {
-    tip("setlabel", () => document.querySelector("#cockpit .lblF"), T("Give the place you're watching a name and press its Save to keep it in your saved places."));
-    tip("setlive", () => document.querySelector("#cockpit [data-live]"), T("Live location follows this phone while the app is open."));
-  }
+  // 1.116: Settings' Location tips come when its panel opens (setOpen)
 }
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
 function aboutShow(){
@@ -4921,8 +5045,8 @@ function showTab(t){
   else if (t === "today") { svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
-  else if (t === "settings") { jumpHold = null; cockpitOpen(); settingsExtra(); renderFavBox(); jumpBuild(); }
-  else if (t === "game") { gPlates = null; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
+  else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); setListRender(); }
+  else if (t === "game") { if (was !== "game") gSub = "level"; gPlates = null; gRefresh(true); gLeagueLoad(true); fetchLogbook(); renderGame(); tabTimer = setInterval(() => { gLeagueLoad(); renderGame(); }, 30000); }
   const hash = t === "now" ? "" : "#" + t;
   if (location.hash !== hash) history.replaceState(null, "", location.pathname + location.search + hash);
   setTimeout(() => appTips(t), 900);
@@ -5044,7 +5168,7 @@ async function start(){
   pickLang();
   for (const el of document.querySelectorAll("[data-t]")) el.textContent = T(el.dataset.t);
   for (const el of document.querySelectorAll("[data-ta]")) el.setAttribute("aria-label", T(el.dataset.ta));   // 1.114.5: fixed labels
-  buildTabs(); buildSvTools(); buildRadarLegend(); buildSaveBar(); updateWhere();
+  buildTabs(); buildSvTools(); buildRadarLegend(); updateWhere();
   for (const b of document.querySelectorAll("#modes [data-mode]")) b.onclick = () => setMode(b.dataset.mode);
   showModes();
   applyTheme();
@@ -5089,6 +5213,8 @@ function gStripSetup(){
 let gHit = null;
 function gGoPlate(cls){
   if (tab !== "game") showTab("game");
+  const sub = {gHero: "level", lgPlate: "league", hgPlate: "hangar", ppPlate: "passport", lyPlate: "cards"}[cls] || "level";   // 1.116: its sub-tab
+  if (sub !== gSub) gSubGo(sub);
   gHit = {cls, until: Date.now() + 1500, done: false};
   gHitDo();
 }
@@ -5097,8 +5223,7 @@ function gHitDo(){
   if (!el) return;
   if (!gHit.done) {
     gHit.done = true;
-    const bar = document.querySelector("#t-game .lbTabs"), under = $("top").offsetHeight + (bar ? bar.offsetHeight : 0) + 10;
-    scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - under), behavior: REDUCED ? "auto" : "smooth"});
+    scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - gUnder()), behavior: REDUCED ? "auto" : "smooth"});
   }
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
@@ -5281,8 +5406,9 @@ function careerMini(g){
   const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0, un = careerAt(lv + 1);
   return `<div class="cuMini" style="--p:${(p * 100).toFixed(1)}%"><div class="cuLn"><span class="cuD cur">${lv}</span><i><b></b>${CU_PLANE}</i><span class="cuD nx">${lv + 1}</span></div>` +
     `<div class="cuLb"><small>${escH(rankTitle(lv))}</small><small class="go">${escH(cuToGo(g))}</small><small>${escH(rankTitle(lv + 1))}</small></div></div>` +
-    (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("At the next stop"))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "") +
-    `<button class="gHow" type="button" id="cuOpen">${escH(T("Your route · all {n} stops", {n: 20}))}<i>›</i></button>`;
+    // 1.116 (A's plainer words): the next unlock named, with its level; the whole route as "All 20 levels"
+    (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("Next unlock · level {n}", {n: lv + 1}))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "") +
+    `<button class="gHow" type="button" id="cuOpen">${escH(T("All {n} levels", {n: 20}))}<i>›</i></button>`;
 }
 // The route: a stop per level down a line, solid where you've been and dashed ahead, each with its insignia, title, the
 // points it opens at (the next stop only, 1.112) and its unlocks; the plane between your stop and the next with what is
@@ -5340,6 +5466,8 @@ const stWhat = (k, id) => k === "ticket" ? T(ERA_WHAT[id] || "") + " " + T("Ever
 const stTag = (on, ok, r) => on ? `<i class="stUse">${escH(T("IN USE"))}</i>` : ok ? `<i class="stHave">✓ ${escH(T("YOURS"))}</i>` : `<i class="stLk">${ST_LOCK}${escH(stRuleShort(r))}</i>`;
 function stylesPage(focusKind){
   if (ST_TAB_OF[focusKind]) stTab = ST_TAB_OF[focusKind];
+  const cb = $("cardBox");                                 // 1.116: from the Display panel: the panel aside meanwhile
+  if (setPid && cb && cardOpenNow() && cb.querySelector(".setSheet")) { cardSheetPre(cb, ""); cb.hidden = true; cb.classList.remove("in"); }
   if (tab !== "settings") showTab("settings");
   $("t-styles").hidden = false; $("t-styles").scrollTop = 0;
   document.body.classList.add("aboutOpen");
@@ -5349,6 +5477,7 @@ function stylesHide(){
   if ($("t-styles").hidden) return;
   $("t-styles").hidden = true;
   if ($("t-about").hidden && $("t-log").hidden) document.body.classList.remove("aboutOpen");
+  if (setHeld && !cardOpenNow()) setRestore($("cardBox"));   // 1.116: back to the Display panel
 }
 function stylesRender(){
   const box = $("stylesBox"), g0 = styleGame(), kinds = new Map(styleKinds().map(([k, label, o]) => [k, [label, o]]));
@@ -5847,28 +5976,36 @@ function renderGame(){
   // 1.79 (Dave's pick A): one card for the level, then today's points, your place this week and the streak as three
   // numbers; the rules behind How points work (a card). The league under it, its week and all-time switch beside it.
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
-  let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
-    careerMini(g) +                                          // 1.109: the mini route, the next stop, Your route
-    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>` +
-      // 1.115: Go live here, where the strip's chip had it (the header chip opens this page)
-      (liveOk() ? `<button class="liveGo gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "")) + gSbyHtml(g) +
-    `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
-    // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
-    `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-    gLimHtml(g) + `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero");
-  const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
-  let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
-  lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
-    : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span>' : ""}${r.level ? rankIns(r.level, 30, {wings: r.wings, label: true}) : ""}<span class="${r.level >= 19 ? "rkGold" : ""}">${escH(r.name)}</span></span><em>${nf.format(r.points)}</em>` +
-      `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
-  if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
-  h += secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
-  if (g0) h += collectionHtml(g0) + passportHtml(g0) + walletHtml(g0) + recordsHtml(all, g0);     // 1.106: the member cards; 1.107: the passport
+  // 1.116 (to-do #208, Dave's pick B): sub-tabs show one part at a time (gSubBar); Level first, with a line of state
+  // for each other part under its card (gIndexHtml). A's words in the card: the next unlock named, and while points
+  // are paused one line with Go live in it (the green button went). The five rarity counters went (How points work
+  // has them); a rarity at its limit still says so.
+  const sub = gSubBar(g0);
+  let h = "";
+  if (sub === "level") {
+    h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
+      careerMini(g) +                                        // 1.109: the mini route, the next stop, Your route
+      (S.live ? "" : `<p class="gRule gOff">${escH(T("Points need live location"))}` +
+        (liveOk() ? ` · <button class="gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "") + `</p>`) + gSbyHtml(g) +
+      `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
+      // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
+      `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
+      gLimHtml(g, true) + `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero") + gIndexHtml(g, g0);
+  } else if (sub === "league") {
+    const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
+    let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
+    lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
+      : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span>' : ""}${r.level ? rankIns(r.level, 30, {wings: r.wings, label: true}) : ""}<span class="${r.level >= 19 ? "rkGold" : ""}">${escH(r.name)}</span></span><em>${nf.format(r.points)}</em>` +
+        `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
+    if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
+    h = secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
+  } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : sub === "cards" ? walletHtml(g0)   // 1.106: the member cards; 1.107: the passport
+    : recordsHtml(all, g0, sub);                             // bingo; trophies (with the records)
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
-  const fs = fsState();
+  const fs = sub === "level" && fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
   if (fs && fs.wings) { h += secPlate(T("Flight school"), fsRecord(fs, {sig: window.SIG_FONT || sigFailed ? fsSigHtml(fsName()) : ""}), "fsPlate"); if (!window.SIG_FONT) sigFont().then(f => f && renderGame()); }
-  h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
+  if (sub === "level") h += `<p class="sum lbFoot">${escH(logbookSummary())}</p>`;          // 1.89: the Logbook's footnote, here too
   const box = $("gameBox"), parts = gPlateSplit(h), old = gPlates && gPlates.length === parts.length ? gPlates : null;
   const changed = parts.map((p, i) => old && old[i] === p ? -1 : i).filter(i => i >= 0);
   if (old && !changed.length) return;
@@ -5893,10 +6030,63 @@ function renderGame(){
   if (gHit) gHitDo();
   for (const li of box.querySelectorAll("[data-player]")) li.onclick = () => playerCard(li.dataset.player);
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
-  $("gHow").onclick = gHowCard;
-  $("cuOpen").onclick = careerOpen;
+  if ($("gHow")) $("gHow").onclick = gHowCard;
+  if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
+  for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); gSubGo(b.dataset.gsub); };
   trWire(box, renderGame);
-  $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+  if ($("gLeagueOpt")) $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
+}
+/* 1.116 (to-do #208, Dave's pick B): the Club's sub-tabs, a bar stuck under the Logbook · Spotters' Club titles (the
+   segmented style that scrolls sideways, as Settings' jump bar had it). Each shows one part; a part the relay doesn't
+   send yet (an older relay) has no tab. Opening the Club from another tab starts at Level (showTab). */
+const G_SUBS = [["level", "Level"], ["league", "League"], ["hangar", "Hangar"], ["passport", "Passport"], ["cards", "Cards"], ["bingo", "Bingo"], ["trophies", "Trophies"]];
+let gSub = "level";
+const gSubHas = (k, g0) => k === "level" || k === "league" || (!!g0 && (k === "hangar" || k === "trophies" || (k === "passport" && !!g0.passport) ||
+  (k === "cards" && !!g0.wallet) || (k === "bingo" && !!(g0.bingo && g0.bingo.card))));
+function gSubBar(g0){
+  const subs = G_SUBS.filter(([k]) => gSubHas(k, g0)), seg = $("gSubSeg");
+  if (!subs.some(([k]) => k === gSub)) gSub = "level";
+  const ids = subs.map(x => x[0]).join() + LANG;
+  if (seg.dataset.ids !== ids) {
+    seg.dataset.ids = ids;
+    seg.innerHTML = subs.map(([k, t]) => `<button type="button" data-gs="${k}" aria-pressed="false">${escH(T(t))}</button>`).join("");
+    for (const b of seg.children) b.onclick = () => { if (b.dataset.gs !== gSub) { ctlSound.nav(); gSubGo(b.dataset.gs); } };
+  }
+  let lit = null;
+  for (const b of seg.children) { const on = b.dataset.gs === gSub; b.setAttribute("aria-pressed", String(on)); if (on) lit = b; }
+  if (lit && seg.dataset.lit !== gSub) { seg.dataset.lit = gSub; seg.scrollTo({left: lit.offsetLeft - (seg.clientWidth - lit.offsetWidth) / 2, behavior: REDUCED ? "auto" : "smooth"}); }
+  const t = document.querySelector("#t-game .lbTabs");
+  if (t && t.offsetHeight) document.documentElement.style.setProperty("--lbH", t.offsetHeight + "px");
+  return gSub;
+}
+// To a sub-tab: drawn whole, the page back at its top (under the sticky bars).
+function gSubGo(k){
+  if (tab !== "game") showTab("game");
+  gSub = k; gPlates = null; hgBusy = 0;
+  renderGame();
+  scrollTo({top: 0});
+}
+// Level's index: each other part with its state in one line; a tap opens its sub-tab.
+function gIndexHtml(g, g0){
+  const L = gLeague, rows = [];
+  const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<li><button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">›</i></button></li>`);
+  row("league", "League", S.league === false ? T("Not shown in the league") :
+    [g.rank ? T("#{n} this week", {n: g.rank}) : T("No place this week yet"), L && L.resets ? T("ends {d}", {d: fmtDay(L.resets - 4 * 3600000)}) : ""].filter(Boolean).join(" · "));
+  if (g0) {
+    if (hangarOk()) hangarLoad();
+    const ts = hangar && hangar.types, n = ts ? ts.filter(t => t.scans).length : 0;
+    row("hangar", "Hangar", ts ? T("{n} scanned · {m} still to scan", {n: nf.format(n), m: nf.format(ts.length - n)})
+      : T("{n} of {m} sets complete", {n: (g0.sets || []).filter(x => x.have.length >= x.total).length, m: (g0.sets || []).length}));
+    const pp = ppList(g0.passport).length;
+    row("passport", "Passport", T(pp === 1 ? "1 country" : "{n} countries", {n: nf.format(pp)}));
+    const ly = g0.wallet ? lyList(g0).length : 0;
+    row("cards", "Member cards", T(ly === 1 ? "1 airline" : "{n} airlines", {n: nf.format(ly)}));
+    const bg = g0.bingo;
+    row("bingo", "This week's bingo", T("{n} of 9 done", {n: Object.keys((bg && bg.done) || {}).length}));
+    const won = g0.trophies || {};
+    row("trophies", "Trophies", T("{n} of {m} won", {n: TROPHY_IDS.filter(k => won[k]).length, m: TROPHY_IDS.length}));
+  }
+  return `<ul class="idx gIdx">${rows.join("")}</ul>`;
 }
 // 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
 // without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday
@@ -5920,14 +6110,15 @@ function gSbyHtml(g){
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
-function gLimHtml(g){
+// 1.116: notes only (the level card): the counters went, a rarity at its limit still says so.
+function gLimHtml(g, notes){
   const R = gRules(), L = g.limits;
   if (!R || !L) return "";
   const tiers = TIER_DRUM.slice(1), full = tiers.filter(t => L[t] && L[t][0] >= L[t][1]);
   const h = g.resets ? hhmm(new Date(g.resets)) : "03:00";
-  return `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
+  return (notes ? "" : `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
     return `<div class="${n >= m ? "full" : ""}" style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><b>${nf.format(Math.min(n, m))}<small>/${nf.format(m)}</small></b>` +
-      `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>` +
+      `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>`) +
     full.map(t => `<div class="gNote"><img class="tico" src="${tierIcon(t)}" alt=""><div>${escH(T("{t} limit reached: {m} of {m} today", {t: gTierT(t), m: nf.format(L[t][1])}))}` +
       `<small>${escH(T("{t} planes score again from {h}. The other rarities still count.", {t: gTierT(t), h}))}</small></div></div>`).join("");
 }
@@ -6339,8 +6530,6 @@ function gameStart(){
 function run(){
   if (booted) return;
   booted = true;
-  if (GUEST) $("setSum").textContent = T(LIGHT ? "Change the settings, then press Save. Settings are kept with your profile, on every device you use."
-    : "Turn the knobs and flip the switches, then press Save. Settings are kept with your profile, on every device you use.");
   fitSideways();
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => { clearTiles(); refreshPanels(true); });
   if (S.demo || !relayV5()) spotted = S.demo ? demoLog() : [];
