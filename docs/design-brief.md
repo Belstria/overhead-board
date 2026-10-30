@@ -1,92 +1,127 @@
-# Fallblatt: brief for a visual overhaul
+# Fallblatt: the design brief
 
-You are asked to give Fallblatt a visual overhaul. Read this first, then `docs/architecture.md` (how everything fits
-together) and `README.md` (what users see). Hand back your work as a branch or as changed files; it will be checked and merged from
-there.
+The one design document for the phone app and the board. **Read it before any visible change or mockup.** Part 1 is
+the rules that keep the app simple; they are checks and budgets, not taste, and they win over anything below them.
+Part 2 is the identity that stays, part 3 the app as it is today, part 4 where the code is and what the screens can
+bear. Where this document and the code disagree about what exists, the code wins; about what is allowed, this wins.
 
-## What Fallblatt is
+## 1. Rules for staying simple (Dave, Oct 2026)
 
-A split-flap "planes overhead" board: an airport departures board look, drawn on canvas, showing the plane flying
-over right now, the day's sightings, a lifetime logbook and a radar. It runs in three places:
+Why: a new user got lost in "a lot going on on the screen" (29 Oct); every screen was redesigned (1.115–1.119.1), and
+two days later mockups again carried sentences and a second row of tabs. These rules are budgets, so that it stops.
 
-- **TV boards** (`index.html`, `test/`): a fixed 1920×1080 layout scaled to the screen, on a Samsung The
-  Frame, a Fire TV and an LG TV (weak hardware), and on computers.
-- **The phone web app** (`app/`): the same flap engine in a phone layout. Upright: tabs (Now, Today, Logbook, Radar,
-  Settings). Sideways: the board only, full screen.
-- **An Android app**: a WebView of the phone app, so it changes with it.
+**Text**
 
-Two styles: **Overhead** (planes flying over) and **Airport** (take-offs and landings).
+1. **At rest, a state shows a label and a value, nothing else.** A label is at most three words ("Standby ready",
+   "1 standby left"). No sentence on a card, row, chip, ticket or pill at rest. Shorten before truncating.
+2. **The explanation is behind a tap on that label**: the bottom sheet, or the (i) by the title. "It isn't clear" is
+   answered with a tap target, never with a sentence added to the card.
+3. **At most one line of help per screen, and only in an empty state.** Everything longer goes behind the (i).
+4. **Every number carries its name** (a small label above or beside it); never two bare numbers side by side.
+5. **A notice that names a mechanic says what kind of thing it is and what to do**, in that order, and opens its
+   explanation on a tap: "Trophy On a roll: points 2 more days", not "2 more days for On a roll". Test: someone who
+   has never opened the Club understands it.
+6. **Three vocabularies, three looks.** A flight's status is a pill, and only OVERHEAD, EMERGENCY and DIVERTED get one
+   (TAKE-OFF and LANDED too on Airport). A logbook note is a mark at the row's end, no words: ★ new type or airline,
+   ⚑ unusual, pink ♥ favourite. Game words (points, level, standby, league) live in the Club and the header chip only.
+7. **Plain words**: sentence case, one title per screen, section headings as small-caps labels; no addresses, codes or
+   internals ("from the home relay", not a host name).
 
-## What stays (the identity)
+**Navigation**
 
-- The **split-flap look**: flaps that turn through a drum of characters, with sound. It is the product; refine it,
-  don't replace it.
-- **Amber on black**: `--amber:#f0b429`, `--housing:#0b0b0c`, `--ink:#f3f0e8` (in `tools/app/head.html`), the board's
+8. **Five keys in the bottom bar.** Never a sixth; a new area lives inside one of the five.
+9. **One row of tabs under the header at most.** Today's exception: the Logbook key carries the Logbook | Spotters'
+   Club switch and the Club's five sub-tabs; Dave's fix (30 Oct, not built) moves Today into the Logbook so the Club
+   can take the freed key. Don't add another exception.
+10. **Three taps from the bottom bar to any fact at most**: a key, a tab, a row or card. A fourth level means a level
+    has to go.
+11. **Panels, not pages.** Anything that opens rises as the bottom sheet with the original plate inside (screws,
+    engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so.
+12. **The first screenful answers the screen's question.** Now: what is over me. Today: what came. Logbook: what I
+    have ever seen. Club: how am I doing. Radar: what is around. Settings: what can I change. The rest after a scroll
+    or a tap.
+13. **Empty things fold away.** A category with 0 is hidden or folded with a count; a list stops at five rows, "All N ›"
+    opens the rest.
+14. **A feature that wants more room gets none by default.** It gets a row in an existing index (label and a one-line
+    state) that opens a panel, or a line in an existing panel. A new page, tab, key, row or setting must name the one
+    question of its screen that nothing answers today, and must replace or absorb something; a new setting also needs
+    a default that spares most people the setting.
+
+**Looks and working rules**
+
+15. **Reuse before you style.** A new element takes the class of the existing one with the same job (index row, chip,
+    (i), cBtn, bottom sheet, pill, segmented filter); two similar elements that differ are reported, not joined by a
+    third. Nothing moves unless a state changed, and `prefers-reduced-motion` is honoured.
+16. **Panels of one kind are twins**: the week, month and year panels show the same facts in the same order at the
+    same height; the same for any other repeated panel.
+17. **Three options for every design choice** (PNGs at phone size, an MP4 where it moves, with a recommendation), sent
+    before building. Plain bug fixes need none.
+18. Every visible text through `T()` with an `i18n.js` row; statuses and remarks keep their names; the focus is the
+    phone app and the board, in English, in the default look.
+
+**The check** (before sending a mockup, before opening a PR)
+
+- Read every card at rest: a sentence? Move it behind a tap. A number without a name? Name it.
+- Count: keys = 5, rows of tabs ≤ 1 (the Club aside), taps to any fact ≤ 3, help lines per screen ≤ 1.
+- Each new page, tab, key, row or setting: what did it replace, or which row does it sit behind?
+- Each notice or ticket: does a stranger know what kind of thing is named and what to do?
+- Each new element: which existing class? Repeated panels: same facts, same height? Each text through `T()`?
+
+## 2. What stays (the identity)
+
+- The **split-flap look**: flaps turning through a drum of characters, with sound. It is the product; refine it, don't
+  replace it. The board, the flaps, the metal and the colours stay as they are.
+- **Amber on black**: `--amber:#f0b429`, `--housing:#0b0b0c`, `--ink:#f3f0e8` (in `tools/app/head.html`); the board's
   `THEMES` (classic, frankfurt, blue) in `test/index.html`.
-- **The logo**: an amber rounded square with a dark plane (app icons in `app/`, the opening `#splash` and the welcome
-  in `tools/app/head.html`). Don't use emoji for it; iPhones draw them in colour.
-- The **status words and remarks** (OVERHEAD, INBOUND, SUPERJUMBO, …): their words and their order stay; colours
-  and drawing may change (`REMARK_LOOK`).
-- The **rarity tiers** and their colours and icons (`TIER_COL`, `drawTierIcon`): common, uncommon, rare, very rare,
-  special.
+- **The logo**: an amber rounded square with a dark plane (app icons in `app/`, the splash and the welcome in
+  `tools/app/head.html`). No emoji for it; iPhones draw them in colour.
+- The **status words and remarks** (OVERHEAD, INBOUND, SUPERJUMBO, …): words and order stay; colours and drawing may
+  change (`REMARK_LOOK`). The **rarity tiers** and their colours and icons (`TIER_COL`, `drawTierIcon`): common,
+  uncommon, rare, very rare, special.
+- The engraved plate titles (gold capitals) on the cockpit, the lists and the panels; the plain checkboxes.
 - **Removed on request, don't bring back**: the page-flip sound on page turns, a board shake, a Delay field, a
-  falling-page animation for views.
+  falling-page animation for views, the flap clock in the app's header.
 
-## Open for a redesign
+## 3. The app today (1.119.1, 30 Oct 2026)
 
-These are suggestions; the owner chooses.
+- **Header**: the logo, the style name with the switch to the other style (Overhead ⇄ Airport), the place and radius,
+  the points-and-level chip top right ("9,950 pts · paused", "LEVEL 9", the rank's lapel in a progress ring to the next
+  level), the connection dot. Nothing else goes in the header.
+- **Bottom bar**: Now, Today, Logbook, Radar, Settings.
+- **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
+  flights, the notices bar; scan tickets and undo notices rise from below.
+- **Today**: title and filter field, four named numbers, the Highlights card (opens "Today in numbers"), a segmented
+  filter, the timeline rows (time, flight, route, type, marks at the end, a pill when the status earns one).
+- **Logbook**: the Logbook | Spotters' Club switch. Logbook: search, four named numbers, the year card, index rows
+  (Categories, Aircraft types, Airlines, Most seen aircraft, Download as CSV) that open panels. Spotters' Club: sub-tabs
+  Level, League (with Bingo and Trophies under it), Hangar, Passport, Cards.
+- **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
+- **Sky view**: from Now; AUTO alignment always on with an "apply?" prompt, a mini radar bottom left, edge chips for at
+  most three off-screen planes, the count "1 in view · 3 around".
+- **Settings**: an index of sections (Location, Traffic, Display, Flaps & sound, Night, …) each opening a cockpit
+  plate as a panel with Save; closing unsaved asks. About: rows that open panels (versions, log, connection).
+- **Welcome and tips**: one question with one big button per step, the alternative a plain link, Skip small.
+- **Sideways**: the board only, full screen. **Android app**: a WebView of the phone app.
 
-- The phone app around the flaps: the header, the tab bar (`.cap` buttons, `TAB_ICONS`), cards and lists in Today
-  and Logbook, the Collection, the status line.
-- The welcome for new guests (`#welcome`) and the opening animation (`#splash`).
-- The Settings cockpit (`COCKPIT`, `.inst`, `body.real` CSS): plates of knobs, switches and wheels.
-- The radar (`drawRadar`).
-- The board's static frame (`drawStatic`: metal, wear, slots, engraved labels) and the flap faces (`tile`,
-  `paintCell`), within the TV limits below.
+## 4. Where the code is, and what the screens can bear
 
-## Where the code is
+| File | What is there |
+|------|---------------|
+| `tools/app/head.html` | The phone app's markup and CSS: colour and `--fs-*` type tokens on `:root`, the welcome, the splash, tabs, lists, panels. |
+| `tools/app/main.js` | The phone app's layout and glue (`heroLayout`, `fitSideways`, `buildTabs`, `TABS`, the welcome, the lists, the row model). |
+| `test/index.html` | The whole board in one file: flap engine, `drawStatic`, `THEMES`, `REMARK_LOOK`, `drawRadar`, `COCKPIT`, `CHANGELOG`; translations in `test/i18n.js`, sounds in `test/sounds.js`. |
+| `app/index.html` | **Generated** by `py tools/app/build.py` from the three above. Never edit it by hand. |
+| `index.html` | The main board. Changes reach it only when Dave says so. |
 
-| File | What to change there |
-|------|----------------------|
-| `tools/app/head.html` | The phone app's markup and CSS (colour tokens on `:root`, the welcome, the splash, tabs, lists). |
-| `tools/app/main.js` | The phone app's layout and glue (`heroLayout`, `fitSideways`, `buildTabs`, `welcome`, the logbook lists). |
-| `test/index.html` | The whole board in one file (about 400 KB): flap engine (`tile`, `paintCell`, `frame`), `drawStatic`, `THEMES`, `REMARK_LOOK`, `drawRadar`, `COCKPIT`, patch notes (`CHANGELOG`); the translations (`I18N_ROWS`) and sounds are in `test/i18n.js` and `test/sounds.js` next to it. |
-| `app/index.html` | **Generated** by `py tools/app/build.py` from the three files above. Never edit it by hand. |
-| `index.html` | The main board. **Don't touch**: changes reach it only when the owner says so. |
+Find things with `py tools/codemap.py AREA` and read small ranges; never a big file whole (`docs/code-map.md`).
 
-The board file is too big to read whole; search it for the function names above. The app's code runs inside one
-closure, so its variables aren't reachable from the browser console.
-
-## Rules
-
-1. **Test boards first.** Change `test/` (and the app sources), never `index.html`.
-2. **Every visible text goes through `T("English text", {vars})`**, with a row in `I18N_ROWS` (`test/i18n.js`) for English, German,
-   French, Spanish and Dutch. New text without a row shows English.
-3. **TVs are weak.** Fire TV and LG run at 1080p and 30 fps (`WEAK_TV`, `LITE()`). Anything heavy (blur, big
-   shadows, per-frame gradients, filters on canvas) needs a light path there. Flap faces are pre-rendered and cached
-   by `tile()`; keep per-frame drawing cheap.
-4. **Phones:** upright and sideways (CSS `(orientation: landscape) and (max-height: 600px)`), from a small Android
-   phone to an iPhone Pro Max, notch and home bar included (`env(safe-area-inset-*)`, `--cut-l`, `--cut-r`). No
-   horizontal scrolling.
-5. **Reduced motion:** honour `prefers-reduced-motion` for new animations.
-6. **Fonts and libraries:** web fonts from Google Fonts only; no frameworks or build steps (plain HTML, CSS, JS).
-7. **Nothing personal or secret** in the code: no addresses, keys or locations. The repository is public.
-8. **A patch note** for a visible change: a line at the top of `CHANGELOG` in `test/index.html`, short and generic. Visual changes raise the second number of the version (1.25 → 1.26).
-
-## Trying it
-
-```
-py tools/test/run_test_relay.py
-```
-
-This serves the checkout with made-up flights at `http://localhost:8096/` (`/test/`, `/app/`). After
-changing the app sources, run `py tools/app/build.py`. `py tools/test/shoot.py URL OUT wait:4000 shot:now` takes
-screenshots (`PHONE=390x844` for the app; its docstring lists the steps). Needs Playwright: `py -m pip install playwright`
-and `py -m playwright install chromium`.
-
-## What to hand back
-
-- The changed files, or a branch, with a short list of what changed and why.
-- Screenshots of the phone app upright (390×844), sideways (about 932×430) and the board (1920×1080), before and
-  after.
-- Anything you couldn't check (for example, the TVs).
+- **TVs are weak.** Fire TV and LG run at 1080p and 30 fps (`WEAK_TV`, `LITE()`). Anything heavy (blur, big shadows,
+  per-frame gradients, canvas filters) needs a light path. Flap faces are pre-rendered and cached by `tile()`; keep
+  per-frame drawing cheap.
+- **Phones**: upright and sideways (`(orientation: landscape) and (max-height: 600px)`), from a small Android phone to
+  an iPhone Pro Max, notch and home bar included (`env(safe-area-inset-*)`, `--cut-l`, `--cut-r`). No horizontal
+  scrolling. Font sizes only from the `--fs-*` tokens (`smoke.py --syntax` checks).
+- **Fonts and libraries**: the typefaces are served from `fonts/` (no Google Fonts at run time); plain HTML, CSS and JS,
+  no frameworks.
+- **Trying it**: `py tools/test/run_test_relay.py`, then `http://localhost:8096/app/`; `PHONE=390x844 py
+  tools/test/shoot.py URL OUT …` for screenshots; details in `CLAUDE.md`, "Testing a change".

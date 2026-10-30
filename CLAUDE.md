@@ -25,6 +25,11 @@ on a function or CSS rule in no area: add it to `tools/codemap_areas.txt`.
   `test-api/index.html` only forwards to `/test/`). Without a key it falls back to the free sources by itself.
 - **Focus (21 Oct 2026):** only the phone app and the board, in English and the default board look. Translations,
   unlockable styles, the APK and the parked light/Glass versions only when Dave asks.
+- **Stay simple (30 Oct 2026): read `docs/design-brief.md` before any visible change or mockup.** At rest a card shows
+  a label and a value, no sentence; the explanation sits behind a tap or the (i). Five keys in the bottom bar, one row
+  of tabs, three taps to any fact; things open as panels, not pages. A feature wanting more room gets a row in an
+  existing index, not a new tab, key or setting. A notice says what kind of thing it names and what to do. Three
+  options for every design choice. Run the brief's check before sending a mockup and before opening a PR.
 - **The phone app** (`app/`) is built from the test board's code, so new features reach the phone together with
   `test/`; rebuild it when shared code changes.
 - **Versions and patch notes.** One version for the boards and the app, kept in `CHANGELOG` in the board (the
