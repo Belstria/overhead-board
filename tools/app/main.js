@@ -4047,13 +4047,13 @@ function buildRadarLegend(){
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in"));
   $("rvMap").setAttribute("aria-pressed", String(radarMapOn));
   const cr = $("rvCredit"); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
-  // 1.118: the cogwheel by the title says the range; the legend went behind the (i) by Nearest (rvColours)
+  // 1.118: the cogwheel by the title says the range; the legend went behind the (i) beside it (rvColours)
   const sb = $("rvSet"), km = $("rvSetKm");
   if (!sb.querySelector("svg")) sb.insertAdjacentHTML("afterbegin", TAB_ICONS.settings);
   if (km.textContent !== radarRangeText()) km.textContent = radarRangeText();
 }
 $("rvSet").onclick = () => setOpen("radar");
-// The (i) by Nearest: what each colour means, one line each, on a plate in the app's sheet (as About's panels, 1.117).
+// The (i) by the cogwheel: what each colour means, one line each, on a plate in the app's sheet (as About's panels, 1.117).
 const RADAR_WHAT = {"Overhead": "within 1 km, or 45° up or more", "Approaching": "on course to pass over within three minutes",
   "Flying by": "getting closer, but won't pass over", "Leaving": "moving away", "Special": "military, giants, emergencies",
   "Favourite": "one of yours", "Too high": "above the height limit in Settings", "Taking off": "leaving the airport",
