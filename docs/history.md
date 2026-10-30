@@ -948,6 +948,30 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.117 (to-do #210, clarity build 3a of 4, Dave's pick B on the Logbook, Week & month, About, the Log and the connection
+  card): **index pages and verdicts.** (1) The Logbook (`renderLogbook`): the flap Totals plate (`LBP`, `#lbTop`,
+  `#lbModel`) and the place bar (`#lbPlaces`, `lbPlaceSheet`) went. `#lbNums` (Today's `.tdNums`): Sightings, Aircraft,
+  Types, Airlines; `#lbYear` (Today's `.tdHl` card): the period on show (`lbYearCard`: its title, three numbers, the
+  busiest day); `#lbIdx` (`.idx` rows, `data-lp`): Categories (the top three), Aircraft types and Airlines ("{n} · top:"),
+  Most seen aircraft, the places (All, On the go and the saved ones; the row names the one picked) and Download as CSV
+  (a link, whole logbook only). A row or the card opens `lbPanels[k]` (the plates as before, drawn in `renderLogbook`)
+  with `lbPanelOpen`: `cardOpen` with `.tdSheet.lbSheet`; `lbPanelSync` redraws an open panel when the numbers or a
+  category's top ten change (`cardSheetGrow`). The rows' click handler now listens in `.lbSheet`; a place picked closes
+  the panel (`data-pk` → `lbPick`); an aircraft row closes it and searches. The footnote: `logbookSummary(true)` (no
+  points; the chip has them) and "most seen model". (2) Week & month (`periodHtml`): three numbers (`REVIEW_NUMS` 0–2,
+  or the year's planes, types, airlines), the first four facts and Share; `.perMore` ("More: …", `perMore`, `data-pmore`)
+  unfolds in place the period's dates (`reviewSummary`), the other numbers, the other facts, the new types and the CSV
+  (now for week and month too). (3) About (`aboutOpen`): the About plate with the version and the connection, then
+  `#aboutIdx` (`aboutIdx`, `ABOUT_ROWS`, `aboutLine`): What's new, Legend, Data sources & privacy, Credits, Log, Relay
+  (the owner, once `/relayinfo` answered: `relayLast`), Add to your home screen (not in the Android app). `aboutPanel`
+  raises `aboutPlate(k)` as a `.tdSheet.aboutSheet` (the legend's and relay plate's `#aboutBox` CSS has
+  a `#cardBox .aboutSheet` twin); `aboutHtml(part)` (test) splits the board's About text into "credits" and
+  "sources". (4) The Log (`logShow`) is a panel, no longer the `#t-log` page: a `.verdict` (no problems since the app
+  started, or how many warnings and errors and the last one's time), `LOG_FILTERS` All · Problems, the lines as before,
+  Copy and the count at the bottom; `logRender` stops (`DIAG.page`) once the panel has gone. (5) The connection card
+  (`statusCard`): `statusVerdict()` from the dot's state (live: All good, live positions from the home relay, updated,
+  planes within; else the status line), then "Details and the log" (`stMore`) unfolds the facts (Failed attempts only
+  when there are some), Log (the Log panel takes the card's place) and the relay's version in small print.
 - 1.116.1 (to-do #209, Dave's pick of 30 Oct from Fable's chip mockups: "the lapel chip's text + the lapel in the ring",
   without the outer ring): **the header chip's ring.** `#gHead` lost its pill (background and border; the tap area and
   focus outline stay): `.gTx` ("9,950 pts", then `#gOff` "· paused" in amber while live location is off; "Level 9" under

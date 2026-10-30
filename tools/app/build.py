@@ -82,7 +82,7 @@ def extract(text):
                         "if (feat && feat.hex === hex) renderAircraftInfo(); });")),
         "E22": ex("function legendGroups(){", "function legendChip("),
         "E23": ex("const fmtDay = ts =>", "async function fetchLogbook(){"),
-        "E24": ex("function logbookSummary(){", "function renderLogbookBoard(){"),
+        "E24": ex("function logbookSummary(noPts){", "function renderLogbookBoard(){"),
         "E25": ex("const radar = {raf: 0", "const RADAR_GEO") + ex("function rgba(hex, a)", "function radarBox()") + ex("function altShort(ft){", "function drawRadar(t){"),
         "E26": ex("const lampOf = r =>", "// Spotted today is engraved text, like the legend"),
         "E27": ex("function spottedSummary(){", "const lampOf = r =>"),

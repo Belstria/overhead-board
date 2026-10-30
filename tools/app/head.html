@@ -388,12 +388,12 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tabX:active{background:rgba(255,255,255,.12)}
 /* 1.41: About opens over Settings as a page of its own; its title and close button stay at the top while it scrolls,
    and closing it leaves Settings where it was */
-#t-about,#t-log,#t-styles{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+#t-about,#t-styles{position:fixed;inset:0;z-index:60;max-width:none;margin:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;
   padding:0 max(var(--gut),calc((100% - 560px) / 2 + var(--gut))) calc(var(--sa-bottom) + 28px)}
-#t-about .tabHead,#t-log .tabHead,#t-styles .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
+#t-about .tabHead,#t-styles .tabHead{position:sticky;top:0;z-index:2;margin:0 calc(-1 * var(--gut));padding:calc(var(--sa-top) + 14px) var(--gut) 12px;
   background:linear-gradient(var(--metal) 78%,rgba(20,21,23,0))}
-#t-about .tabHead h2,#t-log .tabHead h2,#t-styles .tabHead h2{margin:0}
+#t-about .tabHead h2,#t-styles .tabHead h2{margin:0}
 #t-about #aboutBox{margin-top:4px!important}
 /* 1.110 (to-do #160, Dave's pick A): Settings → Styles, a gallery page with tabs (stylesPage); an item opens as a sheet */
 #t-styles .tabHead h2{flex:1}
@@ -432,9 +432,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 #cardBox .stGo:disabled{opacity:.5;cursor:default}
 body.aboutOpen{overflow:hidden}
 body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so the page's own title and × show */
-/* 1.80: the Log page (Settings → About → Log): over About, each line its time, a lamp (amber: a warning, red: an error) and what happened */
-#t-log #logBox{margin-top:4px}
-.logBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+/* 1.80: the Log (Settings → About → Log; 1.117 a panel): each line its time, a lamp (amber: a warning, red: an error) and what happened */
+.logBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 4px}
 .logBar span{font:500 var(--fs-s)/1 var(--f-board);color:var(--muted)}
 .logList{list-style:none;margin:0;padding:0;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--ink)}
 .logList li{display:grid;grid-template-columns:auto 8px minmax(0,1fr);gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
@@ -697,14 +696,14 @@ body.arOpen #sheet{z-index:75}
 .chip .apic svg{width:100%;height:100%;fill:currentColor}
 .chip:has(.apic){display:inline-flex;align-items:center;justify-content:center}
 #aboutBox{display:flex;flex-direction:column;gap:14px}
-#aboutBox .plate{--pt:14px;--px:16px;padding:var(--pt) var(--px) 16px;gap:10px}
-#aboutBox .lgbox{grid-column:1/-1}
-#aboutBox .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
-#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after{display:none}
-#aboutBox ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
-#aboutBox ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 var(--fs-m)/1.3 var(--f-board);color:rgba(232,227,214,.84)}
-#aboutBox ul.legend .chip{min-width:0;width:118px}
-#aboutBox .lgbox p.sum{margin:12px 0 0}
+#aboutBox .plate,#cardBox .aboutSheet .plate{--pt:14px;--px:16px;padding:var(--pt) var(--px) 16px;gap:10px}
+#aboutBox .lgbox,#cardBox .aboutSheet .lgbox{grid-column:1/-1}
+#aboutBox .lgbox h3,#cardBox .aboutSheet .lgbox h3{margin:14px 0 6px;font:700 var(--fs-s)/1.2 var(--f-board);letter-spacing:.12em;color:var(--amber);display:block}
+#aboutBox .lgbox h3::before,#aboutBox .lgbox h3::after,#cardBox .aboutSheet .lgbox h3::before,#cardBox .aboutSheet .lgbox h3::after{display:none}
+#aboutBox ul.legend,#cardBox .aboutSheet ul.legend{display:block}                                   /* one column: the board's two don't fit a phone */
+#aboutBox ul.legend li,#cardBox .aboutSheet ul.legend li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:center;padding:5px 0;font:500 var(--fs-m)/1.3 var(--f-board);color:rgba(232,227,214,.84)}
+#aboutBox ul.legend .chip,#cardBox .aboutSheet ul.legend .chip{min-width:0;width:118px}
+#aboutBox .lgbox p.sum,#cardBox .aboutSheet .lgbox p.sum{margin:12px 0 0}
 .syncNote{color:var(--c-gold);margin-top:6px}
 #toasts{--toast-b:calc(84px + var(--sa-bottom));--tz:1}   /* 1.65: above the tab bar, phone sized (the board: 1.5×) */
 /* 1.66: Daylight (Settings → Display): a cream page, dark text, black flaps with white letters, for the sun */
@@ -730,7 +729,7 @@ html.daylight .cups li:not(.on):not(.medal) .cup{stroke:rgba(25,25,25,.3)}
 html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} html.daylight .cups li.m2{--m:#b07d0c} html.daylight .cups li.m3{--m:#23806f} html.daylight .cups li.m4{--m:#4467cc}
 /* 1.65: the whole logbook searched; while a search shows, the logbook's own parts step aside */
 .lbFindBox{margin:8px 0 4px}
-#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbPlaces,#t-logbook.finding #lbTop,#t-logbook.finding .rcol{display:none!important}
+#t-logbook.finding #lbViews,#t-logbook.finding #lbSum,#t-logbook.finding #lbNums,#t-logbook.finding #lbYear,#t-logbook.finding #lbIdx,#t-logbook.finding .rcol{display:none!important}
 #lbFound .lbfHead{margin:10px 0 6px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
 #lbFound ol{list-style:none;margin:0;padding:0}
 #lbFound li{padding:11px 0;border-top:1px solid var(--line)}
@@ -761,13 +760,30 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .idxH{margin:18px 0 6px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .idx{margin:0;padding:0;list-style:none;border-radius:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);overflow:hidden}
 .idx li+li{border-top:1px solid rgba(255,255,255,.06)}
-.idx button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
-.idx button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.idx button,.idx a{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 14px}
+.idx button:focus-visible,.idx a:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.idx [aria-expanded] i{transition:transform .2s}
+.idx [aria-expanded=true] i{transform:rotate(-90deg)}
 .idx b{flex:1 0 auto;font:700 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
 .idx small{flex:0 1 auto;min-width:0;text-align:right;font:500 var(--fs-s)/1.25 var(--f-board);color:var(--muted)}
 .idx i{font-style:normal;color:var(--muted);font-size:var(--fs-xl)}
 .idx .sIco{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(240,180,41,.14);color:var(--amber)}
 .idx .sIco svg{width:17px;height:17px}
+/* 1.117 (to-do #210, Dave's pick B): the Logbook and About as an index (.idx) under their summary; the period's More,
+   the connection card's Details and the log unfold in place under a one-row .idx; the connection and the Log open
+   with a verdict (.verdict: a lamp, a word, one line) */
+#lbIdx,#aboutIdx{margin:0 0 12px}
+#lbIdx[hidden]{display:none}
+.perMore{margin:12px 0 0}
+.perMoreIn{margin:12px 0 0}
+.verdict{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(34,160,88,.45);background:rgba(34,160,88,.12)}
+.verdict>i{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--c-good);box-shadow:0 0 8px var(--c-good)}
+.verdict b{display:block;font:700 var(--fs-l)/1.2 var(--f-board);color:var(--ink)}
+.verdict span{display:block;margin-top:3px;font:500 var(--fs-s)/1.35 var(--f-board);color:var(--muted)}
+.verdict[data-ok=meh]{border-color:rgba(240,180,41,.45);background:rgba(240,180,41,.1)}
+.verdict[data-ok=meh]>i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.verdict[data-ok=bad]{border-color:rgba(199,55,45,.55);background:rgba(199,55,45,.14)}
+.verdict[data-ok=bad]>i{background:var(--c-bad);box-shadow:0 0 8px var(--c-bad)}
 .gIdx{margin:0 0 12px}
 /* 1.116: Favourites & hidden: two rows with their count and Add; the list opens in place; what they do behind the (i) */
 .favPlate{position:relative}
@@ -794,8 +810,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* 1.88: the owner's Relay plate in About: lamp rows, 6-px bars, the Legend's amber headings */
-#aboutBox .relayP .owner{margin:0;color:var(--muted);font-size:var(--fs-s)}
-#aboutBox .relayP .lgbox h3:first-child{margin-top:4px}
+#aboutBox .relayP .owner,#cardBox .relayP .owner{margin:0;color:var(--muted);font-size:var(--fs-s)}
+#aboutBox .relayP .lgbox h3:first-child,#cardBox .relayP .lgbox h3:first-child{margin-top:4px}
 .relayP .ranks li{font-size:var(--fs-m)}
 /* ---------- a phone on its side: only Now, full screen, laid out like the board ----------
    The plane's flaps across the top and one page under them (Recent flights or Take-offs & landings, This aircraft),
@@ -811,14 +827,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .apPick .cap{flex:1;height:40px;margin:0;font-size:var(--fs-xs)}
 #t-now.ap .apPick{display:flex}
 .title .where{all:unset;display:block;max-width:100%;cursor:pointer;margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.lbPlaceSeg,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
-.seg.svPlaces[hidden],.seg.lbViews[hidden],.seg.lbPlaceSeg[hidden]{display:none}
-.seg.lbPlaceSeg{margin:10px 0 0}
-.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.lbPlaceSeg button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
+.seg.svPlaces,.seg.lbViews,.seg.gSeg,.seg.svFilters,.seg.lbPer,.seg.catSeg,.seg.trSeg,.seg.logSeg,.seg.jumpSeg{display:flex;gap:0;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1)}
+.seg.svPlaces[hidden],.seg.lbViews[hidden]{display:none}
+.seg.svPlaces button,.seg.lbViews button,.seg.gSeg button,.seg.svFilters button,.seg.lbPer button,.seg.catSeg button,.seg.trSeg button,.seg.logSeg button,.seg.jumpSeg button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 var(--fs-m)/1 var(--f-board);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 10px}
 .seg.lbViews{margin:10px 0 0}
 .seg.lbViews button{height:40px;padding:0 4px;font-size:var(--fs-s);line-height:1.1;white-space:normal}
-.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.lbPlaceSeg button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
+.seg.svPlaces button[aria-pressed=true],.seg.lbViews button[aria-current=page],.seg.gSeg button[aria-pressed=true],.seg.svFilters button[aria-pressed=true],.seg.lbPer button[aria-pressed=true],.seg.catSeg button[aria-pressed=true],.seg.trSeg button[aria-pressed=true],.seg.logSeg button[aria-pressed=true],.seg.jumpSeg button[aria-pressed=true]{background:#2c2e33;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(240,180,41,.55)}
 #t-now.ap .pageEmpty:not([hidden]){display:block;margin:8px 0 18px;color:var(--muted);font-size:var(--fs-l);font-weight:600}
 #t-now.ap .pageEmpty small{display:block;margin-top:4px;font-size:var(--fs-m);font-weight:500}
 #t-now.ap #acTitle{display:none}
@@ -1594,8 +1609,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .cats li.catTap .chev .dd{margin-left:2px}
 .cats li.catTap.open .dd{transform:rotate(180deg)}
 .cats li.catTap.open .dd circle{stroke:rgba(240,180,41,.55)}
-#lbPlaces button[data-p=saved]{display:flex;align-items:center;justify-content:center;gap:5px}
-#lbPlaces .ddL{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .cats li.catTap.open{background:linear-gradient(90deg,color-mix(in srgb,var(--lamp) 16%,transparent),transparent);box-shadow:inset 3px 0 0 var(--lamp)}
 .cats li.catSub{display:grid;grid-template-columns:1fr;gap:2px;padding:6px 0 10px 22px}
 .cats li.catSub::before{content:none}
@@ -1918,10 +1931,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
       <div id="lbFound" hidden></div>
       <div class="seg lbViews" id="lbViews" role="group" hidden></div>
       <p class="sum" id="lbSum"></p>
-      <div class="seg lbPlaceSeg" id="lbPlaces" role="group" hidden></div>
-      <section class="plate secPlate" style="--cols:1" id="lbTop"><i></i><i></i><i></i><i></i><h3 data-t="Totals">Totals</h3>
-      <div class="panel" id="lbP" role="img" aria-label="Logbook totals"></div>
-      <p class="model" id="lbModel"></p></section>
+      <dl class="tdNums" id="lbNums"></dl>
+      <button type="button" class="tdHl" id="lbYear" hidden></button>
+      <ul class="idx" id="lbIdx" hidden></ul>
     </div>
     <div class="rcol">
       <div id="lbLists"></div>
@@ -1954,10 +1966,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <section class="wrap tab" id="t-about" hidden>
     <div class="tabHead"><h2 data-t="About">About</h2><button class="tabX" type="button" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
     <div id="aboutBox" style="margin-top:14px"></div>
-  </section>
-  <section class="wrap tab" id="t-log" hidden>
-    <div class="tabHead"><h2 data-t="Log">Log</h2><button class="tabX" type="button" id="logX" aria-label="Close" data-ta="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
-    <div id="logBox"></div>
   </section>
   <section class="wrap tab" id="t-styles" hidden>
     <div class="tabHead"><h2 data-t="Styles">Styles</h2><span class="stPgCnt" id="stPgCnt"></span><button class="tabX" type="button" id="stylesX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>
