@@ -904,6 +904,65 @@ def school_checks(expect):
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
 
 
+def late_codes_checks(expect):
+    """Relay 101 (to-do #219): a type or registration only the aircraft lookup knew reaches the logbook, as the saved days
+    have it: once from the days, and as the lookup answers. Dated by the sighting, with no "new" mark and no points."""
+    import copy
+    import json as _j
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    real = serve._route_for, serve._aircraft_for, serve._enrich_q
+
+    class OneJob:                      # the enricher's queue: one sighting, then out of its endless loop
+        def __init__(self, job):
+            self.job = job
+
+        def get(self):
+            job, self.job = self.job, None
+            if not job:
+                raise StopIteration
+            return job
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "sightings-2026-10-01.json").write_text(_j.dumps([
+                {"id": "a", "ts": 5000, "typeCode": "DR40", "reg": "OE-DMZ", "desc": "Robin"}, {"id": "b", "ts": 2000, "typeCode": "DR40"},
+                {"id": "c", "ts": 3000, "typeCode": "A320", "reg": "OE-LBN"}]))
+            sp = serve.Spot(Path(d), None, 15)
+            with serve._data_lock:
+                sp.ensure_day()
+                b = sp.book()
+                b["types"]["A320"] = {"name": "", "first": 1, "last": 9, "count": 7}
+                b["regs"]["OE-LBN"] = {"name": "A320", "first": 1, "last": 9, "count": 7}
+                game = copy.deepcopy(serve.game_book(b))
+            serve._book_late(sp)
+            expect("relay 101: a type only the days have: dated and counted from them", b["types"]["DR40"], {"name": "Robin", "first": 2000, "last": 5000, "count": 2})
+            expect("... and its registration", b["regs"]["OE-DMZ"], {"name": "DR40", "first": 5000, "last": 5000, "count": 1})
+            expect("... a code the book had stays as it was", b["types"]["A320"]["count"], 7)
+            once = _j.dumps([b["types"], b["regs"]], sort_keys=True)
+            del b["lateCodes"]
+            serve._book_late(sp)
+            expect("... a second run changes nothing", _j.dumps([b["types"], b["regs"]], sort_keys=True), once)
+            serve._route_for, serve._aircraft_for = lambda cs: None, lambda hx: {"icaoType": "C172", "regFromDb": "OE-CXX"}
+            e = {"id": "late", "hex": "abc123", "callsign": "", "ts": 7000, "typeCode": "", "reg": "", "desc": "", "tier": "common"}
+            with serve._data_lock:
+                sp.entries.insert(0, e)
+            serve._enrich_q = OneJob((sp, "late"))
+            try:
+                serve._enricher()
+            except StopIteration:
+                pass
+            expect("relay 101: the lookup's type goes in the logbook, dated by the sighting", (b["types"].get("C172") or {}).get("first"), 7000)
+            expect("... and its registration", (b["regs"].get("OE-CXX") or {}).get("first"), 7000)
+            expect("... with no \"new\" mark on the sighting", [k for k in ("newType", "newReg") if k in e], [])
+            expect("... and nothing in the game", _j.dumps(serve.game_book(b), sort_keys=True), _j.dumps(game, sort_keys=True))
+    finally:
+        serve._route_for, serve._aircraft_for, serve._enrich_q = real
+
+
 def standby_checks(expect):
     """Relay 87 (to-do #157): the standby. A day without a scan, with a standby left this week, keeps the streak and pays
     nothing; the next scan pays the next day's amount. One a week at level 6 to 13, two from 14, none below 6 (the level
@@ -1949,6 +2008,7 @@ def checks():
     showcase_checks(expect)
     school_checks(expect)
     standby_checks(expect)
+    late_codes_checks(expect)
     mastery_checks(expect)
     loyalty_checks(expect)
     import serve                    # relay 85: no flight school in the other checks (its +50s would change their totals)

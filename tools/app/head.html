@@ -1239,7 +1239,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gTiles,.plCard .gTiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px;margin-top:2px}
 #t-game .gTiles div,.plCard .gTiles div{display:grid;gap:4px}
 #t-game .gTiles b,.plCard .gTiles b{font:700 var(--fs-2xl)/1 var(--f-board);font-variant-numeric:tabular-nums}
-#t-game .gTiles span,.plCard .gTiles span{font:600 var(--fs-tag)/1.3 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#t-game .gTiles span,.plCard .gTiles span,#t-game .gTileL{font:600 var(--fs-tag)/1.3 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 /* 1.89: Recent points (a sheet): Spotted today's rows, each plane's awards under it, the total on the right */
 #cardBox .rpList{margin-top:10px}
 #cardBox .rpList .fl .tc{align-self:start;padding-top:2px}
@@ -1255,8 +1255,23 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 #t-game .gOff{color:#e7a39d}
 /* 1.104 (to-do #157, Dave's pick B): the week's calendar in the level card: scanned days amber, today outlined (filled
    once scanned), a day a standby covered hatched SBY, a day missed red; the standbys left on the right */
-#t-game .gSbyH{display:flex;justify-content:space-between;gap:10px}
-#t-game .gSbyH em{font-style:normal;color:var(--amber)} #t-game .gSbyH em.used{color:var(--muted)} #t-game .gSbyH em.none{color:#e7a39d}
+/* 1.119.3: the week at the card's foot; its standby one line, the tag and a short state (a tap: the sheet) */
+#t-game .gSbyWk{display:grid;gap:8px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px}
+#t-game .gHow.gSbyL{border-top:0;padding-top:2px}
+#t-game .gSbyL>span{display:flex;align-items:center;gap:10px;min-width:0}
+#t-game .gSbyL b{font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)} #t-game .gSbyL b.warn{color:#e7a39d}
+#t-game .gSbyL u{text-decoration:none;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;padding:3px 6px;border-radius:4px;background:var(--amber);color:#17140e}
+.gSbyTg{flex:none;display:inline-grid;place-items:center;width:44px;height:30px;border:1.5px solid var(--amber);border-radius:6px;color:var(--amber);font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
+.gSbyTg.off{border-color:#3a3c42;color:var(--label2);background:none}
+#cardBox .lbIn .gWk{margin:10px 0 0}
+/* 1.119.3: the level card's rank, mini route and next unlock open the route: one button laid over them, nothing drawn;
+   the plate's (i) sits between the engraved line's end and the screw, the line stopped short of it on both sides */
+.cuTap{position:relative;display:grid;gap:8px}
+.cuHit{all:unset;position:absolute;inset:0;z-index:1;cursor:pointer;border-radius:8px;-webkit-tap-highlight-color:transparent}
+.cuHit:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.gHero>h3{padding-inline:30px}
+.gHero>.iBtn.gHeroI{top:3px;right:26px;width:20px;height:20px}
+.gHero>.iBtn.gHeroI::after{content:"";position:absolute;inset:-12px}
 .gWk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .gWk i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:7px 0;border:1.5px dashed #3a3c42;border-radius:6px;color:var(--label2)}
 .gWk i.on{border:1.5px solid var(--amber);color:var(--amber);background:rgba(240,180,41,.1)}
@@ -1420,7 +1435,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .cuStop{display:flex;align-items:center;gap:10px;background:#121315;border-radius:8px;padding:9px 10px}
 .cuStop>span{min-width:0} .cuStop b{display:block;font:700 var(--fs-m)/1.2 var(--f-board)}
 .cuStop small{display:block;font:600 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-#t-game .gHow#cuOpen{margin-top:0}
 /* the route: a stop per level down the line, the insignia on the right; the plane between your stop and the next */
 /* 1.113 (to-do #184): Your route as a sheet at half the screen's height; only the route scrolls, under the grip, title and ✕ */
 #cardBox .cardIn.cuHalf{height:55dvh;max-height:55dvh;display:flex;flex-direction:column;overflow:hidden}
