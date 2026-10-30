@@ -348,7 +348,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   tick, push buttons a thock) when the flap sound or the chimes are on.
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
   who made it. On the boards (1.93.0.1) the patch notes take the left half (▲ ▼ scroll them), the keys (two to a row)
-  and who made it the right half, so every credit fits on every screen. In the app, **Log** (1.80; also in the connection card, the dot by the clock) opens the app's log on a
+  and who made it the right half, so every credit fits on every screen. In the app, **Log** (1.80; also in the connection card, the dot top right) opens the app's log on a
   page of its own: All, Problems, Sky view or Network, and **Copy the log** to paste it into a message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
@@ -506,14 +506,14 @@ The main board has everything below. New features are tried on `/test/` first; o
   league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
   level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
   and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
-  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the score strip says
+  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the club says
   "Standby used" the day after, and warns in the club when none is left and today has no scan yet. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
   card or the medal, and stand in Recent points under the plane that won them ("Bingo line · Top row +50",
-  "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only on the
-  score strip** (its +N). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
+  "Trophy · Globetrotter · Bronze +50"). Since 1.98 the **passive points show only at the
+  top** (the chip's +N since 1.115; the score strip's before). A plane that comes **within 10 km** gets a **ticket** sliding up from below (once a plane): the
   boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
   new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
   ("Your first scan today adds the daily streak: +25"; not in the total) and **Scan in Sky view**: a tap anywhere on the
@@ -551,20 +551,21 @@ The main board has everything below. New features are tried on `/test/` first; o
   their passive points) and a dimmed NO PTS beyond 15 km; a lock-on (1.72.2)
   opens a small card with the essentials that slides away by itself when you aim at another plane or away for 3
   seconds; swipe it up (1.72.3) and it grows into the whole card, its picture growing with it; dragged down it shrinks back,
-  and further down (or a tap on the sky) it goes. In the phone app a **score strip** under the header shows
-  the total on flaps, your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
+  and further down (or a tap on the sky) it goes. In the phone app (since 1.115) a **chip top right**, where the clock was, shows your points and level ("9,950 pts ·
+  Level 9"), with **paused** in amber while live location is off; when points come in it turns over to +N, then the total
+  counts up while it glows, and a level-up follows. A tap opens the **Spotters' Club** (while points are paused its Go live
+  button is there). News of the game (a place won in the league, a medal nearly there) shows in a small bubble under the
+  chip, never in the notices' bar. Your **rank insignia** (1.102: levels 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8
   navy with silver chevrons, 9–11 black with 2–4 gold stripes, 12–14 gold piping, four stripes and 1–3 stars, 15–20 a
   pilot's cap whose peak turns gold step by step, the Ace's with a red band, the Legend's white, and a gold star above
-  it for each Legend after that; also on Your level and a player's card), the level bar and the league place on every tab (grey with Go live when live location is off);
-  when points come in the place chip flips to +N, which flies into the level bar, and the total rolls up. (The board's
-  **Points** field beside the remarks, 1.73.1, went in 1.82.2: the strip shows points as they come in.) Tap the points for **Recent points** (1.89, relay 71; since 1.114.2 the level and its bar open **Your level** and the league number the **League**, scrolled to and lit up like the passport's regions; each part is a thumb-sized button): today's
+  it for each Legend after that) is on Your level and a player's card. (Until 1.115 a score strip under the header
+  showed the points on flaps, the level bar and the league place.) **Recent points** (1.89, relay 71; on the Club's page): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
-  add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. Tap the place
-  chip (or, before relay 71, the points) for the **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
+  add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
+  **Spotters' Club** (1.74: next to the Logbook, as a title tab): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
-  Logbook), and Styles. **Career path** (1.109): the strip's line names the next stop and what it opens ("Next stop
-  Logkeeper · Black on white"); Your level shows a mini route (your stop, the plane with the points still to go, the
+  Logbook), and Styles. **Career path** (1.109): Your level shows a mini route (your stop, the plane with the points still to go, the
   next stop) with what the next stop opens, and **Your route · all 20 stops** opens the route (since 1.113 a panel over the
   club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, back or a tap beside closes
   it): a stop per level down a
@@ -577,8 +578,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   a week, 16 Sunset, 18 LED dots, 20 Gold leaf and the Legend cap), a badge or a showcase spot on the odd ones (3 Star,
   5 showcase spot 1, 7 Propeller, 9 Helicopter, 11 spot 2, 13 Jumbo, 15 Fighter jet, 17 spot 3, 19 Concorde and a gold
   name in the league). **Anything a player had stays theirs**: a level reached under the old totals is kept (its bar
-  starts at 0 until the points catch up), and so are the styles, badges and showcase spots it had unlocked. Since
-  1.112 the strip on the Now tab shows the rank insignia in front of the points (the wings only on the club's cards). A
+  starts at 0 until the points catch up), and so are the styles, badges and showcase spots it had unlocked. A
   level-up is an arrival there: "Arrived at Logkeeper", a luggage tag for each thing it opened, the next stop, and
   **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
@@ -588,7 +588,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest
   first). Since 1.79.2 a trophy with ranks shows its rank as a medal (bronze, silver, gold, platinum, diamond) on its
   cup and beside its dots, and a won one with more ranks names the next. Since 1.81 (app) a new rank swings down as
-  its medal on a ribbon, with its rank in Roman numerals, and a notice from the right says when the next rank is close
+  its medal on a ribbon, with its rank in Roman numerals, and a bubble under the points chip says when the next rank is close
   ("2 more airlines for Globetrotter"; once a rank). **Your hangar** (1.81, relay 63) replaces the Sets list: a shelf
   per set you swipe sideways, with a collectible card for each type seen (since 1.96 any sighting, on any screen; until
   then only those caught on the go) (the photo of the first one you saw, or of its model; the rarity in its colour,
@@ -772,23 +772,28 @@ Five buttons along the bottom:
 - **Now**: the plane overhead on flaps (flight, status, airline, route, aircraft, registration, altitude, speed,
   position, departure, arrival, flight time and Remarks), its photo on a small screen (1.35.1: the list of details
   under it is gone since 1.36; tap the flaps for cards and Favourite / Hide), and the
-  latest planes spotted. **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
-  colour of its remark, grouped by quarter hour ("Now · 14:45 – 15:00"), each plane in its own box (1.103.1), two slim lines a plane (time, flight, route,
-  remark; then airline, type, closest distance and height), "8 in the last hour" at the top and "All 64 planes today ›"
-  at the end, which goes to Today. A plane without a flight number shows its registration (or its owner); without a
-  route the row says "No route: private or local flight" or "Route not known". **Tap a plane** and its card opens right
+  latest planes spotted. The photo and **Where to look** (which way and how high, Sky view) are one card under the board
+  (1.115). **Recent flights** (1.95) is a timeline: a line down the left with a dot for each plane in the
+  colour of its remark, each plane in its own box (1.103.1), since 1.115 **one line a plane**: time, flight, route and
+  type, "8 in the last hour" at the top and "All 64 planes today ›" at the end, which goes to Today. A flight's status
+  (OVERHEAD, EMERGENCY, DIVERTED) is a coloured pill; at the end of the row, always in this order, a **★** for a type or
+  airline new to the logbook, a **flag** in its colour for an unusual plane (military, a giant such as SUPERJUMBO, a
+  police or rescue plane, a special one) and a pink **♥** for a favourite; their words are on the card. A plane without a
+  flight number shows its registration (or its owner); without a route the row shows its type. **Tap a plane** and its card opens right
   there: the row grows downwards into the card, the rows below slide down and the card's content fades in (since
   1.97.1; just opens with less motion on); the photo (Planespotters' first, its credit a link to the photo's page) opens the
   plane's whole card, the airline, the places and the Aircraft box theirs, and ⌃, the bar it sits in or another plane folds it back.
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today**: today's numbers on flaps, the day's highlights (1.111: the lowest and highest pass and the fastest side by
-  side, the figure first and the plane under it; the most seen airline and aircraft types as bars, counting only what
-  came at least twice; the newest plane new to the logbook; from 21:00 the Plane of the day first). Tap a plane named
-  there and the list below scrolls to it and lights its row for a moment (a filter that hides it is cleared). Then every
-  plane spotted today, with the same filters and legend as the board, and the same filter box.
-  Since 1.95 the list is the same timeline as Recent flights, grouped by the hour, and a tap opens a plane's card in place.
+- **Today** (1.115): the title with the filter box beside it, four numbers with their names (planes, overhead, airlines,
+  types) and a **Highlights** card: the Plane of the day from 21:00 (before then the newest plane new to the logbook) and a
+  line of records. A tap raises the day's plate from below (swipe it down, tap beside it or Back to close it): today's
+  numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
+  highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
+  bars (counting only what came at least twice) and the newest plane new to the logbook. Tap a plane named there and the
+  panel goes, the list scrolls to it and lights its row for a moment (a filter that hides it is cleared). Then the filters
+  and every plane spotted today, one line a plane as in Recent flights; a tap opens a plane's card in place.
   Since 1.72 Special lists special planes only, and Favourites has a filter of its own.
 - **Panels** (1.83): every part of the Logbook (Totals, the year, week or month, Categories, Aircraft types, Airlines,
   Most seen aircraft), Spotted today (Today in numbers), the Spotters' Club (Your level, League, Your catch, Your
@@ -882,8 +887,9 @@ Five buttons along the bottom:
   seen and how close it came; a flight lists the aircraft that flew it, an aircraft the flights it flew. Since relay 63
   it also finds where a plane was seen: a saved place's name, or on the go the town, the area round it or the country
   ("Oia", "Santorini", "Greece"; the relay names the phone's place, to about a kilometre, in the background).
-- **Notices** (1.65): saving answers with a short notice above the tabs (at the top while a card is open): Favourite and
-  Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
+- **Notices** (1.65): saving answers with a notice: since 1.115 a full-width bar at the bottom, above the tabs (at the
+  top while a card is open, above a ticket or pass while one shows), the message on the left and its one action on the
+  right, red for a problem: Favourite and Hide with **Undo**, a failed save with **Retry**. Settings that can't reach the relay wait on the device and are sent
   again (1.64); Settings say **Not synced yet** meanwhile.
 - **Home-screen widgets** (1.67, Android app, relay 56): long-press the home screen → Widgets → Fallblatt. **Plane
   overhead** (4×2) shows the flight on split flaps, its status, airline and type, route, distance, direction and

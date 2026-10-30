@@ -948,6 +948,36 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.115 (to-do #206, clarity build 1 of 4 from Fable's design pass, Dave's pick B on Now and Today, plus Notices B):
+  **the header chip, the one-line rows, Now's one card, Today's summary, the notices' bar.** (1) The flap clock
+  (`CLOCK`, `#clockP`) and the score strip (`#gStrip`) left the app's header; the TVs keep their clock. In the clock's
+  place `#gHead` (`.gHead`, in `.clockbox` beside the dot): "9,950 pts" over "Level 9", with "· paused" in amber while
+  live location is off; a tap goes to the Club's level plate (`gGoPlate("gHero")`). The functions kept their names
+  (`gStripSetup`, `gStripRender`, `gGain`, `gTotSet`): a gain turns the chip over to +N (`.r1`/`.r2`, the strip's
+  `gR1`/`gR2` turn), then the total counts up (rAF, 0.7 s) while it glows, then the level-up (`gLvFrom`, as before).
+  The bar, the flying token, the league chip and the Standby line went with the strip (the Club shows them). Go live
+  moved to a `.liveGo.gGoB` button under the Club's "Points only come with live location" (`gGoShow` redraws both).
+  The game's two notices (a place won in the league, a medal nearly there: `medalNudge`) became `gSay`: a bubble under
+  the chip, never the bar. The title shrinks to `--fs-xl` beside the chip (`:has`). (2) Rows (`rowInner`, both lists):
+  one line, `time · flight · route · type` (no route: the type; nothing: why), then `rowMarks(e)`: the status pill
+  (`chip()`, small) for EMERGENCY, DIVERTED or OVERHEAD only, then the end marks in a fixed order ★ (newType or
+  newAirline; newReg doesn't count), ⚑ (`FLAG_SVG` in the word's lamp colour: `specialOf` but EMERGENCY and HELICOPTER,
+  the watchlist's word, FR24's military category; the giants too), ♥ (pink, `isFav`). ARRIVING/DEPARTING/OVERFLIGHT,
+  CARGO/BIZJET/PRIVATE/HELICOPTER and the pink FAVOURITE pill left the row (Dave, 30 Oct). The words are on the card
+  behind the tap (`tlCardHtml`: the pill's, the flag's and the star's chips, else the remark). The quarter-hour and hour
+  headings went (`tlHtml(list, open)`; `tlMin`, `tlHm` gone); the second line `.l2` went, so `todayJump` lights the row
+  without the words. (3) Now: `#acTitle` and its groove hidden; `#look` hangs under `#bezel` as one card (`:has(+ #look)`
+  squares the bezel's foot), its heading hidden, its tape kept (the compass tap) at 34 px. (4) Today: `.tdHead` (the
+  title and the filter `#tdFind`, moved out of `#svTools`), `#tdNums` (planes, overhead, airlines, types, labelled),
+  `#tdHl` (Highlights: the plane of the day after 21:00, else the newest first, and a line of records), the chips, the
+  list. `#svSum` only keeps the sources' note. The plate `#todayTop` lives hidden (`TD_PLATE`) and `tdOpen` moves the
+  element itself into a `cardOpen` sheet (`.tdSheet`; the app's cards have the grip and no ✕), so its flaps
+  (`TODAYP`, `showPanel`) and facts keep updating. A's labels in it: First, Last and Busiest hour as three facts
+  (`.span3`) instead of the sentence; Most seen airline apart from Most seen types (`×N today`). A plane button in the
+  sheet closes it, then jumps. (5) Notices B (`#toasts` in head.html): a full-width bar above the tabs
+  (`--toast-b`), message left, one action right, red for a problem; over an open sheet at the top
+  (`body:has(#cardBox.in)`: the board's `.top` also fires on any `.cardish`, which the app's list cards are, so the app
+  ignores it). While passes or tickets (`#gAws`) show, a 250 ms check lifts the bar above them (`--toast-lift`).
 - 1.114.6.1 (to-do #200, the three safe fixes of Fable's Sky view deep dive): **the labels hold still, the planes' age
   survives a wrong clock, AUTO only when steady.** (1) Chrome sends no gyroscope reading while no angle changes by 0.1°;
   after 400 ms `arOrient`'s compass branch drove `arTurn` with the raw compass (±2.4° wobble, 10 px jumps, north not

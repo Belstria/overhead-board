@@ -565,10 +565,11 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webk
 .title h1 .sl{display:inline-block;width:.78em;height:.62em;margin:0 .26em;vertical-align:.04em;color:var(--muted);opacity:.8}
 .title h1 button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:3px}
 .title p{margin:5px 0 0;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.clockbox{position:relative;flex:none}
+.clockbox{position:relative;flex:none;min-width:8px;min-height:8px}
 @media (max-width:400px){.title h1{font-size:var(--fs-2xl)}}
+@media (max-width:500px){#top:has(.gHead:not([hidden])) .title h1{font-size:var(--fs-xl)}}   /* 1.115: room for the chip */
 @media (max-width:374px){.title h1{font-size:var(--fs-xl)}}
-#clockP{width:112px}
+@media (max-width:374px){#top:has(.gHead:not([hidden])) .title h1{font-size:var(--fs-l)}}
 .dot{position:absolute;right:-6px;top:-6px;width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--muted);box-shadow:0 0 0 2px rgba(0,0,0,.6);cursor:pointer}
 .dot::after{content:"";position:absolute;inset:-16px -4px -16px -16px}   /* a bigger tap area, kept inside the screen (1.40) */
 html,body{overflow-x:clip}
@@ -718,8 +719,36 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts .span{margin:10px 0 0;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted)}
 .dayFacts .span b,.dayFacts .span .dayJump{color:var(--ink);font-weight:600}
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+/* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
+   card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
+.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
+.tdHead h2{margin:0;flex:none}
+.tdFind{flex:1;min-width:0}
+.tdFind .svFind{margin:0}
+.tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
+.tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
+.tdNums dt{margin:6px 0 0;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:14px;
+  background:linear-gradient(90deg,rgba(240,180,41,.14),rgba(0,0,0,.35));border:1px solid rgba(240,180,41,.35);-webkit-tap-highlight-color:transparent}
+.tdHl[hidden]{display:none}
+.tdHl:active{background:linear-gradient(90deg,rgba(240,180,41,.22),rgba(0,0,0,.45))}
+.tdHl:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdHl span{flex:1;min-width:0}
+.tdHl small{display:block;margin:0 0 5px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--amber)}
+.tdHl b{display:block;font:700 var(--fs-l)/1.15 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
+#cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
+#cardBox .tdSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
+#cardBox .tdSheet #todayTop{margin:0}
+.dayFacts .span3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}
+.dayFacts .span3>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.dayFacts .span3 dt{margin:0 0 5px}
+.dayFacts .span3 dd{margin:0}
+.dayFacts .span3 b{display:block;font:700 var(--fs-l)/1.1 var(--f-board);color:var(--ink);white-space:nowrap}
+.dayFacts .sec>dt+dt,.dayFacts .sec>p+dt{margin-top:10px}
 .tline li.fl.jump{background:rgba(240,180,41,.10);box-shadow:inset 0 0 0 1.5px var(--amber),0 0 18px rgba(240,180,41,.18);transition:background .3s,box-shadow .3s}
-.tline li.fl.jump .l2[data-jl]::after{content:"  ·  " attr(data-jl);color:var(--amber);font-weight:600;letter-spacing:.08em;font-size:var(--fs-tag);text-transform:uppercase}
 /* flight lists, engraved like Spotted today on the board; special planes get a lamp and a tinted row */
 .flights{list-style:none;margin:6px -10px 0;padding:0}
 .flights li{position:relative;padding:9px 10px 9px 16px;border-bottom:1px solid rgba(0,0,0,.6);box-shadow:0 1px 0 rgba(255,255,255,.035)}
@@ -841,6 +870,13 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .lookTxt .cap{margin-top:8px;width:auto;padding:0 12px}
 @media (orientation: landscape) and (max-height: 600px){.look{display:none}}
 .lookActs{display:flex;gap:8px;flex-wrap:wrap}
+/* 1.115 (to-do #206, Dave's pick B): the plane's photo and Where to look are one card under the board, no title over it */
+#acSec>.groove,#acTitle{display:none}
+#acSec{margin-top:16px}
+#acSec .bezel:has(+ #look:not([hidden])){border-radius:10px 10px 0 0}
+#acSec #look{margin:0;border-radius:0 0 10px 10px;border-top:0;background:linear-gradient(#1a1b1e,#111214);box-shadow:0 6px 16px rgba(0,0,0,.6)}
+#acSec #look .lookH{display:none}
+#acSec #look canvas{height:34px}
 /* favourites and hidden planes: the + on a row, the sheet, This aircraft's buttons and the manager in Settings */
 .fl{position:relative}
 .tabHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -938,15 +974,20 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline li.fl::after{content:"";position:absolute;left:-10px;top:19px;width:10px;height:2px;background:var(--node);opacity:.55}
 .tline li.fl:active{background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.07)),var(--box-bg)}
 .tline li.fl:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
-.tline .l1{display:grid;grid-template-columns:40px 66px minmax(0,1fr) auto;gap:8px;align-items:baseline}
-.tline .l1 time{font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
-.tline .l1 .f{font:700 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tline .l1 .rt{grid-column:auto;min-width:0;font:700 var(--fs-base)/1.1 var(--f-board);color:#e9e5da;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 1.115 (to-do #206, Dave's pick B): one line a plane; the status a pill, the marks (★ new, ⚑ unusual, ♥ favourite) at the end */
+.tline .l1{display:flex;align-items:center;gap:8px;min-height:22px}
+.tline .l1 time{flex:none;width:40px;font:600 var(--fs-m)/1.1 var(--f-board);color:var(--amber);font-variant-numeric:tabular-nums}
+.tline .l1 .f{flex:none;min-width:58px;max-width:40%;font:700 var(--fs-base)/1.1 var(--f-board);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tline .l1 .rt{flex:1;min-width:0;font:700 var(--fs-base)/1.1 var(--f-board);color:#e9e5da;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tline .l1 .rt b{margin:0;color:inherit}
 .tline .l1 .rt i{font-style:normal;color:var(--muted);margin:0 .3em;letter-spacing:0}
-.tline .l1 .rt.no{font:500 var(--fs-xs)/1.15 var(--f-board);color:var(--label2);letter-spacing:0;white-space:normal;text-wrap:balance}     /* two even lines where it must */
-.tline .l1 .rk{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.12em;color:var(--node);text-align:right;white-space:nowrap}
-.tline .l2{margin:3px 0 0 48px;font:500 var(--fs-s)/1.3 var(--f-board);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tline .l1 .rt .ty{font-weight:500;color:var(--muted);letter-spacing:0}
+.tline .l1 .chip{flex:none;min-width:0;height:19px;padding:0 6px;font-size:var(--fs-tag);letter-spacing:.1em}
+.tline .l1 .mk{flex:none;display:flex;align-items:center;gap:5px}
+.tline .l1 .mk i{font-style:normal;display:grid;place-items:center;width:15px;height:15px;font:700 var(--fs-m)/1 var(--f-board)}
+.tline .l1 .mNew{color:var(--amber)}
+.tline .l1 .mFlag svg{width:15px;height:15px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+.tline .l1 .mFav{color:#e0679f}
 .tline li.st{position:relative;margin:0 0 2px 22px;padding:12px;border-radius:12px;background:var(--box-bg);border:var(--box-bd);font:500 var(--fs-m)/1.4 var(--f-board);color:var(--muted)}
 .tline li.st::before{content:"";position:absolute;left:-20px;top:17px;width:10px;height:10px;border-radius:50%;background:#3d3f44;box-shadow:0 0 0 3px #111214}
 .tline li.st.find::before{background:var(--amber);box-shadow:0 0 0 3px #111214,0 0 10px var(--amber)}
@@ -1295,7 +1336,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @media (orientation:landscape) and (max-height:600px){
   :root{--cl:max(env(safe-area-inset-left),var(--cut-l,0px));--cr:max(env(safe-area-inset-right),var(--cut-r,0px))}
   .wrap{max-width:none;padding:0 calc(8px + var(--cr)) 0 calc(8px + var(--cl))}
-  #tabs,.tab:not(#t-now),.brandline,#gStrip,.gPts{display:none!important}
+  #tabs,.tab:not(#t-now),.brandline,#gHead,.gPts{display:none!important}
   #top{padding-top:0}
   #top .wrap{padding-top:3px;padding-bottom:3px;gap:12px}
   #mark{width:28px;height:28px}
@@ -1304,7 +1345,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
   .title p,.title .where{margin-top:3px;font-size:var(--fs-tag)}
   #top .pages{display:flex;gap:12px;margin:0 auto;padding:4px 0 5px}
   #top .pages .cap{width:104px;height:30px;margin:0;font-size:var(--fs-tag);letter-spacing:.05em}
-  #clockP{width:84px}
   #top .clockbox{margin-right:16px}          /* clear of the screen's rounded corner */
   main{padding:6px 0 0}
   #t-now.cols:not([hidden]){display:block}
@@ -1334,43 +1374,33 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 }
 #svList.wait{opacity:.55;transition:opacity .2s}
 /* ---------- the game (1.72): the score strip under the header, the Game page, Sky view's boarding pass ---------- */
-#gStrip{display:flex;align-items:center;gap:8px;max-width:var(--max,1100px);margin:0 auto;padding:0 var(--gut);position:relative;box-sizing:border-box}
-#gStrip[hidden]{display:none}
-#gStrip .gMain{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
-#gStrip .gB{all:unset;cursor:pointer;box-sizing:border-box;display:flex;align-items:center;min-height:44px;padding:0 2px}
-#gStrip .gLvB{flex:1;min-width:0}
+/* 1.115 (to-do #206, Dave's pick B): the header chip in the clock's place: the points over the level, "paused" in amber
+   while live location is off; points coming in turn it over to +N (r2), then the total counts up while it glows */
+.gHead{all:unset;cursor:pointer;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:40px;padding:4px 12px;border-radius:20px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(240,180,41,.45);white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.gHead[hidden]{display:none}
+.gHead:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gHead:active{background:rgba(0,0,0,.6)}
+.gHv{display:grid;perspective:200px}
+.gHv>span{grid-area:1/1;font:700 var(--fs-m)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums;backface-visibility:hidden}
+.gHv .r2{color:var(--amber);transform:rotateX(90deg)}
+.gHead small{font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gHead small em{font-style:normal;color:var(--amber)}
+.gHead.flip .r1{animation:gR1 3.4s forwards} .gHead.flip .r2{animation:gR2 3.4s forwards}
+.gHead.gain{animation:gGlow 1.4s}
+@media (prefers-reduced-motion:reduce){.gHead *,.gHead{animation:none!important}}
+#t-game .gGoB{margin:10px 0 2px}
 .secPlate.hit h3{animation:ppHit 1.4s ease-out}
-.gTot{display:inline-flex;gap:2px;font:600 var(--fs-l)/1 var(--f-flap,"Oswald",var(--f-board))}
-.gTot s{text-decoration:none;display:inline-grid;place-items:center;min-width:.78em;height:1.36em;padding:0 .06em;border-radius:2px;color:var(--amber);
-  background:linear-gradient(#232428 0 49%,#0c0c0e 49% 51%,#1d1e22 51%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
-.gTot s.flp{animation:gFlp .26s ease-in-out}
-@keyframes gFlp{50%{transform:scaleY(.05);filter:brightness(1.8)}}
-.gLv{flex:1;min-width:0;display:grid;gap:4px}
-.gLv small{font:600 var(--fs-tag)/1.1 var(--f-board);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gBar{position:relative;height:5px;border-radius:3px;background:#2a2b30;overflow:hidden}
 .gBar i,.gBar b{position:absolute;top:0;bottom:0;left:0;border-radius:3px;background:var(--amber)}
 .gBar b{width:0;background:linear-gradient(90deg,#ffe08a,#fff6d8,#ffe08a);background-size:200% 100%}
-#gStrip.gain .gBar b{transition:width .7s ease-out;animation:gShine 1s .7s linear 2}
-@keyframes gShine{from{background-position:200% 0}to{background-position:0 0}}
-#gStrip.gain{animation:gGlow 1.4s}
 @keyframes gGlow{30%{box-shadow:inset 0 0 0 1px var(--amber),0 0 16px rgba(240,180,41,.35)}}
-.gChip{all:unset;cursor:pointer;display:inline-grid;align-content:center;min-height:44px;perspective:200px;flex:none}
-.gChip>span{grid-area:1/1;display:block;background:#26272b;border-radius:999px;padding:6px 9px;font:700 var(--fs-xs)/1 var(--f-board);color:var(--ink);white-space:nowrap;backface-visibility:hidden;text-align:center}
-.gChip .r1 em{font-style:normal;color:var(--c-good)} .gChip .r1 em.dn{color:var(--c-bad)}
 .skyIco{width:18px;height:18px;flex:none}
 /* 1.73.2: Go live, while the phone finds itself: a turning circle in the chip */
 .gSpin{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:currentColor;animation:gSpin .8s linear infinite}
 @keyframes gSpin{to{transform:rotate(360deg)}}
-.gChip .r2{background:var(--amber);color:#17140e;transform:rotateX(90deg)}
-#gStrip.flip .gChip .r1{animation:gR1 3.4s forwards} #gStrip.flip .gChip .r2{animation:gR2 3.4s forwards}
 @keyframes gR1{0%,6%{transform:none}11%,50%{transform:rotateX(-90deg)}56%,100%{transform:none}}
 @keyframes gR2{0%,9%{transform:rotateX(90deg)}14%,44%{transform:none}48%,100%{transform:rotateX(90deg)}}
-.gTok{position:absolute;right:calc(var(--gut) + 6px);top:50%;margin-top:-10px;padding:4px 7px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);opacity:0;pointer-events:none}
-#gStrip.fly .gTok{animation:gTok .55s cubic-bezier(.4,0,.6,1) forwards}
-@keyframes gTok{0%{opacity:1;transform:none}100%{opacity:0;transform:translate(var(--tx,-90px),2px) scale(.5)}}
-#gStrip.off .gTot s{color:var(--label2)} #gStrip.off .gLv small{color:#e7a39d} #gStrip.off .gBar i{background:#4a4b50}
-#gStrip.off .gChip .r1{background:var(--c-good);color:#06130b}
-@media (prefers-reduced-motion:reduce){#gStrip *,#gStrip{animation:none!important;transition:none!important}}
 .gPts{display:flex;align-items:center;gap:10px;margin-top:10px;background:#121315;border:1px solid #2c2416;border-radius:8px;padding:8px 10px}
 .gPts.off{border-color:#3a2020}
 .gPts b{font:600 var(--fs-xl)/1 var(--f-board);color:var(--amber);min-width:3.2em}
@@ -1395,7 +1425,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .rkI{flex:none;display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .rkI svg{display:block;flex:none;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5))}
 .rkGold{background:linear-gradient(#fff6d6,#f3c75a 50%,#d09a2c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none}
-#gStrip .gRk{flex:none;display:grid;place-items:center}
 #t-game .gBig .rkLv{display:flex;align-items:center;gap:8px}
 .gLeague li>span{display:flex;align-items:center;gap:8px;min-width:0} .gLeague .rkI>svg:first-child{min-width:34px}
 .plCard .cHead{display:flex;align-items:center;gap:12px} .plCard .cHead>div{flex:1;min-width:0}
@@ -1618,7 +1647,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gWk i.todo{border:1.5px solid var(--amber);color:var(--ink);box-shadow:0 0 0 3px rgba(240,180,41,.18)}
 .gWk i.sby{border:1.5px solid var(--amber);color:var(--amber);letter-spacing:.04em;background:repeating-linear-gradient(45deg,rgba(240,180,41,.2) 0 4px,transparent 4px 8px)}
 .gWk i.miss{border-color:#5a2a2a;color:#c0626a}
-#gStrip.sby .gLv small{color:var(--amber)}
 #t-game .gHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px}
 #t-game .gHead h3{margin:0}
 #t-game .gHead .seg{margin:0;flex:0 1 230px}
@@ -1958,16 +1986,26 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 .tools .seg.svFilters{flex:1 1 100%;margin:0}
 .gLeague{gap:0} .gLeague li{background:none;border-radius:0;padding:9px 4px;border-bottom:1px solid rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.03)}
 .gLeague li.me{outline:none;background:linear-gradient(90deg,rgba(240,180,41,.14),transparent 70%);box-shadow:inset 3px 0 0 var(--amber),0 1px 0 rgba(255,255,255,.03)}
-/* 1.73.2: notices (toasts) are dark pills, like the boxes, sliding in from the right under the score strip; a swipe to the
-   right sends one away (main.js) */
-#toasts,#toasts.top{left:auto;right:10px;transform:none;bottom:auto;top:calc(var(--sa-top) + 132px);width:min(92vw,440px);display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-#toasts .toast{border-radius:999px;background:var(--box-bg);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:9px 9px 9px 16px;gap:10px;
-  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .38s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
+/* 1.73.2: notices (toasts) are dark boxes; a sideways swipe sends one away (main.js). 1.115 (to-do #206, Dave's pick B):
+   a full-width bar at the bottom, above the tabs, where the thumb is: the message on the left, its one action on the
+   right, a problem in red; over an open card at the top, clear of its buttons. The game's news stays at the chip (gSay). */
+#toasts{left:10px;right:10px;transform:none;top:auto;bottom:max(var(--toast-b),var(--toast-lift,0px));width:auto;display:flex;flex-direction:column-reverse;align-items:stretch;gap:8px}
+#toasts.top{top:auto;bottom:max(var(--toast-b),var(--toast-lift,0px));flex-direction:column-reverse}   /* the board's "a card is open" (any .cardish) isn't the app's */
+body:has(#cardBox.in) #toasts{top:calc(var(--sa-top) + 10px);bottom:auto;flex-direction:column}
+#toasts .toast{border-radius:14px;background:#1d1e22;border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:10px 10px 10px 16px;gap:12px;min-height:48px;box-sizing:border-box;
+  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .32s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
 #toasts .toast.err{border-color:#5a2a2d;background:linear-gradient(#2a1517,#1d0f11)}
-#toasts .toast button{flex:none;padding:7px 12px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-xs)/1 var(--f-board);letter-spacing:.06em}
+#toasts .toast button{flex:none;padding:9px 16px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-s)/1 var(--f-board);letter-spacing:.04em;text-transform:none}
 #toasts .toast.err button{background:#ff8a80;color:#17140e}   /* 1.90: the board's red text matched the red pill */
-#toasts .toast.out{transform:translateX(120%);opacity:0}
-@keyframes toastIn{from{transform:translateX(120%)}}
+#toasts .toast.out{transform:translateY(16px);opacity:0}
+body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
+@keyframes toastIn{from{transform:translateY(24px);opacity:0}}
+.gSay{position:absolute;right:0;top:calc(100% + 8px);z-index:6;width:max-content;max-width:min(72vw,300px);padding:9px 12px;border-radius:12px;background:#1d1e22;border:1px solid rgba(240,180,41,.45);
+  box-shadow:0 8px 20px rgba(0,0,0,.6);font:600 var(--fs-s)/1.3 var(--f-board);color:var(--ink);white-space:normal;cursor:pointer;animation:gSayIn .3s ease-out;transition:opacity .3s}
+.gSay::before{content:"";position:absolute;right:22px;top:-6px;width:10px;height:10px;background:#1d1e22;border:1px solid rgba(240,180,41,.45);border-width:1px 0 0 1px;transform:rotate(45deg)}
+.gSay.out{opacity:0}
+@keyframes gSayIn{from{opacity:0;transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.gSay{animation:none}}
 @media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
 /* 1.74: the Logbook's title is two tabs, Logbook and Spotters' Club (the game part); swipe sideways between them.
    1.91 (to-do #104): stuck under the header while either page scrolls, like Settings' jump bar, so the other page is
@@ -2246,9 +2284,8 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
     <canvas id="mark" aria-hidden="true"></canvas>
     <div class="title"><h1 id="modes"><button type="button" data-mode="overhead" data-t="Overhead (board style)">Overhead</button><svg class="sl" viewBox="0 -2 40 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h34M29 -1l8 8-8 8M37 23H3M11 15l-8 8 8 8"/></svg><button type="button" data-mode="airport" data-t="Airport (board style)">Airport</button></h1><button type="button" id="where" class="where"></button></div>
     <div class="pages" id="nowPages"></div>
-    <div class="clockbox"><div class="panel" id="clockP" role="img" aria-label="Clock"></div><button type="button" class="dot" id="dot" aria-label="Connection" data-ta="Connection"></button></div>
+    <div class="clockbox"><button type="button" class="gHead" id="gHead" hidden></button><button type="button" class="dot" id="dot" aria-label="Connection" data-ta="Connection"></button></div>
   </div>
-  <div id="gStrip" hidden></div>
 </header>
 <main>
   <section class="wrap tab cols" id="t-now">
@@ -2300,13 +2337,14 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
     <div class="lcol">
-      <h2 data-t="Spotted today">Spotted today</h2>
-      <section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
+      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <dl class="tdNums" id="tdNums"></dl>
+      <button type="button" class="tdHl" id="tdHl" hidden></button>
+      <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
       <div class="panel" id="todayP" role="img" aria-label="Today in numbers"></div>
-      <dl class="facts dayFacts" id="todayFacts"></dl></section>
+      <dl class="facts dayFacts" id="todayFacts"></dl></section></div>
     </div>
     <div class="rcol">
-      <div class="groove"></div>
       <div class="tools" id="svTools"></div>
       <p class="sum" id="svSum"></p>
       <div class="seg svPlaces" id="svPlaces" role="group" hidden><button type="button" data-all="0"></button><button type="button" data-all="1"></button></div>
@@ -2417,7 +2455,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
   </div>
 </div></div>
 <nav id="tabs" aria-label="Pages" data-ta="Pages"><div class="wrap" id="tabRow"></div></nav>
-<script src="../test/i18n.js?v=c45ba93047"></script>
+<script src="../test/i18n.js?v=06c2356d98"></script>
 <script>
 (() => {
 "use strict";
@@ -4774,9 +4812,6 @@ for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) for (let i = 0; i < 5; i++) {  
   placeRow(["time", "flight", "city", "st"].map(id), [.4, .4, .4], 18 + i * 30, s, 1.45, UM);
 }
 RECENTP.off = APP.off = ACP.off = APDP.off = APAP.off = true;
-const CLOCK = makePanel($("clockP"), 112, 34);
-def(CLOCK, "clock", {kind:"chars", n:5, drum:DRUM_DIGIT, dur:95, loud:.8});
-placeRow(["clock"], [], 4, 22.4, 1.25, 1);
 // Spotted today: today's numbers on flaps.
 const TODAYP = makePanel($("todayP"), 390, 52);
 def(TODAYP, "stPlanes",   {kind:"chars", n:4, dur:70, drum:DRUM_DIGIT, align:"right", label:["Planes","Flüge"]});
@@ -7470,13 +7505,27 @@ const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plai
 const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
 const noRoute = e => T(noFlightNo(e) ? "No route: private or local flight" : "Route not known");
 const tlNode = e => lampOf(remarkFor(e)) || "#55585e";
+/* 1.115 (to-do #206, Dave's pick B): one line a plane: the time, the flight, the route and the type. What the flight is
+   doing (OVERHEAD, EMERGENCY, DIVERTED) is its pill; at the row's end, always in this order, a star for a type or an
+   airline new to the logbook, a flag in its colour for an unusual plane (military, a giant, the watchlist's), a heart
+   for a favourite. Their words are on the card behind the tap. */
+function rowMarks(e){
+  const sp = specialOf(e), cat = categoryBadge(e);
+  return {status: sp === "EMERGENCY" ? sp : e.divertedTo ? "DIVERTED" : overEntry(e) ? "OVERHEAD" : "",
+    flag: sp && sp !== "EMERGENCY" && sp !== "HELICOPTER" ? sp : e.watch || (cat === "MILITARY" ? cat : ""),
+    star: e.newType ? "NEW TYPE" : e.newAirline ? "NEW AIRLINE" : "", fav: isFav(e)};
+}
+const FLAG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>';
 function rowInner(e){
-  const r = remarkFor(e), done = e.done !== false, name = rowName(e);
-  const rt = e.from || e.to ? `<span class="rt"><b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b></span>`
-    : `<span class="rt no">${done ? escH(noRoute(e)) : ""}</span>`;
-  const l2 = [e.airline || (e.owner !== name ? e.owner : ""), e.type, distText(e.minDist), altText(e.altAtMin), allPlaces && e.place ? "◉ " + placeName(e.place) : ""];
-  return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b>${rt}<span class="rk">${r ? escH(T(r)) : ""}</span></div>` +
-    `<div class="l2">${escH(l2.filter(Boolean).join(" · "))}</div>`;
+  const m = rowMarks(e), done = e.done !== false, name = rowName(e), ty = shortType(e.type) || e.typeCode || "";
+  const rt = e.from || e.to ? `<b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b>${ty ? `<span class="ty"> · ${escH(ty)}</span>` : ""}`
+    : ty ? `<span class="ty">${escH(ty)}</span>` : done ? `<span class="ty">${escH(noRoute(e))}</span>` : "";
+  const mk = (m.star ? `<i class="mNew" title="${escH(T(m.star))}">★</i>` : "") +
+    (m.flag ? `<i class="mFlag" style="color:${lampOf(m.flag) || "var(--amber)"}" title="${escH(T(m.flag))}">${FLAG_SVG}</i>` : "") +
+    (m.fav ? `<i class="mFav" title="${escH(T("FAVOURITE"))}">♥\ufe0e</i>` : "");
+  const say = [m.star, m.flag, m.fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");
+  return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b><span class="rt">${rt}</span>` +
+    `${m.status ? chip(m.status) : ""}${mk ? `<span class="mk" role="img" aria-label="${escH(say)}">${mk}</span>` : ""}</div>`;
 }
 const rowHtml = e => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}" tabindex="0">${rowInner(e)}</li>`;
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
@@ -7500,32 +7549,18 @@ function tlAgo(e){
   return m < 1 ? T("just now") : m < 60 ? T("{n} min ago", {n: m}) : T("{h} h {m} min ago", {h: Math.floor(m / 60), m: m % 60});
 }
 function tlCardHtml(e){
-  const r = remarkFor(e), name = rowName(e);
+  const r = remarkFor(e), name = rowName(e), m = rowMarks(e), words = [m.status, m.flag, m.star].filter(Boolean);   // 1.115: the row's pill and marks, by name
+  const chips = words.length ? words.map(chipHtml).join("") : chipHtml(r);
   const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
-    chip: chipHtml(r), band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
+    chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
   return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span></span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
 }
 const cardLi = e => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}">${tlCardHtml(e)}</li>`;
-// The groups: the quarter hour (Recent flights) or the hour (Today), the one under way marked Now. A row's time is
-// the relay's clock, so "now" is worked out on that clock from the newest row.
-const tlMin = e => { const m = /^(\d\d):(\d\d)/.exec(e.time || ""), d = new Date(e.ts || 0); return m ? +m[1] * 60 + +m[2] : d.getHours() * 60 + d.getMinutes(); };
-const tlHm = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-function tlHtml(list, span, open){
-  const top = list[0], now = top ? (tlMin(top) + Math.floor(Date.now() / 6e4) - Math.floor((top.ts || 0) / 6e4)) % 1440 : -1;
-  let html = "", last = null;
-  for (const e of list) {
-    const g = Math.floor(tlMin(e) / span);
-    if (g !== last) {
-      last = g;
-      const isNow = g === Math.floor(now / span) && Date.now() - (e.ts || 0) < span * 6e4;
-      html += `<li class="tg">${isNow ? `<b>${escH(T("Now"))}</b> · ` : ""}${tlHm(g * span)} – ${tlHm(g * span + span)}</li>`;
-    }
-    html += tlKey(e) === open ? cardLi(e) : rowHtml(e);
-  }
-  return html;
-}
+// 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
+// row has its time).
+const tlHtml = (list, open) => list.map(e => tlKey(e) === open ? cardLi(e) : rowHtml(e)).join("");
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
@@ -7577,7 +7612,7 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, 15, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
@@ -7728,8 +7763,9 @@ function svFindWire(box, go){
 const SV_TOOLS = [["all", "All"], ["over", "Overhead"], ["special", "Special"], ["fav", "Favourites"]];
 function buildSvTools(){
   const box = $("svTools");
-  box.innerHTML = svFindHtml() + `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
-  svFindWire(box, () => { svSig = ""; renderToday(); });
+  box.innerHTML = `<div class="seg svFilters" role="group">` + SV_TOOLS.map(([k, t]) => `<button type="button" data-t="${k}" aria-pressed="false">${T(t)}</button>`).join("") + `</div>`;   // 1.73: a segmented bar
+  $("tdFind").innerHTML = svFindHtml();                       // 1.115: the filter beside the title
+  svFindWire($("tdFind"), () => { svSig = ""; renderToday(); });
   for (const b of box.querySelectorAll("[data-t]")) b.onclick = () => {
     ctlSound.click();
     const k = b.dataset.t;
@@ -7749,10 +7785,14 @@ function todayNumbers(){
     types: st ? st.types : uniq(e => e.typeCode || clean(e.type)), over: st ? st.overhead : list.filter(overEntry).length,
     h: dayHighlights(list, st || null)};
 }
-// 1.111 (to-do #163, Dave's pick C with A's tap): under the counters, the three records side by side (the figure first,
-// the plane and time under it), the most seen as bars and the newest plane new to the logbook; from 21:00 "Your day in
-// planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
-let todayFactsSig = "";
+// 1.111 (to-do #163, Dave's pick C with A's tap): the day's plate: the counters, the three records side by side (the
+// figure first, the plane and time under it), the most seen and the newest plane new to the logbook; from 21:00 "Your
+// day in planes" opens with the Plane of the day and the day's span. A plane named here is a button: it jumps to its row.
+// 1.115 (to-do #206, Dave's pick B): the list is the page: four labelled numbers and a Highlights card on top; the
+// plate rises from below as a sheet (tdOpen), every fact labelled as in A (first, last and busiest hour as three, the
+// most seen airline and types apart). The plate is the same element, moved into the sheet and kept (TD_PLATE).
+const TD_PLATE = $("todayTop"), TD_FACTS = $("todayFacts");
+let todayFactsSig = "", tdSig = "";
 function renderTodayNumbers(){
   const n = todayNumbers(), h = n.h, ev = reviewTime() && !!(h.pod && h.pod.tier);
   setChars("stPlanes", String(n.planes)); setChars("stAirlines", String(n.airlines), 60);
@@ -7760,34 +7800,54 @@ function renderTodayNumbers(){
   // a plane: a button when its row is in the list
   const jump = (e, what, inner) => h.inList(e) ? `<button type="button" class="dayJump" data-jump="${escH(tlKey(e))}" data-jl="${escH(T(what))}">${inner}</button>` : `<span class="dayJump">${inner}</span>`;
   const rec = (what, e, v) => `<div><dt>${escH(T(what))}</dt><dd>${e ? jump(e, what, `<b>${escH(v(e))}</b><small>${escH(rowName(e))} · ${escH(e.time || "")}</small>`) : "–"}</dd></div>`;
-  const max = Math.max(h.airline ? h.airline.count : 0, ...h.types.map(t => t[1]));
-  const bar = (k, c) => `<span>${escH(k)}</span><i style="width:${Math.max(6, c / max * 100).toFixed(1)}%"></i><em>${nf.format(c)}</em>`;
-  const bars = (h.airline && h.airline.count > 1 ? bar(h.airline.title, h.airline.count) + (h.types.length ? `<b class="gap"></b>` : "") : "") +
-    h.types.map(([k, c]) => bar(shortType(TYPES[k] || k), c)).join("");
+  const al = h.airline && h.airline.count > 1 ? h.airline : null, max = Math.max(0, ...h.types.map(t => t[1]));
+  const bars = h.types.map(([k, c]) => `<span>${escH(shortType(TYPES[k] || k))}</span><i style="width:${Math.max(6, c / max * 100).toFixed(1)}%"></i><em>${escH(T("×{n} today", {n: nf.format(c)}))}</em>`).join("");
   const p = h.pod, nw = h.newest, hh = x => String(x % 24).padStart(2, "0");
-  const fl = e => jump(e, e === h.first ? "First of the day" : "Last of the day", escH(rowName(e)));
-  // the translations are ours, so the time and the flights go in as HTML
-  const span = h.first && h.last && h.first !== h.last ? T("From {a} ({f}) to {b} ({l})", {a: `<b>${escH(h.first.time || "")}</b>`, f: fl(h.first), b: `<b>${escH(h.last.time || "")}</b>`, l: fl(h.last)}) +
-    (h.busy && h.busy.n > 1 ? " · " + T("busiest {h} ({n})", {h: `<b>${hh(h.busy.h)}–${hh(h.busy.h + 1)}h</b>`, n: h.busy.n}) : "") : "";
+  const span = h.first && h.last && h.first !== h.last ? `<dl class="span3">${rec("First", h.first, e => e.time || "")}${rec("Last", h.last, e => e.time || "")}` +
+    `<div><dt>${escH(T("Busiest hour"))}</dt><dd>${h.busy && h.busy.n > 1 ? `<b>${hh(h.busy.h)}–${hh(h.busy.h + 1)}</b><small>${escH(T("{n} planes", {n: h.busy.n}))}</small>` : "–"}</dd></div></dl>` : "";
   const html = (ev ? `<div class="sec"><div class="pod" style="--tc:${TIER_COL[p.tier]}">${jump(p, "Plane of the day",
       `<span class="k">${escH(T("Plane of the day"))}<span>${escH(T(TIER_NAME[p.tier] || ""))}</span></span><b>${escH(shortType(p.type) || p.typeCode || rowName(p))}</b>` +
       `<small>${escH([rowName(p), p.from || p.to ? `${(p.from && (p.from.city || p.from.code)) || "···"} → ${(p.to && (p.to.city || p.to.code)) || "···"}` : "", p.time].filter(Boolean).join(" · "))}</small>`)}</div>` +
-      (span ? `<p class="span">${span}</p>` : "") + `</div>` : "") +
+      span + `</div>` : "") +
     `<div class="sec rec">${rec("Lowest pass", h.low, e => altText(e.altAtMin))}${rec("Highest pass", h.high, e => altText(e.altAtMin))}${rec("Fastest", h.fast, e => speedStr(e.maxSpeed).toLowerCase())}</div>` +
-    `<div class="sec"><dt>${escH(T("Most seen"))}</dt>${bars ? `<div class="bars">${bars}</div>` : `<p class="new">${escH(h.typesSeen ? T("Nothing seen twice yet") : "–")}</p>`}</div>` +
+    `<div class="sec">${al ? `<dt>${escH(T("Most seen airline"))}</dt><p class="new">${escH(al.title)} <small>· ${escH(T("{n} planes today", {n: nf.format(al.count)}))}</small></p>` : ""}` +
+    `<dt>${escH(T(al ? "Most seen types" : "Most seen"))}</dt>${bars ? `<div class="bars">${bars}</div>` : `<p class="new">${escH(h.typesSeen ? T("Nothing seen twice yet") : "–")}</p>`}</div>` +
     `<div class="sec"><dt>${escH(T("New in the logbook"))}</dt><p class="new">${nw ? jump(nw, "New in the logbook", `${escH(nw.newType ? shortType(nw.type) || nw.typeCode : nw.airline || rowName(nw))} <small>· ${escH(rowName(nw))} · ${escH(nw.time || "")} · ${escH(T("first ever"))}` +
       `${h.newN > 1 ? " · " + escH(T("{n} more", {n: h.newN - 1})) : ""}</small>`) : escH(T("Nothing new yet"))}</p></div>`;
-  if (html !== todayFactsSig) { todayFactsSig = html; $("todayFacts").innerHTML = html; }
-  const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = $("todayTop").querySelector("h3");
+  if (html !== todayFactsSig) { todayFactsSig = html; TD_FACTS.innerHTML = html; }
+  const title = T(ev ? "Your day in planes" : "Today in numbers"), h3 = TD_PLATE.querySelector("h3");
   if (h3.textContent !== title) h3.textContent = title;
+  // the page: the numbers, each with its name, and the card: the plane of the day (or the newest first) and a line of records
+  const num = (v, k) => `<div><dt>${escH(T(k))}</dt><dd>${nf.format(v || 0)}</dd></div>`;
+  const nm = e => shortType(e.type) || e.typeCode || rowName(e);
+  const head = ev ? T("Plane of the day: {t}", {t: nm(p)}) : nw ? T("New in the logbook: {t}", {t: nw.newType ? nm(nw) : nw.airline || rowName(nw)}) : "";
+  const line = [h.low ? T("lowest {a}", {a: altText(h.low.altAtMin)}) : "", h.fast ? T("fastest {s}", {s: speedStr(h.fast.maxSpeed).toLowerCase()}) : "",
+    h.newN ? T("{n} new in the logbook", {n: nf.format(h.newN)}) : ""].filter(Boolean).join(" · ");
+  const sig = [n.planes, n.over, n.airlines, n.types, head, line, LANG].join("|");
+  if (sig === tdSig) return;
+  tdSig = sig;
+  $("tdNums").innerHTML = num(n.planes, "Planes") + num(n.over, "Overhead") + num(n.airlines, "Airlines") + num(n.types, "Types");
+  const hl = $("tdHl");
+  hl.hidden = !n.planes || !(head || line);
+  hl.innerHTML = `<span><small>${escH(T("Highlights"))}</small><b>${escH(head || line)}</b>${head && line ? `<em>${escH(line)}</em>` : ""}</span><i aria-hidden="true">›</i>`;
 }
-// A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment, what it was named for after its
-// details. A filter that hides it is cleared first.
-function todayJump(k, what){
+// The Highlights card: the plate as a sheet (the app's cards: the grip, swiped down, a tap beside or back).
+function tdOpen(){
+  ctlSound.nav();
+  cardOpen(`<div class="tdIn"></div>`, ci => {
+    ci.classList.add("tdSheet");
+    ci.querySelector(".tdIn").appendChild(TD_PLATE);
+    TODAYP.cssW = 0; showPanel(TODAYP);
+  });
+}
+$("tdHl").onclick = tdOpen;
+// A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
+// without the words of what it was named for). A filter that hides it is cleared first.
+function todayJump(k){
   const row = () => $("svList").querySelector(`li.fl[data-more="${CSS.escape(k)}"]`);
   if (!row() && (svFilter !== "all" || svQuery)) {
     svFilter = "all"; svQuery = "";
-    const inp = $("svTools").querySelector("[data-q]"), x = $("svTools").querySelector("[data-qx]");
+    const inp = $("tdFind").querySelector("[data-q]"), x = $("tdFind").querySelector("[data-qx]");
     if (inp) inp.value = ""; if (x) x.hidden = true;
     svSig = ""; renderToday();
   }
@@ -7795,15 +7855,15 @@ function todayJump(k, what){
   if (!li) return;
   ctlSound.nav();
   for (const o of document.querySelectorAll("#svList li.jump")) o.classList.remove("jump");
-  const l2 = li.querySelector(".l2");
-  if (l2) l2.dataset.jl = what;
   li.classList.add("jump");
   li.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   clearTimeout(todayJump.t); todayJump.t = setTimeout(() => li.classList.remove("jump"), 2600);
 }
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#todayFacts button[data-jump]");
-  if (b) todayJump(b.dataset.jump, b.dataset.jl);
+  if (!b) return;
+  if (b.closest("#cardBox")) cardClose();                    // 1.115: from the Highlights sheet
+  todayJump(b.dataset.jump);
 });
 function renderToday(){
   if (tab !== "today") return;
@@ -7816,7 +7876,9 @@ function renderToday(){
     if (b.textContent !== text) b.textContent = text;
     b.setAttribute("aria-pressed", String(k === svFilter));
   }
-  $("svSum").textContent = spottedSummary();
+  const note = (API_NOTE() + (S.demo ? " · " + T("sample flights (demo mode)") : "")).slice(3);   // 1.115: the numbers are above
+  if ($("svSum").textContent !== note) $("svSum").textContent = note;
+  $("svSum").hidden = !note;
   const ap = $("svPlaces");
   if (ap) {
     const seenFrom = ((lbData() || {}).places || []).filter(([k, n]) => n > 0).length;
@@ -7839,7 +7901,7 @@ function renderToday(){
   svSig = sig;
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
-  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, 60, tlOpenId.svList)
+  tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
     : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? tlNothing() : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
 }
 function renderLists(){
@@ -11944,6 +12006,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.115", date: "2026-10-30", notes: [
+    "In the app, a chip top right shows your points and level (\"paused\" while live location is off) in place of the clock and the points strip; a tap opens the Spotters' Club.",
+    "Recent flights and Today show one line a plane: time, flight, route and type. A star marks a new type or airline, a flag an unusual plane, a heart a favourite; a status such as OVERHEAD or EMERGENCY stays a coloured pill.",
+    "On Now, the plane's photo and Where to look are one card.",
+    "Today starts with four numbers and a Highlights card that opens your day's plate from below; the filter sits beside the title.",
+    "Notices (saved, Undo, Retry) show as a bar at the bottom, above the tabs; a problem is red.",
+    "Go live is a button on the Spotters' Club page while points are paused."]},
   {v: "1.114.6.1", date: "2026-10-29", notes: [
     "Sky view's labels hold steady when you keep the phone still.",
     "Sky view lines up with the sun and planes only while the phone is steady, so the labels no longer slide after a turn.",
@@ -13258,7 +13327,7 @@ function tlFold(li, anim){
   tlStart(320);
   const shut = li.tlNow = li.animate([{height: h1 + "px", marginTop: m1[0], marginBottom: m1[1]}, {height: h0 + "px", marginTop: m0[0], marginBottom: m0[1]}], {duration: 320, easing: TL_EASE});
   card.animate([{opacity: 1}, {opacity: 0}], {duration: 200, easing: "linear", fill: "forwards"});
-  for (const c of [li.querySelector(".l1"), li.querySelector(".l2")]) if (c) c.animate([{opacity: 0}, {opacity: 1}], {duration: 200, delay: 120, easing: TL_OUT, fill: "backwards"});
+  { const c = li.querySelector(".l1"); if (c) c.animate([{opacity: 0}, {opacity: 1}], {duration: 200, delay: 120, easing: TL_OUT, fill: "backwards"}); }
   const end = () => { card.remove(); if (li.tlNow === shut) li.classList.remove("tlAnim"); tlEnd(); };
   shut.finished.then(end, end);
 }
@@ -13781,7 +13850,7 @@ function updateWhere(){
 }
 function liveShow(){ updateWhere(); renderRecent(); renderToday(); }     // live location found its position, or lost it (1.90: and the lists)
 function tickClock(){
-  setChars("clock", hhmm()); rollDay(); updateFooter();
+  rollDay(); updateFooter();                              // 1.115: the flap clock went (the chip has its place)
   if (feat && !isOffline()) setWord("remarks", featRemark());
 }
 
@@ -13914,19 +13983,15 @@ const gScanSet = () => gme && Array.isArray(gme.scan) ? (gme.scanSet ||= new Set
 const gGoldSet = () => gme && Array.isArray(gme.scan) ? (gme.goldSet ||= new Set(gme.scan.filter(x => x.gold).map(x => x.hex))) : new Set();   // 1.100
 let gme = null, gmeAt = 0, gBusy = false, gLeague = null, gLeagueAt = 0, gAll = false, gAnimT = [], gLvFrom = 0;   // 1.114.5: a level-up still to show (from that level)
 function gStripSetup(){
-  const box = $("gStrip");
+  // 1.115 (to-do #206, Dave's pick B): the strip under the header became the chip in the clock's place: the points and
+  // the level, "paused" in amber while live location is off; a tap opens the Spotters' Club. The names stayed.
+  const box = $("gHead");
   box.hidden = !gameOk();
   if (box.hidden || box.dataset.on) return;
   box.dataset.on = "1";
-  // 1.114.2 (to-do #192): each part opens its own place: the lapel and the level line your level, the points the
-  // point history, the league number the league (each a button of thumb size, with a gap between them)
-  box.innerHTML = `<div class="gMain"><button type="button" class="gB" id="gBRk" aria-label="${escH(T("Your level"))}"><span class="gRk" id="gRk"></span></button>` +
-    `<button type="button" class="gB" id="gBTot" aria-label="${escH(T(gRecentOk() ? "Recent points" : "Spotters' Club: your points, level and the league"))}"><span class="gTot" id="gTot"></span></button>` +
-    `<button type="button" class="gB gLvB" id="gBLv" aria-label="${escH(T("Your level"))}"><span class="gLv"><small id="gLvTxt"></small><span class="gBar"><i id="gBarI"></i><b id="gBarG"></b></span></span></button></div>` +
-    `<button type="button" class="gChip" id="gChip" aria-label="${escH(T("League"))}"><span class="r1" id="gRank"></span><span class="r2" id="gPlus"></span></button><b class="gTok" id="gTok"></b>`;
-  $("gBRk").onclick = $("gBLv").onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
-  $("gBTot").onclick = () => { audioInit(); ctlSound.nav(); if (gRecentOk()) gRecentCard(); else gGoPlate("gHero"); };
-  $("gChip").onclick = () => { audioInit(); ctlSound.nav(); if (!S.live && liveOk()) gGoLive(); else gGoPlate("lgPlate"); };
+  box.setAttribute("aria-label", T("Spotters' Club"));
+  box.innerHTML = `<span class="gHv"><span class="r1" id="gTot"></span><span class="r2" id="gPlus"></span></span><small id="gLvTxt"></small>`;
+  box.onclick = () => { audioInit(); ctlSound.nav(); gGoPlate("gHero"); };
 }
 // 1.114.2: to a plate of the Club's page (switching to the page first), below the sticky top and the tabs; it lights up
 // for a moment, as the passport's regions do.
@@ -13947,6 +14012,7 @@ function gHitDo(){
   }
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
@@ -13981,27 +14047,31 @@ for (const id of ["t-logbook", "t-game"]) { let sw = null;
   document.addEventListener("pointerdown", e => { const t = e.pointerType === "mouse" && toastAt(e); if (t) start(t, e.clientX); });
   document.addEventListener("pointermove", e => { if (sw && e.pointerType === "mouse") move(e.clientX); });
   document.addEventListener("pointerup", e => { if (e.pointerType === "mouse") end(); }); }
-// 1.73.2: Go live: a turning circle in the chip until the phone has found itself (or 15 s), then the strip as it is.
+// 1.73.2: Go live (Sky view, the Club): the phone finds itself (or 15 s), then the chip and the Club as they are.
 let gGoing = 0;
 function gGoLive(){
   if (gGoing) return;
   liveStart();
   const t0 = Date.now();
   gGoing = setInterval(() => {
-    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); if (gme) gStripRender(gme); }
-    else if (gme) gStripRender(gme);
+    if (S.live && !liveFirst || Date.now() - t0 > 15000) { clearInterval(gGoing); gGoing = 0; gRefresh(true); gGoShow(); }
+    else gGoShow();
   }, 400);
-  if (gme) gStripRender(gme);
+  gGoShow();
 }
-// The total on flaps: a flap flips over only where the digit changed, right to left.
-// 1.73.3: always five flaps (room for 10,000 and up), blank in front
+const gGoShow = () => { if (gme) gStripRender(gme); renderGame(); };
+// The total on the header chip ("9,950 pts").
 function gTotSet(n, anim){
-  const el = $("gTot"), t = String(Math.max(0, Math.round(n || 0))).padStart(5, " ");
-  if (el.children.length !== t.length) el.innerHTML = [...t].map(() => "<s></s>").join("");
-  [...t].forEach((c, i) => { const s = el.children[i], v = c === " " ? "" : c;
-    if (s.textContent === v) return;
-    if (!anim) { s.textContent = v; return; }
-    setTimeout(() => { s.textContent = v; s.classList.remove("flp"); void s.offsetWidth; s.classList.add("flp"); }, (t.length - i) * 90); });
+  const el = $("gTot"), to = Math.max(0, Math.round(n || 0)), from = +el.dataset.n || 0;
+  const put = v => { el.dataset.n = v; el.textContent = T("{n} pts", {n: nf.format(v)}); };
+  cancelAnimationFrame(gTotSet.raf);
+  if (!anim || REDUCED || to <= from) return put(to);
+  const t0 = performance.now(), step = t => {                // 1.115: counts up over 0.7 s
+    const k = Math.min(1, (t - t0) / 700);
+    put(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))));
+    if (k < 1) gTotSet.raf = requestAnimationFrame(step);
+  };
+  gTotSet.raf = requestAnimationFrame(step);
 }
 // 1.102 (to-do #154, Dave's pick: round 2's ladder A): the level as a rank insignia, its colour telling the group and
 // its mark the step. 1–4 a sky-blue shoulder board with 1–4 silver pips, 5–8 navy with silver chevrons, 9–11 black with
@@ -14313,46 +14383,52 @@ function stylesThumb(cv, look, badgeOnly){
     g.fillStyle = Th.accent; rr(g, x0, y + fh + h * .1, 3 * fw + 2 * gap, Math.max(2, h * .035), 1); g.fill();
   });
 }
-// 1.78.1: the strip follows live location at once (Settings, a place picked, another device's change, the start); it
+// 1.78.1: the chip follows live location at once (Settings, a place picked, another device's change, the start); it
 // was redrawn only with the next points, up to a minute later.
 let gStripLive = null;
 setInterval(() => { if (gme && gStripLive != null && gStripLive !== !!S.live) { gStripRender(gme); gRefresh(true); } }, 300);
 function gStripRender(g, anim){
-  const box = $("gStrip");
+  const box = $("gHead");
   if (box.hidden || !g) return;
   const off = !S.live;
   gStripLive = !off;
   box.classList.toggle("off", off);
   if (!anim) gTotSet(g.points);
-  const sby = !off && gSbyUsed(g);                                  // 1.104: the day after a standby, the line says so in amber
-  box.classList.toggle("sby", !!sby);
-  $("gLvTxt").textContent = off ? T(liveOk() ? "Not scoring · live location is off" : "Points only come with live location")
-    : sby ? T("Standby used · streak goes on, day {n}", {n: sby}) : gLevelText(g);
-  const rk = rankIns(g.level, 34);    // 1.102: the rank insignia; 1.112 (to-do #170): in front of the points, the wings only on the club's cards
-  if ($("gRk").dataset.h !== rk) { $("gRk").dataset.h = rk; $("gRk").innerHTML = rk; }
-  $("gBarI").style.width = (g.need ? Math.min(100, g.into / g.need * 100) : 0).toFixed(1) + "%";
-  $("gRank").innerHTML = gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : off && liveOk() ? escH(T("Go live")) : g.rank ? `#${g.rank}` + (g.was && g.was > g.rank ? ' <em>▲</em>' : g.was && g.was < g.rank ? ' <em class="dn">▼</em>' : "")
-    : escH(T("Club"));
+  const lv = escH(T("Level {n}", {n: g.level}));
+  const html = off ? `${lv} · <em>${escH(T("paused"))}</em>` : lv;
+  if ($("gLvTxt").innerHTML !== html) $("gLvTxt").innerHTML = html;
 }
-// Points came in: the chip shows +N, the +N flies to the bar, the bar fills, the total rolls up.
+// 1.115: the notices' bar and the game's passes and tickets share the bottom: while both show, the bar sits above them
+setInterval(() => {
+  const t = $("toasts"), a = $("gAws");
+  if (!t || !t.children.length) return;
+  const top = a && a.children.length ? a.getBoundingClientRect().top : 0, lift = top > 0 ? Math.round(innerHeight - top + 8) + "px" : "";
+  if (t.style.getPropertyValue("--toast-lift") !== lift) t.style.setProperty("--toast-lift", lift);
+}, 250);
+// 1.115 (Dave's pick B): the game's news (a place won in the league, a medal nearly there) under the chip, never in the
+// notices' bar; a tap opens the club, it goes by itself after a few seconds.
+function gSay(text, ms = 5000){
+  const box = $("gHead");
+  if (!box || box.hidden) return;
+  const cb = box.parentNode;
+  for (const o of cb.querySelectorAll(".gSay")) o.remove();
+  const b = document.createElement("div");
+  b.className = "gSay"; b.setAttribute("role", "status"); b.textContent = text;
+  b.onclick = () => { b.remove(); box.click(); };
+  cb.appendChild(b);
+  setTimeout(() => { b.classList.add("out"); setTimeout(() => b.remove(), 320); }, ms);
+}
+// Points came in: the chip turns over to +N, then back to the total, which counts up while the chip glows.
 function gGain(prev, g){
-  const box = $("gStrip"), n = g.points - prev.points;
+  const box = $("gHead"), n = g.points - prev.points;
   gAnimT.forEach(clearTimeout); gAnimT = [];           // 1.114.5: a level-up this cancels stays pending (gLvFrom)
   if (g.level > prev.level) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
   $("gPlus").textContent = "+" + nf.format(n);
-  $("gTok").textContent = "+" + nf.format(n);
-  const lvUp = g.level > prev.level, from = prev.need ? prev.into / prev.need * 100 : 0, to = lvUp ? 100 : g.need ? g.into / g.need * 100 : 0;
-  const bar = $("gBarI").getBoundingClientRect(), chip = $("gChip").getBoundingClientRect();
-  box.style.setProperty("--tx", Math.round(bar.left + bar.width * to / 100 - chip.left - chip.width / 2) + "px");
-  $("gBarI").style.width = from.toFixed(1) + "%"; $("gBarG").style.left = from.toFixed(1) + "%"; $("gBarG").style.width = "0";
-  box.classList.remove("flip", "fly", "gain"); void box.offsetWidth; box.classList.add("flip");
-  gAnimT.push(setTimeout(() => box.classList.add("fly"), 1550));
+  gTotSet(prev.points);
+  box.classList.remove("flip", "gain"); void box.offsetWidth; box.classList.add("flip");
+  gAnimT.push(setTimeout(() => { box.classList.add("gain"); gTotSet(g.points, true); gCoins(); }, 1900));
   gAnimT.push(setTimeout(() => {
-    box.classList.add("gain"); $("gBarG").style.width = Math.max(0, to - from).toFixed(1) + "%";
-    gTotSet(g.points, true); gCoins();
-  }, 2050));
-  gAnimT.push(setTimeout(() => {
-    box.classList.remove("flip", "fly", "gain"); $("gBarG").style.width = "0"; gStripRender(g);
+    box.classList.remove("flip", "gain"); gStripRender(g);
     if (gLvFrom) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }
   }, 3500));
 }
@@ -14370,7 +14446,7 @@ async function gRefresh(force){
     const viaGain = prev && g.points > prev.points && tab !== "game";
     if (viaGain) gGain(prev, g);
     else gStripRender(g);
-    if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) toast(T("You passed {n} in the league ▲", {n: g.below}));
+    if (prev && g.rank && prev.rank && g.rank < prev.rank && g.below) gSay(T("You passed {n} in the league ▲", {n: g.below}));
     if (prev && g.level > prev.level && !viaGain) gLvFrom = gLvFrom ? Math.min(gLvFrom, prev.level) : prev.level;
     if (gLvFrom && !viaGain) { const f = gLvFrom; gLvFrom = 0; gLevelUp(g, f); }   // 1.114.5: also one a second gain cut off
     if (tab === "game") renderGame();
@@ -14683,7 +14759,9 @@ function renderGame(){
   // 1.83 (Dave): each part on a plate of its own, as Settings' (secPlate)
   let h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
     careerMini(g) +                                          // 1.109: the mini route, the next stop, Your route
-    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>`) + gSbyHtml(g) +
+    (S.live ? "" : `<span class="gRule gOff">${escH(T("Points only come with live location (Settings → Location): planes within {k} km of you score, and within {s} km you can scan them.", {k: gKm(), s: gScanKm()}))}</span>` +
+      // 1.115: Go live here, where the strip's chip had it (the header chip opens this page)
+      (liveOk() ? `<button class="liveGo gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "")) + gSbyHtml(g) +
     `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
     // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
     `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
@@ -14913,7 +14991,7 @@ function medalNudge(g0){
     if (!t || done.includes(t[0]) || left <= 0 || left > Math.max(2, Math.round(t[1] * .02))) continue;
     try { localStorage.setItem(ACH_KEY + ".nudge", JSON.stringify(done.concat(t[0]).slice(-80))); } catch {}
     const u = NUDGE_UNIT[L[0]] || ["", ""];
-    toast(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), {ms: 7000});
+    gSay(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), 7000);
     return;                                                         // one at a time
   }
 }
@@ -15166,7 +15244,7 @@ function gameStart(){
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) gRefresh(true); });
-  setTimeout(() => tip("gstrip", () => $("gStrip"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
+  setTimeout(() => tip("gstrip", () => $("gHead"), T("Your points. Only planes you spot with live location on score. Tap for your level and the league.")), 4000);
 }
 function run(){
   if (booted) return;

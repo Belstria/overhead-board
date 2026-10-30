@@ -1567,4 +1567,16 @@ window.I18N_ROWS = [
   ["How Sky view works", "So funktioniert die Himmelsansicht", "Comment fonctionne la vue du ciel", "Cómo funciona la vista del cielo", "Zo werkt Luchtzicht"],
   ["Radar: the planes around you, north up", "Radar: die Flugzeuge um dich, Norden oben", "Radar : les avions autour de vous, nord en haut", "Radar: los aviones a tu alrededor, norte arriba", "Radar: de vliegtuigen om je heen, noorden boven"],
   ["Pages", "Seiten", "Pages", "Páginas", "Pagina's"],
+  // 1.115: the header chip, Today's numbers and Highlights card, the day's plate labelled
+  ["{n} pts", "{n} Pkt.", "{n} pts", "{n} pts", "{n} ptn"],
+  ["paused", "pausiert", "en pause", "en pausa", "gepauzeerd"],
+  ["Highlights", "Höhepunkte", "Temps forts", "Destacados", "Hoogtepunten"],
+  ["Plane of the day: {t}", "Flugzeug des Tages: {t}", "Avion du jour : {t}", "Avión del día: {t}", "Vliegtuig van de dag: {t}"],
+  ["New in the logbook: {t}", "Neu im Logbuch: {t}", "Nouveau dans le carnet : {t}", "Nuevo en el registro: {t}", "Nieuw in het logboek: {t}"],
+  ["lowest {a}", "am tiefsten {a}", "le plus bas {a}", "el más bajo {a}", "laagste {a}"],
+  ["fastest {s}", "am schnellsten {s}", "le plus rapide {s}", "el más rápido {s}", "snelste {s}"],
+  ["{n} new in the logbook", "{n} neu im Logbuch", "{n} nouveaux dans le carnet", "{n} nuevos en el registro", "{n} nieuw in het logboek"],
+  ["Last", "Zuletzt", "Dernier", "Último", "Laatste"],
+  ["Most seen types", "Häufigste Typen", "Types les plus vus", "Tipos más vistos", "Meest geziene types"],
+  ["×{n} today", "×{n} heute", "×{n} aujourd'hui", "×{n} hoy", "×{n} vandaag"],
 ];

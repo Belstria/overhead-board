@@ -733,7 +733,7 @@ body.lite .cPicW .cPic{transition:none}
   <textarea id="diagText" aria-hidden="true" tabindex="-1"></textarea>
 </aside>
 
-<script src="i18n.js?v=c45ba93047"></script>
+<script src="i18n.js?v=06c2356d98"></script>
 <script>
 (() => {
 "use strict";
@@ -7870,6 +7870,13 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.115", date: "2026-10-30", notes: [
+    "In the app, a chip top right shows your points and level (\"paused\" while live location is off) in place of the clock and the points strip; a tap opens the Spotters' Club.",
+    "Recent flights and Today show one line a plane: time, flight, route and type. A star marks a new type or airline, a flag an unusual plane, a heart a favourite; a status such as OVERHEAD or EMERGENCY stays a coloured pill.",
+    "On Now, the plane's photo and Where to look are one card.",
+    "Today starts with four numbers and a Highlights card that opens your day's plate from below; the filter sits beside the title.",
+    "Notices (saved, Undo, Retry) show as a bar at the bottom, above the tabs; a problem is red.",
+    "Go live is a button on the Spotters' Club page while points are paused."]},
   {v: "1.114.6.1", date: "2026-10-29", notes: [
     "Sky view's labels hold steady when you keep the phone still.",
     "Sky view lines up with the sun and planes only while the phone is steady, so the labels no longer slide after a turn.",
