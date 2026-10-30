@@ -245,7 +245,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
 #cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
-#cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
+/* 1.119.1 (to-do #217): the title's margins as on every plate (.plate>h3; #cardBox h3's margin:0 had set it below the screws) */
+#cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k));font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
 #cardBox .tdSheet #todayTop{margin:0}
 .dayFacts .span3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}
 .dayFacts .span3>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
@@ -689,15 +690,16 @@ body.arOpen #sheet{z-index:75}
 .rvCredit{max-width:440px;margin:6px auto 0;text-align:right}
 .rvCredit small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted)}
 /* 1.118 (Dave's pick B + cogwheel): the title with the cogwheel and the range by it; the RADAR plate waits out of sight
-   (.setHome) and rises as a Settings-style panel; the colours sit behind the (i) by Nearest (.rlegend in the sheet) */
+   (.setHome) and rises as a Settings-style panel; the colours sit behind the (i) beside the cogwheel (1.119.1; .rlegend in the sheet) */
 .rvTop{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.rvTop h2{margin:4px 0 12px}
+.rvTop h2{margin:4px auto 12px 0}
 .rvSet{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;margin:0 0 8px;padding:6px 14px 6px 10px;border-radius:999px;
   background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);font:600 var(--fs-s)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
 .rvSet svg{width:20px;height:20px}
 .rvSet:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.rvTop .iBtn{position:relative;top:auto;right:auto;flex:none;width:28px;height:28px;margin:0 -2px 8px 0;font-size:var(--fs-s)}
+.rvTop .iBtn::after{content:"";position:absolute;inset:-8px}   /* the finger's room */
 #t-radar .setHome{display:none}
-#t-radar .secPlate{position:relative}
 /* the Nearest list's column labels: one row over the two number columns, lined up by a shared grid (subgrid) */
 #rvList{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;column-gap:10px}
 #rvList>li{grid-column:1/-1}
@@ -1333,10 +1335,15 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes ppHit{0%,40%{color:var(--amber)}}
 /* a region without stamps: one line, opened by a tap (or a tap on the map) */
 .ppNoneHd{margin:18px 0 2px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-button.ppShelf.ppNone{all:unset;display:block;box-sizing:border-box;width:100%;margin:0;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer}
-.ppNone .hgHead{margin:0}
-.ppNone .hgHead em{margin-left:auto;color:var(--muted)}
-.ppNone .hgHead i{font-style:normal;color:var(--muted)}
+/* 1.119.1 (to-do #213): a tap on a region's heading folds or unfolds it; folded it is one line */
+.ppHd{all:unset;display:block;box-sizing:border-box;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ppHd:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.ppHd .hgHead em{margin-left:auto}
+.ppHd .hgHead i{font-style:normal;color:var(--muted);transition:transform .16s}
+.ppHd[aria-expanded=true] .hgHead i{transform:rotate(90deg)}
+.ppShelf.shut{margin:0;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.ppShelf.shut .hgHead{margin:0}
+.ppNone .hgHead em{color:var(--muted)}
 .ppMap.big{aspect-ratio:360/440;margin:0 0 12px;cursor:default}
 .ppMap .ppLbl text{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;fill:#f3eee2;text-anchor:middle;paint-order:stroke;stroke:rgba(40,30,20,.35);stroke-width:2px}
 .pCard{flex:none;width:112px;height:118px;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;scroll-snap-align:start;
@@ -1983,7 +1990,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <section class="wrap tab cols" id="t-radar" hidden>
     <div class="lcol">
       <!-- 1.118 (Dave's pick B + cogwheel): the title, and by it a cogwheel with the range that raises the RADAR plate as a panel -->
-      <div class="rvTop"><h2 data-t="Radar">Radar</h2><button class="rvSet" type="button" id="rvSet" aria-label="Radar settings" data-ta="Radar settings"><span id="rvSetKm">25 km</span></button></div>
+      <div class="rvTop"><h2 data-t="Radar">Radar</h2><button class="iBtn" type="button" id="rvInfo" aria-label="What the colours mean" data-ta="What the colours mean">i</button><button class="rvSet" type="button" id="rvSet" aria-label="Radar settings" data-ta="Radar settings"><span id="rvSetKm">25 km</span></button></div>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up" data-ta="Radar: the planes around you, north up"></canvas></div>
       <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch; 1.118: out of sight
            (.setHome) until the cogwheel raises it as a panel (setOpen("radar")) -->
@@ -1995,7 +2002,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
     <div class="rcol">
       <section class="plate secPlate" style="--cols:1"><i></i><i></i><i></i><i></i><h3 data-t="Nearest">Nearest</h3>
-      <button class="iBtn" type="button" id="rvInfo" aria-label="What the colours mean" data-ta="What the colours mean">i</button>
       <ol class="flights" id="rvList"></ol></section>
     </div>
   </section>

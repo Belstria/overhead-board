@@ -948,6 +948,26 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.119.1 (to-dos #213–#217, #202, #203; what Dave found using 1.119): **seven fixes.** #213: `ppOpen` is a Map (region →
+  unfolded); `ppShelf` always draws a heading button (`.ppHd`, `data-ppopen`, `aria-expanded`), the row only when
+  unfolded; folded is `.shut`, no stamps `.ppNone` (muted count). A region with stamps starts unfolded, without as one
+  line; `ppGo` unfolds. #214: `G_SUBS` is Level, League, Hangar, Passport, Cards; the League tab draws the league, then
+  `recordsHtml(all, g0, "bingo")`, then `"trophies"` (records and trophies). Level's rows keep `data-gsub="bingo"` and
+  `"trophies"`; `G_PARTS` sends them to `gGoPlate("bgPlate" / "trPlate")`. #215: `arChipsAt(g, list, view, W, H)`: a ray from
+  the middle along `pr.edge` to the rectangle 40 px outside the picture (where `arProject` stops giving a plane its
+  label), raised by `AR_CHIP_UP` (the label's height over its plane) and limited to the room (`arChipBounds`: `t`, `b`,
+  `keep`, the zoom buttons). So at the moment a label takes over, chip and label are at the same place. A chip slides
+  along its edge to the nearest place clear of the others and `keep`. Behind you (`pr.x == null`): the sign of `dx` is
+  the shorter turn (`arChipTurn` holds it while `|dx| <= .06`, so it doesn't flip), and `|dx|` is at least .7,
+  so it stays on the side and its height follows the plane's. The arrow turns to the direction (5° steps, `c.a`); chips' places are whole pixels, in the
+  picture's signature. Idle path and `sky_jitter` unchanged. Not changed: a plane just above the picture still has neither
+  (its label's box stands above it, off the screen, until the plane is about 150 px in). #216: `#rvInfo` moved to `.rvTop`, before `#rvSet`;
+  a 28-px circle (`.rvTop .iBtn`). #217: `#cardBox h3{margin:0}` beat `.plate>h3`; the sheets' rule now gives the same
+  margins. #202: `TIX_MIN` 6 s: `gPassFill`'s `out` waits for `el.minUntil` on a ticket (the plane leaving, `gTixSync`), goes after
+  the finger if held (`until = 0`, so `release`'s 1.5 s); `gPop` doesn't push out a ticket younger than that (four can
+  stand for a moment); a swipe removes it directly as before. #203: `.lyCar`, `.lyIdx` (and `.ppMap`, same fault) don't start the page's
+  Logbook · Club swipe; `glide(to, cv)` in `lyWire` draws frame by frame, an ease-out to the target (at most 1.1 s) from the finger's speed,
+  capped at a card per `LY_FAST` 62 ms; the target is `LY_TAU` 320 ms of that speed away (at most about 5 cards a flick); a finger catches it; reduced motion keeps the fade.
 - 1.119 (to-do #212, clarity build 4 of 4, Dave's picks: welcome B, tips A, share picture A; the sign-in page B is
   relay 99, below): **one question a screen.** (1) The welcome (`welcome`, head.html `#welcome`): the first card says
   "Welcome, {name}" and "Open the board". The steps are today's, one screen each (`.wStep`), as many as apply here

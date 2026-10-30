@@ -741,7 +741,8 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .tdHl em{display:block;margin-top:4px;font:500 var(--fs-s)/1.3 var(--f-board);font-style:normal;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdHl i{font-style:normal;font:700 var(--fs-xl)/1 var(--f-board);color:var(--amber)}
 #cardBox .cardIn.tdSheet{padding:22px 8px 12px}      /* the grip above; the plate nearly edge to edge */
-#cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
+/* 1.119.1 (to-do #217): the title's margins as on every plate (.plate>h3; #cardBox h3's margin:0 had set it below the screws) */
+#cardBox .tdSheet .plate>h3,#cardBox .setSheet .plate>h3{margin:calc(6px*var(--k) - var(--pt)) calc(23px*var(--k) - var(--px)) calc(4px*var(--k));font:600 var(--fs-s)/1 var(--f-board);color:rgba(214,208,194,.72);padding-right:0}
 #cardBox .tdSheet #todayTop{margin:0}
 .dayFacts .span3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}
 .dayFacts .span3>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
@@ -1185,15 +1186,16 @@ body.arOpen #sheet{z-index:75}
 .rvCredit{max-width:440px;margin:6px auto 0;text-align:right}
 .rvCredit small{font:500 var(--fs-xs)/1.2 var(--f-board);color:var(--muted)}
 /* 1.118 (Dave's pick B + cogwheel): the title with the cogwheel and the range by it; the RADAR plate waits out of sight
-   (.setHome) and rises as a Settings-style panel; the colours sit behind the (i) by Nearest (.rlegend in the sheet) */
+   (.setHome) and rises as a Settings-style panel; the colours sit behind the (i) beside the cogwheel (1.119.1; .rlegend in the sheet) */
 .rvTop{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.rvTop h2{margin:4px 0 12px}
+.rvTop h2{margin:4px auto 12px 0}
 .rvSet{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;margin:0 0 8px;padding:6px 14px 6px 10px;border-radius:999px;
   background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);font:600 var(--fs-s)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
 .rvSet svg{width:20px;height:20px}
 .rvSet:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.rvTop .iBtn{position:relative;top:auto;right:auto;flex:none;width:28px;height:28px;margin:0 -2px 8px 0;font-size:var(--fs-s)}
+.rvTop .iBtn::after{content:"";position:absolute;inset:-8px}   /* the finger's room */
 #t-radar .setHome{display:none}
-#t-radar .secPlate{position:relative}
 /* the Nearest list's column labels: one row over the two number columns, lined up by a shared grid (subgrid) */
 #rvList{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto auto;column-gap:10px}
 #rvList>li{grid-column:1/-1}
@@ -1828,10 +1830,15 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 @keyframes ppHit{0%,40%{color:var(--amber)}}
 /* a region without stamps: one line, opened by a tap (or a tap on the map) */
 .ppNoneHd{margin:18px 0 2px;font:600 var(--fs-xs)/1 var(--f-board);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-button.ppShelf.ppNone{all:unset;display:block;box-sizing:border-box;width:100%;margin:0;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer}
-.ppNone .hgHead{margin:0}
-.ppNone .hgHead em{margin-left:auto;color:var(--muted)}
-.ppNone .hgHead i{font-style:normal;color:var(--muted)}
+/* 1.119.1 (to-do #213): a tap on a region's heading folds or unfolds it; folded it is one line */
+.ppHd{all:unset;display:block;box-sizing:border-box;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ppHd:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.ppHd .hgHead em{margin-left:auto}
+.ppHd .hgHead i{font-style:normal;color:var(--muted);transition:transform .16s}
+.ppHd[aria-expanded=true] .hgHead i{transform:rotate(90deg)}
+.ppShelf.shut{margin:0;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.ppShelf.shut .hgHead{margin:0}
+.ppNone .hgHead em{color:var(--muted)}
 .ppMap.big{aspect-ratio:360/440;margin:0 0 12px;cursor:default}
 .ppMap .ppLbl text{font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;fill:#f3eee2;text-anchor:middle;paint-order:stroke;stroke:rgba(40,30,20,.35);stroke-width:2px}
 .pCard{flex:none;width:112px;height:118px;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;scroll-snap-align:start;
@@ -2478,7 +2485,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
   <section class="wrap tab cols" id="t-radar" hidden>
     <div class="lcol">
       <!-- 1.118 (Dave's pick B + cogwheel): the title, and by it a cogwheel with the range that raises the RADAR plate as a panel -->
-      <div class="rvTop"><h2 data-t="Radar">Radar</h2><button class="rvSet" type="button" id="rvSet" aria-label="Radar settings" data-ta="Radar settings"><span id="rvSetKm">25 km</span></button></div>
+      <div class="rvTop"><h2 data-t="Radar">Radar</h2><button class="iBtn" type="button" id="rvInfo" aria-label="What the colours mean" data-ta="What the colours mean">i</button><button class="rvSet" type="button" id="rvSet" aria-label="Radar settings" data-ta="Radar settings"><span id="rvSetKm">25 km</span></button></div>
       <div class="scope" id="scope"><canvas id="radarBg"></canvas><canvas id="radarCv" aria-label="Radar: the planes around you, north up" data-ta="Radar: the planes around you, north up"></canvas></div>
       <!-- 1.69: the radar's controls on a plate like Settings': the Range km thumbwheel and the Map switch; 1.118: out of sight
            (.setHome) until the cogwheel raises it as a panel (setOpen("radar")) -->
@@ -2490,7 +2497,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
     <div class="rcol">
       <section class="plate secPlate" style="--cols:1"><i></i><i></i><i></i><i></i><h3 data-t="Nearest">Nearest</h3>
-      <button class="iBtn" type="button" id="rvInfo" aria-label="What the colours mean" data-ta="What the colours mean">i</button>
       <ol class="flights" id="rvList"></ol></section>
     </div>
   </section>
@@ -8441,6 +8447,7 @@ function walletHtml(g0){
     list.map((x, i) => lyCardHtml(x, info[x[0]] || {}, i)).join("") + `</div></div><div class="lyCount"><span></span><span></span></div>` + nav +
     `<p class="sum">${escH(rule)} ${escH(n > 1 ? T("Swipe through your cards; tap the front one to turn it over.") : T("Tap the card to turn it over."))}</p>`, "lyPlate");
 }
+const LY_TAU = 320, LY_FAST = 62;
 function lyWire(box){
   const car = box.querySelector(".lyCar");
   if (!car) return;
@@ -8493,6 +8500,7 @@ function lyWire(box){
   };
   const unflip = () => { for (const c of cs) c.classList.remove("flip"); lyFlipped = ""; };
   const go = (to, quiet) => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; hold(false); }
     to = Math.max(0, Math.min(n - 1, to));
     if (to !== shown) unflip();
     if (lyStill()) {                                     // reduced motion: the change behind a quick fade
@@ -8504,10 +8512,27 @@ function lyWire(box){
     if (!quiet) { ctlSound.click(); clearTimeout(tm); tm = setTimeout(shine, 420); }
   };
   const hold = on => { hgHeld = on; hgBusy = Date.now(); };    // the club isn't drawn again under the thumb
+  // 1.119.1 (to-do #203): a flick glides through the cards, drawn frame by frame so each one it passes shows (at most one
+  // in LY_FAST ms), slowing down to settle on a card
+  let raf = 0;
+  const glide = (to, cv) => {
+    const from = pos, t0 = performance.now(), ms = Math.max(280, Math.min(1100, 3 * Math.abs(to - from) / (Math.abs(cv) || 1)));   // starts at the finger's speed
+    car.classList.remove("go"); hold(true);
+    const frame = t => {
+      const k = Math.max(0, Math.min(1, (t - t0) / ms));
+      pos = from + (to - from) * (1 - (1 - k) ** 3);
+      lay();
+      if (k < 1) raf = requestAnimationFrame(frame);
+      else { raf = 0; hold(false); ctlSound.click(); shine(); }
+    };
+    raf = requestAnimationFrame(frame);
+  };
   // the thumb on the cards: a swipe follows it, a flick carries on; a tap brings a card in or turns the front one over
   let drag = null;
   car.onpointerdown = e => {
-    drag = {x: e.clientX, p: pos, moved: false, hist: [[e.timeStamp, e.clientX]], c: e.target.closest(".lyC")};
+    const caught = !!raf;                                // a finger catches a gliding card, where it is
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    drag = {x: e.clientX, p: pos, moved: caught, hist: [[e.timeStamp, e.clientX]], c: e.target.closest(".lyC")};
     car.setPointerCapture(e.pointerId); hold(true);
   };
   car.onpointermove = e => {
@@ -8536,7 +8561,10 @@ function lyWire(box){
       return;
     }
     const [t0, x0] = d.hist[0], v = (e.clientX - x0) / Math.max(16, e.timeStamp - t0);    // px a ms
-    go(Math.round(pos - v * 220 / step));
+    const cv = Math.max(-1 / LY_FAST, Math.min(1 / LY_FAST, -v / step));                  // cards a ms
+    const to = Math.max(0, Math.min(n - 1, Math.round(pos + cv * LY_TAU)));
+    if (lyStill() || Math.abs(to - pos) < .75) return go(to);
+    glide(to, cv);
   };
   for (const b of plate.querySelectorAll("[data-lys]")) b.onclick = () => { if (lySort === b.dataset.lys) return; ctlSound.nav(); lySort = b.dataset.lys; renderGame(); };
   if (bar) {                     // the index: the card under the thumb, the names there in a bubble, the carousel following
@@ -8707,16 +8735,16 @@ function ppGoals(pp, reg){
   return Object.keys(W).filter(c => !pp[c] && W[c][0] === reg).map(c => [c, far(c)])
     .sort((a, b) => a[1] - b[1] || ppName(a[0]).localeCompare(ppName(b[0]))).map(x => x[0]);
 }
-// A region's shelf: its stamps, then a face-down card for every country still to stamp (Dave's pick A). A region without
-// stamps is one line until it is opened (a tap on it, or on the map).
-const ppOpen = new Set();                                        // regions without stamps opened
+// A region's shelf: its stamps, then a face-down card for every country still to stamp (Dave's pick A). 1.119.1 (to-do
+// #213): a tap on the heading folds or unfolds it (a jump from the map unfolds it); a region starts unfolded when it has
+// stamps, as one line when it hasn't.
+const ppOpen = new Map();                                        // region → unfolded or not, once tapped
 const ppFace = c => `<span class="pCard no"><b>${c}</b>${escH(ppName(c))}<br>${escH(T("still to stamp"))}</span>`;
 function ppShelf(reg, name, have, goals, tot){
-  const op = ppOpen.has(reg), cards = have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("");
-  const head = `<div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} of {m}", {n: nf.format(have.length), m: nf.format(tot)}))}</em></div>`;
-  if (!have.length && !op) return `<button type="button" class="ppShelf ppNone" id="ppR-${reg}" data-ppopen="${reg}">${head.replace("</div>", "<i>›</i></div>")}</button>`;
-  const row = cards + goals.map(ppFace).join("");
-  return `<div class="ppShelf" id="ppR-${reg}">${head}${row ? `<div class="hgRow" data-set="pp-${reg}">${row}</div>` : ""}</div>`;
+  const op = ppOpen.has(reg) ? ppOpen.get(reg) : have.length > 0, cards = have.map(([c, s]) => `<span class="pCard">${ppStamp(c, s)}</span>`).join("");
+  const head = `<button type="button" class="ppHd" data-ppopen="${reg}" aria-expanded="${op}"><div class="hgHead"><b>${escH(T(name))}</b><em>${escH(T("{n} of {m}", {n: nf.format(have.length), m: nf.format(tot)}))}</em><i>›</i></div></button>`;
+  const row = op ? cards + goals.map(ppFace).join("") : "";
+  return `<div class="ppShelf${op ? "" : " shut"}${have.length ? "" : " ppNone"}" id="ppR-${reg}">${head}${row ? `<div class="hgRow" data-set="pp-${reg}">${row}</div>` : ""}</div>`;
 }
 function passportHtml(g0){
   const pp = g0 && g0.passport;
@@ -8743,8 +8771,8 @@ function ppWire(box){
   const c = box.querySelector("[data-ppcard]");
   if (c) c.onclick = ppCard;
   for (const b of box.querySelectorAll("[data-ppopen]")) b.onclick = () => {
-    ctlSound.click(); const r = b.dataset.ppopen;
-    if (ppOpen.has(r)) ppOpen.delete(r); else ppOpen.add(r);
+    ctlSound.click();
+    ppOpen.set(b.dataset.ppopen, b.getAttribute("aria-expanded") !== "true"); hgBusy = 0;
     renderGame();
   };
 }
@@ -8845,7 +8873,7 @@ function ppPick(el, reg, draw, setHi){
 // To a region's shelf, below the sticky top and the tabs; it lights up for a moment.
 function ppGo(reg){
   if (!document.getElementById("ppR-" + reg)) return;
-  if (!document.querySelector(`#ppR-${reg} .hgRow, #ppR-${reg} .ppTo`)) { ppOpen.add(reg); hgBusy = 0; renderGame(); }
+  if (document.querySelector(`#ppR-${reg}.shut`)) { ppOpen.set(reg, true); hgBusy = 0; renderGame(); }
   const el = document.getElementById("ppR-" + reg);
   if (!el) return;
   scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - gUnder()), behavior: REDUCED ? "auto" : "smooth"});
@@ -9211,7 +9239,7 @@ function scWire(el, code, name){
     box.scrollIntoView({block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   };
 }
-// 1.116: part "bingo" or "trophies" (the records with them): one sub-tab of the Spotters' Club; none: all (the Logbook).
+// 1.116: part "bingo" or "trophies" (the records with them): those parts for the Spotters' Club's League tab (1.119.1); none: all (the Logbook).
 function recordsHtml(all, g0, part){
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   const li = (name, n, sub) => `<li><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
@@ -9228,7 +9256,7 @@ function recordsHtml(all, g0, part){
     const nd = Object.keys(bg.done || {}).length;
     const cells = bg.card.map(k => { const d = (bg.done || {})[k];
       return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`);
+    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`, "bgPlate");
   }
   if (g0 && part !== "bingo") html += trophiesHtml(g0);
   return html;
@@ -9272,7 +9300,7 @@ function trophiesHtml(g0){
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
   return secPlate(T("Trophies"), `<p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
     `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
-    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`));
+    (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
 function trWire(box, redraw){
@@ -10062,7 +10090,7 @@ function arLoop(){
     s.w1 = w1; s.wc = wc; s.box = [bx, by, bw, bh];
     boxes.push(s.box); arHits.push({hex: s.ac.hex, x, y, box: s.box});
   }
-  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H, aim.R0);
+  const view = arUnproject(W / 2, H / 2, R, W, H).az, aim = arAimStep(W, H), chips = arChipsAt(g, outs.slice(0, 3), view, W, H);
   for (const c of chips) arHits.push({hex: c.hex, x: c.box[0] + c.box[2] / 2, y: c.box[1] + c.box[3] / 2, box: c.box});
   const bodies = arBodiesAt(R, here, W, H), marks = bodies.filter(m => !m.pr.edge);
   arShownN = shown.length;
@@ -10092,7 +10120,7 @@ function arLoop(){
     aim.R0, Math.round(aim.k * 200), arAutoLock ? (arAutoLock.sun ? "S" : "") + brk.map(s => rq(s.pr.x) + "," + rq(s.pr.y)).join(";") : "",
     ...top.map(s => [s.ac.hex, s.name, s.sub, s.chip, +s.isFeat, +s.gold, +s.far, s.tier, +(s.ac.hex === arSel || s.ac.hex === arWant),
       s.pr.edge ? "" : rq(s.pr.x) + "," + rq(s.pr.y) + "," + s.box.map(rq).join(",")].join("|")),
-    ...chips.map(c => [c.hex, c.name, c.sub, c.side, +c.feat, c.box.map(rq).join(",")].join("|"))].join("~");
+    ...chips.map(c => [c.hex, c.name, c.sub, c.a, +c.feat, c.box.join(",")].join("|"))].join("~");
   if (sig !== arPicSig) {
     arPicSig = sig;
     g.setTransform(px, 0, 0, px, 0, 0); g.clearRect(0, 0, W, H);
@@ -10488,57 +10516,64 @@ function arAskNot(){
 }
 
 /* 1.118 (Dave's pick, to-do #205): the planes outside the picture. The three closest (the plane on top first, when it is
-   outside) as chips at the edge the way to turn: the flight, its distance and an arrow; one behind you under the ring.
-   Kept clear of the top bar, the zoom buttons and the mini radar, never on each other. A tap opens its card (arHits). */
-const AR_CHIP_H = 30;
+   outside) as chips: the flight, its distance and an arrow. A tap opens its card (arHits).
+   1.119.1 (to-do #215): each sits on the edge where the way to the plane leaves the picture, so turning towards it, it
+   slides along the edge and the plane's label comes in where the chip was: from the middle to the point where a plane
+   stops being in the picture (arProject's 40 px past the edge), with the label's height over the plane (AR_CHIP_UP).
+   A plane behind you (no way through the picture) goes on the side of the shorter turn, and keeps its side while it is
+   about straight behind. Chips slide along their edge to stay clear of each other and the zoom buttons; the top bar, the
+   mini radar and the small card are the limits. */
+const AR_CHIP_H = 30, AR_CHIP_UP = 46, AR_CHIP_GAP = 8;
 let arBounds = {at: 0};
+const arChipTurn = new Map();                        // a plane behind you: the side it was last on
 function arChipBounds(H){                            // where the chips may go: measured twice a second, not every frame
   const now = performance.now();
   if (now - arBounds.at > 500) {
-    const v = $("arView"), top = v.querySelector(".arTop").getBoundingClientRect().bottom, z = v.querySelector(".arZoom").getBoundingClientRect().bottom;
-    const m = $("arMini"), bot = (m.hidden ? v.querySelector(".arBot") : m).getBoundingClientRect().top;
-    arBounds = {at: now, l: top + 8, r: Math.max(top, z) + 12, b: Math.min(H, bot) - 10};
+    const v = $("arView"), top = v.querySelector(".arTop").getBoundingClientRect().bottom, z = v.querySelector(".arZoom").getBoundingClientRect();
+    const m = $("arMini"), c = $("arCard"), bot = (m.hidden ? v.querySelector(".arBot") : m).getBoundingClientRect().top;
+    arBounds = {at: now, t: top + AR_CHIP_GAP, b: Math.min(H, bot, c.hidden ? H : c.getBoundingClientRect().top) - 10, keep: z.width ? [[z.left, z.top, z.width, z.height]] : []};
   }
   return arBounds;
 }
-function arChipsAt(g, list, view, W, H, ring){
+function arChipsAt(g, list, view, W, H){
   if (!list.length) return [];
-  const B = arChipBounds(H), out = [], fn = `700 14px ${FONT}`, fs = `500 12px ${FONT}`;
+  const B = arChipBounds(H), out = [], taken = B.keep.slice(), fn = `700 14px ${FONT}`, fs = `500 12px ${FONT}`, h = AR_CHIP_H, gap = AR_CHIP_GAP;
+  if (arChipTurn.size > 200) arChipTurn.clear();
   for (const s of list) {
-    const behind = Math.abs(wrap180(s.az - view)) > 120, [dx, dy] = s.pr.edge, ux = dx, uy = dy;
-    const side = behind ? "b" : Math.abs(ux) >= Math.abs(uy) * .8 ? (ux > 0 ? "r" : "l") : uy < 0 ? "t" : "b";
-    const name = arName(s.ac), dist = distText(s.d / 1000), sub = behind ? T("{d} · behind you", {d: dist}) : dist;
-    out.push({hex: s.ac.hex, name, sub, side, feat: s.isFeat, w: Math.ceil(arTW(g, fn, name) + 6 + arTW(g, fs, sub) + 38)});
+    let [dx, dy] = s.pr.edge;
+    const behind = s.pr.x == null, hex = s.ac.hex, name = arName(s.ac), dist = distText(s.d / 1000), sub = Math.abs(wrap180(s.az - view)) > 120 ? T("{d} · behind you", {d: dist}) : dist;
+    if (behind) {                                    // left or right, however high it is; the height from how high it is
+      const side = Math.abs(dx) > .06 ? Math.sign(dx) : arChipTurn.get(hex) || Math.sign(dx) || 1;
+      arChipTurn.set(hex, side); dx = side * Math.max(Math.abs(dx), .7);
+    } else arChipTurn.delete(hex);
+    const w = Math.ceil(arTW(g, fn, name) + 6 + arTW(g, fs, sub) + 38), L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+    const ts = (W / 2 + 40) / Math.abs(ux || 1e-6), tt = (H / 2 + 40) / Math.abs(uy || 1e-6), t = Math.min(ts, tt);
+    const lim = (v, a, b) => Math.max(a, Math.min(b, v)), xr = [8, W - 8 - w], yr = [B.t, Math.max(B.t, B.b - h)];
+    const x0 = lim(W / 2 + ux * t - w / 2, ...xr), y0 = lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
+    const free = (x, y) => !taken.some(b => x < b[0] + b[2] + gap && x + w + gap > b[0] && y < b[1] + b[3] + gap && y + h + gap > b[1]);
+    // along its own edge first: the nearest place clear of what's there, touching one of them
+    const ys = [y0, ...taken.flatMap(b => [b[1] - h - gap, b[1] + b[3] + gap])].filter(y => y >= yr[0] && y <= yr[1]).sort((p, q) => Math.abs(p - y0) - Math.abs(q - y0));
+    const xs = [x0, ...taken.flatMap(b => [b[0] - w - gap, b[0] + b[2] + gap])].filter(x => x >= xr[0] && x <= xr[1]).sort((p, q) => Math.abs(p - x0) - Math.abs(q - x0));
+    const py = ys.find(y => free(x0, y)), px = xs.find(x => free(x, y0));
+    const side = ts <= tt ? [py == null ? px : x0, py == null ? y0 : py] : [px == null ? x0 : px, px == null ? py == null ? y0 : py : y0];
+    const x = Math.round(side[0] == null ? x0 : side[0]), y = Math.round(side[1]);
+    taken.push([x, y, w, h]);
+    out.push({hex, name, sub, left: ux < 0, a: Math.round(Math.atan2(uy, ux) * 180 / Math.PI / 5) * 5, feat: s.isFeat, box: [x, y, w, h]});
   }
-  for (const k of ["l", "r", "t", "b"]) {
-    const cs = out.filter(c => c.side === k);
-    if (!cs.length) continue;
-    if (k === "l" || k === "r") {                     // at the top of its side (clear of the labels in the middle), closest first
-      let y = k === "l" ? B.l : B.r;
-      for (const c of cs) { c.x = k === "l" ? 8 : W - 8 - c.w; c.y = Math.min(y, B.b - AR_CHIP_H); y += AR_CHIP_H + 8; }
-    } else {                                         // above the picture: under the top bar; below or behind you: under the ring
-      let y = k === "t" ? B.l : Math.min(H / 2 + ring + 14, B.b - (AR_CHIP_H + 8) * cs.length);
-      for (const c of cs) { c.x = (W - c.w) / 2; c.y = y; y += AR_CHIP_H + 8; }
-    }
-  }
-  for (const c of out) c.box = [c.x, c.y, c.w, AR_CHIP_H];
   return out;
 }
 function arChipsDraw(g, chips){
   const fn = `700 14px ${FONT}`, fs = `500 12px ${FONT}`;
   g.textAlign = "left";
   for (const c of chips) {
-    const [x, y, w, h] = c.box, ax = c.side === "l" ? x + 14 : x + w - 14, ay = y + h / 2, tx = c.side === "l" ? x + 26 : x + 12;
+    const [x, y, w, h] = c.box, ax = c.left ? x + 14 : x + w - 14, ay = y + h / 2, tx = c.left ? x + 26 : x + 12;
     g.fillStyle = c.feat ? "rgba(240,180,41,.92)" : "rgba(11,11,12,.72)"; rr(g, x, y, w, h, h / 2); g.fill();
     g.strokeStyle = "rgba(255,255,255,.14)"; g.lineWidth = 1; g.stroke();
     g.font = fn; g.fillStyle = c.feat ? "#111" : "#f0b429"; g.fillText(c.name, tx, y + 20);
     g.font = fs; g.fillStyle = c.feat ? "#2a2108" : "#d6d2c6"; g.fillText(c.sub, tx + arTW(g, fn, c.name) + 6, y + 20);
-    g.fillStyle = c.feat ? "#111" : "#f0b429"; g.beginPath();
-    if (c.side === "l") { g.moveTo(ax - 6, ay); g.lineTo(ax + 5, ay - 7); g.lineTo(ax + 5, ay + 7); }
-    else if (c.side === "r") { g.moveTo(ax + 6, ay); g.lineTo(ax - 5, ay - 7); g.lineTo(ax - 5, ay + 7); }
-    else if (c.side === "t") { g.moveTo(ax, ay - 6); g.lineTo(ax - 7, ay + 5); g.lineTo(ax + 7, ay + 5); }
-    else { g.moveTo(ax, ay + 6); g.lineTo(ax - 7, ay - 5); g.lineTo(ax + 7, ay - 5); }
-    g.closePath(); g.fill();
+    g.save(); g.translate(ax, ay); g.rotate(c.a * Math.PI / 180);   // 1.119.1: the way to the plane
+    g.fillStyle = c.feat ? "#111" : "#f0b429"; g.beginPath(); g.moveTo(8, 0); g.lineTo(-6, -5.5); g.lineTo(-6, 5.5); g.closePath(); g.fill();
+    g.restore();
   }
 }
 /* 1.118 (Dave's pick): the mini radar bottom left: north up, the picture's view as a cone, a dot for each plane within
@@ -11160,13 +11195,13 @@ function buildRadarLegend(){
   $("rvZoomOut").setAttribute("aria-label", T("Zoom out")); $("rvZoomIn").setAttribute("aria-label", T("Zoom in"));
   $("rvMap").setAttribute("aria-pressed", String(radarMapOn));
   const cr = $("rvCredit"); cr.textContent = RADAR_MAP_CREDIT; cr.hidden = !radarMapOn;
-  // 1.118: the cogwheel by the title says the range; the legend went behind the (i) by Nearest (rvColours)
+  // 1.118: the cogwheel by the title says the range; the legend went behind the (i) beside it (rvColours)
   const sb = $("rvSet"), km = $("rvSetKm");
   if (!sb.querySelector("svg")) sb.insertAdjacentHTML("afterbegin", TAB_ICONS.settings);
   if (km.textContent !== radarRangeText()) km.textContent = radarRangeText();
 }
 $("rvSet").onclick = () => setOpen("radar");
-// The (i) by Nearest: what each colour means, one line each, on a plate in the app's sheet (as About's panels, 1.117).
+// The (i) by the cogwheel: what each colour means, one line each, on a plate in the app's sheet (as About's panels, 1.117).
 const RADAR_WHAT = {"Overhead": "within 1 km, or 45° up or more", "Approaching": "on course to pass over within three minutes",
   "Flying by": "getting closer, but won't pass over", "Leaving": "moving away", "Special": "military, giants, emergencies",
   "Favourite": "one of yours", "Too high": "above the height limit in Settings", "Taking off": "leaving the airport",
@@ -12338,6 +12373,15 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.119.1", date: "2026-10-30", notes: [
+    "Passport: every region folds and unfolds with a tap on its heading.",
+    "Spotters' Club: Bingo and Trophies now sit in the League tab.",
+    "Sky view: a plane outside the picture has its chip on the edge where it is, and its label comes in at the same place.",
+    "Radar: the (i) now sits beside the cogwheel.",
+    "Panels: the title is level with the screws.",
+    "A ticket stays at least 6 seconds.",
+    "Member cards: a swipe stays on the cards, and a flick shows every card it passes.",
+  ]},
   {v: "1.119", date: "2026-10-30", notes: [
     "The app's welcome asks one thing a screen, with a line showing how many steps there are; Use my location is one tap, typing a place is the other choice.",
     "The tips are one short sentence each, closed with OK.",
@@ -14569,7 +14613,7 @@ function gStripSetup(){
 let gHit = null;
 function gGoPlate(cls){
   if (tab !== "game") showTab("game");
-  const sub = {gHero: "level", lgPlate: "league", hgPlate: "hangar", ppPlate: "passport", lyPlate: "cards"}[cls] || "level";   // 1.116: its sub-tab
+  const sub = {gHero: "level", lgPlate: "league", bgPlate: "league", trPlate: "league", hgPlate: "hangar", ppPlate: "passport", lyPlate: "cards"}[cls] || "level";   // 1.116: its sub-tab
   if (sub !== gSub) gSubGo(sub);
   gHit = {cls, until: Date.now() + 1500, done: false};
   gHitDo();
@@ -14587,7 +14631,7 @@ document.addEventListener("click", e => { if (e.target.closest && e.target.close
 // 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
 for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
@@ -15088,8 +15132,13 @@ function gAwsBox(){
 function gPop(o){
   const box = gAwsBox(), el = gPassFill(document.createElement("div"), o);
   box.appendChild(el);
-  // up to three on screen; a plane's ticket pushed out by another pass (not by a newer ticket) comes back (gTixBack)
-  while (box.children.length > 3) { const old = box.firstChild; old.remove(); if (old.dataset.tix && !o.tix) gTixOut.add(old); }
+  // up to three on screen; a plane's ticket pushed out by another pass (not by a newer ticket) comes back (gTixBack).
+  // 1.119.1 (to-do #202): a ticket younger than TIX_MIN isn't pushed out: for that while it may be four
+  while (box.children.length > 3) {
+    const old = [...box.children].find(x => x !== el && !(x.dataset.tix && x.minUntil > Date.now()));
+    if (!old) break;
+    old.remove(); if (old.dataset.tix && !o.tix) gTixOut.add(old);
+  }
   gTixStack();
   return el;
 }
@@ -15123,6 +15172,12 @@ function gPassFill(el, o){
     `</div><div class="stub"><small>${escH(o.stub || T("POINTS"))}</small><b>${gPlus0(o.p)}</b>${o.gold ? `<i class="x2">×2</i>` : ""}<em></em>${era === "propage" ? `<i class="punch"></i>` : era === "holo" ? `<i class="patch"></i>` : ""}</div></div>`;
   const out = el.out = () => {
     if (!el.isConnected || el.classList.contains("out")) return;
+    // 1.119.1 (to-do #202): a plane's ticket stays TIX_MIN whatever happens to the plane; under a finger, it goes after the finger (release)
+    if (el.dataset.tix) {
+      if (el.held) { el.until = 0; return; }
+      const wait = el.minUntil - Date.now();
+      if (wait > 0) { clearTimeout(el.outT); el.outT = setTimeout(out, wait); return; }
+    }
     el.classList.add("out"); setTimeout(() => { el.remove(); gTixStack(); gTixBack(); }, 350);
   };
   el.onclick = () => {
@@ -15132,6 +15187,7 @@ function gPassFill(el, o){
     audioInit(); if (arOn) ctlSound.nav(); arOpenAt(o.sky.hex, o.sky.flight);   // the ticket stays; in Sky view it only picks the plane out (opening it sounds by itself)
   };
   const life = o.life || 6500;
+  if (o.tix && !el.minUntil) el.minUntil = Date.now() + TIX_MIN;
   el.until = Date.now() + life; clearTimeout(el.outT); if (!el.held) el.outT = setTimeout(out, life);
   // 1.114.2 (to-do #193): a finger on the pass holds its time (the swipe handler); on letting go the rest runs as normal,
   // or, if the time is up, 1.5 s more
@@ -15152,7 +15208,7 @@ const gWho = (f, km) => [f.flight || NA, [f.airline, f.type, km != null ? distTe
    away after 10 s, when it is swiped away or its plane is scanned; it doesn't come back for that plane (its ★ in Sky view
    stays). Newest on top, the older ones peeking out under it; a fourth ticket puts the oldest away, a shorter pass only
    for a while (gTixOut, gTixBack). At the scan the plane's ticket becomes the scan's (gScanPops). */
-const TIX_MS = 10000, TIX_KEY = "od.tix";
+const TIX_MS = 10000, TIX_MIN = 6000, TIX_KEY = "od.tix";
 const gTixOut = new Set();
 let gTixSeen = null;                                  // hex → when its ticket came up (kept 2 h, so a reload doesn't show it again)
 function gTixSync(list){
@@ -15374,8 +15430,8 @@ function renderGame(){
         `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
     if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, 03:00.", {d: fmtDay(L.resets - 4 * 3600000)}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
     h = secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
-  } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : sub === "cards" ? walletHtml(g0)   // 1.106: the member cards; 1.107: the passport
-    : recordsHtml(all, g0, sub);                             // bingo; trophies (with the records)
+    if (g0) h += recordsHtml(all, g0, "bingo") + recordsHtml(all, g0, "trophies");   // 1.119.1 (to-do #214): under the league
+  } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : walletHtml(g0);   // 1.106: the member cards; 1.107: the passport
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
   const fs = sub === "level" && fsState();
   if (fs && !fs.wings) h = secPlate(T("Flight school"), fsRecord(fs), "fsPlate") + h;
@@ -15407,14 +15463,15 @@ function renderGame(){
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   if ($("gHow")) $("gHow").onclick = gHowCard;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
-  for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); gSubGo(b.dataset.gsub); };
+  for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); const k = b.dataset.gsub; if (G_PARTS[k]) gGoPlate(G_PARTS[k]); else gSubGo(k); };
   trWire(box, renderGame);
   if ($("gLeagueOpt")) $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 /* 1.116 (to-do #208, Dave's pick B): the Club's sub-tabs, a bar stuck under the Logbook · Spotters' Club titles (the
    segmented style that scrolls sideways, as Settings' jump bar had it). Each shows one part; a part the relay doesn't
    send yet (an older relay) has no tab. Opening the Club from another tab starts at Level (showTab). */
-const G_SUBS = [["level", "Level"], ["league", "League"], ["hangar", "Hangar"], ["passport", "Passport"], ["cards", "Cards"], ["bingo", "Bingo"], ["trophies", "Trophies"]];
+const G_SUBS = [["level", "Level"], ["league", "League"], ["hangar", "Hangar"], ["passport", "Passport"], ["cards", "Cards"]];
+const G_PARTS = {bingo: "bgPlate", trophies: "trPlate"};         // 1.119.1 (to-do #214): Level's lines to a part of the League tab
 let gSub = "level";
 const gSubHas = (k, g0) => k === "level" || k === "league" || (!!g0 && (k === "hangar" || k === "trophies" || (k === "passport" && !!g0.passport) ||
   (k === "cards" && !!g0.wallet) || (k === "bingo" && !!(g0.bingo && g0.bingo.card))));

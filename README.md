@@ -530,8 +530,9 @@ The main board has everything below. New features are tried on `/test/` first; o
   boarding pass with the plane, what a scan gives now on the left (the plane's full points, +50 for a new type, +25 for a
   new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
   ("Your first scan today adds the daily streak: +25"; not in the total) and **Scan in Sky view**: a tap anywhere on the
-  ticket opens Sky view with that plane picked out, its ring on it and the edge arrow pointing to it (in Sky view the tap
-  only picks it out). A ticket stays **10 seconds**, or until it is swiped away sideways or its plane is scanned, and
+  ticket opens Sky view with that plane picked out, its ring on it and its chip pointing to it (in Sky view the tap
+  only picks it out). A ticket stays **10 seconds**, or until it is swiped away sideways or its plane is scanned (a plane
+  that flies out of the circle leaves its ticket up for at least 6 seconds), and
   doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to three on screen,
   **newest on top** with the older ones peeking out under it; a fourth puts the oldest away, a shorter pass only for a
   while (the ticket comes back while its 10 s last). In Sky view the tickets sit at its bottom. **At the scan** the
@@ -579,7 +580,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
   **Spotters' Club** (1.74: next to the Logbook, as a title tab; since 1.116 in the app with **tabs** under the title that
-  show one part at a time: **Level**, League, Hangar, Passport, Cards, Bingo and Trophies, the records with the trophies.
+  show one part at a time: **Level**, League (with this week's Bingo, the Records and the Trophies under the league), Hangar, Passport and Cards.
   Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
   done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10") and links "All 20
   levels"; the rarity counters are in How points work): the
@@ -631,7 +632,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
   Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
   Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). Since 1.114 the
-  cards stand in a **carousel**: swipe through them (a flick carries on), tap a side card to bring it in, and tap the
+  cards stand in a **carousel**: swipe through them (a flick carries through the cards, showing each, and settles on one), tap a side card to bring it in, and tap the
   front one to **turn it over**. A card's front (since 1.114.3) has the airline's logo printed in its own
   colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
   rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
@@ -854,8 +855,9 @@ Five buttons along the bottom:
   title counts the planes in the picture and around you ("1 in view · 3 around"); a **mini radar** bottom left shows
   them all (north up, the picture's view as a gold cone, a dot for each plane within the radar's usual range, gold in
   the picture), and a tap on it lists them (the ones in view first; a row opens the plane's card). The three closest
-  planes outside the picture sit as chips at the edge, the way to turn, with their flight, distance and an arrow (one
-  behind you under the ring; the plane on top, out of the picture, always gets one, in amber); a tap opens the plane's
+  planes outside the picture sit as chips on the edge where the way to them leaves the picture, with their flight, distance
+  and an arrow: turn towards one and it slides along the edge, and the plane's label comes in where the chip was (a plane
+  behind you sits on the side of the shorter turn; the plane on top, out of the picture, always gets one, in amber); a tap opens the plane's
   card. The first-time tour says one thing per step, the zoom buttons are labelled **Zoom**, and the hint is one sentence. It works from the phone's own location (or the place in Settings), the compass
   and the tilt, and moves each plane on along its track since the last position. Since 1.75.2 it counts from when the
   data was made (the relay may keep it a few seconds), follows a plane round its turn and up or down its climb, and
@@ -946,7 +948,7 @@ Five buttons along the bottom:
   30 seconds while About is open.
 - **Radar**: the radar instrument and the **Nearest** list, nothing in between (1.118). The **cogwheel** by the title
   shows the range and raises the **Radar** plate (Range km, Map) from below as a panel, as Settings' sections do; the
-  **(i)** by Nearest explains the colours, one line each; the list names its **Distance** and **Height** columns.
+  **(i)** beside the cogwheel explains the colours, one line each; the list names its **Distance** and **Height** columns.
   The planes within the spotting radius. Tap a plane on the radar (or its row)
   for a card with its photo, route, aircraft, registration, operator, height, speed and distance, and Favourite… /
   Hide… (1.33). Leaving planes are soft red (1.55), apart from the dark grey of the ones too high to count. **Map**
