@@ -533,9 +533,13 @@ def bingo_closer_checks(expect):
     import serve
     serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
     day = ["2026-11-23"]                                  # a Monday; its card's bottom row: low, B787, close
-    real = serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo
+    real = serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo, serve.time
     serve.board_day = lambda t=None: day[0]
     serve.where_name, serve.watch_of = (lambda lat, lon: {}), (lambda hx: None)
+    # the planes' clock: midday of the test's day, so a run between 01:00 and 03:59 wins no Night owl trophy (to-do #207)
+    t0 = real[4].time()
+    serve.time = types.SimpleNamespace(**{k: getattr(real[4], k) for k in dir(real[4]) if not k.startswith("__")})
+    serve.time.time = lambda: real[4].mktime(real[4].strptime(f"{day[0]} 12", "%Y-%m-%d %H")) + real[4].time() - t0
     lat, lon = 48.2085, 16.3731
     paid = lambda e: [(a["k"], a["p"], a.get("n")) for a in e.get("ga", [])
                       if a["k"] in ("bingo", "card") or a["k"] == "trophy" and a.get("n") in ("bingo", "fullcard")]
@@ -634,7 +638,7 @@ def bingo_closer_checks(expect):
             serve._game_award(x, "bingo" if i else "pass", 5)
         expect("a rich scan's 20 award lines all stay, the pass first", (len(x["ga"]), x["ga"][0]["k"]), (20, "pass"))
     finally:
-        serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo = real
+        serve.board_day, serve.where_name, serve.watch_of, serve._game_bingo, serve.time = real
 
 
 def scan_circle_checks(expect):
