@@ -23,7 +23,7 @@ CONFIG = """import globals from "globals";
 export default [{
   files: ["src/*.js"],
   languageOptions: {ecmaVersion: 2022, sourceType: "script",
-    globals: {...globals.browser, I18N_ROWS: "readonly", SOUND_DATA: "readonly", %s}},
+    globals: {...globals.browser, I18N_ROWS: "readonly", LANG_CHOICE: "readonly", SOUND_DATA: "readonly", %s}},
   rules: {"no-undef": "error", "no-redeclare": "error", "no-const-assign": "error", "no-func-assign": "error", "no-dupe-keys": "error",
     "no-unused-vars": ["warn", {vars: "local", args: "none", caughtErrors: "none", ignoreRestSiblings: true}]},
 }];
