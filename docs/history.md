@@ -948,6 +948,19 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.120 (to-dos #222, #225, Dave's pick A; Club icon: his pick C, the trophy): **the new bottom bar: Now, Logbook, Club,
+  Radar, Settings.** `TABS` are the keys, `TAB_PAGES` the pages; `t-today` and `t-logbook` stayed two sections, the panes of
+  the Logbook key (`tabKey`; the key opens `today`, the hashes `#today`, `#logbook` and `#game` are as before). `.lbSeg` is the
+  Today | All time row (`.seg.gSeg`, `data-lt`), stuck under the header in both sections; `.lbTabs` and `--lbH` went. `#gSub`
+  sticks directly under the header. `clubKey` hides the Club's key when `gameOk()` is false. Today: `tdFilter` puts
+  `.tdFilOn` on the section, swapping `#tdNums`/`#tdHl` for `#tdFind`, `#svTools`, `#svSum`, `#svPlaces` (back closes it;
+  arriving on Today from elsewhere closes it; `.tdFil.act` is the dot for a filter on behind it). A day without planes:
+  one line, numbers hidden. Swipe: `order` in the handler; never on a plane's row (`swipeRow`, its own swipes) or an open
+  card. Tips: tab-today went, tab-logbook has new words, allplaces comes when the filter opens; no tab-club (no old tip
+  covered the Club's key; gstrip stays). Bug on the way: a notification tapped while the web app was open on anything but
+  Now went to Now (`w.navigate` only changed the hash, which the back guard's popstate took for a back); sw.js now posts
+  `{type: "tab"}` to an open /app/ page.
+
 - 1.119.1 (to-dos #213–#217, #202, #203; what Dave found using 1.119): **seven fixes.** #213: `ppOpen` is a Map (region →
   unfolded); `ppShelf` always draws a heading button (`.ppHd`, `data-ppopen`, `aria-expanded`), the row only when
   unfolded; folded is `.shut`, no stamps `.ppNone` (muted count). A region with stamps starts unfolded, without as one

@@ -722,10 +722,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
 /* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
    card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
-.tdHead h2{margin:0;flex:none}
-.tdFind{flex:1;min-width:0}
-.tdFind .svFind{margin:0}
+.tdFind{margin:0 0 12px}
+.tdFind .svFind{display:flex;width:100%;margin:0}
+.tdFind input{flex:1;width:100%}
 .tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
 .tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
 .tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -1326,12 +1325,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .favRowT:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .favRow .cBtn{margin:0;flex:none}
 .favPlate .favInfo{margin:2px 0 8px}
-/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the Logbook · Spotters' Club titles; the names scroll sideways
+/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the header (1.120); the names scroll sideways
    (the segmented style of 1.88's jump bar) */
-#gSub{position:sticky;top:calc(var(--topH,0px) + var(--lbH,41px));z-index:4;margin:-12px calc(-1 * var(--gut)) 12px;padding:6px var(--gut);
+#gSub{position:sticky;top:var(--topH,0px);z-index:4;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
+#gSub .seg.jumpSeg{margin:0}
 #gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -2129,12 +2129,19 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
+   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+.lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
-.lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
-.lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
-.lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
+.tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+.tdFil svg{width:19px;height:19px}
+.tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
+.tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
+.tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdFil.gap{visibility:hidden}
+#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
+#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -2451,8 +2458,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <div class="tdFind" id="tdFind"></div>
       <dl class="tdNums" id="tdNums"></dl>
       <button type="button" class="tdHl" id="tdHl" hidden></button>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
@@ -2468,7 +2476,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
     <div class="lcol">
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
@@ -2501,7 +2509,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab" id="t-game" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" aria-current="page" data-t="Spotters' Club">Spotters' Club</button></div>
     <div id="gSub"><div class="seg jumpSeg" role="group" id="gSubSeg"></div></div>
     <div id="gameBox"></div>
   </section>
@@ -7930,6 +7937,7 @@ function renderTodayNumbers(){
   const sig = [n.planes, n.over, n.airlines, n.types, head, line, LANG].join("|");
   if (sig === tdSig) return;
   tdSig = sig;
+  $("tdNums").hidden = !n.planes;                             // 1.120: a day with no planes yet: one line (renderToday)
   $("tdNums").innerHTML = num(n.planes, "Planes") + num(n.over, "Overhead") + num(n.airlines, "Airlines") + num(n.types, "Types");
   const hl = $("tdHl");
   hl.hidden = !n.planes || !(head || line);
@@ -7945,6 +7953,18 @@ function tdOpen(){
   });
 }
 $("tdHl").onclick = tdOpen;
+// 1.120 (to-do #225, Dave's pick A): the find box, the filter row and the places row sit behind the icon at the end of the
+// Today | All time row; opening it swaps the numbers and Highlights for them. A dot on the icon: a filter is on behind it.
+function tdFilter(on){
+  $("t-today").classList.toggle("tdFilOn", on);
+  $("tdFil").setAttribute("aria-pressed", String(on));
+}
+$("tdFil").onclick = () => {
+  ctlSound.click();
+  const on = !$("t-today").classList.contains("tdFilOn");
+  tdFilter(on);
+  if (on) { window.scrollTo(0, 0); setTimeout(() => appTips("today"), 400); }
+};
 // A's tap: the plane's row in the timeline below, scrolled to and lit gold for a moment (1.115: the row is one line, so
 // without the words of what it was named for). A filter that hides it is cleared first.
 function todayJump(k){
@@ -7973,6 +7993,7 @@ function renderToday(){
   if (tab !== "today") return;
   loadFullDay();
   renderTodayNumbers();
+  $("tdFil").classList.toggle("act", svFilter !== "all" || !!svQuery || allPlaces);
   const d = svData();
   for (const b of $("svTools").querySelectorAll("[data-t]")) {
     const k = b.dataset.t, n = d.counts[k];
@@ -8006,7 +8027,7 @@ function renderToday(){
   L.classList.remove("wait");
   if (!waiting) L.style.minHeight = "";
   tlFill(L, waiting ? tlState(T("Today"), "", T("Loading …")) : d.rows.length ? tlHtml(d.rows, tlOpenId.svList)
-    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? tlNothing() : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
+    : liveWaiting() && !allPlaces ? tlFinding() : svFilter === "all" && !svQuery ? `<li class="st">${escH(T("No planes yet today"))}</li>` : tlState(T("Today"), "", T("None of today's planes match this filter yet.")), open);
 }
 function renderLists(){
   renderRecent();
@@ -8879,8 +8900,8 @@ function ppGo(reg){
   scrollTo({top: Math.max(0, el.getBoundingClientRect().top + scrollY - gUnder()), behavior: REDUCED ? "auto" : "smooth"});
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
-// The Club's sticky top: the header, the Logbook · Spotters' Club titles and (1.116) the sub-tabs.
-const gUnder = () => $("top").offsetHeight + [...document.querySelectorAll("#t-game .lbTabs, #gSub")].reduce((a, e) => a + e.offsetHeight, 0) + 10;
+// The Club's sticky top: the header and (1.116) the sub-tabs.
+const gUnder = () => $("top").offsetHeight + $("gSub").offsetHeight + 10;
 let ppAt = "eu";
 function ppCard(){
   const g0 = (lbData() || {}).game, pp = g0 && g0.passport;
@@ -11105,6 +11126,7 @@ addEventListener("focus", arResume);
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {
   const d = e.data || {};
   if (d.type === "bell") { audioInit(); chime(d.kind === "emergency" ? "emergency" : d.kind === "fav" ? "fav" : "special", {force: true}); }
+  if (d.type === "tab") showTab(d.tab);              // 1.120: a notification tapped while the app is open
 });
 
 // Tap a plane on the radar (or a row of Nearest): it is ringed, and its card comes up from the bottom as a sheet, the one a
@@ -11265,6 +11287,7 @@ function backStep(){
   if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
   if (row) return () => tlFold(row, true);                                 // a plane opened in place in a list: folded
+  if (tab === "today" && $("t-today").classList.contains("tdFilOn")) return () => tdFilter(false);   // 1.120: Today's filters
   if (tab !== "now") return () => showTab("now");
   return null;
 }
@@ -12373,6 +12396,13 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.120", date: "2026-10-31", notes: [
+    "New bottom bar: Now, Logbook, Club, Radar, Settings.",
+    "The Spotters' Club has its own key.",
+    "Today now sits in the Logbook, beside All time.",
+    "Today's search and filters open from the filter icon.",
+    "A notification tapped while the web app is open now goes to the right page.",
+  ]},
   {v: "1.119.1", date: "2026-10-30", notes: [
     "Passport: every region folds and unfolds with a tap on its heading.",
     "Spotters' Club: Bingo and Trophies now sit in the League tab.",
@@ -14286,29 +14316,34 @@ function welcome(){
 }
 
 /* ---------- tabs: the board's push buttons along the bottom ---------- */
-// Small line icons over the tab names (drawn in the button's ink): a plane, a list, a book, a radar scope, a cogwheel.
+// Small line icons over the tab names (drawn in the button's ink): a plane, a book, a trophy, a radar scope, a cogwheel.
 const ICON = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const TAB_ICONS = {
   now: ICON('<path d="M21 15.5v-1.8l-7.6-4.7V3.7a1.4 1.4 0 0 0-2.8 0V9l-7.6 4.7v1.8l7.6-2.3v5.3l-2 1.5V21l3.4-1 3.4 1v-1.5l-2-1.5v-5.3z" fill="currentColor"/>'),
-  today: ICON('<path d="M5 6h14M5 12h14M5 18h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/>'),
   logbook: ICON('<path d="M6 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v15H7.5A1.5 1.5 0 0 1 6 18.5zM6 18.5A1.5 1.5 0 0 1 7.5 17H18M9.5 8h5" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
+  game: ICON('<path d="M7.5 4h9v6a4.5 4.5 0 0 1-9 0zM7.5 6H4c0 3 1.2 4.7 3.8 5.2M16.5 6H20c0 3-1.2 4.7-3.8 5.2M12 14.5V19M8.5 20h7" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>'),
   radar: ICON('<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 12 18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
   settings: ICON('<path d="M18.97 9.84 21.66 10.34 21.66 13.66 18.97 14.16 18.46 15.41 20.00 17.66 17.66 20.00 15.41 18.46 14.16 18.97 13.66 21.66 10.34 21.66 9.84 18.97 8.59 18.46 6.34 20.00 4.00 17.66 5.54 15.41 5.03 14.16 2.34 13.66 2.34 10.34 5.03 9.84 5.54 8.59 4.00 6.34 6.34 4.00 8.59 5.54 9.84 5.03 10.34 2.34 13.66 2.34 14.16 5.03 15.41 5.54 17.66 4.00 20.00 6.34 18.46 8.59Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.9" fill="none"/>'),
 };
-const TABS = [["now", "Now"], ["today", "Today"], ["logbook", "Logbook"], ["radar", "Radar"], ["settings", "Settings"]];
+// 1.120 (to-dos #222, #225): the five keys. The Logbook's key opens on Today, one of its two panes (TAB_PAGES); the Club's
+// goes when there's no game (gameOk: demo mode, no relay, an old relay) and the other four fill the bar.
+const TABS = [["now", "Now"], ["logbook", "Logbook"], ["game", "Club"], ["radar", "Radar"], ["settings", "Settings"]];
+const TAB_PAGES = ["now", "today", "logbook", "game", "radar", "settings"];
+const tabKey = t => t === "today" ? "logbook" : t;
 let tab = "now", tabTimer = null;
 // 1.45: the ding for a new plane on top only sounds on Now, where that plane shows; the chimes play anywhere.
 function onMainPage(){ return tab === "now"; }
 function buildTabs(){
   $("tabRow").innerHTML = TABS.map(([t, name]) => `<button class="cap${T(name).length > 9 ? " long" : ""}" type="button" data-tab="${t}">${TAB_ICONS[t]}<span>${T(name)}</span></button>`).join("");
-  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab); };
+  for (const b of $("tabRow").children) b.onclick = () => { audioInit(); ctlSound.press(); showTab(b.dataset.tab === "logbook" ? "today" : b.dataset.tab); };
+  clubKey();
 }
+function clubKey(){ const b = $("tabRow").querySelector('[data-tab="game"]'); if (b) b.hidden = !gameOk(); }
 function pingNow(on){ const b = $("tabRow").querySelector('[data-tab="now"]'); if (b) b.classList.toggle("ping", on); }
 // The tips for a tab (1.42): what the tab is, the first time, then what can be done on it. 1.119: one short sentence
 // each, pointing at one thing; the app's own words for the styles and Now's pages (the board keeps MODE_TIP, PAGE_TIPS).
 const TAB_TIPS = {now: "This is Now: the plane over you. Tap the board for its card.",
-  today: "Today: every plane that came by today.",
-  logbook: "Logbook: every plane you've ever spotted.",
+  logbook: "Logbook: today's planes, and every plane you've ever spotted.",
   radar: "Radar: the planes around you right now.",
   settings: "Settings: your place, the look and the sounds."};
 const NOW_TIPS = {mode: "Switch between Overhead, the planes over you, and Airport, the take-offs and landings.",
@@ -14323,13 +14358,14 @@ function appTips(t){
   if (t !== tab || SIDEWAYS.matches || ($("welcome") && !$("welcome").hidden) || !$("t-about").hidden) return;
   const vis = el => el && !el.hidden && el.getClientRects().length ? el : null;
   const tabBtn = x => () => $("tabRow").querySelector(`[data-tab="${x}"]`);
-  tip("tab-" + t, tabBtn(t), T(TAB_TIPS[t]));
+  const key = tabKey(t);
+  if (TAB_TIPS[key]) tip("tab-" + key, tabBtn(key), T(TAB_TIPS[key]));
   if (t === "now") {
     tip("mode", () => $("modes"), T(NOW_TIPS.mode));
     const pageBtn = p => () => vis($("apPick").querySelector(`[data-page="${p}"]`)) || vis($("nowPages").querySelector(`[data-page="${p}"]`));
     if (airportMode()) for (const [p, k] of [["lists", "aplists"], ["dep", "apdep"], ["land", "apland"]]) tip("ap-" + p, pageBtn(p), T(NOW_TIPS[k]));
     else for (const [p, k] of [["lists", "spotted"], ["ac", "aircraft"]]) tip("pg-" + p, pageBtn(p), T(NOW_TIPS[k]));
-    for (const [x] of TABS) if (x !== "now") tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
+    for (const [x] of TABS) if (x !== "now" && TAB_TIPS[x]) tip("tab-" + x, tabBtn(x), T(TAB_TIPS[x]));
     tip("swipe", () => $("recent").querySelector("li.fl[data-more]"), T("Swipe a plane right to make it a favourite, left to hide it."));
     tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open its card."));
   }
@@ -14355,18 +14391,18 @@ function showTab(t){
   const rv = /^review-(week|month)-(\d{1,2})$/.exec(t || "");      // a review notification (1.52): the Logbook at that week or month
   if (rv) { review.span = rv[1]; review.back = +rv[2]; lbPeriod = rv[1]; t = "logbook"; }
   aboutHide(); stylesHide();
-  if ((!TABS.some(x => x[0] === t) && !(t === "game" && gameOk())) || SIDEWAYS.matches) t = "now";
+  clubKey();
+  if (!TAB_PAGES.includes(t) || (t === "game" && !gameOk()) || SIDEWAYS.matches) t = "now";
   const was = tab;
   tab = t;
-  for (const [x] of TABS) $("t-" + x).hidden = x !== t;
-  $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
-  for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
+  for (const x of TAB_PAGES) $("t-" + x).hidden = x !== t;
+  for (const b of $("tabRow").children) { if (b.dataset.tab === tabKey(t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
   HERO.off = t !== "now"; TODAYP.off = t !== "today";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
   if (t === "now") { pingNow(false); applyMode(); renderFeatured(); renderAircraftInfo(); renderRecent(); }
-  else if (t === "today") { svSig = ""; renderToday(); }
+  else if (t === "today") { if (was !== "today") tdFilter(false); svSig = ""; renderToday(); }
   else if (t === "logbook") { lbSig = ""; fetchLogbook(); tabTimer = setInterval(fetchLogbook, 60000); }
   else if (t === "radar") { rvSig = ""; startRadar(); renderRadarList(); }
   else if (t === "settings") { cockpitOpen(); settingsExtra(); renderFavBox(); setListRender(); }
@@ -14628,15 +14664,17 @@ function gHitDo(){
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
 }
 document.addEventListener("click", e => { if (e.target.closest && e.target.closest("#t-game .gGoB")) { audioInit(); ctlSound.click(); gGoLive(); } });
-// 1.74: Logbook and Spotters' Club: the title tabs, and a sideways swipe on either page switches to the other.
+// 1.120: Today | All time in the Logbook; a sideways swipe goes Today, All time, Club, but never on a plane's row (it has
+// its own swipes) or anything that scrolls sideways.
 for (const b of document.querySelectorAll("[data-lt]")) b.onclick = () => { if (tab !== b.dataset.lt) { ctlSound.nav(); showTab(b.dataset.lt); } };
-for (const id of ["t-logbook", "t-game"]) { let sw = null;
-  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap") ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
+for (const id of ["t-today", "t-logbook", "t-game"]) { let sw = null;
+  $(id).addEventListener("touchstart", e => { const t = e.touches[0]; sw = e.target.closest("input, .seg, .bingo, .hgRow, .lyCar, .lyIdx, .ppMap, .tline li.open") || swipeRow(e.target) ? null : {x: t.clientX, y: t.clientY}; }, {passive: true});
   $(id).addEventListener("touchend", e => {
     if (!sw) return;
     const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; sw = null;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
-    if (tab === "logbook" && dx < 0 && gameOk()) showTab("game"); else if (tab === "game" && dx > 0) showTab("logbook");
+    const order = gameOk() ? ["today", "logbook", "game"] : ["today", "logbook"], to = order[order.indexOf(tab) + (dx < 0 ? 1 : -1)];
+    if (to) showTab(to);
   }, {passive: true}); }
 // 1.73.2: a notice goes when swiped to the right (a finger, or a mouse); a short swipe springs back. 1.113 (to-do #183):
 // to the left too.
@@ -15487,8 +15525,6 @@ function gSubBar(g0){
   let lit = null;
   for (const b of seg.children) { const on = b.dataset.gs === gSub; b.setAttribute("aria-pressed", String(on)); if (on) lit = b; }
   if (lit && seg.dataset.lit !== gSub) { seg.dataset.lit = gSub; seg.scrollTo({left: lit.offsetLeft - (seg.clientWidth - lit.offsetWidth) / 2, behavior: REDUCED ? "auto" : "smooth"}); }
-  const t = document.querySelector("#t-game .lbTabs");
-  if (t && t.offsetHeight) document.documentElement.style.setProperty("--lbH", t.offsetHeight + "px");
   return gSub;
 }
 // To a sub-tab: drawn whole, the page back at its top (under the sticky bars).
@@ -15952,7 +15988,7 @@ function fsWings(a){
 }
 function gameStart(){
   gStripSetup();
-  for (const b of document.querySelectorAll('[data-lt="game"]')) b.hidden = !gameOk();   // 1.74: no Spotters' Club without relay 59
+  clubKey();                                         // 1.74: no Spotters' Club without relay 59
   if (!gameOk()) return;
   gRefresh(true); gLeagueLoad();
   setInterval(() => gRefresh(), 2500);

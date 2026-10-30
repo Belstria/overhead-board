@@ -174,7 +174,7 @@ test/index.html: view viewTimer viewTouched staticSub onMainPage VIEW_NAMES VIEW
     updateRail updatePager railPlate addEventListener("hashchange") +boardTap .rail .cap #railPages @lampOn #viewTools
     #railViews +document.addEventListener("keydown")
 tools/app/head.html: .tools #tabs .cap.ping @ping .tabHead .tabX #tabRow
-tools/app/main.js: ICON TAB_ICONS TABS tab tabTimer onMainPage buildTabs pingNow showTab
+tools/app/main.js: ICON TAB_ICONS TABS TAB_PAGES tabKey clubKey tab tabTimer onMainPage buildTabs pingNow showTab
     addEventListener("hashchange")
 README.md: "- **Views on the board**" "Press **S** for settings"
 changelog: view|rail|button|tab\b|tabs
@@ -186,10 +186,10 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
 tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts .dayFacts #todayP
-    #todayTop .tdHead .tdFind .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
+    #todayTop .tdFind .tdFil .lbSeg .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
-    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick todayJump renderToday renderLists
+    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick tdFilter $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
@@ -214,7 +214,7 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     .lbSub .pickList +VIEW_FIELDS +layout +drawStatic +BOARD_TIPS +document.addEventListener("keydown") +boardTap
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
-    #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .lbTabs .perHead .perArr .sum.lbFoot .dd
+    #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
     .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbNums #lbYear #lbIdx .perMore
     .perMoreIn
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup

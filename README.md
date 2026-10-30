@@ -493,7 +493,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   Saved places are kept on the relay, so all of a person's devices (or all screens at home) share them; each device
   watches its own choice. Every place's planes go into the **one logbook** (collection, trophies, bingo and records
   count them all), and **Spotted today shows the place being watched**, so the TVs keep showing the sky over home while a
-  phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today has a switch to
+  phone shows where it is. A plane seen from two places in the same pass is one sighting. The app's Today has a switch (behind its filter icon) to
   show every place at once, with each plane's place. Sightings carry their place in the logbook's CSV.
 - **Use current location** (Settings → Location → Update location; boards and phone app): fills in latitude and
   longitude, the town and the airports nearby (relay 16 or newer). Browsers only share their
@@ -579,7 +579,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   showed the points on flaps, the level bar and the league place.) **Recent points** (1.89, relay 71; on the Club's page): today's
   total and every plane that scored, newest first, with when and why (since 1.96 the same lines as the pop-ups, so they
   add up; a plane past its limit in grey with the reason; points from before relay 71 show without times); at its foot a link to the club. The
-  **Spotters' Club** (1.74: next to the Logbook, as a title tab; since 1.116 in the app with **tabs** under the title that
+  **Spotters' Club** (the **Club** key in the app's bottom bar since 1.120; since 1.116 with **tabs** under the header that
   show one part at a time: **Level**, League (with this week's Bingo, the Records and the Trophies under the league), Hangar, Passport and Cards.
   Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
   done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10") and links "All 20
@@ -783,7 +783,7 @@ screen allows: the plane's flaps across the top, and under them one page at a ti
 half: Recent flights and This aircraft, or in the Airport style the board's Take-offs & landings, Take-off and
 Landing (the last two put that plane on top, with the runway screen). Lamp buttons in the title strip pick the page; it
 turns by itself every 20 seconds, and a page you pick stays a minute. On a screen that is short for its width (a
-browser's bars, a wide phone) the lists show fewer rows (at least four), so the flaps fill the width. There are no tab buttons (Today, Logbook, Radar
+browser's bars, a wide phone) the lists show fewer rows (at least four), so the flaps fill the width. There are no tab buttons (Logbook, Club, Radar
 and Settings are for upright; the one you had open comes back when you turn the phone upright again), and the status
 line only pops up when something is wrong. The Android app goes full screen, draws under the camera (1.13.3 or newer)
 and keeps the screen on as long as it is open (1.13.3.1 or newer). Auto-rotate has to be on.
@@ -829,7 +829,11 @@ Five buttons along the bottom:
   a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·
   Year and ◀ ▶, three numbers, four facts and **Share**; **More** unfolds the dates, the other numbers and facts, the
   new types and the CSV. The search results are as before. The footnote says since when it counts and the most seen model.
-  Since 1.91 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
+  The app's bottom bar is **Now, Logbook, Club, Radar, Settings** (1.120; without a game, four keys). The Logbook key opens on
+  **Today**, with **Today | All time** at the top: Today has the day's numbers, Highlights and the timeline, and its **filter
+  icon** swaps the numbers for the find box, the filters and the places (a dot on the icon: a filter is on); All time is the
+  search, the totals, the year and the rows. A sideways swipe goes Today, All time, Club. These rows and the Club's tabs
+  **stay at the top**, under the header, while a page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
   open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its
   card, as the rows inside a category do, and one of **Most seen aircraft** searches the logbook for it.

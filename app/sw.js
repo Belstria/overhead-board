@@ -78,7 +78,14 @@ self.addEventListener("notificationclick", e => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || "/app/";
   e.waitUntil(self.clients.matchAll({type: "window", includeUncontrolled: true}).then(list => {
-    for (const w of list) if (/\/(app|light)\//.test(w.url) && "focus" in w) { if ("navigate" in w) w.navigate(url); return w.focus(); }
+    const to = new URL(url, self.location.origin);
+    for (const w of list) if (/\/(app|light)\//.test(w.url) && "focus" in w) {
+      // 1.120: the app already open on that address: it's told which tab. Navigating there only changes the hash, which
+      // the page's back guard can't tell from the back gesture (it went to Now).
+      if (to.pathname === "/app/" && new URL(w.url).pathname === to.pathname) w.postMessage({type: "tab", tab: to.hash.slice(1)});
+      else if ("navigate" in w) w.navigate(url);
+      return w.focus();
+    }
     return self.clients.openWindow(url);
   }));
 });
