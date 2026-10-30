@@ -252,14 +252,6 @@ def(TODAYP, "stAirlines", {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"ri
 def(TODAYP, "stTypes",    {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Types","Typen"]});
 def(TODAYP, "stOver",     {kind:"chars", n:3, dur:70, drum:DRUM_DIGIT, align:"right", label:["Overhead",""]});
 placeRow(["stPlanes", "stAirlines", "stTypes", "stOver"], [1.3, 1.3, 1.3], 18, 21.5, 1.3, UM);
-// Logbook totals.
-const LBP = makePanel($("lbP"), 390, 108);
-def(LBP, "lvSight",    {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Sightings","Sichtungen"]});
-def(LBP, "lvRegs",     {kind:"chars", n:7, drum:DRUM_ALT, align:"right", dur:70, label:["Individual aircraft",""]});
-def(LBP, "lvTypes",    {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Aircraft types","Typen"]});
-def(LBP, "lvAirlines", {kind:"chars", n:4, drum:DRUM_ALT, align:"right", dur:70, label:["Airlines",""]});
-placeRow(["lvSight", "lvRegs"], [1.5], 18, 22, 1.3, UM);
-placeRow(["lvTypes", "lvAirlines"], [4.5], 69, 22, 1.3, UM);
 //@L:engine2
 //@E3
 /* ---------- drawing a flap, mid-flip or at rest ---------- */
@@ -973,14 +965,16 @@ async function catFetch(){
   lbSig = ""; renderLogbook();
 }
 document.addEventListener("click", e => {
-  const t = e.target && e.target.closest && e.target.closest("#lbLists [data-cat], #lbLists [data-cv], #lbLists .catRow, #lbLists .lbTap, #lbFound [data-fp]");
+  // 1.117: the lists' rows in their panels (.lbSheet)
+  const t = e.target && e.target.closest && e.target.closest(".lbSheet [data-cat], .lbSheet [data-cv], .lbSheet .catRow, .lbSheet .lbTap, .lbSheet [data-pk], #lbFound [data-fp]");
   if (!t) return;
   ctlSound.click();
-  if (t.dataset.cat) { lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
+  if (t.dataset.pk != null) { cardClose(); if (t.dataset.pk !== lbPlace) lbPick(t.dataset.pk); return; }
+  if (t.dataset.cat){ lbCat = lbCat === t.dataset.cat ? "" : t.dataset.cat; lbCatView = "types"; if (lbCat) catFetch(); }
   else if (t.dataset.cv) lbCatView = t.dataset.cv;
   else if (t.dataset.ct) return typeCard({typeCode: t.dataset.ct, type: t.dataset.cn});
   else if (t.dataset.co != null && t.matches(".catRow, .lbTap")) return airlineCard({airlineIcao: t.dataset.co, airline: t.dataset.cn, airlineCode: t.dataset.ci});
-  else if (t.dataset.cr) { const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
+  else if (t.dataset.cr) { if (t.closest("#cardBox")) cardClose(); const inp = $("lbFindBox").querySelector("[data-q]"); if (inp) { inp.value = t.dataset.cr; inp.dispatchEvent(new Event("input")); window.scrollTo({top: 0, behavior: "smooth"}); } return; }
   else if (t.dataset.fp) return foundCard(t.dataset.fp, lbFoundRows[+t.dataset.fi]);
   lbSig = ""; renderLogbook();
 });
@@ -1021,6 +1015,26 @@ async function foundCard(k, g){
   for (const t0 = Date.now(); (pic().asking || (ac.hex && acDetails.get(ac.hex) === null)) && Date.now() - t0 < 2500 && tok === cardTok;) await new Promise(r => setTimeout(r, 150));
   shown = await cardWhenReady(tok, html(), wire);
 }
+/* 1.117 (to-do #210, Dave's pick B): the Logbook on one screen: the search, four labelled totals, the period as one card
+   (Today's Highlights card), then an index of its lists, each with its state in one line. A row raises its plate as the
+   app's sheet (cardOpen, as Today's Highlights: the grip, swiped down, a tap beside or back); the plates are drawn here
+   (lbPanels) and a panel on show follows new numbers in place (lbPanelSync). The search results stay as they were. */
+let lbPanels = {}, lbPanel = "", lbPanelTok = 0;
+const lbPanelOn = () => !!lbPanel && cardTok === lbPanelTok && cardOpenNow();
+function lbPanelOpen(k){
+  if (!lbPanels[k]) return;
+  ctlSound.nav();
+  lbPanel = k;
+  lbPanelTok = cardOpen(`<div class="lbIn">${lbPanels[k]}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+}
+function lbPanelSync(){
+  const el = lbPanelOn() && document.querySelector("#cardBox .lbIn");
+  if (!el) return;
+  const html = lbPanels[lbPanel] || "", ci = el.closest(".cardIn"), h0 = ci.offsetHeight;
+  if (el.dataset.h === html) return;
+  el.dataset.h = html; el.innerHTML = html;
+  cardSheetGrow(ci, h0);
+}
 function renderLogbook(){
   if (tab !== "logbook") return;
   lbFindSetup();
@@ -1030,81 +1044,108 @@ function renderLogbook(){
   const all = lbData() || {}, pl = v === "logbook" && lbPlaceOk() ? lbChips() : [];
   if (v === "logbook" && lbPlace && !pl.some(c => c.id === lbPlace)) lbPlace = "";
   const place = v === "logbook" ? lbPlace : "";
-  // 1.89 (to-do #90, Dave's pick): All · On the go · Saved places, a bar like Week · Month · Year; the saved places are
-  // picked in a sheet, and the third part then names the one picked. Counting since and a place's own line are the
-  // footnote at the bottom.
-  const bar = $("lbPlaces"), live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live");
-  const cur = saved.find(c => c.id === lbPlace);
-  const want = [["", T("All")], ...(live ? [["live", live.name]] : []), ...(saved.length ? [["saved", cur ? cur.name : T("Saved places")]] : [])];
-  bar.hidden = want.length < 2;
-  const csig = JSON.stringify([want, lbPlace, LANG]);
-  if (!bar.hidden && bar.dataset.sig !== csig) {
-    bar.dataset.sig = csig;
-    bar.innerHTML = want.map(([k, name]) => k === "saved" ? `<button type="button" data-p="saved" aria-pressed="${!!cur}" aria-haspopup="dialog"><span class="ddL">${escH(name)}</span>${DD}</button>`
-      : `<button type="button" data-p="${escH(k)}" aria-pressed="${k === lbPlace}">${escH(name)}</button>`).join("");
-    for (const btn of bar.children) btn.onclick = () => {
-      if (btn.dataset.p === "saved") return lbPlaceSheet(true);
-      if (btn.dataset.p !== lbPlace) { ctlSound.click(); lbPick(btn.dataset.p); }
-    };
-  }
+  // 1.89 (to-do #90): All · On the go · the saved places; 1.117: a row of the index, its panel the list to pick from.
+  // Counting since and a place's own line are the footnote at the bottom.
+  const live = pl.find(c => c.id === "live"), saved = pl.filter(c => c.id !== "live"), cur = pl.find(c => c.id === lbPlace);
   const b = place ? lbPlaceData[place] || {} : all, has = place ? !!lbPlaceData[place] : !!lbData();
   $("lbSum").hidden = v === "review" || v === "logbook";
   $("lbSum").textContent = v === "collection" ? T("How rare a type is depends on how many fly today. Every type you see fills its place in the collections; points come in the Spotters' Club.")
     : v === "records" ? T("The logbook's records, this week's bingo card (a new one every Monday) and the trophies, which are kept for good.") : "";
-  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
-    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
-    logbookSummary()].filter(Boolean).map(escH).join("<br>");
   const byCount = o => Object.entries(o || {}).sort((x, y) => (y[1].count || 0) - (x[1].count || 0));
   const types = byCount(b.types), airlines = byCount(b.airlines);
-  $("lbTop").hidden = v !== "logbook";
-  setChars("lvSight", has ? nf.format(b.sightings || 0) : "");
-  setChars("lvRegs", has ? nf.format(b.regsCount || 0) : "", 60);
-  setChars("lvTypes", has ? nf.format(types.length) : "", 120);
-  setChars("lvAirlines", has ? nf.format(airlines.length) : "", 180);
-  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
+  const model = types[0] && types[0][1].count > 1 ? T("most seen model {t} ({n} times)", {t: typeLabel(types[0][0], types[0][1].name), n: nf.format(types[0][1].count || 0)}) : "";
+  const foot = v !== "logbook" ? "" : [place ? !has ? T("Loading …")
+    : T(b.sightings === 1 ? "1 plane seen from {place} since {d}." : "{n} planes seen from {place} since {d}.", {n: nf.format(b.sightings || 0), place: lbPlaceName(place), d: b.since ? fmtDay(new Date(b.since + "T12:00:00").getTime()) : "–"}) : "",
+    [logbookSummary(true), model].filter(Boolean).join(" · ")].filter(Boolean).map(escH).join("<br>");
+  for (const id of ["lbNums", "lbIdx"]) $(id).hidden = v !== "logbook";
+  $("lbYear").hidden = v !== "logbook" || !!place;
+  const sig = JSON.stringify([v, place, foot, b.since, b.sightings, b.regsCount, b.categories, types.slice(0, 10), airlines.slice(0, 10), b.regsTop, pl, all.game, all.records, yearData, lbCat, lbCatView, lbCat && lbCatData[lbCatKey()], lbPeriod, yearBack, perMore, lbPeriod !== "year" && reviewOk() && reviewData(), review.span, review.back, LANG]);
   if (sig === lbSig) return;
   lbSig = sig;
-  $("lbModel").innerHTML = types[0] && types[0][1].count > 1 ?`<small>${escH(T("Most seen model"))}</small>${escH(typeLabel(types[0][0], types[0][1].name))}<span>${escH(T("{n} times", {n: nf.format(types[0][1].count || 0)}))}</span>` : "";
+  const num = (n, k) => `<div><dt>${escH(T(k))}</dt><dd>${has ? nf.format(n || 0) : "–"}</dd></div>`;
+  $("lbNums").innerHTML = num(b.sightings, "Sightings") + num(b.regsCount, "Aircraft") + num(types.length, "Types") + num(airlines.length, "Airlines");
   const rank = (items, plain) => `<ol class="ranks${plain ? " plain" : ""}">${items.join("")}</ol>`;
   // 1.113 (to-do #185): a type, an airline or an aircraft opens what the same row inside a category opens (tap: data-*)
   const li = (name, n, sub, tap = "") => `<li${tap ? ` class="lbTap"${tap}` : ""}><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span></li>`;
+  const P = {}, rows = [];
+  const row = (k, name, state) => rows.push(`<li><button type="button" data-lp="${k}"><b>${escH(name)}</b><small>${escH(state)}</small><i aria-hidden="true">›</i></button></li>`);
   let html = "";
   const g0 = all.game;                               // the collection, bingo and trophies count every place
   if (v === "logbook") {
     if (b.categories) {
       const max = Math.max(1, ...LB_CATS.map(([k]) => b.categories[k] || 0));
-      html += secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
+      P.cats = secPlate(T("Categories"), `<ul class="ranks cats">` + LB_CATS.map(([k, en, de, col]) => {
         const n = b.categories[k] || 0;
         const open = lbCat === k && catOk() && n;
         return `<li style="--lamp:${col}"${n && catOk() ? ` data-cat="${k}" class="catTap${open ? " open" : ""}"` : ""}><i class="lamp"></i><span class="name">${escH(T(en))}${n && catOk() ? ` <span class="chev">${DD}</span>` : ""}</span><span class="n">${nf.format(n)}</span>` +
           `<span class="bar"><i style="width:${(n / max * 100).toFixed(1)}%"></i></span></li>` + (open ? catOpenHtml(k) : "");
       }).join("") + "</ul>");
+      const top = LB_CATS.filter(([k]) => b.categories[k]).sort((x, y) => b.categories[y[0]] - b.categories[x[0]]).slice(0, 3);
+      if (top.length) row("cats", T("Categories"), top.map(([k, en]) => `${T(en)} ${nf.format(b.categories[k])}`).join(" · "));   // none yet: folded away
     }
-    if (types.length) html += secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
-    if (airlines.length) html += secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
-      ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
-    if ((b.regsTop || []).length) html += secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
-    if (!place) html = periodHtml() + html;
+    if (types.length) {
+      P.types = secPlate(T("Aircraft types"), rank(types.slice(0, 10).map(([c, t]) => li(typeLabel(c, t.name), nf.format(t.count || 0), "", ` data-ct="${escH(c)}" data-cn="${escH(t.name || "")}"`))));
+      row("types", T("Aircraft types"), T("{n} · top: {t}", {n: nf.format(types.length), t: typeLabel(types[0][0], types[0][1].name)}));
+    }
+    if (airlines.length) {
+      P.airlines = secPlate(T("Airlines"), rank(airlines.slice(0, 10).map(([c, a]) => li((AIRLINES[c] || [])[1] || a.name || c, nf.format(a.count || 0), "",
+        ` data-co="${escH(c)}" data-cn="${escH(a.name || "")}" data-ci="${escH((AIRLINES[c] || [])[0] || "")}"`))));
+      row("airlines", T("Airlines"), T("{n} · top: {t}", {n: nf.format(airlines.length), t: (AIRLINES[airlines[0][0]] || [])[1] || airlines[0][1].name || airlines[0][0]}));
+    }
+    if ((b.regsTop || []).length) {
+      P.regs = secPlate(T("Most seen aircraft"), rank(b.regsTop.slice(0, 8).map(r => li(r.reg, nf.format(r.count || 0), r.name, ` data-cr="${escH(r.reg)}"`))));
+      row("regs", T("Most seen aircraft"), b.regsTop[0].reg);
+    }
+    if (pl.length) {
+      const name = saved.length ? T("Saved places") : live.name;
+      const opt = (k, n, cnt) => `<li class="catTap" data-pk="${escH(k)}" style="--lamp:${k === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(n)}</span><span class="n">${cnt != null ? nf.format(cnt) : ""}</span></li>`;
+      P.places = secPlate(name, `<ul class="ranks cats">` + opt("", T("All"), all.sightings) + pl.map(c => opt(c.id, c.name, c.n)).join("") + `</ul>` +
+        (saved.length ? `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>` : ""));
+      row("places", name, cur ? cur.name : T("All"));
+    }
+    if (!place && relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29)      // the whole logbook, as the year's card
+      rows.push(`<li><a href="${escH(relay())}/logbook.csv" download data-lp="csv"><b>${escH(T("Download as CSV"))}</b><small>${escH(T("every sighting"))}</small><i aria-hidden="true">›</i></a></li>`);
+    if (!place) { P.year = periodHtml(); lbYearCard(); }
   } else if (v === "collection") html = collectionHtml(g0);
   else if (v === "records") html = recordsHtml(all, g0);
   else html = reviewHtml();
-  $("lbLists").innerHTML = (html || `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
-  const cv = $("yCsv"); if (cv) cv.onclick = () => ctlSound.click();
+  lbPanels = P;
+  $("lbIdx").innerHTML = rows.join("");
+  $("lbIdx").hidden = v !== "logbook" || !rows.length;
+  $("lbLists").innerHTML = (html || v === "logbook" ? html : `<p class="sum">${escH(T("Loading …"))}</p>`) + (foot ? `<p class="sum lbFoot">${foot}</p>` : "");
   trWire($("lbLists"), () => { lbSig = ""; renderLogbook(); });
+  lbPanelSync();
 }
+// The period's card above the index: its title, three numbers and what its panel holds.
+function lbYearCard(){
+  const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
+  const three = list => list.map(([n, k]) => `${nf.format(n || 0)} ${T(n === 1 ? PIC_ONE[k] || k : k)}`).join(" · ");
+  let title, line, busy = "";
+  if (per === "year") {
+    const y = yearData && yearData.year === yr ? yearData : null;
+    title = T("{y} in planes", {y: yr});
+    line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.countries, "countries"]]);
+    if (y && y.busiest) busy = fmtDay(Date.parse(y.busiest.day));
+  } else {
+    const r = reviewData();
+    title = T("{p} in planes", {p: reviewTitle()});
+    line = r && r.planes ? three([[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"]]) : reviewSummary(r);
+    if (r && r.busiest) busy = reviewDay(r.busiest.day);
+  }
+  const sub = [T("Week, month and year"), busy ? T("busiest day {d}", {d: busy}) : "", T("Share")].filter(Boolean).join(" · ");
+  $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b><em>${escH(sub)}</em></span><i aria-hidden="true">›</i>`;
+}
+$("lbYear").onclick = () => lbPanelOpen("year");
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("#lbIdx [data-lp]");
+  if (!b) return;
+  if (b.dataset.lp === "csv") return ctlSound.click();
+  lbPanelOpen(b.dataset.lp);
+});
 // 1.89: a place picked (All, on the go or a saved one): its numbers come from the relay the first time.
 async function lbPick(id){
   lbPlace = id; lbSig = ""; renderLogbook();
   if (lbPlace && !lbPlaceData[lbPlace]) { try { lbPlaceData[lbPlace] = await fetchJSON(lbPlaceUrl(lbPlace), {}, 12000); } catch {} lbSig = ""; renderLogbook(); }
-}
-// 1.89 (to-do #90, Dave's pick A): the saved places in a sheet, each with its count, the one picked lit.
-function lbPlaceSheet(button){
-  button ? ctlSound.click() : ctlSound.nav();      // 1.97.4: the bar's button clicks like a button
-  const saved = (lbPlaceOk() ? lbChips() : []).filter(c => c.id !== "live");
-  cardOpen(`<div class="cHead"><div><h3>${escH(T("Logbook for"))}</h3></div></div>` +
-    `<ul class="ranks cats">` + saved.map(c => `<li class="catTap" data-pk="${escH(c.id)}" style="--lamp:${c.id === lbPlace ? "var(--c-gold)" : "#3a3c41"}"><i class="lamp"></i><span class="name">${escH(c.name)}</span><span class="n">${nf.format(c.n)}</span></li>`).join("") + `</ul>` +
-    `<p class="sum">${escH(T("Places are saved in Settings → Places."))}</p>`,
-    ci => { for (const li of ci.querySelectorAll("[data-pk]")) li.onclick = () => { ctlSound.click(); cardClose(); if (li.dataset.pk !== lbPlace) lbPick(li.dataset.pk); }; });
 }
 // The game's collection (points, tiers, the collections) and its records, bingo and trophies: on the Game page since
 // 1.72 (relay 59), in the Logbook before.
@@ -2116,33 +2157,46 @@ function yearFacts(y){
 }
 // 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
 // ◀ ▶ for earlier and later (week and month from /review, relay 46; the year from /year, with Share and the CSV).
-let lbPeriod = "year", yearBack = 0;
+let lbPeriod = "year", yearBack = 0, perMore = false;
+// 1.117 (to-do #210, Dave's pick B): the period's panel: Week · Month · Year, three big numbers, four facts and Share;
+// More unfolds the rest in place (the dates, the finer numbers, the other facts, the new types and the CSV).
 function periodHtml(){
   const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
   const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
     .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${per === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
   const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
     `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}>▶</button></span>`;
-  const nums = list => `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>`;
-  const facts = list => `<dl class="yFacts">` + list.filter(x => x[1]).map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>`;
+  const nums = list => list.length ? `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>` : "";
+  const facts = list => list.length ? `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>` : "";
+  const share = id => `<div class="yActs"><button class="cBtn" type="button" id="${id}">${escH(T("Share"))}</button></div>`;
+  const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
+    `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
+  const more = (label, inner) => `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(perMore ? T("Less") : label)}</b><i aria-hidden="true">›</i></button></li></ul>` +
+    (perMore ? `<div class="perMoreIn">${inner}</div>` : "");
   let title, body;
   if (per === "year") {
-    const y = yearData && yearData.year === yr ? yearData : null;
+    const y = yearData && yearData.year === yr ? yearData : null, f = y ? yearFacts(y) : [];
     title = T("{y} in planes", {y: yr});
     body = !y ? `<p class="sum">${escH(T("Loading …"))}</p>` : !y.planes ? `<p class="sum">${escH(T("No planes that year."))}</p>`
-      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(yearFacts(y)) +
-        `<div class="yActs"><button class="cBtn" type="button" id="yShare">${escH(T("Share"))}</button>` +
-        `<a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
-        `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>`;
+      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]) + facts(f.slice(0, 4)) + share("yShare") +
+        more(T("More: airframes, countries, days, CSV"), nums([[y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(f.slice(4)) + csv);
   } else {
-    const r = reviewData();
+    const r = reviewData(), f = r ? reviewFacts(r).filter(x => x[1]) : [], nt = r ? reviewNewTypes(r) : "";
     title = T("{p} in planes", {p: reviewTitle()});
-    body = `<p class="sum">${escH(reviewSummary(r))}</p>` + (r && r.planes ? nums(REVIEW_NUMS.map(([k, l]) => [r[k], l])) +
-      facts(reviewFacts(r).concat([[T("New types"), reviewNewTypes(r)]])) +
-      `<div class="yActs"><button class="cBtn" type="button" id="pShare">${escH(T("Share"))}</button></div>` : "");
+    body = !(r && r.planes) ? `<p class="sum">${escH(reviewSummary(r))}</p>`
+      : nums(REVIEW_NUMS.slice(0, 3).map(([k, l]) => [r[k], l])) + facts(f.slice(0, 4)) + share("pShare") +
+        more(T("More: dates, aircraft, new types, CSV"), `<p class="sum">${escH(reviewSummary(r))}</p>` + nums(REVIEW_NUMS.slice(3).map(([k, l]) => [r[k], l])) +
+          facts(f.slice(4).concat(nt ? [[T("New types"), nt]] : [])) + csv);
   }
   return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
+  if (!b) return;
+  ctlSound.click();
+  if (b.id === "yCsv") return;
+  perMore = !perMore; lbSig = ""; renderLogbook();
+});
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
@@ -3971,15 +4025,16 @@ function buildRadarLegend(){
   if (km.textContent !== radarRangeText()) km.textContent = radarRangeText();
 }
 $("rvSet").onclick = () => setOpen("radar");
-// The (i) by Nearest: what each colour means, one line each, as the app's sheet.
+// The (i) by Nearest: what each colour means, one line each, on a plate in the app's sheet (as About's panels, 1.117).
 const RADAR_WHAT = {"Overhead": "within 1 km, or 45° up or more", "Approaching": "on course to pass over within three minutes",
   "Flying by": "getting closer, but won't pass over", "Leaving": "moving away", "Special": "military, giants, emergencies",
   "Favourite": "one of yours", "Too high": "above the height limit in Settings", "Taking off": "leaving the airport",
   "Landing": "coming in to land", "Passing": "flying past the airport", "On the ground": "standing or taxiing at the airport"};
 function rvColours(){
   ctlSound.nav();
-  cardOpen(`<div class="cHead"><div><h3>${escH(T("What the colours mean"))}</h3></div></div><ul class="rlegend rvCols">` +
-    radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i><span><b>${escH(T(t))}</b>: ${escH(T(RADAR_WHAT[t] || ""))}</span></li>`).join("") + "</ul>");
+  cardOpen(`<div class="lbIn"><div class="plate" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(T("What the colours mean"))}</h3><ul class="rlegend rvCols">` +
+    radarLegend().map(([c, t]) => `<li><i style="--c:${c}"></i><span><b>${escH(T(t))}</b>: ${escH(T(RADAR_WHAT[t] || ""))}</span></li>`).join("") + "</ul></div></div>",
+    ci => ci.classList.add("tdSheet", "aboutSheet"));
 }
 $("rvInfo").onclick = rvColours;
 let rvSig = "";
@@ -4032,7 +4087,6 @@ function backStep(){
     if (shown($("arCard")) && !$("arCard").classList.contains("out")) return arCardDismiss;
     return arClose;                                                        // Sky view: back to the board
   }
-  if (shown($("t-log"))) return logHide;
   if (shown($("t-about"))) return aboutHide;
   if (shown($("t-styles"))) return stylesHide;
   const row = [...document.querySelectorAll(".tline li.fl.open")].find(li => li.getClientRects().length);
@@ -4384,29 +4438,61 @@ function setRestore(b){
   cardSheetHtml = "";
   return true;
 }
-/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). */
+/* About: a page of its own, opened from Settings. The version and patch notes are the board's (test). 1.117 (to-do
+   #210, Dave's pick B): the version and the connection on top, then an index (What's new first); each row raises its
+   plate as the app's sheet, as the Logbook's do (What's new: the Patch notes, scrolling under the grip; the Log its
+   panel). The owner's Relay plate is a row of its own. */
+const ABOUT_ROWS = [["new", "What's new"], ["legend", "Legend"], ["sources", "Data sources & privacy"], ["credits", "Credits"], ["log", "Log"], ["relay", "Relay"], ["home", "Add to your home screen"]];
+let relayLast = null;
+function aboutLine(k){
+  if (k === "new") return T("{v} and before", {v: VERSION});
+  if (k === "legend") return T("the colours and words");
+  if (k === "sources") return T("adsb.lol, adsb.fi and more");
+  if (k === "credits") return T("sounds, pictograms, typefaces");
+  if (k === "log") return T(DIAG.log.length === 1 ? "1 line" : "{n} lines", {n: DIAG.log.length});
+  if (k === "relay") return T("only you see this");
+  if (k === "home") return T("Android, iPhone");
+  return "";
+}
+function aboutPlate(k){
+  const plate = (title, body, attrs = "") => `<div class="plate${k === "relay" ? " relayP" : ""}" style="--cols:1"${attrs}><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</div>`;
+  if (k === "new") return plate(T("Patch notes"), `<div class="log">${changelogHtml()}</div>`);
+  if (k === "legend") return plate(T("Legend"), `<div class="lgbox">${legendHtml()}</div>`);
+  if (k === "sources") return plate(T("Data sources & privacy"), (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
+    `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>` : "") + aboutHtml("sources"));
+  if (k === "credits") return plate(T("Credits"), aboutHtml("credits"));
+  if (k === "relay") return plate(T("Relay"), `<p class="owner" id="relaySub"></p><div class="lgbox" id="relayBox"></div>`, ' id="relayPlate"');
+  if (k === "home") return plate(T("Add to your home screen"), GUEST ? `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>`
+    : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
+      `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`);
+  return "";
+}
+function aboutPanel(k){
+  if (k === "log") return logShow();
+  ctlSound.nav();
+  cardOpen(`<div class="lbIn">${aboutPlate(k)}</div>`, ci => ci.classList.add("tdSheet", "aboutSheet"));
+  if (k === "relay" && relayLast) relayPlate(relayLast);
+}
+function aboutIdx(){
+  const box = $("aboutIdx");
+  if (!box) return;
+  const rows = ABOUT_ROWS.filter(([k]) => k === "relay" ? !!relayLast && !!(GUEST && GUEST.owner) : k === "home" ? !ANDROID : true);
+  box.innerHTML = rows.map(([k, l]) => `<li><button type="button" data-ab="${k}"><b>${escH(T(l))}</b><small>${escH(aboutLine(k))}</small><i aria-hidden="true">›</i></button></li>`).join("");
+  for (const b of box.querySelectorAll("[data-ab]")) b.onclick = () => aboutPanel(b.dataset.ab);
+}
 function aboutOpen(){
   const screws = "<i></i><i></i><i></i><i></i>";
   $("aboutBox").innerHTML =
-    `<div class="plate relayP" style="--cols:1" id="relayPlate" hidden>${screws}<h3>${T("Relay")}</h3><p class="owner" id="relaySub"></p><div class="lgbox" id="relayBox"></div></div>` +
     `<div class="plate" style="--cols:1">${screws}<h3>${T("About")}</h3><p class="ver" id="aboutVer"></p><p id="aboutStatus"></p>` +
-    `<p class="cBtns"><button class="cBtn" type="button" id="aboutLog">${escH(T("Log"))}</button></p>` +
-    (GUEST ? `<p><b>${escH(T("Signed in as {name}.", {name: GUEST.name}))}</b> ${escH(T("Your location, Spotted today and logbook are your own, and this device remembers you."))}</p>` +
-        `<p>${escH(T("To keep it like an app: on Android, Chrome's menu → Add to home screen; on an iPhone, Safari → Share → Add to Home Screen."))}</p>` +
-        `<p>${siteLinks(escH(T("Privacy: the relay keeps your name, the devices you joined on, your settings and the planes spotted around your location, nothing else. Flight positions come from adsb.lol, adsb.fi and airplanes.live (ODbL) and AvioADSB (CC BY 4.0), routes and aircraft from adsbdb, photos from Planespotters.net and airport-data.com.")))}</p>`
-    : (ANDROID ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>`
-      : `<p>${escH(T("On Android, install the Fallblatt app and open the file (allow installs from your browser once):"))} <a href="${APK_URL}">${T("download it")}</a>. ` +
-        `${escH(T("On an iPhone, Safari → Share → Add to Home Screen."))}</p>`)) +
-    aboutHtml() + `</div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Legend")}</h3><div class="lgbox">${legendHtml()}</div></div>` +
-    `<div class="plate" style="--cols:1">${screws}<h3>${T("Patch notes")}</h3><div class="log">${changelogHtml()}</div></div>` +
+    (ANDROID && !GUEST ? `<p>${escH(T("The Fallblatt app for Android, showing the relay at {host}.", {host: location.host}))}</p>` : "") + `</div>` +
+    `<ul class="idx" id="aboutIdx"></ul>` +
     `<div class="acts"><button class="cap big" type="button" id="aboutBack">${T("Settings")}</button></div>`;
+  aboutIdx();
   $("aboutBack").onclick = () => { ctlSound.press(); showTab("settings"); };
-  $("aboutLog").onclick = () => { ctlSound.click(); logShow(); };
   renderAbout();
   relayLoad();
 }
-/* 1.88 (Dave's pick 13 A): the owner's Relay plate at the top of About: the position sources, Flightradar24, the
+/* 1.88 (Dave's pick 13 A): the owner's Relay plate in About (1.117: a row raising it as a panel): the position sources, Flightradar24, the
    nightly backup and the screens online, from the relay's /relayinfo (69+), which answers only the owner. */
 let relayTimer = 0, relayBusy = false;
 async function relayLoad(){
@@ -4415,11 +4501,15 @@ async function relayLoad(){
   relayBusy = true;                                   // 1.114.5: About opened twice in one fetch starts one chain
   const d = await fetch(`${relay()}/relayinfo`).then(r => r.ok ? r.json() : null).catch(() => null);
   relayBusy = false;
-  if (!d || !$("relayPlate")) return;
+  if (!d) return;
   relayPlate(d);
   relayTimer = setTimeout(relayLoad, 30000);
 }
 function relayPlate(d){
+  const first = !relayLast;                          // 1.117: About's Relay row shows once there are numbers
+  relayLast = d;
+  if (first) aboutIdx();
+  if (!$("relayPlate")) return;                     // its panel isn't open
   const G = "var(--c-good)", A = "var(--amber)", R = "var(--c-bad)", N = "var(--label2)";
   const row = (lamp, name, n, sub = "", pct = null) => `<li style="--lamp:${lamp}"><i class="lamp"></i><span class="name">${escH(name)}${sub ? `<span class="s">${escH(sub)}</span>` : ""}</span><span class="n">${escH(n)}</span>` +
     (pct != null ? `<span class="bar"><i style="width:${Math.min(100, Math.max(0, pct)).toFixed(1)}%;opacity:1"></i></span>` : "") + `</li>`;
@@ -4454,39 +4544,43 @@ function relayPlate(d){
   $("relaySub").textContent = T("Only you see this · relay {v} · up {t}", {v: d.version, t: span(d.up)});
   $("relayBox").innerHTML = `<h3>${escH(T("Position sources"))}</h3>${list(sources)}<h3>Flightradar24</h3>${list(fr24)}` +
     `<h3>${escH(T("Nightly backup"))}</h3>${list(backup)}<h3>${escH(T("Screens online · {n}", {n: d.screens.length}))}</h3>${list(screens)}`;
-  $("relayPlate").hidden = false;
 }
-/* 1.80 (Dave's to-do 13, his pick B): the log as a page of its own, Settings → About → Log (or Log in the connection
-   card), filtered to problems, Sky view or the network, with Copy so it can be pasted into a message. */
-const LOG_FILTERS = [["all", "All"], ["bad", "Problems"], ["sky", "Sky view"], ["net", "Network"]];
+/* 1.80 (Dave's to-do 13, his pick B): the log, Settings → About → Log (or Log in the connection card), filtered to
+   problems, with Copy so it can be pasted into a message. 1.117 (to-do #210, Dave's pick B): a panel like the others
+   (the app's sheet, on its plate), a verdict first, the filters cut to All · Problems, Copy at the bottom; the lines
+   themselves as they were. */
+const LOG_FILTERS = [["all", "All"], ["bad", "Problems"]];
 let logFilter = "all", logRaf = 0;
-const logHits = e => logFilter === "all" || (logFilter === "bad" ? e.level === "warn" || e.level === "error" : e.kind === logFilter);
+const logBad = e => e.level === "warn" || e.level === "error";
+const logHits = e => logFilter === "all" || logBad(e);
 const logTime = t => new Date(t).toLocaleTimeString("en-GB");
 function logShow(){
-  const box = $("logBox");
-  box.innerHTML = `<div class="seg logSeg" role="group">` + LOG_FILTERS.map(([k, l]) => `<button type="button" data-lf="${k}" aria-pressed="${logFilter === k}">${escH(T(l))}</button>`).join("") + `</div>` +
-    `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div>` +
-    `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
-  for (const b of box.querySelectorAll("[data-lf]")) b.onclick = () => {
-    ctlSound.click(); logFilter = b.dataset.lf;
-    for (const x of box.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
-    logRender();
-  };
-  $("logCopy").onclick = logCopy;
-  $("t-log").hidden = false; $("t-log").scrollTop = 0; DIAG.page = true;
-  document.body.classList.add("aboutOpen");
+  ctlSound.nav();
+  const body = `<div data-logv></div><div class="seg logSeg" role="group">` + LOG_FILTERS.map(([k, l]) => `<button type="button" data-lf="${k}" aria-pressed="${logFilter === k}">${escH(T(l))}</button>`).join("") + `</div>` +
+    `<ol class="logList" id="logList"></ol><p class="sum" id="logNone" hidden></p>` +
+    `<div class="logBar"><button class="cBtn" type="button" id="logCopy">${escH(T("Copy the log"))}</button><span id="logN"></span></div><textarea id="logText" aria-hidden="true" tabindex="-1"></textarea>`;
+  cardOpen(`<div class="lbIn">${secPlate(T("Log"), body)}</div>`, ci => {
+    ci.classList.add("tdSheet", "logSheet");
+    for (const b of ci.querySelectorAll("[data-lf]")) b.onclick = () => {
+      ctlSound.click(); logFilter = b.dataset.lf;
+      for (const x of ci.querySelectorAll("[data-lf]")) x.setAttribute("aria-pressed", String(x === b));
+      logRender();
+    };
+    ci.querySelector("#logCopy").onclick = logCopy;
+  });
+  DIAG.page = true;
   logRender();
-}
-function logHide(){
-  if ($("t-log").hidden) return;
-  $("t-log").hidden = true; DIAG.page = false;
-  if ($("t-about").hidden) document.body.classList.remove("aboutOpen");
 }
 function logSoon(){ if (!logRaf) logRaf = requestAnimationFrame(() => { logRaf = 0; logRender(); }); }
 function logRender(){
   const list = $("logList");
-  if (!list || $("t-log").hidden) return;
-  const lines = DIAG.log.filter(logHits);
+  if (!list || !cardOpenNow()) { DIAG.page = false; return; }          // the panel has gone
+  const lines = DIAG.log.filter(logHits), bad = DIAG.log.filter(logBad);
+  const v = list.closest(".cardIn").querySelector("[data-logv]"), last = bad[bad.length - 1];
+  const vh = `<div class="verdict" data-ok="${bad.length ? bad.some(e => e.level === "error") ? "bad" : "meh" : "good"}"><i></i><div><b>${escH(!bad.length ? T("No problems since the app started")
+    : T(bad.length === 1 ? "1 problem since the app started" : "{n} problems since the app started", {n: bad.length}))}</b>` +
+    (last ? `<span>${escH(T("the last at {t}", {t: logTime(last.t)}))}</span>` : "") + `</div></div>`;
+  if (v.innerHTML !== vh) v.innerHTML = vh;
   list.innerHTML = lines.map(e => `<li data-l="${escH(e.level)}"><time>${logTime(e.t)}</time><i></i><span>${escH(e.msg)}</span></li>`).join("");
   $("logNone").hidden = !!lines.length;
   $("logNone").textContent = T(logFilter === "bad" ? "No problems logged." : "Nothing logged yet.");
@@ -4504,12 +4598,10 @@ async function logCopy(){
   try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
   if (!ok) { const ta = $("logText"); ta.value = text; ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch {} }
   btn.textContent = T(ok ? "Copied" : "Couldn't copy");
-  setTimeout(() => { btn.textContent = T("Copy the log"); }, 2000);
+  setTimeout(() => { if (btn.isConnected) btn.textContent = T("Copy the log"); }, 2000);
 }
-$("logX").onclick = () => { ctlSound.click(); logHide(); };
 $("stylesX").onclick = () => { ctlSound.click(); stylesHide(); };
 $("stylesX").setAttribute("aria-label", T("Close"));
-addEventListener("keydown", e => { if (e.key === "Escape" && !$("t-log").hidden && !cardOpenNow()) { e.stopImmediatePropagation(); logHide(); } }, true);
 // Under Settings' plates: the account, notifications, this device and About (1.56: the shared VIEW_PLATES).
 // 1.116: kept on the page out of sight (#setExtra), each raised as a panel from its row; not drawn again while one shows.
 function settingsExtra(){
@@ -5171,7 +5263,7 @@ function appTips(t){
     tip("open", () => $("recent").querySelector("li.fl[data-more]"), T("Tap a plane to open it. Its photo opens the whole card; its airline, places and type open theirs."));
   }
   if (t === "today") tip("allplaces", () => vis($("svPlaces")), T("Switch between the place you're watching and all your places."));
-  if (t === "logbook") tip("lbplaces", () => vis($("lbPlaces")), T("Pick a place to see its own numbers, or All for everything."));
+  if (t === "logbook") tip("lbplaces", () => vis($("lbIdx").querySelector('[data-lp="places"]')), T("Pick a place to see its own numbers, or All for everything."));
   // 1.116: Settings' Location tips come when its panel opens (setOpen)
 }
 // About is a page over Settings (1.41): Settings stays as it was underneath, scrolled where it was.
@@ -5198,7 +5290,7 @@ function showTab(t){
   for (const [x] of TABS) $("t-" + x).hidden = x !== t;
   $("t-game").hidden = t !== "game";                 // 1.72: the Game page, opened from the score strip
   for (const b of $("tabRow").children) { if (b.dataset.tab === (t === "game" ? "logbook" : t)) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }   // 1.74: the Spotters' Club is the Logbook's
-  HERO.off = t !== "now"; TODAYP.off = t !== "today"; LBP.off = t !== "logbook";
+  HERO.off = t !== "now"; TODAYP.off = t !== "today";
   clearInterval(tabTimer); tabTimer = null;
   stopRadar();
   refreshPanels();
@@ -5239,9 +5331,20 @@ function updateFooter(){
   if (bad && al.textContent !== line) al.textContent = line;
   if (!$("t-about").hidden) renderAbout();
 }
-// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38).
+// The dot opens a card: the relay, the position source, the last update and Flightradar24 (1.38). 1.117 (to-do #210,
+// Dave's pick B): a verdict first, from the dot's state; the facts unfold in place under "Details and the log".
+function statusVerdict(){
+  const st = $("dot").dataset.state || "";
+  const word = {live: "All good", warn: "Not quite live", off: "No flight data", demo: "Demo mode"}[st] || "Connecting…";
+  const line = st !== "live" ? statusLine() : [T("Live positions from the home relay"),
+    Date.now() - lastOk < 3000 ? T("updated just now") : T("updated {n} s ago", {n: Math.round((Date.now() - lastOk) / 1000)}),
+    T("{n} planes within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM})].join(" · ");
+  return `<div class="verdict" data-ok="${st === "live" ? "good" : st === "off" ? "bad" : "meh"}"><i></i><div><b>${escH(T(word))}</b><span>${escH(line)}</span></div></div>`;
+}
+let stMore = false;
 function statusCard(){
   ctlSound.nav();
+  stMore = false;
   const ago = t => { const n = Math.round((Date.now() - t) / 1000); return n < 3 ? T("just now") : n < 120 ? T("{n} s ago", {n}) : T("{n} min ago", {n: Math.round(n / 60)}); };
   const ok = (good, text) => `<span class="stOk" data-ok="${good}">●</span> ${escH(text)}`;
   const draw = () => {
@@ -5250,15 +5353,26 @@ function statusCard(){
       : isOffline() ? ok("bad", T("No answer for over a minute · retrying")) : lastOk ? ok("good", T("Connected")) : ok("meh", T("Connecting…"));
     const srcRow = !feedName ? escH(T("None yet")) : ok(stale ? "meh" : "good", stale ? T("{src} · last good copy, {n} s old", {src: feedName, n: lastFreshness.split(" ")[1] || "?"}) : T("{src} · live", {src: feedName}));
     const fr = !USE_API ? T("Not used") : apiOn() ? T("On") : window.OVERHEAD_FR24 === true ? T("On, not answering · free sources for now") : T("Off · free sources");
-    return factsHtml([["Relay", relayRow], ["Position source", srcRow],
+    const more = `<ul class="idx"><li><button type="button" data-stmore aria-expanded="${stMore}"><b>${escH(T(stMore ? "Hide details" : "Details and the log"))}</b><i aria-hidden="true">›</i></button></li></ul>`;
+    return statusVerdict() + more + (!stMore ? "" : factsHtml([["Relay", relayRow], ["Position source", srcRow],
       ["Last update", escH(lastOk ? ago(lastOk) : T("None yet"))],
-      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : escH(T("None"))],
+      ["Failed attempts", failures ? ok("meh", T("{n} in a row", {n: failures})) : ""],      // none: no line
       ["In range", escH(T("{n} aircraft within {km} km", {n: nearbyCount ?? 0, km: QUERY_KM}))],
-      ["Flightradar24", escH(fr)], ["Relay version", rv ? escH(String(rv)) : ""]]);
+      ["Flightradar24", escH(fr)]]) +
+      `<div class="cBtns"><button class="cBtn" type="button" data-stlog>${escH(T("Log"))}</button></div>` +
+      (rv ? `<p class="sum">${escH(T("Relay version {v}", {v: rv}))}</p>` : ""));
   };
-  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>` +
-    `<div class="cBtns"><button class="cBtn" type="button" id="stLog">${escH(T("Log"))}</button></div>`);
-  $("stLog").onclick = () => { ctlSound.click(); cardClose(); logShow(); };
+  const tok = cardOpen(`<h3>${escH(T("Connection"))}</h3><div data-st>${draw()}</div>`, ci => {
+    ci.addEventListener("click", e => {
+      const b = e.target.closest("[data-stmore], [data-stlog]");
+      if (!b) return;
+      ctlSound.click();
+      if (b.dataset.stlog != null) return logShow();          // the Log takes the card's place
+      const h0 = ci.offsetHeight;
+      stMore = !stMore; ci.querySelector("[data-st]").innerHTML = draw();
+      cardSheetGrow(ci, h0);
+    });
+  });
   const tick = setInterval(() => {
     const el = cardTok === tok && cardOpenNow() && document.querySelector("#cardBox [data-st]");
     if (!el) return clearInterval(tick);
@@ -5641,7 +5755,7 @@ function stylesPage(focusKind){
 function stylesHide(){
   if ($("t-styles").hidden) return;
   $("t-styles").hidden = true;
-  if ($("t-about").hidden && $("t-log").hidden) document.body.classList.remove("aboutOpen");
+  if ($("t-about").hidden) document.body.classList.remove("aboutOpen");
   if (setHeld && !cardOpenNow()) setRestore($("cardBox"));   // 1.116: back to the Display panel
 }
 function stylesRender(){

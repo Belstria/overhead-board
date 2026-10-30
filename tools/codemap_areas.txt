@@ -80,8 +80,8 @@ changelog: style|palette|finish|badge|daylight|realistic|gold leaf|first class|L
 [header] Title and header: the place, the Overhead/Airport switch, the clock, the status dot and line, the board's footer
 test/index.html: +liveShow swapSign placeModeSwitch setMode tickClock updateFooter +placeNow css:footer .pip #status
     .dot #modeSw #dot #pip #statusText +drawStatic
-tools/app/head.html: #top #mark .title .clockbox .dot .status #dot #modes .stOk +.gHead
-tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusCard
+tools/app/head.html: #top #mark .title .clockbox .dot .status #dot #modes .stOk .verdict +.gHead
+tools/app/main.js: drawMark setMode showModes applyMode $("dot").onclick statusLine updateFooter statusVerdict stMore statusCard
     updateWhere liveShow tickClock
 README.md: "The footer shows the name" "- **Connection** (1.38)"
 changelog: title|header|clock|footer|status line|the dot
@@ -215,12 +215,12 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .lbTabs .perHead .perArr .sum.lbFoot .dd
-    #lbPlaces .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbModel #lbP #lbSum #lbTop #lbViews #t-logbook
-    +.seg.lbPlaceSeg
-tools/app/main.js: LBP lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
+    .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbNums #lbYear #lbIdx .perMore
+    .perMoreIn
+tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
-    renderLogbook lbPick lbPlaceSheet recordsHtml secPlate yearData yearAt yearCache fetchYear yearFacts lbPeriod
-    yearBack periodHtml reviewHtml +periodPicture +shareYear +sharePeriod
+    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard lbPick recordsHtml secPlate
+    yearData yearAt yearCache fetchYear yearFacts lbPeriod yearBack perMore periodHtml reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
     logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
@@ -279,8 +279,8 @@ test/index.html: +aboutTaps +aboutTap CHANGELOG VERSION fmtVerDate publishedText
     SITE_LINKS siteLinks NV watchVersion nvBusy nvDraw nvShow nvInput nvTick nvReload NV.busy +viewItemHtml KEYS
     aboutOpen remarkChip legendHtml #nvBox #btnNew #cockpit.about .scrollBtns +accountOpen .notes .vers .keys .legend
     .lg .ver .log .tabs +cockpitOpen +COCKPIT +DEFAULTS +applySettings
-tools/app/head.html: #nvBox #t-about css:body.aboutOpen #aboutBox .about .relayP #aboutX
-tools/app/main.js: aboutOpen relayTimer relayBusy relayLoad relayPlate renderAbout aboutShow aboutHide nvGoing NV.busy +DEFAULTS
+tools/app/head.html: #nvBox #t-about css:body.aboutOpen #aboutBox .about .relayP #aboutX #aboutIdx
+tools/app/main.js: ABOUT_ROWS relayLast aboutLine aboutPlate aboutPanel aboutIdx aboutOpen relayTimer relayBusy relayLoad relayPlate renderAbout aboutShow aboutHide nvGoing NV.busy +DEFAULTS
     +applySettings
 relay/serve.py: BACKUP_FILE BACKUP_LATE_S relay_panel_json /pageversion /relayinfo +main +STATE +SOURCES +aircraft
     +board_html
@@ -302,8 +302,8 @@ test/index.html: liveShow placesRelay places allPlaces placeKeyNow placeName pla
     .inst.loc .geoQ .geoRes .lblF .upd .apList .inst.updAll +queryCenter +meSend +#modeSw +drawStatic +viewSubtitle
     +itemHtml .plRow .plGo .plRm .plUp .pickList +snapLoad +snapSave +dayList +renderFeatured +recentShown
     +renderStats +spottedSummary +poll +COCKPIT +DEFAULTS +applySettings
-tools/app/head.html: .seg.svPlaces .seg.lbPlaceSeg #svPlaces #where
-tools/app/main.js: +located +arTry +arGoLive $("where").onclick +updateWhere +liveShow +gGoLive +lbPlaceSheet
+tools/app/head.html: .seg.svPlaces #svPlaces #where
+tools/app/main.js: +located +arTry +arGoLive $("where").onclick +updateWhere +liveShow +gGoLive
     #svPlaces #where +arSnap +dayList +renderRecent +todayNumbers +renderToday +DEFAULTS +applySettings
 relay/serve.py: airports_near _guest_center _guest_radius guest_spot PLACE_KEY place_key screen_place LIVE_FRESH_S
     live_stale _clean_places places_of NOMINATIM _geo_lock _geo_last _geo_cache _geo_get _GEO_ADMIN _geo_admin_clean
@@ -569,9 +569,9 @@ test/index.html: DIAG diagQueued dlog scheduleDiag clockStr agoStr diagRows merg
     diagTimer openDiag closeDiag diagText $("btnDiag").onclick $("diagClose").onclick $("diagCopy").onclick forText
     #diag .dstats .spark .dsrc #diagLogWrap #diagLog .lv-warn .lv-error .lv-debug .good .bad .meh #diagText #btnDiag
     #diagClose #diagCopy #diagSources #diagStats
-tools/app/head.html: #t-log .logBar .logList #logText #logBox #logX
-tools/app/main.js: DIAG LOG_NET dlog scheduleDiag LOG_FILTERS logFilter logRaf logHits logTime logShow logHide logSoon
-    logRender logText logCopy $("logX").onclick
+tools/app/head.html: .logBar .logList #logText
+tools/app/main.js: DIAG LOG_NET dlog scheduleDiag LOG_FILTERS logFilter logRaf logBad logHits logTime logShow logSoon
+    logRender logText logCopy
 relay/serve.py: +EVENTS +_event_id +event /status +status_json
 README.md: "Press **D**, or use **Diagnostics**"
 changelog: diagnostic|log page|connection log|\blog\b

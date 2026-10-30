@@ -355,8 +355,13 @@ The main board has everything below. New features are tried on `/test/` first; o
   the (i). (1.88 to 1.115: a jump bar and one long page with a Save bar.)
 - **About** (Settings → About, or press **A**): what changed in each version, the keys, and
   who made it. On the boards (1.93.0.1) the patch notes take the left half (▲ ▼ scroll them), the keys (two to a row)
-  and who made it the right half, so every credit fits on every screen. In the app, **Log** (1.80; also in the connection card, the dot top right) opens the app's log on a
-  page of its own: All, Problems, Sky view or Network, and **Copy the log** to paste it into a message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
+  and who made it the right half, so every credit fits on every screen. In the app (1.117) About is the version and the
+  connection, then a list: **What's new** (the patch notes), **Legend**, **Data sources & privacy** (who you're signed
+  in as, too), **Credits**, **Log**, **Relay** (the owner only) and **Add to your home screen** (not in the Android
+  app); each rises from below as a panel. **Log** (1.80; also in the connection card, the dot top right) shows the
+  app's log: since 1.117 a panel that starts with a verdict ("No problems since the app started", or how many and when
+  the last one came), **All · Problems**, the lines as they were, and **Copy the log** at the bottom to paste it into a
+  message. Versions count new features (1.8), small changes (1.8.1) and bug fixes (1.8.1.1); About also shows when
   this version was published (relay 17 or newer) and the relay's version. A screen that still shows an older time needs
   a reload.
 - **Languages** (Settings → Display → Language, or `?lang=de`): English, German, French,
@@ -427,6 +432,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   counts under All. Since 1.49 the profile's own place (a location without a name) is the "Home" chip. Since 1.89 the
   app picks in a bar instead of chips: **All**, **On the go** and **Saved places**, which opens a list of your saved
   places with their counts; the one picked then names the third part ("Parents ⌄"; tap it to pick another). Since
+  1.117 the app picks in the Logbook's **Saved places** row, a panel with All, On the go and the saved places. Since
   1.96.1 (relay 77) places at the same spot (a centre within 1 km, a radius no larger: "Home" and the profile's "home")
   are one place, each sighting counted once. "Counting
   since … · N points" is a footnote at the bottom of the Logbook (with a place's own line) and of the Spotters' Club.
@@ -815,6 +821,13 @@ Five buttons along the bottom:
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
+  **Since 1.117 the Logbook is one screen**: the search, four totals (sightings, aircraft, types, airlines), the period
+  as one card ("2026 in planes · 15 planes · 9 types · 2 countries"), then a list: **Categories**, **Aircraft types**,
+  **Airlines**, **Most seen aircraft**, **Saved places** (All, On the go and your saved places; the row names the one
+  picked) and **Download as CSV**, each with its state in one line. A row (or the card) raises its plate from below as
+  a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·
+  Year and ◀ ▶, three numbers, four facts and **Share**; **More** unfolds the dates, the other numbers and facts, the
+  new types and the CSV. The search results are as before. The footnote says since when it counts and the most seen model.
   Since 1.91 the **Logbook and Spotters' Club tabs stay at the top**, under the header, while either page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
   open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its
@@ -941,7 +954,9 @@ Five buttons along the bottom:
 - **Connection** (1.38): the small dot by the clock is green while live, amber when the data is late or a demo, red when
   there is none. Tap it for a card: connected to the relay or not, the position source and whether its data is live or
   the last good copy, when the last update came, failed attempts, planes in range, Flightradar24 on or off and the
-  relay's version.
+  relay's version. Since 1.117 the card starts with one verdict ("All good: live positions from the home relay · updated
+  just now · 14 planes within 46 km", or what's wrong); **Details and the log** unfolds the facts in the card (failed
+  attempts only when there are some), a **Log** button (the Log takes the card's place) and the relay's version.
 - **Settings**: the cockpit plates, kept on the phone only. Flap sound is on from the start (it plays after the first tap); chimes play for special planes and
   favourites while the app is open. When a special plane rings the bell while another tab is open, the Now button
   shows a red light.
