@@ -3338,6 +3338,8 @@ let emptyStreak = 0, lastCount = 0;
 function process(list, again){
   if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
+  // 1.123.0.1: a plane hidden while it is on top goes at once (a snapshot's too), before the pick and the HOLD branch can keep it as PASSED.
+  if (!airportMode() && feat && feat.o && hiddenAc(feat.o.ac)) { dlog("info", `Board: ${planeName(feat)} hidden · off the board`); feat = null; }
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || (ac.alt_baro === "ground" && !airportMode())) continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
@@ -7872,6 +7874,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.123.0.1", date: "2026-10-31", notes: [
+    "A plane you hide leaves the board at once, and the next one takes its place.",
+  ]},
   {v: "1.123", date: "2026-10-31", notes: [
     "The Logbook is one screen: the search on top, then Today, All time and the period as plates you swipe sideways, then the day's planes.",
     "All time's numbers open their lists: Sightings the categories, Aircraft the most seen, then types and airlines.",
@@ -9881,7 +9886,7 @@ function boardTap(x, y){
   }
 }
 // The lists changed (a favourite, a hidden plane): draw what depends on them.
-function listsChanged(){ favCounts(); if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }
+function listsChanged(){ favCounts(); lookAgain(); if (!view) { renderFeatured(); renderPage(); } else if (view === "spotted") renderSpottedBoard(); }   // 1.123.0.1: a hide, a removal or a failed save picks the plane on top again at once
 function planeAgain(){ if (planeShown && planeTok === cardTok && cardOpenNow()) { const b = planeBody(planeShown); const el = $("cardBox").querySelector(".cardIn"); if (el) { el.innerHTML = `<button class="cardX" type="button" aria-label="${escH(T("Close"))}">×</button>` + b.html; el.querySelector(".cardX").onclick = cardClose; b.wire(el); } } }
 ["pointerdown", "keydown", "touchstart", "touchend"].forEach(ev => addEventListener(ev, () => { audioInit(); keepAwake(); }, {passive: true, capture: true}));
 let idleT = null;
@@ -9936,10 +9941,11 @@ async function poll(force){
 // 1.84 (the tracking review): between updates (10 s on a board, 5 s in the app) the board looks at the last one again
 // every 2 s with its planes moved on, so OVERHEAD, APPROACHING and PASSED come when they happen. Not in the Airport style,
 // which picks its plane its own way, nor while the page is hidden or the update is half a minute old.
-setInterval(() => {
+function lookAgain(){
   if (!lastList || busy || S.demo || airportMode() || document.hidden || Date.now() - (lastList.recvAt || 0) > 30000) return;
   try { process(lastList, true); } catch (e) { dlog("error", `Couldn't look again: ${e && e.message || e}`); }
-}, 2000);
+}
+setInterval(lookAgain, 2000);
 
 async function start(){
   pickLang();
