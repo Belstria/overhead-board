@@ -1322,7 +1322,14 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .verdict[data-ok=meh]>i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
 .verdict[data-ok=bad]{border-color:rgba(199,55,45,.55);background:rgba(199,55,45,.14)}
 .verdict[data-ok=bad]>i{background:var(--c-bad);box-shadow:0 0 8px var(--c-bad)}
-.gIdx{margin:0 0 12px}
+#t-game .secPlate.gClub{margin:10px 0 0}      /* 1.122.2: the second plate under Your level */
+.gRows{display:grid}
+.gRows button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;font:600 var(--fs-m)/1.2 var(--f-board);color:var(--ink)}
+.gRows button+button{border-top:1px solid rgba(255,255,255,.07)}
+.gRows button:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.gRows b{flex:1;font:600 var(--fs-base)/1.2 var(--f-board);color:var(--ink)}
+.gRows span{font:500 var(--fs-s)/1.2 var(--f-board);color:var(--muted)}
+.gRows i{font-style:normal;color:var(--muted);font-size:var(--fs-xl);line-height:1}
 /* 1.116: Favourites & hidden: two rows with their count and Add; the list opens in place; what they do behind the (i) */
 .favPlate{position:relative}
 .iBtn{all:unset;box-sizing:border-box;cursor:pointer;position:absolute;top:6px;right:30px;z-index:2;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
@@ -12580,6 +12587,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.122.2", date: "2026-10-31", notes: [
+    "The Club's Level page lists League, Hangar, Passport, Member cards, Bingo and Trophies on a plate of their own, with shorter values.",
+  ]},
   {v: "1.122.1", date: "2026-10-31", notes: [
     "The place line in the header fits a narrow phone: \"Vienna · 15 km\".",
     "The next rank's name is no longer cut off on the level card.",
@@ -15758,26 +15768,27 @@ function gSubGo(k){
   scrollTo({top: 0});
 }
 // Level's index: each other part with its state in one line; a tap opens its sub-tab.
+// 1.122.2 (to-do #242, Dave's pick: a matching panel): the rows sit on a plate of their own under "Your level", with the
+// Standby row's look; values as short as they go (rule 1).
 function gIndexHtml(g, g0){
-  const L = gLeague, rows = [];
-  const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<li><button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">›</i></button></li>`);
-  row("league", "League",
-    [g.rank ? T("#{n} this week", {n: g.rank}) : T("No place this week yet"), L && L.resets ? T("ends {d}", {d: fmtDay(gLastMin(L.resets))}) : ""].filter(Boolean).join(" · "));
+  const rows = [];
+  const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">\u203a</i></button>`);
+  row("league", "League", g.rank ? T("#{n}", {n: g.rank}) : T("No place yet"));
   if (g0) {
     if (hangarOk()) hangarLoad();
     const ts = hangar && hangar.types, n = ts ? ts.filter(t => t.scans).length : 0;
-    row("hangar", "Hangar", ts ? T("{n} scanned · {m} still to scan", {n: nf.format(n), m: nf.format(ts.length - n)})
-      : T("{n} of {m} sets complete", {n: (g0.sets || []).filter(x => x.have.length >= x.total).length, m: (g0.sets || []).length}));
+    row("hangar", "Hangar", ts ? T("{n} of {m}", {n: nf.format(n), m: nf.format(ts.length)})
+      : T("{n} of {m} sets", {n: (g0.sets || []).filter(x => x.have.length >= x.total).length, m: (g0.sets || []).length}));
     const pp = ppList(g0.passport).length;
     row("passport", "Passport", T(pp === 1 ? "1 country" : "{n} countries", {n: nf.format(pp)}));
     const ly = g0.wallet ? lyList(g0).length : 0;
     row("cards", "Member cards", T(ly === 1 ? "1 airline" : "{n} airlines", {n: nf.format(ly)}));
     const bg = g0.bingo;
-    row("bingo", "This week's bingo", T("{n} of 9 done", {n: Object.keys((bg && bg.done) || {}).length}));
+    row("bingo", "Bingo", T("{n} of 9", {n: Object.keys((bg && bg.done) || {}).length}));
     const won = g0.trophies || {};
-    row("trophies", "Trophies", T("{n} of {m} won", {n: TROPHY_IDS.filter(k => won[k]).length, m: TROPHY_IDS.length}));
+    row("trophies", "Trophies", T("{n} of {m}", {n: TROPHY_IDS.filter(k => won[k]).length, m: TROPHY_IDS.length}));
   }
-  return `<ul class="idx gIdx">${rows.join("")}</ul>`;
+  return secPlate(T("Your club"), `<div class="gRows">${rows.join("")}</div>`, "gClub");
 }
 // 1.104 (to-do #157, Dave's pick B): the standby (relay 87). From level 6 one a week keeps the streak through a day
 // without a scan, from 14 two; the relay judges the days. The level card's week: Monday to Sunday (sbyDay: the weekday

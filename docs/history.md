@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.122.2 (to-do #242; relay unchanged): **the Club's index on a plate.** `gIndexHtml` returns `secPlate("Your club",
+  .gRows, "gClub")` instead of the dark `.idx.gIdx` card: a second plate under "Your level" (10 px gap, `#t-game
+  .secPlate.gClub`), rows with the label in 600 `--fs-base`, the value in 500 `--fs-s` muted and the `›`, a hairline
+  between rows, 44 px high; `data-gsub` and `G_PARTS` as before. Values: League "#1" / "No place yet", Hangar "9 of 138"
+  (sets "{n} of {m} sets" until loaded), Bingo "3 of 9" (label "Bingo"), Trophies "12 of 48". `gPlateSplit` splits it as
+  its own part; the Flight school plate and the footnote keep their places.
 - 1.122.1 (to-dos #236, #239; relay unchanged): **cut-offs, a look-alike, the limit line.** #236: the header's place
   line (`updateWhere`) is "VIENNA · 15 KM" (no RADIUS word) in two spans, `.where .wn` (the name) and `.where .wr`
   (the radius), in a one-line wrapping flex row: when both do not fit the radius wraps below and is clipped (shorten
