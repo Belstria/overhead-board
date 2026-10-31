@@ -1414,7 +1414,18 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .ppRt b{font:700 var(--fs-l)/1 var(--f-board);color:#111}
 .gAw .ppRt b small{display:block;margin-top:3px;font:600 var(--fs-tag)/1 var(--f-board);letter-spacing:.06em;text-transform:uppercase;color:#777}
 .gAw .ppRt b:last-child{text-align:right}
-.gAw .ppRt b.nw,.gAw .ppRt b.nw small{color:#b3262d}
+/* 1.124 (to-do #247, pick C): what's new on a ticket: gold foil on the letters, one beam across them (gAwFoil sets --t) */
+.gAw em.nw{font-style:normal;font-weight:700}
+.gAw em.nw s{display:inline-block;text-decoration:none;white-space:nowrap}
+.gAw em.nw u{display:inline-block;text-decoration:none;white-space:pre;font-weight:700;transform-origin:50% 72%;color:#a3740a}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){.gAw em.nw u{background:linear-gradient(180deg,#d9a61e 0%,#a3740a 55%,#8a6108 100%);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.gAw.beam em.nw u{animation:nwSun .7s var(--t) cubic-bezier(.35,.1,.3,1) both}
+@keyframes nwSun{0%{filter:none;transform:none}45%{filter:brightness(1.6) saturate(1.15);transform:scale(1.12)}100%{filter:none;transform:none}}
+@media (prefers-reduced-motion:reduce){.gAw.beam em.nw u{animation:none}}
+.gAw .who span.fw{padding:3px 2px;margin:-3px -2px}          /* the growing letters aren't clipped */
+.gAw .who small.km{font:inherit}
+.gAw .who.wrap{flex-wrap:wrap;row-gap:2px}
+.gAw .who.wrap span.fw{flex:1 0 100%;white-space:normal}
 .gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
 .gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
 /* a new country: the card over the ticket; the stamp lands (fsLand), the country inks in by itself (1.113: no more finger) */

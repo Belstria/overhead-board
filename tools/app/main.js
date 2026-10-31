@@ -1816,7 +1816,7 @@ function ppCard(){
 }
 // The scan's ticket: the route, the countries new to the passport marked (relay 90: r.route, [[airport, country, new]]).
 const ppRoute = rt => rt && rt.length === 2 ? `<div class="ppRt">${rt.map(([ap, cc, nw], i) => (i ? "<i></i>" : "") +
-  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${escH(ppName(cc))}${nw ? " · " + escH(T("NEW")) : ""}</small></b>`).join("")}</div>` : "";
+  `<b class="${nw ? "nw" : ""}">${escH(ap)}<small>${nw ? nwWord(ppName(cc) + " · " + T("NEW")) : escH(ppName(cc))}</small></b>`).join("")}</div>` : "";
 /* A country new to the passport, at the scan: a card over the scan's ticket, the map round the country. The stamp
    comes down on it (fsThud) and the ink soaks out from it over the country by itself (1.113, to-do #178, Dave's pick
    A: the finger's scratch went). 1.124 (to-do #246): 255 px wide, its turn in the scan's line (gLine: returns the
@@ -6341,7 +6341,7 @@ function gPop(o){
   const el = gPassFill(document.createElement("div"), o);
   if (o.tix && gLineHolds()) { gTixOut.add(el); return el; }     // 1.124: a plane's ticket steps aside for a pop-up, and comes back after it (gTixBack)
   const box = gAwsBox();
-  box.appendChild(el);
+  box.appendChild(el); gAwFoil(el);
   // up to three on screen; a plane's ticket pushed out by another pass (not by a newer ticket) comes back (gTixBack).
   // 1.119.1 (to-do #202): a ticket younger than TIX_MIN isn't pushed out: for that while it may be four
   while (box.children.length > 3) {
@@ -6430,7 +6430,7 @@ function gPassFill(el, o){
   const two = !!o.lines && o.lines.length > 3;    // 1.124: from three extras on, under the first line in two short columns
   const nx = o.gold ? ` data-nx="${escH(T("(no ×2)"))}"` : "", era = o.gold ? "" : o.era != null ? o.era : tixEra();
   el.innerHTML = `<div class="pF ${o.kind || "uncommon"}${o.gold ? " gold" : ""}${era ? " e-" + era : ""}"><div class="main"><div class="band"><span>${escH(o.band)}</span><span>${escH(o.bandR || "")}</span></div>` +
-    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b><span>${escH(o.who[1] || "")}</span></div>` : "") + (o.route || "") +
+    tixEraHtml(era, o) + (o.body || "") + (o.who ? `<div class="who"><b>${escH(o.who[0])}</b>${o.who[2] ? `<span class="fw">${o.who[2]}</span>` : `<span>${escH(o.who[1] || "")}</span>`}</div>` : "") + (o.route || "") +
     (o.lines && o.lines.length ? `<div class="lns${two ? " two" : ""}">${o.lines.map(([l, n, x, sh], i) => `<div class="${x}"><span${String(x).split(" ")[0] === "x" && !two ? nx : ""}>${escH(two && i && sh || l)}</span><b>${gPlus0(n)}</b></div>`).join("")}</div>` : "") +
     (o.note ? `<div class="nt">${escH(o.note)}</div>` : "") +
     (o.ly ? `<div class="lyFF ly${o.ly.t}"><b>${escH(o.ly.code)}</b><i>·</i><em>${escH(T(LY_NAME[o.ly.t]))}</em></div>` : "") + (o.sky ? `<button type="button" class="scn">${SKY_ICO}<span>${escH(T("Scan in Sky view"))}</span><i>›</i></button>` : "") +
@@ -6463,6 +6463,29 @@ function gPassFill(el, o){
   return el;
 }
 const gWho = (f, km) => [f.flight || NA, [f.airline, f.type, km != null ? distText(km) : ""].filter(Boolean).join(" · ")];
+/* 1.124 (to-do #247, Dave's pick C): what's new on a ticket (the airline, the type, the route's new country) is gold foil on the
+   letters themselves, from before the beam until the ticket goes. One beam crosses the ticket as it rises: each letter
+   brightens and grows as the light reaches its place, so letters at the same place in two lines light together. Reduced
+   motion: gold, no beam. Letters are <u> (.ppRt i draws a plane), one name to a screen reader. */
+const nwWord = s => `<em class="nw" role="img" aria-label="${escH(s)}">${s.split(" ").map(w => `<s aria-hidden="true">${[...w].map(c => `<u>${escH(c)}</u>`).join("")}</s>`).join(" ")}</em>`;
+// gWho with the new names in foil: its third item is the line's html, the distance apart (it goes first if there's no room).
+function gWhoNw(f, km, nwAir, nwType){
+  const w = gWho(f, km), a = nwAir && f.airline, t = nwType && f.type;
+  if (!a && !t) return w;
+  const names = [f.airline && (a ? nwWord(f.airline) : escH(f.airline)), f.type && (t ? nwWord(f.type) : escH(f.type))].filter(Boolean).join(" · ");
+  return [w[0], w[1], names + (km != null ? `<small class="km"> · ${escH(distText(km))}</small>` : "")];
+}
+// Once a ticket is on screen: a new name that doesn't fit first loses the distance, then the line goes under the flight, on two lines if it must; then the beam.
+function gAwFoil(el){
+  const s = el.querySelector(".who span.fw"), over = () => s.scrollWidth > s.clientWidth + 1;
+  if (s && over() && s.querySelector(".km")) s.querySelector(".km").remove();
+  if (s && over()) s.parentNode.classList.add("wrap");
+  const us = el.querySelectorAll("em.nw u");
+  if (!us.length) return;
+  const left = el.getBoundingClientRect().left, w = el.querySelector(".main").offsetWidth || 250;
+  for (const u of us) u.style.setProperty("--t", (.45 + (u.getBoundingClientRect().left - left) / w * 1.1).toFixed(3) + "s");
+  el.classList.add("beam");
+}
 /* 1.98 (to-do #146, Dave's picks): a plane that comes within the scan's circle (10 km; the relay's list, /game/me "scan")
    gets a ticket, once: the boarding pass with what a scan gives now (only what is sure: the plane's full points, a type or
    an airline new to the game), their total on the stub, the daily streak as a line of its own (not in the total) while
@@ -6496,7 +6519,7 @@ function gTixShow(x){
   if (can.type) extra({k: "new", w: "type", p: can.type, n: x.typeCode});
   if (can.airline) extra({k: "new", w: "airline", p: can.airline, n: String(x.callsign || "").slice(0, 3)});
   const n = gme && !gme.scannedToday && R ? (gme.streak || 0) + 1 : 0;
-  gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
+  gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWhoNw(f, x.km, can.airline, can.type), lines,
     note: n ? T("Daily streak +{p}", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
     p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS, ly: lyTicket(airlineOf(x).icao, (((lbData() || {}).game || {}).wallet || {})[airlineOf(x).icao])});
 }
@@ -6508,7 +6531,7 @@ function gTixBack(){
     if (box.children.length >= 3) break;
     gTixOut.delete(el);
     if (Date.now() > el.until - 1000 || !gScanSet().has(el.dataset.tix) || box.querySelector(`[data-tix="${el.dataset.tix}"]`)) continue;
-    box.insertBefore(el, box.firstChild);
+    box.insertBefore(el, box.firstChild); gAwFoil(el);
     clearTimeout(el.outT); el.outT = setTimeout(el.out, el.until - Date.now());
   }
   gTixStack();
@@ -6548,7 +6571,8 @@ function gAwards(list, quiet){
 function gScanPops(r, onPass){
   const f = fromRelay(r), lines = r.lines || [{k: "scan", p: r.bonus, tier: r.tier, full: r.full}];
   const main = lines.filter(a => a.k !== "streak"), stk = lines.find(a => a.k === "streak");
-  const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWho(f, r.km),
+  const nwOf = w => main.some(a => a.k === "new" && a.w === w);
+  const o = {kind: r.tier || "uncommon", band: T("SKY VIEW · SCANNED"), bandR: T(TIER_UP[r.tier] || "UNCOMMON") + " ★", who: gWhoNw(f, r.km, nwOf("airline") || (r.airline && r.airline.scans === 1), nwOf("type")),
     lines: main.map(a => [...gAwLine({tier: r.tier, ...a}, f, true), gAwShort(a)]), stub: r.gold ? T("GOLDEN") : T("SCAN"), p: main.reduce((s, a) => s + a.p, 0), rip: true, gold: !!r.gold,
     ly: r.airline ? lyTicket(r.airline.code, r.airline.scans) : null, route: ppRoute(r.route)};    // 1.107: the route, a new country marked
   const g0 = (lbData() || {}).game, w = r.airline && g0 && g0.wallet;
@@ -6562,7 +6586,7 @@ function gScanPops(r, onPass){
       gTixOut.delete(tix);
       const b = gAwsBox();
       if (tix !== b.lastChild) b.appendChild(tix);
-      pass = gPassFill(tix, o); gTixStack();
+      pass = gPassFill(tix, o); gAwFoil(pass); gTixStack();
     } else pass = gPop(o);
     if (onPass) onPass(pass, 0);
     return pass;

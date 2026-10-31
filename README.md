@@ -543,7 +543,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   does the streak's pass. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
   ticket, the streak's pass, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises; a pop-up
   stays 14 seconds, and planes' tickets step aside for it and come back after. A swipe past 40% of the width or a flick
-  sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
+  sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. What's **new** on a ticket (the airline's name, the type, the route's new country) is in **gold foil**, and one beam of light crosses it as the ticket rises. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
   quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
   plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan
   pays the plane's points **twice** (a common 10 → 20, a rare 100 → 200; the ticket reads "Rare plane +100 ×2"); the

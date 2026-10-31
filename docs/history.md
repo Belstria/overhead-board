@@ -960,6 +960,7 @@ The repository is public: no addresses, keys or personal data here either.
   `gLineHolds()`: a pop-up up or waiting: planes' tickets go to `gTixOut` and `gTixBack` waits; a limit pass queues while the line runs.
   To-do #247: from three extras `.lns.two`, with `gAwShort(a)` as the label (a 4th item in the ticket's lines; `gAwLine` and so Recent points keep the full text; no "(no ×2)" there).
   `lyWritten`: the name as the table writes it, for `.lyTop` and the pop-up's footer (`lyName` is in the board's capitals).
+  **New names (to-do #247, pick C):** `nwWord` (`em.nw`, each letter a `u` with the foil clipped to it), `gWhoNw` (a who's third item, its html) and `ppRoute`; `gAwFoil(el)` once it's on screen: the distance goes, then `.who.wrap`, then each letter's `--t` and `.beam`.
   **Times:** `TIX_MS` 6.5 s, torn passes `RIP_AFTER` 3 s from the stub's `animationend` (`RIP_MS` 5.15 s the fallback and reduced motion), `POP_MS` 14 s;
   `gAwTimer` holds the finger's hold and release. **Swipe:** past 40% of the width or a flick (last move's `v > .5` over 20 px), else the
   springy CSS transition on `.gAw` / `#toasts .toast`; `t.swiped` is reset at each start (a bounced touch swipe gets no click).
