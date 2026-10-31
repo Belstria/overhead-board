@@ -948,6 +948,25 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.122 (to-dos #231, #232, #229, #234, #235, #237; relay 103, below): **cleaner League, Today's rows, tickets.**
+  #231 (Dave's words, not one of the mockups): `plFoot` (`.plFoot`, engraved like the plate's title, between the bottom
+  screws; the brief's rule 7 allows one per panel) holds `resetsT(at)` ("Resets Mon 00:00", the relay's `resets`) on
+  the League, with last week's winner, and on Bingo; the plate is titled Bingo, its progress line gone (Level's row and
+  the lit squares say it). League rows lost the wings (the player's card keeps them). Show me in the league is gone
+  (`gLeagueOpt`, the Level row's "Not shown"); a stored `S.league` stays, ignored. Trophies' `trSeg`: Won: n, Left: n.
+  #232: `rowInner(e, now)`, `rowHtml`, `cardLi`, `tlHtml` and `tlNode(e, now)` take `now` (true only for Recent flights,
+  `renderRecent` and `tlFold` by the list's id): Today has no pill, EMERGENCY and DIVERTED as the flag, a scanned plane
+  (`e.scan`; `gScanSet` is what can be scanned, not what was) `.mScan` with `SKY_ICO` first among the marks, the bubble
+  `TIER_COL[rowTier(e)]`, unknown `#55585e`. Recent flights has `chip(remarkFor(e))`, drops the mark the pill repeats and
+  keeps the remark's colour. `rowTier` is `e.tier`, else by the type. The rarity is in `.mk`'s aria-label (`.mk:empty`
+  stays there for it, out of the row's flow) and in words on the row's card (`.tlK`). `rowMarks` is unchanged: the card
+  still names OVERHEAD. #229: the tickets' notes are labels: Daily streak +75, Scores again 00:00, Tomorrow's scan +100,
+  Restarts Mon 00:00. #234: Your route and How points work on the plate (`secPlate`, `plateSheet`; the route's "Level 8 ·
+  title" line went, its list marks where you are); the trophy sheet's plate says Trophy, its row the name. #235: the
+  year card's third line went. #237: the level card's week is a button (`#gWkB`, `.gWk.gWkB`) opening `gSbyOpen`, now
+  titled Streak: two lines on the streak from `gRules().streak`, then Standby's part (Dave's lines) from the level it
+  comes with; both Monday times from the relay's `resets`.
+
 - 1.121.1 (to-do #233; relay 102): **one day for everything, 00:00 to 23:59.** `DAY_START_H = 0` (board) as `DAY_STARTS_H`
   (relay); `reviewTime` is 21:00 to 23:59; `ppToday`, the streak ticket's weekday and `demoReview` no longer step back 3
   hours. A time from a relay's `resets` shows as it is when something starts ("New card Mon 00:00", "score again from
@@ -1884,6 +1903,9 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 103 (1.122, to-do #231, Dave): **no more opting out of the league.** `league_json` and `player_json` take every
+  profile; settings' `league` stays stored and ignored. A profile without points isn't listed, as before, and one with
+  none this week only sees itself (`r["week"] > 0 or me`).
 - Relay 102 (1.121.1, to-do #233): **the day starts at 00:00.** `DAY_STARTS_H = 0`: `board_day`, `_next_day_ms`, the
   league's and bingo's `resets` and `dayStarts` follow. Everything saved is keyed by the date, so nothing moves: past
   `sightings-<day>.json` keep what the old rule put in them (a plane at 00:30 stays with the evening before), and

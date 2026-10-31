@@ -489,6 +489,9 @@ body.aboutOpen main{z-index:6}      /* 1.80: over the top bar and the tabs, so t
 .tline .l1 .chip{flex:none;min-width:0;height:19px;padding:0 6px;font-size:var(--fs-tag);letter-spacing:.1em}
 .tline .l1 .mk{flex:none;display:flex;align-items:center;gap:5px}
 .tline .l1 .mk i{font-style:normal;display:grid;place-items:center;width:15px;height:15px;font:700 var(--fs-m)/1 var(--f-board)}
+.tline .l1 .mk:empty{position:absolute;width:1px;height:1px;overflow:hidden}   /* 1.122: only the rarity to say */
+.tline .l1 .mScan{color:var(--amber)}
+.tline .l1 .mScan .skyIco{width:15px;height:15px;margin:0;display:block}
 .tline .l1 .mNew{color:var(--amber)}
 .tline .l1 .mFlag svg{width:15px;height:15px;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
 .tline .l1 .mFav{color:#e0679f}
@@ -1283,6 +1286,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gHero>.iBtn.gHeroI{top:3px;right:26px;width:20px;height:20px}
 .gHero>.iBtn.gHeroI::after{content:"";position:absolute;inset:-12px}
 .gWk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.gWkB{all:unset;box-sizing:border-box;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;cursor:pointer}   /* 1.122 (to-do #237) */
+.gWkB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .gWk i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:7px 0;border:1.5px dashed #3a3c42;border-radius:6px;color:var(--label2)}
 .gWk i.on{border:1.5px solid var(--amber);color:var(--amber);background:rgba(240,180,41,.1)}
 .gWk i.now{background:var(--amber);border:1.5px solid var(--amber);color:#17140e}
@@ -1320,7 +1325,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gNote{display:flex;gap:10px;align-items:flex-start;margin-top:10px;background:#1f1416;border:1px solid #5a2a2d;border-radius:8px;padding:9px 11px;font:600 var(--fs-s)/1.35 var(--f-board);color:var(--ink)}
 .gNote .tico{width:18px;height:18px;margin-top:1px} .gNote small{display:block;color:var(--muted);font-size:var(--fs-xs)}
 #cardBox .gRule{margin:8px 0 0;line-height:1.4}
-.gOpt{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:var(--fs-m)}
 /* 1.83 (Dave): each section on a plate of its own, as Settings' and the radar's (secPlate in main.js) */
 .secPlate{--pt:14px;--px:14px;margin:16px 0 0;padding:var(--pt) var(--px) 22px;gap:8px}     /* the bottom screws clear of the last line */
 .secPlate[hidden]{display:none}
@@ -1328,7 +1332,9 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .secPlate .facts{margin:6px 0 0}
 .secPlate .ranks,.secPlate .flights,.secPlate .bingo{margin-top:0}
 .secPlate .seg{margin:0 0 4px}
-.secPlate .gOpt{margin-top:6px;color:var(--ink)}
+/* 1.122 (to-do #231): a plate's footnote: its title's engraving, smaller, between the bottom screws */
+.plFoot{grid-column:1/-1;margin:2px 12px -12px;font:600 var(--fs-tag)/1.35 var(--f-board);letter-spacing:.1em;text-transform:uppercase;text-align:center;color:rgba(214,208,194,.55);text-shadow:0 -1px 0 rgba(0,0,0,.8)}
+.plFoot span{display:block;color:inherit;margin:0}
 .perCard .perHead{gap:10px}
 .perCard .perHead .seg{flex:1;margin:0}
 .perCard .perHead .perArr{margin-left:auto}
@@ -1407,7 +1413,6 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 @keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
 @media (prefers-reduced-motion:reduce){.ppDrop .pS,.ppShelf.hit .hgHead b,.secPlate.hit h3{animation:none!important}}
-.gOpt input{width:20px;height:20px;accent-color:var(--amber)}
 #gLvUp{position:fixed;inset:0;z-index:60;background:rgba(5,5,6,.86);display:grid;place-items:center;padding:24px;text-align:center}
 #gLvUp .lvBox{display:grid;gap:12px;justify-items:center;animation:gPop .45s cubic-bezier(.2,1.5,.4,1)}
 @keyframes gPop{from{transform:scale(.6);opacity:0}}
@@ -1449,8 +1454,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 /* 1.113 (to-do #184): Your route as a sheet at half the screen's height; only the route scrolls, under the grip, title and ✕ */
 #cardBox .cardIn.cuHalf{height:55dvh;max-height:55dvh;display:flex;flex-direction:column;overflow:hidden}
 .cuSheet{display:flex;flex-direction:column;flex:1;min-height:0}
-.cuSheet .cHead{flex:none}
-.cuSheet .cScroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;margin:0 -18px;padding:10px 18px 8px;border-top:1px solid rgba(255,255,255,.08)}
+.cuSheet .secPlate{flex:1;min-height:0;margin:0;display:flex;flex-direction:column}
+.cuSheet .cScroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;margin:0 calc(-1 * var(--px));padding:6px var(--px) 8px}
 .cuSheet .sum{margin:6px 0 0}
 .cuRt{list-style:none;margin:6px 0 0;padding:0}
 .cuRt li{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;position:relative;padding:0 0 18px}

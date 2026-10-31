@@ -26,13 +26,18 @@ two days later mockups again carried sentences and a second row of tabs. These r
 5. **A notice that names a mechanic says what kind of thing it is and what to do**, in that order, and opens its
    explanation on a tap: "Trophy On a roll: points 2 more days", not "2 more days for On a roll". Test: someone who
    has never opened the Club understands it.
-6. **Three vocabularies, three looks.** A flight's status is a pill, and only OVERHEAD, EMERGENCY and DIVERTED get one
-   (TAKE-OFF and LANDED too on Airport). A logbook note is a mark at the row's end, no words: ★ new type or airline,
-   ⚑ unusual, pink ♥ favourite. Game words (points, level, standby, league) stay off a flight's row; they live in the
-   Club, the header chip, and the tickets and notices about them.
+6. **Three vocabularies, three looks.** A flight's status is a pill: Recent flights on Now shows every status word, and
+   Today's rows show none (TAKE-OFF and LANDED on Airport). A logbook note is a mark at the row's end, no words: Sky
+   view's amber target for a scanned plane, ★ new type or airline, ⚑ unusual (red for EMERGENCY, orange for DIVERTED on
+   Today), pink ♥ favourite; Recent flights drops the mark its pill repeats and has no target. Today's bubble is the
+   plane's rarity colour, Recent flights' its status colour; the word is on the card. Game words (points, level,
+   standby, league) stay off a flight's row; they live in the Club, the header chip, and the tickets and notices about
+   them.
 7. **Plain words, no cut-offs.** Screen titles in sentence case; every sheet carries the plate with its engraved
    title, like the Settings and Logbook panels; section headings as small-caps labels. No addresses, codes or
-   internals ("from the home relay", not a host name).
+   internals ("from the home relay", not a host name). Dave's exception (31 Oct): Recent flights' route and type may
+   cut off at 360 px, beside the pill. A panel may carry one small footnote engraved like its title (`.plFoot`) for a
+   fact that belongs to the whole panel ("Resets Mon 00:00"); it is no sentence and opens nothing.
 
 **Navigation**
 
@@ -103,11 +108,12 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
   flights, the notices bar; scan tickets and undo notices rise from below.
 - **Logbook**: a Today | All time row, opening on Today. Today: four named numbers, the Highlights card (opens "Today
-  in numbers"), the timeline rows (time, flight, route, type, marks at the end, a pill when the status earns one); a
+  in numbers"), the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills); a
   filter icon at the end of the row swaps the numbers and Highlights for the find box and the segmented filters. All
   time: search, four named numbers, the year card, index rows (Categories, Aircraft types, Airlines, Most seen
   aircraft, Download as CSV) that open panels.
-- **Club**: sub-tabs Level, League (with Bingo and Trophies under it), Hangar, Passport, Cards.
+- **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a
+  footnote, Trophies' counts on its switch), Hangar, Passport, Cards. The week on the level card opens the Streak panel.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
 - **Sky view**: from Now; the align button in the top row (a circle, the camera or the Align button lines the labels up on the
   sun or moon), a mini radar bottom left, edge chips for at most three off-screen planes, the count "4 around".

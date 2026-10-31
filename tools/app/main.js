@@ -527,32 +527,42 @@ const plainCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const noFlightNo = e => { const f = plainCode(e.flight); return !f || f === plainCode(e.reg) || f === plainCode(e.hex); };     // it flies under its registration
 const rowName = e => noFlightNo(e) ? e.reg || e.owner || e.flight || String(e.hex || "").toUpperCase() : e.flight || plainCode(e.callsign);
 const noRoute = e => T(noFlightNo(e) ? "No route: private or local flight" : "Route not known");
-const tlNode = e => lampOf(remarkFor(e)) || "#55585e";
+// 1.122 (to-do #232, Dave): Today's bubbles show the plane's rarity (dark grey: not known); Recent flights' keep the
+// remark's colour, as its pill.
+const rowTier = e => { const t = String(e.typeCode || "").toUpperCase(); return e.tier || (t ? (LEGENDARY.has(t) ? "legendary" : fleetTier(t)) : ""); };
+const tlNode = (e, now) => (now ? lampOf(remarkFor(e)) : TIER_COL[rowTier(e)]) || "#55585e";
 /* 1.115 (to-do #206, Dave's pick B): one line a plane: the time, the flight, the route and the type. What the flight is
    doing (OVERHEAD, EMERGENCY, DIVERTED) is its pill; at the row's end, always in this order, a star for a type or an
    airline new to the logbook, a flag in its colour for an unusual plane (military, a giant, the watchlist's), a heart
-   for a favourite. Their words are on the card behind the tap. */
+   for a favourite. Their words are on the card behind the tap.
+   1.122 (to-do #232, Dave): Today has no pills: EMERGENCY and DIVERTED take the flag (red, orange), OVERHEAD no mark, and
+   a scanned plane Sky view's target before the others. Recent flights (now) has every status word as a pill, without
+   the mark that repeats it and without the target. */
 function rowMarks(e){
   const sp = specialOf(e), cat = categoryBadge(e);
   return {status: sp === "EMERGENCY" ? sp : e.divertedTo ? "DIVERTED" : overEntry(e) ? "OVERHEAD" : "",
     flag: sp && sp !== "EMERGENCY" && sp !== "HELICOPTER" ? sp : e.watch || (cat === "MILITARY" ? cat : ""),
     star: e.newType ? "NEW TYPE" : e.newAirline ? "NEW AIRLINE" : "", fav: isFav(e)};
 }
+const SKY_ICO = `<svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 const FLAG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>';
-function rowInner(e){
-  const m = rowMarks(e), done = e.done !== false, name = rowName(e), ty = shortType(e.type) || e.typeCode || "";
+function rowInner(e, now){
+  const m = rowMarks(e), pill = now ? remarkFor(e) : "", done = e.done !== false, name = rowName(e), ty = shortType(e.type) || e.typeCode || "";
   const rt = e.from || e.to ? `<b>${escH(code3(e.from) || "···")}</b><i>→</i><b>${escH(code3(e.to) || "···")}</b>${ty ? `<span class="ty"> · ${escH(ty)}</span>` : ""}`
     : ty ? `<span class="ty">${escH(ty)}</span>` : done ? `<span class="ty">${escH(noRoute(e))}</span>` : "";
-  const mk = (m.star ? `<i class="mNew" title="${escH(T(m.star))}">★</i>` : "") +
-    (m.flag ? `<i class="mFlag" style="color:${lampOf(m.flag) || "var(--amber)"}" title="${escH(T(m.flag))}">${FLAG_SVG}</i>` : "") +
-    (m.fav ? `<i class="mFav" title="${escH(T("FAVOURITE"))}">♥\ufe0e</i>` : "");
-  const say = [m.star, m.flag, m.fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");
+  const star = m.star !== pill && m.star, fav = m.fav && pill !== "FAVOURITE", scan = !now && e.scan;
+  const flag = now ? m.flag !== pill && m.flag : (m.status !== "OVERHEAD" && m.status) || m.flag, tier = TIER_NAME[rowTier(e)];
+  const mk = (scan ? `<i class="mScan" title="${escH(T("Scanned"))}">${SKY_ICO}</i>` : "") +
+    (star ? `<i class="mNew" title="${escH(T(star))}">★</i>` : "") +
+    (flag ? `<i class="mFlag" style="color:${lampOf(flag) || "var(--amber)"}" title="${escH(T(flag))}">${FLAG_SVG}</i>` : "") +
+    (fav ? `<i class="mFav" title="${escH(T("FAVOURITE"))}">♥\ufe0e</i>` : "");
+  const say = [tier, scan ? "Scanned" : "", star, flag, fav ? "FAVOURITE" : ""].filter(Boolean).map(w => T(w)).join(", ");   // a rarity is only a colour: said here
   return `<div class="l1"><time>${escH(e.time || "")}</time><b class="f">${escH(name)}</b><span class="rt">${rt}</span>` +
-    `${m.status ? chip(m.status) : ""}${mk ? `<span class="mk" role="img" aria-label="${escH(say)}">${mk}</span>` : ""}</div>`;
+    `${pill ? chip(pill) : ""}${say ? `<span class="mk" role="img" aria-label="${escH(say)}">${mk}</span>` : ""}</div>`;
 }
-const rowHtml = e => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}" tabindex="0">${rowInner(e)}</li>`;
+const rowHtml = (e, now) => `<li class="fl" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}" tabindex="0">${rowInner(e, now)}</li>`;
 const rowSig = e => [e.id || e.hex, e.time, e.flight, e.callsign, e.airline, e.owner, e.type, e.reg, code3(e.from), code3(e.to), e.from && e.from.city, e.to && e.to.city,
-  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place].join("|");
+  e.minDist, e.altAtMin, remarkFor(e), e.done, e.place, e.scan].join("|");
 // The card in the list: 1.94's info card (D's): the photo (Planespotters' first; it opens the whole plane card, so only
 // its credit links to Planespotters) with the flight, airline and remark on it, the route band and three boxes.
 const tlPic = e => planePic({hex: e.hex, r: e.reg, t: e.typeCode, desc: e.desc}, {reg: e.reg, type: e.type}, detailsOf(e.hex) || {photo: e.photo}, tlLate);
@@ -577,13 +587,14 @@ function tlCardHtml(e){
   const card = infoCard({pic: tlPic(e), picAttr: " data-full", title: name, sub: e.airline || (e.owner !== name ? e.owner || "" : ""), subAttr: e.airline ? " data-al" : "",
     chip: chips, band: e.from || e.to ? [routeEnd(e.from, "from"), "", routeEnd(e.to, "to")] : e.done !== false ? noRoute(e) : null,
     tiles: [["Aircraft", shortType(e.type), "", e.type ? " data-ty" : ""], ["Closest", distText(e.minDist)], ["Height", altText(e.altAtMin)]]});
-  return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span></span>` +
+  const tier = TIER_NAME[rowTier(e)];                       // 1.122 (to-do #232): the rarity the bubble's colour shows, in words
+  return `<div class="tlCard cardish"><i class="tlBg"></i><p class="tlK"><span>${escH(e.time || "")} · <span data-ago>${escH(tlAgo(e))}</span>${tier ? ` · ${escH(T(tier))}` : ""}</span>` +
     `<button type="button" class="tlX" data-fold aria-label="${escH(T("Close"))}">${DD}</button></p>${card}</div>`;
 }
-const cardLi = e => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e)}">${tlCardHtml(e)}</li>`;
+const cardLi = (e, now) => `<li class="fl open" data-more="${escH(tlKey(e))}" style="--node:${tlNode(e, now)}">${tlCardHtml(e)}</li>`;
 // 1.115 (Dave's pick B): the rows one after another, newest first; the quarter-hour and hour headings went (every
 // row has its time).
-const tlHtml = (list, open) => list.map(e => tlKey(e) === open ? cardLi(e) : rowHtml(e)).join("");
+const tlHtml = (list, open, now) => list.map(e => tlKey(e) === open ? cardLi(e, now) : rowHtml(e, now)).join("");
 // The empty list: why, on the rail (the newest-first line it will be)
 const tlState = (head, title, text, find) => `<li class="tg"><b>${escH(head)}</b></li><li class="st${find ? " find" : ""}">${title ? `<b>${escH(title)}</b>` : ""}${escH(text)}</li>`;
 const tlFinding = () => tlState(T("Now"), T("Finding where you are …"), T("The planes show once live location has found you."), true);
@@ -635,7 +646,7 @@ function renderRecent(){
   }
   if (tlBusy()) { tlAgain = true; return; }
   recentSig = sig;
-  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent) : liveWaiting() ? tlFinding() : tlNothing(), open);
+  tlFill(L, list.length ? tlHtml(list, tlOpenId.recent, true) : liveWaiting() ? tlFinding() : tlNothing(), open);
 }
 $("recentAll").onclick = () => { ctlSound.nav(); showTab("today"); };
 let shownPhoto = null;
@@ -1134,20 +1145,17 @@ function renderLogbook(){
 function lbYearCard(){
   const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack;
   const three = list => list.map(([n, k]) => `${nf.format(n || 0)} ${T(n === 1 ? PIC_ONE[k] || k : k)}`).join(" · ");
-  let title, line, busy = "";
+  let title, line;
   if (per === "year") {
     const y = yearData && yearData.year === yr ? yearData : null;
     title = T("{y} in planes", {y: yr});
     line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]);
-    if (y && y.busiest) busy = reviewDay(y.busiest.day);
   } else {
     const r = reviewData();
     title = T("{p} in planes", {p: reviewTitle()});
     line = r && r.planes ? three([[r.planes, "planes"], [r.types, "types"], [r.airlines, "airlines"]]) : reviewSummary(r);
-    if (r && r.busiest) busy = reviewDay(r.busiest.day);
   }
-  const sub = [T("Week, month and year"), busy ? T("busiest day {d}", {d: busy}) : "", T("Share")].filter(Boolean).join(" · ");
-  $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b><em>${escH(sub)}</em></span><i aria-hidden="true">›</i>`;
+  $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b></span><i aria-hidden="true">›</i>`;
 }
 $("lbYear").onclick = () => { lbPanelOpen("year"); perWarm(); };
 document.addEventListener("click", e => {
@@ -2117,10 +2125,9 @@ function recordsHtml(all, g0, part){
   }
   const bg = g0 && g0.bingo;
   if (part !== "trophies" && bg && bg.card) {         // the weekly bingo (relay 29)
-    const nd = Object.keys(bg.done || {}).length;
     const cells = bg.card.map(k => { const d = (bg.done || {})[k];
       return `<div class="bc${d ? " on" : ""}"><i></i><span>${escH(goalText(k))}</span>${d ? `<small>${escH(fmtDay(d))}</small>` : ""}</div>`; }).join("");
-    html += secPlate(T("This week's bingo"), `<p class="sum">${escH(T("{n} of 9 done · full lines: {l}", {n: nd, l: bg.lines || 0}))} · ${escH(bingoReset(bg))}</p><div class="bingo">${cells}</div>`, "bgPlate");
+    html += secPlate(T("Bingo"), `<div class="bingo">${cells}</div>` + plFoot(bingoReset(bg)), "bgPlate");   // 1.122 (to-do #231, Dave): the reset as a footnote
   }
   if (g0 && part !== "bingo") html += trophiesHtml(g0);
   return html;
@@ -2160,10 +2167,9 @@ function trophiesHtml(g0){
   const lists = {near: todo.slice(0, 3).map(trToGo),
     won: lads.filter(x => x.st.last).map(trWon).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
     todo: todo.map(trToGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
-  const tabs = [["near", T("Closest")], ["won", T("Won · {n}", {n: nWon})], ["todo", T("Still to win")]];
+  const tabs = [["near", T("Closest")], ["won", T("Won: {n}", {n: nWon})], ["todo", T("Left: {n}", {n: TROPHY_IDS.length - nWon})]];   // 1.122 (to-do #231, Dave)
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
-  return secPlate(T("Trophies"), `<p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
-    `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
+  return secPlate(T("Trophies"), `<div class="seg trSeg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tt="${k}" aria-pressed="${k === gTrTab}">${escH(l)}</button>`).join("")}</div>` +
     (lists[gTrTab].length ? `<ul class="ranks plain cups">${lists[gTrTab].join("")}</ul>` : `<p class="sum">${escH(T(none))}</p>`), "trPlate");
 }
 // The trophies' switch, on the Spotters' Club page or the Logbook's Records: redraws the page that shows it.
@@ -2172,6 +2178,8 @@ function trWire(box, redraw){
 }
 // 1.83 (Dave): a section of the Logbook, the Spotters' Club or the radar on a plate of its own, as Settings' and the
 // radar's controls: screws in the corners, its name engraved between two lines.
+// 1.122 (to-do #231, Dave): a plate's small footnote, engraved like its title, between the bottom screws. One line a part.
+const plFoot = (...parts) => { parts = parts.filter(Boolean); return parts.length ? `<p class="plFoot">${parts.map(s => `<span>${escH(s)}</span>`).join("")}</p>` : ""; };
 const secPlate = (title, body, cls = "") => `<section class="plate secPlate${cls ? " " + cls : ""}" style="--cols:1"><i></i><i></i><i></i><i></i><h3>${escH(title)}</h3>${body}</section>`;
 // A trophy cup for the trophies list (gold when won, by CSS).
 const CUP = '<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10c0 5-1.5 8-5 8.5C8.5 11 7 8 7 3zM11 11.5h2l.5 4h-3zM8 16h8v2.2H8z"/><path d="M7 4.5C4.5 4.5 4 8 7.5 9M17 4.5c2.5 0 3 3.5-.5 4.5" fill="none" stroke-width="1.6"/></svg>';
@@ -4980,7 +4988,7 @@ function tlFold(li, anim){
   if (L && tlOpenId[L.id] === k) { tlOpenId[L.id] = ""; L.dataset.card = ""; }
   if (!e) return;
   const h1 = li.offsetHeight, cs1 = getComputedStyle(li), m1 = [cs1.marginTop, cs1.marginBottom], card = li.querySelector(".tlCard");
-  li.className = "fl"; li.tabIndex = 0; li.innerHTML = rowInner(e);
+  li.className = "fl"; li.tabIndex = 0; li.innerHTML = rowInner(e, !!L && L.id === "recent");
   if (!anim || REDUCED || !card || typeof li.animate !== "function") return;
   const h0 = li.offsetHeight, cs0 = getComputedStyle(li), m0 = [cs0.marginTop, cs0.marginBottom];
   card.classList.add("tlGone"); li.append(card);  // the card over the row, fading as it folds
@@ -5953,9 +5961,8 @@ function careerOpen(){
   const g = gme;
   if (!g) return;
   ctlSound.nav();
-  cardOpen(`<div class="cuSheet"><div class="cHead"><div><h3>${escH(T("Your route"))}</h3><span>${escH(T("Level {n}", {n: g.level}))} · ${escH(rankTitle(g.level))}</span></div></div>` +
-    `<div class="cScroll">${careerRouteList(g)}</div></div>`, ci => {
-    ci.classList.add("cuHalf");
+  cardOpen(`<div class="lbIn cuSheet">${secPlate(T("Your route"), `<div class="cScroll">${careerRouteList(g)}</div>`)}</div>`, ci => {   // 1.122 (to-do #234): the plate
+    ci.classList.add("tdSheet", "lbSheet", "cuHalf");
     requestAnimationFrame(() => { const cur = ci.querySelector(".cuRt li.cur"), sc = ci.querySelector(".cScroll");
       if (cur) sc.scrollTop = Math.max(0, cur.getBoundingClientRect().top - sc.getBoundingClientRect().top - sc.clientHeight / 3); });
   });
@@ -6320,7 +6327,6 @@ function gPassFill(el, o){
   };
   return el;
 }
-const SKY_ICO = `<svg class="skyIco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 const gWho = (f, km) => [f.flight || NA, [f.airline, f.type, km != null ? distText(km) : ""].filter(Boolean).join(" · ")];
 /* 1.98 (to-do #146, Dave's picks): a plane that comes within the scan's circle (10 km; the relay's list, /game/me "scan")
    gets a ticket, once: the boarding pass with what a scan gives now (only what is sure: the plane's full points, a type or
@@ -6354,7 +6360,7 @@ function gTixShow(x){
   if (can.airline) lines.push(gAwLine({k: "new", w: "airline", p: can.airline, n: String(x.callsign || "").slice(0, 3)}, f));
   const n = gme && !gme.scannedToday && R ? (gme.streak || 0) + 1 : 0;
   gPop({tix: x.hex, kind: x.tier, band: gold ? T("GOLDEN TICKET · {k} KM", {k: gScanKm()}) : T("WITHIN {k} KM", {k: gScanKm()}), bandR: T(TIER_UP[x.tier] || "UNCOMMON") + " ★", who: gWho(f, x.km), lines,
-    note: n ? T("Your first scan today adds the daily streak: +{p}.", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
+    note: n ? T("Daily streak +{p}", {p: nf.format(R.streak * n)}) : "", stub: gold ? T("GOLDEN") : T("SCAN"), gold,
     p: lines.reduce((s, l) => s + l[1], 0), sky: {hex: x.hex, flight: f.flight}, life: TIX_MS, ly: lyTicket(airlineOf(x).icao, (((lbData() || {}).game || {}).wallet || {})[airlineOf(x).icao])});
 }
 // A ticket pushed out by a shorter pass comes back at the bottom once there is room, while its 10 s and its plane last.
@@ -6394,7 +6400,7 @@ function gAwards(list, quiet){
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
     const f = fromRelay(a), R = gRules(), m = (R && R.limit[a.tier]) || (a.n || 1) - 1, t = gTierT(a.tier);
     gPop({kind: "no", band: T("NO POINTS · LIMIT"), bandR: `${T(TIER_UP[a.tier] || "UNCOMMON")} ${m}/${m}`, who: gWho(f, a.km), lines: [gAwLine(a, f)],
-      note: T("{t} planes score again from {h}. The other rarities still count.", {t, h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"}), p: 0});
+      note: T("Scores again {h}", {h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"}), p: 0});
   }
 }
 // Sky view's scan: the scan's pass (the top-up and the extras), then the streak's on top of it at the day's first scan.
@@ -6421,7 +6427,7 @@ function gScanPops(r){
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
   const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
   const pass2 = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: 2, life: TIX_MS,
-    note: wd < 6 ? T("Your first scan today. Scan a plane tomorrow for +{p}.", {p: nf.format(per * (stk.n + 1))}) : T("It starts again on Monday at 00:00, with the league.")});
+    note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"})});
   return [pass, pass2];
 }
 // A little shower of coins when points land (with the button sounds on).
@@ -6550,10 +6556,10 @@ function renderGame(){
     const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
     let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
     lg += !rows ? `<p class="sum">${escH(T("Loading …"))}</p>` : !rows.length ? `<p class="sum">${escH(T("Nobody has scored this week yet."))}</p>`
-      : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span>' : ""}${r.level ? rankIns(r.level, 30, {wings: r.wings, label: true}) : ""}<span class="${r.level >= 19 ? "rkGold" : ""}">${escH(r.name)}</span></span><em>${nf.format(r.points)}</em>` +
+      : `<ol class="gLeague">` + rows.map(r => `<li class="${r.me ? "me" : ""}${r.id ? " plTap" : ""}"${r.id ? ` data-player="${escH(r.id)}"` : ""}><b>${r.rank}</b><span>${r.crown ? '<span class="crown">♛</span>' : ""}${r.level ? rankIns(r.level, 30, {label: true}) : ""}<span class="${r.level >= 19 ? "rkGold" : ""}">${escH(r.name)}</span></span><em>${nf.format(r.points)}</em>` +
         `<i class="${r.was && r.was > r.rank ? "up" : r.was && r.was < r.rank ? "dn" : ""}">${r.was && r.was > r.rank ? "▲" + (r.was - r.rank) : r.was && r.was < r.rank ? "▼" + (r.rank - r.was) : ""}</i></li>`).join("") + `</ol>`;
-    if (L && !gAll) lg += `<p class="sum">${escH(T("The week ends {d}, {h}.", {d: fmtDay(gLastMin(L.resets)), h: hhmm(new Date(gLastMin(L.resets)))}))}${L.champion ? " · " + escH(T("♛ Last week's winner: {n}", {n: L.champion})) : ""}</p>`;
-    h = secPlate(T("League"), lg + `<label class="gOpt"><input type="checkbox" id="gLeagueOpt"${S.league === false ? "" : " checked"}> ${escH(T("Show me in the league"))}</label>`, "lgPlate");
+    if (L && !gAll) lg += plFoot(resetsT(L.resets), L.champion ? T("Last week's winner: {n}", {n: L.champion}) : "");   // 1.122 (to-do #231): no more opting out; a scorer is in
+    h = secPlate(T("League"), lg, "lgPlate");
     if (g0) h += recordsHtml(all, g0, "bingo") + recordsHtml(all, g0, "trophies");   // 1.119.1 (to-do #214): under the league
   } else if (g0) h = sub === "hangar" ? collectionHtml(g0) : sub === "passport" ? passportHtml(g0) : walletHtml(g0);   // 1.106: the member cards; 1.107: the passport
   // 1.103: the flight school's record first while it runs; once signed, at the end (its signature once the font is here)
@@ -6588,9 +6594,9 @@ function renderGame(){
   if ($("gHow")) $("gHow").onclick = gHowCard;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
   if ($("gSby")) $("gSby").onclick = gSbyOpen;
+  if ($("gWkB")) $("gWkB").onclick = gSbyOpen;
   for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); const k = b.dataset.gsub; if (G_PARTS[k]) gGoPlate(G_PARTS[k]); else gSubGo(k); };
   trWire(box, renderGame);
-  if ($("gLeagueOpt")) $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
 }
 /* 1.116 (to-do #208, Dave's pick B): the Club's sub-tabs, a bar stuck under the Logbook · Spotters' Club titles (the
    segmented style that scrolls sideways, as Settings' jump bar had it). Each shows one part; a part the relay doesn't
@@ -6625,7 +6631,7 @@ function gSubGo(k){
 function gIndexHtml(g, g0){
   const L = gLeague, rows = [];
   const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<li><button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">›</i></button></li>`);
-  row("league", "League", S.league === false ? T("Not shown in the league") :
+  row("league", "League",
     [g.rank ? T("#{n} this week", {n: g.rank}) : T("No place this week yet"), L && L.resets ? T("ends {d}", {d: fmtDay(gLastMin(L.resets))}) : ""].filter(Boolean).join(" · "));
   if (g0) {
     if (hangarOk()) hangarLoad();
@@ -6663,7 +6669,7 @@ function gSbyHtml(g){
   const fresh = s.allow && g.level === from && !localStorage.getItem(ACH_KEY + ".sby");
   const cls = (c, i) => c === "s" ? (i === t ? "now" : "on") : c === "b" ? "sby" : i === t ? "todo" : i < t ? "miss" : "";
   return `<div class="gSbyWk"><span class="gTileL">${escH(T("This week's streak"))}</span>` +
-    `<div class="gWk">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
+    `<button class="gWk gWkB" type="button" id="gWkB" aria-label="${escH(T("This week's streak"))}">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</button>` +
     `<button class="gHow gSbyL" type="button" id="gSby"><span><span class="gSbyTg${s.left ? "" : " off"}">${escH(T("SBY"))}</span><b class="${risk ? "warn" : ""}">${escH(line)}</b>` +
     (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button></div>`;
 }
@@ -6671,11 +6677,15 @@ const gSbyFrom = R => R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
 // A plate in the bottom sheet, its title engraved (Dave's rule for every sheet), as the Logbook's panels.
 const plateSheet = (title, body) => cardOpen(`<div class="lbIn">${secPlate(title, body)}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
 // The sheet: Dave's two lines around a sample week (a Saturday covered, Sunday scanned).
+// 1.122 (to-do #237): the streak's two lines first, the amount from the rules; the Standby's part once it is the player's.
 function gSbyOpen(){
   ctlSound.nav();
-  plateSheet(T("Standby"), `<p class="sum">${escH(T("Miss a day, and your Standby is automatically consumed to keep your streak going"))}</p>` +
+  const g = gme || {}, R = gRules(), h = g.resets ? hhmm(new Date(g.resets)) : "00:00", has = g.standby && g.standby.allow, mon = sbyDay(0, "long");
+  plateSheet(T("Streak"), (R ? `<p class="sum">${escH(T("Your first scan each day adds +{n} for each day in a row", {n: nf.format(R.streak)}))}</p>` : "") +
+    `<p class="sum">${escH(T("A missed day or {d} {h} starts it again", {d: mon, h}))}</p>` +
+    (has ? `<p class="gHowH">${escH(T("Standby"))}</p><p class="sum">${escH(T("Miss a day, and your Standby is automatically consumed to keep your streak going"))}</p>` +
     `<div class="gWk">${[..."mooooBn"].map((c, i) => `<i class="${{m: "miss", o: "on", B: "sby", n: "now"}[c]}">${escH(c === "B" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
-    `<p class="sum">${escH(T("That day shows SBY and pays no points. Resets on Monday 00:00"))}</p>`);
+    `<p class="sum">${escH(T("That day shows SBY and pays no points. Resets on {d} {h}", {d: mon, h}))}</p>` : ""));
   try { if (!localStorage.getItem(ACH_KEY + ".sby")) { localStorage.setItem(ACH_KEY + ".sby", "1"); renderGame(); } } catch {}
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
@@ -6702,7 +6712,7 @@ function gHowCard(){
       `<span class="r"><b>+${nf.format(R.base[t])}</b></span><span class="r"><em class="${n >= m ? "full" : ""}">${nf.format(Math.min(n, m))}</em> / ${nf.format(m)}</span>`; }).join("") : "";
   const sd = R ? Array.from({length: 7}, (_, i) => `<i class="${i < (g.streak || 0) ? "on" : ""}">${escH(T("Day {n}", {n: i + 1}))}<b>+${nf.format(R.streak * (i + 1))}</b></i>`).join("") : "";
   const p = (a, b) => `<p class="gRule"><em>${escH(a)}</em> ${escH(b)}</p>`;
-  cardOpen(`<div class="cHead"><div><h3>${escH(T("How points work"))}</h3></div></div>` +
+  plateSheet(T("How points work"),                  // 1.122 (to-do #234): the plate
     `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))} ${escH(T("Nothing counts while the app is in the background."))}</p>` +
     (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
       `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
@@ -6839,7 +6849,7 @@ function trophySheet(L){
   const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;
   if (!t) return;
   ctlSound.nav();
-  plateSheet(T(t[2]), `<ul class="ranks plain cups">${x.st.next ? trToGo(x) : trWon(x)}</ul>`);
+  plateSheet(T("Trophy"), `<ul class="ranks plain cups">${x.st.next ? trToGo(x) : trWon(x)}</ul>`);
 }
 function medalNudge(g0){
   if (!g0 || !g0.trophyCounts || S.demo) return;

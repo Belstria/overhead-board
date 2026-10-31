@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 102
+RELAY_VERSION = 103
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -1919,7 +1919,7 @@ def league_json(me=None):
     rows = _league_cache.get(key)
     if rows is None:
         with _data_lock:
-            pids = [(pid, p) for pid, p in profiles()["profiles"].items() if (p.get("settings") or {}).get("league", True) is not False]
+            pids = list(profiles()["profiles"].items())   # relay 103 (to-do #231, Dave): everyone who scores is in; settings' "league" is ignored
         rows = []
         for pid, p in pids:
             try:
@@ -1966,7 +1966,7 @@ def player_json(hid, me=None):
     day = board_day()
     wk = _monday(day)
     with _data_lock:
-        pids = [(pid, p) for pid, p in profiles()["profiles"].items() if (p.get("settings") or {}).get("league", True) is not False]
+        pids = list(profiles()["profiles"].items())
     hit = next(((pid, p) for pid, p in pids if _league_id(pid) == hid), None)
     if not hit:
         return None
