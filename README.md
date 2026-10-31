@@ -521,8 +521,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
   level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
   and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
-  Club's level card shows the week (scanned days amber, a covered day SBY) and the standbys left; the club says
-  "Standby used" the day after, and warns in the club when none is left and today has no scan yet. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  Club's level card ends with This week's streak (scanned days amber, a covered day SBY) and one line, such as "Standby ready",
+  "Standby used Saturday" or, in red, "No standby left: scan by 03:00"; a tap on it explains the standby. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
@@ -584,12 +584,12 @@ The main board has everything below. New features are tried on `/test/` first; o
   **Spotters' Club** (1.74: next to the Logbook, as a title tab; since 1.116 in the app with **tabs** under the title that
   show one part at a time: **Level**, League (with this week's Bingo, the Records and the Trophies under the league), Hangar, Passport and Cards.
   Level shows your level card, then one line for each of the others, such as "#1 this week · ends 1 Nov" or "0 of 9
-  done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10") and links "All 20
-  levels"; the rarity counters are in How points work): the
+  done"; a tap opens that tab. The level card names the next unlock ("Next unlock · level 10"); a tap on the rank, the
+  progress line or the next unlock opens all 20 levels; the rarity counters are in How points work): the
   level, the **league** (this week from Monday 03:00, or all time, by first name; Show me in the league switches you
   out; since 1.102 each player's **rank insignia** beside their name, from level 19 the name in gold), today, how points work, the collections, records, bingo and trophies (no longer in the
   Logbook), and Styles. **Career path** (1.109): Your level shows a mini route (your stop, the plane with the points still to go, the
-  next stop) with what the next stop opens, and **All 20 levels** (Your route · all 20 stops until 1.116) opens the route (since 1.113 a panel over the
+  next stop) with what the next stop opens; a tap on any of it opens the route (since 1.113 a panel over the
   club at half the screen's height, scrolled to your stop; the route scrolls inside it, and a swipe down, back or a tap beside closes
   it): a stop per level down a
   line, solid where you've been and dashed ahead, each with its rank insignia, title and what it unlocks, the next stop
@@ -605,7 +605,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   level-up is an arrival there: "Arrived at Logkeeper", a luggage tag for each thing it opened, the next stop, and
   **Try it** (a style opens Styles at its row, anything else the club). With reduced motion nothing moves. Since 1.79 the top is one card (the level; today's points, this week's points with your place
   and the streak as three numbers; since 1.96 **today's limits** as five counters, "18/30 Uncommon", with a note for
-  each rarity that reached its limit and when it starts again; **How points work** opens a card with all the rules on
+  each rarity that reached its limit and when it starts again; the plate's **(i)** opens How points work, a card with all the rules on
   one screen: each rarity within 15 km and scanned (within 10 km), today against the limits, the extras and the streak's days; since 1.100 bingo and trophies), the league's switch
   sits beside its heading, **Your catch** (by rarity) and **Sets** (to complete) replace Collection and Collections,
   and the trophies show the three closest to winning, with a switch to the ones won and the ones still to win (nearest

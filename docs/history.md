@@ -948,6 +948,22 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.119.3 (to-dos #219, #220, #227, #221, #228; relay 101): **the period panels as twins, the standby's one line, the level
+  card's taps.** #219: `periodHtml` draws week, month and year alike (`reviewFacts` for all three; `yearFacts` went; `yearReview`
+  puts a year in its form), a dash for what's missing or on its way, one "More" (`PER_MORE`). `perLoad`/`perHas`/`perWant`: a
+  switch keeps the old panel until the new data is in; `perWarm` loads all three when the panel opens. Why the numbers
+  differed: `fetchYear` asked every 5 minutes against the review's every minute (4,152 / 4,153), and the enricher filled
+  `typeCode` and `reg` into a sighting without noting them in the book (137 / 138 types: one sighting, known only to the
+  aircraft lookup). Relay 101: the enricher notes them quietly (`_note_first` with learning=True: dated by the sighting, no
+  "new" mark, no points); `_book_late` adds what's missing once from the saved days (marker `lateCodes` in the book);
+  `year_json` gains `topAirline`, `rare`, `newTypes`, `newTypeCount`, `newAircraft`, `newAirlines`; `review_json` gains
+  `countries`. #220: `gSbyHtml` is the week and one line, `gSbyOpen` the sheet, `plateSheet` a plate in the bottom sheet; NEW
+  while at the standby's first level until the sheet was opened (`ACH_KEY + ".sby"`). Two allowed, one used: still "Standby
+  ready". #227: `.cuTap` holds the rank, mini route and next unlock with one real button laid over them (`.cuHit`, `#cuOpen`).
+  #228: the week at the card's foot, "This week's streak" in the tiles' label style (`.gTileL`); How points work is the plate's
+  (i) (`.gHeroI`). #221: the "2 more days for On a roll" notice was `medalNudge`'s `gSay` bubble, no push: now "Trophy On a
+  roll: points 2 more days" (`NUDGE_DO`), `gSay` takes a tap, `trophySheet` opens that trophy (the rows came out of
+  `trophiesHtml`: `trRow`, `trToGo`, `trWon`).
 - 1.119.2 (to-dos #218, #226; relay 100, below): **Sky view's top edge, and no Language setting.** #218: in `arLoop`
   a plane in view whose label's box (`AR_LABEL_UP` = 66 px above it) would start above `arChipBounds(H).t` (under the
   top bar) is made an edge plane (`pr.edge`, `pr.held`) and kept in `arTopOut` (14 px more to leave, no flicker on the
