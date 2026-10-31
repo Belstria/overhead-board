@@ -4369,18 +4369,19 @@ function renderAirport(){
   const sub = !AP.code ? T("Set the home airport in Settings.") : AP.lat == null ? T("Looking up {code} …", {code: AP.code}) :
     AP.rwyLine ? AP.rwyLine + "." : "";
   const row = e => [e.t, apFlight(e), apPlace(e), e.st].join("|");
-  const sig = [sub, AP.lat != null, AP.deps.map(row).join("~"), AP.arrs.map(row).join("~")].join("#");
+  const deps = apShown(AP.deps), arrs = apShown(AP.arrs);       // 1.123.0.2: hidden planes stay off the lists
+  const sig = [sub, AP.lat != null, deps.map(row).join("~"), arrs.map(row).join("~")].join("#");
   if (sig === apSig) return;
   apSig = sig;
   $("apSub").textContent = sub; $("apSub").hidden = !sub;
-  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < AP_ROWS; i++) {   // upright
+  for (const [k, list] of [["d", deps], ["a", arrs]]) for (let i = 0; i < AP_ROWS; i++) {   // upright
     const e = list[i], id = c => `nu${k}${i}${c}`, d = i * 60;
     setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
     setChars(id("flight"), e ? apFlight(e) : "", d + 20);
     setChars(id("city"), e ? apPlace(e) : "", d + 60);
     setWord(id("st"), e ? e.st : i === 0 && AP.lat != null ? "NO TRAFFIC" : "", d + 100);
   }
-  for (const [k, list] of [["d", AP.deps], ["a", AP.arrs]]) for (let i = 0; i < NOW_ROWS; i++) {   // on flaps, on its side
+  for (const [k, list] of [["d", deps], ["a", arrs]]) for (let i = 0; i < NOW_ROWS; i++) {   // on flaps, on its side
     const e = list[i], id = c => `na${k}${i}${c}`, d = i * 60;
     setChars(id("time"), e && e.t ? hhmm(new Date(e.t)) : "", d);
     setChars(id("flight"), e ? apFlight(e) : "", d + 20);
@@ -4843,7 +4844,7 @@ $("hero").addEventListener("click", e => {
 });
 for (const [P, k] of [[APDP, "d"], [APAP, "a"]]) P.el.addEventListener("click", e => {
   const r = P.el.getBoundingClientRect(), y = (e.clientY - r.top) * P.h / r.height, x = (e.clientX - r.left) * P.w / r.width;
-  const i = Math.floor((y - 12) / 30), row = (k === "d" ? AP.deps : AP.arrs)[i];
+  const i = Math.floor((y - 12) / 30), row = apShown(k === "d" ? AP.deps : AP.arrs)[i];
   if (!row || i < 0) return;
   const city = fields[`nu${k}${i}city`], info = row.info || baseInfo(row.ac);
   if (x >= city.x && x <= city.x + city.n * city.step) return placeCard(k === "d" ? info.to : info.from);
