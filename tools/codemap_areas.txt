@@ -174,7 +174,7 @@ test/index.html: view viewTimer viewTouched staticSub onMainPage VIEW_NAMES VIEW
     updateRail updatePager railPlate addEventListener("hashchange") +boardTap .rail .cap #railPages @lampOn #viewTools
     #railViews +document.addEventListener("keydown")
 tools/app/head.html: .tools #tabs .cap.ping @ping .tabHead .tabX #tabRow
-tools/app/main.js: ICON TAB_ICONS TABS TAB_PAGES tabKey clubKey tab tabTimer onMainPage buildTabs pingNow showTab
+tools/app/main.js: ICON TAB_ICONS TABS TAB_PAGES clubKey tab tabTimer onMainPage buildTabs pingNow showTab
     addEventListener("hashchange")
 README.md: "- **Views on the board**" "Press **S** for settings"
 changelog: view|rail|button|tab\b|tabs
@@ -185,16 +185,16 @@ test/index.html: SV_ROWS DAY_START_H boardDay todayKey loadLog saveLog SAME_PASS
     todayList fillEntry svFilter svPageNo svLegend svSig spottedSummary TIER_ORDER reviewTime dayHighlights svQuery spotMatch svFindHtml svFindWire lampOf
     altNum svPart svSignature renderSpottedBoard fitText SV_X drawSpottedTable svStep setLegend legendGroups
     legendChip drawLegend SV_TOOLS .svFind +renderSpotted +recentShown
-tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #t-today #todayFacts .dayFacts #todayP
-    #todayTop .tdFind .tdFil .lbSeg .tdNums .tdHl .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
+tools/app/head.html: .flights .fl .chip .legend #svList.wait #svList #svSum #svTools #todayFacts .dayFacts #todayP
+    #todayTop .tdFil .lbSeg .tlHead .tline .tlFoot .tlCard .tlBg .tlK .tlX .tlWas .tlGone #recentN #recentFoot #recentAll
 tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullDay dayList chip distText altText
     rowHtml rowSig svFilter svSig todayList svData SV_TOOLS buildSvTools legendHtml todayNumbers
-    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdHl").onclick tdFilter $("tdFil").onclick todayJump renderToday renderLists
+    TD_PLATE TD_FACTS todayFactsSig tdSig renderTodayNumbers tdOpen $("tdPlate").onclick tdFilter tdFilDot $("tdFil").onclick todayJump renderToday renderLists
     tlKey plainCode noFlightNo rowName noRoute tlNode rowTier rowMarks FLAG_SVG rowInner tlPic tlCardSig tlAsking tlAhead tlAgo tlCardHtml cardLi
     tlHtml tlState tlFinding tlNothing tlOpenId tlTok tlRunning tlCap tlAgain tlBusy tlFill tlWire tlLate tlDone
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
-README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.115)"
+README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.123)"
     "- **The day runs from 00:00"
 docs/history.md: "Spotted today's PAGE x OF y"
 changelog: spotted today|today tab|\btoday\b|legend|filter
@@ -215,11 +215,11 @@ test/index.html: LB_ROWS RV_ROWS LB_CATS LB_RECS LB_RECS.forEach LB_BOX lbBox LB
     +#viewTools 'vdef("logbook"'
 tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools .yActs .model .lbFindBox
     #t-logbook.finding #lbFound .lbfPin .seg.lbViews .secPlate .perCard .perHead .perArr .sum.lbFoot .dd
-    .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbNums #lbYear #lbIdx .perMore
+    .seg.catSeg .catRow .lbfRead #lbFindBox #lbLists #lbSum #lbViews #t-logbook #lbYear #lbFilPlace .lbFilter #lbStrip .lbStrip .lbStrip.one .lbPlate .lbPlate.lbOpens css:button.lbPlate .lbPlH .lbPlN .lbOpens #lbPlate #tdPlate .perMore
     .perMoreIn
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
-    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard lbPick recordsHtml secPlate plFoot
+    lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard LB_PLATES lbPlateOn lbStripSig lbPlateNum lbPlateHtml lbStripSync lbPlateGo lbDemoPer lbPick recordsHtml secPlate plFoot
     yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json

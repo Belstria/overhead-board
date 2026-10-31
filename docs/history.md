@@ -948,6 +948,23 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.123 (to-do #241, Dave's pick C; relay unchanged): **the phone's Logbook, one screen.** `#t-today` and `#t-logbook` are one
+  section, `#t-logbook`; `tab` is "logbook" (`TAB_PAGES` has no "today", `tabKey` went). From the top: `.lbSeg` holds the search
+  (`#lbFindBox`, 44 px) and the filter icon (`#tdFil`); the strip `#lbStrip` holds three twin plates (`.lbPlate`, `lbPlateHtml`:
+  `#tdPlate`, `#lbPlate`, `#lbYear`); `#lbFilter` opens under it (`tdFilter`, class `tdFilOn`: `#svTools`, `#svSum`, `#svPlaces`,
+  `#lbFilPlace`, the one row for `P.places`); `#svList` runs on. `.tdNums`, `.tdHl`, `#tdFind`, `#lbIdx` and `.lbFoot` went.
+  Today's plate opens `tdOpen`; every fact of the old Highlights card was already in that sheet. All time's numbers are buttons with
+  `data-lp` (cats, regs, types, airlines: `lbPanelOpen`), amber names and no chevron; a number with no panel is disabled and not
+  amber. Its panels end in the old footnote as `plFoot` (the most seen model line dropped). The period plate is `lbYearCard`.
+  **Routes** (`showTab`): "today" (the key, `#today`) lands on the Today plate, "logbook" on All time when arriving from another
+  tab, `review-*` on the period, clearing a saved place (it hides that plate). `showTab(tab)` from inside (a language change) doesn't
+  move the strip; the sideways turn puts `lbPlateOn` back. The URL is always `#today` (`tabHash`), so a reload starts on Today.
+  `lbStripSync` keeps the plate on show when one comes or folds, and takes the full width when one is left (`.one`). **Fold:** Today's
+  with no planes; All time's and the period's when the logbook is empty or out of reach (`noBook`), the period's also under relay
+  29. Demo mode's period plate starts on the week (`lbDemoPer`): demo mode has sample weeks and months, no sample year. **No /search
+  behind the box** (demo, no relay, relay under 55): the box finds in the day's list (`svFindHtml`, `svQuery`), so those keep what
+  they had. Without a game `#lbViews` stays under the search and Collection or Records replace the page (`.lbOther`). The page's
+  swipe is Logbook ⇄ Club, not on `.lbStrip`; since a plane's row keeps its own swipes, a leftward one starts only in the gaps.
 - 1.122.2 (to-do #242; relay unchanged): **the Club's index on a plate.** `gIndexHtml` returns `secPlate("Your club",
   .gRows, "gClub")` instead of the dark `.idx.gIdx` card: a second plate under "Your level" (10 px gap, `#t-game
   .secPlate.gClub`), rows with the label in 600 `--fs-base`, the value in 500 `--fs-s` muted and the `›`, a hairline

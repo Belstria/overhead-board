@@ -48,9 +48,10 @@ two days later mockups again carried sentences and a second row of tabs. These r
 11. **Panels, not pages.** Anything that opens rises as the bottom sheet with the original plate inside (screws,
     engraved title): no sliding pages, no back header, no new routes. Things that expand in place keep doing so. A
     card with a detail panel opens it on a tap anywhere on the card, with no extra "All N ›" row for it; index rows
-    (a label and a one-line state) stay, they are the way into a panel of their own.
-12. **The first screenful answers the screen's question.** Now: what is over me. Today (the Logbook's first pane):
-    what came. All time (its second): what I have ever seen. Club: how am I doing. Radar: what is around.
+    (a label and a one-line state) stay, they are the way into a panel of their own. The Logbook's All time numbers
+    open their lists, so that index is gone (Dave, 31 Oct).
+12. **The first screenful answers the screen's question.** Now: what is over me. The Logbook, one screen: what came and what I have ever
+    seen, Today's plate first. Club: how am I doing. Radar: what is around.
     Settings: what can I change. The rest after a scroll or a tap.
 13. **Empty things fold away.** A category with 0 is hidden or folded with a count. A list inside a card or panel stops
     at five rows and "All N ›" opens the rest; the list a screen exists to show (Today, the league, search) runs on.
@@ -63,7 +64,8 @@ two days later mockups again carried sentences and a second row of tabs. These r
 
 15. **Reuse before you style.** A new element takes the class of the existing one with the same job (index row, chip,
     (i), cBtn, bottom sheet, pill, segmented filter); two similar elements that differ are reported, not joined by a
-    third. Nothing moves unless a state changed, and `prefers-reduced-motion` is honoured.
+    third. Nothing moves unless a state changed, and `prefers-reduced-motion` is honoured. An
+    **amber name on a number means the number opens something** (Dave, 31 Oct).
 16. **Panels of one kind are twins**: the week, month and year panels show the same facts in the same order at the
     same height; the same for any other repeated panel.
 17. **Three options for every design choice** (PNGs at phone size, an MP4 where it moves, with a recommendation), sent
@@ -99,7 +101,7 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Removed on request, don't bring back**: the list in `CLAUDE.md`. The flap clock left the app's header on 30 Oct
   (Dave's pick) and doesn't return.
 
-## 3. The app today (1.120, 31 Oct 2026)
+## 3. The app today (1.123, 31 Oct 2026)
 
 - **Header**: the logo, the style name with the switch to the other style (Overhead ⇄ Airport), the place and radius,
   the points-and-level chip top right ("9,950 pts · paused", "LEVEL 9", the rank's lapel in a progress ring to the next
@@ -107,11 +109,11 @@ in the sheet a tap opens; the engraved plate title on every sheet.
 - **Bottom bar**: Now, Logbook, Club, Radar, Settings (four without the Club when there is no game: demo mode, no relay, an old relay).
 - **Now**: the checklist bar for a new user, the plane overhead on the flaps, its picture, the Sky view row, recent
   flights, the notices bar; scan tickets and undo notices rise from below.
-- **Logbook**: a Today | All time row, opening on Today. Today: four named numbers, the Highlights card (opens "Today
-  in numbers"), the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills); a
-  filter icon at the end of the row swaps the numbers and Highlights for the find box and the segmented filters. All
-  time: search, four named numbers, the year card, index rows (Categories, Aircraft types, Airlines, Most seen
-  aircraft, Download as CSV) that open panels.
+- **Logbook** (1.123): one screen. The search with the filter icon at its end, stuck under the header; a sideways strip of three
+  twin plates, each a gold name and four named numbers: Today (a tap opens "Today in numbers"), All time (amber names: each number
+  opens its list; Categories, Most seen aircraft, Aircraft types, Airlines, with Counting since as a footnote) and the period (a tap
+  opens Week · Month · Year, with the CSV under More). The icon opens the segmented filters, this place / All places and Saved
+  places in place under the strip. Then the timeline rows (a rarity bubble, time, flight, route, type, marks at the end, no pills).
 - **Club**: sub-tabs Level, League (with Bingo and Trophies under it; League and Bingo with the weekly reset as a
   footnote, Trophies' counts on its switch), Hangar, Passport, Cards. The week on the level card opens the Streak panel.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.

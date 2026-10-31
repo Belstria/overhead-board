@@ -812,9 +812,8 @@ Five buttons along the bottom:
   In the Airport style a Take-off / Landing switch picks the plane on top (it alternates by
   itself every 20 seconds; it stays when one side has no plane), with the runway screen in place of the photo, and the
   take-offs and landings below as split-flap rows (1.36; tap a row for the plane, its place for the airport).
-- **Today** (1.115): the title with the filter box beside it, four numbers with their names (planes, overhead, airlines,
-  types) and a **Highlights** card: the Plane of the day from 21:00 (before then the newest plane new to the logbook) and a
-  line of records. A tap raises the day's plate from below (swipe it down, tap beside it or Back to close it): today's
+- **Today** (1.123): the Logbook's first plate has four numbers with their names (planes, overhead, airlines, types). A tap raises
+  the day's plate from below (swipe it down, tap beside it or Back to close it): today's
   numbers on flaps, from 21:00 the Plane of the day with the first and last plane and the busiest hour, the lowest and
   highest pass and the fastest (the figure first and the plane under it), the most seen airline, the most seen types as
   bars (counting only what came at least twice) and the newest plane new to the logbook. Tap a plane named there and the
@@ -827,17 +826,16 @@ Five buttons along the bottom:
   screws in the corners, its name engraved between two lines, level with the top screws (1.83.1).
 - **Logbook** (1.55): a switch at the top for the views (Logbook and Week & month; Collection and Records moved to the
   Game page in 1.72); the place buttons only under Logbook. Logbook: the totals, most seen model, categories, top aircraft types and airlines, most seen aircraft.
-  **Since 1.117 the Logbook is one screen**: the search, four totals (sightings, aircraft, types, airlines), the period
-  as one card ("2026 in planes · 15 planes · 9 types · 2 countries"), then a list: **Categories**, **Aircraft types**,
-  **Airlines**, **Most seen aircraft**, **Saved places** (All, On the go and your saved places; the row names the one
-  picked) and **Download as CSV**, each with its state in one line. A row (or the card) raises its plate from below as
+  **Since 1.123 the Logbook is one screen**: the search and the filter icon, three plates you swipe sideways (**Today**,
+  **All time** and the period, such as "2026 in planes"), then the day's planes. A tap on All time's numbers opens their lists
+  (Sightings: **Categories**, Aircraft: **Most seen aircraft**, Types: **Aircraft types**, Airlines: **Airlines**), with since when
+  it counts as a footnote; with a saved place on, its name and numbers are that place's. Each list rises from below as
   a panel; a type or an airline in it opens its card, an aircraft searches for it. The period's panel: Week · Month ·
   Year and ◀ ▶, three numbers, four facts and **Share**; **More** unfolds the dates, the other numbers and facts, the
-  new types and the CSV. The search results are as before. The footnote says since when it counts and the most seen model.
-  The app's bottom bar is **Now, Logbook, Club, Radar, Settings** (1.120; without a game, four keys). The Logbook key opens on
-  **Today**, with **Today | All time** at the top: Today has the day's numbers, Highlights and the timeline, and its **filter
-  icon** swaps the numbers for the find box, the filters and the places (a dot on the icon: a filter is on); All time is the
-  search, the totals, the year and the rows. A sideways swipe goes Today, All time, Club. These rows and the Club's tabs
+  new types and the CSV. While a search is on, its results replace the page.
+  The app's bottom bar is **Now, Logbook, Club, Radar, Settings** (1.120; without a game, four keys). The Logbook key opens on the
+  **Today** plate. The **filter icon** opens the filters, this place or all places and **Saved places** under the plates (a dot on
+  the icon: a filter or a saved place is on). A sideways swipe off the plates and rows goes Logbook, Club. The search row and the Club's tabs
   **stay at the top**, under the header, while a page scrolls, and
   whatever opens has a chevron in a small ring: Saved places, the categories (turned up, the ring amber, while one is
   open) and the Favourites & hidden list picker. Since 1.113 a tap on a row of **Aircraft types** or **Airlines** opens its
