@@ -110,8 +110,8 @@ in the sheet a tap opens; the engraved plate title on every sheet.
   (Categories, Aircraft types, Airlines, Most seen aircraft, Download as CSV) that open panels. Spotters' Club: sub-tabs
   Level, League (with Bingo and Trophies under it), Hangar, Passport, Cards.
 - **Radar**: title, (i), a cogwheel chip with the range that opens the range-and-map plate, the radar, the Nearest table.
-- **Sky view**: from Now; AUTO alignment always on with an "apply?" prompt, a mini radar bottom left, edge chips for at
-  most three off-screen planes, the count "1 in view · 3 around".
+- **Sky view**: from Now; the align button in the top row (a circle, the camera or the Align button lines the labels up on the
+  sun or moon), a mini radar bottom left, edge chips for at most three off-screen planes, the count "4 around".
 - **Settings**: an index of sections (Location, Traffic, Display, Flaps & sound, Night, …) each opening a cockpit
   plate as a panel with Save; closing unsaved asks. About: rows that open panels (versions, log, connection).
 - **Welcome and tips**: one question with one big button per step, the alternative a plain link, Skip small.

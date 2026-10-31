@@ -948,6 +948,21 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.121 (to-do #223, Dave's combination of mockups A and B): **align on the sun or moon.** `#arAlign` (the corners, in `#arReset`'s
+  place) opens the step (`arAlignOpen`, `arAlignStart`; `#arView.aligning` hides the labels, chips, mini radar, ribbon, zoom, (i)):
+  the ring at `AR_ALIGN_R` (24 px, `arAimDraw`, its fill = `arAlign.prog`), the target's own dashed ring or edge arrow, one
+  bar in the hint's place (`#arAlignBar`, `arAlignShow`, with "Don't look into the sun" while the sun is the target), ☀ ☾
+  (`#arAlignPick`) when both are up, the Align button `#arAlignGo` (`.arShut`) where the shutter goes. `arAutoStep` hands
+  over to `arAlignStep` while it is open: `arSunFind` (whole picture, as before) or the new `arMoonFind` (only `AR_ALIGN_WIN`
+  px round the middle at the video's resolution: a patch at 60 % of the way from the rim's median to the top, 0.2–4° across,
+  round, alone, not cut; thin moons may be longer); `AR_ALIGN_N` finds in the ring within `AR_ALIGN_MS` agreeing to
+  `AR_ALIGN_TOL` line up (`arAlignDo`: `arGlide`, `arAligned`, `arHold`). `arAlignPress` is the sum alone (the middle of the
+  screen against the body; `AR_ALIGN_FAR_AZ/EL` say "That's not the sun"). Undo `arAlignBack`; Reset `arAlignReset` (⟲'s code), in the
+  bar, shown once anything moved; neither up: `arSunUpAt`. **AUTO's Apply card went (Dave):** `arAsk*` and `#arAsk` are gone: before an alignment AUTO's finds move nothing, after one
+  only finds within `AR_AUTO_NEAR` of the labels or twice that of `arAligned` glide on (a drag sets `arAligned` too). The hint's sun and moon sentences went.
+  The title is one number (`{n} around`). `#arFlag` moved into `.arBot`, bottom right, still `arReportOk()`; the report is v 4 with
+  `align` (the last 12 endings: finder, button, far, cancel, switch, undo, reset, down; tries, seen, inRing, `why` from
+  `arMoonSaw`, the correction) and `alignNow`. Tested only on a fake camera and sensors, never a real sky.
 - 1.119.3 (to-dos #219, #220, #227, #221, #228; relay 101): **the period panels as twins, the standby's one line, the level
   card's taps.** #219: `periodHtml` draws week, month and year alike (`reviewFacts` for all three; `yearFacts` went; `yearReview`
   puts a year in its form), a dash for what's missing or on its way, one "More" (`PER_MORE`). `perLoad`/`perHas`/`perWant`: a
