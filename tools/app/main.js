@@ -5057,7 +5057,7 @@ document.addEventListener("touchend", swipeDone, {passive: true});
 document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
-function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
+function listsChanged(){ svSig = recentSig = rvSig = ""; lookAgain(); renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 // A picture found late (planeBody asks): the open plane card takes it while it still shows that plane (1.93.1.1: not
 // only the radar's), the radar's with where its plane is now.
 function planeAgain(){

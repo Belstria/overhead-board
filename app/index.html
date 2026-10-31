@@ -6663,6 +6663,8 @@ let emptyStreak = 0, lastCount = 0;
 function process(list, again){
   if (airportMode()) airportProcess(list);
   const now = Date.now(), R = +S.radiusKm || 15, all = [];
+  // 1.123.0.1: a plane hidden while it is on top goes at once (a snapshot's too), before the pick and the HOLD branch can keep it as PASSED.
+  if (!airportMode() && feat && feat.o && hiddenAc(feat.o.ac)) { dlog("info", `Board: ${planeName(feat)} hidden · off the board`); feat = null; }
   for (const ac of list) {
     if (ac.lat == null || ac.lon == null || (ac.alt_baro === "ground" && !airportMode())) continue;
     const alt = typeof ac.alt_baro === "number" ? ac.alt_baro : (typeof ac.alt_geom === "number" ? ac.alt_geom : null);
@@ -12593,6 +12595,9 @@ setInterval(() => {
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.123.0.1", date: "2026-10-31", notes: [
+    "A plane you hide leaves the board at once, and the next one takes its place.",
+  ]},
   {v: "1.123", date: "2026-10-31", notes: [
     "The Logbook is one screen: the search on top, then Today, All time and the period as plates you swipe sideways, then the day's planes.",
     "All time's numbers open their lists: Sightings the categories, Aircraft the most seen, then types and airlines.",
@@ -14149,7 +14154,7 @@ document.addEventListener("touchend", swipeDone, {passive: true});
 document.addEventListener("touchcancel", swipeDone, {passive: true});
 // a swipe isn't also a tap on what it started on
 document.addEventListener("click", e => { if (Date.now() - swipeEnded < 400 && swipeRow(e.target)) { e.stopPropagation(); e.preventDefault(); } }, true);
-function listsChanged(){ svSig = recentSig = rvSig = ""; renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
+function listsChanged(){ svSig = recentSig = rvSig = ""; lookAgain(); renderLists(); renderFeatured(); renderFavBox(); if (tab === "radar") renderRadarList(); }
 // A picture found late (planeBody asks): the open plane card takes it while it still shows that plane (1.93.1.1: not
 // only the radar's), the radar's with where its plane is now.
 function planeAgain(){
@@ -14805,10 +14810,11 @@ async function poll(force){
 // 1.84 (the tracking review): between updates (10 s on a board, 5 s in the app) the board looks at the last one again
 // every 2 s with its planes moved on, so OVERHEAD, APPROACHING and PASSED come when they happen. Not in the Airport style,
 // which picks its plane its own way, nor while the page is hidden or the update is half a minute old.
-setInterval(() => {
+function lookAgain(){
   if (!lastList || busy || S.demo || airportMode() || document.hidden || Date.now() - (lastList.recvAt || 0) > 30000) return;
   try { process(lastList, true); } catch (e) { dlog("error", `Couldn't look again: ${e && e.message || e}`); }
-}, 2000);
+}
+setInterval(lookAgain, 2000);
 
 // A phone in a pocket doesn't need updates every ten seconds: back to full speed as soon as the app is looked at.
 document.addEventListener("visibilitychange", () => {

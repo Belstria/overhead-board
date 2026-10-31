@@ -948,6 +948,12 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.123.0.1 (to-do #244; relay unchanged): **a hidden plane on top goes at once.** `process()` drops `feat` first thing when
+  `feat.o` is hidden (`hiddenAc`; a snapshot's `feat` too; not in the Airport style), so neither the pick nor the HOLD branch
+  (PASSED for 25 s) can keep it. `lookAgain()` is the 2 s look-again timer's body; both `listsChanged`s (board, `main.js`) call
+  it, so a hide, a removal or a failed save (`listsShow`) re-picks at once with `process(lastList, true)`, under the timer's
+  guards. No extra ding: `feat.dinged` and `chimed` are per plane. The Airport style's `apFeature` does not filter hidden planes
+  and is unchanged.
 - 1.123 (to-do #241, Dave's pick C; relay unchanged): **the phone's Logbook, one screen.** `#t-today` and `#t-logbook` are one
   section, `#t-logbook`; `tab` is "logbook" (`TAB_PAGES` has no "today", `tabKey` went). From the top: `.lbSeg` holds the search
   (`#lbFindBox`, 44 px) and the filter icon (`#tdFil`); the strip `#lbStrip` holds three twin plates (`.lbPlate`, `lbPlateHtml`:
