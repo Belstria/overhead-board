@@ -7,7 +7,7 @@ Needs Playwright once:  py -m pip install playwright  and  py -m playwright inst
 OUT is a file name prefix (shot:now writes OUT-now.png). Steps run in order:
     wait:MS          wait this many milliseconds
     key:NAME         press a key (t, l, r, s, Escape, Digit3, ...)
-    click:X,Y        click at a point          tap:CSS      click an element, e.g. tap:[data-tab=today]
+    click:X,Y        click at a point          tap:CSS      click an element, e.g. tap:[data-tab=logbook]
     scroll:Y         scroll the page to Y      js:EXPR      print the value of a JavaScript expression
     shot:NAME        screenshot                full:NAME    whole-page screenshot (the phone app scrolls)
     clip:X,Y,W,H,NAME  screenshot of part of the page
@@ -20,7 +20,7 @@ Prints page errors and console errors at the end. Route and aircraft lookups (ad
 from run_test_relay.py, so names and routes match the made-up planes.
 
 Example, the phone app's Today tab against the test relay:
-    set PHONE=390x844 && py tools/test/shoot.py http://localhost:8096/app/ out wait:8000 tap:[data-tab=today] wait:2000 shot:today
+    set PHONE=390x844 && py tools/test/shoot.py http://localhost:8096/app/ out wait:8000 tap:[data-tab=logbook] wait:2000 shot:today
 """
 import asyncio
 import json

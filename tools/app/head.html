@@ -226,10 +226,9 @@ body[data-health=off] .status,body[data-health=warn] .status,body[data-health=de
 .dayFacts button.dayJump:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
 /* 1.115 (to-do #206, Dave's pick B): Today: the title with the filter beside it, four labelled numbers, the Highlights
    card (it raises the day's plate as a sheet, tdOpen), the filter chips, the list */
-.tdHead{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
-.tdHead h2{margin:0;flex:none}
-.tdFind{flex:1;min-width:0}
-.tdFind .svFind{margin:0}
+.tdFind{margin:0 0 12px}
+.tdFind .svFind{display:flex;width:100%;margin:0}
+.tdFind input{flex:1;width:100%}
 .tdNums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 10px}
 .tdNums div{display:flex;flex-direction:column-reverse;text-align:center;padding:10px 4px 9px;border-radius:12px;background:var(--box-bg);border:var(--box-bd)}
 .tdNums dd{margin:0;font:700 var(--fs-2xl)/1 var(--f-board);color:var(--ink);font-variant-numeric:tabular-nums}
@@ -840,12 +839,13 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .favRowT:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .favRow .cBtn{margin:0;flex:none}
 .favPlate .favInfo{margin:2px 0 8px}
-/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the Logbook · Spotters' Club titles; the names scroll sideways
+/* 1.116 (Dave's pick B): the Club's sub-tabs, stuck under the header (1.120); the names scroll sideways
    (the segmented style of 1.88's jump bar) */
-#gSub{position:sticky;top:calc(var(--topH,0px) + var(--lbH,41px));z-index:4;margin:-12px calc(-1 * var(--gut)) 12px;padding:6px var(--gut);
+#gSub{position:sticky;top:var(--topH,0px);z-index:4;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
+#gSub .seg.jumpSeg{margin:0}
 #gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -1658,12 +1658,19 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
    the edges, as before.
    The Logbook's period card: Week · Month · Year with earlier and later. */
-.lbTabs{position:sticky;top:var(--topH,0px);z-index:4;display:flex;gap:20px;align-items:flex-end;margin:0 calc(-1 * var(--gut)) 12px;padding:8px var(--gut) 1px;
+/* 1.120 (to-dos #222, #225, Dave's pick A): Today | All time at the top of the Logbook, stuck under the header, with the
+   Today pane's filter icon at the end of the row (an empty place on All time, so the row stays put) */
+.lbSeg{position:sticky;top:var(--topH,0px);z-index:4;grid-column:1/-1;display:flex;gap:8px;margin:-6px calc(-1 * var(--gut)) 8px;padding:6px var(--gut) 8px;
   background-color:var(--metal);background-image:var(--metal-img,none);background-size:600px 600px;box-shadow:0 6px 10px -6px rgba(0,0,0,.8)}
-.lbTabs::after{content:"";position:absolute;left:var(--gut);right:var(--gut);bottom:0;height:1px;background:var(--line)}
-.lbTabs button{all:unset;cursor:pointer;padding:0 0 7px;font:700 var(--fs-xl)/1.1 var(--f-board);color:#5c6068}
-.lbTabs button[aria-current=page]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--amber)}
-.lbTabs button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.lbSeg .seg.gSeg{flex:1 1 0;margin:0}
+.tdFil{all:unset;box-sizing:border-box;cursor:pointer;position:relative;flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);color:var(--muted)}
+.tdFil svg{width:19px;height:19px}
+.tdFil[aria-pressed=true]{color:var(--ink);border-color:var(--amber)}
+.tdFil.act::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--amber)}   /* a filter is on, its panel closed */
+.tdFil:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tdFil.gap{visibility:hidden}
+#t-today:not(.tdFilOn) .tdFind,#t-today:not(.tdFilOn) #svTools,#t-today:not(.tdFilOn) #svSum,#t-today:not(.tdFilOn) #svPlaces{display:none}
+#t-today.tdFilOn #tdNums,#t-today.tdFilOn #tdHl{display:none}
 .perHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .perHead h3{margin:0}
 .perArr{display:flex;gap:6px}
@@ -1979,8 +1986,9 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-today" hidden>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="true" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="false" data-t="All time">All time</button></div><button class="tdFil" type="button" id="tdFil" aria-pressed="false" aria-label="Filter" data-ta="Filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
     <div class="lcol">
-      <div class="tdHead"><h2 data-t="Spotted today">Spotted today</h2><div class="tdFind" id="tdFind"></div></div>
+      <div class="tdFind" id="tdFind"></div>
       <dl class="tdNums" id="tdNums"></dl>
       <button type="button" class="tdHl" id="tdHl" hidden></button>
       <div hidden><section class="plate secPlate" style="--cols:1" id="todayTop"><i></i><i></i><i></i><i></i><h3 data-t="Today in numbers">Today in numbers</h3>
@@ -1996,7 +2004,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab cols" id="t-logbook" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" aria-current="page" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" data-t="Spotters' Club">Spotters' Club</button></div>
+    <div class="lbSeg"><div class="seg gSeg" role="group"><button type="button" data-lt="today" aria-pressed="false" data-t="Today">Today</button><button type="button" data-lt="logbook" aria-pressed="true" data-t="All time">All time</button></div><span class="tdFil gap" aria-hidden="true"></span></div>
     <div class="lcol">
       <div class="tools lbFindBox" id="lbFindBox" hidden></div>
       <div id="lbFound" hidden></div>
@@ -2029,7 +2037,6 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
     </div>
   </section>
   <section class="wrap tab" id="t-game" hidden>
-    <div class="lbTabs" role="tablist"><button type="button" role="tab" data-lt="logbook" data-t="Logbook">Logbook</button><button type="button" role="tab" data-lt="game" aria-current="page" data-t="Spotters' Club">Spotters' Club</button></div>
     <div id="gSub"><div class="seg jumpSeg" role="group" id="gSubSeg"></div></div>
     <div id="gameBox"></div>
   </section>
