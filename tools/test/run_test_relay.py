@@ -156,7 +156,7 @@ def run(a, tmp, procs):
         encoding="utf-8")
     # relay 68: a sighting from yesterday saved before the relay knew airline names (the Test profile), which the relay
     # fills in once; the Austrian one already has its name and must stay as it is
-    day = time.strftime("%Y-%m-%d", time.localtime(now - 3 * 3600 - 86400))
+    day = time.strftime("%Y-%m-%d", time.localtime(now - 86400))
     old = [{"id": "old-ein", "hex": "4ca2b8", "callsign": "EIN1XY", "ts": int((now - 86400) * 1000), "time": "12:00",
             "typeCode": "A320", "minDist": 6.2, "altAtMin": 9000, "looked": True},
            {"id": "old-aua", "hex": "440a99", "callsign": "AUA9", "ts": int((now - 86400) * 1000) - 60000, "time": "11:59",
@@ -170,7 +170,7 @@ def run(a, tmp, procs):
         # relay 96 (1.112): a game from before the move: 9,950 points (level 9 by the old totals, 8 by the new), mastery
         # steps by the old numbers (A320 gold at 120 scans, DH8D bronze at 7), no showcase pins; the relay moves it at start
         v = {k: int(re.search(rf"^{k} = (\d+)", src, re.M).group(1)) for k in ("GAME_V", "TROPHIES_V", "GAME3_V")}
-        t0, today = int((now - 86400 * 20) * 1000), time.strftime("%Y-%m-%d", time.localtime(now - 3 * 3600))
+        t0, today = int((now - 86400 * 20) * 1000), time.strftime("%Y-%m-%d", time.localtime(now))
         names = {"A320": "Airbus A320", "B744": "Boeing 747-400", "DH8D": "Dash 8-400", "E195": "Embraer 195", "B789": "Boeing 787-9"}
         scans = {"A320": 120, "B744": 60, "DH8D": 7, "E195": 30, "B789": 3}
         types = {tc: {"count": n + 2, "first": t0 + i, "last": t0 + 86400000 * (5 + i), "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}

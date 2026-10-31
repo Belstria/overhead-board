@@ -2916,7 +2916,7 @@ function demoLog(){
 }
 
 /* ---------- spotted log ---------- */
-const DAY_START_H = 3;      // "today" runs from 03:00 to 03:00, so late flights count to the evening they belong to
+const DAY_START_H = 0;      // 1.120.1 (to-do #233): one day for everything, 00:00 to 23:59, as the relay
 function boardDay(){ const d = new Date(Date.now() - DAY_START_H * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 function todayKey(){ return `od.log.${boardDay()}`; }
 function loadLog(){ if (S.demo) return demoLog(); try { return JSON.parse(localStorage.getItem(todayKey()) || "[]"); } catch { return []; } }
@@ -3564,11 +3564,11 @@ const GOAL_TEXT = {heli: "A helicopter",
   turkish: "Turkish Airlines",
   fast: "Faster than {s}"};
 const goalText = k => T(GOAL_TEXT[k] || k, {a: altitudeStr(2500).toLowerCase(), s: speedStr(520).toLowerCase()});
-// 1.50: when the weekly bingo card is drawn afresh: the relay says (relay 44), else the Monday after its week at 03:00.
+// 1.50: when the weekly bingo card is drawn afresh: the relay says (relay 44), else the Monday after its week at 00:00.
 function bingoReset(bg){
   if (!bg || !bg.week) return "";
   let at = +bg.resets || 0;
-  if (!at) { const d = new Date(bg.week + "T03:00:00"); d.setDate(d.getDate() + 7); at = +d; }
+  if (!at) { const d = new Date(bg.week + "T00:00:00"); d.setDate(d.getDate() + 7); at = +d; }
   const left = at - Date.now();
   if (!(left > 0)) return T("New card soon");
   const t = left >= 48 * 36e5 ? T("{n} days", {n: Math.round(left / 864e5)}) : left >= 36e5 ? T("{n} h", {n: Math.floor(left / 36e5)}) : T("{n} min", {n: Math.max(1, Math.ceil(left / 6e4))});
@@ -3813,7 +3813,7 @@ let rotLoops = 0, statsTurn = false;
 const rotation = () => !airportMode() ? ROTATION_OVERHEAD : ["aplists", "apdep", "aplists", "apland"];
 let rotStep = 0;
 let page = "spotted", pageSince = Date.now(), switching = false;
-// From 21:00 until the day ends (03:00), Today in numbers is the day in review: the Plane of the day (the rarest) in place of
+// From 21:00 until the day ends (23:59), Today in numbers is the day in review: the Plane of the day (the rarest) in place of
 // the most seen (1.89.1: no day's points on the board, the game is the phone app's; reviewTime: with dayHighlights).
 function pageTitle(p){
   return {spotted: ["Recent flights", "Letzte Flüge"], stats: reviewTime() && relayV5() ? ["Your day in planes", ""] : ["Today in numbers", "Heute in Zahlen"],
@@ -4312,7 +4312,7 @@ function spottedSummary(){
 // to them in the timeline). `st`: the relay's day_stats, which counts the whole day; its records are found in the list
 // by hex and time, else drawn from what the relay sends.
 const TIER_ORDER = {common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5};
-function reviewTime(){ const h = new Date().getHours(); return h >= 21 || h < 3; }     // the evening: Your day in planes
+function reviewTime(){ return new Date().getHours() >= 21; }     // the evening: Your day in planes
 function dayHighlights(list, st){
   const find = r => r ? list.find(e => e.hex === r.hex && e.ts === r.ts) || list.find(e => e.hex === r.hex && e.time === r.time) || fromRelay(r) : null;
   const best = (ok, better) => list.reduce((a, e) => ok(e) && (!a || better(e, a)) ? e : a, null);
@@ -5094,7 +5094,7 @@ function fetchReview(done){
     .then(j => { review.data[k] = j; if (done) done(); }).catch(() => { review.at[k] = 0; });
 }
 function demoReview(){
-  const week = review.span === "week", d = new Date(Date.now() - 3 * 3600e3), iso = x => x.toISOString().slice(0, 10);
+  const week = review.span === "week", d = new Date(new Date().setHours(12)), iso = x => x.toISOString().slice(0, 10);
   const s = week ? new Date(d.getTime() - ((d.getDay() + 6) % 7 + 7 * review.back) * 86400e3) : new Date(d.getFullYear(), d.getMonth() - review.back, 1, 12);
   const e = week ? new Date(s.getTime() + 6 * 86400e3) : new Date(s.getFullYear(), s.getMonth() + 1, 0, 12), k = week ? 1 : 4.3;
   return {sample: true, span: review.span, back: review.back, start: iso(s), end: iso(e), planes: Math.round(612 * k), prevPlanes: Math.round(560 * k),
@@ -7873,6 +7873,9 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.120.1", date: "2026-10-31", notes: [
+    "The day now starts at 00:00 for everything: 23:59 is the last minute before the reset.",
+  ]},
   {v: "1.119.3", date: "2026-10-31", notes: [
     "Week, month and year: the same facts in the same order at the same height, and no blank when you switch.",
     "Logbook and period panels now count the same types and aircraft, and the year keeps up with the month.",

@@ -948,6 +948,11 @@ The repository is public: no addresses, keys or personal data here either.
 
 ## The phone app
 
+- 1.120.1 (to-do #233; relay 102): **one day for everything, 00:00 to 23:59.** `DAY_START_H = 0` (board) as `DAY_STARTS_H`
+  (relay); `reviewTime` is 21:00 to 23:59; `ppToday`, the streak ticket's weekday and `demoReview` no longer step back 3
+  hours. A time from a relay's `resets` shows as it is when something starts ("New card Mon 00:00", "score again from
+  00:00"); `gLastMin` (a minute before) is the deadline ("scan by 23:59", "The week ends 1 Nov, 23:59", which fixes that line's
+  date). Old rows of `test/i18n.js` keep their 03:00 and are unused.
 - 1.119.3 (to-dos #219, #220, #227, #221, #228; relay 101): **the period panels as twins, the standby's one line, the level
   card's taps.** #219: `periodHtml` draws week, month and year alike (`reviewFacts` for all three; `yearFacts` went; `yearReview`
   puts a year in its form), a dash for what's missing or on its way, one "More" (`PER_MORE`). `perLoad`/`perHas`/`perWant`: a
@@ -1851,6 +1856,12 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 102 (1.120.1, to-do #233): **the day starts at 00:00.** `DAY_STARTS_H = 0`: `board_day`, `_next_day_ms`, the
+  league's and bingo's `resets` and `dayStarts` follow. Everything saved is keyed by the date, so nothing moves: past
+  `sightings-<day>.json` keep what the old rule put in them (a plane at 00:30 stays with the evening before), and
+  `scanDays`, `standby`, `days`, `limits` and `bingoPay` carry on. Install between 03:00 and 23:59: inside 00:00 to 03:00
+  the day jumps forward at once, and a streak still waiting on that evening's scan is over early. `midnight_checks` in
+  `tools/test/flows.py`.
 - Relay 100 (1.119.2, to-do #226): **notifications in English for everyone.** `PUSH_LANG_CHOICE = False` and
   `sub_lang(sub)` (every `sub.get("lang")` of the push texts goes through it): a subscription keeps its stored `lang`,
   but the texts and the compass words come out English until the switch is true again (with the app's `LANG_CHOICE`).
