@@ -405,22 +405,22 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
 tools/app/head.html: #gSub .seg.jumpSeg .gRows .secPlate.gClub .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gTx .gL1 .gRing .gRt .gRa .gLap .gHead.lvl @gFlash .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
     .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gSbyTg .gSbyTg.off .gSbyTg.lim .cuTap .cuHit .gHero .plFoot .gHowTbl .gHowH .gStk .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk .gWkB
-    .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
-    .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
+    .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
+    .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .lyNew .lyNewBox .lyNewS .lyNewC @lyDeal @ppCardHit .lyTop .lns.two .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
-    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
+    gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gAwShort gPop gWho gAwards gScanPops SKY_ICO gAwsBox gAwTimer gAwTap GL_GAP GL_STUCK gLine gLineOn gLineHolds gLineAdd gLineRun gPassFill TIX_MS RIP_AFTER RIP_MS POP_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
     gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimFull gLimLine gLimOpen gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
-    LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyAt lySort lyFlipped LY_RING LY_INK lyInk lyStill lyLetter lyWhen lyList lyCardHtml walletHtml lyWire
+    LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyWritten lyCol lyTicket lyAt lySort lyFlipped LY_RING LY_INK lyInk lyStill lyHow lyLogo lyNew lyGoTo lyLetter lyWhen lyList lyCardHtml walletHtml lyWire
     worldLoad worldFailed worldMap PP_REG PP_INK PP_VIEW ppHash ppInks ppInksKey ppInkAll ppInk ppReg ppNames ppName ppDate ppToday ppList ppStamp ppMerc ppView ppPath PP_CONT PP_TINT ppLat
-    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo gUnder
+    ppLand ppUid ppMapSvg ppTotals ppGoals passportHtml ppWire ppAt ppCard ppRoute ppStampNow ppGoTo ppNew ppOpen ppFace ppShelf ppPos ppClamp ppHit ppLive ppPick ppGo gUnder
     SC_LOCK scMine scDate scPics scPin scCab hgWant hgShow scEmpWire scBtn scWire scSection
     CAREER_MORE CAREER CAREER_KIND careerAt careerName CU_PLANE CAREER_AT careerPts cuBadge careerIco cuUnl cuToGo careerMini careerOpen careerRouteList
 relay/serve.py: TIER_POINTS TIERS GAME_V LEGENDARY_TYPES FLEET SETS tier_of score _rescore _streak TROPHIES_V

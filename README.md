@@ -534,13 +534,16 @@ The main board has everything below. New features are tried on `/test/` first; o
   new airline: only what is sure), their total on the stub, a line for the daily streak while nothing was scanned today
   ("Your first scan today adds the daily streak: +25"; not in the total) and **Scan in Sky view**: a tap anywhere on the
   ticket opens Sky view with that plane picked out, its ring on it and its chip pointing to it (in Sky view the tap
-  only picks it out). A ticket stays **10 seconds**, or until it is swiped away sideways or its plane is scanned (a plane
+  only picks it out). A ticket stays **6.5 seconds**, or until it is swiped away sideways or its plane is scanned (a plane
   that flies out of the circle leaves its ticket up for at least 6 seconds), and
   doesn't come back for that plane (its gold ★ in Sky view stays). Several planes: one ticket each, up to three on screen,
   **newest on top** with the older ones peeking out under it; a fourth puts the oldest away, a shorter pass only for a
-  while (the ticket comes back while its 10 s last). In Sky view the tickets sit at its bottom. **At the scan** the
-  plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears, then the streak's;
-  both stay 10 s. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
+  while (the ticket comes back while its time lasts). In Sky view the tickets sit at its bottom. **At the scan** the
+  plane's ticket, if it is still up, becomes the scan's ticket (what the scan really gave) and tears; it stays **3 seconds after its stub is off**, and so
+  does the streak's pass. **One thing at a time** (1.124): all a scan brings comes one after the other in the same place: the scan's
+  ticket, the streak's pass, the passport's pop-up, the new card's pop-up. Swipe or tap one away and the next rises; a pop-up
+  stays 14 seconds, and planes' tickets step aside for it and come back after. A swipe past 40% of the width or a flick
+  sends a ticket, pop-up or notice away; a shorter one bounces back. From three extras on, a ticket shows them under the first line in two short columns. The first plane past a limit still shows a grey pass, "+0 · Common limit reached" (later ones stay
   quiet); a scan brings a prize jingle and a buzz. **Golden tickets** (1.101): now and then (about one plane in 20) a
   plane's ticket comes up **gold**: gold foil with a sheen, "GOLDEN TICKET · 10 KM", the stub "GOLDEN" with ×2. Its scan
   pays the plane's points **twice** (a common 10 → 20, a rare 100 → 200; the ticket reads "Rare plane +100 ×2"); the
@@ -632,10 +635,11 @@ The main board has everything below. New features are tried on `/test/` first; o
   Silver +25"); the opened card shows the four steps with their bonuses and how far the next is ("13 of 25 scans to
   silver"). Scans from before count for the frames; a step already passed then pays nothing, and a frame shown before
   1.112 stays (a bronze from 5 scans isn't paid again at 10). Since 1.106 the club has
-  **member cards**, one for every airline you caught live (the same count as the airline trophies, e.g. "32 airlines ·
-  Frequent flyer at 50"): your first scan of an airline's plane makes you a **Member**, its **10th, 50th and 200th
+  **Frequent flyer** cards (called so since 1.124), one for every airline you have scanned: your first scan of an airline's plane
+  gets you its card, with a **pop-up** in Sky view (a tap takes you to the card), and makes you a **Member**, its **10th, 50th and 200th
   Silver, Gold and Platinum**, paying **+25, +100 or +250** once ("Austrian · Gold +100" on the ticket). Since 1.114 the
-  cards stand in a **carousel**: swipe through them (a flick carries through the cards, showing each, and settles on one), tap a side card to bring it in, and tap the
+  cards stand in a **carousel**, the airline's name above the front card (a tap opens the airline's info) and "Card 8 of 36" under it;
+  the (i) on the plate explains the tiers: swipe through them (a flick carries through the cards, showing each, and settles on one), tap a side card to bring it in, and tap the
   front one to **turn it over**. A card's front (since 1.114.3) has the airline's logo printed in its own
   colours, its code in holographic ink, your scans with a ring to the next tier and the tier itself (platinum shines in
   rainbow colours); its back the airline's full name and home base, your scans and sightings, since when you're a member,
@@ -644,8 +648,8 @@ The main board has everything below. New features are tried on `/test/` first; o
   ticket prints your tier with its airline ("OS · GOLD"). Scans from before count; a tier already passed pays nothing. Since 1.107 the club
 has a **passport** under Your hangar: every scanned flight with a known route stamps the countries it flew from and
 to, and a country **new to your passport pays +25** at the scan (its ticket shows the route, "BCN ✈ VIE", the new
-country marked). A card then shows the stamp coming down and the country inking itself in, the ink spreading out from
-the stamp (since 1.113; the finger's scratch went). The plate shows the map with each country inked in its stamp's colour
+country marked). A pop-up then shows the stamp coming down and the country inking itself in, the ink spreading out from
+the stamp (since 1.113; the finger's scratch went); a tap on it takes you to the country in your passport (1.124). The plate shows the map with each country inked in its stamp's colour
 (never where you are). Since 1.113 the map **moves**: drag it, pinch it (the wheel on a computer), ⟲ takes it back to
 Europe; each region's land is printed in its own paper shade, and a **tap on a region** outlines it, names it with its
 count ("Southeast Asia · 2 of 11") and takes you to its stamps. **N countries ›** opens the large map (Europe & around

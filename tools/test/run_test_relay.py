@@ -17,7 +17,7 @@ are not touched: the test relay runs from a temporary folder.
                                                page's Hue lights: Find the bridge finds it, Pair works on the second try
     py tools/test/run_test_relay.py --club     the Test profile has a game from the old rules (1.112's move at start: level 9
                                                kept above its points, styles, three showcase spots, mastery up to platinum)
-                                               and 40 member cards, Platinum down to not a member yet (1.114)
+                                               and 40 airlines in the wallet, Platinum down to 4 with no scan (no card) (1.114, 1.124)
     py tools/test/run_test_relay.py --live-photos   the planes' photos from the real Planespotters.net (needs the internet;
                                                for screenshots) instead of the fake's (relay 73)
     py tools/test/run_test_relay.py --live-facts   the cards' facts (relay 74) from the real Wikipedia and Wikidata (needs the
@@ -63,7 +63,7 @@ def main():
     p.add_argument("--gold", nargs="?", const="all", default="", help="golden tickets: all planes in the scan list, or HEX,HEX")
     p.add_argument("--hue", action="store_true", help="a fake Hue Bridge for the admin page's Hue lights")
     p.add_argument("--club", action="store_true", help="the Test profile has a game from the old rules (relay 96's move: a kept "
-                                                       "level, styles, showcase spots, mastery steps up to platinum) and 40 member cards")
+                                                       "level, styles, showcase spots, mastery steps up to platinum) and 36 Frequent flyer cards (4 more airlines with no scan)")
     p.add_argument("--live-photos", action="store_true", help="the planes' photos from the real Planespotters.net")
     p.add_argument("--live-facts", action="store_true", help="the cards' facts from the real Wikipedia and Wikidata")
     p.add_argument("--slow-names", action="store_true", help="place names take 5 s, the first lookup of each point fails")
@@ -175,7 +175,7 @@ def run(a, tmp, procs):
         scans = {"A320": 120, "B744": 60, "DH8D": 7, "E195": 30, "B789": 3}
         types = {tc: {"count": n + 2, "first": t0 + i, "last": t0 + 86400000 * (5 + i), "name": names[tc]} for i, (tc, n) in enumerate(scans.items())}
         types["B77W"] = {"count": 2, "first": t0, "last": t0 + 86400000 * 12, "name": "Boeing 777-300ER"}   # seen, never scanned
-        # relay 97 (1.114): a wallet of 40 member cards, Platinum down to not a member yet, with the scans' times and types
+        # relay 97 (1.114): a wallet of 40 airlines, Platinum down to no scan (no card), with the scans' times and types
         wal = {"AUA": 486, "DLH": 231, "RYR": 172, "EWG": 120, "WZZ": 88, "LDA": 64, "AEE": 51, "SWR": 44, "THY": 39, "EZY": 31, "BAW": 27,
                "AFR": 22, "KLM": 20, "LOT": 18, "ITY": 15, "TAP": 13, "IBE": 12, "UAE": 11, "QTR": 10, "SAS": 9, "FIN": 8, "CTN": 7, "VLG": 6,
                "TVS": 6, "EJU": 5, "BTI": 5, "CSA": 4, "ROT": 4, "BEL": 3, "ELY": 3, "CFG": 2, "PGT": 2, "SXS": 2, "ETD": 1, "ICE": 1, "TUI": 1,

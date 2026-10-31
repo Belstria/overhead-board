@@ -864,7 +864,7 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .seg.jumpSeg{margin:0;overflow-x:auto;scrollbar-width:none}
 .seg.jumpSeg::-webkit-scrollbar{display:none}
 #gSub .seg.jumpSeg{margin:0}
-#gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 13px}   /* each name whole: the bar scrolls */
+#gSub .seg.jumpSeg button{flex:none;min-width:auto;padding:0 12px}   /* each name whole: the bar scrolls */
 #t-game .gOff .gGoB{all:unset;cursor:pointer;font-weight:700;color:var(--c-good)}
 #t-game .gOff .gGoB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 /* 1.88: the owner's Relay plate in About: lamp rows, 6-px bars, the Legend's amber headings */
@@ -1173,9 +1173,9 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
    tops peeking out over it), each in its tier's metal with the airline's colour and code; on a ticket a printed line
    "OS · GOLD" (a plain one for a member); the step-up a line in the tier's metal as mastery's */
 :root{--m-platinum:linear-gradient(135deg,#55606e,#dfe7f1 45%,#fff 55%,#7f8fa1)}
-.lyN{--lbg:#26272b;--lk:#8b8f99} .ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
+.ly0{--lbg:#3a3d44;--lk:#e9e6df;--mg:#9aa0a8} .ly1{--lbg:var(--m-silver);--lk:#2a2d33;--mg:var(--m-silver)}
 .ly2{--lbg:var(--m-gold);--lk:#3a2a05;--mg:var(--m-gold)} .ly3{--lbg:var(--m-platinum);--lk:#1f2a36;--mg:var(--m-platinum)}
-/* 1.114 (to-do #182): the member cards' carousel. The cards (--cw wide, a real card's 1.586) stand in a curve: the front
+/* 1.114 (to-do #182): the Frequent flyer cards' carousel. The cards (--cw wide, a real card's 1.586) stand in a curve: the front
    one in the middle, its neighbours turned 42° and dimmed (::after); .go while they snap. A card turns over (.flip) on
    its own axis; its front and back are faces. The metal card: brushed lines, the logo engraved (multiplied into light
    metal, screened onto dark), the tier down the right edge, the airline's colour along the left, a hologram, a ring. */
@@ -1190,32 +1190,31 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyFr,.lyBk{position:absolute;inset:0;border-radius:12px;overflow:hidden;background:var(--lbg);color:var(--lk);backface-visibility:hidden;-webkit-backface-visibility:hidden;
   box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.22);font:700 var(--fs-tag)/1.15 var(--f-board);letter-spacing:.08em;text-transform:uppercase}
 .lyBk{transform:rotateY(180deg)}
-.lyN .lyFr,.lyN .lyBk{box-shadow:inset 6px 0 0 var(--ac),0 6px 18px rgba(0,0,0,.45),inset 0 0 0 1px #3a3c42}
 .lyBr{position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,rgba(0,0,0,.04) 1px 2px,transparent 2px 3px);pointer-events:none}
 /* 1.114.3 (final look 2): the logo printed in ink top left (lyInk), the code in holographic ink top right, the scans
    bottom left, the tier across the bottom right; member since and the last scan on the back */
 .lyLg{position:absolute;left:20px;top:16px;height:44px;max-width:170px;display:flex;align-items:center}
 .lyLg img{max-height:34px;max-width:170px;object-fit:contain;object-position:left center;mix-blend-mode:multiply;opacity:.95}
-.lyN .lyLg img,.ly0 .lyLg img{mix-blend-mode:normal}
+.ly0 .lyLg img{mix-blend-mode:normal}
 .lyLg b{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:700 var(--fs-xl)/1 var(--f-board);letter-spacing:.06em;opacity:.75} .lyLg.ok b{display:none}
 .lyHo{position:absolute;right:16px;top:20px;height:40px;display:flex;align-items:center;font:700 var(--fs-2xl)/1 var(--f-board);letter-spacing:.04em;color:transparent;
   background:linear-gradient(115deg,#e0479e,#3fa9f5 17%,#2fc070 33%,#f2a922 50%,#e0479e 67%,#3fa9f5 83%,#2fc070) 0 50%/300% 100%;-webkit-background-clip:text;background-clip:text}
 .ly1 .lyHo,.ly2 .lyHo,.ly3 .lyHo{background-image:linear-gradient(115deg,#c2187a,#1e7fd6 17%,#14934c 33%,#c27f08 50%,#c2187a 67%,#1e7fd6 83%,#14934c)}
-.lyN .lyHo,.ly0 .lyHo{filter:brightness(1.25)}
+.ly0 .lyHo{filter:brightness(1.25)}
 .lyFr.shine .lyHo{animation:lyHolo .9s ease-out}
 @keyframes lyHolo{from{background-position:0% 50%}to{background-position:100% 50%}}
 .lyVt{position:absolute;right:16px;bottom:16px;font:700 var(--fs-m)/1 var(--f-board);letter-spacing:.18em;text-align:right;opacity:.85}
 .lyRg{position:absolute;left:18px;bottom:13px;width:36px;height:36px;transform:rotate(-90deg)}
 .lyRg circle{fill:none;stroke:rgba(0,0,0,.15);stroke-width:3.5} .lyRg .v{stroke:var(--ac);stroke-linecap:round}
 .lyNx{position:absolute;left:62px;bottom:15px;max-width:112px;display:flex;flex-direction:column;gap:3px}
-.lyN .lyNx{left:20px;max-width:150px} .lyNx small{font-size:var(--fs-tag);opacity:.75}
+.lyNx small{font-size:var(--fs-tag);opacity:.75}
 /* platinum: an iridescent sheen over the light metal, so it never reads as silver (Dave's pick B, 29 Oct) */
 .ly3 .lyFr::before,.ly3 .lyBk::before{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:hard-light;opacity:.9;
   background:linear-gradient(115deg,rgba(255,90,180,.7),rgba(90,180,255,.7) 30%,rgba(120,255,170,.65) 52%,rgba(255,210,100,.7) 76%,rgba(190,120,255,.7))}
 .lyIdx.tier > i.ly3{background:linear-gradient(115deg,rgba(255,90,180,.45),rgba(90,180,255,.45) 30%,rgba(120,255,170,.4) 52%,rgba(255,210,100,.45) 76%,rgba(190,120,255,.45)),var(--m-platinum)}
 .lySh{position:absolute;inset:0;pointer-events:none;opacity:0;transform:translateX(-120%);background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%)}
 .lyFr.shine .lySh{animation:lyShine .9s ease-out}
-.lyN .lyFr.shine .lySh,.ly0 .lyFr.shine .lySh{animation-duration:.7s;opacity:.4}
+.ly0 .lyFr.shine .lySh{animation-duration:.7s;opacity:.4}
 @keyframes lyShine{0%{transform:translateX(-120%);opacity:1}100%{transform:translateX(120%);opacity:1}}
 .lyMag{position:absolute;left:0;right:0;top:14px;height:28px;background:#16171a}
 .lyHm{position:absolute;left:20px;right:14px;top:50px;display:flex;flex-direction:column;gap:3px}
@@ -1224,8 +1223,14 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .lyGr span{display:flex;flex-direction:column;gap:1px} .lyGr small{font-size:var(--fs-tag);font-weight:600;opacity:.6}
 .lyTy{position:absolute;left:20px;right:14px;bottom:10px;display:flex;flex-wrap:wrap;gap:5px}
 .lyTy i{font-style:normal;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.12)} .lyTy small{margin-left:3px;font-size:var(--fs-tag);opacity:.7}
-.lyCount{display:flex;justify-content:space-between;align-items:baseline;margin:10px 2px 0;font:700 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--c-dim,#9a9a9a)}
-.lyCount b{color:var(--c-text,#eee)}
+/* 1.124 (to-do #246): the airline's name above the card opens its card; "Card 8 of 36" under it */
+.lyTop{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px;min-height:44px;padding:0 8px;text-align:center;-webkit-tap-highlight-color:transparent}
+.lyTop b{font:500 var(--fs-m)/1.2 var(--f-board);color:var(--muted)}
+.lyTop i{font-style:normal;color:var(--amber);font-size:var(--fs-xl);line-height:1}
+.lyTop:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.lyCar{margin-top:0}
+.lyCount{margin:10px 2px 0;text-align:center;font:700 var(--fs-tag)/1.2 var(--f-board);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lyCount:empty{display:none}
 .lyDots{display:flex;justify-content:center;gap:7px;margin:8px 0 0}
 .lyDots i{width:7px;height:7px;border-radius:50%;background:#555;transition:background .2s,transform .2s} .lyDots i.on{background:#ddd;transform:scale(1.25)}
 /* the index: a segment per tier (its metal) or the letters; the bubble over the thumb */
@@ -1302,8 +1307,8 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .cuHit{all:unset;position:absolute;inset:0;z-index:1;cursor:pointer;border-radius:8px;-webkit-tap-highlight-color:transparent}
 .cuHit:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .gHero>h3{padding-inline:30px}
-.gHero>.iBtn.gHeroI{top:3px;right:26px;width:20px;height:20px}
-.gHero>.iBtn.gHeroI::after{content:"";position:absolute;inset:-12px}
+.gHero>.iBtn.gHeroI,.lyPlate>.iBtn.gHeroI{top:3px;right:26px;width:20px;height:20px}
+.gHero>.iBtn.gHeroI::after,.lyPlate>.iBtn.gHeroI::after{content:"";position:absolute;inset:-12px}
 .gWk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .gWkB{all:unset;box-sizing:border-box;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;cursor:pointer}   /* 1.122 (to-do #237) */
 .gWkB:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -1413,11 +1418,24 @@ html.daylight .cups li.m0{--m:#9a5b28} html.daylight .cups li.m1{--m:#6c7580} ht
 .gAw .ppRt i{height:2px;background:repeating-linear-gradient(90deg,#999 0 4px,transparent 4px 7px);position:relative}
 .gAw .ppRt i::after{content:"✈";position:absolute;left:50%;top:-9px;transform:translateX(-50%);font-style:normal;font-size:var(--fs-m);color:#444;background:#efe9da;padding:0 3px}
 /* a new country: the card over the ticket; the stamp lands (fsLand), the country inks in by itself (1.113: no more finger) */
-.gAw.ppNew{width:340px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
-.ppNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
-.ppNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
-.ppNew .ppMap{aspect-ratio:340/170;border-radius:0;box-shadow:none;cursor:pointer}
-.ppNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+.gAw.ppNew,.gAw.lyNew{width:255px;border-radius:14px;overflow:hidden;background:#f3eee2;box-shadow:0 10px 24px rgba(0,0,0,.5)}
+.ppNew .hd,.lyNew .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;font:700 var(--fs-tag)/1 var(--f-board);letter-spacing:.14em;color:#7a2416}
+.ppNew .hd b,.lyNew .hd b{font-size:var(--fs-m);letter-spacing:.04em;color:#111}
+.ppNew .ppMap{aspect-ratio:255/128;border-radius:0;box-shadow:none;cursor:pointer}
+.ppNew .ft,.lyNew .ft{padding:9px 12px 11px;font:600 var(--fs-xs)/1.35 var(--f-board);color:#4a4436}
+/* 1.124 (to-do #246): the new card's pop-up. The card's insides are placed in px for its usual size: it is drawn at 262 px and scaled down */
+.lyNew .mid{display:flex;justify-content:center;padding:10px 0;background:linear-gradient(#efe9da,#e6dfcd);box-shadow:inset 0 1px 0 rgba(0,0,0,.06),inset 0 -1px 0 rgba(0,0,0,.06)}
+.lyNewBox{width:196.5px;height:124px}
+.lyNewS{--cw:262px;width:262px;height:165.2px;transform:scale(.75);transform-origin:0 0;perspective:900px}
+.lyNewC{position:relative;width:100%;height:100%;transform-origin:50% 100%}
+.lyNewC.deal{animation:lyDeal .62s .18s cubic-bezier(.2,1.25,.4,1) both}
+@keyframes lyDeal{0%{transform:translateY(-14px) rotateX(38deg) scale(.86);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+.lyNew .lyC{left:0;top:0;margin:0;width:100%;height:100%;cursor:inherit}
+.lyNew .lyC::after{display:none}
+@media (prefers-reduced-motion:reduce){.lyNewC.deal{animation:none}}
+.pCard.hit{animation:ppCardHit 1.4s ease-out}
+@keyframes ppCardHit{0%,40%{box-shadow:0 0 0 2px var(--amber)}}
+@media (prefers-reduced-motion:reduce){.pCard.hit{animation:none;box-shadow:0 0 0 2px var(--amber)}}
 .ppDrop{position:absolute;width:0;height:0;display:grid;place-items:center;pointer-events:none}
 .ppDrop .pS{position:absolute;animation:ppLand .7s cubic-bezier(.3,1.4,.5,1) both;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 @keyframes ppLand{0%{transform:rotate(-26deg) scale(1.9);opacity:0}55%{transform:rotate(-10deg) scale(.62);opacity:.95}100%{transform:rotate(-12deg) scale(.66);opacity:.9}}
@@ -1653,7 +1671,7 @@ html.gilt #top{box-shadow:inset 0 -2px 0 #b89443} html.gilt #tabs{box-shadow:ins
 #toasts.top{top:auto;bottom:max(var(--toast-b),var(--toast-lift,0px));flex-direction:column-reverse}   /* the board's "a card is open" (any .cardish) isn't the app's */
 body:has(#cardBox.in) #toasts{top:calc(var(--sa-top) + 10px);bottom:auto;flex-direction:column}
 #toasts .toast{border-radius:14px;background:#1d1e22;border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 26px rgba(0,0,0,.6);padding:10px 10px 10px 16px;gap:12px;min-height:48px;box-sizing:border-box;
-  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .32s cubic-bezier(.2,.9,.25,1);transition:transform .25s,opacity .25s}
+  font:600 var(--fs-m)/1.3 var(--f-board);touch-action:pan-y;animation:toastIn .32s cubic-bezier(.2,.9,.25,1);transition:transform .38s cubic-bezier(.2,1.3,.4,1),opacity .25s}
 #toasts .toast.err{border-color:#5a2a2d;background:linear-gradient(#2a1517,#1d0f11)}
 #toasts .toast button{flex:none;padding:9px 16px;border-radius:999px;background:var(--amber);color:#17140e;font:700 var(--fs-s)/1 var(--f-board);letter-spacing:.04em;text-transform:none}
 #toasts .toast.err button{background:#ff8a80;color:#17140e}   /* 1.90: the board's red text matched the red pill */
@@ -1666,7 +1684,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gSay.out{opacity:0}
 @keyframes gSayIn{from{opacity:0;transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){.gSay{animation:none}}
-@media (prefers-reduced-motion:reduce){#toasts .toast{animation:none}}
+@media (prefers-reduced-motion:reduce){#toasts .toast{animation:none;transition:transform .2s ease-out,opacity .2s}}
 /* 1.74: the Logbook's title is two tabs, Logbook and Spotters' Club (the game part); swipe sideways between them.
    1.91 (to-do #104): stuck under the header while either page scrolls, like Settings' jump bar, so the other page is
    one tap away; a child of the page itself, as sticky only holds within its parent. The line under them stays in from
@@ -1740,13 +1758,12 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
    compass), one for each award, newest on top; the passive points on a small one */
 #gAws{position:fixed;z-index:55;left:50%;bottom:calc(96px + var(--sa-bottom));transform:translateX(-50%);display:flex;flex-direction:column-reverse;gap:12px;align-items:center;pointer-events:none}
 #arView #gAws{position:absolute;bottom:120px}
-.gAw{pointer-events:auto;cursor:pointer;animation:gAwUp .5s cubic-bezier(.2,1.3,.4,1) both}
+.gAw{pointer-events:auto;cursor:pointer;animation:gAwUp .5s cubic-bezier(.2,1.3,.4,1) both;transition:translate .38s cubic-bezier(.2,1.3,.4,1),opacity .25s}   /* 1.124: a short swipe bounces back */
 .gAw.out{animation:gAwOut .35s ease-in both}
 @keyframes gAwUp{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
 @keyframes gAwOut{to{opacity:0;transform:translateY(40px)}}
 .gAw .pF,.gAw .pF .stub{animation:none}
 .gAw.rip .pF .stub{animation:pfTear 1.1s 1.05s cubic-bezier(.5,0,.7,.4) forwards}  /* 1.97.1.1: the scan's stub tears off, as before 1.96 */
-.gAw.rip2 .pF .stub{animation-delay:1.75s}  /* 1.97.8: the streak's, after the scan's */
 .gAw .pF .main{width:250px}
 .gAw .who{display:flex;align-items:baseline;gap:8px;padding:8px 12px 2px;min-width:0}
 .gAw .who b{font:700 var(--fs-xl)/1 var(--f-board);color:#111;white-space:nowrap}
@@ -1755,6 +1772,11 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .lns div{display:flex;justify-content:space-between;gap:8px;font:600 var(--fs-s)/1.35 var(--f-board);color:#444}
 .gAw .lns div b{color:#111;font-variant-numeric:tabular-nums}
 .gAw .lns div.x b,.gAw .lns div.stk b{color:#a3740a} .gAw .lns div.lim b{color:#777}
+/* 1.124 (to-do #247): from three extras on: the first line whole, the extras in two short columns */
+.gAw .lns.two{grid-template-columns:1fr 1fr;column-gap:14px}
+.gAw .lns.two div:first-child{grid-column:1/-1}
+.gAw .lns.two div:not(:first-child){font-size:var(--fs-xs);white-space:nowrap}
+.gAw .lns.two div.mst{margin:0;padding:0;background:none}
 .gAw .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:10px 12px 4px}
 .gAw .days i{font:700 var(--fs-tag)/1 var(--f-board);font-style:normal;text-align:center;padding:6px 0;border:1.5px dashed #c9c2b2;border-radius:6px;color:#9a958a}
 .gAw .days i.on{border:1.5px solid #e0aa1f;color:#a3740a;background:rgba(240,180,41,.12)}
@@ -1790,7 +1812,7 @@ body:has(#cardBox.in) #toasts .toast.out{transform:translateY(-16px)}
 .gAw .pF.gold .sp{position:absolute;color:#fff;font:700 var(--fs-s)/1 var(--f-board);font-style:normal;text-shadow:0 0 6px #fff7c0;pointer-events:none}
 #arBurst.gold i{left:-3px;top:-3px;width:6px;height:13px}
 #arBurst b{position:absolute;left:-6px;top:-6px;font:700 var(--fs-s)/1 var(--f-board);color:#fff7c0;text-shadow:0 0 6px #f0b429;animation:pfSpark 1.1s ease-out forwards}
-@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw,.pF .gl{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.pF,.pF .stub,#arBurst i,.gAw,.pF .gl{animation:none!important}.gAw{transition:translate .2s ease-out,opacity .2s}}
 /* 1.110 (to-do #159, Dave's pick "eras of flying"): the ticket designs (Settings → Styles → Ticket, tixEra), each won with
    the first medal of its metal. Each era is its paper, colours, corners and ornaments; the band and the stub keep the
    plane's rarity; a golden ticket stays gold foil (no era class). Old Standard TT (fonts/, OFL) only for the 1950s

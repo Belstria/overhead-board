@@ -2745,6 +2745,41 @@ def browser_checks(browser):
     pg.unroute("**/lists*")
     pg.evaluate("fetch('/lists', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({fav: [], hide: []})})")
 
+    # 1.124 (to-do #246): a real first scan through /game/lockon of an airline with no scan yet: the answer says 1, its card's
+    # pop-up comes in its turn, one thing at a time, and a tap on it lands on that card
+    e("""S = {...S, live: true}; window.__ans = null; { const o = gScanPops; gScanPops = (r, f) => { window.__ans = r; return o(r, f); }; }
+         window.__many = 0; window.__si = setInterval(() => { if (document.querySelectorAll('#gAws .gAw:not(.out):not([data-tix])').length > 1) window.__many++; }, 50); 1""")
+    picks = e("""(() => { const w = ((lbData() || {}).game || {}).wallet || {}, l = (gme && gme.scan) || [];
+        return l.filter(x => !w[String(x.callsign || '').slice(0, 3)]).map(x => x.hex); })()""")
+    if not picks:
+        print("  (1.124's first scan: no plane to scan on this run, not checked)")
+    else:
+        e(f"gLockOn({json.dumps(picks[0])}); 1")
+        pg.wait_for_timeout(1500)
+        ans = e("window.__ans") or {}
+        if ((ans.get("airline") or {}).get("scans")) != 1:
+            print(f"  (1.124's first scan: this plane's airline answers {ans.get('airline')}, the pop-up isn't due)")
+        else:
+            for _ in range(16):
+                if e("!!document.querySelector('.lyNew')"):
+                    break
+                e("[...document.querySelectorAll('#gAws .gAw:not(.out):not([data-tix])')].forEach(x => x.out()); 1")
+                pg.wait_for_timeout(800)
+            code = ans["airline"]["code"]
+            if not e("!!document.querySelector('.lyNew')"):
+                bad.append("an airline's first scan brought no card's pop-up")
+            else:
+                if e("document.querySelector('.lyNew').offsetWidth") != 255:
+                    bad.append("the card's pop-up isn't 255 px wide")
+                e("document.querySelector('.lyNew').click(); 1")
+                pg.wait_for_timeout(1000)
+                got = e("[tab, gSub, lyAt, (document.querySelector('.lyC.ly0[data-ly=\"' + lyAt + '\"]') || {}).dataset ? 1 : 0]")
+                if got != ["game", "cards", code, 1]:
+                    bad.append(f"a tap on the card's pop-up landed on {got}, not {code}")
+            if e("window.__many"):
+                bad.append("two things of one scan on screen at once")
+    e("clearInterval(window.__si); 1")
+
     # 1.88: the Remarks in the Overhead style are white and only name a delay over 30 minutes; the Airport style keeps
     # them amber with ON TIME, every delay and the gate
     e("window.__tf = timesFor; window.__md = S.mode; timesFor = () => window.__t")

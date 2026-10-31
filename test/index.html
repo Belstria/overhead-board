@@ -3502,7 +3502,7 @@ function renderTimes(){
 const TROPHY_LADDERS = [
   ["planes", "{n} planes in the logbook", [["century", 100, "Century"], ["thousand", 1000, "Thousand"], ["planes10k", 10000, "Ten thousand"], ["planes50k", 50000, "Fifty thousand"], ["planes100k", 100000, "Hundred thousand"]]],
   ["types", "{n} aircraft types", [["types50", 50, "Type hunter"], ["types100", 100, "Type collector"], ["types150", 150, "Type expert"], ["types200", 200, "Type master"]]],
-  ["airlines", "{n} airlines", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "Frequent flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
+  ["airlines", "{n} airlines", [["airlines25", 25, "Globetrotter"], ["airlines50", 50, "High flyer"], ["airlines100", 100, "Jet setter"], ["airlines150", 150, "Around the world"]]],
   ["regs", "{n} different aircraft", [["regs1k", 1000, "Fleet watcher"], ["regs5k", 5000, "Fleet expert"], ["regs10k", 10000, "Fleet master"]]],
   ["countries", "Aircraft from {n} countries", [["countries10", 10, "Passport"], ["countries25", 25, "Diplomat"], ["countries50", 50, "United Nations"]]],
   ["points", "{n} points", [["points1k", 1000, "High scorer"], ["points10k", 10000, "Big scorer"], ["points100k", 100000, "Top scorer"]]],
@@ -7879,6 +7879,16 @@ const apPlace = e => { const p = e.info && (e.kind === "dep" ? e.info.to : e.inf
    parts it touched); a board shows the newest entry it contains. The relay (17 or newer) adds when GitHub published the
    page, which changes with every push. */
 const CHANGELOG = [
+  {v: "1.124", date: "2026-10-31", notes: [
+    "Member cards are now called Frequent flyer, and you get an airline's card with your first scan of it.",
+    "An airline's first scan brings a pop-up with its new card; the passport's pop-up is smaller too. A tap on either takes you to the card or the country.",
+    "What a scan brings now comes one thing at a time.",
+    "The airline's name above its card opens the airline's info.",
+    "A ticket or notice swiped only a little bounces back.",
+    "A plane's ticket stays 6.5 seconds; a scan's ticket stays 3 seconds after its stub tears off.",
+    "A ticket with many extras shows them in two short columns.",
+    "The 50 airlines trophy is now High flyer.",
+  ]},
   {v: "1.123.0.2", date: "2026-10-31", notes: [
     "A plane you hide no longer shows on the Airport board, on top or in its lists.",
   ]},
