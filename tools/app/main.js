@@ -1529,7 +1529,7 @@ function ppName(cc){
   try { ppNames = ppNames || new Intl.DisplayNames([LANG], {type: "region"}); return ppNames.of(cc) || cc; } catch { return cc; }
 }
 const ppDate = d => { try { return new Intl.DateTimeFormat(LANG === "en" ? "en-GB" : LANG, {day: "numeric", month: "short", year: "numeric"}).format(new Date(d + "T12:00")).toUpperCase(); } catch { return d; } };
-const ppToday = () => { const d = new Date(Date.now() - 3 * 3600e3); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const ppToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const ppList = pp => Object.entries(pp || {}).sort((a, b) => String(b[1][0]).localeCompare(String(a[1][0])) || ppName(a[0]).localeCompare(ppName(b[0])));
 // A stamp, as on its card: round, a box or an oval (by the country), tilted, in the country's ink. 1.113 (to-do #181):
 // a long name gets a smaller line (.lg), and the round one's plane sits above the name, so the date keeps inside the ring.
@@ -6400,7 +6400,7 @@ function gAwards(list, quiet){
   for (const a of fresh.filter(x => x.k === "limit" && x.first)) {
     const f = fromRelay(a), R = gRules(), m = (R && R.limit[a.tier]) || (a.n || 1) - 1, t = gTierT(a.tier);
     gPop({kind: "no", band: T("NO POINTS · LIMIT"), bandR: `${T(TIER_UP[a.tier] || "UNCOMMON")} ${m}/${m}`, who: gWho(f, a.km), lines: [gAwLine(a, f)],
-      note: T("Scores again {h}", {h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "03:00"}), p: 0});
+      note: T("Scores again {h}", {h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"}), p: 0});
   }
 }
 // Sky view's scan: the scan's pass (the top-up and the extras), then the streak's on top of it at the day's first scan.
@@ -6423,11 +6423,11 @@ function gScanPops(r){
   } else pass = gPop(o);
   setTimeout(() => ppNew(r), fsStill() ? 0 : 1400);                 // 1.107: a country new to the passport, over the ticket
   if (!stk) return [pass];
-  const wd = (new Date(Date.now() - 3 * 3600000).getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
+  const wd = (new Date().getDay() + 6) % 7, R = gRules(), per = (R && R.streak) || stk.p / stk.n;
   const fmt = new Intl.DateTimeFormat(LANG, {weekday: "narrow"});
   const days = Array.from({length: 7}, (_, i) => `<i class="${i === wd ? "now" : i < wd && i > wd - stk.n ? "on" : ""}">${escH(fmt.format(new Date(2026, 9, 26 + i, 12)))}</i>`).join("");
   const pass2 = gPop({kind: "stk", band: T("DAILY STREAK"), bandR: T("DAY {n} THIS WEEK", {n: stk.n}), body: `<div class="days">${days}</div>`, stub: T("STREAK"), p: stk.p, rip: 2, life: TIX_MS,
-    note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "03:00"})});
+    note: wd < 6 ? T("Tomorrow's scan +{p}", {p: nf.format(per * (stk.n + 1))}) : T("Restarts {d} {h}", {d: sbyDay(0, "short"), h: gme && gme.resets ? hhmm(new Date(gme.resets)) : "00:00"})});
   return [pass, pass2];
 }
 // A little shower of coins when points land (with the button sounds on).
@@ -6632,7 +6632,7 @@ function gIndexHtml(g, g0){
   const L = gLeague, rows = [];
   const row = (k, name, line) => gSubHas(k, g0) && rows.push(`<li><button type="button" data-gsub="${k}"><b>${escH(T(name))}</b><span>${escH(line)}</span><i aria-hidden="true">›</i></button></li>`);
   row("league", "League",
-    [g.rank ? T("#{n} this week", {n: g.rank}) : T("No place this week yet"), L && L.resets ? T("ends {d}", {d: fmtDay(L.resets - 4 * 3600000)}) : ""].filter(Boolean).join(" · "));
+    [g.rank ? T("#{n} this week", {n: g.rank}) : T("No place this week yet"), L && L.resets ? T("ends {d}", {d: fmtDay(gLastMin(L.resets))}) : ""].filter(Boolean).join(" · "));
   if (g0) {
     if (hangarOk()) hangarLoad();
     const ts = hangar && hangar.types, n = ts ? ts.filter(t => t.scans).length : 0;
@@ -6656,13 +6656,15 @@ const sbyDay = (i, w) => new Date(2026, 9, 26 + i).toLocaleDateString(LOC(), {we
 // The day after a standby: the streak's day the next scan pays (today's, once scanned); else 0.
 const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.week[s.today - 1] === "b" ? (g.streak || 0) + (g.scannedToday ? 0 : 1) : 0; };
 // 1.119.3 (to-do #220, Dave's B2): one line under the week, the tag and a short state; all the explaining behind a tap.
+// A reset is when something starts (00:00); the last minute before it is the deadline (23:59).
+const gLastMin = ms => ms - 60000;
 function gSbyHtml(g){
   const s = g.standby, R = gRules();
   if (!s || !s.week) return "";
   const t = s.today, used = s.week.lastIndexOf("b"), from = gSbyFrom(R);
   const risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0 && s.week[t - 1] !== "b";   // the day after one: that it was used
   const line = !s.allow ? T("Standby from level {n}", {n: from}) : s.left ? T("Standby ready")
-    : risk ? T("No standby left: scan by {h}", {h: g.resets ? hhmm(new Date(g.resets)) : "03:00"})
+    : risk ? T("No standby left: scan by {h}", {h: g.resets ? hhmm(new Date(gLastMin(g.resets))) : "23:59"})
     : used >= 0 ? T("Standby used {d}", {d: sbyDay(used, "long")}) : T("No standby left");
   const fresh = s.allow && g.level === from && !localStorage.getItem(ACH_KEY + ".sby");
   const cls = (c, i) => c === "s" ? (i === t ? "now" : "on") : c === "b" ? "sby" : i === t ? "todo" : i < t ? "miss" : "";
@@ -6678,7 +6680,7 @@ const plateSheet = (title, body) => cardOpen(`<div class="lbIn">${secPlate(title
 // 1.122 (to-do #237): the streak's two lines first, the amount from the rules; the Standby's part once it is the player's.
 function gSbyOpen(){
   ctlSound.nav();
-  const g = gme || {}, R = gRules(), h = g.resets ? hhmm(new Date(g.resets)) : "03:00", has = g.standby && g.standby.allow, mon = sbyDay(0, "long");
+  const g = gme || {}, R = gRules(), h = g.resets ? hhmm(new Date(g.resets)) : "00:00", has = g.standby && g.standby.allow, mon = sbyDay(0, "long");
   plateSheet(T("Streak"), (R ? `<p class="sum">${escH(T("Your first scan each day adds +{n} for each day in a row", {n: nf.format(R.streak)}))}</p>` : "") +
     `<p class="sum">${escH(T("A missed day or {d} {h} starts it again", {d: mon, h}))}</p>` +
     (has ? `<p class="gHowH">${escH(T("Standby"))}</p><p class="sum">${escH(T("Miss a day, and your Standby is automatically consumed to keep your streak going"))}</p>` +
@@ -6693,7 +6695,7 @@ function gLimHtml(g, notes){
   const R = gRules(), L = g.limits;
   if (!R || !L) return "";
   const tiers = TIER_DRUM.slice(1), full = tiers.filter(t => L[t] && L[t][0] >= L[t][1]);
-  const h = g.resets ? hhmm(new Date(g.resets)) : "03:00";
+  const h = g.resets ? hhmm(new Date(g.resets)) : "00:00";
   return (notes ? "" : `<div class="gLim">${tiers.map(t => { const [n, m] = L[t] || [0, R.limit[t]];
     return `<div class="${n >= m ? "full" : ""}" style="--lamp:${TIER_COL[t]}"><img class="tico" src="${tierIcon(t)}" alt=""><b>${nf.format(Math.min(n, m))}<small>/${nf.format(m)}</small></b>` +
       `<i><u style="width:${Math.min(100, Math.round(n / m * 100))}%"></u></i><span>${escH(gTierT(t))}</span></div>`; }).join("")}</div>`) +
@@ -6714,7 +6716,7 @@ function gHowCard(){
     `<p class="gRule">${escH(T("Points come with live location on (Settings → Location), for planes within {k} km of you. Each plane scores once a pass, by how rare it is.", {k}))} ${escH(T("Nothing counts while the app is in the background."))}</p>` +
     (R ? `<div class="gHowTbl"><span class="th"></span><span class="th">${escH(T("Rarity"))}</span><span class="th r">${escH(T("Within {k} km", {k}))}</span>` +
       `<span class="th r">${escH(T("Scanned"))}</span><span class="th r">${escH(T("Today / max"))}</span>${rows}</div>` +
-      p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 03:00). Past the limit a plane scores nothing; the other rarities still count.")) +
+      p(T("Within {k} km:", {k}), T("the points in the first column, for a number of planes of each rarity a day (from 00:00). Past the limit a plane scores nothing; the other rarities still count.")) +
       p(T("Sky view scan:"), T("hold a plane that came within {s} km in the ring for a moment. It gives the plane's full points on top, once a pass, with no limit (past the limit too).", {s: gScanKm()})) +
       p(T("Only with a scan:"), T("a type new to the game +{t}, a new airline +{a}.", {t: nf.format(R.new.type), a: nf.format(R.new.airline)})) +
       (R.mastery && R.mastery.length > 3 ? p(T("Mastery:"), T("the scan that brings a type to {a}, {b}, {c} or {d} scans adds that many points × its rarity once (×1 common to ×50 special), and its hangar card turns bronze, silver, gold or platinum.",
@@ -6722,12 +6724,12 @@ function gHowCard(){
       (R.loyalty ? p(T("Member cards:"), T("your first scan of an airline's plane makes you a member; the scan that brings it to {a}, {b} or {c} adds +{x}, +{y} or +{z} once: Silver, Gold, Platinum.",
         {a: R.loyalty[0][0], b: R.loyalty[1][0], c: R.loyalty[2][0], x: nf.format(R.loyalty[0][1]), y: nf.format(R.loyalty[1][1]), z: nf.format(R.loyalty[2][1])})) : "") +   // 1.106 (relay 89)
       (R.country ? p(T("Passport:"), T("a scanned flight with a known route stamps the countries it flies from and to; a country new to your passport adds +{p}.", {p: nf.format(R.country)})) : "") +   // 1.107 (relay 90)
-      `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 03:00, with the league.", {n: R.streak}))}</p>` +
+      `<p class="gHowH">${escH(T("Daily streak"))}</p><p class="gRule">${escH(T("Your first scan each day adds +{n} for each day in a row. A day without a scan starts it again at day 1, and so does Monday at 00:00, with the league.", {n: R.streak}))}</p>` +
       `<div class="gStk">${sd}</div>` +
-      (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 03:00 and don't carry over.",
+      (R.standby ? p(T("Standby:"), T("from level {a}, one a week keeps your streak through a day without a scan; from level {b}, two. They come fresh each Monday at 00:00 and don't carry over.",
         {a: R.standby[R.standby.length - 1][0], b: R.standby[0][0]})) : "") +              // 1.104 (relay 87)
       (R.bingo ? `<p class="gHowH">${escH(T("Bingo and trophies"))}</p>` +           // 1.100 (relay 83)
-        p(T("Weekly bingo:"), T("+{l} for each line, +{c} more for the full card. A new card every Monday at 03:00, with the league.", {l: nf.format(R.bingo.line), c: nf.format(R.bingo.card)})) +
+        p(T("Weekly bingo:"), T("+{l} for each line, +{c} more for the full card. A new card every Monday at 00:00, with the league.", {l: nf.format(R.bingo.line), c: nf.format(R.bingo.card)})) +
         p(T("Trophies:"), T("a new rank +{a} to +{b} by its medal (bronze to diamond), any other trophy +{s}.", {a: nf.format(R.medal[0]), b: nf.format(R.medal[R.medal.length - 1]), s: nf.format(R.single)})) : "") : ""));
 }
 /* 1.89 (to-do #91, Dave's pick A): Recent points, from a tap on the strip's points: today's total and planes, then each

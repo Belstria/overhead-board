@@ -331,7 +331,7 @@ def game_rule_checks(expect):
         next_day("2026-10-30", scans=False)
         expect("a day without a scan: back to day 1", next_day("2026-10-31"), ("streak", 25))
         expect("... then day 2", next_day("2026-11-01"), ("streak", 50))
-        expect("Monday 03:00: the streak starts again", next_day("2026-11-02"), ("streak", 25))
+        expect("Monday 00:00: the streak starts again", next_day("2026-11-02"), ("streak", 25))
         wk = serve.game3_json(sp.book(), day[0])
         expect("the week's points are the days' since Monday", wk["week"], g["days"]["2026-11-02"])
         expect("the day streak on the Game page", (wk["streak"], wk["scannedToday"]), (1, True))
@@ -1010,7 +1010,7 @@ def standby_checks(expect):
         return spot(Path(tempfile.mkdtemp(prefix="fb-sby-")))
 
     def go(sp, d, scan=True):
-        """Day d (03:00 on): a plane comes within 4 km and is scanned; the scan's streak line (None: no scan that day)."""
+        """Day d (00:00 on): a plane comes within 4 km and is scanned; the scan's streak line (None: no scan that day)."""
         day[0] = d
         with serve._data_lock:
             sp.ensure_day()
@@ -1071,7 +1071,7 @@ def standby_checks(expect):
         (f1 / "logbook.json").write_text(_j.dumps(lb))
         sp, g = spot(f1)
         expect("a rescore from the saved days: the same", (_j.dumps(g3(sp), sort_keys=True), g["points"]), (before, total))
-        expect("Monday 03:00: a fresh standby, the streak from day 1",
+        expect("Monday 00:00: a fresh standby, the streak from day 1",
                (go(sp, "2026-11-02"), g3(sp)["standby"]["left"], g3(sp)["standby"]["week"]), (("streak", 25), 1, ["s"] + [""] * 6))
         # below level 6: no standby, Thursday breaks it
         sp, g = fresh()
@@ -1122,6 +1122,189 @@ def standby_checks(expect):
         expect("the rules for the app: one from level 6, two from 14", serve.game_rules()["standby"], [[14, 2], [6, 1]])
     finally:
         serve.board_day, serve.school_pass, serve.game_gold = real_day, real_pass, real_gold
+
+
+def midnight_checks(expect):
+    """Relay 102 (to-do #233): one day for everything, 00:00 to 23:59, local time. The real board_day under a clock in
+    Vienna's time zone: sightings either side of midnight, the streak and the standby across it, the week's reset on a
+    Monday, and a game saved under the old 03:00 rule through the install (nothing rewritten, no jump, no double pay)."""
+    import json
+    import os
+    import tempfile
+    import types
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "relay"))
+    import serve
+    serve.ARGS = serve.ARGS or types.SimpleNamespace(verbose=False)
+    tz, t_real = os.environ.get("TZ"), serve.time
+    os.environ["TZ"] = "Europe/Vienna"
+    t_real.tzset()
+    clock = [0.0]
+    at = lambda s: t_real.mktime(t_real.strptime(s, "%Y-%m-%d %H:%M"))
+    serve.time = types.SimpleNamespace(**{k: getattr(t_real, k) for k in dir(t_real) if not k.startswith("__")})
+    serve.time.time = lambda: clock[0]
+    serve.time.strftime = lambda f, t=None: t_real.strftime(f, t_real.localtime(clock[0]) if t is None else t)
+    real_pass, real_gold, real_h = serve.school_pass, serve.game_gold, serve.DAY_STARTS_H
+    serve.school_pass = lambda *a, **k: None
+    serve.game_gold = lambda d, h: False
+    n = [0]
+    home = (48.2085, 16.3731)
+
+    def spot():
+        sp = serve.Spot(Path(tempfile.mkdtemp(prefix="fb-midnight-")), None, 15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp, serve.game_book(sp.book())
+
+    def save(sp):
+        with serve._data_lock:
+            sp.changed("book", "day")
+            files = sp.files()
+        for path, text in files:
+            path.write_text(text)
+
+    def scan(sp, when):
+        """At `when`: a plane within 4 km is scanned. The points of the scan's streak line, or None."""
+        clock[0] = at(when)
+        with serve._data_lock:
+            sp.ensure_day()
+            n[0] += 1
+            now = clock[0]
+            e = {"id": f"m{n[0]}", "hex": f"{n[0] + 7000:06x}", "ts": int(now * 1000), "typeCode": "A320",
+                 "callsign": "ZZZ1", "tier": "common", "liveMin": 4.0, "liveSeen": now}
+            sp.entries.insert(0, e)
+            sp.by_hex[e["hex"]] = e
+            serve.game_note(sp, e)
+            r = serve.game_lockon(sp, e["hex"])
+            return next((x["p"] for x in r.get("lines", []) if x["k"] == "streak"), None)
+
+    def seen(sp, when, hx):
+        clock[0] = at(when)
+        serve._record(sp, [{"hex": hx, "lat": home[0], "lon": home[1], "alt_baro": 9000, "gs": 400, "flight": "AUA1"}], *home, radius=15)
+        with serve._data_lock:
+            sp.ensure_day()
+            return sp.day
+
+    def game_from(when):
+        """A new profile's game, its standby from `when` on."""
+        clock[0] = at(when)
+        sp, g = spot()
+        with serve._data_lock:
+            serve.game_standby(g)
+        return sp, g
+
+    try:
+        day = lambda s: serve.board_day(at(s))
+        expect("23:59 is still Saturday", day("2026-10-31 23:59"), "2026-10-31")
+        expect("00:00 is Sunday", day("2026-11-01 00:00"), "2026-11-01")
+        expect("00:30 is the new day (the old rule kept it with the evening)", day("2026-11-01 00:30"), "2026-11-01")
+        expect("the clocks going back don't move the day", (day("2026-10-25 01:00"), day("2026-10-25 23:59"), day("2026-10-26 00:00")),
+               ("2026-10-25", "2026-10-25", "2026-10-26"))
+        expect("the next game day starts at midnight", serve._next_day_ms("2026-10-31"), int(at("2026-11-01 00:00") * 1000))
+
+        # A sighting at 23:59 and one at 00:01: each in its own day's file.
+        sp, g = spot()
+        expect("a plane at 23:59 goes to Saturday", seen(sp, "2026-10-31 23:59", "aaa001"), "2026-10-31")
+        save(sp)
+        expect("a plane at 00:01 goes to Sunday", seen(sp, "2026-11-01 00:01", "aaa002"), "2026-11-01")
+        save(sp)
+        ids = lambda d: [e["hex"] for e in json.loads((sp.dir / f"sightings-{d}.json").read_text())]
+        expect("Saturday's file holds its plane", ids("2026-10-31"), ["aaa001"])
+        expect("Sunday's file holds its plane", ids("2026-11-01"), ["aaa002"])
+        seen(sp, "2026-11-01 00:02", "aaa001")
+        save(sp)
+        expect("a pass running over midnight is a sighting in each day (as at any turn of the day)", sorted(ids("2026-11-01")), ["aaa001", "aaa002"])
+
+        # The streak across midnight: 23:59 and the next 00:01 are two days in a row; 00:01 and 23:59 are one.
+        sp, g = game_from("2026-10-26 12:00")
+        streak = serve.GAME_STREAK
+        pays = [scan(sp, f"2026-10-{d} 23:59") for d in range(26, 32)]
+        expect("a scan at 23:59 each day: the streak climbs", pays, [streak * i for i in range(1, 7)])
+        expect("00:01 is the next day's first scan", scan(sp, "2026-11-01 00:01"), streak * 7)
+        expect("23:59 the same day pays no second streak", scan(sp, "2026-11-01 23:59"), None)
+        expect("the scan days are the calendar's", g["scanDays"][-2:], ["2026-10-31", "2026-11-01"])
+
+        # Monday 00:00: the week turns, the league and the bingo with it.
+        real_prof = serve.profiles
+        serve.profiles = lambda: {"profiles": {}}
+        try:
+            monday = int(at("2026-11-02 00:00") * 1000)
+            clock[0] = at("2026-11-01 23:59")
+            serve._league_cache.clear()
+            lg = serve.league_json()
+            expect("Sunday 23:59: still this week's league, ending at Monday 00:00", (lg["week"], lg["resets"]), ("2026-10-26", monday))
+            bg = serve.bingo_json(sp, serve.board_day())
+            expect("Sunday 23:59: the bingo card too", (bg["week"], bg["resets"]), ("2026-10-26", monday))
+            clock[0] = at("2026-11-02 00:00")
+            serve._league_cache.clear()
+            expect("Monday 00:00: a new league week", serve.league_json()["week"], "2026-11-02")
+            with serve._data_lock:
+                sp.ensure_day()
+            expect("Monday 00:00: a new card", serve.bingo_json(sp, serve.board_day())["week"], "2026-11-02")
+        finally:
+            serve.profiles = real_prof
+        expect("Monday 00:01: the streak starts again at day 1", scan(sp, "2026-11-02 00:01"), streak)
+        js = serve.standby_json(g, "2026-11-02")
+        expect("Monday: today is the week's first day", (js["today"], js["week"][0]), (0, "s"))
+
+        # The standby across midnight: no scan Wednesday, level 6: Thursday 00:00 covers it, and 00:01 goes on.
+        sp, g = game_from("2026-10-26 12:00")
+        lv6 = 0
+        while serve.level_of(lv6)[0] < 6:
+            _, _, into, need = serve.level_of(lv6)
+            lv6 += need - into
+        with serve._data_lock:
+            serve._game_add(g, "2026-10-25", lv6)
+        scan(sp, "2026-10-26 20:00")
+        scan(sp, "2026-10-27 20:00")
+        clock[0] = at("2026-10-28 23:59")
+        expect("Wednesday 23:59: the day isn't over, no standby used", serve._standby(g, serve.board_day())[0], [])
+        clock[0] = at("2026-10-29 00:00")
+        expect("Thursday 00:00: Wednesday is covered", serve._standby(g, serve.board_day())[0], ["2026-10-28"])
+        expect("Thursday 00:01: the next scan is day 4", scan(sp, "2026-10-29 00:01"), streak * 4)
+
+        # The install, on a game saved under the old rule: a plane at 00:30 Saturday morning was kept with Friday.
+        sp, g = game_from("2026-10-26 12:00")
+        for d in range(26, 31):
+            scan(sp, f"2026-10-{d} 20:00")
+        save(sp)
+        kept = sp.dir / "sightings-2026-10-30.json"
+        old = json.loads(kept.read_text()) + [{"id": "old", "hex": "bbb001", "ts": int(at("2026-10-31 00:30") * 1000), "time": "00:30", "typeCode": "A320", "minDist": 3.0}]
+        kept.write_text(json.dumps(old))
+        before = kept.read_bytes()
+        keys = ("points", "days", "scanDays", "standby")
+        was = json.dumps({k: g.get(k) for k in keys}, sort_keys=True)
+
+        def state(when, hour):
+            serve.DAY_STARTS_H = hour
+            clock[0] = at(when)
+            d = serve.board_day()
+            serve.DAY_STARTS_H = real_h
+            return d, serve._scan_streak(g, d), serve._standby(g, d)[0], serve.standby_json(g, d)["today"], serve._monday(d)
+
+        expect("install Saturday 18:00: the same day, streak, standby and week before and after", state("2026-10-31 18:00", 3), state("2026-10-31 18:00", 0))
+        expect("install: the game as saved", json.dumps({k: g.get(k) for k in keys}, sort_keys=True), was)
+        expect("install: a past day's file keeps its 00:30 plane", kept.read_bytes(), before)
+        expect("Saturday's first scan after the install is day 6", scan(sp, "2026-10-31 18:05"), streak * 6)
+        expect("and no second streak pay that evening", scan(sp, "2026-10-31 23:59"), None)
+        expect("Sunday 00:01 goes on, day 7", scan(sp, "2026-11-01 00:01"), streak * 7)
+
+        # Inside 00:00 to 03:00 the day jumps at the install: a Saturday without a scan is over at once.
+        g2 = {"scanDays": ["2026-10-30"], "standby": {"since": "2026-10-26"}, "points": 0, "days": {}}
+        serve.DAY_STARTS_H = 3
+        clock[0] = at("2026-11-01 01:00")
+        old_day = serve.board_day()
+        serve.DAY_STARTS_H = real_h
+        expect("the old rule at 01:00: still Saturday", old_day, "2026-10-31")
+        expect("the new rule at 01:00: Sunday", serve.board_day(), "2026-11-01")
+        expect("a streak waiting on Saturday's scan is lost by an install at 01:00", (serve._scan_streak(g2, old_day), serve._scan_streak(g2, serve.board_day())), (1, 0))
+    finally:
+        serve.time, serve.school_pass, serve.game_gold, serve.DAY_STARTS_H = t_real, real_pass, real_gold, real_h
+        if tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = tz
+        t_real.tzset()
 
 
 def mastery_checks(expect):
@@ -2008,6 +2191,7 @@ def checks():
     showcase_checks(expect)
     school_checks(expect)
     standby_checks(expect)
+    midnight_checks(expect)
     late_codes_checks(expect)
     mastery_checks(expect)
     loyalty_checks(expect)

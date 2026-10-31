@@ -64,7 +64,7 @@ def extract(text):
                        ("  if (feat && feat.info === info) { renderFeatured(); if (isAc(page)) renderAircraft(); }\n}",
                         "  if (feat && feat.info === info) { renderFeatured(); renderAircraftInfo(); }\n}")),
         "E13": ex("/* ---------- demo traffic (clearly sample data) ---------- */", "/* ---------- spotted log ---------- */"),
-        "E14": ex("const DAY_START_H = 3;", "let spotted = relayV5()"),
+        "E14": ex("const DAY_START_H = 0;", "let spotted = relayV5()"),
         "E15": ex("/* With relay version 5 the relay records every sighting; the board just mirrors its list. */", "async function syncSightings(){"),
         "E16": ex("/* ---------- special aircraft and favourites ---------- */", "/* ---------- tracking ---------- */"),
         "E17": ex("/* ---------- tracking ---------- */", "function setFeat(o, mode, alert = false){"),

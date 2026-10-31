@@ -195,7 +195,7 @@ tools/app/main.js: TODAYP spotted logDay rollDay syncSightings fullDay loadFullD
     tlFind TL_MS TL_EASE TL_OUT tlStart tlEnd tlTap tlOpen tlFold tlScroll sightPlane
 relay/serve.py: day_stats same_spot sightings_json /sightings +Spot.day_entries
 README.md: "- **Spotted today** (press" "- **Today, This place | All places**" "- **Today** (1.115)"
-    "- **The day runs from 03:00"
+    "- **The day runs from 00:00"
 docs/history.md: "Spotted today's PAGE x OF y"
 changelog: spotted today|today tab|\btoday\b|legend|filter
 
@@ -413,7 +413,7 @@ tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cu
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
     hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
-    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml gSbyFrom plateSheet gSbyOpen
+    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gLastMin gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
     ROMAN medalT achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings

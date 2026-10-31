@@ -252,7 +252,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   The chime for special planes is the **airport bell** by default (1.32): three soft notes rising, like the chime before
   an announcement in a terminal. Settings → Flaps & sound → **Special bell** switches between AIRPORT and the old
   CLASSIC chime, and plays the one you switch to.
-- **The day runs from 03:00 to 03:00**, so late-evening flights count to the evening they belong to.
+- **The day runs from 00:00 to 23:59**, for everything: Spotted today, the Logbook's days, the points limits, the streak, the standby, the league and bingo.
 - **Airtime limit**: a plane that hangs around (a police helicopter over an incident, a light aircraft circling) gets at
   most 3 minutes an hour on the top half while other planes are within the spotting radius, then gives them a turn.
   It counts helicopters and anything slower than 140 knots; other planes only after six minutes, so an airliner
@@ -295,7 +295,7 @@ The main board has everything below. New features are tried on `/test/` first; o
   pass, and the new types. **Week** / **Month** / **Year** switch, ◀ ▶ go to earlier ones. A finished week or month is
   compared with the one before. They count every place.
   In the app's Spotters' Club (on the boards until 1.89.1; 1.28, relay 29): **this week's bingo**, nine things to spot between Monday and Sunday (a helicopter, an
-  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 03:00; next to the card
+  A380, something below 760 m, a plane after 23:00 ...), drawn afresh each week (on Monday at 00:00; next to the card
   it says when, and how long until then; a square fills when a scored plane does it, also later in its pass, when it
   comes within 1 km or below 2,500 ft, and the card shows a line once it has paid, 1.114.5), and **48 trophies** (1.55, relay 50) that are won once and kept for good;
   nothing ever resets. Most come in tiers, a row each with a lamp per tier and a bar to the next one ("6,900 of
@@ -512,17 +512,17 @@ The main board has everything below. New features are tried on `/test/` first; o
   its full points (common 10, uncommon 30, rare 100, very rare 250, special 500). A plane that comes within 15 km gives
   a fixed amount (**5, 10, 15, 25, 50** since 1.97.4, relay 80, rule 4; a tenth of them, 1, 3, 10, 25, 50, before, and those
   awards stay as they were), once a pass, for up to a **daily limit per rarity** (common 50, uncommon 30,
-  rare 15, very rare 5, special 3 planes; the day runs from 03:00); past the limit a plane scores nothing. A **Sky view
+  rare 15, very rare 5, special 3 planes; the day runs from 00:00); past the limit a plane scores nothing. A **Sky view
   scan** (a plane held in the ring for 1.5 s that came within 10 km, seen live in the last 2 minutes, once a pass, no limit)
   gives the plane's **full points on top** since 1.97 (relay 79; a common gives 1 + 10 = 11, one past the limit 0 +
   10; 1.96 topped it up to its full points, and its scans stay as they were). **Only scans** earn the extras: a type new to
   the game +50, a new airline +25 (at its first scan), and the **daily streak**: the day's first scan adds +25 × the
-  day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 03:00, with the
+  day of the streak (25, 50 … 175); a day without a scan starts it again at day 1, and so does Monday 00:00, with the
   league. Since 1.104 a **standby** keeps the streak through a day without a scan: one a week from level 6, two from
-  level 14, fresh each Monday 03:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
+  level 14, fresh each Monday 00:00 (they don't carry over). The covered day counts as a streak day but pays nothing,
   and the next scan goes on (Mon–Wed scanned, no scan Thursday: Friday's first scan is day 5, +125). The Spotters'
   Club's level card ends with This week's streak (scanned days amber, a covered day SBY) and one line, such as "Standby ready",
-  "Standby used Saturday" or, in red, "No standby left: scan by 03:00"; a tap on it or on the week opens the Streak panel: what the streak pays and, once you have one, how the standby works. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
+  "Standby used Saturday" or, in red, "No standby left: scan by 23:59"; a tap on it or on the week opens the Streak panel: what the streak pays and, once you have one, how the standby works. No more close-pass factors, taper, streak multiplier or combo. Since 1.100 **bingo and trophies pay** too
   (from then on; earlier wins stay unpaid): +50 for each line on the weekly bingo card (rows, columns and diagonals) and +500 more for the full card,
   a new trophy rank +50 to +250 by its medal (bronze 50, silver 100, gold 150, platinum 200, diamond 250) and any other
   trophy +100. They count like every point (the day, the week's league, the level), show their +N on the achievement
