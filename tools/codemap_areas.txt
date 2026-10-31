@@ -220,10 +220,10 @@ tools/app/head.html: .ranks .cats .yearCard .yNums .yFacts .reviewCard .rvTools 
 tools/app/main.js: lbCache lbError fetchLogbook lbSig lbView lbViewsBar lbQuery lbFindT lbFindTok lbFindSetup
     lbFind catOk lbCat lbCatView lbCatData lbCatKey catOpenHtml catFetch PIN DD lbfPlaces lbFoundRows foundCard
     lbPanels lbPanel lbPanelTok lbPanelOn lbPanelOpen lbPanelSync renderLogbook lbYearCard lbPick recordsHtml secPlate
-    yearData yearAt yearCache fetchYear yearFacts lbPeriod yearBack perMore periodHtml reviewHtml +periodPicture +shareYear +sharePeriod
+    yearData yearAt yearCache fetchYear perKey perHas perLoad perWarm yearReview lbPeriod yearBack perMore perWant periodHtml PER_MORE reviewHtml +periodPicture +shareYear +sharePeriod
 relay/serve.py: _rec_entry note_records _gc_km _backfill_records _backfill_flights CARGO_AIRLINES HELICOPTERS
     MILITARY_TYPES BIZJETS LIGHT category_of CATEGORY_WORDS _logbook_entries search_json _cat_cache category_top_json
-    logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
+    _book_late logbook_json _place_days _place_summary _merge_items place_logbook place_logbook_json _days_of year_json
     REVIEW_SPANS REVIEW_WEEK_AT REVIEW_MONTH_AT _reviews review_range review_json CSV_COLS _csv_safe logbook_csv
     +seen_json +where_name +geo_where +where_of +review_check /logbook /search /logbook/category /year /review
     /logbook.csv /seen
@@ -404,18 +404,18 @@ test/index.html: +styleGame +styleOk GAME_LEVELS TIER_COL TIER_DRUM TIER_NAME dr
     achNext confetti @achDown css:canvas.confetti +stylesCount .ach .achBar .achBadge .achTx SIG_JS WORLD_JS
 tools/app/head.html: #gSub .seg.jumpSeg .gIdx .cats.tiers .bingo .ranks.plain.cups .cups .gHead .gHv .gTx .gL1 .gRing .gRt .gRa .gLap .gHead.lvl @gFlash .gHead.flip .gHead.gain .gSay .gSay.out @gSayIn .gBar @gGlow
     .skyIco .gSpin @gSpin @gR1 @gR2 .gPts #t-game .gLeague .plCard .plMedals .plMedal .plLines .hgShelf
-    .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gSbyH .gWk
+    .hgHead .hgRow .hgCard .hgT #medalMo .mmRib .mmTx @mmSwing @mmIn .gRule .gSbyTg .gSbyTg.off .cuTap .cuHit .gHero .gOpt .gHowTbl .gHowH .gStk .gLim .gNote .hgL #gAws .gAw @gAwUp @gAwOut .hgPlate #gLvUp .gWk
     .mk1 .mk2 .mk3 .mk4 .mkBar .mkMast .mkSteps .mkBarT .lyN .ly0 .ly1 .ly2 .ly3 .lyFF .lyCar .lySt .lyC .lyIn .lyFr .lyBk .lyBr .lyLg .lyVt .lyHo .lyRg .lyNx @lyHolo .lySh @lyShine .lyMag .lyHm .lyGr .lyTy .lyCount .lyDots .lySort .lyIdx #lyBub
     .ppPlate .ppShelf .ppHd .ppMap .ppMap.big .pCard .pCard.no .pS .pS.rd .pS.rc .pS.ov .ppNew .ppDrop @ppLand .scSc .scPick .scCab @ppHit .ppNoneHd .ppShelf.shut .ppNone .ppNone
     @gPop .pF @pfIn @pfTear #arBurst @pfSpark @gSheen #gameBox .rpList .gHow .rkI .rkGold .rkLv .plIns
     .fsRec .fsBox .fsBox.big .fsSig .fsSigT .fsSigT.writing @fsWipe #fsBar #fsStamp #fsStamp.out @fsSlip @fsOut @fsLand @fsInk @fsFade @fsWingIn @fsCleared #gLvUp.fsW
     .cuD .cuP .cuI .cuI.flap .cuUn .cuMini .cuLn .cuLb .cuStop .cuRt .cuT .cuPl @cuDrop .cuPlate .cuArr @cuFly @cuLit .cuTag @cuTag .cuTry .cuLater .cuSheet .cScroll
 tools/app/main.js: collectionHtml hangarOk hangar hangarAt hgT hgBad hangarLoad hgNames modelPicNow HG_EAGER HG_GAP hgLast hgPumpT hgQ hgTries hgAll hgRun hgIO hgHeld hgBusy hgPreDone hgMove hgLate hgMoving hgPre hangarHtml hgWire hgPic hgPaint hgAsk hgPump
-    hgSoon hangarCard tierIcons tierIcon gTrTab trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
+    hgSoon hangarCard tierIcons tierIcon gTrTab trProg trPips trMedal trRow trToGo trWon trophiesHtml trWire +secPlate CUP gameOk gRules gBase gKm gScanKm gScanSet gGoldSet gme gmeAt gBusy
     gLeague gLeagueAt gAll gAnimT gLvFrom gStripSetup gRingP gLapSet gRingSet gGoPlate gHit gHitDo gGoing gGoLive gGoShow gSay gTotSet gLevelText gStripLive gStripRender gGain gRefresh gAwAt BINGO_LINE TIER_UP gPlus0 gTierT gAwLine gPop gWho gAwards gScanPops SKY_ICO gAwsBox gPassFill TIX_MS TIX_KEY gTixOut gTixSeen gTixSync gTixShow gTixBack gTixStack
-    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml
+    gCoins gLvT gLevelUp gJingle gRip gGold gBurst gLeagueLoad gPlates gPlateSplit renderGame G_SUBS G_PARTS LY_TAU LY_FAST TIX_MIN gSub gSubHas gSubBar gSubGo gIndexHtml gLimHtml gHowCard gRecentOk gPlus gWhy gRecentCard playerCard sbyDay gSbyUsed gSbyHtml gSbyFrom plateSheet gSbyOpen
     RK_MET RK_CLOTH RK_WF RK_STAR RK_PLANE RK_LADDER rkDefs rkStar rkWings rkCap rankTitle rankIns
-    ROMAN medalT achSpecial NUDGE_UNIT medalNudge gLockOn gameStart
+    ROMAN medalT achSpecial NUDGE_DO trophySheet medalNudge gLockOn gameStart
     SCHOOL fsState fsNext fsPts fsStill fsDate fsBox fsRecord fsBar fsCardAsked schoolMission fsQ fsBusy fsStamp fsShow fsThud fsWingsSvg sigLoad sigFailed sigFont fsName sigSvg fsSigHtml sigWrite fsWings
     MST MST_NAME MST_TO mstSteps mstOf mstMul mstNext mstBar mstHtml
     LY LY_NAME LY_TO LY_COL lySteps lyOf lyCode lyName lyCol lyTicket lyAt lySort lyFlipped LY_RING LY_INK lyInk lyStill lyLetter lyWhen lyList lyCardHtml walletHtml lyWire
@@ -456,7 +456,7 @@ tools/app/main.js: lookHeading lookOn lookRaf lookErr lookErrAt lookWhy lookWhyL
     $("arFlag").onclick arShotAt arShownN arLocked arLift arSnapping arSnap arBrackets AR_AUTO_MS AR_AUTO_R AR_AUTO_N
     arAutoAt arAutoFinds arAutoLock arAutoPause arAutoSaved arCan arCx AR_AUTO_RATE arFindLog arTurnNow arFindNote arAutoStep arFind arSunCan arSunCx
     arSunFind AR_ASK_DEG AR_ASK_NEW AR_ASK_QUIET AR_ASK_GONE arAsk arAskGo arAskNo arGlide arAskN arAskShow arAskHide arAskApply
-    arAskNot AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
+    arAskNot AR_LABEL_UP arTopOut AR_CHIP_H AR_CHIP_UP AR_CHIP_GAP arChipTurn arBounds arChipBounds arChipsAt arChipsDraw AR_MINI arMiniSig arAroundNow arMini arAroundOpen $("arMini").onclick arBody arBodyAt arBodiesAt arBodiesDraw arBodyEdge AR_RIB arRibSig arRibbon arMove
     arWeather arHeight arAimStep arScans arScanned arAimDraw shortType arDragStart arDragMove arDragEnd arMovedNote AR_TOUR arTour
     $("arInfo").onclick arTap arCardSig AR_PEEK_MS arFull arAwayAt arP arPeekHtml arCardRender arSet arRoom arTo
     arPeekWatch arCardDismiss $("arBtn").onclick $("arBtn2").onclick $("skyCv").onclick arTry arGoing arGoLive skyRowRender
@@ -537,7 +537,7 @@ changelog: sound|chime|ding|bell|clack|fanfare|music
 [i18n] Languages: T() and the rows of test/i18n.js, the language picker, the app's data-t texts
 test/index.html: LANGS LOCALES UNIT LANG pickLang LOC T I18N_ROWS I18N +COCKPIT +DEFAULTS +applySettings
 tools/app/main.js: applyLang +DEFAULTS +applySettings
-relay/serve.py: +PUSH_TEXT +ptext
+relay/serve.py: +PUSH_TEXT +ptext PUSH_LANG_CHOICE sub_lang
 test/i18n.js: "window.I18N_ROWS"
 tools/assets.py: stamp ASSETS
 CLAUDE.md: "**Every visible text goes through `T()`**"

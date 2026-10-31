@@ -59,7 +59,7 @@ let meBase = {...S};                                 // the settings as last sav
   if (q.has("demo")) S.demo = q.get("demo") !== "0";
   if (q.get("theme") && THEMES[q.get("theme")]) S.theme = q.get("theme");
   if (q.get("favs")) S.favs = q.get("favs");
-  if (q.get("lang")) S.lang = q.get("lang");
+  if (LANG_CHOICE && q.get("lang")) S.lang = q.get("lang");
   if (q.get("mode")) S.mode = q.get("mode") === "airport" ? "airport" : "overhead";
 })();
 
@@ -1138,8 +1138,8 @@ function lbYearCard(){
   if (per === "year") {
     const y = yearData && yearData.year === yr ? yearData : null;
     title = T("{y} in planes", {y: yr});
-    line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.countries, "countries"]]);
-    if (y && y.busiest) busy = fmtDay(Date.parse(y.busiest.day));
+    line = !y ? T("Loading …") : !y.planes ? T("No planes that year.") : three([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]);
+    if (y && y.busiest) busy = reviewDay(y.busiest.day);
   } else {
     const r = reviewData();
     title = T("{p} in planes", {p: reviewTitle()});
@@ -1149,7 +1149,7 @@ function lbYearCard(){
   const sub = [T("Week, month and year"), busy ? T("busiest day {d}", {d: busy}) : "", T("Share")].filter(Boolean).join(" · ");
   $("lbYear").innerHTML = `<span><small>${escH(title)}</small><b>${escH(line)}</b><em>${escH(sub)}</em></span><i aria-hidden="true">›</i>`;
 }
-$("lbYear").onclick = () => lbPanelOpen("year");
+$("lbYear").onclick = () => { lbPanelOpen("year"); perWarm(); };
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#lbIdx [data-lp]");
   if (!b) return;
@@ -2141,25 +2141,25 @@ function tierIcon(t){
 // picks): a switch shows Closest, Won or Still to win, one list at a time (kept while the page updates); a trophy with
 // ranks shows its rank's medal, bronze to diamond: the cup in that metal (filled once won) and a tag before the dots.
 let gTrTab = "near";
+const trProg = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
+const trPips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
+const trMedal = (st, t) => { const i = st.tiers.indexOf(t); return {cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
+const trRow = (on, name, what, right, extra = "", cls = "") => `<li class="${on ? "on" : ""}${cls}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
+  `<span class="n">${escH(right)}</span>${extra}</li>`;
+const trToGo = x => { const t = x.st.next, m = trMedal(x.st, t);
+  return trRow(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
+    `<span class="tl">${m.tag}${trPips(x.st)}<span class="bar"><i style="width:${(trProg(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls); };
+const trWon = x => { const t = x.st.last, m = trMedal(x.st, t);
+  return trRow(true, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), fmtDay(x.st.won[t[0]]),
+    `<span class="tl">${m.tag}${trPips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls); };
 function trophiesHtml(g0){
   const won = g0.trophies || {}, nWon = TROPHY_IDS.filter(k => won[k]).length;
   const lads = TROPHY_LADDERS.map(L => ({L, st: trophyLadder(g0, L)}));
-  const prog = x => x.st.next && x.st.have != null ? Math.min(1, x.st.have / x.st.next[1]) : 0;
-  const todo = lads.filter(x => x.st.next).sort((a, b) => prog(b) - prog(a));
-  const pips = st => `<span class="pips">${st.tiers.map(x => `<b class="${st.won[x[0]] ? "on" : ""}"></b>`).join("")}</span>`;
-  const medal = (st, t) => { const i = st.tiers.indexOf(t); return {cls: ` medal m${i}`, tag: `<span class="metal">${escH(T(TROPHY_MEDALS[i]))}</span>`}; };
-  const row = (on, name, what, right, extra = "", cls = "") => `<li class="${on ? "on" : ""}${cls}">${CUP}<span class="name">${escH(name)}${what ? ` <span class="s">${escH(what)}</span>` : ""}</span>` +
-    `<span class="n">${escH(right)}</span>${extra}</li>`;
-  const toGo = x => { const t = x.st.next, m = medal(x.st, t);
-    return row(false, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), x.st.have != null ? `${nf.format(Math.min(x.st.have, t[1]))} / ${nf.format(t[1])}` : "",
-      `<span class="tl">${m.tag}${pips(x.st)}<span class="bar"><i style="width:${(prog(x) * 100).toFixed(1)}%"></i></span></span>`, m.cls); };
-  const single = k => { const [nm, what] = trophyText(k); return row(!!won[k], nm, what, won[k] ? fmtDay(won[k]) : ""); };
-  const lists = {near: todo.slice(0, 3).map(toGo),
-    won: lads.filter(x => x.st.last).map(x => { const t = x.st.last, m = medal(x.st, t);
-      return row(true, T(t[2]), T(x.L[1], {n: nf.format(t[1])}), fmtDay(x.st.won[t[0]]),
-        `<span class="tl">${m.tag}${pips(x.st)}${x.st.next ? `<span class="nx">${escH(T("Next: {name}", {name: T(x.st.next[2])}))}</span>` : ""}</span>`, m.cls); })
-      .concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
-    todo: todo.map(toGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
+  const todo = lads.filter(x => x.st.next).sort((a, b) => trProg(b) - trProg(a));
+  const single = k => { const [nm, what] = trophyText(k); return trRow(!!won[k], nm, what, won[k] ? fmtDay(won[k]) : ""); };
+  const lists = {near: todo.slice(0, 3).map(trToGo),
+    won: lads.filter(x => x.st.last).map(trWon).concat(TROPHY_SINGLES.filter(k => won[k]).map(single)),
+    todo: todo.map(trToGo).concat(TROPHY_SINGLES.filter(k => !won[k]).map(single))};
   const tabs = [["near", T("Closest")], ["won", T("Won · {n}", {n: nWon})], ["todo", T("Still to win")]];
   const none = {near: "Every rank is won.", won: "No trophies won yet.", todo: "Every trophy is won."}[gTrTab];
   return secPlate(T("Trophies"), `<p class="sum">${escH(T("{n} of {t} won", {n: nWon, t: TROPHY_IDS.length}))}</p>` +
@@ -2181,51 +2181,58 @@ let yearData = null, yearAt = {}, yearCache = {};
 function fetchYear(){
   const y = new Date().getFullYear() - yearBack;
   yearData = yearCache[y] || null;
-  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - (yearAt[y] || 0) < 5 * 60000) return;
-  yearAt[y] = Date.now();
-  fetchJSON(`${relay()}/year?y=${y}`, {}, 10000).then(j => { yearCache[y] = j; if (y === new Date().getFullYear() - yearBack) yearData = j; lbSig = ""; renderLogbook(); }).catch(() => { yearAt[y] = 0; });
+  // 1.119.3 (to-do #219): every minute, like the week and the month (every five, it could be a plane behind them)
+  if (!relay() || (window.OVERHEAD_RELAY_VERSION || 0) < 29 || Date.now() - (yearAt[y] || 0) < 60000) return;
+  perLoad({per: "year", yb: yearBack}).catch(() => {});
 }
-function yearFacts(y){
-  const r = y.rarest, m = y.mostSeen, b = y.busiest;
-  return [[T("Busiest day"), b ? `${fmtDay(Date.parse(b.day))} · ${nf.format(b.planes)}` : ""],
-    [T("Most seen aircraft"), m && m.count > 1 ? `${m.reg} · ${T("{n} times", {n: nf.format(m.count)})}` : ""],
-    [T("Rarest"), r ? `${r.type || r.reg} · ${T(TIER_NAME[r.tier] || "")}` : ""]].filter(x => x[1]);
+// 1.119.3 (to-do #219): a period's data by what picks it ({per, yb, rb}): has it, and fetch it. The panel shows what the
+// switch has until then (perWant says where it is going), so it never goes blank. Fresh when it comes up, so the three agree.
+const perKey = p => p.per === "year" ? new Date().getFullYear() - p.yb : p.per + p.rb;
+const perHas = p => S.demo || !relay() || !!(p.per === "year" ? yearCache[perKey(p)] : review.data[perKey(p)]);
+function perLoad(p){
+  const k = perKey(p), year = p.per === "year", at = year ? yearAt : review.at;
+  if (S.demo || !relay() || !reviewOk() && !year) return Promise.resolve();
+  at[k] = Date.now();
+  return fetchJSON(year ? `${relay()}/year?y=${k}` : `${relay()}/review?span=${p.per}&back=${p.rb}`, {}, 12000).then(j => {
+    if (year) { yearCache[k] = j; if (k === new Date().getFullYear() - yearBack) yearData = j; }
+    else review.data[k] = j;
+    lbSig = ""; renderLogbook();
+  }).catch(e => { at[k] = 0; throw e; });
 }
+// The panel opened: the logbook's totals and this week, this month and this year fresh at once, so the first switch has them.
+function perWarm(){
+  fetchLogbook();
+  for (const per of ["week", "month", "year"]) perLoad({per, yb: 0, rb: 0}).catch(() => {});
+}
+// A year's numbers in the form reviewFacts and reviewSummary read (a week's or a month's has them from the relay).
+const yearReview = y => y && {span: "year", start: `${y.year}-01-01`, end: `${y.year}-12-31`, complete: y.year < new Date().getFullYear(), ...y};
 // 1.74: the Logbook's period card: this week, this month or the year in one card, picked with Week · Month · Year,
 // ◀ ▶ for earlier and later (week and month from /review, relay 46; the year from /year, with Share and the CSV).
-let lbPeriod = "year", yearBack = 0, perMore = false;
+let lbPeriod = "year", yearBack = 0, perMore = false, perWant = null;
 // 1.117 (to-do #210, Dave's pick B): the period's panel: Week · Month · Year, three big numbers, four facts and Share;
 // More unfolds the rest in place (the dates, the finer numbers, the other facts, the new types and the CSV).
+// 1.119.3 (to-do #219): the three are twins: the same numbers and facts in the same order and at the same height, a dash
+// for what a period hasn't got (and while its first data is on its way), and one "More".
 function periodHtml(){
   const per = reviewOk() ? lbPeriod : "year", yr = new Date().getFullYear() - yearBack, back = per === "year" ? yearBack : review.back;
+  const on = perWant ? perWant.per : per, onBack = perWant ? (perWant.per === "year" ? perWant.yb : perWant.rb) : back;
   const seg = reviewOk() ? `<div class="seg lbPer" role="group">` + [["week", "Week"], ["month", "Month"], ["year", "Year"]]
-    .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${per === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
+    .map(([k, l]) => `<button type="button" data-per="${k}" aria-pressed="${on === k}">${escH(T(l))}</button>`).join("") + `</div>` : "";
   const arrows = `<span class="perArr"><button class="cBtn" type="button" data-pb="1" aria-label="${escH(T("Earlier"))}">◀</button>` +
-    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${back ? "" : " disabled"}>▶</button></span>`;
-  const nums = list => list.length ? `<div class="yNums">` + list.map(([n, k]) => `<div><b>${nf.format(n || 0)}</b><span>${escH(T(k))}</span></div>`).join("") + `</div>` : "";
-  const facts = list => list.length ? `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v)}</dd></div>`).join("") + `</dl>` : "";
-  const share = id => `<div class="yActs"><button class="cBtn" type="button" id="${id}">${escH(T("Share"))}</button></div>`;
+    `<button class="cBtn" type="button" data-pb="-1" aria-label="${escH(T("Later"))}"${onBack ? "" : " disabled"}>▶</button></span>`;
+  const r = per === "year" ? yearReview(yearData && yearData.year === yr ? yearData : null) : reviewData(), f = reviewFacts(r || {}), nt = r ? reviewNewTypes(r) : "";
+  const nums = list => `<div class="yNums">` + list.map(([k, l]) => `<div><b>${r ? nf.format(r[k] || 0) : "–"}</b><span>${escH(T(l))}</span></div>`).join("") + `</div>`;
+  const facts = list => `<dl class="yFacts">` + list.map(([k, v]) => `<div><dt>${escH(k)}</dt><dd>${escH(v || "–")}</dd></div>`).join("") + `</dl>`;
   const csv = relay() && !S.demo && (window.OVERHEAD_RELAY_VERSION || 0) >= 29 ? `<div class="yActs"><a class="cBtn" id="yCsv" href="${escH(relay())}/logbook.csv" download>${escH(T("Download the logbook (CSV)"))}</a></div>` +
     `<p class="sum">${escH(T("Every sighting as a spreadsheet, for a spotting app or Excel."))}</p>` : "";
-  const more = (label, inner) => `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(perMore ? T("Less") : label)}</b><i aria-hidden="true">›</i></button></li></ul>` +
-    (perMore ? `<div class="perMoreIn">${inner}</div>` : "");
-  let title, body;
-  if (per === "year") {
-    const y = yearData && yearData.year === yr ? yearData : null, f = y ? yearFacts(y) : [];
-    title = T("{y} in planes", {y: yr});
-    body = !y ? `<p class="sum">${escH(T("Loading …"))}</p>` : !y.planes ? `<p class="sum">${escH(T("No planes that year."))}</p>`
-      : nums([[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"]]) + facts(f.slice(0, 4)) + share("yShare") +
-        more(T("More: airframes, countries, days, CSV"), nums([[y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]) + facts(f.slice(4)) + csv);
-  } else {
-    const r = reviewData(), f = r ? reviewFacts(r).filter(x => x[1]) : [], nt = r ? reviewNewTypes(r) : "";
-    title = T("{p} in planes", {p: reviewTitle()});
-    body = !(r && r.planes) ? `<p class="sum">${escH(reviewSummary(r))}</p>`
-      : nums(REVIEW_NUMS.slice(0, 3).map(([k, l]) => [r[k], l])) + facts(f.slice(0, 4)) + share("pShare") +
-        more(T("More: dates, aircraft, new types, CSV"), `<p class="sum">${escH(reviewSummary(r))}</p>` + nums(REVIEW_NUMS.slice(3).map(([k, l]) => [r[k], l])) +
-          facts(f.slice(4).concat(nt ? [[T("New types"), nt]] : [])) + csv);
-  }
+  const title = per === "year" ? T("{y} in planes", {y: yr}) : T("{p} in planes", {p: reviewTitle()});
+  const body = nums(REVIEW_NUMS.slice(0, 3)) + facts(f.slice(0, 4)) +
+    `<div class="yActs"><button class="cBtn" type="button" id="${per === "year" ? "yShare" : "pShare"}"${r && r.planes ? "" : " disabled"}>${escH(T("Share"))}</button></div>` +
+    `<ul class="idx perMore"><li><button type="button" data-pmore aria-expanded="${perMore}"><b>${escH(T(perMore ? "Less" : "More"))}</b><i aria-hidden="true">›</i></button></li></ul>` +
+    (perMore ? `<div class="perMoreIn">${r ? `<p class="sum">${escH(reviewSummary(r))}</p>` : ""}${nums(PER_MORE)}${facts(f.slice(4).concat([[T("New types"), nt]]))}${csv}</div>` : "");
   return secPlate(title, `<div class="perHead">${seg}${arrows}</div>${body}`, "perCard");
 }
+const PER_MORE = [["airframes", "Aircraft"], ["newTypeCount", "New types"], ["rare", "Rare"], ["countries", "Countries"], ["days", "Days"], ["points", "Points"]];
 document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-pmore], #yCsv");
   if (!b) return;
@@ -2237,10 +2244,18 @@ document.addEventListener("click", e => {
   const b = e.target && e.target.closest && e.target.closest("[data-per], [data-pb]");
   if (!b || b.disabled) return;
   ctlSound.click();
-  if (b.dataset.per) { lbPeriod = b.dataset.per; if (lbPeriod !== "year") { review.span = lbPeriod; review.back = 0; } }
-  else if (lbPeriod === "year") yearBack = Math.max(0, Math.min(10, yearBack + +b.dataset.pb));
-  else review.back = Math.max(0, Math.min(60, review.back + +b.dataset.pb));
-  lbSig = ""; renderLogbook();
+  const was = perWant || {per: lbPeriod, yb: yearBack, rb: review.back}, p = {...was};
+  if (b.dataset.per) { p.per = b.dataset.per; if (p.per !== "year") p.rb = 0; }
+  else if (p.per === "year") p.yb = Math.max(0, Math.min(10, p.yb + +b.dataset.pb));
+  else p.rb = Math.max(0, Math.min(60, p.rb + +b.dataset.pb));
+  const go = () => {
+    perWant = null; lbPeriod = p.per; yearBack = p.yb;
+    if (p.per !== "year") { review.span = p.per; review.back = p.rb; }
+    lbSig = ""; renderLogbook();
+  };
+  if (perHas(p)) { go(); perLoad(p).catch(() => {}); return; }
+  perWant = p; lbSig = ""; renderLogbook();          // the switch answers now; the old numbers stay until the new ones come
+  perLoad(p).then(() => { if (perWant === p) go(); }, () => { if (perWant === p) { perWant = null; lbSig = ""; renderLogbook(); } });
 });
 // Week and month in review (1.52, relay 46): a card above the year's, with Week / Month and earlier / later.
 function reviewHtml(){
@@ -2294,7 +2309,7 @@ function periodPicture(p){
 async function shareYear(){
   ctlSound.click();
   const y = yearData;
-  picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: yearFacts(y),
+  picCard(await periodPicture({title: T("{y} in planes", {y: y.year}), facts: reviewFacts(y).filter(x => x[1]),
     nums: [[y.planes, "planes"], [y.types, "types"], [y.airlines, "airlines"], [y.airframes, "airframes"], [y.countries, "countries"], [y.days, "days"]]}), `fallblatt-${y.year}.png`,
     T("Your year as a picture, ready to send."));
 }
@@ -2933,7 +2948,12 @@ function arLoop(){
     // 1.76.1: from the phone's height (else the airport's), so a plane below a cliff top shows below the horizon; a
     // descent isn't carried on below the airport. The earth's curve too (with the usual refraction).
     const u = Math.max(h + mv[2], Math.min(h, wx.elev)) - (arAlt != null ? arAlt : wx.elev) - d * d / (2 * 6371000) * .87;
-    const pr = arProject(e, n, u, R, W, H), isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
+    let pr = arProject(e, n, u, R, W, H);
+    // 1.119.2 (to-do #218): a plane just above the top has its label's box off the screen (or under the top bar): it keeps its
+    // chip, at the top edge, until the box fits (14 px more to go back, so it doesn't flicker on the line)
+    if (!pr.edge && pr.y - AR_LABEL_UP < arChipBounds(H).t + (arTopOut.has(ac.hex) ? 14 : 0)) { arTopOut.add(ac.hex); pr = {edge: [pr.x - W / 2, pr.y - H / 2], x: pr.x, y: pr.y, held: true}; }
+    else arTopOut.delete(ac.hex);
+    const isFeat = arWant ? arWant === ac.hex : feat && feat.hex === ac.hex, az = (Math.atan2(e, n) * 180 / Math.PI + 360) % 360;
     if (pr.edge && !isFeat) { if (d <= aroundM) off.push({ac, d, pr, az, isFeat, alt}); continue; }
     shown.push({ac, d, pr, isFeat, alt, az, el: Math.atan2(u, d) * 180 / Math.PI});
   }
@@ -3386,8 +3406,12 @@ function arAskNot(){
    stops being in the picture (arProject's 40 px past the edge), with the label's height over the plane (AR_CHIP_UP).
    A plane behind you (no way through the picture) goes on the side of the shorter turn, and keeps its side while it is
    about straight behind. Chips slide along their edge to stay clear of each other and the zoom buttons; the top bar, the
-   mini radar and the small card are the limits. */
+   mini radar and the small card are the limits.
+   1.119.2 (to-do #218): a plane just above the top, whose label's box would still be off the screen or under the top bar,
+   keeps its chip (at the top edge) until the box fits. */
 const AR_CHIP_H = 30, AR_CHIP_UP = 46, AR_CHIP_GAP = 8;
+const AR_LABEL_UP = 66;                              // 1.119.2: a label's box starts this far above its plane (26 px gap, 40 px box)
+const arTopOut = new Set();                          // the planes held as chips at the top until their label's box fits
 let arBounds = {at: 0};
 const arChipTurn = new Map();                        // a plane behind you: the side it was last on
 function arChipBounds(H){                            // where the chips may go: measured twice a second, not every frame
@@ -3413,7 +3437,8 @@ function arChipsAt(g, list, view, W, H){
     const w = Math.ceil(arTW(g, fn, name) + 6 + arTW(g, fs, sub) + 38), L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
     const ts = (W / 2 + 40) / Math.abs(ux || 1e-6), tt = (H / 2 + 40) / Math.abs(uy || 1e-6), t = Math.min(ts, tt);
     const lim = (v, a, b) => Math.max(a, Math.min(b, v)), xr = [8, W - 8 - w], yr = [B.t, Math.max(B.t, B.b - h)];
-    const x0 = lim(W / 2 + ux * t - w / 2, ...xr), y0 = lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
+    const held = !!s.pr.held;                       // 1.119.2: above the top, its chip at the top edge right over the plane, where the label will come in
+    const x0 = held ? lim(s.pr.x - w / 2, ...xr) : lim(W / 2 + ux * t - w / 2, ...xr), y0 = held ? yr[0] : lim(H / 2 + uy * t - AR_CHIP_UP - h / 2, ...yr);
     const free = (x, y) => !taken.some(b => x < b[0] + b[2] + gap && x + w + gap > b[0] && y < b[1] + b[3] + gap && y + h + gap > b[1]);
     // along its own edge first: the nearest place clear of what's there, touching one of them
     const ys = [y0, ...taken.flatMap(b => [b[1] - h - gap, b[1] + b[3] + gap])].filter(y => y >= yr[0] && y <= yr[1]).sort((p, q) => Math.abs(p - y0) - Math.abs(q - y0));
@@ -4398,7 +4423,7 @@ function setLine(id){
     +S.airtimeMin ? T("hovering {n} min", {n: S.airtimeMin}) : T("hovering off"));
   if (id === "display") {
     let lang = "";
-    try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
+    if (LANG_CHOICE) try { lang = setCap(new Intl.DisplayNames([LANG], {type: "language"}).of(LANG)); } catch {}
     return [lang, T(S.units === "metric" ? "metric" : "feet and knots"), setCap(String(styleShort(lookKind()) || "").toLowerCase())].filter(Boolean).join(" · ");
   }
   if (id === "flaps") return T(S.sound && S.chimes ? "sound and chimes on" : S.sound ? "sound on, chimes off" : S.chimes ? "chimes on, sound off" : "all quiet");
@@ -5775,9 +5800,8 @@ function careerMini(g){
   const lv = g.level, p = g.need ? Math.min(1, g.into / g.need) : 0, un = careerAt(lv + 1);
   return `<div class="cuMini" style="--p:${(p * 100).toFixed(1)}%"><div class="cuLn"><span class="cuD cur">${lv}</span><i><b></b>${CU_PLANE}</i><span class="cuD nx">${lv + 1}</span></div>` +
     `<div class="cuLb"><small>${escH(rankTitle(lv))}</small><small class="go">${escH(cuToGo(g))}</small><small>${escH(rankTitle(lv + 1))}</small></div></div>` +
-    // 1.116 (A's plainer words): the next unlock named, with its level; the whole route as "All 20 levels"
-    (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("Next unlock · level {n}", {n: lv + 1}))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "") +
-    `<button class="gHow" type="button" id="cuOpen">${escH(T("All {n} levels", {n: 20}))}<i>›</i></button>`;
+    // 1.116 (A's plainer words): the next unlock named, with its level. 1.119.3 (to-do #227): a tap on them opens the route (cuTap)
+    (un.length ? `<div class="cuStop">${careerIco(un[0], 34)}<span><small>${escH(T("Next unlock · level {n}", {n: lv + 1}))}</small><b>${escH(un.map(careerName).join(" · "))}</b></span></div>` : "");
 }
 // The route: a stop per level down a line, solid where you've been and dashed ahead, each with its insignia, title, the
 // points it opens at (the next stop only, 1.112) and its unlocks; the plane between your stop and the next with what is
@@ -6012,14 +6036,14 @@ setInterval(() => {
 }, 250);
 // 1.115 (Dave's pick B): the game's news (a place won in the league, a medal nearly there) under the chip, never in the
 // notices' bar; a tap opens the club, it goes by itself after a few seconds.
-function gSay(text, ms = 5000){
+function gSay(text, ms = 5000, tap = null){
   const box = $("gHead");
   if (!box || box.hidden) return;
   const cb = box.parentNode;
   for (const o of cb.querySelectorAll(".gSay")) o.remove();
   const b = document.createElement("div");
   b.className = "gSay"; b.setAttribute("role", "status"); b.textContent = text;
-  b.onclick = () => { b.remove(); box.click(); };
+  b.onclick = () => { b.remove(); if (tap) tap(); else box.click(); };
   cb.appendChild(b);
   setTimeout(() => { b.classList.add("out"); setTimeout(() => b.remove(), 320); }, ms);
 }
@@ -6383,14 +6407,17 @@ function renderGame(){
   const sub = gSubBar(g0);
   let h = "";
   if (sub === "level") {
-    h = secPlate(T("Your level"), `<div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
-      careerMini(g) +                                        // 1.109: the mini route, the next stop, Your route
+    // 1.119.3 (to-dos #227, #228): the rank, the mini route and the next unlock open the route, through one real button
+    // laid over them; the rules behind the plate's (i); the week and its standby at the bottom
+    h = secPlate(T("Your level"), `<button class="iBtn gHeroI" type="button" id="gHow" aria-label="${escH(T("How points work"))}">i</button>` +
+      `<div class="cuTap"><button class="cuHit" type="button" id="cuOpen" aria-label="${escH(T("All {n} levels", {n: 20}))}"></button><div class="gBig"><b>${escH(T(g.title))}</b><span class="rkLv">${escH(T("Level {n}", {n: g.level}))}${rankIns(g.level, 40, {wings: g.wings})}</span></div>` +
+      careerMini(g) + `</div>` +                             // 1.109: the mini route, the next stop, Your route
       (S.live ? "" : `<p class="gRule gOff">${escH(T("Points need live location"))}` +
-        (liveOk() ? ` · <button class="gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "") + `</p>`) + gSbyHtml(g) +
+        (liveOk() ? ` · <button class="gGoB" type="button">${gGoing ? `<i class="gSpin"></i>${escH(T("Going live"))}` : escH(T("Go live"))}</button>` : "") + `</p>`) +
       `<div class="gTiles"><div><b>${nf.format(g.today || 0)}</b><span>${escH(T("Points today"))}</span></div>` +
       // 1.96: This week is the week's points, as in the league (it was your place there; that stays beside it)
       `<div><b>${nf.format(g.week || 0)}</b><span>${escH(g.rank ? T("This week · #{n}", {n: g.rank}) : T("This week"))}</span></div><div><b>${g.streak || 0}</b><span>${escH(T("Day streak"))}</span></div></div>` +
-      gLimHtml(g, true) + `<button class="gHow" type="button" id="gHow">${escH(T("How points work"))}<i>›</i></button>`, "gHero") + gIndexHtml(g, g0);
+      gLimHtml(g, true) + gSbyHtml(g), "gHero") + gIndexHtml(g, g0);
   } else if (sub === "league") {
     const L = gLeague, rows = L ? (gAll ? L.allTime : L.rows) : null;
     let lg = `<div class="seg gSeg" role="group"><button type="button" data-ga="0" aria-pressed="${!gAll}">${escH(T("This week"))}</button><button type="button" data-ga="1" aria-pressed="${gAll}">${escH(T("All time"))}</button></div>`;
@@ -6432,6 +6459,7 @@ function renderGame(){
   for (const b of box.querySelectorAll("[data-ga]")) b.onclick = () => { ctlSound.nav(); gAll = b.dataset.ga === "1"; renderGame(); };
   if ($("gHow")) $("gHow").onclick = gHowCard;
   if ($("cuOpen")) $("cuOpen").onclick = careerOpen;
+  if ($("gSby")) $("gSby").onclick = gSbyOpen;
   for (const b of box.querySelectorAll("[data-gsub]")) b.onclick = () => { ctlSound.nav(); const k = b.dataset.gsub; if (G_PARTS[k]) gGoPlate(G_PARTS[k]); else gSubGo(k); };
   trWire(box, renderGame);
   if ($("gLeagueOpt")) $("gLeagueOpt").onchange = e => { ctlSound.click(); S.league = e.target.checked; saveSettings(); gLeagueAt = 0; setTimeout(() => gLeagueLoad(true), 1500); };
@@ -6493,19 +6521,32 @@ function gIndexHtml(g, g0){
 const sbyDay = (i, w) => new Date(2026, 9, 26 + i).toLocaleDateString(LOC(), {weekday: w});
 // The day after a standby: the streak's day the next scan pays (today's, once scanned); else 0.
 const gSbyUsed = g => { const s = g && g.standby; return s && s.today > 0 && s.week[s.today - 1] === "b" ? (g.streak || 0) + (g.scannedToday ? 0 : 1) : 0; };
+// 1.119.3 (to-do #220, Dave's B2): one line under the week, the tag and a short state; all the explaining behind a tap.
 function gSbyHtml(g){
   const s = g.standby, R = gRules();
   if (!s || !s.week) return "";
-  const t = s.today, used = s.week.lastIndexOf("b"), risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0;
-  const from = R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
-  const right = !s.allow ? `<em class="used">${escH(T("Standby from level {n}", {n: from}))}</em>`
-    : s.left ? `<em>${escH(s.left === 1 ? T("1 standby left") : T("{n} standbys left", {n: s.left}))}</em>`
-    : risk ? `<em class="none">${escH(T("No standby left"))}</em>`
-    : `<em class="used">${escH(used >= 0 ? T("Standby used {d}", {d: sbyDay(used, "long")}) : T("No standby left"))}</em>`;
+  const t = s.today, used = s.week.lastIndexOf("b"), from = gSbyFrom(R);
+  const risk = s.allow && !s.left && !g.scannedToday && (g.streak || 0) > 0 && s.week[t - 1] !== "b";   // the day after one: that it was used
+  const line = !s.allow ? T("Standby from level {n}", {n: from}) : s.left ? T("Standby ready")
+    : risk ? T("No standby left: scan by {h}", {h: g.resets ? hhmm(new Date(g.resets)) : "03:00"})
+    : used >= 0 ? T("Standby used {d}", {d: sbyDay(used, "long")}) : T("No standby left");
+  const fresh = s.allow && g.level === from && !localStorage.getItem(ACH_KEY + ".sby");
   const cls = (c, i) => c === "s" ? (i === t ? "now" : "on") : c === "b" ? "sby" : i === t ? "todo" : i < t ? "miss" : "";
-  return `<div class="gRule gSbyH"><span>${escH(T("This week"))}</span>${right}</div>` +
+  return `<div class="gSbyWk"><span class="gTileL">${escH(T("This week's streak"))}</span>` +
     `<div class="gWk">${s.week.map((c, i) => `<i class="${cls(c, i)}" title="${escH(sbyDay(i, "long"))}">${escH(c === "b" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
-    (risk ? `<span class="gRule">${escH(T("No scan yet today: scan before 03:00 or your streak starts again at day 1."))}</span>` : "");
+    `<button class="gHow gSbyL" type="button" id="gSby"><span><span class="gSbyTg${s.left ? "" : " off"}">${escH(T("SBY"))}</span><b class="${risk ? "warn" : ""}">${escH(line)}</b>` +
+    (fresh ? `<u>${escH(T("NEW"))}</u>` : "") + `</span><i>›</i></button></div>`;
+}
+const gSbyFrom = R => R && R.standby ? R.standby[R.standby.length - 1][0] : 6;
+// A plate in the bottom sheet, its title engraved (Dave's rule for every sheet), as the Logbook's panels.
+const plateSheet = (title, body) => cardOpen(`<div class="lbIn">${secPlate(title, body)}</div>`, ci => ci.classList.add("tdSheet", "lbSheet"));
+// The sheet: Dave's two lines around a sample week (a Saturday covered, Sunday scanned).
+function gSbyOpen(){
+  ctlSound.nav();
+  plateSheet(T("Standby"), `<p class="sum">${escH(T("Miss a day, and your Standby is automatically consumed to keep your streak going"))}</p>` +
+    `<div class="gWk">${[..."mooooBn"].map((c, i) => `<i class="${{m: "miss", o: "on", B: "sby", n: "now"}[c]}">${escH(c === "B" ? T("SBY") : sbyDay(i, "narrow"))}</i>`).join("")}</div>` +
+    `<p class="sum">${escH(T("That day shows SBY and pays no points. Resets on Monday 03:00"))}</p>`);
+  try { if (!localStorage.getItem(ACH_KEY + ".sby")) { localStorage.setItem(ACH_KEY + ".sby", "1"); renderGame(); } } catch {}
 }
 // 1.96 (to-do #127, Dave's L3): today's planes by rarity against their limits on the Game page, five counters, and a
 // note for each rarity that reached its limit, with when it starts again.
@@ -6659,9 +6700,17 @@ function achSpecial(a, dry){
   return true;
 }
 // The nudge: when a trophy's next rank is close (two airlines to go, say), a notice from the right, once for each rank.
-const NUDGE_UNIT = {planes: ["plane", "planes"], types: ["type", "types"], airlines: ["airline", "airlines"], regs: ["aircraft", "aircraft"],
-  countries: ["country", "countries"], points: ["point", "points"], legendary: ["special plane", "special planes"], today: ["plane today", "planes today"],
-  friend: ["time", "times"], streak: ["day", "days"]};
+// 1.119.3 (to-do #221, the design brief's rule 5): what kind of thing it is, then what to do; a tap opens that trophy.
+const NUDGE_DO = {planes: ["see {n} more plane", "see {n} more planes"], types: ["see {n} more type", "see {n} more types"], airlines: ["see {n} more airline", "see {n} more airlines"],
+  regs: ["see {n} more aircraft", "see {n} more aircraft"], countries: ["see {n} more country", "see {n} more countries"], points: ["earn {n} more point", "earn {n} more points"],
+  legendary: ["see {n} more special plane", "see {n} more special planes"], today: ["see {n} more plane today", "see {n} more planes today"],
+  friend: ["see that aircraft {n} more time", "see that aircraft {n} more times"], streak: ["points {n} more day", "points {n} more days"]};
+function trophySheet(L){
+  const g0 = (lbData() || {}).game, x = {L, st: trophyLadder(g0, L)}, t = x.st.next || x.st.last;
+  if (!t) return;
+  ctlSound.nav();
+  plateSheet(T(t[2]), `<ul class="ranks plain cups">${x.st.next ? trToGo(x) : trWon(x)}</ul>`);
+}
 function medalNudge(g0){
   if (!g0 || !g0.trophyCounts || S.demo) return;
   let done = [];
@@ -6670,8 +6719,7 @@ function medalNudge(g0){
     const st = trophyLadder(g0, L), t = st.next, left = t && st.have != null ? t[1] - st.have : 0;
     if (!t || done.includes(t[0]) || left <= 0 || left > Math.max(2, Math.round(t[1] * .02))) continue;
     try { localStorage.setItem(ACH_KEY + ".nudge", JSON.stringify(done.concat(t[0]).slice(-80))); } catch {}
-    const u = NUDGE_UNIT[L[0]] || ["", ""];
-    gSay(T("{n} more {u} for {name}", {n: nf.format(left), u: T(u[left === 1 ? 0 : 1]), name: T(t[2])}), 7000);
+    gSay(T("Trophy {name}: {what}", {name: T(t[2]), what: T(NUDGE_DO[L[0]][left === 1 ? 0 : 1], {n: nf.format(left)})}), 7000, () => trophySheet(L));
     return;                                                         // one at a time
   }
 }

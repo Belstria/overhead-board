@@ -61,7 +61,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELAY_VERSION = 99
+RELAY_VERSION = 101
 BOARD_URL = "https://belstria.github.io/overhead-board/"
 PAGE_TTL = 60               # check GitHub for a newer board at most once a minute
 SOURCES = [
@@ -2611,13 +2611,22 @@ def _enricher():
                 route = None
             if route:
                 e.update(route)
+            late_type = late_reg = False
             if info:
                 e.update({k: v for k, v in info.items() if v})
                 if not e.get("reg") and info.get("regFromDb"):
                     e["reg"] = info["regFromDb"]
+                    late_reg = True
                 if not e.get("typeCode") and info.get("icaoType"):
                     e["typeCode"] = info["icaoType"]
+                    late_type = True
             book = spot.book()
+            # relay 101: a code only the lookup knew goes in the logbook too, dated by the sighting. Quietly: the plane has
+            # gone by, so no "new" mark on it (learning=True), and no points (the game's own book is not touched).
+            if late_type:
+                _note_first(book["types"], e["typeCode"], e.get("desc") or "", e, "newType", True)
+            if late_reg:
+                _note_first(book["regs"], e["reg"], e.get("typeCode") or "", e, "newReg", True)
             if route:
                 note_records(book, e, spot.center() if spot.center else None)
             ctry = e.get("ownerCountry")
@@ -3611,7 +3620,39 @@ def category_top_json(spot, cat, places=None):
     return out
 
 
+def _book_late(spot):
+    """Relay 101: until relay 101 a type or registration only the aircraft lookup knew stayed in the day's sighting and
+    never reached the logbook, so a period's types could top the lifetime's. Once, from the saved days: each code missing
+    from the book gets its first and last time and its count from those sightings. Only adds what is missing (safe twice)
+    and sets no "new" mark. The game's own book is not touched. Not under _data_lock (it reads every saved day)."""
+    with _data_lock:
+        if spot.book().get("lateCodes"):
+            return
+    found = {"types": {}, "regs": {}}
+    for e in _logbook_entries(spot):
+        ts = e.get("ts")
+        if not ts:
+            continue
+        for part, key, name in (("types", e.get("typeCode"), e.get("aircraftType") or e.get("desc")), ("regs", e.get("reg"), e.get("typeCode"))):
+            if key:
+                f = found[part].setdefault(key, {"name": "", "first": ts, "last": ts, "count": 0})
+                f["count"] += 1
+                f["first"], f["last"] = min(f["first"], ts), max(f["last"], ts)
+                f["name"] = f["name"] or name or ""
+    with _data_lock:
+        b = spot.book()
+        for part, codes in found.items():
+            have = b.setdefault(part, {})
+            for key, f in codes.items():
+                if key not in have:
+                    have[key] = f
+                    event("info", f"Logbook: added {key} from the saved days", echo=False)
+        b["lateCodes"] = 1
+        spot.changed("book")
+
+
 def logbook_json(spot):
+    _book_late(spot)                            # relay 101: codes only the lookup knew, counted back once
     _scan_types(spot)                           # relay 89: the member cards' scans per airline, counted back once
     _passport_make(spot)                        # relay 90: the passport's countries from earlier scans, once
     with _data_lock:
@@ -3738,24 +3779,33 @@ def year_json(spot, year):
     cached = getattr(spot, "_year", None)
     if cached and cached[0] == key:
         return cached[1]
-    n, types, airlines, countries, regs, days, pts = 0, set(), set(), set(), collections.Counter(), {}, 0
-    rec, rarest = {}, None
+    n, types, airlines, countries, regs, days, pts = 0, set(), {}, set(), collections.Counter(), {}, 0
+    rec, rarest, rare, new_types, new_regs, new_al = {}, None, 0, {}, 0, 0
     order = {t: i for i, t in enumerate(TIERS)}
+    centre = spot.center() if spot.center else None
     with _data_lock:
         for day, entries in _days_of(spot, f"{year}-"):
             days[day] = len(entries)
             for e in entries:
                 n += 1
                 pts += e.get("gp", 0) + e.get("lock", 0)
+                rare += order.get(e.get("tier"), -1) >= order["rare"]        # relay 101: as in review_json
                 if e.get("typeCode"):
                     types.add(e["typeCode"])
-                if _al(e):
-                    airlines.add(_al(e))
+                    if e.get("newType"):
+                        new_types.setdefault(e["typeCode"], e.get("aircraftType") or e.get("desc") or "")
+                al = _al(e)
+                if al:
+                    a = airlines.setdefault(al, {"code": al, "name": e.get("airlineName") or "", "count": 0})
+                    a["count"] += 1
+                    a["name"] = a["name"] or e.get("airlineName") or ""
+                new_regs += bool(e.get("newReg"))
+                new_al += bool(e.get("newAirline"))
                 if e.get("ownerCountry"):
                     countries.add(e["ownerCountry"])
                 if e.get("reg"):
                     regs[e["reg"]] += 1
-                note_records(rec, e)
+                note_records(rec, e, centre)
                 k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
                 if rarest is None or k > rarest[0]:
                     rarest = (k, e)
@@ -3764,8 +3814,11 @@ def year_json(spot, year):
     who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "", "callsign": e.get("callsign") or "",
                      "tier": e.get("tier") or "", "ts": e.get("ts")}
     out = {"year": year, "planes": n, "types": len(types), "airlines": len(airlines), "countries": len(countries),
-           "airframes": len(regs), "days": len(days), "points": pts,
+           "airframes": len(regs), "days": len(days), "points": pts, "rare": rare,
+           "newTypes": [{"type": t, "name": nm} for t, nm in list(new_types.items())[:12]], "newTypeCount": len(new_types),
+           "newAircraft": new_regs, "newAirlines": new_al,
            "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest else None,
+           "topAirline": max(airlines.values(), key=lambda a: a["count"]) if airlines else None,
            "mostSeen": {"reg": top[0][0], "count": top[0][1]} if top else None,
            "rarest": who(rarest[1]) if rarest else None, "records": rec.get("records", {})}
     spot._year = (key, out)
@@ -3812,6 +3865,7 @@ def review_json(spot, span, back=0, prev=True):
             if spot.entries:
                 days.add(today)
             n, pts, rare, types, airlines, regs, per_day, rec, rarest = 0, 0, 0, set(), {}, collections.Counter(), {}, {}, None
+            countries = set()
             new_types, new_regs, new_al = {}, 0, 0
             order = {t: i for i, t in enumerate(TIERS)}
             centre = spot.center() if spot.center else None
@@ -3835,6 +3889,8 @@ def review_json(spot, span, back=0, prev=True):
                         regs[e["reg"]] += 1
                     new_regs += bool(e.get("newReg"))
                     new_al += bool(e.get("newAirline"))
+                    if e.get("ownerCountry"):
+                        countries.add(e["ownerCountry"])
                     note_records(rec, e, centre)
                     k = (order.get(e.get("tier"), -1), -FLEET.get(_tc(e), 500))
                     if rarest is None or k > rarest[0]:
@@ -3845,7 +3901,7 @@ def review_json(spot, span, back=0, prev=True):
             who = lambda e: {"reg": e.get("reg") or "", "type": e.get("aircraftType") or e.get("typeCode") or "",
                              "callsign": e.get("callsign") or "", "tier": e.get("tier") or "", "ts": e.get("ts")}
             out = {"span": span, "start": start, "end": end, "complete": done, "planes": n, "days": sum(1 for v in per_day.values() if v),
-                   "types": len(types), "airlines": len(airlines), "airframes": len(regs), "points": pts, "rare": rare,
+                   "types": len(types), "airlines": len(airlines), "countries": len(countries), "airframes": len(regs), "points": pts, "rare": rare,
                    "newTypes": [{"type": t, "name": nm} for t, nm in list(new_types.items())[:12]], "newTypeCount": len(new_types),
                    "newAircraft": new_regs, "newAirlines": new_al,
                    "busiest": {"day": busiest[0], "planes": busiest[1]} if busiest and busiest[1] else None,
@@ -5704,6 +5760,9 @@ def push_send(sub, payload, urgent=False):
 
 
 # What the notifications say, in the subscriber's language.
+# Relay 100 (app 1.119.2): English for everyone while the app's Language setting is off. Set to True with the app's
+# LANG_CHOICE to say the stored language again (it is still kept per subscription).
+PUSH_LANG_CHOICE = False
 PUSH_TEXT = {
     "window": {"en": "Worth going to the window", "de": "Lohnt sich ein Blick aus dem Fenster", "fr": "Ça vaut le coup d'aller à la fenêtre",
                "es": "Vale la pena asomarse a la ventana", "nl": "Even naar het raam"},
@@ -5745,6 +5804,10 @@ PUSH_TEXT = {
     "record": {"en": " · a new best day!", "de": " · ein neuer Bestwert!", "fr": " · un nouveau record !", "es": " · ¡un nuevo récord!", "nl": " · een nieuw record!"},
 }
 DIRS = {"en": "N NE E SE S SW W NW", "de": "N NO O SO S SW W NW", "fr": "N NE E SE S SO O NO", "es": "N NE E SE S SO O NO", "nl": "N NO O ZO Z ZW W NW"}
+
+
+def sub_lang(sub):
+    return (sub.get("lang") or "en") if PUSH_LANG_CHOICE else "en"
 
 
 def ptext(key, lang, **kw):
@@ -6284,7 +6347,7 @@ def window_check(who, subs, centre, spot, st):
             _sent[key] = now
             if not urgent:                           # emergencies and special planes don't use up the 15 minutes
                 _last_window[sub["endpoint"]] = now
-            lang = sub.get("lang") or "en"
+            lang = sub_lang(sub)
             d = DIRS.get(lang, DIRS["en"]).split()[int(((math.degrees(math.atan2(cx, cy)) + 360) % 360 + 22.5) // 45) % 8]
             altx = f"{round(alt * .3048 / 50) * 50:,} m" if isinstance(alt, (int, float)) else ""
             m = max(1, round(t / 60))
@@ -6305,7 +6368,7 @@ def countdown_send(sub, key, pl):
     if now - c["at"] < 25:
         return
     c["at"] = now
-    lang = sub.get("lang") or "en"
+    lang = sub_lang(sub)
     t, cpa, alt = pl["t"], pl["cpa"], pl["alt"]
     d = DIRS.get(lang, DIRS["en"]).split()[int(((math.degrees(math.atan2(pl["cx"], pl["cy"])) + 360) % 360 + 22.5) // 45) % 8]
     altx = f"{round(alt * .3048 / 50) * 50:,} m" if isinstance(alt, (int, float)) else ""
@@ -6338,7 +6401,7 @@ def summary_check(who, subs, spot, st):
     rare = max(entries, key=lambda e: order.get(e.get("tier"), -1))
     low = min((e for e in entries if isinstance(e.get("altAtMin"), (int, float)) and e["altAtMin"] > 0), key=lambda e: e["altAtMin"], default=None)
     for sub in want:
-        lang = sub.get("lang") or "en"
+        lang = sub_lang(sub)
         name = lambda e: " ".join(x_ for x_ in [e.get("desc") or e.get("typeCode"), e.get("callsign")] if x_)
         body = ptext("sum", lang, n=len(entries), p=g["today"],
                      best=ptext("record", lang) if g["best"] and g["best"]["day"] == day and g["today"] > 0 else "",
@@ -6374,7 +6437,7 @@ def review_check(who, subs, spot, st):
             sub[mark] = r["start"]
             if not r["planes"]:
                 continue
-            lang = sub.get("lang") or "en"
+            lang = sub_lang(sub)
             ra = r["rarest"] or {}
             body = ptext("rsum", lang, n=r["planes"], t=r["types"], a=r["airlines"],
                          new=ptext("newtypes", lang, x=r["newTypeCount"]) if r["newTypeCount"] else "",
@@ -9322,7 +9385,7 @@ class Handler(BaseHTTPRequestHandler):
                 subs = self.guest[1].get("push") or []
             if not subs:
                 return self.reply(404, "text/plain", b"No notifications are on")
-            threading.Thread(target=_deliver, args=(subs, {"title": "Fallblatt", "body": ptext("test", (subs[-1].get("lang") or "en")),
+            threading.Thread(target=_deliver, args=(subs, {"title": "Fallblatt", "body": ptext("test", sub_lang(subs[-1])),
                                                            "tag": "test", "url": "/app/"}), daemon=True).start()
             return self.reply(204, "text/plain", b"")
         if path in ("/push/subscribe", "/push/unsubscribe"):

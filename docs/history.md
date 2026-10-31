@@ -961,6 +961,32 @@ The repository is public: no addresses, keys or personal data here either.
   Now went to Now (`w.navigate` only changed the hash, which the back guard's popstate took for a back); sw.js now posts
   `{type: "tab"}` to an open /app/ page.
 
+- 1.119.3 (to-dos #219, #220, #227, #221, #228; relay 101): **the period panels as twins, the standby's one line, the level
+  card's taps.** #219: `periodHtml` draws week, month and year alike (`reviewFacts` for all three; `yearFacts` went; `yearReview`
+  puts a year in its form), a dash for what's missing or on its way, one "More" (`PER_MORE`). `perLoad`/`perHas`/`perWant`: a
+  switch keeps the old panel until the new data is in; `perWarm` loads all three when the panel opens. Why the numbers
+  differed: `fetchYear` asked every 5 minutes against the review's every minute (4,152 / 4,153), and the enricher filled
+  `typeCode` and `reg` into a sighting without noting them in the book (137 / 138 types: one sighting, known only to the
+  aircraft lookup). Relay 101: the enricher notes them quietly (`_note_first` with learning=True: dated by the sighting, no
+  "new" mark, no points); `_book_late` adds what's missing once from the saved days (marker `lateCodes` in the book);
+  `year_json` gains `topAirline`, `rare`, `newTypes`, `newTypeCount`, `newAircraft`, `newAirlines`; `review_json` gains
+  `countries`. #220: `gSbyHtml` is the week and one line, `gSbyOpen` the sheet, `plateSheet` a plate in the bottom sheet; NEW
+  while at the standby's first level until the sheet was opened (`ACH_KEY + ".sby"`). Two allowed, one used: still "Standby
+  ready". #227: `.cuTap` holds the rank, mini route and next unlock with one real button laid over them (`.cuHit`, `#cuOpen`).
+  #228: the week at the card's foot, "This week's streak" in the tiles' label style (`.gTileL`); How points work is the plate's
+  (i) (`.gHeroI`). #221: the "2 more days for On a roll" notice was `medalNudge`'s `gSay` bubble, no push: now "Trophy On a
+  roll: points 2 more days" (`NUDGE_DO`), `gSay` takes a tap, `trophySheet` opens that trophy (the rows came out of
+  `trophiesHtml`: `trRow`, `trToGo`, `trWon`).
+- 1.119.2 (to-dos #218, #226; relay 100, below): **Sky view's top edge, and no Language setting.** #218: in `arLoop`
+  a plane in view whose label's box (`AR_LABEL_UP` = 66 px above it) would start above `arChipBounds(H).t` (under the
+  top bar) is made an edge plane (`pr.edge`, `pr.held`) and kept in `arTopOut` (14 px more to leave, no flicker on the
+  line); `arChipsAt` sets a held chip at the top edge right over the plane (the label comes in where it was), the other
+  rules (the three closest, flight and distance, the limits, a tap opens the card) are as before. The idle path's
+  signature and `sky_jitter`'s figures are unchanged. #226: `window.LANG_CHOICE = false` in the board's first script
+  (the app build copies it with the `i18n.js` load, `tools/app/build.py`): `pickLang` says `"en"`, `?lang=` is read
+  only with it, the cockpit's `lang` control and Display's language word (`main.js`) are left out, `i18n.js` isn't
+  loaded; `T()`, `LANGS`, `LOCALES`, `S.lang` and the translations are left in place. Dates and numbers: `LOC()` is
+  `en-GB` (it was for English before), `nf` `en-US`, times `en-GB`: unchanged. True again brings it all back.
 - 1.119.1 (to-dos #213–#217, #202, #203; what Dave found using 1.119): **seven fixes.** #213: `ppOpen` is a Map (region →
   unfolded); `ppShelf` always draws a heading button (`.ppHd`, `data-ppopen`, `aria-expanded`), the row only when
   unfolded; folded is `.shut`, no stamps `.ppNone` (muted count). A region with stamps starts unfolded, without as one
@@ -1838,6 +1864,10 @@ it, and never replace it, or phones refuse the update. Bump nothing by hand: the
 
 ## The relay
 
+- Relay 100 (1.119.2, to-do #226): **notifications in English for everyone.** `PUSH_LANG_CHOICE = False` and
+  `sub_lang(sub)` (every `sub.get("lang")` of the push texts goes through it): a subscription keeps its stored `lang`,
+  but the texts and the compass words come out English until the switch is true again (with the app's `LANG_CHOICE`).
+  Web-push subscribers would otherwise keep their old language: only the Android app sends it again on each opening.
 - Relay 99 (1.119, to-do #212, clarity build 4, Dave's pick B): **the private page leads with the QR code.**
   `refuse()` builds the page from `PRIVATE_PAGE` around `pair_page_js()`: "This board is private", one small line
   ("Scan with a phone that is signed in, or type the code there"), the QR code with "Or open …/pair" and the code under
